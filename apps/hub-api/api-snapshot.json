@@ -1,6 +1,6 @@
 {
   "base_url": "http://127.0.0.1:3001",
-  "route_count": 67,
+  "route_count": 72,
   "routes": [
     {
       "method": "GET",
@@ -37,9 +37,84 @@
       }
     },
     {
+      "method": "POST",
+      "path": "/api/hub/chat/provision",
+      "path_pattern": "/api/hub/chat/provision",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/chat/snapshots",
+      "path_pattern": "/api/hub/chat/snapshots",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/chat/snapshots",
+      "path_pattern": "/api/hub/chat/snapshots",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/hub/chat/snapshots/placeholder",
+      "path_pattern": "/api/hub/chat/snapshots/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
       "method": "GET",
       "path": "/api/hub/home",
       "path_pattern": "/api/hub/home",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/search",
+      "path_pattern": "/api/hub/search",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {

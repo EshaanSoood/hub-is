@@ -1,8 +1,8 @@
 export const createProjectRoutes = (deps) => {
   const projectIdPattern = /^[A-Za-z0-9_-]+$/;
   const {
-    db,
     withAuth,
+    withTransaction,
     withPolicyGate,
     withProjectPolicyGate,
     send,
@@ -38,10 +38,12 @@ export const createProjectRoutes = (deps) => {
     insertProjectStmt,
     insertProjectMemberStmt,
     deleteProjectMemberStmt,
+    insertProjectDefaultCollectionStmt,
     insertPaneStmt,
     insertDocStmt,
     insertDocStorageStmt,
     insertAssetRootStmt,
+    deletePaneMembersByUserInProjectStmt,
     assignedTaskListForUser,
     reassignTasksForRemovedMember,
   } = deps;
@@ -79,16 +81,12 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
-    db.exec('BEGIN');
-    try {
+    withTransaction(() => {
       insertProjectStmt.run(projectId, name, auth.user.user_id, now, now);
       insertProjectMemberStmt.run(projectId, auth.user.user_id, 'owner', now);
       const defaultCollectionId = newId('col');
       const defaultCollectionNow = nowIso();
-      db.prepare(`
-        INSERT INTO collections (collection_id, project_id, name, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(defaultCollectionId, projectId, 'Tasks', defaultCollectionNow, defaultCollectionNow);
+      insertProjectDefaultCollectionStmt.run(defaultCollectionId, projectId, 'Tasks', defaultCollectionNow, defaultCollectionNow);
 
       const paneId = newId('pan');
       const docId = newId('doc');
@@ -114,12 +112,7 @@ export const createProjectRoutes = (deps) => {
         now,
         now,
       );
-
-      db.exec('COMMIT');
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
+    });
 
     emitTimelineEvent({
       projectId,
@@ -240,6 +233,30 @@ export const createProjectRoutes = (deps) => {
     }
 
     insertProjectMemberStmt.run(projectId, targetUserId, role, nowIso());
+    if (targetUserId !== auth.user.user_id) {
+      try {
+        createNotification({
+          projectId,
+          userId: targetUserId,
+          reason: 'assignment',
+          entityType: 'project',
+          entityId: projectId,
+          notificationScope: 'network',
+          payload: buildNotificationPayload({
+            message: 'You were added to a project.',
+            sourceProjectId: projectId,
+          }),
+        });
+      } catch (error) {
+        console.error('projects.mjs addProjectMember notification failed', {
+          file: 'apps/hub-api/routes/projects.mjs',
+          handler: 'addProjectMember',
+          userId: auth.user.user_id,
+          entityId: projectId,
+          error,
+        });
+      }
+    }
 
     send(
       response,
@@ -467,11 +484,10 @@ export const createProjectRoutes = (deps) => {
       });
     }
 
-    deleteProjectMemberStmt.run(projectId, targetUserId);
-    db.prepare('DELETE FROM pane_members WHERE user_id = ? AND pane_id IN (SELECT pane_id FROM panes WHERE project_id = ?)').run(
-      targetUserId,
-      projectId,
-    );
+    withTransaction(() => {
+      deleteProjectMemberStmt.run(projectId, targetUserId);
+      deletePaneMembersByUserInProjectStmt.run(targetUserId, projectId);
+    });
 
     send(response, jsonResponse(200, okEnvelope({ removed: true })));
   };

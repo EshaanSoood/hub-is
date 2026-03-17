@@ -34,27 +34,25 @@ Generated files (`dist`, `node_modules`, `tsconfig.app.tsbuildinfo`) are build/r
 ## Authentication (Keycloak)
 
 - The hub uses Keycloak OIDC with PKCE through `keycloak-js`.
-- Production build settings are read from `.env.production`:
-  - `VITE_KEYCLOAK_URL=https://auth.eshaansood.org`
-  - `VITE_KEYCLOAK_REALM=eshaan-os`
-  - `VITE_KEYCLOAK_CLIENT_ID=eshaan-os-hub`
+- Deployment-specific auth settings are provided through environment variables.
+- Use [.env.example](./.env.example) as the source of variable names and placeholder values.
 - After login, the UI loads session capabilities from server source-of-truth at `/api/hub/me`.
 
 ### Create an account
 
 Access is invite-only at the hub policy layer.
 
-1. Owner creates an invite for your email from the hub owner panel.
-2. Sign in at `https://eshaansood.org` with your Keycloak account.
+1. A project owner creates an invite for your email.
+2. Sign in at the public URL configured for your deployment.
 3. Pending invites are consumed by the hub policy service to grant project membership.
 
 ### Owner Invariant
 
-- Hub authorization is owner-email anchored: set `HUB_OWNER_EMAIL` in the sidecar env.
-- The owner role is derived only from that canonical email, not Keycloak realm roles.
+- Hub authorization is owner-email anchored through `HUB_OWNER_EMAIL`.
+- The owner role is derived from that canonical email, not IdP realm roles.
 - If `HUB_OWNER_EMAIL` is missing, authenticated hub policy endpoints fail closed with `503`.
 
-## Security + Governance Endpoints
+## Security + Governance
 
 - Edge gate grant flow (owner only): `POST /api/hub/edge/grants`
 - Notes (project-scoped, async): `GET/POST /api/hub/projects/:projectId/notes`, `PATCH /api/hub/projects/:projectId/notes/:noteId`
@@ -63,27 +61,16 @@ Access is invite-only at the hub policy layer.
 - Snapshot registry (owner): `GET/POST /api/hub/snapshots`
 - Recovery workflows (owner): `POST /api/hub/recovery/restore-snapshot`, `POST /api/hub/recovery/revert-window`, `GET /api/hub/recovery/jobs`
 
-## Collaboration Socket (Yjs/Lexical)
+## Realtime Services
 
-- Canonical public WS endpoint: `wss://collab.eshaansood.org`
-- Hub sidecar mints short-lived scoped tokens with room scope (`noteId`) for this endpoint.
-- Dedicated collab deploy assets:
-  - `apps/hub-collab`
-  - `docs/collab-socket-contract.md`
+- Collaboration, chat, and live-update endpoints are deployment-configured.
+- Keep public hostnames, routing, and operations runbooks outside the public README.
+- Use [.env.example](./.env.example) for the relevant variable names.
 
-### Deploy commands
+## Matrix Chat (Tuwunel)
 
-- Hub API sidecar deploy: `npm run deploy:hub-api`
-- Collab service deploy: `npm run deploy:collab`
-- Full deploy: `npm run deploy`
-
-### Live verification
-
-- Canonical live base URL: `https://eshaansood.org`
-- Ensure regression project fixture exists: `HUB_BASE_URL=https://eshaansood.org HUB_PROJECT_ID=backend-pilot HUB_OWNER_ACCESS_TOKEN=... npm run fixture:hub-project` (or use `HUB_ACCESS_TOKEN` instead)
-- Hub policy checks: `npm run check:hub-policy-live`
-- Collaboration preflight parity checks: `npm run check:collab-preflight`
-- Collaboration WS checks: `npm run check:collab-live`
+- Matrix integration is optional and configured entirely by environment variables.
+- Deployment-specific homeserver URLs and discovery details are intentionally omitted here.
 
 ### Contract smoke token workflow
 
@@ -93,11 +80,11 @@ Access is invite-only at the hub policy layer.
   - `HUB_SMOKE_USER_A_PASSWORD`
   - `HUB_SMOKE_USER_B_USERNAME`
   - `HUB_SMOKE_USER_B_PASSWORD`
-- Optional Keycloak defaults:
-  - `KEYCLOAK_URL` (default `https://auth.eshaansood.org`)
-  - `KEYCLOAK_REALM` (default `eshaan-os`)
-  - `KEYCLOAK_CLIENT_ID` (default `eshaan-os-hub`)
-  - `KEYCLOAK_REDIRECT_URI` (default `https://eshaansood.org/`)
+- Optional IdP defaults:
+  - `KEYCLOAK_URL`
+  - `KEYCLOAK_REALM`
+  - `KEYCLOAK_CLIENT_ID`
+  - `KEYCLOAK_REDIRECT_URI`
 - Ensure users exist (one-time/persistent):
   - Set `KEYCLOAK_ADMIN_USERNAME` + `KEYCLOAK_ADMIN_PASSWORD` (or place in `.env.contract-smoke.admin.local`)
   - Run: `npm run smoke:ensure-users`

@@ -21,7 +21,7 @@ export const RelationRow = ({
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-primary">{title}</p>
           {subtitle ? <p className="mt-0.5 truncate text-xs text-muted">{subtitle}</p> : null}
-          <p className="mt-1 text-[11px] text-muted">Relation field: {viaFieldLabel}</p>
+          <p className="mt-1 text-[11px] text-muted">{viaFieldLabel}</p>
         </div>
         {onRemove ? (
           <button

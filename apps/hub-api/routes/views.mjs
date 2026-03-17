@@ -1,7 +1,7 @@
 export const createViewRoutes = (deps) => {
   const {
-    db,
     withAuth,
+    withTransaction,
     withProjectPolicyGate,
     send,
     jsonResponse,
@@ -43,6 +43,8 @@ export const createViewRoutes = (deps) => {
     upsertRecurrenceStmt,
     clearRemindersStmt,
     insertReminderStmt,
+    calendarRecordsByProjectStmt,
+    eventParticipantByRecordAndUserStmt,
     projectByIdStmt,
     timelineByProjectStmt,
     timelineRecord,
@@ -163,9 +165,7 @@ export const createViewRoutes = (deps) => {
         if (!hasEventCapability) {
           return false;
         }
-        const participant = db
-          .prepare('SELECT 1 AS ok FROM event_participants WHERE record_id = ? AND user_id = ? LIMIT 1')
-          .get(record.record_id, auth.user.user_id);
+        const participant = eventParticipantByRecordAndUserStmt.get(record.record_id, auth.user.user_id);
         return Boolean(participant?.ok);
       });
     }
@@ -241,64 +241,70 @@ export const createViewRoutes = (deps) => {
       sourceNodeKey: body.source_node_key,
     });
 
-    db.exec('BEGIN');
+    const participantNotificationPayloads = [];
     try {
-      insertRecordStmt.run(recordId, projectId, eventsCollection.collection_id, title, auth.user.user_id, timestamp, timestamp);
-      insertRecordCapabilityStmt.run(recordId, 'calendar_event', timestamp);
-      upsertEventStateStmt.run(recordId, startDt, endDt, timezone, deps.asNullableText(body.location || nlpFields.location), timestamp);
+      withTransaction(() => {
+        insertRecordStmt.run(recordId, projectId, eventsCollection.collection_id, title, auth.user.user_id, timestamp, timestamp);
+        insertRecordCapabilityStmt.run(recordId, 'calendar_event', timestamp);
+        upsertEventStateStmt.run(recordId, startDt, endDt, timezone, deps.asNullableText(body.location || nlpFields.location), timestamp);
 
-      const participantIds = normalizeParticipants(
-        projectId,
-        body.participants_user_ids || body.participant_user_ids || nlpFields.participants_user_ids || [auth.user.user_id],
-      );
-      clearEventParticipantsStmt.run(recordId);
-      for (const userId of participantIds) {
-        insertEventParticipantStmt.run(recordId, userId, null, timestamp);
-        if (userId !== auth.user.user_id) {
-          createNotification({
-            projectId,
-            userId,
-            reason: 'assignment',
-            entityType: 'record',
-            entityId: recordId,
-            notificationScope: 'network',
-            payload: buildNotificationPayload({
+        const participantIds = normalizeParticipants(
+          projectId,
+          body.participants_user_ids || body.participant_user_ids || nlpFields.participants_user_ids || [auth.user.user_id],
+        );
+        clearEventParticipantsStmt.run(recordId);
+        for (const userId of participantIds) {
+          insertEventParticipantStmt.run(recordId, userId, null, timestamp);
+          if (userId !== auth.user.user_id) {
+            participantNotificationPayloads.push({
+              userId,
               message: `You were added to event ${title}`,
-              ...notificationContext,
-            }),
-          });
-        }
-      }
-
-      const recurrenceRule = body.recurrence_rule || body.rule_json || nlpFields.recurrence_rule || nlpFields.rule_json;
-      if (recurrenceRule) {
-        insertRecordCapabilityStmt.run(recordId, 'recurring', timestamp);
-        upsertRecurrenceStmt.run(recordId, toJson(recurrenceRule), timestamp);
-      }
-
-      const reminders = Array.isArray(body.reminders)
-        ? body.reminders
-        : Array.isArray(nlpFields.reminders)
-          ? nlpFields.reminders
-          : [];
-      if (reminders.length > 0) {
-        insertRecordCapabilityStmt.run(recordId, 'remindable', timestamp);
-        clearRemindersStmt.run(recordId);
-        for (const reminder of reminders) {
-          const remindAt = asText(reminder.remind_at);
-          if (!remindAt) {
-            continue;
+            });
           }
-          const channels = Array.isArray(reminder.channels) ? reminder.channels.map((item) => asText(item)).filter(Boolean) : ['in_app'];
-          insertReminderStmt.run(newId('rem'), recordId, remindAt, toJson(channels), timestamp);
         }
-      }
 
-      db.exec('COMMIT');
+        const recurrenceRule = body.recurrence_rule || body.rule_json || nlpFields.recurrence_rule || nlpFields.rule_json;
+        if (recurrenceRule) {
+          insertRecordCapabilityStmt.run(recordId, 'recurring', timestamp);
+          upsertRecurrenceStmt.run(recordId, toJson(recurrenceRule), timestamp);
+        }
+
+        const reminders = Array.isArray(body.reminders)
+          ? body.reminders
+          : Array.isArray(nlpFields.reminders)
+            ? nlpFields.reminders
+            : [];
+        if (reminders.length > 0) {
+          insertRecordCapabilityStmt.run(recordId, 'remindable', timestamp);
+          clearRemindersStmt.run(recordId);
+          for (const reminder of reminders) {
+            const remindAt = asText(reminder.remind_at);
+            if (!remindAt) {
+              continue;
+            }
+            const channels = Array.isArray(reminder.channels) ? reminder.channels.map((item) => asText(item)).filter(Boolean) : ['in_app'];
+            insertReminderStmt.run(newId('rem'), recordId, remindAt, toJson(channels), timestamp);
+          }
+        }
+      });
     } catch (error) {
-      db.exec('ROLLBACK');
       send(response, jsonResponse(400, errorEnvelope('invalid_input', error instanceof Error ? error.message : 'Failed to create event record.')));
       return;
+    }
+
+    for (const notification of participantNotificationPayloads) {
+      createNotification({
+        projectId,
+        userId: notification.userId,
+        reason: 'assignment',
+        entityType: 'record',
+        entityId: recordId,
+        notificationScope: 'network',
+        payload: buildNotificationPayload({
+          message: notification.message,
+          ...notificationContext,
+        }),
+      });
     }
 
     emitTimelineEvent({
@@ -330,23 +336,12 @@ export const createViewRoutes = (deps) => {
     const mode = asText(requestUrl.searchParams.get('mode')).toLowerCase() || 'all';
     const startBound = deps.asNullableText(requestUrl.searchParams.get('start'));
     const endBound = deps.asNullableText(requestUrl.searchParams.get('end'));
-    const allRecords = db
-      .prepare(`
-        SELECT r.*
-        FROM records r
-        JOIN record_capabilities rc ON rc.record_id = r.record_id AND rc.capability_type = 'calendar_event'
-        JOIN event_state es ON es.record_id = r.record_id
-        WHERE r.project_id = ? AND r.archived_at IS NULL
-        ORDER BY es.start_dt ASC
-      `)
-      .all(projectId);
+    const allRecords = calendarRecordsByProjectStmt.all(projectId);
 
     let filtered = allRecords;
     if (mode === 'relevant') {
       filtered = filtered.filter((record) => {
-        const participant = db
-          .prepare('SELECT 1 AS ok FROM event_participants WHERE record_id = ? AND user_id = ? LIMIT 1')
-          .get(record.record_id, auth.user.user_id);
+        const participant = eventParticipantByRecordAndUserStmt.get(record.record_id, auth.user.user_id);
         return Boolean(participant?.ok);
       });
     }

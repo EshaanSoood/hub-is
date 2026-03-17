@@ -6,4 +6,4 @@ if [[ "${PLAYWRIGHT_E2E_ENABLED:-}" != "true" ]]; then
   exit 1
 fi
 
-exec npx playwright test -c playwright.config.ts e2e/project-space.regression.spec.ts "$@"
+exec npx playwright test -c playwright.config.ts "$@"

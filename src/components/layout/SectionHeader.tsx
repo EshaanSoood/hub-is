@@ -14,7 +14,7 @@ export const SectionHeader = ({
   <Cluster className="justify-between" gap="sm">
     <Stack gap="xs">
       <h2 className="heading-2 text-primary">{title}</h2>
-      {description ? <p className="text-muted">{description}</p> : null}
+      {description ? <p className="sr-only">{description}</p> : null}
     </Stack>
     {action ? <div>{action}</div> : null}
   </Cluster>

@@ -19,10 +19,17 @@ export const createDocRoutes = (deps) => {
     nowIso,
     newId,
     emitTimelineEvent,
+    buildNotificationPayload,
+    createNotification,
+    notificationContextForSource,
     materializeMentions,
     issueCollabTicket,
     consumeCollabTicket,
+    assignmentsByRecordStmt,
     docByIdStmt,
+    paneMembersByPaneStmt,
+    projectMembersByProjectStmt,
+    recordByIdStmt,
     updateDocStorageStmt,
     updateDocTimestampStmt,
     upsertDocPresenceStmt,
@@ -36,6 +43,21 @@ export const createDocRoutes = (deps) => {
     projectMembershipRoleStmt,
     membershipRoleLabel,
   } = deps;
+
+  const docCollaboratorUserIds = ({ paneId, projectId }) => {
+    const userIds = new Set();
+    if (paneId) {
+      for (const member of paneMembersByPaneStmt?.all(paneId) || []) {
+        userIds.add(member.user_id);
+      }
+    }
+    for (const member of projectMembersByProjectStmt?.all(projectId) || []) {
+      if (membershipRoleLabel(member.role) === 'owner') {
+        userIds.add(member.user_id);
+      }
+    }
+    return [...userIds];
+  };
 
   const getDoc = async ({ request, response, params }) => {
     const auth = await withAuth(request);
@@ -207,18 +229,27 @@ export const createDocRoutes = (deps) => {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
+    let targetDocGate = null;
+    let targetRecord = null;
     if (targetEntityType === 'doc') {
-      const docGate = withDocPolicyGate({
+      targetDocGate = withDocPolicyGate({
         userId: auth.user.user_id,
         docId: targetEntityId,
         requiredCapability: 'comment',
       });
-      if (docGate.error) {
-        send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
+      if (targetDocGate.error) {
+        send(response, jsonResponse(targetDocGate.error.status, errorEnvelope(targetDocGate.error.code, targetDocGate.error.message)));
         return;
       }
-      if (docGate.project_id !== projectId) {
+      if (targetDocGate.project_id !== projectId) {
         send(response, jsonResponse(404, errorEnvelope('not_found', 'Doc not found in project.')));
+        return;
+      }
+    }
+    if (targetEntityType === 'record') {
+      targetRecord = recordByIdStmt.get(targetEntityId);
+      if (!targetRecord || targetRecord.project_id !== projectId) {
+        send(response, jsonResponse(404, errorEnvelope('not_found', 'Record not found in project.')));
         return;
       }
     }
@@ -254,6 +285,75 @@ export const createDocRoutes = (deps) => {
       secondaryEntities: [{ entity_type: 'comment', entity_id: commentId }],
       summary: { message: 'Comment created' },
     });
+    const notificationContext = notificationContextForSource({
+      projectId,
+      sourceEntityType: 'comment',
+      sourceEntityId: commentId,
+    });
+    if (targetEntityType === 'record') {
+      try {
+        const assignees = assignmentsByRecordStmt?.all(targetEntityId) || [];
+        for (const assignee of assignees) {
+          if (assignee.user_id === auth.user.user_id) {
+            continue;
+          }
+          createNotification({
+            projectId,
+            userId: assignee.user_id,
+            reason: 'comment',
+            entityType: 'record',
+            entityId: targetEntityId,
+            notificationScope: 'network',
+            payload: buildNotificationPayload({
+              message: `New comment on ${targetRecord?.title || 'a record'}.`,
+              ...notificationContext,
+              extras: {
+                comment_id: commentId,
+                target_entity_type: 'record',
+                target_entity_id: targetEntityId,
+              },
+            }),
+          });
+        }
+      } catch (error) {
+        console.error('docs.mjs createComment record notification fan-out failed', {
+          file: 'apps/hub-api/routes/docs.mjs',
+          handler: 'createComment',
+          userId: auth.user.user_id,
+          entityId: commentId,
+          error,
+        });
+      }
+    }
+    if (targetEntityType === 'doc') {
+      try {
+        for (const userId of docCollaboratorUserIds({ paneId: targetDocGate?.pane_id, projectId })) {
+          if (userId === auth.user.user_id) {
+            continue;
+          }
+          createNotification({
+            projectId,
+            userId,
+            reason: 'comment',
+            entityType: 'comment',
+            entityId: commentId,
+            notificationScope: 'network',
+            payload: buildNotificationPayload({
+              message: 'New comment on a doc you collaborate on.',
+              ...notificationContext,
+            }),
+          });
+        }
+      } catch (error) {
+        console.error('docs.mjs createComment doc notification fan-out failed', {
+          file: 'apps/hub-api/routes/docs.mjs',
+          handler: 'createComment',
+          userId: auth.user.user_id,
+          entityId: commentId,
+          error,
+        });
+      }
+    }
 
     send(
       response,
@@ -347,6 +447,39 @@ export const createDocRoutes = (deps) => {
       secondaryEntities: [{ entity_type: 'comment', entity_id: commentId }],
       summary: { message: 'Doc node comment created', node_key: nodeKey },
     });
+    const notificationContext = notificationContextForSource({
+      projectId,
+      sourceEntityType: 'comment',
+      sourceEntityId: commentId,
+      context: { nodeKey },
+    });
+    try {
+      for (const userId of docCollaboratorUserIds({ paneId: docGate.pane_id, projectId })) {
+        if (userId === auth.user.user_id) {
+          continue;
+        }
+        createNotification({
+          projectId,
+          userId,
+          reason: 'comment',
+          entityType: 'comment',
+          entityId: commentId,
+          notificationScope: 'network',
+          payload: buildNotificationPayload({
+            message: 'New comment on a doc you collaborate on.',
+            ...notificationContext,
+          }),
+        });
+      }
+    } catch (error) {
+      console.error('docs.mjs createDocAnchorComment notification fan-out failed', {
+        file: 'apps/hub-api/routes/docs.mjs',
+        handler: 'createDocAnchorComment',
+        userId: auth.user.user_id,
+        entityId: commentId,
+        error,
+      });
+    }
 
     send(response, jsonResponse(201, okEnvelope({ comment_id: commentId, mentions: mentionRows })));
   };

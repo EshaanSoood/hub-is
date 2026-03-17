@@ -388,10 +388,7 @@ export const AutomationBuilder = ({
     <>
       <section className="rounded-panel border border-subtle bg-elevated p-4">
         <div className="flex flex-wrap items-center justify-between gap-sm">
-          <div>
-            <h2 className="heading-3 text-primary">Automations</h2>
-            <p className="text-sm text-muted">Rules run automatically when conditions are met in this project.</p>
-          </div>
+          <h2 className="heading-3 text-primary">Automations</h2>
           <button
             type="button"
             onClick={openCreateEditor}

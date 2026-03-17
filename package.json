@@ -42,10 +42,11 @@
     "deploy:hub-api": "bash scripts/deploy-hub-api.sh",
     "deploy:postmark": "npm run deploy:hub-api",
     "deploy:collab": "bash scripts/deploy-collab.sh",
+    "deploy:tuwunel": "bash scripts/deploy-tuwunel.sh",
     "check:collab-preflight": "node scripts/check-collab-preflight.mjs",
     "check:collab-live": "node scripts/check-collab-ws-live.mjs",
     "check:cleanup-live": "node scripts/cleanup-live-test-entities.mjs",
-    "deploy": "npm run deploy:root && npm run deploy:hub-api && npm run deploy:collab"
+    "deploy": "npm run deploy:root && npm run deploy:hub-api && npm run deploy:collab && npm run deploy:tuwunel"
   },
   "engines": {
     "node": ">=22.0.0"

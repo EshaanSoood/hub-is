@@ -45,10 +45,8 @@ export const RelationsSection = ({
         />
       </div>
 
-      {relationFields.length === 0 ? (
-        <p className="mt-2 text-xs text-muted">No relation fields are configured for this collection.</p>
-      ) : null}
-      {readOnly ? <p className="mt-2 text-xs text-muted">Relations are read-only in this pane.</p> : null}
+      {relationFields.length === 0 ? <p className="mt-2 text-xs text-muted">No relation fields are configured for this collection.</p> : null}
+      {readOnly ? <p className="mt-2 text-xs text-muted">Read-only.</p> : null}
       {mutationError ? <p className="mt-2 text-xs text-danger">{mutationError}</p> : null}
 
       <div className="mt-3 space-y-3">

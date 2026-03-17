@@ -12,7 +12,7 @@ export const ToolsView = () => {
       <Card aria-label="Live tools section">
         <SectionHeader
           title="Live Tools"
-          subtitle="Immediate provider-backed operations with deterministic invocation patterns."
+          subtitle="Run one-off diagnostics and operational checks."
           className="mb-3"
         />
 
@@ -24,7 +24,7 @@ export const ToolsView = () => {
             >
               <div>
                 <p className="text-sm font-semibold text-primary">{tool.name}</p>
-                <p className="text-xs text-muted">Status: {tool.status}</p>
+                <p className="text-xs text-muted">{tool.status}</p>
               </div>
               <Button type="button" size="sm">
                 Run
@@ -37,17 +37,12 @@ export const ToolsView = () => {
       <Card aria-label="Automation builder section">
         <SectionHeader
           title="Automation Builder"
-          subtitle="Automation scaffolding placeholder using project header client references for targeting logic."
+          subtitle="Draft project automations without leaving the tools panel."
           className="mb-3"
         />
 
         <div className="rounded-panel border border-subtle bg-surface p-4">
-          <p className="text-sm text-text">Automation Builder Shell</p>
-          <ul className="mt-2 space-y-1 text-xs text-muted">
-            <li>Trigger selector placeholder</li>
-            <li>Condition builder placeholder</li>
-            <li>Action targets placeholder (clients/collaborators)</li>
-          </ul>
+          <p className="text-sm text-text">Start from a draft and tune the trigger before publishing.</p>
           <Button type="button" size="sm" className="mt-3">
             Create Draft Automation
           </Button>

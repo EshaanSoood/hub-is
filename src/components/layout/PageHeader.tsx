@@ -14,7 +14,7 @@ export const PageHeader = ({
     <div className="flex flex-wrap items-start justify-between gap-4">
       <Stack gap="xs">
         <h1 className="heading-1 text-primary">{title}</h1>
-        {description ? <p className="max-w-2xl text-muted">{description}</p> : null}
+        {description ? <p className="sr-only">{description}</p> : null}
       </Stack>
       {action ? <div>{action}</div> : null}
     </div>

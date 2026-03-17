@@ -2,6 +2,7 @@ import { hubRequest, normalizeRecordDetail, normalizeSourcePane } from './transp
 
 import type {
   HubBacklink,
+  HubHomeCapture,
   HubHomeEvent,
   HubMaterializedMention,
   HubMentionTarget,
@@ -46,6 +47,26 @@ export const updateRecord = async (
     body: JSON.stringify(payload),
   });
   return normalizeRecordDetail(data.record);
+};
+
+export const convertRecord = async (
+  accessToken: string,
+  recordId: string,
+  payload: {
+    mode: 'thought' | 'task' | 'reminder' | 'calendar';
+    target_project_id: string;
+    target_collection_id?: string;
+    title?: string;
+  },
+): Promise<{ target_record_id: string; source_record_id: string }> => {
+  return hubRequest<{ target_record_id: string; source_record_id: string }>(
+    accessToken,
+    `/api/hub/records/${encodeURIComponent(recordId)}/convert`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  );
 };
 
 export const getRecordDetail = async (
@@ -563,11 +584,12 @@ export const createPersonalTask = async (
 
 export const getHubHome = async (
   accessToken: string,
-  options?: { tasks_limit?: number; events_limit?: number; notifications_limit?: number; unread?: boolean },
+  options?: { tasks_limit?: number; events_limit?: number; captures_limit?: number; notifications_limit?: number; unread?: boolean },
 ): Promise<{
   personal_project_id: string | null;
   tasks: HubTaskSummary[];
   tasks_next_cursor: string | null;
+  captures: HubHomeCapture[];
   events: HubHomeEvent[];
   notifications: HubNotification[];
 }> => {
@@ -577,6 +599,9 @@ export const getHubHome = async (
   }
   if (typeof options?.events_limit === 'number') {
     params.set('events_limit', String(options.events_limit));
+  }
+  if (typeof options?.captures_limit === 'number') {
+    params.set('captures_limit', String(options.captures_limit));
   }
   if (typeof options?.notifications_limit === 'number') {
     params.set('notifications_limit', String(options.notifications_limit));
@@ -590,6 +615,7 @@ export const getHubHome = async (
       personal_project_id: string | null;
       tasks: HubTaskSummary[];
       tasks_next_cursor: string | null;
+      captures: HubHomeCapture[];
       events: HubHomeEvent[];
       notifications: HubNotification[];
     };

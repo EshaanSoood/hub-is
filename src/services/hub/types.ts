@@ -298,6 +298,14 @@ export interface HubTaskPage {
   next_cursor: string | null;
 }
 
+export interface HubHomeCapture {
+  record_id: string;
+  project_id: string;
+  collection_id: string;
+  title: string;
+  created_at: string;
+}
+
 export interface HubHomeEvent {
   record_id: string;
   project_id: string;

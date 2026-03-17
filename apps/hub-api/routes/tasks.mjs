@@ -1,6 +1,5 @@
 export const createTaskRoutes = (deps) => {
   const {
-    db,
     withPolicyGate,
     withProjectPolicyGate,
     send,
@@ -24,6 +23,10 @@ export const createTaskRoutes = (deps) => {
     personalProjectByUserStmt,
     notificationsByUserStmt,
     unreadNotificationsByUserStmt,
+    visibleProjectTasksStmt,
+    assignedTasksStmt,
+    homeEventsByProjectStmt,
+    personalCapturesStmt,
   } = deps;
 
   const visibleProjectIdsForUser = (userId) =>
@@ -37,29 +40,6 @@ export const createTaskRoutes = (deps) => {
     }
     return String(right.record_id || '').localeCompare(String(left.record_id || ''));
   };
-  const visibleProjectTasksStmt = db.prepare(`
-    SELECT r.*
-    FROM records r
-    JOIN task_state ts ON ts.record_id = r.record_id
-    WHERE r.project_id = ? AND r.archived_at IS NULL
-    ORDER BY COALESCE(ts.updated_at, r.updated_at) DESC, r.record_id DESC
-  `);
-  const assignedTasksStmt = db.prepare(`
-    SELECT r.*
-    FROM assignments a
-    JOIN records r ON r.record_id = a.record_id
-    JOIN task_state ts ON ts.record_id = r.record_id
-    WHERE a.user_id = ? AND r.archived_at IS NULL
-    ORDER BY COALESCE(ts.updated_at, r.updated_at) DESC, r.record_id DESC
-  `);
-  const homeEventsByProjectStmt = db.prepare(`
-    SELECT r.*, es.start_dt, es.end_dt
-    FROM records r
-    JOIN event_state es ON es.record_id = r.record_id
-    WHERE r.project_id = ? AND r.archived_at IS NULL
-    ORDER BY es.start_dt ASC, r.record_id ASC
-  `);
-
   const listVisibleProjectTasksForUser = ({ userId, projectId = '' }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
     const personalProjectId = personalProjectIdForUser(userId);
@@ -103,6 +83,15 @@ export const createTaskRoutes = (deps) => {
       .slice(0, limit)
       .map(buildHomeEventSummary);
   };
+
+  const listPersonalCapturesForUser = ({ projectId, limit }) =>
+    personalCapturesStmt.all(projectId, limit).map((row) => ({
+      record_id: row.record_id,
+      project_id: row.project_id,
+      collection_id: row.collection_id,
+      title: row.title,
+      created_at: row.created_at,
+    }));
 
   const getHubTasks = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
     const lens = asText(requestUrl.searchParams.get('lens')).toLowerCase() || 'assigned';
@@ -176,6 +165,7 @@ export const createTaskRoutes = (deps) => {
   const getHubHome = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
     const tasksLimit = asInteger(requestUrl.searchParams.get('tasks_limit'), 8, 1, 50);
     const eventsLimit = asInteger(requestUrl.searchParams.get('events_limit'), 8, 1, 50);
+    const capturesLimit = asInteger(requestUrl.searchParams.get('captures_limit'), 20, 1, 50);
     const notificationsLimit = asInteger(requestUrl.searchParams.get('notifications_limit'), 8, 1, 50);
     const unreadOnly = asBoolean(requestUrl.searchParams.get('unread'), false);
     const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
@@ -204,6 +194,7 @@ export const createTaskRoutes = (deps) => {
             personal_project_id: personalProject.project_id,
             tasks,
             tasks_next_cursor: tasksNextCursor,
+            captures: listPersonalCapturesForUser({ projectId: personalProject.project_id, limit: capturesLimit }),
             events: listHomeEventsForUser({ userId: auth.user.user_id, limit: eventsLimit }),
             notifications,
           },

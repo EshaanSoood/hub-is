@@ -52,7 +52,7 @@ export const Dialog = ({
     >
       <DialogHeader className={cn(hideHeader && 'sr-only')}>
         <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
+        <DialogDescription className="sr-only">{description}</DialogDescription>
       </DialogHeader>
       <div className={cn(!hideHeader && 'mt-4', contentClassName)}>{children}</div>
     </DialogContent>
@@ -93,7 +93,7 @@ export const AlertDialog = ({
     >
       <AlertDialogHeader>
         <AlertDialogTitle>{title}</AlertDialogTitle>
-        <AlertDialogDescription>{description}</AlertDialogDescription>
+        <AlertDialogDescription className="sr-only">{description}</AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>

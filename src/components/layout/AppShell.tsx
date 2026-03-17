@@ -4,6 +4,7 @@ import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
 import { useProjects } from '../../context/ProjectsContext';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
+import { searchHub, type HubSearchResult } from '../../services/hub/search';
 import type { HubNotification } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
 import { buildNotificationDestinationHref } from '../../lib/hubRoutes';
@@ -160,6 +161,25 @@ const isTextInputElement = (target: EventTarget | null): boolean => {
   return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target.isContentEditable;
 };
 
+const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
+  record: 'Record',
+  project: 'Project',
+  pane: 'Pane',
+};
+
+const buildSearchResultHref = (result: HubSearchResult): string | null => {
+  if (result.type === 'project') {
+    return `/projects/${encodeURIComponent(result.id)}/overview`;
+  }
+  if (result.type === 'pane' && result.project_id) {
+    return `/projects/${encodeURIComponent(result.project_id)}/work/${encodeURIComponent(result.id)}`;
+  }
+  if (result.type === 'record' && result.project_id) {
+    return `/projects/${encodeURIComponent(result.project_id)}/work?record_id=${encodeURIComponent(result.id)}`;
+  }
+  return null;
+};
+
 const toToolbarNotification = (entry: HubNotification): ToolbarNotification => {
   const payloadMessage =
     typeof entry.payload?.message === 'string'
@@ -198,11 +218,19 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
   const [notifFilter, setNotifFilter] = useState<NotificationFilter>('unread');
   const [notifProjectFilter, setNotifProjectFilter] = useState<string | null>(null);
-  const [toolbarSearchValue, setToolbarSearchValue] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<HubSearchResult[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
   const [quickNavQuery, setQuickNavQuery] = useState('');
   const [quickNavActiveIndex, setQuickNavActiveIndex] = useState(-1);
   const [notifications, setNotifications] = useState<ToolbarNotification[]>([]);
 
+  const searchRef = useRef<HTMLDivElement | null>(null);
+  const searchDismissedRef = useRef(false);
+  const searchRequestVersionRef = useRef(0);
   const quickNavRef = useRef<HTMLDivElement | null>(null);
   const quickNavInputRef = useRef<HTMLInputElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
@@ -211,6 +239,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   const visibleTabs = appTabs.filter((tab) => canGlobal(tab.capability));
   const currentContext = deriveContext(location.pathname);
+  const isOnHubHome = location.pathname === '/projects';
   const breadcrumb = useMemo(
     () => buildBreadcrumb(location.pathname, projects.map((project) => ({ id: project.id, name: project.name }))),
     [location.pathname, projects],
@@ -253,6 +282,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [refreshNotifications]);
 
   useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      void Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
     if (!accessToken) {
       return;
     }
@@ -268,6 +303,20 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         }
         return [nextNotification, ...current];
       });
+
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const payload = message.notification?.payload ?? {};
+        const title = typeof payload.message === 'string' && payload.message.trim() ? payload.message : 'New notification';
+        const browserNotification = new Notification(title, {
+          body: payload.source_project_id ? 'In project' : 'Eshaan OS',
+          tag: message.notification?.notification_id || undefined,
+          icon: '/favicon.ico',
+        });
+        browserNotification.onclick = () => {
+          window.focus();
+          browserNotification.close();
+        };
+      }
     });
   }, [accessToken]);
 
@@ -277,12 +326,32 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setQuickNavActiveIndex(-1);
   }, []);
 
+  const resetSearch = useCallback(() => {
+    searchRequestVersionRef.current += 1;
+    searchDismissedRef.current = true;
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchError(null);
+    setSearchLoading(false);
+    setSearchOpen(false);
+    setSearchActiveIndex(-1);
+  }, []);
+
+  const closeSearch = useCallback(() => {
+    searchDismissedRef.current = true;
+    setSearchOpen(false);
+    setSearchActiveIndex(-1);
+  }, []);
+
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
 
       if (quickNavOpen && quickNavRef.current && !quickNavRef.current.contains(target)) {
         closeQuickNav();
+      }
+      if (searchOpen && searchRef.current && !searchRef.current.contains(target)) {
+        closeSearch();
       }
       if (profileOpen && profileRef.current && !profileRef.current.contains(target)) {
         setProfileOpen(false);
@@ -297,6 +366,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        closeSearch();
         closeQuickNav();
         setProfileOpen(false);
         setNotificationsOpen(false);
@@ -310,7 +380,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closeQuickNav, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen]);
+  }, [closeQuickNav, closeSearch, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
 
   const unreadNotifications = notifications.filter((notification) => !notification.read).length;
 
@@ -336,6 +406,68 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         ? -1
         : 0
       : quickNavActiveIndex;
+
+  const normalizedSearchActiveIndex =
+    !searchOpen || searchLoading || searchResults.length === 0
+      ? -1
+      : searchActiveIndex < 0 || searchActiveIndex >= searchResults.length
+        ? 0
+        : searchActiveIndex;
+
+  useEffect(() => {
+    const trimmedQuery = searchQuery.trim();
+    const requestVersion = searchRequestVersionRef.current + 1;
+    searchRequestVersionRef.current = requestVersion;
+
+    if (!accessToken || !trimmedQuery) {
+      setSearchResults([]);
+      setSearchError(null);
+      setSearchLoading(false);
+      setSearchOpen(false);
+      setSearchActiveIndex(-1);
+      return;
+    }
+
+    searchDismissedRef.current = false;
+    setSearchLoading(true);
+    setSearchError(null);
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const response = await searchHub(accessToken, trimmedQuery, { limit: 20 });
+          if (searchRequestVersionRef.current !== requestVersion) {
+            return;
+          }
+          setSearchResults(response.results);
+          setSearchError(null);
+          if (searchDismissedRef.current) {
+            return;
+          }
+          setSearchOpen(true);
+          setSearchActiveIndex(response.results.length > 0 ? 0 : -1);
+        } catch {
+          if (searchRequestVersionRef.current !== requestVersion) {
+            return;
+          }
+          setSearchResults([]);
+          setSearchError('Search is temporarily unavailable.');
+          if (searchDismissedRef.current) {
+            return;
+          }
+          setSearchOpen(true);
+          setSearchActiveIndex(-1);
+        } finally {
+          if (searchRequestVersionRef.current === requestVersion) {
+            setSearchLoading(false);
+          }
+        }
+      })();
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [accessToken, searchQuery]);
 
   useEffect(() => {
     if (!quickNavOpen) {
@@ -458,12 +590,29 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setContextMenuOpen(true);
     setNotificationsOpen(false);
     setProfileOpen(false);
+    closeSearch();
     closeQuickNav();
   };
 
   const onQuickAddContextual = (type: string) => {
     navigateToCapture(type === 'inbox' ? null : type);
   };
+
+  const onSelectSearchResult = useCallback(
+    (result: HubSearchResult) => {
+      const href = buildSearchResultHref(result);
+      if (!href) {
+        return;
+      }
+      navigate(href);
+      resetSearch();
+      closeQuickNav();
+      setNotificationsOpen(false);
+      setProfileOpen(false);
+      setContextMenuOpen(false);
+    },
+    [closeQuickNav, navigate, resetSearch],
+  );
 
   const accountInitials = sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId);
   const avatarUrl = buildAccountAvatarUrl(accountInitials, sessionSummary.userId || sessionSummary.email || sessionSummary.name);
@@ -491,16 +640,18 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           className="relative flex h-12 shrink-0 items-center gap-sm border-t border-border-muted bg-surface-elevated px-md"
         >
         <div className="mr-sm flex min-w-0 items-center gap-xs">
-          <button
-            type="button"
-            onClick={() => navigate('/projects')}
-            aria-label="Go home"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M2 7l6-5 6 5v7H10v-4H6v4H2V7z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
-            </svg>
-          </button>
+          {!isOnHubHome ? (
+            <button
+              type="button"
+              onClick={() => navigate('/projects')}
+              aria-label="Go home"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M2 7l6-5 6 5v7H10v-4H6v4H2V7z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
+              </svg>
+            </button>
+          ) : null}
 
           {breadcrumb.length > 0 ? (
             <span className="truncate text-xs text-muted" aria-label={`Current location: ${breadcrumb.join(' › ')}`}>
@@ -519,6 +670,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 setQuickNavOpen(true);
                 setQuickNavActiveIndex(quickNavItems.length > 0 ? 0 : -1);
               }
+              closeSearch();
               setProfileOpen(false);
               setNotificationsOpen(false);
               setContextMenuOpen(false);
@@ -585,17 +737,161 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           ) : null}
         </div>
 
-        <div className="mx-auto w-full max-w-xs flex-1">
-          <input
-            type="search"
-            value={toolbarSearchValue}
-            onChange={(event) => setToolbarSearchValue(event.target.value)}
-            placeholder="Search..."
-            aria-label="Global search"
-            disabled
-            title="Global search is not wired yet."
-            className="h-7 w-full rounded-control border border-border-muted bg-surface px-sm text-[13px] text-text outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          />
+        <div className="mx-auto w-full max-w-xs flex-1" ref={searchRef}>
+          <div className="relative">
+            <input
+              type="search"
+              role="combobox"
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setSearchActiveIndex(0);
+              }}
+              onFocus={() => {
+                if (searchQuery.trim()) {
+                  searchDismissedRef.current = false;
+                  setSearchOpen(true);
+                }
+                closeQuickNav();
+                setProfileOpen(false);
+                setNotificationsOpen(false);
+                setContextMenuOpen(false);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  if (!searchOpen) {
+                    setSearchOpen(true);
+                  }
+                  setSearchActiveIndex((current) => {
+                    if (searchResults.length === 0) {
+                      return -1;
+                    }
+                    const nextIndex = current < 0 ? 0 : current + 1;
+                    return nextIndex >= searchResults.length ? 0 : nextIndex;
+                  });
+                  return;
+                }
+
+                if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  if (!searchOpen) {
+                    setSearchOpen(true);
+                  }
+                  setSearchActiveIndex((current) => {
+                    if (searchResults.length === 0) {
+                      return -1;
+                    }
+                    if (current <= 0) {
+                      return searchResults.length - 1;
+                    }
+                    return current - 1;
+                  });
+                  return;
+                }
+
+                if (
+                  searchOpen && !searchLoading &&
+                  event.key === 'Enter' &&
+                  normalizedSearchActiveIndex >= 0 &&
+                  searchResults[normalizedSearchActiveIndex]
+                ) {
+                  event.preventDefault();
+                  onSelectSearchResult(searchResults[normalizedSearchActiveIndex]);
+                  return;
+                }
+
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  closeSearch();
+                }
+              }}
+              placeholder="Search..."
+              aria-label="Global search"
+              aria-autocomplete="list"
+              aria-controls="global-search-results"
+              aria-activedescendant={normalizedSearchActiveIndex >= 0 ? `search-result-${normalizedSearchActiveIndex}` : undefined}
+              aria-expanded={searchOpen}
+              className="h-7 w-full rounded-control border border-border-muted bg-surface px-sm pr-16 text-[13px] text-text outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            />
+            <div
+              className="pointer-events-none absolute inset-y-0 right-sm flex items-center text-[11px] text-muted"
+              aria-hidden="true"
+            >
+              {searchLoading ? 'Searching…' : ''}
+            </div>
+
+            {searchOpen ? (
+              <div
+                role="dialog"
+                aria-label="Global search results"
+                className="absolute bottom-[calc(100%+8px)] left-0 z-[100] w-full overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
+              >
+                {searchLoading ? (
+                  <div className="px-md py-sm text-sm text-muted">Searching…</div>
+                ) : (
+                  <ul id="global-search-results" role="listbox" className="max-h-72 overflow-y-auto py-1">
+                    {searchError ? (
+                      <li className="px-md py-sm text-sm text-danger">{searchError}</li>
+                    ) : searchResults.length === 0 ? (
+                      <li className="px-md py-sm text-sm text-muted">No results</li>
+                    ) : (
+                      searchResults.map((result, index) => {
+                        const href = buildSearchResultHref(result);
+                        const disabled = !href;
+                        return (
+                          <li
+                            key={`${result.type}:${result.id}`}
+                            id={`search-result-${index}`}
+                            role="option"
+                            aria-selected={normalizedSearchActiveIndex === index}
+                          >
+                            <button
+                              type="button"
+                              disabled={disabled}
+                              aria-disabled={disabled}
+                              className="w-full px-md py-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
+                              style={{
+                                background:
+                                  normalizedSearchActiveIndex === index
+                                    ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+                                    : 'transparent',
+                              }}
+                              onMouseEnter={() => {
+                                if (!disabled) {
+                                  setSearchActiveIndex(index);
+                                }
+                              }}
+                              onClick={() => {
+                                if (href) {
+                                  onSelectSearchResult(result);
+                                }
+                              }}
+                            >
+                              <div className="flex items-center gap-sm">
+                                <span className="rounded-full border border-border-muted px-2 py-[2px] text-[10px] uppercase tracking-[0.12em] text-muted">
+                                  {SEARCH_RESULT_TYPE_LABELS[result.type]}
+                                </span>
+                                <span className={`truncate text-sm ${disabled ? 'text-muted' : 'text-text'}`}>{result.title}</span>
+                              </div>
+                              {result.type === 'record' || result.type === 'pane' ? (
+                                <div className="mt-1 text-xs text-muted">
+                                  {result.project_name || 'Unknown project'}
+                                  {result.type === 'record' && result.content_type && result.content_type !== 'record'
+                                    ? ` • ${result.content_type}`
+                                    : ''}
+                                </div>
+                              ) : null}
+                            </button>
+                          </li>
+                        );
+                      })
+                    )}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex items-center overflow-hidden rounded-control border border-border-muted">
@@ -657,6 +953,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             onClick={() => {
               setNotificationsOpen((current) => !current);
               setProfileOpen(false);
+              closeSearch();
               closeQuickNav();
               setContextMenuOpen(false);
             }}
@@ -788,6 +1085,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             onClick={() => {
               setProfileOpen((current) => !current);
               setNotificationsOpen(false);
+              closeSearch();
               closeQuickNav();
               setContextMenuOpen(false);
             }}

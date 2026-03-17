@@ -1,0 +1,33 @@
+[global]
+# Match the Matrix user IDs and homeserver URL hard-coded in apps/hub-api/routes/chat.mjs.
+# If this changes, the hub-api Matrix bridge must change with it.
+server_name = "chat.eshaansood.org"
+
+# Persist the homeserver database on the mounted Docker volume.
+database_path = "/data/tuwunel.db"
+
+# Listen on all interfaces inside the container so sibling containers on the
+# same Docker network can reach the homeserver at http://tuwunel:6167.
+address = ["0.0.0.0"]
+port = 6167
+
+# Tuwunel's supported closed-registration model for this flow is token-gated
+# registration, not a separate admin shared-secret registration endpoint.
+# hub-api still reads the shared secret from TUWUNEL_REGISTRATION_SHARED_SECRET,
+# and Docker injects the same value as Tuwunel's registration token env.
+allow_registration = true
+
+# Keep the homeserver private to local users only.
+allow_federation = false
+trusted_servers = []
+
+# Minimize user directory and presence surface area.
+allow_local_presence = false
+allow_incoming_presence = false
+allow_outgoing_presence = false
+show_all_local_users_in_user_directory = false
+allow_public_room_directory_over_federation = false
+allow_public_room_directory_without_auth = false
+
+# Keep logs concise in production unless active debugging is needed.
+log = "warn"

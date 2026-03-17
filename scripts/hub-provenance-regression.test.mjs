@@ -1048,6 +1048,23 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       const taskDetail = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${taskRecordId}`, { method: 'GET' });
       assert.equal(taskDetail.record.source_pane?.pane_id, fixture.paneId, 'Record detail should expose durable source pane');
 
+      const patchedProjectTask = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${projectTaskRecordId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: 'Updated Project Task',
+          task_state: {
+            status: 'done',
+            priority: 'low',
+            due_at: currentEnd,
+          },
+        }),
+      });
+      assert.equal(patchedProjectTask.record.title, 'Updated Project Task', 'PATCH should update task titles');
+      assert.equal(patchedProjectTask.record.capabilities.task_state?.status, 'done', 'PATCH should update task status');
+      assert.equal(patchedProjectTask.record.capabilities.task_state?.priority, 'low', 'PATCH should update task priority');
+      assert.equal(patchedProjectTask.record.capabilities.task_state?.due_at, currentEnd, 'PATCH should update task due dates');
+      assert.ok(patchedProjectTask.record.capabilities.task_state?.completed_at, 'PATCH should stamp completion timestamps when status becomes done');
+
       const projectTasks = await expectOk(apiBaseUrl, readerToken, `/api/hub/projects/${fixture.projectId}/tasks`, { method: 'GET' });
       const projectTask = projectTasks.tasks.find((task) => task.record_id === taskRecordId);
       const projectOriginTask = projectTasks.tasks.find((task) => task.record_id === projectTaskRecordId);
@@ -1055,6 +1072,10 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       assert.equal(projectTask?.origin_kind, 'pane', 'Pane task should retain pane origin');
       assert.equal(projectOriginTask?.origin_kind, 'project', 'Project task should retain project origin');
       assert.equal(projectOriginTask?.source_pane, null, 'Project task should not synthesize pane provenance');
+      assert.equal(projectOriginTask?.title, 'Updated Project Task', 'Project task list should reflect patched titles');
+      assert.equal(projectOriginTask?.task_state.status, 'done', 'Project task list should reflect patched task status');
+      assert.equal(projectOriginTask?.task_state.priority, 'low', 'Project task list should reflect patched task priority');
+      assert.equal(projectOriginTask?.task_state.due_at, currentEnd, 'Project task list should reflect patched due dates');
 
       const projectLens = await expectOk(
         apiBaseUrl,

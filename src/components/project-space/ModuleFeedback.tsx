@@ -38,6 +38,6 @@ export const ModuleEmptyState = ({
 }) => (
   <div role="status" aria-live="polite" className={cn('rounded-panel border border-subtle bg-surface p-5 text-center', className)}>
     <h4 className="text-sm font-semibold text-text">{title}</h4>
-    {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
+    {description ? <p className="sr-only">{description}</p> : null}
   </div>
 );

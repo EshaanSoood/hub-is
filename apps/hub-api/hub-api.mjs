@@ -1,10 +1,22 @@
-import { randomUUID } from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  randomUUID,
+} from 'node:crypto';
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { URL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { createJwksVerifier } from '../shared/jwksVerifier.mjs';
+import { runMigrations } from './db/migrations.mjs';
+import { initSearch } from './db/search-setup.mjs';
+import { initSchema } from './db/schema.mjs';
+import { createStatements } from './db/statements.mjs';
+import { withTransaction } from './db/transaction.mjs';
 import { createAutomationRoutes } from './routes/automation.mjs';
+import { createChatRoutes } from './routes/chat.mjs';
 import { createCollectionRoutes } from './routes/collections.mjs';
 import { createDocRoutes } from './routes/docs.mjs';
 import { createFileRoutes } from './routes/files.mjs';
@@ -26,7 +38,9 @@ const KEYCLOAK_JWKS_CACHE_MAX_AGE_MS = Number(process.env.KEYCLOAK_JWKS_CACHE_MA
 const NEXTCLOUD_BASE_URL = (process.env.NEXTCLOUD_BASE_URL || '').trim();
 const NEXTCLOUD_USER = (process.env.NEXTCLOUD_USER || '').trim();
 const NEXTCLOUD_APP_PASSWORD = (process.env.NEXTCLOUD_APP_PASSWORD || '').trim();
-const HUB_API_ALLOW_SCHEMA_RESET = (process.env.HUB_API_ALLOW_SCHEMA_RESET || '').trim().toLowerCase() === 'true';
+const TUWUNEL_INTERNAL_URL = (process.env.TUWUNEL_INTERNAL_URL || 'http://tuwunel:6167').trim() || 'http://tuwunel:6167';
+const TUWUNEL_REGISTRATION_SHARED_SECRET = (process.env.TUWUNEL_REGISTRATION_SHARED_SECRET || '').trim();
+const MATRIX_ACCOUNT_ENCRYPTION_KEY = (process.env.MATRIX_ACCOUNT_ENCRYPTION_KEY || '').trim();
 const HUB_COLLAB_TICKET_TTL_MS_RAW = Number.parseInt(String(process.env.HUB_COLLAB_TICKET_TTL_MS || '120000'), 10);
 const HUB_COLLAB_TICKET_TTL_MS = Number.isInteger(HUB_COLLAB_TICKET_TTL_MS_RAW)
   ? Math.min(900_000, Math.max(10_000, HUB_COLLAB_TICKET_TTL_MS_RAW))
@@ -37,7 +51,11 @@ const HUB_DEV_AUTH_ACCESS_TOKEN = 'dev-auth-local-token';
 const HUB_DEV_AUTH_SUB = 'dev-auth-local-sub';
 const HUB_DEV_AUTH_NAME = 'Dev Local User';
 const HUB_DEV_AUTH_EMAIL = 'dev@local';
+const MATRIX_HOMESERVER_URL = 'https://chat.eshaansood.org';
+const MATRIX_SERVER_NAME = 'chat.eshaansood.org';
+const MATRIX_ACCOUNT_SECRET_VERSION = 'v1';
 const WS_READY_STATE_OPEN = 1;
+const REMINDER_CHECK_INTERVAL_MS = 30_000;
 
 const nowIso = () => new Date().toISOString();
 const asText = (value) => (typeof value === 'string' ? value.trim() : '');
@@ -45,6 +63,61 @@ const asNullableText = (value) => {
   const normalized = asText(value);
   return normalized || null;
 };
+
+const safeTuwunelConfig = () =>
+  Boolean(TUWUNEL_INTERNAL_URL && TUWUNEL_REGISTRATION_SHARED_SECRET && MATRIX_ACCOUNT_ENCRYPTION_KEY);
+
+const matrixAccountEncryptionKey = () => {
+  const raw = asText(MATRIX_ACCOUNT_ENCRYPTION_KEY);
+  return raw ? createHash('sha256').update(raw, 'utf8').digest() : null;
+};
+
+const encryptMatrixAccountSecret = (value) => {
+  const key = matrixAccountEncryptionKey();
+  const plaintext = asText(value);
+  if (!key || !plaintext) {
+    return '';
+  }
+
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return [
+    MATRIX_ACCOUNT_SECRET_VERSION,
+    iv.toString('base64url'),
+    authTag.toString('base64url'),
+    ciphertext.toString('base64url'),
+  ].join('.');
+};
+
+const decryptMatrixAccountSecret = (value) => {
+  const key = matrixAccountEncryptionKey();
+  const raw = asText(value);
+  if (!key || !raw) {
+    throw new Error('Matrix account secret is unavailable.');
+  }
+
+  const [version, ivRaw, authTagRaw, ciphertextRaw] = raw.split('.');
+  if (version !== MATRIX_ACCOUNT_SECRET_VERSION || !ivRaw || !authTagRaw || !ciphertextRaw) {
+    throw new Error('Matrix account secret format is invalid.');
+  }
+
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivRaw, 'base64url'));
+  decipher.setAuthTag(Buffer.from(authTagRaw, 'base64url'));
+  const plaintext = Buffer.concat([
+    decipher.update(Buffer.from(ciphertextRaw, 'base64url')),
+    decipher.final(),
+  ]).toString('utf8');
+  if (!plaintext) {
+    throw new Error('Matrix account secret is empty.');
+  }
+  return plaintext;
+};
+
+if (!safeTuwunelConfig()) {
+  console.warn('[hub-api] Matrix chat provisioning is disabled until TUWUNEL_REGISTRATION_SHARED_SECRET and MATRIX_ACCOUNT_ENCRYPTION_KEY are configured.');
+}
 
 const asInteger = (value, fallback, min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER) => {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -323,7 +396,10 @@ const fieldTypeSet = new Set([
 const viewTypeSet = new Set(['table', 'kanban', 'list', 'calendar', 'timeline', 'gallery']);
 const capabilitySet = new Set(['task', 'calendar_event', 'recurring', 'remindable', 'meeting', 'milestone', 'capture']);
 const commentStatusSet = new Set(['open', 'resolved']);
-const notificationReasonSet = new Set(['mention', 'assignment', 'reminder', 'comment_reply', 'automation']);
+const notificationReasons = Object.freeze([
+  'mention', 'assignment', 'reminder', 'comment_reply', 'automation', 'update', 'comment', 'snapshot',
+]);
+const notificationReasonSet = new Set(notificationReasons);
 const automationRunStatusSet = new Set(['queued', 'running', 'success', 'failed']);
 const projectPolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage_members']);
 const panePolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage']);
@@ -347,6 +423,11 @@ const globalCapabilitiesBySessionRole = Object.freeze({
   Collaborator: Object.freeze(['hub.view', 'hub.tasks.write', 'hub.notifications.write', 'hub.live', 'projects.view']),
   Viewer: Object.freeze([]),
 });
+const authenticatedGlobalCapabilities = Object.freeze([
+  'hub.chat.provision',
+  'hub.chat.view',
+  'hub.chat.write',
+]);
 const sessionRolePriority = Object.freeze({
   Viewer: 0,
   Collaborator: 1,
@@ -381,1371 +462,119 @@ const jwtVerifier = (() => {
 const db = new DatabaseSync(HUB_DB_PATH);
 db.exec('PRAGMA journal_mode = WAL;');
 db.exec('PRAGMA foreign_keys = ON;');
-
-const CONTRACT_TABLES = [
-  'schema_version',
-  'users',
-  'projects',
-  'project_members',
-  'panes',
-  'pane_members',
-  'docs',
-  'doc_storage',
-  'doc_presence',
-  'collections',
-  'collection_fields',
-  'records',
-  'record_values',
-  'record_relations',
-  'views',
-  'record_capabilities',
-  'task_state',
-  'assignments',
-  'event_state',
-  'event_participants',
-  'recurrence_rules',
-  'reminders',
-  'files',
-  'file_blobs',
-  'entity_attachments',
-  'asset_roots',
-  'comments',
-  'comment_anchors',
-  'mentions',
-  'timeline_events',
-  'notifications',
-  'automation_rules',
-  'automation_runs',
-];
-
-const quoteIdentifier = (identifier) => {
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
-    throw new Error(`Unsafe identifier: ${identifier}`);
-  }
-  return `"${identifier}"`;
-};
-
-const resetSchemaToContractV1 = () => {
-  db.exec('BEGIN IMMEDIATE;');
-  try {
-    db.exec('PRAGMA foreign_keys = OFF;');
-
-    const objects = db.prepare(`
-      SELECT type, name
-      FROM sqlite_master
-      WHERE name NOT LIKE 'sqlite_%'
-        AND type IN ('trigger', 'view', 'table')
-      ORDER BY CASE type WHEN 'trigger' THEN 1 WHEN 'view' THEN 2 ELSE 3 END
-    `).all();
-
-    for (const object of objects) {
-      const escaped = quoteIdentifier(object.name);
-      if (object.type === 'trigger') {
-        db.exec(`DROP TRIGGER IF EXISTS ${escaped};`);
-      } else if (object.type === 'view') {
-        db.exec(`DROP VIEW IF EXISTS ${escaped};`);
-      } else {
-        db.exec(`DROP TABLE IF EXISTS ${escaped};`);
-      }
-    }
-
-    db.exec(`
-      CREATE TABLE schema_version (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        version INTEGER NOT NULL CHECK (version = 1),
-        updated_at TEXT NOT NULL
-      );
-
-      CREATE TABLE users (
-        user_id TEXT PRIMARY KEY,
-        kc_sub TEXT NOT NULL UNIQUE,
-        display_name TEXT NOT NULL,
-        email TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-
-      CREATE TABLE projects (
-        project_id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        created_by TEXT NOT NULL,
-        project_type TEXT NOT NULL DEFAULT 'team' CHECK (project_type IN ('team', 'personal')),
-        tasks_collection_id TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(created_by) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE project_members (
-        project_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        role TEXT CHECK (role IN ('owner', 'member')),
-        joined_at TEXT NOT NULL,
-        PRIMARY KEY(project_id, user_id),
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE panes (
-        pane_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        sort_order INTEGER NOT NULL,
-        pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
-        layout_config TEXT NOT NULL,
-        created_by TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(created_by) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE pane_members (
-        pane_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        joined_at TEXT NOT NULL,
-        PRIMARY KEY(pane_id, user_id),
-        FOREIGN KEY(pane_id) REFERENCES panes(pane_id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE docs (
-        doc_id TEXT PRIMARY KEY,
-        pane_id TEXT NOT NULL UNIQUE,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(pane_id) REFERENCES panes(pane_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE doc_storage (
-        doc_id TEXT PRIMARY KEY,
-        snapshot_version INTEGER NOT NULL DEFAULT 0,
-        snapshot_payload TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(doc_id) REFERENCES docs(doc_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE doc_presence (
-        doc_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        cursor_payload TEXT,
-        last_seen_at TEXT NOT NULL,
-        PRIMARY KEY(doc_id, user_id),
-        FOREIGN KEY(doc_id) REFERENCES docs(doc_id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE collections (
-        collection_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        icon TEXT,
-        color TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE collection_fields (
-        field_id TEXT PRIMARY KEY,
-        collection_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL,
-        config TEXT NOT NULL,
-        sort_order INTEGER NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(collection_id) REFERENCES collections(collection_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE records (
-        record_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        collection_id TEXT NOT NULL,
-        title TEXT NOT NULL,
-        created_by TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        archived_at TEXT,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(collection_id) REFERENCES collections(collection_id) ON DELETE CASCADE,
-        FOREIGN KEY(created_by) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE record_values (
-        record_id TEXT NOT NULL,
-        field_id TEXT NOT NULL,
-        value_json TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        PRIMARY KEY(record_id, field_id),
-        FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE,
-        FOREIGN KEY(field_id) REFERENCES collection_fields(field_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE record_relations (
-        relation_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        from_record_id TEXT NOT NULL,
-        to_record_id TEXT NOT NULL,
-        via_field_id TEXT NOT NULL,
-        created_by TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(from_record_id) REFERENCES records(record_id) ON DELETE CASCADE,
-        FOREIGN KEY(to_record_id) REFERENCES records(record_id) ON DELETE CASCADE,
-        FOREIGN KEY(via_field_id) REFERENCES collection_fields(field_id) ON DELETE CASCADE,
-        FOREIGN KEY(created_by) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE views (
-        view_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        collection_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        name TEXT NOT NULL,
-        config TEXT NOT NULL,
-        created_by TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(collection_id) REFERENCES collections(collection_id) ON DELETE CASCADE,
-        FOREIGN KEY(created_by) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE record_capabilities (
-        record_id TEXT NOT NULL,
-        capability_type TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        PRIMARY KEY(record_id, capability_type),
-        FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE task_state (
-        record_id TEXT PRIMARY KEY,
-        status TEXT NOT NULL,
-        priority TEXT,
-        completed_at TEXT,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE assignments (
-        record_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        assigned_at TEXT NOT NULL,
-        PRIMARY KEY(record_id, user_id),
-        FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE event_state (
-        record_id TEXT PRIMARY KEY,
-        start_dt TEXT NOT NULL,
-        end_dt TEXT NOT NULL,
-        timezone TEXT NOT NULL,
-        location TEXT,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE event_participants (
-        record_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        role TEXT,
-        added_at TEXT NOT NULL,
-        PRIMARY KEY(record_id, user_id),
-        FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE recurrence_rules (
-        record_id TEXT PRIMARY KEY,
-        rule_json TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE reminders (
-        reminder_id TEXT PRIMARY KEY,
-        record_id TEXT NOT NULL,
-        remind_at TEXT NOT NULL,
-        channels TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        fired_at TEXT,
-        FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE files (
-        file_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        asset_root_id TEXT NOT NULL,
-        provider TEXT NOT NULL,
-        provider_path TEXT NOT NULL,
-        name TEXT NOT NULL,
-        mime_type TEXT NOT NULL,
-        size_bytes INTEGER NOT NULL,
-        hash TEXT,
-        metadata_json TEXT NOT NULL,
-        created_by TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(asset_root_id) REFERENCES asset_roots(asset_root_id) ON DELETE CASCADE,
-        FOREIGN KEY(created_by) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE file_blobs (
-        file_id TEXT PRIMARY KEY,
-        storage_pointer TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY(file_id) REFERENCES files(file_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE entity_attachments (
-        attachment_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        entity_type TEXT NOT NULL,
-        entity_id TEXT NOT NULL,
-        provider TEXT NOT NULL,
-        asset_root_id TEXT NOT NULL,
-        asset_path TEXT NOT NULL,
-        name TEXT NOT NULL,
-        mime_type TEXT NOT NULL,
-        size_bytes INTEGER NOT NULL,
-        metadata_json TEXT NOT NULL,
-        created_by TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(asset_root_id) REFERENCES asset_roots(asset_root_id) ON DELETE CASCADE,
-        FOREIGN KEY(created_by) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE asset_roots (
-        asset_root_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        provider TEXT NOT NULL,
-        root_path TEXT NOT NULL,
-        connection_ref TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE comments (
-        comment_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        author_user_id TEXT NOT NULL,
-        target_entity_type TEXT NOT NULL,
-        target_entity_id TEXT NOT NULL,
-        body_json TEXT NOT NULL,
-        status TEXT NOT NULL CHECK (status IN ('open', 'resolved')),
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(author_user_id) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE comment_anchors (
-        comment_id TEXT PRIMARY KEY,
-        doc_id TEXT NOT NULL,
-        anchor_payload TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(comment_id) REFERENCES comments(comment_id) ON DELETE CASCADE,
-        FOREIGN KEY(doc_id) REFERENCES docs(doc_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE mentions (
-        mention_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        source_entity_type TEXT NOT NULL,
-        source_entity_id TEXT NOT NULL,
-        target_entity_type TEXT NOT NULL,
-        target_entity_id TEXT NOT NULL,
-        context TEXT,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE timeline_events (
-        timeline_event_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        actor_user_id TEXT NOT NULL,
-        event_type TEXT NOT NULL,
-        primary_entity_type TEXT NOT NULL,
-        primary_entity_id TEXT NOT NULL,
-        secondary_entities_json TEXT NOT NULL,
-        summary_json TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(actor_user_id) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE notifications (
-        notification_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        reason TEXT NOT NULL CHECK (reason IN ('mention', 'assignment', 'reminder', 'comment_reply', 'automation')),
-        entity_type TEXT NOT NULL,
-        entity_id TEXT NOT NULL,
-        payload_json TEXT NOT NULL,
-        -- notification_scope: 'network' = server-generated, requires relay (assignments, mentions, etc.)
-        -- notification_scope: 'local' = client-generated, device-only (reminders, personal alerts)
-        -- Local notifications are never written by the server. This column exists to keep the model coherent when reminders are built.
-        notification_scope TEXT NOT NULL DEFAULT 'network' CHECK (notification_scope IN ('network', 'local')),
-        read_at TEXT,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE automation_rules (
-        automation_rule_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
-        trigger_json TEXT NOT NULL,
-        actions_json TEXT NOT NULL,
-        created_by TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(created_by) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE automation_runs (
-        automation_run_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        automation_rule_id TEXT NOT NULL,
-        status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'success', 'failed')),
-        input_event_json TEXT NOT NULL,
-        output_json TEXT NOT NULL,
-        started_at TEXT,
-        finished_at TEXT,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(automation_rule_id) REFERENCES automation_rules(automation_rule_id) ON DELETE CASCADE
-      );
-
-      CREATE TRIGGER pane_members_must_be_project_members
-      BEFORE INSERT ON pane_members
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM panes p
-              JOIN project_members pm ON pm.project_id = p.project_id
-              WHERE p.pane_id = NEW.pane_id
-                AND pm.user_id = NEW.user_id
-            )
-            THEN RAISE(ABORT, 'pane_members must be a subset of project_members')
-          END;
-      END;
-
-      CREATE TRIGGER records_collection_project_consistency_insert
-      BEFORE INSERT ON records
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM collections c
-              WHERE c.collection_id = NEW.collection_id
-                AND c.project_id = NEW.project_id
-            )
-            THEN RAISE(ABORT, 'records.project_id must match collections.project_id')
-          END;
-      END;
-
-      CREATE TRIGGER records_collection_project_consistency_update
-      BEFORE UPDATE OF project_id, collection_id ON records
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM collections c
-              WHERE c.collection_id = NEW.collection_id
-                AND c.project_id = NEW.project_id
-            )
-            THEN RAISE(ABORT, 'records.project_id must match collections.project_id')
-          END;
-      END;
-
-      CREATE TRIGGER record_relations_project_consistency_insert
-      BEFORE INSERT ON record_relations
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM records rf
-              JOIN records rt ON rt.record_id = NEW.to_record_id
-              WHERE rf.record_id = NEW.from_record_id
-                AND rf.project_id = NEW.project_id
-                AND rt.project_id = NEW.project_id
-            )
-            THEN RAISE(ABORT, 'record_relations records must match relation project_id')
-          END;
-      END;
-
-      CREATE TRIGGER record_relations_project_consistency_update
-      BEFORE UPDATE OF project_id, from_record_id, to_record_id ON record_relations
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM records rf
-              JOIN records rt ON rt.record_id = NEW.to_record_id
-              WHERE rf.record_id = NEW.from_record_id
-                AND rf.project_id = NEW.project_id
-                AND rt.project_id = NEW.project_id
-            )
-            THEN RAISE(ABORT, 'record_relations records must match relation project_id')
-          END;
-      END;
-
-      CREATE TRIGGER comment_anchor_requires_doc_target
-      BEFORE INSERT ON comment_anchors
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM comments c
-              WHERE c.comment_id = NEW.comment_id
-                AND c.target_entity_type = 'doc'
-                AND c.target_entity_id = NEW.doc_id
-            )
-            THEN RAISE(ABORT, 'comment_anchors require doc target')
-          END;
-      END;
-
-      CREATE TRIGGER comment_anchor_requires_node_key_insert
-      BEFORE INSERT ON comment_anchors
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN COALESCE(json_extract(NEW.anchor_payload, '$.kind'), '') != 'node'
-              OR COALESCE(json_extract(NEW.anchor_payload, '$.nodeKey'), '') = ''
-            THEN RAISE(ABORT, 'comment_anchors must be node-key anchors')
-          END;
-      END;
-
-      CREATE TRIGGER comment_anchor_requires_node_key_update
-      BEFORE UPDATE OF anchor_payload ON comment_anchors
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN COALESCE(json_extract(NEW.anchor_payload, '$.kind'), '') != 'node'
-              OR COALESCE(json_extract(NEW.anchor_payload, '$.nodeKey'), '') = ''
-            THEN RAISE(ABORT, 'comment_anchors must be node-key anchors')
-          END;
-      END;
-
-      CREATE INDEX idx_project_members_user_project ON project_members(user_id, project_id);
-      CREATE INDEX idx_pane_members_user_pane ON pane_members(user_id, pane_id);
-      CREATE INDEX idx_panes_project_sort ON panes(project_id, sort_order);
-      CREATE UNIQUE INDEX idx_docs_pane_unique ON docs(pane_id);
-      CREATE INDEX idx_records_project_collection_updated ON records(project_id, collection_id, updated_at DESC);
-      CREATE INDEX idx_record_values_field_record ON record_values(field_id, record_id);
-      CREATE INDEX idx_record_values_record_field ON record_values(record_id, field_id);
-      CREATE INDEX idx_record_relations_project_from ON record_relations(project_id, from_record_id);
-      CREATE INDEX idx_record_relations_project_to ON record_relations(project_id, to_record_id);
-      CREATE UNIQUE INDEX idx_record_relations_unique_edge ON record_relations(project_id, from_record_id, to_record_id, via_field_id);
-      CREATE INDEX idx_views_project_collection_type ON views(project_id, collection_id, type);
-      CREATE INDEX idx_event_state_start ON event_state(start_dt);
-      CREATE INDEX idx_event_participants_user_record ON event_participants(user_id, record_id);
-      CREATE INDEX idx_attachments_entity_lookup ON entity_attachments(project_id, entity_type, entity_id);
-      CREATE INDEX idx_attachments_asset_lookup ON entity_attachments(asset_root_id, asset_path);
-      CREATE INDEX idx_files_project_asset_path ON files(project_id, asset_root_id, provider_path);
-      CREATE INDEX idx_comments_entity_lookup ON comments(project_id, target_entity_type, target_entity_id, created_at DESC);
-      CREATE INDEX idx_mentions_target_lookup ON mentions(project_id, target_entity_type, target_entity_id);
-      CREATE INDEX idx_timeline_project_created ON timeline_events(project_id, created_at DESC);
-      CREATE INDEX idx_timeline_primary_lookup ON timeline_events(project_id, primary_entity_type, primary_entity_id, created_at DESC);
-      CREATE INDEX idx_notifications_user_unread_created ON notifications(user_id, read_at, created_at DESC);
-      CREATE INDEX idx_automation_runs_rule_started ON automation_runs(automation_rule_id, started_at DESC);
-      CREATE UNIQUE INDEX idx_projects_personal_owner ON projects(created_by)
-        WHERE project_type = 'personal';
-    `);
-
-    db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 1, ?)').run(nowIso());
-
-    db.exec('PRAGMA foreign_keys = ON;');
-    db.exec('COMMIT;');
-  } catch (error) {
-    try {
-      db.exec('ROLLBACK;');
-      db.exec('PRAGMA foreign_keys = ON;');
-    } catch {
-      // no-op
-    }
-    throw error;
-  }
-};
-
-const schemaReady = () => {
-  const tables = new Set(
-    db
-      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
-      .all()
-      .map((row) => row.name),
-  );
-
-  for (const name of CONTRACT_TABLES) {
-    if (!tables.has(name)) {
-      return false;
-    }
-  }
-
-  const versionRow = db.prepare('SELECT version FROM schema_version WHERE id = 1').get();
-  return Number(versionRow?.version) === 1;
-};
-
-if (!schemaReady()) {
-  if (!HUB_API_ALLOW_SCHEMA_RESET) {
-    throw new Error('Contract schema mismatch. Set HUB_API_ALLOW_SCHEMA_RESET=true to recreate schema v1.');
-  }
-  resetSchemaToContractV1();
-}
-
-const ensurePendingProjectInvitesTable = () => {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS pending_project_invites (
-      invite_request_id TEXT PRIMARY KEY,
-      project_id TEXT NOT NULL,
-      email TEXT NOT NULL,
-      role TEXT NOT NULL CHECK (role IN ('member')),
-      requested_by_user_id TEXT NOT NULL,
-      status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
-      target_user_id TEXT,
-      reviewed_by_user_id TEXT,
-      reviewed_at TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
-    );
-    CREATE INDEX IF NOT EXISTS idx_pending_project_invites_project_status_created
-      ON pending_project_invites(project_id, status, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_pending_project_invites_email_status
-      ON pending_project_invites(LOWER(email), status);
-  `);
-};
-
-ensurePendingProjectInvitesTable();
-
-const ensureNotificationScopeColumn = () => {
-  const column = db
-    .prepare("SELECT 1 AS ok FROM pragma_table_info('notifications') WHERE name = 'notification_scope' LIMIT 1")
-    .get();
-  if (column?.ok) {
-    return;
-  }
-
-  db.exec('BEGIN IMMEDIATE;');
-  try {
-    db.exec(`
-      ALTER TABLE notifications
-      ADD COLUMN notification_scope TEXT NOT NULL DEFAULT 'network'
-      CHECK (notification_scope IN ('network', 'local'));
-    `);
-    db.exec('COMMIT;');
-  } catch (error) {
-    db.exec('ROLLBACK;');
-    throw error;
-  }
-};
-
-ensureNotificationScopeColumn();
-
-const ensurePersonalTasksTable = () => {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS personal_tasks (
-      task_id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      title TEXT NOT NULL,
-      status TEXT NOT NULL,
-      priority TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-    );
-    CREATE INDEX IF NOT EXISTS idx_personal_tasks_user_updated
-      ON personal_tasks(user_id, updated_at DESC, task_id DESC);
-  `);
-};
-
-ensurePersonalTasksTable();
-
-const ensureProjectTypeColumn = () => {
-  const column = db
-    .prepare("SELECT 1 AS ok FROM pragma_table_info('projects') WHERE name = 'project_type' LIMIT 1")
-    .get();
-  if (column?.ok) {
-    return;
-  }
-
-  db.exec('BEGIN IMMEDIATE;');
-  try {
-    db.exec(`
-      ALTER TABLE projects
-      ADD COLUMN project_type TEXT NOT NULL DEFAULT 'team'
-      CHECK (project_type IN ('team', 'personal'));
-    `);
-    db.exec('COMMIT;');
-  } catch (error) {
-    try {
-      db.exec('ROLLBACK;');
-    } catch {
-      // no-op
-    }
-    if (!/duplicate column name/i.test(String(error?.message || error))) {
-      throw error;
-    }
-  }
-};
-
-ensureProjectTypeColumn();
-
-const ensureProjectTasksCollectionIdColumn = () => {
-  const column = db
-    .prepare("SELECT 1 AS ok FROM pragma_table_info('projects') WHERE name = 'tasks_collection_id' LIMIT 1")
-    .get();
-  if (column?.ok) {
-    return;
-  }
-
-  db.exec('BEGIN IMMEDIATE;');
-  try {
-    db.exec(`
-      ALTER TABLE projects
-      ADD COLUMN tasks_collection_id TEXT;
-    `);
-    db.exec('COMMIT;');
-  } catch (error) {
-    try {
-      db.exec('ROLLBACK;');
-    } catch {
-      // no-op
-    }
-    if (!/duplicate column name/i.test(String(error?.message || error))) {
-      throw error;
-    }
-  }
-};
-
-ensureProjectTasksCollectionIdColumn();
-
-const ensurePersonalProjectOwnerIndex = () => {
-  db.exec('BEGIN IMMEDIATE;');
-  try {
-    db.exec(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_personal_owner
-      ON projects(created_by)
-      WHERE project_type = 'personal';
-    `);
-    db.exec('COMMIT;');
-  } catch (error) {
-    try {
-      db.exec('ROLLBACK;');
-    } catch {
-      // no-op
-    }
-    throw error;
-  }
-};
-
-ensurePersonalProjectOwnerIndex();
-
-const ensureRelationUniqueEdgeIndex = () => {
-  const indexExists = db
-    .prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_record_relations_unique_edge'")
-    .get();
-  if (indexExists) {
-    return;
-  }
-
-  db.exec('BEGIN IMMEDIATE;');
-  try {
-    // Keep the earliest inserted edge and remove duplicate rows before applying unique index.
-    db.exec(`
-      DELETE FROM record_relations
-      WHERE rowid NOT IN (
-        SELECT MIN(rowid)
-        FROM record_relations
-        GROUP BY project_id, from_record_id, to_record_id, via_field_id
-      );
-    `);
-    db.exec(`
-      CREATE UNIQUE INDEX idx_record_relations_unique_edge
-      ON record_relations(project_id, from_record_id, to_record_id, via_field_id);
-    `);
-    db.exec('COMMIT;');
-  } catch (error) {
-    try {
-      db.exec('ROLLBACK;');
-    } catch {
-      // no-op
-    }
-    throw error;
-  }
-};
-
-ensureRelationUniqueEdgeIndex();
+initSchema(db);
+runMigrations(db);
+initSearch(db);
 
 const newId = (prefix) => `${prefix}_${randomUUID()}`;
 
-const userByKcSubStmt = db.prepare('SELECT * FROM users WHERE kc_sub = ?');
-const userByIdStmt = db.prepare('SELECT * FROM users WHERE user_id = ?');
-const userByEmailStmt = db.prepare('SELECT * FROM users WHERE LOWER(COALESCE(email, \'\')) = LOWER(?) LIMIT 1');
-const insertUserStmt = db.prepare(`
-  INSERT INTO users (user_id, kc_sub, display_name, email, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?)
-`);
-const updateUserStmt = db.prepare(`
-  UPDATE users
-  SET display_name = ?, email = ?, updated_at = ?
-  WHERE user_id = ?
-`);
-const updateProjectTasksCollectionStmt = db.prepare(`
-  UPDATE projects
-  SET tasks_collection_id = ?, updated_at = ?
-  WHERE project_id = ?
-`);
+const stmts = createStatements(db);
 
-const projectMembershipsByUserStmt = db.prepare(`
-  SELECT project_id, role, joined_at
-  FROM project_members
-  WHERE user_id = ?
-  ORDER BY joined_at ASC
-`);
-
-const projectByIdStmt = db.prepare('SELECT * FROM projects WHERE project_id = ?');
-const projectForMemberStmt = db.prepare(`
-  SELECT p.*, pm.role AS membership_role, pm.joined_at
-  FROM projects p
-  JOIN project_members pm ON pm.project_id = p.project_id
-  WHERE p.project_id = ? AND pm.user_id = ?
-`);
-const personalProjectByUserStmt = db.prepare(`
-  SELECT p.*, pm.role AS membership_role, pm.joined_at
-  FROM projects p
-  JOIN project_members pm ON pm.project_id = p.project_id
-  WHERE pm.user_id = ?
-    AND p.created_by = ?
-    AND p.project_type = 'personal'
-  ORDER BY p.created_at ASC
-  LIMIT 1
-`);
-const personalProjectsMissingTasksCollectionIdStmt = db.prepare(`
-  SELECT p.project_id
-  FROM projects p
-  WHERE p.project_type = 'personal'
-    AND COALESCE(p.tasks_collection_id, '') = ''
-  ORDER BY p.created_at ASC, p.project_id ASC
-`);
-const listProjectsForUserStmt = db.prepare(`
-  SELECT p.*, pm.role AS membership_role, pm.joined_at
-  FROM projects p
-  JOIN project_members pm ON pm.project_id = p.project_id
-  WHERE pm.user_id = ?
-  ORDER BY p.updated_at DESC
-`);
-const projectMembersByProjectStmt = db.prepare(`
-  SELECT pm.project_id, pm.user_id, pm.role, pm.joined_at, u.display_name, u.email
-  FROM project_members pm
-  JOIN users u ON u.user_id = pm.user_id
-  WHERE pm.project_id = ?
-  ORDER BY pm.joined_at ASC
-`);
-const projectOwnerCountStmt = db.prepare(`
-  SELECT COUNT(*) AS owner_count
-  FROM project_members
-  WHERE project_id = ? AND role = 'owner'
-`);
-const insertProjectStmt = db.prepare(`
-  INSERT INTO projects (project_id, name, created_by, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?)
-`);
-const insertProjectWithTypeStmt = db.prepare(`
-  INSERT INTO projects (project_id, name, created_by, project_type, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?)
-`);
-const insertProjectMemberStmt = db.prepare(`
-  INSERT OR REPLACE INTO project_members (project_id, user_id, role, joined_at)
-  VALUES (?, ?, ?, ?)
-`);
-const deleteProjectMemberStmt = db.prepare('DELETE FROM project_members WHERE project_id = ? AND user_id = ?');
-const pendingInvitesByProjectStmt = db.prepare(`
-  SELECT *
-  FROM pending_project_invites
-  WHERE project_id = ? AND status = 'pending'
-  ORDER BY created_at DESC, invite_request_id DESC
-`);
-const pendingInviteByIdStmt = db.prepare('SELECT * FROM pending_project_invites WHERE invite_request_id = ? LIMIT 1');
-const activePendingInviteByProjectAndEmailStmt = db.prepare(`
-  SELECT *
-  FROM pending_project_invites
-  WHERE project_id = ?
-    AND LOWER(email) = LOWER(?)
-    AND status = 'pending'
-  LIMIT 1
-`);
-const insertPendingInviteStmt = db.prepare(`
-  INSERT INTO pending_project_invites (
-    invite_request_id,
-    project_id,
-    email,
-    role,
-    requested_by_user_id,
-    status,
-    target_user_id,
-    reviewed_by_user_id,
-    reviewed_at,
-    created_at,
-    updated_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
-`);
-const updatePendingInviteDecisionStmt = db.prepare(`
-  UPDATE pending_project_invites
-  SET status = ?, target_user_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ?
-  WHERE invite_request_id = ?
-`);
-
-const paneByIdStmt = db.prepare('SELECT * FROM panes WHERE pane_id = ?');
-const paneDocByPaneStmt = db.prepare('SELECT * FROM docs WHERE pane_id = ?');
-const paneMembersStmt = db.prepare(`
-  SELECT pm.user_id, u.display_name
-  FROM pane_members pm
-  JOIN users u ON u.user_id = pm.user_id
-  LEFT JOIN project_members prj ON prj.project_id = (SELECT project_id FROM panes WHERE pane_id = pm.pane_id) AND prj.user_id = pm.user_id
-  WHERE pm.pane_id = ?
-    AND COALESCE(prj.role, 'member') != 'owner'
-  ORDER BY pm.joined_at ASC
-`);
-const paneEditorExistsStmt = db.prepare('SELECT 1 AS ok FROM pane_members WHERE pane_id = ? AND user_id = ? LIMIT 1');
-const projectMembershipExistsStmt = db.prepare('SELECT 1 AS ok FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1');
-const projectMembershipRoleStmt = db.prepare('SELECT role FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1');
-const paneListForUserByProjectStmt = db.prepare(`
-  SELECT p.*
-  FROM panes p
-  WHERE p.project_id = ?
-  ORDER BY p.sort_order ASC, p.created_at ASC
-`);
-const paneNextSortStmt = db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM panes WHERE project_id = ?');
-const insertPaneStmt = db.prepare(`
-  INSERT INTO panes (pane_id, project_id, name, sort_order, pinned, layout_config, created_by, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const updatePaneStmt = db.prepare(`
-  UPDATE panes
-  SET name = ?, sort_order = ?, pinned = ?, layout_config = ?, updated_at = ?
-  WHERE pane_id = ?
-`);
-const deletePaneStmt = db.prepare('DELETE FROM panes WHERE pane_id = ?');
-const insertPaneMemberStmt = db.prepare('INSERT OR REPLACE INTO pane_members (pane_id, user_id, joined_at) VALUES (?, ?, ?)');
-const deletePaneMemberStmt = db.prepare('DELETE FROM pane_members WHERE pane_id = ? AND user_id = ?');
-
-const insertDocStmt = db.prepare('INSERT INTO docs (doc_id, pane_id, created_at, updated_at) VALUES (?, ?, ?, ?)');
-const insertDocStorageStmt = db.prepare('INSERT INTO doc_storage (doc_id, snapshot_version, snapshot_payload, updated_at) VALUES (?, ?, ?, ?)');
-const docByIdStmt = db.prepare(`
-  SELECT d.doc_id, d.pane_id, d.created_at, d.updated_at, ds.snapshot_version, ds.snapshot_payload, ds.updated_at AS storage_updated_at
-  FROM docs d
-  LEFT JOIN doc_storage ds ON ds.doc_id = d.doc_id
-  WHERE d.doc_id = ?
-`);
-const paneForDocStmt = db.prepare(`
-  SELECT d.doc_id, d.pane_id, p.project_id
-  FROM docs d
-  JOIN panes p ON p.pane_id = d.pane_id
-  WHERE d.doc_id = ?
-`);
-const updateDocStorageStmt = db.prepare(`
-  UPDATE doc_storage
-  SET snapshot_version = ?, snapshot_payload = ?, updated_at = ?
-  WHERE doc_id = ? AND snapshot_version = ?
-`);
-const updateDocTimestampStmt = db.prepare('UPDATE docs SET updated_at = ? WHERE doc_id = ?');
-const upsertDocPresenceStmt = db.prepare(`
-  INSERT INTO doc_presence (doc_id, user_id, cursor_payload, last_seen_at)
-  VALUES (?, ?, ?, ?)
-  ON CONFLICT(doc_id, user_id)
-  DO UPDATE SET cursor_payload = excluded.cursor_payload, last_seen_at = excluded.last_seen_at
-`);
-
-const collectionsByProjectStmt = db.prepare('SELECT * FROM collections WHERE project_id = ? ORDER BY created_at ASC');
-const collectionByIdStmt = db.prepare('SELECT * FROM collections WHERE collection_id = ?');
-const collectionByNameStmt = db.prepare('SELECT * FROM collections WHERE project_id = ? AND name = ? LIMIT 1');
-const insertCollectionStmt = db.prepare(`
-  INSERT INTO collections (collection_id, project_id, name, icon, color, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
-`);
-const fieldsByCollectionStmt = db.prepare('SELECT * FROM collection_fields WHERE collection_id = ? ORDER BY sort_order ASC, created_at ASC');
-const fieldByIdStmt = db.prepare('SELECT * FROM collection_fields WHERE field_id = ?');
-const nextFieldSortStmt = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_sort FROM collection_fields WHERE collection_id = ?');
-const insertFieldStmt = db.prepare(`
-  INSERT INTO collection_fields (field_id, collection_id, name, type, config, sort_order, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-`);
-
-const recordByIdStmt = db.prepare('SELECT * FROM records WHERE record_id = ?');
-const recordsByCollectionStmt = db.prepare(`
-  SELECT *
-  FROM records
-  WHERE project_id = ? AND collection_id = ? AND archived_at IS NULL
-  ORDER BY updated_at DESC, record_id DESC
-`);
-const insertRecordStmt = db.prepare(`
-  INSERT INTO records (record_id, project_id, collection_id, title, created_by, created_at, updated_at, archived_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
-`);
-const updateRecordStmt = db.prepare(`
-  UPDATE records
-  SET title = ?, updated_at = ?, archived_at = ?
-  WHERE record_id = ?
-`);
-const upsertRecordValueStmt = db.prepare(`
-  INSERT INTO record_values (record_id, field_id, value_json, updated_at)
-  VALUES (?, ?, ?, ?)
-  ON CONFLICT(record_id, field_id)
-  DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at
-`);
-const valuesByRecordStmt = db.prepare('SELECT * FROM record_values WHERE record_id = ?');
-
-const insertRelationStmt = db.prepare(`
-  INSERT INTO record_relations (relation_id, project_id, from_record_id, to_record_id, via_field_id, created_by, created_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
-`);
-const relationByIdStmt = db.prepare('SELECT * FROM record_relations WHERE relation_id = ?');
-const relationByEdgeStmt = db.prepare(`
-  SELECT relation_id
-  FROM record_relations
-  WHERE project_id = ? AND from_record_id = ? AND to_record_id = ? AND via_field_id = ?
-  LIMIT 1
-`);
-const deleteRelationStmt = db.prepare('DELETE FROM record_relations WHERE relation_id = ?');
-const outgoingRelationsStmt = db.prepare(`
-  SELECT
-    rr.*,
-    tr.title AS to_record_title,
-    tr.collection_id AS to_collection_id,
-    tc.name AS to_collection_name
-  FROM record_relations rr
-  JOIN records tr ON tr.record_id = rr.to_record_id
-  LEFT JOIN collections tc ON tc.collection_id = tr.collection_id
-  WHERE rr.from_record_id = ?
-  ORDER BY rr.created_at DESC
-`);
-const incomingRelationsStmt = db.prepare(`
-  SELECT
-    rr.*,
-    fr.title AS from_record_title,
-    fr.collection_id AS from_collection_id,
-    fc.name AS from_collection_name
-  FROM record_relations rr
-  JOIN records fr ON fr.record_id = rr.from_record_id
-  LEFT JOIN collections fc ON fc.collection_id = fr.collection_id
-  WHERE rr.to_record_id = ?
-  ORDER BY rr.created_at DESC
-`);
-
-const viewsByProjectStmt = db.prepare('SELECT * FROM views WHERE project_id = ? ORDER BY created_at ASC');
-const viewByIdStmt = db.prepare('SELECT * FROM views WHERE view_id = ?');
-const insertViewStmt = db.prepare(`
-  INSERT INTO views (view_id, project_id, collection_id, type, name, config, created_by, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const mentionSearchUsersStmt = db.prepare(`
-  SELECT u.user_id, u.display_name, u.email
-  FROM project_members pm
-  JOIN users u ON u.user_id = pm.user_id
-  WHERE pm.project_id = ?
-    AND (
-      ? = ''
-      OR LOWER(u.display_name) LIKE ?
-      OR LOWER(COALESCE(u.email, '')) LIKE ?
-    )
-  ORDER BY u.display_name COLLATE NOCASE ASC
-  LIMIT ?
-`);
-const mentionSearchRecordsStmt = db.prepare(`
-  SELECT r.record_id, r.title, r.collection_id, c.name AS collection_name
-  FROM records r
-  LEFT JOIN collections c ON c.collection_id = r.collection_id
-  WHERE r.project_id = ? AND r.archived_at IS NULL
-    AND (
-      ? = ''
-      OR LOWER(r.title) LIKE ?
-    )
-  ORDER BY r.updated_at DESC
-  LIMIT ?
-`);
-const relationSearchRecordsStmt = db.prepare(`
-  SELECT r.record_id, r.title, r.collection_id, c.name AS collection_name, c.icon AS collection_icon
-  FROM records r
-  LEFT JOIN collections c ON c.collection_id = r.collection_id
-  WHERE r.project_id = ? AND r.archived_at IS NULL
-    AND (
-      ? = ''
-      OR LOWER(r.title) LIKE ?
-    )
-    AND (
-      ? = ''
-      OR r.collection_id = ?
-    )
-    AND (
-      ? = ''
-      OR r.record_id != ?
-    )
-  ORDER BY r.updated_at DESC
-  LIMIT ?
-`);
-
-const insertRecordCapabilityStmt = db.prepare('INSERT OR IGNORE INTO record_capabilities (record_id, capability_type, created_at) VALUES (?, ?, ?)');
-const capabilitiesByRecordStmt = db.prepare('SELECT capability_type FROM record_capabilities WHERE record_id = ? ORDER BY capability_type ASC');
-const upsertTaskStateStmt = db.prepare(`
-  INSERT INTO task_state (record_id, status, priority, completed_at, updated_at)
-  VALUES (?, ?, ?, ?, ?)
-  ON CONFLICT(record_id)
-  DO UPDATE SET status = excluded.status, priority = excluded.priority, completed_at = excluded.completed_at, updated_at = excluded.updated_at
-`);
-const taskStateByRecordStmt = db.prepare('SELECT * FROM task_state WHERE record_id = ?');
-const upsertEventStateStmt = db.prepare(`
-  INSERT INTO event_state (record_id, start_dt, end_dt, timezone, location, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?)
-  ON CONFLICT(record_id)
-  DO UPDATE SET start_dt = excluded.start_dt, end_dt = excluded.end_dt, timezone = excluded.timezone, location = excluded.location, updated_at = excluded.updated_at
-`);
-const eventStateByRecordStmt = db.prepare('SELECT * FROM event_state WHERE record_id = ?');
-const clearEventParticipantsStmt = db.prepare('DELETE FROM event_participants WHERE record_id = ?');
-const insertEventParticipantStmt = db.prepare(`
-  INSERT OR REPLACE INTO event_participants (record_id, user_id, role, added_at)
-  VALUES (?, ?, ?, ?)
-`);
-const participantsByRecordStmt = db.prepare('SELECT * FROM event_participants WHERE record_id = ? ORDER BY added_at ASC');
-const clearAssignmentsStmt = db.prepare('DELETE FROM assignments WHERE record_id = ?');
-const insertAssignmentStmt = db.prepare('INSERT OR REPLACE INTO assignments (record_id, user_id, assigned_at) VALUES (?, ?, ?)');
-const assignmentsByRecordStmt = db.prepare('SELECT * FROM assignments WHERE record_id = ? ORDER BY assigned_at ASC');
-const assignedTasksByUserInProjectStmt = db.prepare(`
-  SELECT r.record_id, r.project_id, r.title, r.updated_at, ts.status, ts.priority
-  FROM assignments a
-  JOIN records r ON r.record_id = a.record_id
-  LEFT JOIN task_state ts ON ts.record_id = r.record_id
-  WHERE a.user_id = ?
-    AND r.project_id = ?
-    AND r.archived_at IS NULL
-  ORDER BY r.updated_at DESC, r.record_id DESC
-`);
-const deleteAssignmentStmt = db.prepare('DELETE FROM assignments WHERE record_id = ? AND user_id = ?');
-const upsertRecurrenceStmt = db.prepare(`
-  INSERT INTO recurrence_rules (record_id, rule_json, updated_at)
-  VALUES (?, ?, ?)
-  ON CONFLICT(record_id)
-  DO UPDATE SET rule_json = excluded.rule_json, updated_at = excluded.updated_at
-`);
-const recurrenceByRecordStmt = db.prepare('SELECT * FROM recurrence_rules WHERE record_id = ?');
-const clearRemindersStmt = db.prepare('DELETE FROM reminders WHERE record_id = ?');
-const insertReminderStmt = db.prepare(`
-  INSERT INTO reminders (reminder_id, record_id, remind_at, channels, created_at, fired_at)
-  VALUES (?, ?, ?, ?, ?, NULL)
-`);
-const remindersByRecordStmt = db.prepare('SELECT * FROM reminders WHERE record_id = ? ORDER BY remind_at ASC');
-
-const insertFileStmt = db.prepare(`
-  INSERT INTO files (file_id, project_id, asset_root_id, provider, provider_path, name, mime_type, size_bytes, hash, metadata_json, created_by, created_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const filesByProjectStmt = db.prepare(`
-  SELECT *
-  FROM files
-  WHERE project_id = ?
-  ORDER BY created_at DESC, file_id DESC
-`);
-const insertFileBlobStmt = db.prepare('INSERT INTO file_blobs (file_id, storage_pointer, created_at) VALUES (?, ?, ?)');
-
-const insertAttachmentStmt = db.prepare(`
-  INSERT INTO entity_attachments (
-    attachment_id,
-    project_id,
-    entity_type,
-    entity_id,
-    provider,
-    asset_root_id,
-    asset_path,
-    name,
-    mime_type,
-    size_bytes,
-    metadata_json,
-    created_by,
-    created_at
-  )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const deleteAttachmentStmt = db.prepare('DELETE FROM entity_attachments WHERE attachment_id = ?');
-const attachmentsByEntityStmt = db.prepare(`
-  SELECT ea.*
-  FROM entity_attachments ea
-  WHERE ea.project_id = ? AND ea.entity_type = ? AND ea.entity_id = ?
-  ORDER BY ea.created_at DESC
-`);
-const attachmentByIdStmt = db.prepare('SELECT * FROM entity_attachments WHERE attachment_id = ?');
-const defaultAssetRootByProjectStmt = db.prepare(`
-  SELECT *
-  FROM asset_roots
-  WHERE project_id = ?
-  ORDER BY created_at ASC
-  LIMIT 1
-`);
-
-const insertAssetRootStmt = db.prepare(`
-  INSERT INTO asset_roots (asset_root_id, project_id, provider, root_path, connection_ref, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
-`);
-const assetRootsByProjectStmt = db.prepare('SELECT * FROM asset_roots WHERE project_id = ? ORDER BY created_at ASC');
-const assetRootByIdStmt = db.prepare('SELECT * FROM asset_roots WHERE asset_root_id = ?');
-
-const insertCommentStmt = db.prepare(`
-  INSERT INTO comments (comment_id, project_id, author_user_id, target_entity_type, target_entity_id, body_json, status, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const commentByIdStmt = db.prepare('SELECT * FROM comments WHERE comment_id = ?');
-const commentsByTargetStmt = db.prepare(`
-  SELECT *
-  FROM comments
-  WHERE project_id = ? AND target_entity_type = ? AND target_entity_id = ?
-  ORDER BY created_at ASC
-`);
-const updateCommentStatusStmt = db.prepare('UPDATE comments SET status = ?, updated_at = ? WHERE comment_id = ?');
-const insertCommentAnchorStmt = db.prepare(`
-  INSERT INTO comment_anchors (comment_id, doc_id, anchor_payload, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?)
-`);
-const commentAnchorsByDocStmt = db.prepare(`
-  SELECT ca.*, c.body_json, c.status, c.author_user_id, c.created_at AS comment_created_at
-  FROM comment_anchors ca
-  JOIN comments c ON c.comment_id = ca.comment_id
-  WHERE ca.doc_id = ?
-  ORDER BY ca.created_at ASC
-`);
-const commentAnchorByCommentIdStmt = db.prepare('SELECT * FROM comment_anchors WHERE comment_id = ? LIMIT 1');
-
-const insertMentionStmt = db.prepare(`
-  INSERT INTO mentions (mention_id, project_id, source_entity_type, source_entity_id, target_entity_type, target_entity_id, context, created_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const mentionsBySourceStmt = db.prepare(`
-  SELECT * FROM mentions
-  WHERE project_id = ? AND source_entity_type = ? AND source_entity_id = ?
-  ORDER BY created_at ASC
-`);
-const deleteMentionByIdStmt = db.prepare('DELETE FROM mentions WHERE mention_id = ?');
-const updateMentionContextStmt = db.prepare('UPDATE mentions SET context = ? WHERE mention_id = ?');
-const mentionsByTargetStmt = db.prepare(`
-  SELECT
-    m.*,
-    d.pane_id AS source_doc_pane_id,
-    p.name AS source_doc_pane_name,
-    c.target_entity_type AS source_comment_target_entity_type,
-    c.target_entity_id AS source_comment_target_entity_id,
-    c.author_user_id AS source_comment_author_user_id,
-    cdoc.doc_id AS source_comment_doc_id,
-    cp.pane_id AS source_comment_pane_id,
-    cp.name AS source_comment_pane_name,
-    ca.anchor_payload AS source_comment_anchor_payload
-  FROM mentions m
-  LEFT JOIN docs d ON m.source_entity_type = 'doc' AND d.doc_id = m.source_entity_id
-  LEFT JOIN panes p ON p.pane_id = d.pane_id
-  LEFT JOIN comments c ON m.source_entity_type = 'comment' AND c.comment_id = m.source_entity_id
-  LEFT JOIN docs cdoc ON c.target_entity_type = 'doc' AND cdoc.doc_id = c.target_entity_id
-  LEFT JOIN panes cp ON cp.pane_id = cdoc.pane_id
-  LEFT JOIN pane_members spm ON spm.pane_id = d.pane_id AND spm.user_id = ?
-  LEFT JOIN pane_members cpm ON cpm.pane_id = cdoc.pane_id AND cpm.user_id = ?
-  LEFT JOIN comment_anchors ca ON ca.comment_id = c.comment_id
-  WHERE m.project_id = ? AND m.target_entity_type = ? AND m.target_entity_id = ?
-    AND (
-      (m.source_entity_type = 'doc' AND spm.user_id IS NOT NULL)
-      OR (m.source_entity_type = 'comment' AND (c.target_entity_type IS NULL OR c.target_entity_type != 'doc' OR cpm.user_id IS NOT NULL))
-      OR (m.source_entity_type != 'doc' AND m.source_entity_type != 'comment')
-    )
-  ORDER BY m.created_at DESC
-`);
-
-const insertTimelineStmt = db.prepare(`
-  INSERT INTO timeline_events (
-    timeline_event_id,
-    project_id,
-    actor_user_id,
-    event_type,
-    primary_entity_type,
-    primary_entity_id,
-    secondary_entities_json,
-    summary_json,
-    created_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const timelineByProjectStmt = db.prepare(`
-  SELECT *
-  FROM timeline_events
-  WHERE project_id = ?
-  ORDER BY created_at DESC, timeline_event_id DESC
-`);
-const timelineByPrimaryEntityStmt = db.prepare(`
-  SELECT *
-  FROM timeline_events
-  WHERE project_id = ? AND primary_entity_type = ? AND primary_entity_id = ?
-  ORDER BY created_at DESC
-  LIMIT 100
-`);
-
-const insertNotificationStmt = db.prepare(`
-  INSERT INTO notifications (
-    notification_id,
-    project_id,
-    user_id,
-    reason,
-    entity_type,
-    entity_id,
-    payload_json,
-    notification_scope,
-    read_at,
-    created_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
-`);
-const notificationsByUserStmt = db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?');
-const unreadNotificationsByUserStmt = db.prepare('SELECT * FROM notifications WHERE user_id = ? AND read_at IS NULL ORDER BY created_at DESC LIMIT ?');
-const notificationByIdStmt = db.prepare('SELECT * FROM notifications WHERE notification_id = ?');
-const markNotificationReadStmt = db.prepare('UPDATE notifications SET read_at = ? WHERE notification_id = ? AND user_id = ?');
-
-const insertAutomationRuleStmt = db.prepare(`
-  INSERT INTO automation_rules (
-    automation_rule_id,
-    project_id,
-    name,
-    enabled,
-    trigger_json,
-    actions_json,
-    created_by,
-    created_at,
-    updated_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const automationRulesByProjectStmt = db.prepare('SELECT * FROM automation_rules WHERE project_id = ? ORDER BY created_at DESC');
-const automationRuleByIdStmt = db.prepare('SELECT * FROM automation_rules WHERE automation_rule_id = ?');
-const updateAutomationRuleStmt = db.prepare(`
-  UPDATE automation_rules
-  SET name = ?, enabled = ?, trigger_json = ?, actions_json = ?, updated_at = ?
-  WHERE automation_rule_id = ?
-`);
-const deleteAutomationRuleStmt = db.prepare('DELETE FROM automation_rules WHERE automation_rule_id = ?');
-const automationRunsByProjectStmt = db.prepare('SELECT * FROM automation_runs WHERE project_id = ? ORDER BY started_at DESC, automation_run_id DESC');
+const {
+  users: {
+    findBySub: userByKcSubStmt,
+    findById: userByIdStmt,
+    findByEmail: userByEmailStmt,
+    insert: insertUserStmt,
+    update: updateUserStmt,
+  },
+  projects: {
+    updateTasksCollection: updateProjectTasksCollectionStmt,
+    findById: projectByIdStmt,
+    findPersonalProject: personalProjectByUserStmt,
+    listPersonalMissingTasksCollectionIds: personalProjectsMissingTasksCollectionIdStmt,
+    insertWithType: insertProjectWithTypeStmt,
+  },
+  projectMembers: {
+    listForUser: projectMembershipsByUserStmt,
+    insert: insertProjectMemberStmt,
+    isMember: projectMembershipExistsStmt,
+    getRole: projectMembershipRoleStmt,
+  },
+  panes: {
+    findById: paneByIdStmt,
+    listMembers: paneMembersStmt,
+    insert: insertPaneStmt,
+  },
+  paneMembers: {
+    isMember: paneEditorExistsStmt,
+  },
+  docs: {
+    findByPaneId: paneDocByPaneStmt,
+    findDocProject: paneForDocStmt,
+    insert: insertDocStmt,
+    insertStorage: insertDocStorageStmt,
+  },
+  collections: {
+    findById: collectionByIdStmt,
+    findByName: collectionByNameStmt,
+    insert: insertCollectionStmt,
+    listFields: fieldsByCollectionStmt,
+    insertField: insertFieldStmt,
+  },
+  records: {
+    findById: recordByIdStmt,
+    insert: insertRecordStmt,
+  },
+  recordValues: {
+    upsert: upsertRecordValueStmt,
+    listForRecord: valuesByRecordStmt,
+  },
+  recordRelations: {
+    listForward: outgoingRelationsStmt,
+    listReverse: incomingRelationsStmt,
+  },
+  recordCapabilities: {
+    insertIgnore: insertRecordCapabilityStmt,
+    listForRecord: capabilitiesByRecordStmt,
+  },
+  tasks: {
+    upsertState: upsertTaskStateStmt,
+    findState: taskStateByRecordStmt,
+    insertAssignment: insertAssignmentStmt,
+    listAssignments: assignmentsByRecordStmt,
+    listAssignedForUserInProject: assignedTasksByUserInProjectStmt,
+    deleteAssignment: deleteAssignmentStmt,
+  },
+  calendar: {
+    findEventState: eventStateByRecordStmt,
+    listParticipants: participantsByRecordStmt,
+    findRecurrence: recurrenceByRecordStmt,
+    listReminders: remindersByRecordStmt,
+  },
+  reminders: {
+    listDue: dueRemindersStmt,
+    claimFired: claimReminderFiredStmt,
+  },
+  files: {
+    listAttachmentsForEntity: attachmentsByEntityStmt,
+  },
+  assetRoots: {
+    findDefaultForProject: defaultAssetRootByProjectStmt,
+    insert: insertAssetRootStmt,
+    findById: assetRootByIdStmt,
+  },
+  comments: {
+    findById: commentByIdStmt,
+    listForEntity: commentsByTargetStmt,
+  },
+  commentAnchors: {
+    findByCommentId: commentAnchorByCommentIdStmt,
+  },
+  mentions: {
+    insert: insertMentionStmt,
+    listForSource: mentionsBySourceStmt,
+    delete: deleteMentionByIdStmt,
+    updateContext: updateMentionContextStmt,
+  },
+  timeline: {
+    insert: insertTimelineStmt,
+    listForEntity: timelineByPrimaryEntityStmt,
+  },
+  notifications: {
+    insert: insertNotificationStmt,
+  },
+} = stmts;
 
 const normalizeProjectRole = (role) => (asText(role) === 'owner' || asText(role) === 'admin' ? 'owner' : 'member');
 
@@ -2120,14 +949,25 @@ const createNotification = ({ projectId, userId, reason, entityType, entityId, p
   });
 };
 
+const broadcastTaskChanged = (record, userId) => {
+  const normalizedUserId = asText(userId);
+  if (!record || !normalizedUserId) {
+    return;
+  }
+  broadcastHubLiveToUser(normalizedUserId, {
+    type: 'task.changed',
+    task: buildTaskSummaryForUser(record, personalProjectIdForUser(normalizedUserId)),
+  });
+};
+
 // Hub Live WebSocket — network notification relay
 // Carries lightweight real-time signals to the client when server-side events occur.
 // Payload is always small JSON — "something happened, go fetch details from the REST API."
 // This is NOT a document sync channel. Latency tolerance is high.
 // In the Tauri/local-first model this relay remains server-side because network notifications
 // originate from other users' actions and require a central relay point.
-// Local notifications (reminders, personal alerts) never travel through this channel —
-// they are handled client-side only.
+// Client-local notifications still do not travel through this channel; only server-authored
+// network notifications are broadcast to connected clients.
 const hubLiveWss = new WebSocketServer({ noServer: true });
 
 hubLiveWss.on('connection', (socket, _request, ticket) => {
@@ -2490,6 +1330,7 @@ const recordDetail = (record) => {
         ? {
             status: task.status,
             priority: task.priority,
+            due_at: task.due_at,
             completed_at: task.completed_at,
             updated_at: task.updated_at,
           }
@@ -2657,12 +1498,14 @@ const buildProjectTaskSummary = (record) => {
       ? {
           status: task.status,
           priority: task.priority,
+          due_at: task.due_at,
           completed_at: task.completed_at,
           updated_at: task.updated_at,
         }
       : {
           status: 'todo',
           priority: null,
+          due_at: null,
           completed_at: null,
           updated_at: record.updated_at,
         },
@@ -2689,6 +1532,7 @@ const buildPersonalTaskSummaryFromRecord = (record) => {
     task_state: {
       status: task?.status || 'todo',
       priority: task?.priority || null,
+      due_at: task?.due_at || null,
       completed_at: task?.completed_at || null,
       updated_at: task?.updated_at || record.updated_at,
     },
@@ -2726,6 +1570,7 @@ const createPersonalTaskRecord = ({
   title,
   status = 'todo',
   priority = null,
+  dueAt = null,
   createdAt,
   updatedAt,
 }) => {
@@ -2734,6 +1579,7 @@ const createPersonalTaskRecord = ({
   const timestampUpdatedAt = asText(updatedAt) || timestampCreatedAt;
   const normalizedStatus = asText(status) || 'todo';
   const normalizedPriority = asNullableText(priority);
+  const normalizedDueAt = asNullableText(dueAt);
   const fields = taskFieldMapForCollection(collectionId);
 
   insertRecordStmt.run(recordId, projectId, collectionId, title, userId, timestampCreatedAt, timestampUpdatedAt);
@@ -2742,6 +1588,7 @@ const createPersonalTaskRecord = ({
     recordId,
     normalizedStatus,
     normalizedPriority,
+    normalizedDueAt,
     normalizedStatus === 'done' ? timestampUpdatedAt : null,
     timestampUpdatedAt,
   );
@@ -3075,7 +1922,7 @@ const materializeMentions = ({ projectId, sourceEntityType, sourceEntityId, ment
       createNotification({
         projectId,
         userId: targetEntityId,
-        reason: 'mention',
+        reason: notificationReasons[0],
         entityType: sourceEntityType,
         entityId: sourceEntityId,
         notificationScope: 'network',
@@ -3148,9 +1995,10 @@ const buildSessionSummary = (user) => {
     }
   }
 
-  const globalCapabilities = memberships.length > 0
-    ? [...globalCapabilitiesBySessionRole[sessionRole]]
-    : [];
+  const globalCapabilities = [...new Set([
+    ...authenticatedGlobalCapabilities,
+    ...(memberships.length > 0 ? globalCapabilitiesBySessionRole[sessionRole] : []),
+  ])];
 
   return {
     userId: user.user_id,
@@ -3251,337 +2099,6 @@ export const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, m
   };
 };
 
-const getSessionRoute = withPolicyGate('hub.view', async ({ response, auth, sessionSummary }) => {
-  const memberships = projectMembershipsByUserStmt.all(auth.user.user_id).map((row) => ({
-    project_id: row.project_id,
-    role: membershipRoleLabel(row.role),
-    joined_at: row.joined_at,
-  }));
-
-  send(
-    response,
-    jsonResponse(
-      200,
-      okEnvelope({
-        user: {
-          user_id: auth.user.user_id,
-          kc_sub: auth.user.kc_sub,
-          display_name: auth.user.display_name,
-          email: auth.user.email,
-        },
-        memberships,
-        sessionSummary,
-        dev_auth_mode: Boolean(auth.devAuthMode),
-      }),
-    ),
-  );
-});
-
-const listProjectsRoute = withPolicyGate('projects.view', async ({ response, auth }) => {
-  const projects = listProjectsForUserStmt.all(auth.user.user_id).map(projectRecord);
-  send(response, jsonResponse(200, okEnvelope({ projects })));
-});
-
-const createProjectRoute = withPolicyGate('projects.view', async ({ request, response, auth }) => {
-  let body;
-  try {
-    body = await parseBody(request);
-  } catch {
-    send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
-    return;
-  }
-
-  const name = asText(body.name);
-  if (!name) {
-    send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Project name is required.')));
-    return;
-  }
-
-  const now = nowIso();
-  const projectId = asText(body.project_id) || newId('prj');
-
-  if (projectByIdStmt.get(projectId)) {
-    send(response, jsonResponse(409, errorEnvelope('conflict', 'Project already exists.')));
-    return;
-  }
-
-  db.exec('BEGIN');
-  try {
-    insertProjectStmt.run(projectId, name, auth.user.user_id, now, now);
-    insertProjectMemberStmt.run(projectId, auth.user.user_id, 'owner', now);
-    const defaultCollectionId = newId('col');
-    const defaultCollectionNow = nowIso();
-    db.prepare(`
-      INSERT INTO collections (collection_id, project_id, name, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(defaultCollectionId, projectId, 'Tasks', defaultCollectionNow, defaultCollectionNow);
-
-    const paneId = newId('pan');
-    const docId = newId('doc');
-    insertPaneStmt.run(
-      paneId,
-      projectId,
-      'Main Work',
-      1,
-      0,
-      toJson({ modules: [], doc_binding_mode: 'owned' }),
-      auth.user.user_id,
-      now,
-      now,
-    );
-    insertDocStmt.run(docId, paneId, now, now);
-    insertDocStorageStmt.run(docId, 0, toJson({}), now);
-    insertAssetRootStmt.run(
-      newId('ast'),
-      projectId,
-      'nextcloud',
-      `/HubOS/${projectId}`,
-      toJson({ provider: 'nextcloud' }),
-      now,
-      now,
-    );
-
-    db.exec('COMMIT');
-  } catch (error) {
-    db.exec('ROLLBACK');
-    throw error;
-  }
-
-  emitTimelineEvent({
-    projectId,
-    actorUserId: auth.user.user_id,
-    eventType: 'project.created',
-    primaryEntityType: 'project',
-    primaryEntityId: projectId,
-    summary: { message: `Project created: ${name}` },
-  });
-
-  const project = projectForMemberStmt.get(projectId, auth.user.user_id);
-  send(response, jsonResponse(201, okEnvelope({ project: projectRecord(project) })));
-});
-
-const listNotificationsRoute = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
-  const unreadOnly = asBoolean(requestUrl.searchParams.get('unread'), false);
-  const limit = asInteger(requestUrl.searchParams.get('limit'), 100, 1, 250);
-  const rows = unreadOnly
-    ? unreadNotificationsByUserStmt.all(auth.user.user_id, limit)
-    : notificationsByUserStmt.all(auth.user.user_id, limit);
-  const notifications = rows.map(notificationRecord);
-
-  send(response, jsonResponse(200, okEnvelope({ notifications })));
-});
-
-const markNotificationReadRoute = withPolicyGate('hub.notifications.write', async ({ response, auth, params }) => {
-  const notificationId = asText(params?.notificationId);
-  const existing = notificationByIdStmt.get(notificationId);
-  if (!existing || existing.user_id !== auth.user.user_id) {
-    send(response, jsonResponse(404, errorEnvelope('not_found', 'Notification not found.')));
-    return;
-  }
-
-  markNotificationReadStmt.run(nowIso(), notificationId, auth.user.user_id);
-  const refreshed = notificationByIdStmt.get(notificationId);
-  send(response, jsonResponse(200, okEnvelope({ notification: notificationRecord(refreshed) })));
-});
-
-const authorizeHubLiveRoute = withPolicyGate('hub.live', async ({ response, auth }) => {
-  const ticket = issueHubLiveTicket({
-    userId: auth.user.user_id,
-  });
-
-  send(
-    response,
-    jsonResponse(
-      200,
-      okEnvelope({
-        authorization: {
-          user_id: auth.user.user_id,
-          ws_ticket: ticket.ws_ticket,
-          ticket_issued_at: ticket.issued_at,
-          ticket_expires_at: ticket.expires_at,
-          ticket_expires_in_ms: ticket.expires_in_ms,
-        },
-      }),
-    ),
-  );
-});
-
-const visibleProjectIdsForUser = (userId) =>
-  projectMembershipsByUserStmt.all(userId).map((membership) => membership.project_id);
-
-const listVisibleProjectTasksForUser = ({ userId, projectId = '' }) => {
-  const visibleProjectIds = visibleProjectIdsForUser(userId);
-  const personalProjectId = personalProjectIdForUser(userId);
-  const tasks = [];
-  for (const visibleProjectId of visibleProjectIds) {
-    if (projectId && visibleProjectId !== projectId) {
-      continue;
-    }
-    const records = db.prepare(`
-      SELECT r.*
-      FROM records r
-      JOIN task_state ts ON ts.record_id = r.record_id
-      WHERE r.project_id = ? AND r.archived_at IS NULL
-      ORDER BY COALESCE(ts.updated_at, r.updated_at) DESC, r.record_id DESC
-    `).all(visibleProjectId);
-    for (const record of records) {
-      tasks.push(buildTaskSummaryForUser(record, personalProjectId));
-    }
-  }
-  return tasks;
-};
-
-const listAssignedTasksForUser = ({ userId, projectId = '' }) => {
-  const visibleProjectIds = new Set(visibleProjectIdsForUser(userId));
-  const personalProjectId = personalProjectIdForUser(userId);
-  const rows = db.prepare(`
-    SELECT r.*
-    FROM assignments a
-    JOIN records r ON r.record_id = a.record_id
-    JOIN task_state ts ON ts.record_id = r.record_id
-    WHERE a.user_id = ? AND r.archived_at IS NULL
-    ORDER BY COALESCE(ts.updated_at, r.updated_at) DESC, r.record_id DESC
-  `).all(userId);
-  return rows
-    .filter((row) => visibleProjectIds.has(row.project_id) && (!projectId || row.project_id === projectId))
-    .map((row) => buildTaskSummaryForUser(row, personalProjectId));
-};
-
-const listHomeEventsForUser = ({ userId, limit }) => {
-  const visibleProjectIds = visibleProjectIdsForUser(userId);
-  const rows = [];
-  for (const projectId of visibleProjectIds) {
-    const projectRows = db.prepare(`
-      SELECT r.*
-      FROM records r
-      JOIN event_state es ON es.record_id = r.record_id
-      WHERE r.project_id = ? AND r.archived_at IS NULL
-      ORDER BY es.start_dt ASC, r.record_id ASC
-    `).all(projectId);
-    rows.push(...projectRows);
-  }
-  const nowMs = Date.now();
-  return rows
-    .filter((row) => {
-      const event = eventStateByRecordStmt.get(row.record_id);
-      return event ? new Date(event.end_dt).getTime() >= nowMs - 86_400_000 : false;
-    })
-    .sort((left, right) => {
-      const leftStart = new Date(eventStateByRecordStmt.get(left.record_id)?.start_dt || left.updated_at).getTime();
-      const rightStart = new Date(eventStateByRecordStmt.get(right.record_id)?.start_dt || right.updated_at).getTime();
-      return leftStart - rightStart;
-    })
-    .slice(0, limit)
-    .map(buildHomeEventSummary);
-};
-
-const getHubTasksRoute = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
-  const lens = asText(requestUrl.searchParams.get('lens')).toLowerCase() || 'assigned';
-  const projectId = asText(requestUrl.searchParams.get('project_id'));
-  const limit = asInteger(requestUrl.searchParams.get('limit'), 50, 1, 200);
-  const offset = parseCursorOffset(requestUrl.searchParams.get('cursor'));
-  const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
-  if (!personalProject) {
-    send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal project is unavailable.')));
-    return;
-  }
-
-  let tasks = [];
-  if (lens === 'project' && projectId) {
-    const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'view' });
-    if (projectGate.error) {
-      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
-      return;
-    }
-    tasks = listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId });
-  } else if (lens === 'assigned') {
-    tasks = listAssignedTasksForUser({ userId: auth.user.user_id, projectId });
-  } else {
-    tasks = listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId });
-  }
-
-  const page = tasks.slice(offset, offset + limit);
-  const nextOffset = offset + page.length;
-  const nextCursor = nextOffset < tasks.length ? encodeCursorOffset(nextOffset) : null;
-  send(response, jsonResponse(200, okEnvelope({ tasks: page, next_cursor: nextCursor })));
-});
-
-const createHubTaskRoute = withPolicyGate('hub.tasks.write', async ({ response, request, auth }) => {
-  let body;
-  try {
-    body = await parseBody(request);
-  } catch {
-    send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
-    return;
-  }
-
-  const title = asText(body.title);
-  if (!title) {
-    send(response, jsonResponse(400, errorEnvelope('invalid_input', 'title is required.')));
-    return;
-  }
-
-  const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
-  if (!personalProject) {
-    send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal project is unavailable.')));
-    return;
-  }
-  const tasksCollectionId = asText(personalProject.tasks_collection_id);
-  if (!tasksCollectionId) {
-    send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal tasks collection is unavailable.')));
-    return;
-  }
-
-  const taskRecord = createPersonalTaskRecord({
-    userId: auth.user.user_id,
-    projectId: personalProject.project_id,
-    collectionId: tasksCollectionId,
-    title,
-    status: asText(body.status) || 'todo',
-    priority: asNullableText(body.priority),
-  });
-
-  send(response, jsonResponse(201, okEnvelope({ task: buildPersonalTaskSummaryFromRecord(taskRecord) })));
-});
-
-const getHubHomeRoute = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
-  const tasksLimit = asInteger(requestUrl.searchParams.get('tasks_limit'), 8, 1, 50);
-  const eventsLimit = asInteger(requestUrl.searchParams.get('events_limit'), 8, 1, 50);
-  const notificationsLimit = asInteger(requestUrl.searchParams.get('notifications_limit'), 8, 1, 50);
-  const unreadOnly = asBoolean(requestUrl.searchParams.get('unread'), false);
-  const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
-  if (!personalProject) {
-    send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal project is unavailable.')));
-    return;
-  }
-
-  const tasks = listAssignedTasksForUser({ userId: auth.user.user_id })
-    .sort((left, right) => new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime())
-    .slice(0, tasksLimit);
-
-  const notifications = (
-    unreadOnly
-      ? unreadNotificationsByUserStmt.all(auth.user.user_id, notificationsLimit)
-      : notificationsByUserStmt.all(auth.user.user_id, notificationsLimit)
-  ).map(notificationRecord);
-
-  send(
-    response,
-    jsonResponse(
-      200,
-      okEnvelope({
-        home: {
-          personal_project_id: personalProject.project_id,
-          tasks,
-          tasks_next_cursor: null,
-          events: listHomeEventsForUser({ userId: auth.user.user_id, limit: eventsLimit }),
-          notifications,
-        },
-      }),
-    ),
-  );
-});
-
 const safeNextcloudConfig = () => Boolean(NEXTCLOUD_BASE_URL && NEXTCLOUD_USER && NEXTCLOUD_APP_PASSWORD);
 
 const nextcloudAuthHeader = () =>
@@ -3681,181 +2198,219 @@ const buildAssetProxyPath = ({ projectId, assetRootId, assetPath }) => {
 const routeDeps = {
   ALLOWED_ORIGIN,
   NEXTCLOUD_USER,
+  MATRIX_HOMESERVER_URL,
+  MATRIX_SERVER_NAME,
+  TUWUNEL_INTERNAL_URL,
+  TUWUNEL_REGISTRATION_SHARED_SECRET,
   asBoolean,
   asInteger,
   asNullableText,
   asText,
-  attachmentByIdStmt,
-  assetRootByIdStmt,
-  assetRootsByProjectStmt,
+  attachmentByIdStmt: stmts.files.findAttachmentById,
+  assetRootByIdStmt: stmts.assetRoots.findById,
+  assetRootsByProjectStmt: stmts.assetRoots.listForProject,
   assignedTaskListForUser,
-  automationRuleByIdStmt,
-  automationRulesByProjectStmt,
-  automationRunsByProjectStmt,
+  automationRuleByIdStmt: stmts.automation.findRule,
+  automationRulesByProjectStmt: stmts.automation.listRules,
+  automationRunsByProjectStmt: stmts.automation.listRuns,
   buildAssetProxyPath,
   buildAssetRelativePath,
   buildHomeEventSummary,
   buildNotificationPayload,
   buildNotificationRouteContext,
+  broadcastTaskChanged,
   buildPersonalTaskSummaryFromRecord,
   buildSessionSummary,
   buildTaskSummaryForUser,
-  capabilitiesByRecordStmt,
+  capabilitiesByRecordStmt: stmts.recordCapabilities.listForRecord,
   capabilitySet,
-  collectionByIdStmt,
-  collectionByNameStmt,
+  collectionByIdStmt: stmts.collections.findById,
+  collectionByNameStmt: stmts.collections.findByName,
   collectionSchema,
-  collectionsByProjectStmt,
-  commentAnchorsByDocStmt,
-  commentByIdStmt,
+  collectionsByProjectStmt: stmts.collections.listForProject,
+  commentAnchorsByDocStmt: stmts.commentAnchors.listForDoc,
+  commentByIdStmt: stmts.comments.findById,
   commentStatusSet,
   consumeCollabTicket,
   createNotification,
   createPersonalTaskRecord,
   db,
-  defaultAssetRootByProjectStmt,
-  deleteAttachmentStmt,
-  deletePaneMemberStmt,
-  deletePaneStmt,
-  deleteProjectMemberStmt,
-  deleteRelationStmt,
-  docByIdStmt,
+  defaultAssetRootByProjectStmt: stmts.assetRoots.findDefaultForProject,
+  deleteAttachmentStmt: stmts.files.deleteAttachment,
+  deletePaneMemberStmt: stmts.paneMembers.delete,
+  deletePaneStmt: stmts.panes.delete,
+  deleteProjectMemberStmt: stmts.projectMembers.delete,
+  deleteRelationStmt: stmts.recordRelations.delete,
+  docByIdStmt: stmts.docs.findById,
   emitTimelineEvent,
   encodeCursorOffset,
+  encryptMatrixAccountSecret,
   ensureUserForEmail,
   errorEnvelope,
-  eventStateByRecordStmt,
+  eventStateByRecordStmt: stmts.calendar.findEventState,
   extractDocNodeKeyState,
-  fieldByIdStmt,
+  fieldByIdStmt: stmts.collections.findFieldById,
   fieldTypeSet,
-  fieldsByCollectionStmt,
-  filesByProjectStmt,
+  fieldsByCollectionStmt: stmts.collections.listFields,
+  filesByProjectStmt: stmts.files.listForProject,
   findOrCreateEventsCollection,
-  insertAssetRootStmt,
-  insertAssignmentStmt,
-  insertAttachmentStmt,
-  insertAutomationRuleStmt,
-  insertCommentAnchorStmt,
-  insertCommentStmt,
-  insertCollectionStmt,
-  insertDocStmt,
-  insertDocStorageStmt,
-  insertEventParticipantStmt,
-  insertFieldStmt,
-  insertFileBlobStmt,
-  insertFileStmt,
-  insertPaneMemberStmt,
-  insertPaneStmt,
-  insertPendingInviteStmt,
-  insertProjectMemberStmt,
-  insertProjectStmt,
-  insertRecordCapabilityStmt,
-  insertRecordStmt,
-  insertRelationStmt,
-  insertReminderStmt,
-  insertViewStmt,
+  insertAssetRootStmt: stmts.assetRoots.insert,
+  insertAssignmentStmt: stmts.tasks.insertAssignment,
+  insertAttachmentStmt: stmts.files.insertAttachment,
+  insertAutomationRuleStmt: stmts.automation.insertRule,
+  insertCommentAnchorStmt: stmts.commentAnchors.insert,
+  insertCommentStmt: stmts.comments.insert,
+  insertCollectionStmt: stmts.collections.insert,
+  insertDocStmt: stmts.docs.insert,
+  insertDocStorageStmt: stmts.docs.insertStorage,
+  insertProjectDefaultCollectionStmt: stmts.collections.insertMinimal,
+  insertEventParticipantStmt: stmts.calendar.insertParticipant,
+  insertFieldStmt: stmts.collections.insertField,
+  insertFileBlobStmt: stmts.files.insertBlob,
+  insertFileStmt: stmts.files.insert,
+  insertMatrixAccountStmt: stmts.chat.insertAccount,
+  insertPaneMemberStmt: stmts.paneMembers.insert,
+  insertPaneStmt: stmts.panes.insert,
+  insertPendingInviteStmt: stmts.projectMembers.insertInvite,
+  insertProjectMemberStmt: stmts.projectMembers.insert,
+  insertProjectStmt: stmts.projects.insert,
+  insertRecordCapabilityStmt: stmts.recordCapabilities.insertIgnore,
+  insertRecordStmt: stmts.records.insert,
+  insertChatSnapshotStmt: stmts.chat.insertSnapshot,
+  insertRelationStmt: stmts.recordRelations.insert,
+  insertReminderStmt: stmts.calendar.insertReminder,
+  insertViewStmt: stmts.views.insert,
   isPlainObject,
   issueCollabTicket,
   issueHubLiveTicket,
   jsonResponse,
-  listProjectsForUserStmt,
-  markNotificationReadStmt,
+  listProjectsForUserStmt: stmts.projects.listForUser,
+  markNotificationReadStmt: stmts.notifications.markRead,
   mapMentionRowToBacklink,
   materializeMentions,
   membershipRoleLabel,
   newId,
-  nextFieldSortStmt,
+  nextFieldSortStmt: stmts.collections.nextFieldSort,
   nextcloudAuthHeader,
   nextcloudUrl,
   normalizeAssetPathSegment,
   normalizeAssetRelativePath,
   normalizeParticipants,
   normalizeProjectRole,
-  notificationByIdStmt,
+  notificationContextForSource,
+  notificationByIdStmt: stmts.notifications.findById,
   notificationRecord,
-  notificationsByUserStmt,
+  notificationsByUserStmt: stmts.notifications.listForUser,
   nowIso,
   okEnvelope,
-  paneByIdStmt,
-  paneListForUserByProjectStmt,
-  paneNextSortStmt,
+  paneByIdStmt: stmts.panes.findById,
+  paneMembersByPaneStmt: stmts.paneMembers.listUserIds,
+  deletePaneMembersByUserInProjectStmt: stmts.paneMembers.deleteByUserInProject,
+  paneListForUserByProjectStmt: stmts.panes.listForProject,
+  paneNextSortStmt: stmts.panes.nextSortOrder,
   paneSummary,
   parseBody,
   parseCursorOffset,
   parseJson,
   parseJsonObject,
-  participantsByRecordStmt,
-  pendingInviteByIdStmt,
+  matrixAccountByUserIdStmt: stmts.chat.findAccountByUserId,
+  deleteMatrixAccountStmt: stmts.chat.deleteAccount,
+  decryptMatrixAccountSecret,
+  assignmentsByRecordStmt: stmts.tasks.listAssignments,
+  assignedTasksStmt: stmts.tasks.listAssignedForUser,
+  activePendingInviteByProjectAndEmailStmt: stmts.projectMembers.findPendingByEmail,
+  calendarRecordsByProjectStmt: stmts.calendar.listCalendarRecordsForProject,
+  chatSnapshotByIdStmt: stmts.chat.findSnapshotById,
+  chatSnapshotsPageStmt: stmts.chat.listSnapshotsByProject,
+  deleteChatSnapshotStmt: stmts.chat.deleteSnapshot,
+  participantsByRecordStmt: stmts.calendar.listParticipants,
+  pendingInviteByIdStmt: stmts.projectMembers.findInvite,
   pendingInviteRecord,
-  pendingInvitesByProjectStmt,
-  personalProjectByUserStmt,
+  pendingInvitesByProjectStmt: stmts.projectMembers.listPendingInvites,
+  personalProjectByUserStmt: stmts.projects.findPersonalProject,
   personalProjectIdForUser,
-  projectByIdStmt,
-  projectForMemberStmt,
-  projectMembershipExistsStmt,
-  projectMembershipRoleStmt,
-  projectMembershipsByUserStmt,
-  projectMembersByProjectStmt,
-  projectOwnerCountStmt,
+  projectByIdStmt: stmts.projects.findById,
+  projectForMemberStmt: stmts.projects.findByIdWithMembership,
+  projectMembershipExistsStmt: stmts.projectMembers.isMember,
+  projectMembershipRoleStmt: stmts.projectMembers.getRole,
+  projectMembershipsByUserStmt: stmts.projectMembers.listForUser,
+  projectMembersByProjectStmt: stmts.projectMembers.listWithUsers,
+  projectOwnerCountStmt: stmts.projectMembers.countOwners,
   projectRecord,
-  recordByIdStmt,
+  recordByIdStmt: stmts.records.findById,
   recordDetail,
   recordDetailForUser,
   recordSummary,
-  recordsByCollectionStmt,
-  relationByEdgeStmt,
-  relationByIdStmt,
-  relationSearchRecordsStmt,
+  recordsByCollectionStmt: stmts.records.listForCollection,
+  relationByEdgeStmt: stmts.recordRelations.findDuplicate,
+  relationByIdStmt: stmts.recordRelations.findById,
+  relationSearchRecordsStmt: stmts.userSearch.searchRecordsExtended,
   relationTargetCollectionIdFromField,
-  remindersByRecordStmt,
   requireDocAccess,
   resolveMutationContextPaneId,
   resolveProjectAssetRoot,
   resolveProjectContentWriteGate,
   reassignTasksForRemovedMember,
   safeNextcloudConfig,
+  safeTuwunelConfig,
   send,
-  taskStateByRecordStmt,
-  timelineByProjectStmt,
+  eventParticipantByRecordAndUserStmt: stmts.calendar.findParticipantByRecordAndUser,
+  homeEventsByProjectStmt: stmts.calendar.listEventsForProject,
+  personalCapturesStmt: stmts.records.listPersonalCaptures,
+  getTaskStateStmt: stmts.tasks.findState,
+  taskStateByRecordStmt: stmts.tasks.findState,
+  timelineByProjectStmt: stmts.timeline.listForProject,
   timelineRecord,
   toJson,
   trackedFileRecord,
-  unreadNotificationsByUserStmt,
-  updateAutomationRuleStmt,
-  updateCommentStatusStmt,
-  updateDocStorageStmt,
-  updateDocTimestampStmt,
-  updatePaneStmt,
-  updatePendingInviteDecisionStmt,
-  updateRecordStmt,
-  updateUserStmt,
-  upsertDocPresenceStmt,
-  upsertEventStateStmt,
-  upsertRecurrenceStmt,
-  upsertRecordValueStmt,
-  upsertTaskStateStmt,
-  userByEmailStmt,
-  valuesByRecordStmt,
-  viewByIdStmt,
-  viewsByProjectStmt,
+  unreadNotificationsByUserStmt: stmts.notifications.listUnreadForUser,
+  updateAutomationRuleStmt: stmts.automation.updateRule,
+  updateCommentStatusStmt: stmts.comments.updateStatus,
+  updateDocStorageStmt: stmts.docs.updateStorage,
+  updateDocTimestampStmt: stmts.docs.updateTimestamp,
+  updatePaneStmt: stmts.panes.update,
+  updatePendingInviteDecisionStmt: stmts.projectMembers.updateInvite,
+  updateRecordStmt: stmts.records.update,
+  updateUserStmt: stmts.users.update,
+  upsertDocPresenceStmt: stmts.docs.upsertPresence,
+  upsertEventStateStmt: stmts.calendar.upsertEventState,
+  upsertRecurrenceStmt: stmts.calendar.upsertRecurrence,
+  upsertRecordValueStmt: stmts.recordValues.upsert,
+  upsertTaskStateStmt: stmts.tasks.upsertState,
+  userByEmailStmt: stmts.users.findByEmail,
+  valuesByRecordStmt: stmts.recordValues.listForRecord,
+  viewByIdStmt: stmts.views.findById,
+  viewsByProjectStmt: stmts.views.listForProject,
   viewTypeSet,
+  visibleProjectTasksStmt: stmts.tasks.listVisibleForProject,
   withAuth,
   withDocPolicyGate,
   withPanePolicyGate,
   withPolicyGate,
   withProjectPolicyGate,
-  clearAssignmentsStmt,
-  clearEventParticipantsStmt,
-  clearRemindersStmt,
-  commentsByTargetStmt,
-  deleteAutomationRuleStmt,
-  mentionsByTargetStmt,
-  mentionSearchRecordsStmt,
-  mentionSearchUsersStmt,
+  withTransaction: (fn) => withTransaction(db, fn),
+  clearAssignmentsStmt: stmts.tasks.deleteAssignments,
+  clearEventParticipantsStmt: stmts.calendar.deleteParticipants,
+  clearRemindersStmt: stmts.calendar.deleteReminders,
+  outgoingRelationsStmt: stmts.recordRelations.listForward,
+  incomingRelationsStmt: stmts.recordRelations.listReverse,
+  recordCapabilitiesByRecordStmt: stmts.recordCapabilities.listForRecord,
+  recurrenceByRecordStmt: stmts.calendar.findRecurrence,
+  remindersByRecordStmt: stmts.calendar.listReminders,
+  attachmentsByEntityStmt: stmts.files.listAttachmentsForEntity,
+  commentsByTargetStmt: stmts.comments.listForEntity,
+  deleteAutomationRuleStmt: stmts.automation.deleteRule,
+  mentionsCountByTargetStmt: stmts.mentions.countForTarget,
+  mentionsByTargetStmt: stmts.mentions.listInboxForUser,
+  mentionSearchRecordsStmt: stmts.userSearch.searchRecords,
+  mentionSearchUsersStmt: stmts.userSearch.searchProjectMembers,
+  updateMatrixAccountCredentialsStmt: stmts.chat.updateAccountCredentials,
   uploadToNextcloud,
+  updateMatrixAccountDeviceStmt: stmts.chat.updateAccountDevice,
 };
 
 const userRoutes = createUserRoutes(routeDeps);
+const chatRoutes = createChatRoutes(routeDeps);
 const projectRoutes = createProjectRoutes(routeDeps);
 const paneRoutes = createPaneRoutes(routeDeps);
 const docRoutes = createDocRoutes(routeDeps);
@@ -3866,6 +2421,103 @@ const notificationRoutes = createNotificationRoutes(routeDeps);
 const taskRoutes = createTaskRoutes(routeDeps);
 const automationRoutes = createAutomationRoutes(routeDeps);
 const searchRoutes = createSearchRoutes(routeDeps);
+
+const fireDueReminders = () => {
+  try {
+    const firedAt = nowIso();
+    const dueReminders = dueRemindersStmt.all(firedAt);
+    for (const reminder of dueReminders) {
+      try {
+        const createdNotifications = [];
+        let claimed = false;
+        withTransaction(db, () => {
+          const claimResult = claimReminderFiredStmt.run(firedAt, reminder.reminder_id);
+          if (claimResult.changes === 0) {
+            return;
+          }
+          claimed = true;
+
+          const recipientUserIds = new Set(
+            assignmentsByRecordStmt
+              .all(reminder.record_id)
+              .map((row) => asText(row.user_id))
+              .filter(Boolean),
+          );
+          for (const participant of participantsByRecordStmt.all(reminder.record_id)) {
+            const participantUserId = asText(participant.user_id);
+            if (participantUserId) {
+              recipientUserIds.add(participantUserId);
+            }
+          }
+          if (recipientUserIds.size === 0) {
+            const record = recordByIdStmt.get(reminder.record_id);
+            const createdByUserId = asText(record?.created_by);
+            if (createdByUserId) {
+              recipientUserIds.add(createdByUserId);
+            }
+          }
+
+          const recordTitle = asText(reminder.record_title) || 'Untitled record';
+          for (const userId of recipientUserIds) {
+            const notificationId = newId('ntf');
+            const createdAt = nowIso();
+            const payload = buildNotificationPayload({
+              message: `Reminder: ${recordTitle}`,
+            });
+            const payloadJson = toJson(payload);
+            insertNotificationStmt.run(
+              notificationId,
+              reminder.project_id,
+              userId,
+              'reminder',
+              'record',
+              reminder.record_id,
+              payloadJson,
+              'network',
+              createdAt,
+            );
+            createdNotifications.push({
+              userId,
+              notification: notificationRecord({
+                notification_id: notificationId,
+                project_id: reminder.project_id,
+                user_id: userId,
+                reason: 'reminder',
+                entity_type: 'record',
+                entity_id: reminder.record_id,
+                payload_json: payloadJson,
+                notification_scope: 'network',
+                read_at: null,
+                created_at: createdAt,
+              }),
+            });
+          }
+        });
+
+        if (!claimed) {
+          continue;
+        }
+
+        for (const entry of createdNotifications) {
+          broadcastHubLiveToUser(entry.userId, {
+            type: 'notification.new',
+            notification: entry.notification,
+          });
+        }
+
+        console.log(`[hub-api] Fired reminder ${reminder.reminder_id} for record ${reminder.record_id}`);
+      } catch (error) {
+        console.error('[hub-api] Failed to fire reminder', {
+          reminder_id: reminder.reminder_id,
+          record_id: reminder.record_id,
+          error: error instanceof Error ? error.message : error,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[hub-api] Reminder check loop tick failed', error);
+  }
+};
 
 const server = createServer(async (request, response) => {
   if (!request.url) {
@@ -3905,8 +2557,40 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'POST' && pathname === '/api/hub/chat/provision') {
+      await chatRoutes.provision({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (pathname === '/api/hub/chat/snapshots' && request.method === 'POST') {
+      await chatRoutes.createSnapshot({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (pathname === '/api/hub/chat/snapshots' && request.method === 'GET') {
+      await chatRoutes.listSnapshots({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    const chatSnapshotItemMatch = pathMatch(pathname, /^\/api\/hub\/chat\/snapshots\/([^/]+)$/);
+    if (chatSnapshotItemMatch && request.method === 'DELETE') {
+      await chatRoutes.deleteSnapshot({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { snapshotId: decodeURIComponent(chatSnapshotItemMatch[1]) },
+      });
+      return;
+    }
+
     if (request.method === 'GET' && pathname === '/api/hub/home') {
       await taskRoutes.getHubHome({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (request.method === 'GET' && pathname === '/api/hub/search') {
+      await searchRoutes.globalSearch({ request, response, requestUrl, pathname });
       return;
     }
 
@@ -4193,6 +2877,18 @@ const server = createServer(async (request, response) => {
         requestUrl,
         pathname,
         params: { projectId: decodeURIComponent(projectRecordSearchMatch[1]) },
+      });
+      return;
+    }
+
+    const recordConvertMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/convert$/);
+    if (recordConvertMatch && request.method === 'POST') {
+      await collectionRoutes.convertRecord({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { recordId: decodeURIComponent(recordConvertMatch[1]) },
       });
       return;
     }
@@ -4621,4 +3317,6 @@ server.on('upgrade', (request, socket, head) => {
 server.listen(PORT, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
   console.log(`Hub API contract server listening on ${PORT}`);
+  setInterval(fireDueReminders, REMINDER_CHECK_INTERVAL_MS);
+  console.log('[hub-api] Reminder check loop started (30s interval)');
 });

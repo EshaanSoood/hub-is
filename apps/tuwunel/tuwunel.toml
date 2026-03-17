@@ -1,0 +1,20 @@
+[global]
+server_name = "chat.eshaansood.org"
+database_path = "/data/tuwunel.db"
+address = ["0.0.0.0"]
+port = 6167
+
+# Tuwunel closes public registration by requiring a registration token rather
+# than a separate shared-secret admin registration toggle. Compose maps
+# TUWUNEL_REGISTRATION_SHARED_SECRET into TUWUNEL_REGISTRATION_TOKEN.
+allow_registration = true
+allow_federation = false
+allow_local_presence = false
+allow_incoming_presence = false
+allow_outgoing_presence = false
+show_all_local_users_in_user_directory = false
+allow_public_room_directory_over_federation = false
+allow_public_room_directory_without_auth = false
+trusted_servers = []
+max_request_size = 20_000_000
+log = "warn"

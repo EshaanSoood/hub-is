@@ -1,23 +1,41 @@
 import { defineConfig } from '@playwright/test';
-import { DEFAULT_BASE_URL } from './e2e/utils/auth-state';
+import { OWNER_STORAGE_STATE_PATH } from './e2e/support/paths';
 
-const baseURL = (process.env.BASE_URL || '').trim();
-const hubBaseUrl = (process.env.HUB_BASE_URL || '').trim();
-const resolvedBaseUrl = (baseURL || hubBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+const baseURL = (process.env.BASE_URL || process.env.HUB_BASE_URL || 'https://eshaansood.org').trim().replace(/\/+$/, '');
 
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   workers: 1,
-  timeout: 90_000,
+  timeout: 30_000,
   expect: {
-    timeout: 20_000,
+    timeout: 10_000,
   },
-  reporter: [['list'], ['html', { open: 'never' }]],
+  outputDir: './playwright-results',
+  reporter: [
+    ['list'],
+    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+    ['./e2e/reporters/audit-reporter.ts'],
+  ],
   use: {
-    baseURL: resolvedBaseUrl,
+    baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
+  projects: [
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
+      name: 'chromium',
+      dependencies: ['setup'],
+      testIgnore: /auth\.setup\.ts/,
+      use: {
+        browserName: 'chromium',
+        storageState: OWNER_STORAGE_STATE_PATH,
+      },
+    },
+  ],
 });

@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SSH_KEY="${DEPLOY_SSH_KEY:-}"
 DEPLOY_USER="${DEPLOY_USER:-eshaan}"
-DEPLOY_HOST="${DEPLOY_HOST:-REPLACE_ME}"
+DEPLOY_HOST="${DEPLOY_HOST:-45.55.142.128}"
 LOCAL_COLLAB_DIR="${DEPLOY_COLLAB_DIR:-$ROOT_DIR/apps/hub-collab}"
 LOCAL_SHARED_DIR="${DEPLOY_SHARED_DIR:-$ROOT_DIR/apps/shared}"
 REMOTE_COLLAB_DIR="${DEPLOY_REMOTE_COLLAB_DIR:-/home/$DEPLOY_USER/deployments/eshaan-os-hub-collab}"

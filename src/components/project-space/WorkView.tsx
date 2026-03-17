@@ -407,10 +407,7 @@ export const WorkView = ({
     <section className="space-y-4">
       <header className="rounded-panel border border-subtle bg-elevated p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="heading-3 text-primary">{pane.name}</h2>
-            <p className="text-sm text-muted">Pane docs and local modules are pane-gated. Project-bound modules still reflect project data.</p>
-          </div>
+          <h2 className="heading-3 text-primary">{pane.name}</h2>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -468,7 +465,7 @@ export const WorkView = ({
             </button>
           </div>
         ) : (
-          <p className="mt-3 text-xs text-muted">Read-only mode. You can review and comment, but only pane editors can change this workspace.</p>
+          <p className="mt-3 text-xs text-muted">Read-only.</p>
         )}
         {moduleError ? <p className="mt-2 text-xs text-danger">{moduleError}</p> : null}
       </header>
@@ -622,13 +619,13 @@ export const WorkView = ({
             );
           }
 
-          return <p className="text-xs text-muted">{module.module_type} module</p>;
+          return <p className="text-xs text-muted">{module.module_type}</p>;
           }}
         />
       ) : (
         <section className="rounded-panel border border-subtle bg-elevated p-4">
           <h3 className="heading-4 text-primary">Structured Modules Off</h3>
-          <p className="mt-1 text-sm text-muted">This pane is set to workspace-only mode. Structured modules are hidden here.</p>
+          <p className="mt-1 text-sm text-muted">Modules hidden.</p>
         </section>
       )}
 
@@ -636,9 +633,6 @@ export const WorkView = ({
         <section className="rounded-panel border border-subtle bg-elevated p-4">
           <h3 className="heading-4 text-primary">Workspace Doc</h3>
           <p className="mt-1 text-sm text-muted">Doc ID: {pane.doc_id || 'missing'}</p>
-          <p className="mt-1 text-xs text-muted">
-            Collab room identity must be doc_id, with project-wide visibility and pane-scoped edit rights.
-          </p>
         </section>
       ) : null}
     </section>

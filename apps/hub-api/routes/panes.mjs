@@ -1,7 +1,7 @@
 export const createPaneRoutes = (deps) => {
   const {
-    db,
     withAuth,
+    withTransaction,
     withProjectPolicyGate,
     withPanePolicyGate,
     send,
@@ -17,12 +17,15 @@ export const createPaneRoutes = (deps) => {
     newId,
     toJson,
     emitTimelineEvent,
+    buildNotificationPayload,
+    createNotification,
     paneSummary,
     normalizeProjectRole,
     paneListForUserByProjectStmt,
     paneNextSortStmt,
     projectMembershipExistsStmt,
     projectMembershipRoleStmt,
+    projectMembersByProjectStmt,
     paneByIdStmt,
     insertPaneStmt,
     insertDocStmt,
@@ -100,8 +103,7 @@ export const createPaneRoutes = (deps) => {
       }
     }
 
-    db.exec('BEGIN');
-    try {
+    withTransaction(() => {
       insertPaneStmt.run(paneId, projectId, name, nextSort, pinned ? 1 : 0, toJson(layoutConfig), auth.user.user_id, now, now);
       insertDocStmt.run(docId, paneId, now, now);
       insertDocStorageStmt.run(docId, 0, toJson({}), now);
@@ -111,12 +113,7 @@ export const createPaneRoutes = (deps) => {
           insertPaneMemberStmt.run(paneId, userId, now);
         }
       }
-
-      db.exec('COMMIT');
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
+    });
 
     emitTimelineEvent({
       projectId,
@@ -126,6 +123,35 @@ export const createPaneRoutes = (deps) => {
       primaryEntityId: paneId,
       summary: { message: `Pane created: ${name}` },
     });
+    try {
+      const projectMembers = projectMembersByProjectStmt.all(projectId);
+      for (const member of projectMembers) {
+        if (member.user_id === auth.user.user_id) {
+          continue;
+        }
+        createNotification({
+          projectId,
+          userId: member.user_id,
+          reason: 'automation',
+          entityType: 'pane',
+          entityId: paneId,
+          notificationScope: 'network',
+          payload: buildNotificationPayload({
+            message: `New pane created: ${name}`,
+            sourceProjectId: projectId,
+            sourcePaneId: paneId,
+          }),
+        });
+      }
+    } catch (error) {
+      console.error('panes.mjs createProjectPane notification fan-out failed', {
+        file: 'apps/hub-api/routes/panes.mjs',
+        handler: 'createProjectPane',
+        userId: auth.user.user_id,
+        entityId: paneId,
+        error,
+      });
+    }
 
     const pane = paneByIdStmt.get(paneId);
     send(response, jsonResponse(201, okEnvelope({ pane: paneSummary(pane, auth.user.user_id) })));

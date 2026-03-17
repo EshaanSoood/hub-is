@@ -14,6 +14,7 @@ jobs:
       DEPLOY_REMOTE_ROOT: /home/eshaan/deployments/eshaan-os-root
       DEPLOY_REMOTE_HUB_API_DIR: /home/eshaan/deployments/eshaan-os-hub-api
       DEPLOY_REMOTE_COLLAB_DIR: /home/eshaan/deployments/eshaan-os-hub-collab
+      DEPLOY_REMOTE_TUWUNEL_DIR: /home/eshaan/deployments/eshaan-os-tuwunel
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,3 +50,9 @@ jobs:
           cp -a apps/hub-collab/. "$DEPLOY_REMOTE_COLLAB_DIR/"
           cp -a apps/shared/. "$DEPLOY_REMOTE_COLLAB_DIR/shared/"
           docker compose -f "$DEPLOY_REMOTE_COLLAB_DIR/docker-compose.yml" up -d --build
+
+      - name: Deploy tuwunel
+        run: |
+          mkdir -p "$DEPLOY_REMOTE_TUWUNEL_DIR"
+          cp -a apps/tuwunel/. "$DEPLOY_REMOTE_TUWUNEL_DIR/"
+          docker compose -f "$DEPLOY_REMOTE_TUWUNEL_DIR/docker-compose.yml" up -d --build

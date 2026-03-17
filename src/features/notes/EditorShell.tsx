@@ -59,9 +59,7 @@ export const EditorShell = ({
         <div>
           <h3 className="heading-4 text-primary">{title}</h3>
           <p className="mt-1 text-xs text-muted">{presenceLabel}</p>
-          {editorNames.length > 0 ? (
-            <p className="text-xs text-muted">Active: {editorNames.join(', ')}</p>
-          ) : null}
+          {editorNames.length > 0 ? <p className="sr-only">Active: {editorNames.join(', ')}</p> : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-2" role="status" aria-live="polite">
@@ -87,8 +85,8 @@ export const EditorShell = ({
         </div>
       </div>
 
-      {connectionDetail ? <p className="mt-2 text-xs text-muted">{connectionDetail}</p> : null}
-      {readOnly ? <p className="mt-2 text-xs text-muted">Read-only: an active authenticated session is required.</p> : null}
+      {connectionDetail ? <p className="sr-only">{connectionDetail}</p> : null}
+      {readOnly ? <p className="mt-2 text-xs text-muted">Read-only.</p> : null}
 
       <div className="mt-3">{children}</div>
 

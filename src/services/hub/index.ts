@@ -8,4 +8,5 @@ export * from './views';
 export * from './records';
 export * from './notifications';
 export * from './files';
-export * from './search';
+export { searchHub } from './search';
+export type { HubSearchResult } from './search';

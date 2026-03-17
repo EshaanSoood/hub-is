@@ -25,7 +25,7 @@ export const BacklinksPanel = ({ backlinks, loading, error, onOpenBacklink }: Ba
     <section className="rounded-panel border border-border-muted p-3" aria-label="Backlinks and mentions">
       <h3 className="text-sm font-semibold text-primary">Backlinks / Mentions</h3>
 
-      {loading ? <p className="mt-2 text-xs text-muted">Loading backlinks...</p> : null}
+      {loading ? <p className="mt-2 text-xs text-muted">Loading...</p> : null}
       {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
       {!loading && !error && backlinks.length === 0 ? (
         <p className="mt-2 text-xs text-muted">No backlinks found for this record.</p>

@@ -1,0 +1,42 @@
+services:
+  tuwunel:
+    image: ghcr.io/matrix-construct/tuwunel:v1.5.1@sha256:478eddb7c9a3b551b1519ff9f256dab4ed2067e58b7dd1cd129bbf67df62c1d0
+    container_name: eshaan-os-tuwunel
+    restart: unless-stopped
+    environment:
+      # Point the container at the mounted config file below.
+      TUWUNEL_CONFIG: /etc/tuwunel/tuwunel.toml
+      TUWUNEL_REGISTRATION_SHARED_SECRET: ${TUWUNEL_REGISTRATION_SHARED_SECRET:?TUWUNEL_REGISTRATION_SHARED_SECRET is required}
+      TUWUNEL_REGISTRATION_TOKEN: ${TUWUNEL_REGISTRATION_SHARED_SECRET:?TUWUNEL_REGISTRATION_SHARED_SECRET is required}
+    volumes:
+      # Keep the config file in repo so the deployed settings stay explicit.
+      - ./tuwunel.toml:/etc/tuwunel/tuwunel.toml:ro
+      # Persist the Matrix homeserver database.
+      - tuwunel_data:/data
+    networks:
+      coolify:
+        aliases:
+          # hub-api expects TUWUNEL_INTERNAL_URL=http://tuwunel:6167 by default.
+          - tuwunel
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.redirect-to-https-tuwunel.redirectscheme.scheme=https
+      - traefik.http.middlewares.gzip-tuwunel.compress=true
+      - traefik.http.routers.http-tuwunel-eshaan.entrypoints=http
+      - traefik.http.routers.http-tuwunel-eshaan.rule=Host(`chat.eshaansood.org`)
+      - traefik.http.routers.http-tuwunel-eshaan.middlewares=redirect-to-https-tuwunel
+      - traefik.http.routers.http-tuwunel-eshaan.priority=500
+      - traefik.http.routers.https-tuwunel-eshaan.entrypoints=https
+      - traefik.http.routers.https-tuwunel-eshaan.rule=Host(`chat.eshaansood.org`)
+      - traefik.http.routers.https-tuwunel-eshaan.middlewares=gzip-tuwunel
+      - traefik.http.routers.https-tuwunel-eshaan.tls=true
+      - traefik.http.routers.https-tuwunel-eshaan.tls.certresolver=letsencrypt
+      - traefik.http.routers.https-tuwunel-eshaan.priority=500
+      - traefik.http.services.tuwunel-eshaan.loadbalancer.server.port=6167
+
+networks:
+  coolify:
+    external: true
+
+volumes:
+  tuwunel_data:

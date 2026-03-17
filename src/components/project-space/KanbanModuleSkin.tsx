@@ -313,14 +313,10 @@ export const KanbanModuleSkin = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2 px-1">
-        <p className="text-xs text-muted">
-          {canMove ? 'Drag cards between columns or use each card’s Move control.' : readOnly ? 'Read-only kanban view.' : 'Showing ungrouped cards.'}
-        </p>
+        <p className="text-xs text-muted">{canMove ? 'Drag to move.' : readOnly ? 'Read-only.' : 'Ungrouped.'}</p>
       </div>
       {!groupingConfigured ? (
-        <p className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-muted">
-          {groupingMessage || 'No grouping field configured. Rendering all cards in a single ungrouped column.'}
-        </p>
+        <p className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-muted">{groupingMessage ?? 'No grouping.'}</p>
       ) : null}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
         <div className="flex gap-3 overflow-x-auto pb-1">

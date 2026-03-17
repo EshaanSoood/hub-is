@@ -471,6 +471,33 @@ const ProjectSpaceWorkspace = ({
   }, [activePane, activeTab, hasRequestedPane, navigate, paneId, project.project_id, searchParams]);
 
   useEffect(() => {
+    const recordId = searchParams.get('record_id');
+    if (
+      activeTab !== 'work' ||
+      !recordId ||
+      !activePane ||
+      (paneId && !hasRequestedPane)
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      await openInspector(recordId);
+      if (cancelled) {
+        return;
+      }
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('record_id');
+      setSearchParams(nextParams, { replace: true });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activePane, activeTab, hasRequestedPane, openInspector, paneId, searchParams, setSearchParams]);
+
+  useEffect(() => {
     if (searchParams.get('capture') !== '1') {
       return;
     }
@@ -822,7 +849,6 @@ const ProjectSpaceWorkspace = ({
         <section className="space-y-4">
           <header className="rounded-panel border border-subtle bg-elevated p-4">
             <h2 className="heading-2 text-primary">{project.name}</h2>
-            <p className="mt-1 text-sm text-muted">Overview shows project-wide timeline, calendar, and tasks.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {projectMemberList.map((member) => (
                 <span key={member.user_id} className="rounded-panel border border-border-muted px-2 py-1 text-xs text-muted">
@@ -1036,10 +1062,7 @@ const ProjectSpaceWorkspace = ({
         <section className="space-y-4">
           <div className="rounded-panel border border-subtle bg-elevated p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 className="heading-3 text-primary">Work Panes</h2>
-                <p className="mt-1 text-sm text-muted">Editable panes stay in the main list. Read-only panes stay available behind Other panes.</p>
-              </div>
+              <h2 className="heading-3 text-primary">Work Panes</h2>
               <div className="flex flex-wrap gap-2">
                 {openedFromPinned ? (
                   <button
@@ -1477,7 +1500,7 @@ const ProjectSpaceWorkspace = ({
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Comment on block</DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="sr-only">
                       Add a node-anchored comment for block {selectedDocNodeKey || 'unknown'}.
                     </DialogDescription>
                   </DialogHeader>
@@ -1578,7 +1601,7 @@ const ProjectSpaceWorkspace = ({
         <DialogContent className="left-0 top-0 h-screen max-w-[min(42rem,92vw)] translate-x-0 translate-y-0 overflow-y-auto rounded-none border-r border-border-muted">
           <DialogHeader>
             <DialogTitle>Record Inspector</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="sr-only">
               Quick dismissible inspector. Press Escape or close to return focus to the invoking control.
             </DialogDescription>
           </DialogHeader>

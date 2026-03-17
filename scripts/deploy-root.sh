@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SSH_KEY="${DEPLOY_SSH_KEY:-}"
 DEPLOY_USER="${DEPLOY_USER:-eshaan}"
-DEPLOY_HOST="${DEPLOY_HOST:-REPLACE_ME}"
+DEPLOY_HOST="${DEPLOY_HOST:-45.55.142.128}"
 REMOTE_ROOT="${DEPLOY_REMOTE_ROOT:-/home/$DEPLOY_USER/deployments/eshaan-os-root}"
 SSH_KEY_USE="$SSH_KEY"
 

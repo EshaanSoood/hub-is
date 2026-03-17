@@ -230,7 +230,7 @@ const DropZone = ({ compact, onFiles, readOnly = false }: { compact?: boolean; o
         background: dragOver ? 'color-mix(in srgb, var(--color-primary) 5%, transparent)' : 'transparent',
       }}
     >
-      <span className="text-xs text-muted">{readOnly ? 'Read-only file view' : compact ? 'Drop files here' : 'Drag and drop files, or use +'}</span>
+      <span className="text-xs text-muted">{readOnly ? 'Read-only' : compact ? 'Drop files' : 'Drop files or use +'}</span>
       <button
         type="button"
         disabled={readOnly}
