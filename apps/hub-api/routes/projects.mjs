@@ -1,0 +1,489 @@
+export const createProjectRoutes = (deps) => {
+  const projectIdPattern = /^[A-Za-z0-9_-]+$/;
+  const {
+    db,
+    withAuth,
+    withPolicyGate,
+    withProjectPolicyGate,
+    send,
+    jsonResponse,
+    okEnvelope,
+    errorEnvelope,
+    parseBody,
+    asText,
+    nowIso,
+    newId,
+    toJson,
+    emitTimelineEvent,
+    buildNotificationPayload,
+    createNotification,
+    projectRecord,
+    pendingInviteRecord,
+    membershipRoleLabel,
+    normalizeProjectRole,
+    ensureUserForEmail,
+    projectMembershipExistsStmt,
+    projectMembershipRoleStmt,
+    projectOwnerCountStmt,
+    projectForMemberStmt,
+    listProjectsForUserStmt,
+    projectByIdStmt,
+    projectMembersByProjectStmt,
+    pendingInvitesByProjectStmt,
+    activePendingInviteByProjectAndEmailStmt,
+    userByEmailStmt,
+    pendingInviteByIdStmt,
+    insertPendingInviteStmt,
+    updatePendingInviteDecisionStmt,
+    insertProjectStmt,
+    insertProjectMemberStmt,
+    deleteProjectMemberStmt,
+    insertPaneStmt,
+    insertDocStmt,
+    insertDocStorageStmt,
+    insertAssetRootStmt,
+    assignedTaskListForUser,
+    reassignTasksForRemovedMember,
+  } = deps;
+
+  const listProjects = withPolicyGate('projects.view', async ({ response, auth }) => {
+    const projects = listProjectsForUserStmt.all(auth.user.user_id).map(projectRecord);
+    send(response, jsonResponse(200, okEnvelope({ projects })));
+  });
+
+  const createProject = withPolicyGate('projects.view', async ({ request, response, auth }) => {
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch {
+      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      return;
+    }
+
+    const name = asText(body.name);
+    if (!name) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Project name is required.')));
+      return;
+    }
+
+    const now = nowIso();
+    const providedProjectId = asText(body.project_id);
+    if (providedProjectId && !projectIdPattern.test(providedProjectId)) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must contain only letters, numbers, underscores, and hyphens.')));
+      return;
+    }
+    const projectId = providedProjectId || newId('prj');
+
+    if (projectByIdStmt.get(projectId)) {
+      send(response, jsonResponse(409, errorEnvelope('conflict', 'Project already exists.')));
+      return;
+    }
+
+    db.exec('BEGIN');
+    try {
+      insertProjectStmt.run(projectId, name, auth.user.user_id, now, now);
+      insertProjectMemberStmt.run(projectId, auth.user.user_id, 'owner', now);
+      const defaultCollectionId = newId('col');
+      const defaultCollectionNow = nowIso();
+      db.prepare(`
+        INSERT INTO collections (collection_id, project_id, name, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(defaultCollectionId, projectId, 'Tasks', defaultCollectionNow, defaultCollectionNow);
+
+      const paneId = newId('pan');
+      const docId = newId('doc');
+      insertPaneStmt.run(
+        paneId,
+        projectId,
+        'Main Work',
+        1,
+        0,
+        toJson({ modules: [], doc_binding_mode: 'owned' }),
+        auth.user.user_id,
+        now,
+        now,
+      );
+      insertDocStmt.run(docId, paneId, now, now);
+      insertDocStorageStmt.run(docId, 0, toJson({}), now);
+      insertAssetRootStmt.run(
+        newId('ast'),
+        projectId,
+        'nextcloud',
+        `/HubOS/${projectId}`,
+        toJson({ provider: 'nextcloud' }),
+        now,
+        now,
+      );
+
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+
+    emitTimelineEvent({
+      projectId,
+      actorUserId: auth.user.user_id,
+      eventType: 'project.created',
+      primaryEntityType: 'project',
+      primaryEntityId: projectId,
+      summary: { message: `Project created: ${name}` },
+    });
+
+    const project = projectForMemberStmt.get(projectId, auth.user.user_id);
+    send(response, jsonResponse(201, okEnvelope({ project: projectRecord(project) })));
+  });
+
+  const getProject = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const project = projectForMemberStmt.get(params.projectId, auth.user.user_id);
+    if (!project) {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found.')));
+      return;
+    }
+
+    send(response, jsonResponse(200, okEnvelope({ project: projectRecord(project) })));
+  };
+
+  const listProjectMembers = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const projectId = params.projectId;
+    const projectGate = withProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId,
+      requiredCapability: 'view',
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+
+    const members = projectMembersByProjectStmt.all(projectId).map((member) => ({
+      project_id: member.project_id,
+      user_id: member.user_id,
+      role: membershipRoleLabel(member.role),
+      joined_at: member.joined_at,
+      display_name: member.display_name,
+      email: member.email,
+    }));
+
+    const pending_invites = projectGate.is_owner
+      ? pendingInvitesByProjectStmt.all(projectId).map(pendingInviteRecord)
+      : [];
+
+    send(response, jsonResponse(200, okEnvelope({ members, pending_invites })));
+  };
+
+  const addProjectMember = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const projectId = params.projectId;
+    const projectGate = withProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId,
+      requiredCapability: 'manage_members',
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+    const callerRole = normalizeProjectRole(projectMembershipRoleStmt.get(projectId, auth.user.user_id)?.role);
+    if (callerRole !== 'owner') {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only project owners can add members directly. Use the invite flow instead.')));
+      return;
+    }
+
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch {
+      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      return;
+    }
+
+    let targetUserId = asText(body.user_id);
+    const role = asText(body.role) === 'owner' ? 'owner' : 'member';
+
+    if (!targetUserId) {
+      const email = asText(body.email).toLowerCase();
+      const displayName = asText(body.display_name) || email || 'Project Member';
+      if (!email) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'user_id or email is required.')));
+        return;
+      }
+
+      targetUserId = ensureUserForEmail({ email, displayName })?.user_id || '';
+    }
+
+    if (!targetUserId) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Unable to resolve target project member.')));
+      return;
+    }
+
+    if (projectMembershipExistsStmt.get(projectId, targetUserId)?.ok) {
+      send(response, jsonResponse(409, errorEnvelope('conflict', 'Project member already exists.')));
+      return;
+    }
+
+    insertProjectMemberStmt.run(projectId, targetUserId, role, nowIso());
+
+    send(
+      response,
+      jsonResponse(
+        200,
+        okEnvelope({
+          project_id: projectId,
+          user_id: targetUserId,
+          role,
+        }),
+      ),
+    );
+  };
+
+  const createInvite = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const projectId = params.projectId;
+    const projectGate = withProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId,
+      requiredCapability: 'view',
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch {
+      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      return;
+    }
+
+    const email = asText(body.email).toLowerCase();
+    if (!email) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'email is required.')));
+      return;
+    }
+    const existingUser = userByEmailStmt.get(email);
+    if (existingUser && projectMembershipExistsStmt.get(projectId, existingUser.user_id)?.ok) {
+      send(response, jsonResponse(409, errorEnvelope('conflict', 'User is already a project member.')));
+      return;
+    }
+    const existingInvite = activePendingInviteByProjectAndEmailStmt.get(projectId, email);
+    if (existingInvite) {
+      send(response, jsonResponse(409, errorEnvelope('conflict', 'A pending invite request already exists for this email.')));
+      return;
+    }
+
+    const inviteRequestId = newId('pinv');
+    const timestamp = nowIso();
+    insertPendingInviteStmt.run(
+      inviteRequestId,
+      projectId,
+      email,
+      'member',
+      auth.user.user_id,
+      'pending',
+      existingUser?.user_id || null,
+      timestamp,
+      timestamp,
+    );
+
+    send(response, jsonResponse(201, okEnvelope({ pending_invite: pendingInviteRecord(pendingInviteByIdStmt.get(inviteRequestId)) })));
+  };
+
+  const reviewInvite = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const { projectId, inviteRequestId } = params;
+    const projectGate = withProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId,
+      requiredCapability: 'manage_members',
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+
+    const invite = pendingInviteByIdStmt.get(inviteRequestId);
+    if (!invite || invite.project_id !== projectId || invite.status !== 'pending') {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Pending invite not found.')));
+      return;
+    }
+
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch {
+      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      return;
+    }
+
+    const decision = asText(body.decision).toLowerCase();
+    if (decision !== 'approve' && decision !== 'reject') {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'decision must be approve or reject.')));
+      return;
+    }
+
+    const timestamp = nowIso();
+    let targetUserId = invite.target_user_id || null;
+    if (decision === 'approve') {
+      const resolvedUser = ensureUserForEmail({
+        email: invite.email,
+        displayName: invite.email.split('@')[0] || 'Project Member',
+      });
+      targetUserId = resolvedUser?.user_id || null;
+      if (!targetUserId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Unable to resolve invited user.')));
+        return;
+      }
+      if (!projectMembershipExistsStmt.get(projectId, targetUserId)?.ok) {
+        insertProjectMemberStmt.run(projectId, targetUserId, 'member', timestamp);
+      }
+      createNotification({
+        projectId,
+        userId: targetUserId,
+        reason: 'automation',
+        entityType: 'project',
+        entityId: projectId,
+        notificationScope: 'network',
+        payload: buildNotificationPayload({
+          message: 'Your project invite was approved.',
+          sourceProjectId: projectId,
+          extras: {
+            invite_request_id: inviteRequestId,
+          },
+        }),
+      });
+    }
+
+    updatePendingInviteDecisionStmt.run(
+      decision === 'approve' ? 'approved' : 'rejected',
+      targetUserId,
+      auth.user.user_id,
+      timestamp,
+      timestamp,
+      inviteRequestId,
+    );
+
+    send(response, jsonResponse(200, okEnvelope({ pending_invite: pendingInviteRecord(pendingInviteByIdStmt.get(inviteRequestId)) })));
+  };
+
+  const removeProjectMember = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const { projectId, targetUserId } = params;
+    const selfRemoval = auth.user.user_id === targetUserId;
+    const requiredCapability = selfRemoval ? 'view' : 'manage_members';
+    const projectGate = withProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId,
+      requiredCapability,
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+
+    const targetMembership = projectMembershipRoleStmt.get(projectId, targetUserId);
+    if (!targetMembership) {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Project member not found.')));
+      return;
+    }
+
+    const targetRole = membershipRoleLabel(targetMembership.role);
+    if (targetRole === 'owner') {
+      const ownerCount = Number(projectOwnerCountStmt.get(projectId)?.owner_count || 0);
+      if (ownerCount <= 1) {
+        send(
+          response,
+          jsonResponse(
+            409,
+            errorEnvelope('last_owner', 'The last owner cannot leave the project. Assign ownership to another member first.'),
+          ),
+        );
+        return;
+      }
+    }
+
+    if (selfRemoval) {
+      const assignedTasks = assignedTaskListForUser({ projectId, userId: targetUserId });
+      if (assignedTasks.length > 0) {
+        const taskSummary = assignedTasks.map((task) => `${task.title} (${task.record_id})`).join(', ');
+        send(
+          response,
+          jsonResponse(
+            409,
+            errorEnvelope(
+              'assigned_tasks_remaining',
+              `Reassign ${assignedTasks.length} remaining task(s) before leaving: ${taskSummary}.`,
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    if (!selfRemoval && !projectGate.is_owner) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only project owners can remove members.')));
+      return;
+    }
+
+    if (!selfRemoval) {
+      reassignTasksForRemovedMember({
+        projectId,
+        removedUserId: targetUserId,
+        nextOwnerUserId: auth.user.user_id,
+      });
+    }
+
+    deleteProjectMemberStmt.run(projectId, targetUserId);
+    db.prepare('DELETE FROM pane_members WHERE user_id = ? AND pane_id IN (SELECT pane_id FROM panes WHERE project_id = ?)').run(
+      targetUserId,
+      projectId,
+    );
+
+    send(response, jsonResponse(200, okEnvelope({ removed: true })));
+  };
+
+  return {
+    addProjectMember,
+    createInvite,
+    createProject,
+    getProject,
+    listProjectMembers,
+    listProjects,
+    removeProjectMember,
+    reviewInvite,
+  };
+};

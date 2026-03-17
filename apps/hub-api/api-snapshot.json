@@ -1,0 +1,1015 @@
+{
+  "base_url": "http://127.0.0.1:3001",
+  "route_count": 67,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/hub/health",
+      "path_pattern": "/api/hub/health",
+      "status_code": 200,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": {
+          "audience": [],
+          "db_path": "string",
+          "issuer": "string",
+          "jwks_url": "string",
+          "nextcloud_configured": "boolean",
+          "schema_version": "number"
+        },
+        "error": "null",
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/me",
+      "path_pattern": "/api/hub/me",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/home",
+      "path_pattern": "/api/hub/home",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/tasks",
+      "path_pattern": "/api/hub/tasks",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/tasks",
+      "path_pattern": "/api/hub/tasks",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects",
+      "path_pattern": "/api/hub/projects",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects",
+      "path_pattern": "/api/hub/projects",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder",
+      "path_pattern": "/api/hub/projects/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/members",
+      "path_pattern": "/api/hub/projects/([^/]+)/members",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/members",
+      "path_pattern": "/api/hub/projects/([^/]+)/members",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/invites",
+      "path_pattern": "/api/hub/projects/([^/]+)/invites",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/invites/placeholder",
+      "path_pattern": "/api/hub/projects/([^/]+)/invites/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/hub/projects/placeholder/members/placeholder",
+      "path_pattern": "/api/hub/projects/([^/]+)/members/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/panes",
+      "path_pattern": "/api/hub/projects/([^/]+)/panes",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/panes",
+      "path_pattern": "/api/hub/projects/([^/]+)/panes",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/tasks",
+      "path_pattern": "/api/hub/projects/([^/]+)/tasks",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/hub/panes/placeholder",
+      "path_pattern": "/api/hub/panes/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/hub/panes/placeholder",
+      "path_pattern": "/api/hub/panes/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/panes/placeholder/members",
+      "path_pattern": "/api/hub/panes/([^/]+)/members",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/hub/panes/placeholder/members/placeholder",
+      "path_pattern": "/api/hub/panes/([^/]+)/members/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/docs/placeholder",
+      "path_pattern": "/api/hub/docs/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/hub/docs/placeholder",
+      "path_pattern": "/api/hub/docs/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/docs/placeholder/presence",
+      "path_pattern": "/api/hub/docs/([^/]+)/presence",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/collections",
+      "path_pattern": "/api/hub/projects/([^/]+)/collections",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/collections",
+      "path_pattern": "/api/hub/projects/([^/]+)/collections",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/collections/placeholder/fields",
+      "path_pattern": "/api/hub/collections/([^/]+)/fields",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/collections/placeholder/fields",
+      "path_pattern": "/api/hub/collections/([^/]+)/fields",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/records",
+      "path_pattern": "/api/hub/projects/([^/]+)/records",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/records/search",
+      "path_pattern": "/api/hub/projects/([^/]+)/records/search",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/hub/records/placeholder",
+      "path_pattern": "/api/hub/records/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/records/placeholder",
+      "path_pattern": "/api/hub/records/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/records/placeholder/values",
+      "path_pattern": "/api/hub/records/([^/]+)/values",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/records/placeholder/relations",
+      "path_pattern": "/api/hub/records/([^/]+)/relations",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/hub/relations/placeholder",
+      "path_pattern": "/api/hub/relations/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/mentions/search",
+      "path_pattern": "/api/hub/projects/([^/]+)/mentions/search",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/backlinks",
+      "path_pattern": "/api/hub/projects/([^/]+)/backlinks",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/views",
+      "path_pattern": "/api/hub/projects/([^/]+)/views",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/views",
+      "path_pattern": "/api/hub/projects/([^/]+)/views",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/views/query",
+      "path_pattern": "/api/hub/views/query",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/events/from-nlp",
+      "path_pattern": "/api/hub/projects/([^/]+)/events/from-nlp",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/calendar",
+      "path_pattern": "/api/hub/projects/([^/]+)/calendar",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/comments",
+      "path_pattern": "/api/hub/comments",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/comments/doc-anchor",
+      "path_pattern": "/api/hub/comments/doc-anchor",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/comments/placeholder/status",
+      "path_pattern": "/api/hub/comments/([^/]+)/status",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/comments",
+      "path_pattern": "/api/hub/comments",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/mentions/materialize",
+      "path_pattern": "/api/hub/mentions/materialize",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/timeline",
+      "path_pattern": "/api/hub/projects/([^/]+)/timeline",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/notifications",
+      "path_pattern": "/api/hub/notifications",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/live/authorize",
+      "path_pattern": "/api/hub/live/authorize",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/notifications/placeholder/read",
+      "path_pattern": "/api/hub/notifications/([^/]+)/read",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/files/upload",
+      "path_pattern": "/api/hub/files/upload",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/attachments",
+      "path_pattern": "/api/hub/attachments",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/hub/attachments/placeholder",
+      "path_pattern": "/api/hub/attachments/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/asset-roots",
+      "path_pattern": "/api/hub/projects/([^/]+)/asset-roots",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/asset-roots",
+      "path_pattern": "/api/hub/projects/([^/]+)/asset-roots",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/files",
+      "path_pattern": "/api/hub/projects/([^/]+)/files",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/assets/list",
+      "path_pattern": "/api/hub/projects/([^/]+)/assets/list",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/assets/upload",
+      "path_pattern": "/api/hub/projects/([^/]+)/assets/upload",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/hub/projects/placeholder/assets/delete",
+      "path_pattern": "/api/hub/projects/([^/]+)/assets/delete",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/assets/proxy",
+      "path_pattern": "/api/hub/projects/([^/]+)/assets/proxy",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/automation-rules",
+      "path_pattern": "/api/hub/projects/([^/]+)/automation-rules",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/projects/placeholder/automation-rules",
+      "path_pattern": "/api/hub/projects/([^/]+)/automation-rules",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/hub/automation-rules/placeholder",
+      "path_pattern": "/api/hub/automation-rules/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/hub/automation-rules/placeholder",
+      "path_pattern": "/api/hub/automation-rules/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/projects/placeholder/automation-runs",
+      "path_pattern": "/api/hub/projects/([^/]+)/automation-runs",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/collab/authorize",
+      "path_pattern": "/api/hub/collab/authorize",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/collab/tickets/consume",
+      "path_pattern": "/api/hub/collab/tickets/consume",
+      "status_code": 400,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    }
+  ]
+}

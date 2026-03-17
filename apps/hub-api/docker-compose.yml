@@ -1,0 +1,42 @@
+services:
+  hub-api:
+    build:
+      context: /home/eshaan/deployments/eshaan-os-hub-api
+      dockerfile: Dockerfile
+    container_name: eshaan-os-hub-api
+    restart: unless-stopped
+    env_file:
+      - /home/eshaan/deployments/eshaan-os-hub-api/.env
+    volumes:
+      - /home/eshaan/deployments/eshaan-os-hub-api/data:/data
+    networks:
+      - coolify
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.redirect-to-https-hub-api.redirectscheme.scheme=https
+      - traefik.http.middlewares.gzip-hub-api.compress=true
+      - traefik.http.routers.http-hub-api-eshaan.entrypoints=http
+      - traefik.http.routers.http-hub-api-eshaan.rule=(Host(`api.eshaansood.org`) && PathPrefix(`/`)) || ((Host(`eshaansood.org`) || Host(`www.eshaansood.org`)) && (PathPrefix(`/api/postmark`) || PathPrefix(`/api/hub`)))
+      - traefik.http.routers.http-hub-api-eshaan.middlewares=redirect-to-https-hub-api
+      - traefik.http.routers.http-hub-api-eshaan.priority=400
+      - traefik.http.routers.https-hub-api-eshaan.entrypoints=https
+      - traefik.http.routers.https-hub-api-eshaan.rule=(Host(`api.eshaansood.org`) && PathPrefix(`/`)) || ((Host(`eshaansood.org`) || Host(`www.eshaansood.org`)) && (PathPrefix(`/api/postmark`) || PathPrefix(`/api/hub`)))
+      - traefik.http.routers.https-hub-api-eshaan.middlewares=gzip-hub-api
+      - traefik.http.routers.https-hub-api-eshaan.tls=true
+      - traefik.http.routers.https-hub-api-eshaan.tls.certresolver=letsencrypt
+      - traefik.http.routers.https-hub-api-eshaan.priority=400
+      - traefik.http.routers.http-notes-redirect.entrypoints=http
+      - traefik.http.routers.http-notes-redirect.rule=Host(`notes.eshaansood.org`)
+      - traefik.http.routers.http-notes-redirect.middlewares=redirect-to-https-hub-api
+      - traefik.http.routers.http-notes-redirect.priority=600
+      - traefik.http.routers.https-notes-redirect.entrypoints=https
+      - traefik.http.routers.https-notes-redirect.rule=Host(`notes.eshaansood.org`)
+      - traefik.http.routers.https-notes-redirect.middlewares=gzip-hub-api
+      - traefik.http.routers.https-notes-redirect.tls=true
+      - traefik.http.routers.https-notes-redirect.tls.certresolver=letsencrypt
+      - traefik.http.routers.https-notes-redirect.priority=600
+      - traefik.http.services.hub-api-eshaan.loadbalancer.server.port=3001
+
+networks:
+  coolify:
+    external: true

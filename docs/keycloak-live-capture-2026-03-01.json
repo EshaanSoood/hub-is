@@ -1,0 +1,227 @@
+{
+  "keycloakBase": "https://auth.eshaansood.org",
+  "realm": "eshaan-os",
+  "ttlSettings": {
+    "realm": "eshaan-os",
+    "accessTokenLifespan": 300,
+    "accessTokenLifespanForImplicitFlow": 900,
+    "ssoSessionIdleTimeout": 1800,
+    "ssoSessionMaxLifespan": 36000,
+    "ssoSessionIdleTimeoutRememberMe": 0,
+    "ssoSessionMaxLifespanRememberMe": 0,
+    "offlineSessionIdleTimeout": 2592000,
+    "offlineSessionMaxLifespan": 5184000,
+    "clientSessionIdleTimeout": 0,
+    "clientSessionMaxLifespan": 0,
+    "clientOfflineSessionIdleTimeout": 0,
+    "clientOfflineSessionMaxLifespan": 0,
+    "revokeRefreshToken": false,
+    "refreshTokenMaxReuse": 0
+  },
+  "clientSettings": {
+    "id": "1280ea28-01da-4108-bbd4-f2535a5af8e0",
+    "clientId": "eshaan-os-hub",
+    "name": "eshaan-os-hub",
+    "protocol": "openid-connect",
+    "publicClient": true,
+    "bearerOnly": false,
+    "standardFlowEnabled": true,
+    "implicitFlowEnabled": false,
+    "directAccessGrantsEnabled": false,
+    "serviceAccountsEnabled": false,
+    "frontchannelLogout": false,
+    "fullScopeAllowed": true,
+    "defaultClientScopes": [
+      "web-origins",
+      "acr",
+      "roles",
+      "profile",
+      "basic",
+      "email"
+    ],
+    "optionalClientScopes": [
+      "address",
+      "phone",
+      "organization",
+      "offline_access",
+      "microprofile-jwt"
+    ],
+    "attributes": {
+      "realm_client": "false",
+      "backchannel.logout.session.required": "true",
+      "backchannel.logout.revoke.offline.tokens": "false"
+    }
+  },
+  "protocolMappers": [],
+  "userProfileEndpointHttp": 200,
+  "userProfile": {
+    "attributes": [
+      {
+        "name": "username",
+        "displayName": "${username}",
+        "validations": {
+          "length": {
+            "min": 3,
+            "max": 255
+          },
+          "username-prohibited-characters": {},
+          "up-username-not-idn-homograph": {}
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin",
+            "user"
+          ]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "email",
+        "displayName": "${email}",
+        "validations": {
+          "email": {},
+          "length": {
+            "max": 255
+          }
+        },
+        "required": {
+          "roles": [
+            "user"
+          ]
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin",
+            "user"
+          ]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "firstName",
+        "displayName": "${firstName}",
+        "validations": {
+          "length": {
+            "max": 255
+          },
+          "person-name-prohibited-characters": {}
+        },
+        "required": {
+          "roles": [
+            "user"
+          ]
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin",
+            "user"
+          ]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "lastName",
+        "displayName": "${lastName}",
+        "validations": {
+          "length": {
+            "max": 255
+          },
+          "person-name-prohibited-characters": {}
+        },
+        "required": {
+          "roles": [
+            "user"
+          ]
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin",
+            "user"
+          ]
+        },
+        "multivalued": false
+      }
+    ],
+    "groups": [
+      {
+        "name": "user-metadata",
+        "displayHeader": "User metadata",
+        "displayDescription": "Attributes, which refer to user metadata"
+      }
+    ]
+  },
+  "requiredUserProfileAttributes": [
+    {
+      "name": "email",
+      "displayName": "${email}",
+      "required": {
+        "roles": [
+          "user"
+        ]
+      }
+    },
+    {
+      "name": "firstName",
+      "displayName": "${firstName}",
+      "required": {
+        "roles": [
+          "user"
+        ]
+      }
+    },
+    {
+      "name": "lastName",
+      "displayName": "${lastName}",
+      "required": {
+        "roles": [
+          "user"
+        ]
+      }
+    }
+  ],
+  "realmExportHttp": 200,
+  "realmExportSummary": {
+    "realm": "eshaan-os",
+    "enabled": true,
+    "registrationAllowed": true,
+    "sslRequired": "external",
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "resetPasswordAllowed": true,
+    "editUsernameAllowed": false,
+    "verifyEmail": false,
+    "clientsCount": 0,
+    "clientScopesCount": 14,
+    "groupsCount": 0
+  },
+  "userinfoRun": {
+    "source": "password_grant",
+    "tokenRealm": "eshaan-os",
+    "tokenClient": "admin-cli",
+    "error": "password_grant_eshaan-os-hub_failed: Client not allowed for direct access grants",
+    "fields": {
+      "sub": "1b65988f-52c6-46ad-93f8-c63e058f5ba3",
+      "email": "authreport_1772339054_22067@example.invalid",
+      "name": "Auth Report",
+      "given_name": "Auth",
+      "family_name": "Report",
+      "preferred_username": "authreport_1772339054_22067"
+    }
+  }
+}

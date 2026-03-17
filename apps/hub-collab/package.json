@@ -1,0 +1,18 @@
+{
+  "name": "eshaan-os-hub-collab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node /app/collab-server.mjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "lib0": "^0.2.102",
+    "ws": "^8.18.3",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.29"
+  }
+}

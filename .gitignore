@@ -1,0 +1,33 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+.DS_Store
+npm-debug.log*
+
+# Env files and local secrets
+.env
+.env.*
+!/.env.example
+!/.env.production
+.env.hub.live.local
+
+# Keys and certificates
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Sensitive working artifacts
+.env.production
+working files/
+*.zip
+*.tar.gz
+
+# Playwright artifacts
+playwright-report/
+test-results/
+e2e/.auth/
+e2e/E2E_FULL_REPORT.md

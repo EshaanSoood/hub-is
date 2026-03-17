@@ -1,0 +1,10 @@
+# Copy values into .env.hub.live.local (local-only file, not committed).
+HUB_BASE_URL=https://eshaansood.org
+HUB_PROJECT_ID=backend-pilot
+HUB_OWNER_ACCESS_TOKEN=replace_me
+HUB_ACCESS_TOKEN=replace_me
+HUB_NON_MEMBER_ACCESS_TOKEN=replace_me
+
+# Recommended
+HUB_INCLUDE_COLLAB_SMOKE=true
+HUB_REQUEST_TIMEOUT_MS=15000

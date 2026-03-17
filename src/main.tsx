@@ -1,0 +1,28 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import { ToastProvider } from './components/primitives';
+import { ActivityProvider } from './context/ActivityContext';
+import { AuthzProvider } from './context/AuthzContext';
+import { ProjectsProvider } from './context/ProjectsContext';
+import { SmartWakeProvider } from './context/SmartWakeContext';
+import '../tokens.css';
+import '../globals.css';
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <AuthzProvider>
+        <ProjectsProvider>
+          <SmartWakeProvider>
+            <ActivityProvider>
+              <App />
+              <ToastProvider />
+            </ActivityProvider>
+          </SmartWakeProvider>
+        </ProjectsProvider>
+      </AuthzProvider>
+    </BrowserRouter>
+  </StrictMode>,
+);
