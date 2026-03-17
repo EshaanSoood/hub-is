@@ -10,6 +10,7 @@ import type {
   IntegrationOutcome,
   ProjectMembership,
   ProjectRecord,
+  ServiceRegistryItem,
 } from '../types/domain';
 import type { HubEnvelope, HubProject } from './hub/types';
 import { buildHubAuthHeaders } from './hubAuthHeaders';
@@ -73,7 +74,6 @@ const toProjectRecord = (project: HubProject): ProjectRecord => ({
   status: 'active',
   summary: '',
   openProjectProjectId: null,
-  nextcloudFolder: null,
   membershipRole:
     project.membership_role === 'owner' || project.membership_role === 'member'
       ? project.membership_role
@@ -153,7 +153,7 @@ export const createHubInvite = async (
 
 export const requestOwnerEdgeGrant = async (
   accessToken: string,
-  serviceId: 'nextcloud' | 'openproject',
+  serviceId: ServiceRegistryItem['id'],
 ): Promise<IntegrationOutcome<{ openUrl: string; serviceId: string }>> => {
   try {
     const response = await fetch('/api/hub/edge/grants', {

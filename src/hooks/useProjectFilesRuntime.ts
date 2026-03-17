@@ -122,7 +122,6 @@ export const useProjectFilesRuntime = ({
       }
 
       const created = await createAssetRoot(accessToken, projectId, {
-        provider: 'nextcloud',
         root_path: `/Projects/${slugifyPathSegment(projectName)}-${projectId.slice(-6)}`,
       });
       const nextRoots = await listAssetRoots(accessToken, projectId);
@@ -419,7 +418,6 @@ export const useProjectFilesRuntime = ({
       }
 
       await createAssetRoot(accessToken, projectId, {
-        provider: 'nextcloud',
         root_path: rootPath,
       });
       setNewAssetRootPath('/');

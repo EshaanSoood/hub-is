@@ -31,7 +31,6 @@ export const ProjectShell = ({
             <DataList
               items={[
                 { label: 'OpenProject Project', value: project.openProjectProjectId || 'pending' },
-                { label: 'Nextcloud Folder', value: project.nextcloudFolder || 'pending' },
                 { label: 'Notes Space', value: 'Hub-managed notes (internal)' },
               ]}
             />

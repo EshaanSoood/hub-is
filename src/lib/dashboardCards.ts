@@ -26,7 +26,7 @@ export const dashboardCardRegistry: DashboardCardDefinition[] = [
   {
     id: 'recent-files',
     title: 'Recent Files',
-    description: 'View recent Nextcloud assets and share links.',
+    description: 'View recent files and share links.',
     requiredGlobalCapabilities: ['hub.view'],
     requiredProjectCapability: 'project.files.view',
     projectScopeRequired: true,

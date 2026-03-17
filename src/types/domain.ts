@@ -42,7 +42,6 @@ export interface Project {
   linkedExternalIds: {
     keycloakClientId: string;
     openProjectProjectId: string;
-    nextcloudFolder: string;
     invoiceClientId: string;
   };
   notes: HubNote[];
@@ -56,7 +55,6 @@ export interface ProjectRecord {
   status: 'active' | 'paused';
   summary: string;
   openProjectProjectId: string | null;
-  nextcloudFolder: string | null;
   membershipRole: ProjectMembership['role'];
 }
 
