@@ -18,6 +18,7 @@ import { useProjectTasksRuntime } from '../hooks/useProjectTasksRuntime';
 import { useProjectViewsRuntime } from '../hooks/useProjectViewsRuntime';
 import { useQuickCapture } from '../hooks/useQuickCapture';
 import { useRecordInspector } from '../hooks/useRecordInspector';
+import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { useTimelineRuntime } from '../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../hooks/useWorkspaceDocRuntime';
 import { AccessDeniedView } from '../components/auth/AccessDeniedView';
@@ -433,6 +434,7 @@ const ProjectSpaceWorkspace = ({
     timeline,
     setTimeline,
   });
+  const remindersRuntime = useRemindersRuntime(accessToken);
 
   useEffect(() => {
     if (previousOpenedFromPinnedRef.current !== openedFromPinned) {
@@ -728,6 +730,12 @@ const ProjectSpaceWorkspace = ({
           void openInspector(recordId);
         },
       },
+      reminders: {
+        items: remindersRuntime.reminders,
+        loading: remindersRuntime.loading,
+        onDismiss: remindersRuntime.dismiss,
+        onCreate: remindersRuntime.create,
+      },
     }),
     [
       calendarEvents,
@@ -751,6 +759,10 @@ const ProjectSpaceWorkspace = ({
       toggleTimelineFilter,
       refreshProjectData,
       openInspector,
+      remindersRuntime.create,
+      remindersRuntime.dismiss,
+      remindersRuntime.loading,
+      remindersRuntime.reminders,
     ],
   );
 

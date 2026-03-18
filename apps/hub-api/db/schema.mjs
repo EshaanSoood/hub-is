@@ -136,6 +136,7 @@ const resetSchemaToContractV1 = (db) => {
         created_by TEXT NOT NULL,
         project_type TEXT NOT NULL DEFAULT 'team' CHECK (project_type IN ('team', 'personal')),
         tasks_collection_id TEXT,
+        reminders_collection_id TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
@@ -338,6 +339,8 @@ const resetSchemaToContractV1 = (db) => {
         channels TEXT NOT NULL,
         created_at TEXT NOT NULL,
         fired_at TEXT,
+        dismissed_at TEXT,
+        recurrence_json TEXT,
         FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE
       );
 

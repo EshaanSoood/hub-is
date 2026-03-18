@@ -498,4 +498,62 @@ export const runMigrations = (db) => {
       throw error;
     }
   }
+
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    const reminderDismissedAtColumn = db
+      .prepare("SELECT 1 AS ok FROM pragma_table_info('reminders') WHERE name = 'dismissed_at' LIMIT 1")
+      .get();
+    if (!reminderDismissedAtColumn?.ok) {
+      db.exec(`
+        ALTER TABLE reminders
+        ADD COLUMN dismissed_at TEXT;
+      `);
+    }
+
+    const reminderRecurrenceJsonColumn = db
+      .prepare("SELECT 1 AS ok FROM pragma_table_info('reminders') WHERE name = 'recurrence_json' LIMIT 1")
+      .get();
+    if (!reminderRecurrenceJsonColumn?.ok) {
+      db.exec(`
+        ALTER TABLE reminders
+        ADD COLUMN recurrence_json TEXT;
+      `);
+    }
+
+    db.exec('COMMIT;');
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // no-op
+    }
+    if (!/duplicate column name/i.test(String(error?.message || error))) {
+      throw error;
+    }
+  }
+
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    const projectRemindersCollectionIdColumn = db
+      .prepare("SELECT 1 AS ok FROM pragma_table_info('projects') WHERE name = 'reminders_collection_id' LIMIT 1")
+      .get();
+    if (!projectRemindersCollectionIdColumn?.ok) {
+      db.exec(`
+        ALTER TABLE projects
+        ADD COLUMN reminders_collection_id TEXT;
+      `);
+    }
+
+    db.exec('COMMIT;');
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // no-op
+    }
+    if (!/duplicate column name/i.test(String(error?.message || error))) {
+      throw error;
+    }
+  }
 };

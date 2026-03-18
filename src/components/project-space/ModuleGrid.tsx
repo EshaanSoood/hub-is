@@ -33,6 +33,7 @@ const MODULE_CATALOG = [
   { type: 'table', label: 'Table', lensConfigurable: true },
   { type: 'kanban', label: 'Kanban', lensConfigurable: true },
   { type: 'calendar', label: 'Calendar', lensConfigurable: true },
+  { type: 'reminders', label: 'Reminders', lensConfigurable: false },
   { type: 'timeline', label: 'Timeline', lensConfigurable: true },
   { type: 'files', label: 'Files', lensConfigurable: true },
   { type: 'quick_thoughts', label: 'Quick Thoughts', lensConfigurable: false },

@@ -1,6 +1,7 @@
 import { Suspense, lazy, useRef, useState } from 'react';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
+import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import type { HubCollectionField, HubPaneSummary, HubRecordSummary } from '../../services/hub/types';
 import type { CalendarScope } from './CalendarModuleSkin';
 import type { FilesModuleItem } from './FilesModuleSkin';
@@ -106,6 +107,13 @@ export interface WorkViewTimelineRuntime {
   onItemClick: (recordId: string, recordType: string) => void;
 }
 
+export interface WorkViewRemindersRuntime {
+  items: HubReminderSummary[];
+  loading: boolean;
+  onDismiss: (reminderId: string) => Promise<void>;
+  onCreate: (payload: CreateReminderPayload) => Promise<void>;
+}
+
 export interface WorkViewModuleRuntime {
   table: WorkViewTableRuntime;
   kanban: WorkViewKanbanRuntime;
@@ -113,6 +121,7 @@ export interface WorkViewModuleRuntime {
   files: WorkViewFilesRuntime;
   quickThoughts: WorkViewQuickThoughtsRuntime;
   timeline: WorkViewTimelineRuntime;
+  reminders: WorkViewRemindersRuntime;
 }
 
 const TableModuleSkin = lazy(async () => {
@@ -135,10 +144,25 @@ const FilesModuleSkin = lazy(async () => {
   return { default: module.FilesModuleSkin };
 });
 
+const RemindersModuleSkin = lazy(async () => {
+  const module = await import('./RemindersModuleSkin');
+  return { default: module.RemindersModuleSkin };
+});
+
 const QuickThoughtsModuleSkin = lazy(async () => {
   const module = await import('./InboxCaptureModuleSkin');
   return { default: module.QuickThoughtsModuleSkin };
 });
+
+const defaultLensForModule = (moduleType: string): 'project' | 'pane_scratch' | null => {
+  if (moduleType === 'quick_thoughts') {
+    return 'pane_scratch';
+  }
+  if (moduleType === 'reminders') {
+    return 'project';
+  }
+  return null;
+};
 
 const normalizeModuleType = (moduleType: unknown): string => {
   if (moduleType === 'inbox') {
@@ -181,7 +205,9 @@ const parseModules = (layoutConfig: Record<string, unknown> | null | undefined):
           : `module-${index + 1}`,
       module_type: moduleType,
       size_tier: sizeTier === 'S' || sizeTier === 'M' || sizeTier === 'L' ? sizeTier : 'M',
-      lens: moduleType === 'quick_thoughts' ? 'pane_scratch' : lens === 'pane_scratch' ? 'pane_scratch' : 'project',
+      lens:
+        defaultLensForModule(moduleType)
+        || (lens === 'pane_scratch' ? 'pane_scratch' : 'project'),
       binding,
     });
   }
@@ -194,7 +220,7 @@ const serializeModules = (modules: ContractModuleConfig[]): Array<Record<string,
     module_instance_id: module.module_instance_id,
     module_type: normalizeModuleType(module.module_type),
     size_tier: module.size_tier,
-    lens: normalizeModuleType(module.module_type) === 'quick_thoughts' ? 'pane_scratch' : module.lens,
+    lens: defaultLensForModule(normalizeModuleType(module.module_type)) || module.lens,
     ...(module.binding?.view_id ? { binding: { view_id: module.binding.view_id } } : {}),
   }));
 
@@ -236,6 +262,12 @@ const EMPTY_RUNTIME: WorkViewModuleRuntime = {
     onFilterToggle: () => undefined,
     onLoadMore: () => undefined,
     onItemClick: () => undefined,
+  },
+  reminders: {
+    items: [],
+    loading: false,
+    onDismiss: async () => undefined,
+    onCreate: async () => undefined,
   },
 };
 
@@ -294,6 +326,10 @@ export const WorkView = ({
       ...EMPTY_RUNTIME.timeline,
       ...moduleRuntime?.timeline,
     },
+    reminders: {
+      ...EMPTY_RUNTIME.reminders,
+      ...moduleRuntime?.reminders,
+    },
   };
 
   const modules = parseModules(pane.layout_config);
@@ -339,7 +375,7 @@ export const WorkView = ({
         module_instance_id: `${moduleType}-${Date.now()}`,
         module_type: normalizeModuleType(moduleType),
         size_tier: 'M',
-        lens: normalizeModuleType(moduleType) === 'quick_thoughts' ? 'pane_scratch' : 'project',
+        lens: defaultLensForModule(normalizeModuleType(moduleType)) || 'project',
       },
     ];
     void saveModules(nextModules);
@@ -355,7 +391,7 @@ export const WorkView = ({
       module.module_instance_id === moduleInstanceId
         ? {
             ...module,
-            lens: module.module_type === 'quick_thoughts' ? 'pane_scratch' : lens,
+            lens: defaultLensForModule(module.module_type) || lens,
           }
         : module,
     );
@@ -581,6 +617,21 @@ export const WorkView = ({
                   files={module.lens === 'project' ? mergedRuntime.files.projectFiles : mergedRuntime.files.paneFiles}
                   onUpload={canEditPane ? (module.lens === 'project' ? mergedRuntime.files.onUploadProjectFiles : mergedRuntime.files.onUploadPaneFiles) : () => undefined}
                   onOpenFile={mergedRuntime.files.onOpenFile}
+                  readOnly={!canEditPane}
+                />
+              </Suspense>
+            );
+          }
+
+          if (module.module_type === 'reminders') {
+            return (
+              <Suspense fallback={<ModuleLoadingState label="Loading reminders module" rows={4} />}>
+                <RemindersModuleSkin
+                  reminders={mergedRuntime.reminders.items}
+                  loading={mergedRuntime.reminders.loading}
+                  onDismiss={mergedRuntime.reminders.onDismiss}
+                  onCreate={mergedRuntime.reminders.onCreate}
+                  sizeTier={module.size_tier}
                   readOnly={!canEditPane}
                 />
               </Suspense>

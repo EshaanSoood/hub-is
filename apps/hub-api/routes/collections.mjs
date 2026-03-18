@@ -379,7 +379,7 @@ export const createCollectionRoutes = (deps) => {
               continue;
             }
             const channels = Array.isArray(reminder.channels) ? reminder.channels.map((item) => asText(item)).filter(Boolean) : ['in_app'];
-            insertReminderStmt.run(newId('rem'), recordId, remindAt, toJson(channels), timestamp);
+            insertReminderStmt.run(newId('rem'), recordId, remindAt, toJson(channels), timestamp, null);
           }
         }
 
