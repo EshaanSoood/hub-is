@@ -58,6 +58,7 @@ interface TasksTabProps {
   onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
   onUpdateTaskCategory?: (taskId: string, category: string | null) => void | Promise<void>;
   onDeleteTask?: (taskId: string) => void | Promise<void>;
+  showSortControls?: boolean;
 }
 
 const SORT_DIMENSIONS: SortDimension[] = ['date', 'priority', 'category'];
@@ -360,6 +361,7 @@ const TaskRow = ({
   const archiveTimerRef = useRef<number | null>(null);
   const visibleSubtaskCount = task.subtaskCount ?? task.subtasks.length;
   const taskHasSubtasks = task.subtasks.length > 0;
+  const hasMenuActions = Boolean(onUpdateTaskPriority || onUpdateTaskDueDate || onUpdateTaskCategory || onUpdateTaskStatus || onDeleteTask);
   const priorityTone = getPriorityTone(task.priorityValue, task.priority);
   const priorityChipStyles = getPriorityChipStyles(task.priorityValue, task.priority);
 
@@ -545,156 +547,165 @@ const TaskRow = ({
             </button>
           ) : null}
 
-          <div className="relative">
-            <button
-              ref={triggerRef}
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              onClick={(event) => {
-                event.stopPropagation();
-                if (!menuOpen) {
-                  setCategoryDraft(task.categoryValue ?? '');
-                }
-                setMenuOpen((current) => !current);
-                setConfirmArchive(false);
-                if (archiveTimerRef.current !== null) {
-                  window.clearTimeout(archiveTimerRef.current);
-                  archiveTimerRef.current = null;
-                }
-              }}
-              className={cn(
-                'rounded-control px-2 py-1 text-sm text-muted opacity-0 transition-opacity hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group-hover:opacity-100 group-focus-within:opacity-100',
-                menuOpen && 'opacity-100',
-              )}
-              aria-label={`Open actions for ${task.label}`}
-            >
-              ⋯
-            </button>
-
-            {menuOpen ? (
-              <div
-                ref={menuRef}
-                role="menu"
-                tabIndex={-1}
-                aria-label={`Task actions for ${task.label}`}
-                onClick={(event) => event.stopPropagation()}
-                onKeyDown={handleMenuKeyDown}
-                className="absolute right-0 top-full z-20 mt-1 w-72 rounded-panel border border-border-muted bg-surface p-3 shadow-lg"
+          {hasMenuActions ? (
+            <div className="relative">
+              <button
+                ref={triggerRef}
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (!menuOpen) {
+                    setCategoryDraft(task.categoryValue ?? '');
+                  }
+                  setMenuOpen((current) => !current);
+                  setConfirmArchive(false);
+                  if (archiveTimerRef.current !== null) {
+                    window.clearTimeout(archiveTimerRef.current);
+                    archiveTimerRef.current = null;
+                  }
+                }}
+                className={cn(
+                  'rounded-control px-2 py-1 text-sm text-muted opacity-0 transition-opacity hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group-hover:opacity-100 group-focus-within:opacity-100',
+                  menuOpen && 'opacity-100',
+                )}
+                aria-label={`Open actions for ${task.label}`}
               >
-                <div className="space-y-2">
-                  <div>
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Priority</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {PRIORITY_MENU_OPTIONS.map((option) => {
-                        const optionStyles = option.tone
-                          ? {
-                              color: PRIORITY_COLORS[option.tone],
-                              borderColor: PRIORITY_COLORS[option.tone],
-                              backgroundColor: PRIORITY_TINT_COLORS[option.tone],
-                            }
-                          : {
-                              color: 'var(--color-text-secondary)',
-                              borderColor: 'var(--color-border-muted)',
-                              backgroundColor: 'var(--color-surface-elevated)',
-                            };
-                        const active = task.priorityValue === option.value;
-                        return (
+                ⋯
+              </button>
+
+              {menuOpen ? (
+                <div
+                  ref={menuRef}
+                  role="menu"
+                  tabIndex={-1}
+                  aria-label={`Task actions for ${task.label}`}
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={handleMenuKeyDown}
+                  className="absolute right-0 top-full z-20 mt-1 w-72 rounded-panel border border-border-muted bg-surface p-3 shadow-lg"
+                >
+                  <div className="space-y-2">
+                    {onUpdateTaskPriority ? (
+                      <div>
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Priority</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {PRIORITY_MENU_OPTIONS.map((option) => {
+                            const optionStyles = option.tone
+                              ? {
+                                  color: PRIORITY_COLORS[option.tone],
+                                  borderColor: PRIORITY_COLORS[option.tone],
+                                  backgroundColor: PRIORITY_TINT_COLORS[option.tone],
+                                }
+                              : {
+                                  color: 'var(--color-text-secondary)',
+                                  borderColor: 'var(--color-border-muted)',
+                                  backgroundColor: 'var(--color-surface-elevated)',
+                                };
+                            const active = task.priorityValue === option.value;
+                            return (
+                              <button
+                                key={option.label}
+                                type="button"
+                                role="menuitem"
+                                data-menu-item="true"
+                                onClick={() => runMenuAction(() => onUpdateTaskPriority(task.id, option.value))}
+                                className={cn(
+                                  'rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                                  active && 'font-semibold',
+                                )}
+                                style={optionStyles}
+                              >
+                                {option.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {onUpdateTaskDueDate ? (
+                      <div>
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Due date</p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={toDateInputValue(task.dueAt)}
+                            onChange={(event) => {
+                              runMenuAction(() => onUpdateTaskDueDate(task.id, fromDateInputValue(event.target.value)));
+                            }}
+                            onClick={(event) => event.stopPropagation()}
+                            className="min-w-0 flex-1 rounded-control border border-border-muted bg-surface-elevated px-2 py-1 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          />
                           <button
-                            key={option.label}
                             type="button"
                             role="menuitem"
                             data-menu-item="true"
-                            onClick={() => runMenuAction(() => onUpdateTaskPriority?.(task.id, option.value))}
-                            className={cn(
-                              'rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-                              active && 'font-semibold',
-                            )}
-                            style={optionStyles}
+                            onClick={() => runMenuAction(() => onUpdateTaskDueDate(task.id, null))}
+                            className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                           >
-                            {option.label}
+                            Clear
                           </button>
-                        );
-                      })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {onUpdateTaskCategory ? (
+                      <div>
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Category</p>
+                        <input
+                          type="text"
+                          value={categoryDraft}
+                          placeholder="Uncategorized"
+                          onChange={(event) => setCategoryDraft(event.target.value)}
+                          onClick={(event) => event.stopPropagation()}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              commitCategory();
+                            }
+                          }}
+                          onBlur={(event) => {
+                            const relatedTarget = event.relatedTarget as Node | null;
+                            if (relatedTarget && menuRef.current?.contains(relatedTarget)) {
+                              return;
+                            }
+                            commitCategory();
+                          }}
+                          className="w-full rounded-control border border-border-muted bg-surface-elevated px-2 py-1 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        />
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-col gap-1">
+                      {onUpdateTaskStatus ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          data-menu-item="true"
+                          onClick={() => runMenuAction(() => onUpdateTaskStatus(task.id, status === 'cancelled' ? 'todo' : 'cancelled'))}
+                          className="rounded-control px-2 py-1 text-left text-sm text-text hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        >
+                          {status === 'cancelled' ? 'Reopen' : 'Mark as cancelled'}
+                        </button>
+                      ) : null}
+                      {onDeleteTask ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          data-menu-item="true"
+                          onClick={handleArchiveClick}
+                          className="rounded-control px-2 py-1 text-left text-sm text-danger hover:bg-danger-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        >
+                          {confirmArchive ? 'Confirm archive?' : 'Archive task'}
+                        </button>
+                      ) : null}
                     </div>
-                  </div>
-
-                  <div>
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Due date</p>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="date"
-                        value={toDateInputValue(task.dueAt)}
-                        onChange={(event) => {
-                          runMenuAction(() => onUpdateTaskDueDate?.(task.id, fromDateInputValue(event.target.value)));
-                        }}
-                        onClick={(event) => event.stopPropagation()}
-                        className="min-w-0 flex-1 rounded-control border border-border-muted bg-surface-elevated px-2 py-1 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                      />
-                      <button
-                        type="button"
-                        role="menuitem"
-                        data-menu-item="true"
-                        onClick={() => runMenuAction(() => onUpdateTaskDueDate?.(task.id, null))}
-                        className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Category</p>
-                    <input
-                      type="text"
-                      value={categoryDraft}
-                      placeholder="Uncategorized"
-                      onChange={(event) => setCategoryDraft(event.target.value)}
-                      onClick={(event) => event.stopPropagation()}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          commitCategory();
-                        }
-                      }}
-                      onBlur={(event) => {
-                        const relatedTarget = event.relatedTarget as Node | null;
-                        if (relatedTarget && menuRef.current?.contains(relatedTarget)) {
-                          return;
-                        }
-                        commitCategory();
-                      }}
-                      className="w-full rounded-control border border-border-muted bg-surface-elevated px-2 py-1 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      data-menu-item="true"
-                      onClick={() =>
-                        runMenuAction(() => onUpdateTaskStatus?.(task.id, status === 'cancelled' ? 'todo' : 'cancelled'))
-                      }
-                      className="rounded-control px-2 py-1 text-left text-sm text-text hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                    >
-                      {status === 'cancelled' ? 'Reopen' : 'Mark as cancelled'}
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      data-menu-item="true"
-                      onClick={handleArchiveClick}
-                      disabled={!onDeleteTask}
-                      className="rounded-control px-2 py-1 text-left text-sm text-danger hover:bg-danger-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {confirmArchive ? 'Confirm archive?' : 'Archive task'}
-                    </button>
                   </div>
                 </div>
-              </div>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -725,6 +736,7 @@ export const TasksTab = ({
   onUpdateTaskDueDate,
   onUpdateTaskCategory,
   onDeleteTask,
+  showSortControls = true,
 }: TasksTabProps) => {
   const [collapsedClusterIds, setCollapsedClusterIds] = useState<Set<string>>(new Set());
   const [optimisticStatus, setOptimisticStatus] = useState<{ taskKey: string; entries: Record<string, TaskStatus> }>({
@@ -796,69 +808,73 @@ export const TasksTab = ({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted">Sort by</span>
-        <div role="listbox" aria-label="Sort order" className="flex flex-wrap items-center gap-2">
-          {SORT_DIMENSIONS.map((dimension) => {
-            const position = sortChain.indexOf(dimension);
-            const positionLabel = POSITION_LABELS[position];
-            return (
-              <button
-                key={dimension}
-                type="button"
-                role="option"
-                aria-selected={position === 0}
-                aria-roledescription="sortable"
-                aria-label={`${SORT_LABELS[dimension]} — ${positionLabel} sort`}
-                draggable="true"
-                onClick={() => {
-                  onSortChainChange(promoteDimension(sortChain, dimension));
-                }}
-                onDragStart={() => {
-                  dragIndexRef.current = position;
-                }}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                }}
-                onDrop={() => {
-                  const fromIndex = dragIndexRef.current;
-                  dragIndexRef.current = null;
-                  if (fromIndex === null) {
-                    return;
-                  }
-                  onSortChainChange(moveDimension(sortChain, fromIndex, position));
-                }}
-                onDragEnd={() => {
-                  dragIndexRef.current = null;
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'ArrowLeft') {
-                    event.preventDefault();
-                    onSortChainChange(moveDimension(sortChain, position, position - 1));
-                    return;
-                  }
-                  if (event.key === 'ArrowRight') {
-                    event.preventDefault();
-                    onSortChainChange(moveDimension(sortChain, position, position + 1));
-                    return;
-                  }
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onSortChainChange(promoteDimension(sortChain, dimension));
-                  }
-                }}
-                className={cn(
-                  'rounded-control border px-2 py-1 text-xs transition-all duration-300 ease-in-out',
-                  position === 0 ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted hover:text-text',
-                )}
-                style={{ order: position }}
-              >
-                {SORT_LABELS[dimension]}
-              </button>
-            );
-          })}
-        </div>
+        {showSortControls ? (
+          <>
+            <span className="text-xs text-muted">Sort by</span>
+            <div role="listbox" aria-label="Sort order" className="flex flex-wrap items-center gap-2">
+              {SORT_DIMENSIONS.map((dimension) => {
+                const position = sortChain.indexOf(dimension);
+                const positionLabel = POSITION_LABELS[position];
+                return (
+                  <button
+                    key={dimension}
+                    type="button"
+                    role="option"
+                    aria-selected={position === 0}
+                    aria-roledescription="sortable"
+                    aria-label={`${SORT_LABELS[dimension]} — ${positionLabel} sort`}
+                    draggable="true"
+                    onClick={() => {
+                      onSortChainChange(promoteDimension(sortChain, dimension));
+                    }}
+                    onDragStart={() => {
+                      dragIndexRef.current = position;
+                    }}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                    }}
+                    onDrop={() => {
+                      const fromIndex = dragIndexRef.current;
+                      dragIndexRef.current = null;
+                      if (fromIndex === null) {
+                        return;
+                      }
+                      onSortChainChange(moveDimension(sortChain, fromIndex, position));
+                    }}
+                    onDragEnd={() => {
+                      dragIndexRef.current = null;
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'ArrowLeft') {
+                        event.preventDefault();
+                        onSortChainChange(moveDimension(sortChain, position, position - 1));
+                        return;
+                      }
+                      if (event.key === 'ArrowRight') {
+                        event.preventDefault();
+                        onSortChainChange(moveDimension(sortChain, position, position + 1));
+                        return;
+                      }
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onSortChainChange(promoteDimension(sortChain, dimension));
+                      }
+                    }}
+                    className={cn(
+                      'rounded-control border px-2 py-1 text-xs transition-all duration-300 ease-in-out',
+                      position === 0 ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted hover:text-text',
+                    )}
+                    style={{ order: position }}
+                  >
+                    {SORT_LABELS[dimension]}
+                  </button>
+                );
+              })}
+            </div>
 
-        <span className="mx-1 h-4 w-px bg-border-subtle" aria-hidden="true" />
+            <span className="mx-1 h-4 w-px bg-border-subtle" aria-hidden="true" />
+          </>
+        ) : null}
 
         {collaborators.map((collaborator) => (
           <button

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type ContractModuleLens = 'project' | 'pane_scratch';
+export type ContractModuleLens = 'project' | 'pane' | 'pane_scratch';
 
 export interface ContractModuleConfig {
   module_instance_id: string;
@@ -33,6 +33,7 @@ const MODULE_CATALOG = [
   { type: 'table', label: 'Table', lensConfigurable: true },
   { type: 'kanban', label: 'Kanban', lensConfigurable: true },
   { type: 'calendar', label: 'Calendar', lensConfigurable: true },
+  { type: 'tasks', label: 'Tasks', lensConfigurable: false },
   { type: 'timeline', label: 'Timeline', lensConfigurable: true },
   { type: 'files', label: 'Files', lensConfigurable: true },
   { type: 'quick_thoughts', label: 'Quick Thoughts', lensConfigurable: false },
@@ -77,7 +78,7 @@ export const ModuleGrid = ({
                       disabled={disableMutations}
                       onChange={(event) => {
                         const value = event.target.value;
-                        if (value === 'project' || value === 'pane_scratch') {
+                        if (value === 'project' || value === 'pane' || value === 'pane_scratch') {
                           onSetModuleLens(module.module_instance_id, value);
                         }
                       }}

@@ -20,6 +20,7 @@ import { useQuickCapture } from '../hooks/useQuickCapture';
 import { useRecordInspector } from '../hooks/useRecordInspector';
 import { useTimelineRuntime } from '../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../hooks/useWorkspaceDocRuntime';
+import { archiveRecord, createRecord, updateRecord } from '../services/hub/records';
 import { AccessDeniedView } from '../components/auth/AccessDeniedView';
 import {
   Dialog,
@@ -41,6 +42,7 @@ import { RelationsSection } from '../components/project-space/RelationsSection';
 import { AutomationBuilder } from '../components/project-space/AutomationBuilder';
 import { FileInspectorActionBar } from '../components/project-space/FileInspectorActionBar';
 import { WorkView, type WorkViewModuleRuntime } from '../components/project-space/WorkView';
+import { adaptTaskSummaries } from '../components/project-space/taskAdapter';
 
 // Layout contract references:
 // components/project-space/TopNavTabs
@@ -641,6 +643,18 @@ const ProjectSpaceWorkspace = ({
     () => (activePane ? readLayoutBool(activePane.layout_config, 'workspace_enabled', true) : true),
     [activePane],
   );
+  const paneTaskItems = useMemo(
+    () =>
+      adaptTaskSummaries(
+        tasksOverviewRows.filter((task) => {
+          if (!activePane?.pane_id) {
+            return false;
+          }
+          return task.source_pane?.pane_id === activePane.pane_id;
+        }),
+      ),
+    [activePane?.pane_id, tasksOverviewRows],
+  );
 
   useEffect(() => {
     if (activeTab === 'overview') {
@@ -684,6 +698,57 @@ const ProjectSpaceWorkspace = ({
         storageKeyBase: `hub:quick-thoughts:${project.project_id}`,
         legacyStorageKeyBase: `hub:capture:${project.project_id}`,
       },
+      tasks: {
+        items: paneTaskItems,
+        loading: projectTasksLoading,
+        onCreateTask: async (task) => {
+          const collectionId = tasksOverviewRows[0]?.collection_id;
+          if (!collectionId || !accessToken) {
+            return;
+          }
+          await createRecord(accessToken, project.project_id, {
+            collection_id: collectionId,
+            title: task.title,
+            capability_types: ['task'],
+            task_state: {
+              status: 'todo',
+              priority: task.priority,
+              due_at: task.due_at,
+            },
+            parent_record_id: task.parent_record_id || null,
+            source_pane_id: activePane?.pane_id,
+          });
+          await loadProjectTaskPage();
+        },
+        onUpdateTaskStatus: async (taskId, status) => {
+          if (!accessToken) {
+            return;
+          }
+          await updateRecord(accessToken, taskId, { task_state: { status } });
+          await loadProjectTaskPage();
+        },
+        onUpdateTaskPriority: async (taskId, priority) => {
+          if (!accessToken) {
+            return;
+          }
+          await updateRecord(accessToken, taskId, { task_state: { priority } });
+          await loadProjectTaskPage();
+        },
+        onUpdateTaskDueDate: async (taskId, dueAt) => {
+          if (!accessToken) {
+            return;
+          }
+          await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
+          await loadProjectTaskPage();
+        },
+        onDeleteTask: async (taskId) => {
+          if (!accessToken) {
+            return;
+          }
+          await archiveRecord(accessToken, taskId);
+          await loadProjectTaskPage();
+        },
+      },
       timeline: {
         clusters: timelineClusters,
         activeFilters: timelineFilters,
@@ -706,15 +771,20 @@ const ProjectSpaceWorkspace = ({
       kanbanRuntimeDataByViewId,
       kanbanViews,
       activePane?.pane_id,
+      accessToken,
       onMoveKanbanRecord,
       onOpenPaneFile,
       onUploadPaneFiles,
       onUploadProjectFiles,
+      loadProjectTaskPage,
       paneFiles,
+      paneTaskItems,
+      projectTasksLoading,
       project.project_id,
       projectFiles,
       tableViewRuntimeDataById,
       tableViews,
+      tasksOverviewRows,
       timelineClusters,
       timelineFilters,
       toggleTimelineFilter,

@@ -77,7 +77,8 @@ export const useProjectTasksRuntime = ({
   );
 
   useEffect(() => {
-    if (activeTab !== 'overview' || overviewView !== 'tasks') {
+    const shouldLoadTasks = activeTab === 'work' || (activeTab === 'overview' && overviewView === 'tasks');
+    if (!shouldLoadTasks) {
       return;
     }
     void loadProjectTaskPage();
