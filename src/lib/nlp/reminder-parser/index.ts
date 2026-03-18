@@ -215,6 +215,7 @@ const formatDateTime = (date: Date, timezone: string): string => {
 
 const addMinutes = (date: Date, minutes: number): Date => new Date(date.getTime() + minutes * 60000);
 const addDays = (date: Date, days: number): Date => new Date(date.getTime() + days * 86400000);
+const daysInMonth = (year: number, month: number): number => new Date(year, month, 0).getDate();
 
 const toWeekday = (token: string): string | null => {
   const normalized = token.toLowerCase();
@@ -255,17 +256,15 @@ const withTime = (date: Date, timezone: string, hour: number, minute: number): s
 
 const monthlyOccurrence = (now: Date, timezone: string, dayOfMonth: number, hour: number, minute: number): string => {
   const nowParts = getZonedParts(now, timezone);
-  const targetThisMonthIso = `${toIsoDate(nowParts.year, nowParts.month, dayOfMonth)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+  const safeDayThisMonth = Math.min(dayOfMonth, daysInMonth(nowParts.year, nowParts.month));
+  const nextYear = nowParts.month === 12 ? nowParts.year + 1 : nowParts.year;
+  const nextMonth = nowParts.month === 12 ? 1 : nowParts.month + 1;
+  const safeDayNextMonth = Math.min(dayOfMonth, daysInMonth(nextYear, nextMonth));
+  const targetThisMonthIso = `${toIsoDate(nowParts.year, nowParts.month, safeDayThisMonth)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
   if (targetThisMonthIso >= formatDateTime(now, timezone)) {
     return targetThisMonthIso;
   }
-  let nextMonth = nowParts.month + 1;
-  let year = nowParts.year;
-  if (nextMonth === 13) {
-    nextMonth = 1;
-    year += 1;
-  }
-  return `${toIsoDate(year, nextMonth, dayOfMonth)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+  return `${toIsoDate(nextYear, nextMonth, safeDayNextMonth)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 };
 
 const yearlyOccurrence = (

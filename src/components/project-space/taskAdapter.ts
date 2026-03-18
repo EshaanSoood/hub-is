@@ -70,8 +70,7 @@ export const adaptTaskSummary = (task: HubTaskSummary): TaskItem => ({
   dueLabel: formatDueLabel(task.task_state.due_at),
   categoryId: task.task_state.category ?? 'uncategorized',
   categoryValue: task.task_state.category,
-  // TODO: wire assignee when task summaries include assignment_user_ids
-  assigneeId: 'unassigned',
+  assigneeId: task.assignments?.[0]?.user_id ?? 'unassigned',
   priority: mapPriority(task.task_state.priority),
   priorityValue: task.task_state.priority,
   status: task.task_state.status,

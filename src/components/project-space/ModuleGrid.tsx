@@ -78,7 +78,7 @@ export const ModuleGrid = ({
                       disabled={disableMutations}
                       onChange={(event) => {
                         const value = event.target.value;
-                        if (value === 'project' || value === 'pane' || value === 'pane_scratch') {
+                        if (value === 'project' || value === 'pane_scratch') {
                           onSetModuleLens(module.module_instance_id, value);
                         }
                       }}

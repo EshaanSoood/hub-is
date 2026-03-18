@@ -65,6 +65,7 @@ export const TaskCreateDialog = ({
 }: TaskCreateDialogProps) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const touchedFieldsRef = useRef<Set<TouchField>>(new Set());
+  const submitInFlightRef = useRef(false);
   const [nlInput, setNlInput] = useState('');
   const [titleValue, setTitleValue] = useState('');
   const [statusValue, setStatusValue] = useState<'todo' | 'in_progress' | 'done'>('todo');
@@ -175,6 +176,8 @@ export const TaskCreateDialog = ({
       return;
     }
 
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
     setSubmitting(true);
     try {
       await createRecord(accessToken, projectId, {
@@ -195,6 +198,7 @@ export const TaskCreateDialog = ({
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Failed to create task.');
     } finally {
+      submitInFlightRef.current = false;
       setSubmitting(false);
     }
   };

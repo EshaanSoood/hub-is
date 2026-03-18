@@ -703,7 +703,12 @@ const ProjectSpaceWorkspace = ({
         loading: projectTasksLoading,
         onCreateTask: async (task) => {
           const collectionId = tasksOverviewRows[0]?.collection_id;
-          if (!collectionId || !accessToken) {
+          if (!collectionId) {
+            console.error('onCreateTask: no task collection found for this project');
+            alert('No task collection found for this project. Create a task from a pane first.');
+            return;
+          }
+          if (!accessToken) {
             return;
           }
           await createRecord(accessToken, project.project_id, {
@@ -724,29 +729,45 @@ const ProjectSpaceWorkspace = ({
           if (!accessToken) {
             return;
           }
-          await updateRecord(accessToken, taskId, { task_state: { status } });
-          await loadProjectTaskPage();
+          try {
+            await updateRecord(accessToken, taskId, { task_state: { status } });
+            await loadProjectTaskPage();
+          } catch (err) {
+            console.error('Failed to update task status:', err);
+          }
         },
         onUpdateTaskPriority: async (taskId, priority) => {
           if (!accessToken) {
             return;
           }
-          await updateRecord(accessToken, taskId, { task_state: { priority } });
-          await loadProjectTaskPage();
+          try {
+            await updateRecord(accessToken, taskId, { task_state: { priority } });
+            await loadProjectTaskPage();
+          } catch (err) {
+            console.error('Failed to update task priority:', err);
+          }
         },
         onUpdateTaskDueDate: async (taskId, dueAt) => {
           if (!accessToken) {
             return;
           }
-          await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
-          await loadProjectTaskPage();
+          try {
+            await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
+            await loadProjectTaskPage();
+          } catch (err) {
+            console.error('Failed to update task due date:', err);
+          }
         },
         onDeleteTask: async (taskId) => {
           if (!accessToken) {
             return;
           }
-          await archiveRecord(accessToken, taskId);
-          await loadProjectTaskPage();
+          try {
+            await archiveRecord(accessToken, taskId);
+            await loadProjectTaskPage();
+          } catch (err) {
+            console.error('Failed to delete task:', err);
+          }
         },
       },
       timeline: {

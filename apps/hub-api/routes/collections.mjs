@@ -117,7 +117,7 @@ export const createCollectionRoutes = (deps) => {
   const unarchiveSubtasksStmt = db.prepare(`
     UPDATE records
     SET archived_at = NULL, updated_at = ?
-    WHERE parent_record_id = ?
+    WHERE parent_record_id = ? AND archived_at = ?
   `);
 
   const listCollections = async ({ request, response, params }) => {
@@ -301,8 +301,8 @@ export const createCollectionRoutes = (deps) => {
     const requestedCollectionId = asText(body.collection_id);
     const parentRecordId = asText(body.parent_record_id);
     const parentRecord = parentRecordId ? recordByIdStmt.get(parentRecordId) : null;
-    if (parentRecordId && (!parentRecord || parentRecord.project_id !== projectId)) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Parent record not found or belongs to a different project.')));
+    if (parentRecordId && (!parentRecord || parentRecord.project_id !== projectId || parentRecord.archived_at)) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Parent record not found, is archived, or belongs to a different project.')));
       return;
     }
 
@@ -568,7 +568,7 @@ export const createCollectionRoutes = (deps) => {
           archiveSubtasksStmt.run(archivedAt, timestamp, recordId);
         }
         if (!archivedAt && record.archived_at) {
-          unarchiveSubtasksStmt.run(timestamp, recordId);
+          unarchiveSubtasksStmt.run(timestamp, recordId, record.archived_at);
         }
         if (!taskState) {
           return;

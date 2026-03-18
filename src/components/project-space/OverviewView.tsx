@@ -183,12 +183,13 @@ export const OverviewView = ({
       })),
     ];
   }, [adaptedTasks]);
-  const tasksCollectionId = tasks[0]?.collection_id ?? null;
+  const tasksCollectionId = tasks.find((task) => task.collection_id)?.collection_id ?? null;
   const kanbanColumns = useMemo(
     () => [
       { id: 'todo', label: 'To Do', items: adaptedTasks.filter((task) => task.status === 'todo') },
       { id: 'in_progress', label: 'In Progress', items: adaptedTasks.filter((task) => task.status === 'in_progress') },
       { id: 'done', label: 'Done', items: adaptedTasks.filter((task) => task.status === 'done') },
+      { id: 'cancelled', label: 'Cancelled', items: adaptedTasks.filter((task) => task.status === 'cancelled') },
     ],
     [adaptedTasks],
   );

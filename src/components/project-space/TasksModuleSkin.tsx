@@ -138,6 +138,7 @@ const TaskComposer = ({
   const [parentPickerOpen, setParentPickerOpen] = useState(Boolean(initialParentTask));
   const [parentTaskId, setParentTaskId] = useState(initialParentTask?.id ?? '');
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const selectedParentTask = useMemo(() => tasks.find((task) => task.id === parentTaskId) ?? null, [parentTaskId, tasks]);
 
   const reset = () => {
@@ -156,12 +157,13 @@ const TaskComposer = ({
       )}
       onSubmit={async (event) => {
         event.preventDefault();
+        setErrorMsg(null);
         const trimmedTitle = title.trim();
         if (!trimmedTitle || submitting) {
           return;
         }
-        setSubmitting(true);
         try {
+          setSubmitting(true);
           await onCreateTask({
             title: trimmedTitle,
             priority: priority || null,
@@ -170,6 +172,9 @@ const TaskComposer = ({
           });
           reset();
           onCancel?.();
+        } catch (err) {
+          console.error('Failed to create task:', err);
+          setErrorMsg(err instanceof Error ? err.message : 'Failed to create task.');
         } finally {
           setSubmitting(false);
         }
@@ -227,6 +232,8 @@ const TaskComposer = ({
           </button>
         ) : null}
       </div>
+
+      {errorMsg ? <p className="mt-1 text-sm text-red-500">{errorMsg}</p> : null}
 
       <div className="space-y-2">
         {selectedParentTask ? (
