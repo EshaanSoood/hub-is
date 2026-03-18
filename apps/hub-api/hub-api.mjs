@@ -534,6 +534,8 @@ const {
   tasks: {
     upsertState: upsertTaskStateStmt,
     findState: taskStateByRecordStmt,
+    listSubtasksByParent: subtasksByParentStmt,
+    countSubtasksByParent: subtaskCountByParentStmt,
     insertAssignment: insertAssignmentStmt,
     listAssignments: assignmentsByRecordStmt,
     listAssignedForUserInProject: assignedTasksByUserInProjectStmt,
@@ -1324,6 +1326,8 @@ const recordDetail = (record) => {
     record_id: record.record_id,
     project_id: record.project_id,
     collection_id: record.collection_id,
+    parent_record_id: record.parent_record_id || null,
+    subtask_count: subtaskCountByParentStmt.get(record.record_id)?.count ?? 0,
     title: record.title,
     schema,
     values,
@@ -1334,6 +1338,7 @@ const recordDetail = (record) => {
             status: task.status,
             priority: task.priority,
             due_at: task.due_at,
+            category: task.category || null,
             completed_at: task.completed_at,
             updated_at: task.updated_at,
           }
@@ -1496,12 +1501,15 @@ const buildProjectTaskSummary = (record) => {
     collection_id: record.collection_id,
     collection_name: collection?.name || null,
     title: record.title,
+    created_at: record.created_at,
     updated_at: record.updated_at,
+    subtask_count: subtaskCountByParentStmt.get(record.record_id)?.count ?? 0,
     task_state: task
       ? {
           status: task.status,
           priority: task.priority,
           due_at: task.due_at,
+          category: task.category || null,
           completed_at: task.completed_at,
           updated_at: task.updated_at,
         }
@@ -1509,6 +1517,7 @@ const buildProjectTaskSummary = (record) => {
           status: 'todo',
           priority: null,
           due_at: null,
+          category: null,
           completed_at: null,
           updated_at: record.updated_at,
         },
@@ -1523,19 +1532,23 @@ const buildProjectTaskSummary = (record) => {
 };
 
 const buildPersonalTaskSummaryFromRecord = (record) => {
+  const project = projectByIdStmt.get(record.project_id);
   const task = taskStateByRecordStmt.get(record.record_id);
   return {
     record_id: record.record_id,
-    project_id: null,
-    project_name: null,
+    project_id: record.project_id,
+    project_name: project?.name || null,
     collection_id: 'personal',
     collection_name: 'Personal',
     title: record.title,
+    created_at: record.created_at,
     updated_at: record.updated_at,
+    subtask_count: subtaskCountByParentStmt.get(record.record_id)?.count ?? 0,
     task_state: {
       status: task?.status || 'todo',
       priority: task?.priority || null,
       due_at: task?.due_at || null,
+      category: task?.category || null,
       completed_at: task?.completed_at || null,
       updated_at: task?.updated_at || record.updated_at,
     },
@@ -1574,6 +1587,7 @@ const createPersonalTaskRecord = ({
   status = 'todo',
   priority = null,
   dueAt = null,
+  category = null,
   createdAt,
   updatedAt,
 }) => {
@@ -1583,15 +1597,17 @@ const createPersonalTaskRecord = ({
   const normalizedStatus = asText(status) || 'todo';
   const normalizedPriority = asNullableText(priority);
   const normalizedDueAt = asNullableText(dueAt);
+  const normalizedCategory = asNullableText(category);
   const fields = taskFieldMapForCollection(collectionId);
 
-  insertRecordStmt.run(recordId, projectId, collectionId, title, userId, timestampCreatedAt, timestampUpdatedAt);
+  insertRecordStmt.run(recordId, projectId, collectionId, title, userId, timestampCreatedAt, timestampUpdatedAt, null);
   insertRecordCapabilityStmt.run(recordId, 'task', timestampCreatedAt);
   upsertTaskStateStmt.run(
     recordId,
     normalizedStatus,
     normalizedPriority,
     normalizedDueAt,
+    normalizedCategory,
     normalizedStatus === 'done' ? timestampUpdatedAt : null,
     timestampUpdatedAt,
   );
@@ -2235,6 +2251,7 @@ const routeDeps = {
   MATRIX_SERVER_NAME,
   TUWUNEL_INTERNAL_URL,
   TUWUNEL_REGISTRATION_SHARED_SECRET,
+  db,
   asBoolean,
   asInteger,
   asNullableText,
@@ -2267,7 +2284,6 @@ const routeDeps = {
   consumeCollabTicket,
   createNotification,
   createPersonalTaskRecord,
-  db,
   defaultAssetRootByProjectStmt: stmts.assetRoots.findDefaultForProject,
   deleteAttachmentStmt: stmts.files.deleteAttachment,
   deletePaneMemberStmt: stmts.paneMembers.delete,
@@ -2392,6 +2408,8 @@ const routeDeps = {
   homeEventsByProjectStmt: stmts.calendar.listEventsForProject,
   personalCapturesStmt: stmts.records.listPersonalCaptures,
   getTaskStateStmt: stmts.tasks.findState,
+  subtasksByParentStmt: stmts.tasks.listSubtasksByParent,
+  subtaskCountByParentStmt: stmts.tasks.countSubtasksByParent,
   taskStateByRecordStmt: stmts.tasks.findState,
   timelineByProjectStmt: stmts.timeline.listForProject,
   timelineRecord,
@@ -2951,6 +2969,18 @@ const server = createServer(async (request, response) => {
         requestUrl,
         pathname,
         params: { recordId: decodeURIComponent(recordConvertMatch[1]) },
+      });
+      return;
+    }
+
+    const recordSubtasksMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/subtasks$/);
+    if (recordSubtasksMatch && request.method === 'GET') {
+      await collectionRoutes.listSubtasks({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { recordId: decodeURIComponent(recordSubtasksMatch[1]) },
       });
       return;
     }

@@ -21,6 +21,7 @@ import { useRecordInspector } from '../hooks/useRecordInspector';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { useTimelineRuntime } from '../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../hooks/useWorkspaceDocRuntime';
+import { archiveRecord, createRecord, updateRecord } from '../services/hub/records';
 import { AccessDeniedView } from '../components/auth/AccessDeniedView';
 import {
   Dialog,
@@ -36,22 +37,18 @@ import { CommentComposer } from '../components/project-space/CommentComposer';
 import { CommentRail } from '../components/project-space/CommentRail';
 import { MentionPicker } from '../components/project-space/MentionPicker';
 import { ModuleLoadingState } from '../components/project-space/ModuleFeedback';
+import { OverviewView } from '../components/project-space/OverviewView';
 import { PaneSwitcher } from '../components/project-space/PaneSwitcher';
 import { RelationsSection } from '../components/project-space/RelationsSection';
-import { TimelineFeed } from '../components/project-space/TimelineFeed';
 import { AutomationBuilder } from '../components/project-space/AutomationBuilder';
 import { FileInspectorActionBar } from '../components/project-space/FileInspectorActionBar';
 import { WorkView, type WorkViewModuleRuntime } from '../components/project-space/WorkView';
+import { adaptTaskSummaries } from '../components/project-space/taskAdapter';
 
 // Layout contract references:
 // components/project-space/TopNavTabs
 // components/project-space/OverviewView
 // components/project-space/ToolsView
-
-const CalendarModuleSkin = lazy(async () => {
-  const module = await import('../components/project-space/CalendarModuleSkin');
-  return { default: module.CalendarModuleSkin };
-});
 
 const KanbanModuleSkin = lazy(async () => {
   const module = await import('../components/project-space/KanbanModuleSkin');
@@ -232,7 +229,6 @@ const ProjectSpaceWorkspace = ({
   const navigate = useNavigate();
 
   const [overviewView, setOverviewView] = useState<OverviewView>(() => readOverviewView(searchParams));
-  const [selectedOverviewKanbanViewId, setSelectedOverviewKanbanViewId] = useState('');
 
   const [creatingPaneName, setCreatingPaneName] = useState('');
   const [showPaneSwitcher, setShowPaneSwitcher] = useState(searchParams.get('pinned') !== '1');
@@ -245,11 +241,9 @@ const ProjectSpaceWorkspace = ({
     activeTab,
   });
   const {
+    loadProjectTaskPage,
     projectTasksError,
     projectTasksLoading,
-    projectTasksLoadingMore,
-    projectTasksNextCursor,
-    projectTasksSentinelRef,
     tasksOverviewRows,
   } = useProjectTasksRuntime({
     accessToken,
@@ -314,9 +308,6 @@ const ProjectSpaceWorkspace = ({
   const previousOpenedFromPinnedRef = useRef(openedFromPinned);
   const {
     projectMembers: projectMemberList,
-    projectMemberMutationError,
-    projectMemberMutationNotice,
-    onCreateProjectMember,
   } = useProjectMembers({
     accessToken,
     projectId: project.project_id,
@@ -654,37 +645,29 @@ const ProjectSpaceWorkspace = ({
     () => (activePane ? readLayoutBool(activePane.layout_config, 'workspace_enabled', true) : true),
     [activePane],
   );
+  const paneTaskItems = useMemo(
+    () =>
+      adaptTaskSummaries(
+        tasksOverviewRows.filter((task) => {
+          if (!activePane?.pane_id) {
+            return false;
+          }
+          return task.source_pane?.pane_id === activePane.pane_id;
+        }),
+      ),
+    [activePane?.pane_id, tasksOverviewRows],
+  );
 
-  useEffect(() => {
-    const requestedKanbanViewId = searchParams.get('kanban_view_id') || '';
-    if (requestedKanbanViewId && kanbanViews.some((view) => view.view_id === requestedKanbanViewId)) {
-      setSelectedOverviewKanbanViewId(requestedKanbanViewId);
-    }
-  }, [kanbanViews, searchParams]);
-  useEffect(() => {
-    setSelectedOverviewKanbanViewId((current) => {
-      if (current && kanbanViews.some((view) => view.view_id === current)) {
-        return current;
-      }
-      return kanbanViews[0]?.view_id || '';
-    });
-  }, [kanbanViews]);
-  const overviewKanbanViewId = selectedOverviewKanbanViewId || kanbanViews[0]?.view_id || '';
-  const overviewKanbanRuntime = overviewKanbanViewId ? kanbanRuntimeDataByViewId[overviewKanbanViewId] : undefined;
   useEffect(() => {
     if (activeTab === 'overview') {
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
         next.set('view', overviewView);
-        if (overviewView === 'kanban' && overviewKanbanViewId) {
-          next.set('kanban_view_id', overviewKanbanViewId);
-        } else {
-          next.delete('kanban_view_id');
-        }
+        next.delete('kanban_view_id');
         return next;
       }, { replace: true });
     }
-  }, [activeTab, overviewKanbanViewId, overviewView, setSearchParams]);
+  }, [activeTab, overviewView, setSearchParams]);
   const workViewModuleRuntime = useMemo<WorkViewModuleRuntime>(
     () => ({
       table: {
@@ -717,6 +700,78 @@ const ProjectSpaceWorkspace = ({
         storageKeyBase: `hub:quick-thoughts:${project.project_id}`,
         legacyStorageKeyBase: `hub:capture:${project.project_id}`,
       },
+      tasks: {
+        items: paneTaskItems,
+        loading: projectTasksLoading,
+        onCreateTask: async (task) => {
+          const collectionId = tasksOverviewRows[0]?.collection_id;
+          if (!collectionId) {
+            console.error('onCreateTask: no task collection found for this project');
+            alert('No task collection found for this project. Create a task from a pane first.');
+            return;
+          }
+          if (!accessToken) {
+            return;
+          }
+          await createRecord(accessToken, project.project_id, {
+            collection_id: collectionId,
+            title: task.title,
+            capability_types: ['task'],
+            task_state: {
+              status: 'todo',
+              priority: task.priority,
+              due_at: task.due_at,
+            },
+            parent_record_id: task.parent_record_id || null,
+            source_pane_id: activePane?.pane_id,
+          });
+          await loadProjectTaskPage();
+        },
+        onUpdateTaskStatus: async (taskId, status) => {
+          if (!accessToken) {
+            return;
+          }
+          try {
+            await updateRecord(accessToken, taskId, { task_state: { status } });
+            await loadProjectTaskPage();
+          } catch (err) {
+            console.error('Failed to update task status:', err);
+          }
+        },
+        onUpdateTaskPriority: async (taskId, priority) => {
+          if (!accessToken) {
+            return;
+          }
+          try {
+            await updateRecord(accessToken, taskId, { task_state: { priority } });
+            await loadProjectTaskPage();
+          } catch (err) {
+            console.error('Failed to update task priority:', err);
+          }
+        },
+        onUpdateTaskDueDate: async (taskId, dueAt) => {
+          if (!accessToken) {
+            return;
+          }
+          try {
+            await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
+            await loadProjectTaskPage();
+          } catch (err) {
+            console.error('Failed to update task due date:', err);
+          }
+        },
+        onDeleteTask: async (taskId) => {
+          if (!accessToken) {
+            return;
+          }
+          try {
+            await archiveRecord(accessToken, taskId);
+            await loadProjectTaskPage();
+          } catch (err) {
+            console.error('Failed to delete task:', err);
+          }
+        },
+      },
       timeline: {
         clusters: timelineClusters,
         activeFilters: timelineFilters,
@@ -746,15 +801,20 @@ const ProjectSpaceWorkspace = ({
       kanbanRuntimeDataByViewId,
       kanbanViews,
       activePane?.pane_id,
+      accessToken,
       onMoveKanbanRecord,
       onOpenPaneFile,
       onUploadPaneFiles,
       onUploadProjectFiles,
+      loadProjectTaskPage,
       paneFiles,
+      paneTaskItems,
+      projectTasksLoading,
       project.project_id,
       projectFiles,
       tableViewRuntimeDataById,
       tableViews,
+      tasksOverviewRows,
       timelineClusters,
       timelineFilters,
       toggleTimelineFilter,
@@ -772,6 +832,20 @@ const ProjectSpaceWorkspace = ({
     const names = collections.map((collection) => collection.name.trim()).filter((name) => name.length > 0);
     return names.length > 0 ? names : ['record'];
   }, [collections]);
+  const overviewCollaborators = useMemo(
+    () =>
+      projectMemberList.map((member) => {
+        const role: 'owner' | 'editor' | 'viewer' =
+          member.role === 'owner' || member.role === 'editor' || member.role === 'viewer' ? member.role : 'viewer';
+        return {
+          id: member.user_id,
+          name: member.display_name,
+          role,
+        };
+      }),
+    [projectMemberList],
+  );
+  const overviewClients = useMemo(() => [], []);
 
   const paneNavigator = (
     <div className="rounded-panel border border-subtle bg-elevated p-3">
@@ -860,216 +934,23 @@ const ProjectSpaceWorkspace = ({
       {paneNavigator}
 
       {activeTab === 'overview' ? (
-        <section className="space-y-4">
-          <header className="rounded-panel border border-subtle bg-elevated p-4">
-            <h2 className="heading-2 text-primary">{project.name}</h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {projectMemberList.map((member) => (
-                <span key={member.user_id} className="rounded-panel border border-border-muted px-2 py-1 text-xs text-muted">
-                  {member.display_name}
-                </span>
-              ))}
-            </div>
-            <form className="mt-3 flex flex-wrap gap-2" onSubmit={onCreateProjectMember}>
-              <input
-                name="member-email"
-                type="email"
-                className="rounded-panel border border-border-muted bg-surface px-3 py-1.5 text-sm text-text"
-                placeholder="Add collaborator by email"
-                aria-label="Collaborator email"
-              />
-              <button
-                type="submit"
-                className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary"
-              >
-                Add collaborator
-              </button>
-            </form>
-            {projectMemberMutationError ? (
-              <InlineNotice variant="danger" className="mt-3" title="Collaborator update failed">
-                {projectMemberMutationError}
-              </InlineNotice>
-            ) : null}
-            {projectMemberMutationNotice ? (
-              <InlineNotice variant="success" className="mt-3" title="Invite sent">
-                {projectMemberMutationNotice}
-              </InlineNotice>
-            ) : null}
-          </header>
-
-          <div className="rounded-panel border border-subtle bg-elevated p-3">
-            <div className="flex flex-wrap gap-2" role="tablist" aria-label="Overview views">
-              <button
-                type="button"
-                className={`rounded-panel px-3 py-1.5 text-sm font-semibold ${
-                  overviewView === 'timeline' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
-                }`}
-                onClick={() => setOverviewView('timeline')}
-              >
-                Timeline
-              </button>
-              <button
-                type="button"
-                className={`rounded-panel px-3 py-1.5 text-sm font-semibold ${
-                  overviewView === 'calendar' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
-                }`}
-                onClick={() => setOverviewView('calendar')}
-              >
-                Calendar
-              </button>
-              <button
-                type="button"
-                className={`rounded-panel px-3 py-1.5 text-sm font-semibold ${
-                  overviewView === 'tasks' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
-                }`}
-                onClick={() => setOverviewView('tasks')}
-              >
-                Tasks
-              </button>
-              <button
-                type="button"
-                className={`rounded-panel px-3 py-1.5 text-sm font-semibold ${
-                  overviewView === 'kanban' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
-                }`}
-                onClick={() => setOverviewView('kanban')}
-              >
-                Kanban
-              </button>
-            </div>
-          </div>
-
-          {overviewView === 'timeline' ? (
-            <section className="rounded-panel border border-subtle bg-elevated p-4">
-              <h2 className="heading-3 text-primary">Project Timeline</h2>
-              <div className="mt-3">
-                <TimelineFeed
-                  clusters={timelineClusters}
-                  activeFilters={timelineFilters}
-                  isLoading={false}
-                  hasMore={false}
-                  onFilterToggle={toggleTimelineFilter}
-                  onLoadMore={() => {
-                    void refreshProjectData();
-                  }}
-                  onItemClick={(recordId) => {
-                    void openInspector(recordId);
-                  }}
-                />
-              </div>
-            </section>
-          ) : null}
-
-          {overviewView === 'calendar' ? (
-            <section className="rounded-panel border border-subtle bg-elevated p-4">
-              <h2 className="heading-3 text-primary">Project Calendar</h2>
-              <div className="mt-3">
-                <Suspense fallback={<ModuleLoadingState label="Loading calendar module" rows={5} />}>
-                  <CalendarModuleSkin
-                    events={calendarEvents}
-                    loading={calendarLoading}
-                    scope={calendarMode}
-                    onScopeChange={setCalendarMode}
-                    onOpenRecord={(recordId) => {
-                      void openInspector(recordId);
-                    }}
-                  />
-                </Suspense>
-              </div>
-            </section>
-          ) : null}
-
-          {overviewView === 'tasks' ? (
-            <section className="rounded-panel border border-subtle bg-elevated p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="heading-3 text-primary">Project Tasks</h2>
-                <span className="text-xs text-muted">
-                  {projectTasksLoading && tasksOverviewRows.length === 0
-                    ? 'Loading...'
-                    : `${tasksOverviewRows.length}${projectTasksNextCursor ? '+' : ''} loaded`}
-                </span>
-              </div>
-              {projectTasksError ? (
-                <p className="mt-2 text-sm text-danger" role="alert">
-                  {projectTasksError}
-                </p>
-              ) : null}
-              {tasksOverviewRows.length === 0 && projectTasksLoading ? (
-                <p className="mt-2 text-sm text-muted">Loading structured tasks...</p>
-              ) : tasksOverviewRows.length === 0 ? (
-                <p className="mt-2 text-sm text-muted">No structured tasks yet. Create a task record from Work or quick capture.</p>
-              ) : (
-                <div className="mt-2 space-y-2">
-                  <ul className="space-y-2">
-                  {tasksOverviewRows.map((task) => (
-                    <li key={task.record_id} className="rounded-panel border border-border-muted p-2">
-                      <button
-                        type="button"
-                        className="w-full text-left"
-                        onClick={() => void openInspector(task.record_id)}
-                      >
-                        <span className="block text-sm font-semibold text-text">{task.title}</span>
-                        <span className="mt-1 block text-xs text-muted">
-                          {task.task_state.status}
-                          {task.task_state.priority ? ` · ${task.task_state.priority}` : ''}
-                          {task.origin_kind !== 'project' ? ` · ${task.origin_kind}` : ''}
-                          {task.assignments.length > 0 ? ` · ${task.assignments.length} assignee${task.assignments.length === 1 ? '' : 's'}` : ''}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                  </ul>
-                  {projectTasksLoadingMore ? <p className="text-xs text-muted">Loading the next task batch...</p> : null}
-                  {projectTasksNextCursor ? <div ref={projectTasksSentinelRef} className="h-2 w-full" aria-hidden="true" /> : null}
-                </div>
-              )}
-            </section>
-          ) : null}
-
-          {overviewView === 'kanban' ? (
-            <section className="rounded-panel border border-subtle bg-elevated p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="heading-3 text-primary">Project Kanban</h2>
-                {kanbanViews.length > 0 ? (
-                  <label className="text-xs text-muted">
-                    Source view
-                    <select
-                      value={overviewKanbanViewId}
-                      onChange={(event) => setSelectedOverviewKanbanViewId(event.target.value)}
-                      className="ml-2 rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs text-text"
-                    >
-                      {kanbanViews.map((view) => (
-                        <option key={view.view_id} value={view.view_id}>
-                          {view.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-              </div>
-              {kanbanViews.length === 0 ? (
-                <p className="mt-2 text-sm text-muted">No kanban views are configured for this project yet.</p>
-              ) : (
-                <div className="mt-3">
-                  <Suspense fallback={<ModuleLoadingState label="Loading kanban module" rows={5} />}>
-                    <KanbanModuleSkin
-                      groups={overviewKanbanRuntime?.groups || []}
-                      groupOptions={overviewKanbanRuntime?.groupOptions || []}
-                      loading={overviewKanbanRuntime?.loading ?? false}
-                      groupingConfigured={overviewKanbanRuntime?.groupingConfigured ?? false}
-                      readOnly
-                      groupingMessage={overviewKanbanRuntime?.groupingMessage}
-                      metadataFieldIds={overviewKanbanRuntime?.metadataFieldIds}
-                      onOpenRecord={(recordId) => {
-                        void openInspector(recordId);
-                      }}
-                      onMoveRecord={() => {}}
-                    />
-                  </Suspense>
-                </div>
-              )}
-            </section>
-          ) : null}
-        </section>
+        <OverviewView
+          projectName={project.name}
+          projectSummary="Track the timeline, calendar, and task flow for this project."
+          collaborators={overviewCollaborators}
+          clients={overviewClients}
+          activeView={overviewView}
+          onSelectView={setOverviewView}
+          accessToken={accessToken}
+          projectId={project.project_id}
+          tasks={tasksOverviewRows}
+          tasksLoading={projectTasksLoading}
+          tasksError={projectTasksError}
+          onRefreshTasks={() => {
+            void loadProjectTaskPage();
+          }}
+          projectMembers={projectMemberList}
+        />
       ) : null}
 
       {activeTab === 'work' ? (

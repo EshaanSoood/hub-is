@@ -233,6 +233,7 @@ const resetSchemaToContractV1 = (db) => {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         archived_at TEXT,
+        parent_record_id TEXT REFERENCES records(record_id),
         FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
         FOREIGN KEY(collection_id) REFERENCES collections(collection_id) ON DELETE CASCADE,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
@@ -291,6 +292,7 @@ const resetSchemaToContractV1 = (db) => {
         status TEXT NOT NULL,
         priority TEXT,
         due_at TEXT,
+        category TEXT,
         completed_at TEXT,
         updated_at TEXT NOT NULL,
         FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE
@@ -625,6 +627,7 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_panes_project_sort ON panes(project_id, sort_order);
       CREATE UNIQUE INDEX idx_docs_pane_unique ON docs(pane_id);
       CREATE INDEX idx_records_project_collection_updated ON records(project_id, collection_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_records_parent ON records(parent_record_id);
       CREATE INDEX idx_record_values_field_record ON record_values(field_id, record_id);
       CREATE INDEX idx_record_values_record_field ON record_values(record_id, field_id);
       CREATE INDEX idx_record_relations_project_from ON record_relations(project_id, from_record_id);

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type ContractModuleLens = 'project' | 'pane_scratch';
+export type ContractModuleLens = 'project' | 'pane' | 'pane_scratch';
 
 export interface ContractModuleConfig {
   module_instance_id: string;
@@ -33,6 +33,7 @@ const MODULE_CATALOG = [
   { type: 'table', label: 'Table', lensConfigurable: true },
   { type: 'kanban', label: 'Kanban', lensConfigurable: true },
   { type: 'calendar', label: 'Calendar', lensConfigurable: true },
+  { type: 'tasks', label: 'Tasks', lensConfigurable: false },
   { type: 'reminders', label: 'Reminders', lensConfigurable: false },
   { type: 'timeline', label: 'Timeline', lensConfigurable: true },
   { type: 'files', label: 'Files', lensConfigurable: true },

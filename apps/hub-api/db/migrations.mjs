@@ -436,6 +436,33 @@ export const runMigrations = (db) => {
 
   db.exec('BEGIN IMMEDIATE;');
   try {
+    const parentRecordIdColumn = db
+      .prepare("SELECT 1 AS ok FROM pragma_table_info('records') WHERE name = 'parent_record_id' LIMIT 1")
+      .get();
+    if (!parentRecordIdColumn?.ok) {
+      db.exec(`
+        ALTER TABLE records
+        ADD COLUMN parent_record_id TEXT REFERENCES records(record_id);
+      `);
+    }
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_records_parent
+      ON records(parent_record_id);
+    `);
+    db.exec('COMMIT;');
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // no-op
+    }
+    if (!/duplicate column name/i.test(String(error?.message || error))) {
+      throw error;
+    }
+  }
+
+  db.exec('BEGIN IMMEDIATE;');
+  try {
     const taskStateDueAtColumn = db
       .prepare("SELECT 1 AS ok FROM pragma_table_info('task_state') WHERE name = 'due_at' LIMIT 1")
       .get();
@@ -443,6 +470,29 @@ export const runMigrations = (db) => {
       db.exec(`
         ALTER TABLE task_state
         ADD COLUMN due_at TEXT;
+      `);
+    }
+    db.exec('COMMIT;');
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // no-op
+    }
+    if (!/duplicate column name/i.test(String(error?.message || error))) {
+      throw error;
+    }
+  }
+
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    const taskStateCategoryColumn = db
+      .prepare("SELECT 1 AS ok FROM pragma_table_info('task_state') WHERE name = 'category' LIMIT 1")
+      .get();
+    if (!taskStateCategoryColumn?.ok) {
+      db.exec(`
+        ALTER TABLE task_state
+        ADD COLUMN category TEXT;
       `);
     }
     db.exec('COMMIT;');

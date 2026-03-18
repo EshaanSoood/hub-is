@@ -28,6 +28,8 @@ export const useProjectTasksRuntime = ({
   const [projectTasksError, setProjectTasksError] = useState<string | null>(null);
   const projectTasksSentinelRef = useRef<HTMLDivElement | null>(null);
   const projectTasksInFlightCursorRef = useRef<string | null>(null);
+  const loadedProjectIdRef = useRef<string | null>(null);
+  const hasTaskData = loadedProjectIdRef.current === projectId && projectTasks.tasks.length > 0;
 
   const loadProjectTaskPage = useCallback(
     async ({ cursor = '', append = false }: { cursor?: string; append?: boolean } = {}) => {
@@ -49,6 +51,7 @@ export const useProjectTasksRuntime = ({
           limit: PROJECT_TASK_PAGE_SIZE,
           cursor: requestedCursor || undefined,
         });
+        loadedProjectIdRef.current = projectId;
         setProjectTasks((current) => ({
           tasks: append ? [...current.tasks, ...page.tasks] : page.tasks,
           next_cursor: page.next_cursor,
@@ -56,6 +59,7 @@ export const useProjectTasksRuntime = ({
         setProjectTasksError(null);
       } catch (error) {
         if (!append) {
+          loadedProjectIdRef.current = null;
           setProjectTasks({ tasks: [], next_cursor: null });
         }
         setProjectTasksError(error instanceof Error ? error.message : 'Failed to load project tasks.');
@@ -77,11 +81,12 @@ export const useProjectTasksRuntime = ({
   );
 
   useEffect(() => {
-    if (activeTab !== 'overview' || overviewView !== 'tasks') {
+    const shouldLoadTasks = !hasTaskData && (activeTab === 'work' || (activeTab === 'overview' && overviewView === 'tasks'));
+    if (!shouldLoadTasks) {
       return;
     }
     void loadProjectTaskPage();
-  }, [activeTab, loadProjectTaskPage, overviewView]);
+  }, [activeTab, hasTaskData, loadProjectTaskPage, overviewView]);
 
   useEffect(() => {
     if (activeTab !== 'overview' || overviewView !== 'tasks' || !projectTasks.next_cursor || projectTasksLoading || projectTasksLoadingMore) {

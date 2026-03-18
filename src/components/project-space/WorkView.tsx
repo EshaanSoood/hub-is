@@ -6,6 +6,7 @@ import type { HubCollectionField, HubPaneSummary, HubRecordSummary } from '../..
 import type { CalendarScope } from './CalendarModuleSkin';
 import type { FilesModuleItem } from './FilesModuleSkin';
 import { ModuleLoadingState } from './ModuleFeedback';
+import type { TaskItem } from './TasksTab';
 import { TimelineFeed, type TimelineCluster, type TimelineEventType } from './TimelineFeed';
 
 interface WorkViewProps {
@@ -97,6 +98,16 @@ export interface WorkViewQuickThoughtsRuntime {
   legacyStorageKeyBase?: string;
 }
 
+export interface WorkViewTasksRuntime {
+  items: TaskItem[];
+  loading: boolean;
+  onCreateTask: (task: { title: string; priority: string | null; due_at: string | null; parent_record_id?: string | null }) => Promise<void>;
+  onUpdateTaskStatus: (taskId: string, status: string) => void;
+  onUpdateTaskPriority: (taskId: string, priority: string | null) => void;
+  onUpdateTaskDueDate: (taskId: string, dueAt: string | null) => void;
+  onDeleteTask: (taskId: string) => void;
+}
+
 export interface WorkViewTimelineRuntime {
   clusters: TimelineCluster[];
   activeFilters: TimelineEventType[];
@@ -121,6 +132,7 @@ export interface WorkViewModuleRuntime {
   calendar: WorkViewCalendarRuntime;
   files: WorkViewFilesRuntime;
   quickThoughts: WorkViewQuickThoughtsRuntime;
+  tasks: WorkViewTasksRuntime;
   timeline: WorkViewTimelineRuntime;
   reminders: WorkViewRemindersRuntime;
 }
@@ -150,26 +162,47 @@ const RemindersModuleSkin = lazy(async () => {
   return { default: module.RemindersModuleSkin };
 });
 
+const TasksModuleSkin = lazy(async () => {
+  const module = await import('./TasksModuleSkin');
+  return { default: module.TasksModuleSkin };
+});
+
 const QuickThoughtsModuleSkin = lazy(async () => {
   const module = await import('./InboxCaptureModuleSkin');
   return { default: module.QuickThoughtsModuleSkin };
 });
-
-const defaultLensForModule = (moduleType: string): 'project' | 'pane_scratch' | null => {
-  if (moduleType === 'quick_thoughts') {
-    return 'pane_scratch';
-  }
-  if (moduleType === 'reminders') {
-    return 'project';
-  }
-  return null;
-};
 
 const normalizeModuleType = (moduleType: unknown): string => {
   if (moduleType === 'inbox') {
     return 'quick_thoughts';
   }
   return typeof moduleType === 'string' && moduleType ? moduleType : 'unknown';
+};
+
+const defaultModuleLens = (moduleType: string): 'project' | 'pane' | 'pane_scratch' => {
+  if (moduleType === 'quick_thoughts') {
+    return 'pane_scratch';
+  }
+  if (moduleType === 'tasks') {
+    return 'pane';
+  }
+  if (moduleType === 'reminders') {
+    return 'project';
+  }
+  return 'project';
+};
+
+const normalizeModuleLens = (moduleType: string, lens: unknown): 'project' | 'pane' | 'pane_scratch' => {
+  if (moduleType === 'quick_thoughts') {
+    return 'pane_scratch';
+  }
+  if (moduleType === 'tasks') {
+    return lens === 'project' ? 'project' : 'pane';
+  }
+  if (moduleType === 'reminders') {
+    return 'project';
+  }
+  return lens === 'pane_scratch' ? 'pane_scratch' : 'project';
 };
 
 const parseModules = (layoutConfig: Record<string, unknown> | null | undefined): ContractModuleConfig[] => {
@@ -206,9 +239,7 @@ const parseModules = (layoutConfig: Record<string, unknown> | null | undefined):
           : `module-${index + 1}`,
       module_type: moduleType,
       size_tier: sizeTier === 'S' || sizeTier === 'M' || sizeTier === 'L' ? sizeTier : 'M',
-      lens:
-        defaultLensForModule(moduleType)
-        || (lens === 'pane_scratch' ? 'pane_scratch' : 'project'),
+      lens: normalizeModuleLens(moduleType, lens),
       binding,
     });
   }
@@ -221,7 +252,7 @@ const serializeModules = (modules: ContractModuleConfig[]): Array<Record<string,
     module_instance_id: module.module_instance_id,
     module_type: normalizeModuleType(module.module_type),
     size_tier: module.size_tier,
-    lens: defaultLensForModule(normalizeModuleType(module.module_type)) || module.lens,
+    lens: normalizeModuleLens(normalizeModuleType(module.module_type), module.lens),
     ...(module.binding?.view_id ? { binding: { view_id: module.binding.view_id } } : {}),
   }));
 
@@ -254,6 +285,15 @@ const EMPTY_RUNTIME: WorkViewModuleRuntime = {
   },
   quickThoughts: {
     storageKeyBase: 'hub:quick-thoughts:default',
+  },
+  tasks: {
+    items: [],
+    loading: false,
+    onCreateTask: async () => {},
+    onUpdateTaskStatus: () => undefined,
+    onUpdateTaskPriority: () => undefined,
+    onUpdateTaskDueDate: () => undefined,
+    onDeleteTask: () => undefined,
   },
   timeline: {
     clusters: [],
@@ -324,6 +364,10 @@ export const WorkView = ({
       ...EMPTY_RUNTIME.quickThoughts,
       ...moduleRuntime?.quickThoughts,
     },
+    tasks: {
+      ...EMPTY_RUNTIME.tasks,
+      ...moduleRuntime?.tasks,
+    },
     timeline: {
       ...EMPTY_RUNTIME.timeline,
       ...moduleRuntime?.timeline,
@@ -377,7 +421,7 @@ export const WorkView = ({
         module_instance_id: `${moduleType}-${Date.now()}`,
         module_type: normalizeModuleType(moduleType),
         size_tier: 'M',
-        lens: defaultLensForModule(normalizeModuleType(moduleType)) || 'project',
+        lens: defaultModuleLens(normalizeModuleType(moduleType)),
       },
     ];
     void saveModules(nextModules);
@@ -388,12 +432,12 @@ export const WorkView = ({
     void saveModules(nextModules);
   };
 
-  const handleSetModuleLens = (moduleInstanceId: string, lens: 'project' | 'pane_scratch') => {
+  const handleSetModuleLens = (moduleInstanceId: string, lens: ContractModuleConfig['lens']) => {
     const nextModules = modules.map((module) =>
       module.module_instance_id === moduleInstanceId
         ? {
             ...module,
-            lens: defaultLensForModule(module.module_type) || lens,
+            lens: normalizeModuleLens(module.module_type, lens),
           }
         : module,
     );
@@ -606,6 +650,24 @@ export const WorkView = ({
                   scope={mergedRuntime.calendar.scope}
                   onScopeChange={mergedRuntime.calendar.onScopeChange}
                   onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
+                />
+              </Suspense>
+            );
+          }
+
+          if (module.module_type === 'tasks') {
+            return (
+              <Suspense fallback={<ModuleLoadingState label="Loading tasks module" rows={4} />}>
+                <TasksModuleSkin
+                  sizeTier={module.size_tier || 'M'}
+                  tasks={mergedRuntime.tasks.items}
+                  tasksLoading={mergedRuntime.tasks.loading}
+                  onCreateTask={canEditPane ? mergedRuntime.tasks.onCreateTask : async () => {}}
+                  onUpdateTaskStatus={canEditPane ? mergedRuntime.tasks.onUpdateTaskStatus : undefined}
+                  onUpdateTaskPriority={canEditPane ? mergedRuntime.tasks.onUpdateTaskPriority : undefined}
+                  onUpdateTaskDueDate={canEditPane ? mergedRuntime.tasks.onUpdateTaskDueDate : undefined}
+                  onDeleteTask={canEditPane ? mergedRuntime.tasks.onDeleteTask : undefined}
+                  readOnly={!canEditPane}
                 />
               </Suspense>
             );
