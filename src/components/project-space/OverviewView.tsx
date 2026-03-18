@@ -4,7 +4,7 @@ import { Card, TabButton, Tabs, TabsList } from '../primitives';
 import { CalendarTab, type CalendarEvent, type CalendarLensOption, type CalendarTimeView } from './CalendarTab';
 import { FilterBarOverlay, type FilterGroup } from './FilterBarOverlay';
 import { OverviewHeader } from './OverviewHeader';
-import { TasksTab, type TasksClusterMode } from './TasksTab';
+import { TasksTab, type SortChain } from './TasksTab';
 import { TimelineTab, type TimelineCluster } from './TimelineTab';
 import { adaptTaskSummaries } from './taskAdapter';
 import type { ClientReference, Collaborator, OverviewViewId } from './types';
@@ -119,7 +119,7 @@ export const OverviewView = ({
   const [calendarUserId, setCalendarUserId] = useState('all');
   const [calendarCategoryId, setCalendarCategoryId] = useState('all');
 
-  const [tasksClusterMode, setTasksClusterMode] = useState<TasksClusterMode>('chronological');
+  const [sortChain, setSortChain] = useState<SortChain>(['date', 'priority', 'category']);
   const [tasksUserId, setTasksUserId] = useState('all');
   const [tasksCategoryId, setTasksCategoryId] = useState('all');
 
@@ -260,10 +260,10 @@ export const OverviewView = ({
                   categories={taskCategoryOptions}
                   activeUserId={tasksUserId}
                   activeCategoryId={tasksCategoryId}
-                  clusterMode={tasksClusterMode}
+                  sortChain={sortChain}
+                  onSortChainChange={setSortChain}
                   onUserChange={setTasksUserId}
                   onCategoryChange={setTasksCategoryId}
-                  onClusterModeChange={setTasksClusterMode}
                 />
               ) : null}
             </div>
