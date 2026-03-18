@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { archiveRecord, updateRecord } from '../../services/hub/records';
 import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
 import { Card, TabButton, Tabs, TabsList } from '../primitives';
 import { CalendarTab, type CalendarEvent, type CalendarLensOption, type CalendarTimeView } from './CalendarTab';
@@ -196,6 +197,71 @@ export const OverviewView = ({
     [projectMembers],
   );
 
+  const handleUpdateStatus = useCallback(
+    async (taskId: string, status: 'todo' | 'in_progress' | 'done' | 'cancelled') => {
+      try {
+        await updateRecord(accessToken, taskId, { task_state: { status } });
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to update task status', error);
+        throw error;
+      }
+    },
+    [accessToken, onRefreshTasks],
+  );
+
+  const handleUpdatePriority = useCallback(
+    async (taskId: string, priority: 'low' | 'medium' | 'high' | 'urgent' | null) => {
+      try {
+        await updateRecord(accessToken, taskId, { task_state: { priority } });
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to update task priority', error);
+        throw error;
+      }
+    },
+    [accessToken, onRefreshTasks],
+  );
+
+  const handleUpdateDueDate = useCallback(
+    async (taskId: string, dueAt: string | null) => {
+      try {
+        await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to update task due date', error);
+        throw error;
+      }
+    },
+    [accessToken, onRefreshTasks],
+  );
+
+  const handleUpdateCategory = useCallback(
+    async (taskId: string, category: string | null) => {
+      try {
+        await updateRecord(accessToken, taskId, { task_state: { category } });
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to update task category', error);
+        throw error;
+      }
+    },
+    [accessToken, onRefreshTasks],
+  );
+
+  const handleDeleteTask = useCallback(
+    async (taskId: string) => {
+      try {
+        await archiveRecord(accessToken, taskId);
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to archive task', error);
+        throw error;
+      }
+    },
+    [accessToken, onRefreshTasks],
+  );
+
   const openTaskDialog = (options?: { parent?: { id: string; title: string } | null; remembered?: boolean }) => {
     taskCreateTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSubtaskParent(options?.parent ?? null);
@@ -306,6 +372,11 @@ export const OverviewView = ({
                   onSortChainChange={setSortChain}
                   onUserChange={setTasksUserId}
                   onCategoryChange={setTasksCategoryId}
+                  onUpdateTaskStatus={handleUpdateStatus}
+                  onUpdateTaskPriority={handleUpdatePriority}
+                  onUpdateTaskDueDate={handleUpdateDueDate}
+                  onUpdateTaskCategory={handleUpdateCategory}
+                  onDeleteTask={handleDeleteTask}
                   onAddSubtask={(task) => {
                     openTaskDialog({ parent: { id: task.id, title: task.label } });
                   }}

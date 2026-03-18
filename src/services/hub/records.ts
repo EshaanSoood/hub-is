@@ -46,13 +46,26 @@ export const createRecord = async (
 export const updateRecord = async (
   accessToken: string,
   recordId: string,
-  payload: { title?: string; archived?: boolean },
+  payload: {
+    title?: string;
+    archived?: boolean;
+    task_state?: {
+      status?: string;
+      priority?: string | null;
+      due_at?: string | null;
+      category?: string | null;
+    };
+  },
 ): Promise<HubRecordDetail> => {
   const data = await hubRequest<{ record: HubRecordDetail }>(accessToken, `/api/hub/records/${encodeURIComponent(recordId)}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
   return normalizeRecordDetail(data.record);
+};
+
+export const archiveRecord = async (accessToken: string, recordId: string): Promise<void> => {
+  await updateRecord(accessToken, recordId, { archived: true });
 };
 
 export const convertRecord = async (

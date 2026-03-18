@@ -69,9 +69,11 @@ export const adaptTaskSummary = (task: HubTaskSummary): TaskItem => ({
   dueAt: task.task_state.due_at,
   dueLabel: formatDueLabel(task.task_state.due_at),
   categoryId: task.task_state.category ?? 'uncategorized',
+  categoryValue: task.task_state.category,
   // TODO: wire assignee when task summaries include assignment_user_ids
   assigneeId: 'unassigned',
   priority: mapPriority(task.task_state.priority),
+  priorityValue: task.task_state.priority,
   status: task.task_state.status,
   subtaskCount: task.subtask_count,
   // TODO: lazy-load subtasks on expand via GET /api/hub/records/:id/subtasks

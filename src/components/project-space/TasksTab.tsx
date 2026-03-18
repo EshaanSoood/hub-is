@@ -1,9 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { cn } from '../../lib/cn';
 import { PRIORITY_COLORS, PRIORITY_DOT_COLORS, PRIORITY_TINT_COLORS, type PriorityLevel } from './designTokens';
 
 export type SortDimension = 'date' | 'priority' | 'category';
 export type SortChain = [SortDimension, SortDimension, SortDimension];
+export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
+export type TaskPriorityValue = 'low' | 'medium' | 'high' | 'urgent' | null;
 
 export interface TaskSubtask {
   id: string;
@@ -18,9 +20,11 @@ export interface TaskItem {
   dueAt: string | null;
   dueLabel: string;
   categoryId: string;
+  categoryValue: string | null;
   assigneeId: string;
   priority: PriorityLevel;
-  status: 'todo' | 'in_progress' | 'done' | 'cancelled';
+  priorityValue: TaskPriorityValue;
+  status: TaskStatus;
   subtaskCount?: number;
   subtasks: TaskSubtask[];
 }
@@ -49,6 +53,11 @@ interface TasksTabProps {
   onUserChange: (userId: string) => void;
   onCategoryChange: (categoryId: string) => void;
   onAddSubtask?: (task: TaskItem) => void;
+  onUpdateTaskStatus?: (taskId: string, status: TaskStatus) => void | Promise<void>;
+  onUpdateTaskPriority?: (taskId: string, priority: TaskPriorityValue) => void | Promise<void>;
+  onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
+  onUpdateTaskCategory?: (taskId: string, category: string | null) => void | Promise<void>;
+  onDeleteTask?: (taskId: string) => void | Promise<void>;
 }
 
 const SORT_DIMENSIONS: SortDimension[] = ['date', 'priority', 'category'];
@@ -64,6 +73,25 @@ const PRIORITY_RANK: Record<PriorityLevel, number> = {
   medium: 1,
   low: 2,
 };
+const PRIORITY_MENU_OPTIONS: Array<{ value: TaskPriorityValue; label: string; tone: PriorityLevel | null }> = [
+  { value: 'urgent', label: 'Urgent', tone: 'high' },
+  { value: 'high', label: 'High', tone: 'high' },
+  { value: 'medium', label: 'Medium', tone: 'medium' },
+  { value: 'low', label: 'Low', tone: 'low' },
+  { value: null, label: 'None', tone: null },
+];
+const STATUS_SYMBOLS: Record<TaskStatus, string> = {
+  todo: '○',
+  in_progress: '◐',
+  done: '✓',
+  cancelled: '⊘',
+};
+const STATUS_LABELS: Record<TaskStatus, string> = {
+  todo: 'To do',
+  in_progress: 'In progress',
+  done: 'Done',
+  cancelled: 'Cancelled',
+};
 
 const parseDueAt = (dueAt: string | null): Date | null => {
   if (!dueAt) {
@@ -71,6 +99,21 @@ const parseDueAt = (dueAt: string | null): Date | null => {
   }
   const parsed = new Date(dueAt);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const toDateInputValue = (dueAt: string | null): string => {
+  const parsed = parseDueAt(dueAt);
+  if (!parsed) {
+    return '';
+  }
+  return new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+};
+
+const fromDateInputValue = (value: string): string | null => {
+  if (!value) {
+    return null;
+  }
+  return new Date(`${value}T12:00:00`).toISOString();
 };
 
 const startOfDay = (date: Date) => {
@@ -234,6 +277,42 @@ const buildClusters = (tasks: TaskItem[], chain: SortChain): Cluster[] => {
   }));
 };
 
+const getPriorityTone = (priorityValue: TaskPriorityValue, fallbackPriority: PriorityLevel): PriorityLevel | null => {
+  if (priorityValue === null) {
+    return null;
+  }
+  if (priorityValue === 'urgent') {
+    return 'high';
+  }
+  return priorityValue ?? fallbackPriority;
+};
+
+const getPriorityChipStyles = (priorityValue: TaskPriorityValue, fallbackPriority: PriorityLevel) => {
+  const tone = getPriorityTone(priorityValue, fallbackPriority);
+  if (!tone) {
+    return {
+      color: 'var(--color-text-secondary)',
+      borderColor: 'var(--color-border-muted)',
+      backgroundColor: 'var(--color-surface)',
+    };
+  }
+  return {
+    color: PRIORITY_COLORS[tone],
+    borderColor: PRIORITY_COLORS[tone],
+    backgroundColor: PRIORITY_TINT_COLORS[tone],
+  };
+};
+
+const getNextStatus = (status: TaskStatus): TaskStatus => {
+  if (status === 'todo') {
+    return 'in_progress';
+  }
+  if (status === 'in_progress') {
+    return 'done';
+  }
+  return 'todo';
+};
+
 const SubtaskRow = ({ subtask, parentPriority }: { subtask: TaskSubtask; parentPriority: PriorityLevel }) => {
   const resolvedPriority = subtask.priority ?? parentPriority;
   return (
@@ -249,48 +328,377 @@ const SubtaskRow = ({ subtask, parentPriority }: { subtask: TaskSubtask; parentP
   );
 };
 
-const TaskRow = ({ task, onAddSubtask }: { task: TaskItem; onAddSubtask?: (task: TaskItem) => void }) => {
+interface TaskRowProps {
+  task: TaskItem;
+  status: TaskStatus;
+  onAddSubtask?: (task: TaskItem) => void;
+  onToggleStatus?: (taskId: string, status: TaskStatus) => void;
+  onUpdateTaskStatus?: (taskId: string, status: TaskStatus) => void | Promise<void>;
+  onUpdateTaskPriority?: (taskId: string, priority: TaskPriorityValue) => void | Promise<void>;
+  onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
+  onUpdateTaskCategory?: (taskId: string, category: string | null) => void | Promise<void>;
+  onDeleteTask?: (taskId: string) => void | Promise<void>;
+}
+
+const TaskRow = ({
+  task,
+  status,
+  onAddSubtask,
+  onToggleStatus,
+  onUpdateTaskStatus,
+  onUpdateTaskPriority,
+  onUpdateTaskDueDate,
+  onUpdateTaskCategory,
+  onDeleteTask,
+}: TaskRowProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [categoryDraft, setCategoryDraft] = useState(task.categoryValue ?? '');
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const archiveTimerRef = useRef<number | null>(null);
   const visibleSubtaskCount = task.subtaskCount ?? task.subtasks.length;
+  const taskHasSubtasks = task.subtasks.length > 0;
+  const priorityTone = getPriorityTone(task.priorityValue, task.priority);
+  const priorityChipStyles = getPriorityChipStyles(task.priorityValue, task.priority);
+
+  const closeMenu = (options?: { restoreFocus?: boolean }) => {
+    setMenuOpen(false);
+    setConfirmArchive(false);
+    if (archiveTimerRef.current !== null) {
+      window.clearTimeout(archiveTimerRef.current);
+      archiveTimerRef.current = null;
+    }
+    if (options?.restoreFocus) {
+      requestAnimationFrame(() => {
+        triggerRef.current?.focus();
+      });
+    }
+  };
+
+  const runMenuAction = (action?: () => void | Promise<void>) => {
+    closeMenu();
+    if (!action) {
+      return;
+    }
+    void action();
+  };
+
+  const commitCategory = () => {
+    const nextValue = categoryDraft.trim() || null;
+    const currentValue = task.categoryValue?.trim() || null;
+    if (nextValue === currentValue) {
+      closeMenu();
+      return;
+    }
+    runMenuAction(() => onUpdateTaskCategory?.(task.id, nextValue));
+  };
+
+  useEffect(() => {
+    return () => {
+      if (archiveTimerRef.current !== null) {
+        window.clearTimeout(archiveTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      menuRef.current?.querySelector<HTMLElement>('[data-menu-item="true"]')?.focus();
+    });
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) {
+        return;
+      }
+      closeMenu();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMenu({ restoreFocus: true });
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
+
+  const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+      return;
+    }
+
+    const items = [...(menuRef.current?.querySelectorAll<HTMLElement>('[data-menu-item="true"]') ?? [])];
+    if (items.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const activeIndex = items.findIndex((item) => item === document.activeElement);
+    const nextIndex =
+      activeIndex === -1
+        ? event.key === 'ArrowDown'
+          ? 0
+          : items.length - 1
+        : event.key === 'ArrowDown'
+          ? (activeIndex + 1) % items.length
+          : (activeIndex - 1 + items.length) % items.length;
+    items[nextIndex]?.focus();
+  };
+
+  const handleArchiveClick = () => {
+    if (!onDeleteTask) {
+      return;
+    }
+    if (!confirmArchive) {
+      setConfirmArchive(true);
+      if (archiveTimerRef.current !== null) {
+        window.clearTimeout(archiveTimerRef.current);
+      }
+      archiveTimerRef.current = window.setTimeout(() => {
+        setConfirmArchive(false);
+        archiveTimerRef.current = null;
+      }, 3000);
+      return;
+    }
+
+    runMenuAction(() => onDeleteTask(task.id));
+  };
+
   return (
-    <div className="group rounded-control px-1 py-0.5 hover:bg-elevated">
+    <div className="group rounded-control px-1 py-0.5 hover:bg-elevated focus-within:bg-elevated">
       <div className="flex items-center gap-2">
         <button
           type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!onToggleStatus || status === 'cancelled') {
+              return;
+            }
+            onToggleStatus(task.id, getNextStatus(status));
+          }}
+          className={cn(
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50',
+            status === 'done' && 'text-primary',
+            status === 'cancelled' && 'text-danger',
+          )}
+          aria-label={status === 'cancelled' ? `${task.label} is cancelled. Use actions to reopen.` : `Advance ${task.label} from ${STATUS_LABELS[status]}`}
+          disabled={!onToggleStatus || status === 'cancelled'}
+        >
+          <span aria-hidden="true">{STATUS_SYMBOLS[status]}</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setExpanded((current) => !current)}
-          disabled={task.subtasks.length === 0}
+          disabled={!taskHasSubtasks}
           className="flex min-w-0 flex-1 items-center gap-2 text-left disabled:cursor-default"
         >
-          <span className="h-7 w-0.5 rounded-sm" style={{ backgroundColor: PRIORITY_DOT_COLORS[task.priority] }} aria-hidden="true" />
-          <span className="min-w-0 flex-1 text-sm text-text">{task.label}</span>
-          <span className="text-xs text-text-secondary">{task.dueLabel}</span>
-          {task.subtasks.length > 0 ? <span className={cn('text-[10px] text-muted transition-transform', expanded && 'rotate-90')}>▶</span> : null}
-        </button>
-        {onAddSubtask ? (
-          <button
-            type="button"
-            onClick={() => onAddSubtask(task)}
-            className="ml-auto text-[10px] text-muted opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-            aria-label={`Add subtask to ${task.label}`}
-          >
-            + Subtask
-          </button>
-        ) : null}
-        {visibleSubtaskCount > 0 ? (
           <span
-            className="rounded-control border px-1.5 py-0.5 text-[10px] font-semibold"
-            style={{
-              color: PRIORITY_COLORS[task.priority],
-              borderColor: PRIORITY_COLORS[task.priority],
-              backgroundColor: PRIORITY_TINT_COLORS[task.priority],
-            }}
-          >
-            {visibleSubtaskCount}
+            className={cn('h-7 w-0.5 rounded-sm', priorityTone ? '' : 'opacity-60')}
+            style={{ backgroundColor: priorityTone ? PRIORITY_DOT_COLORS[priorityTone] : 'var(--color-border-muted)' }}
+            aria-hidden="true"
+          />
+          <span className={cn('min-w-0 flex-1 truncate text-sm text-text', status === 'cancelled' && 'line-through text-text-secondary')}>
+            {task.label}
           </span>
-        ) : null}
+          <span className="shrink-0 text-xs text-text-secondary">{task.dueLabel}</span>
+          {visibleSubtaskCount > 0 ? (
+            <span className="shrink-0 rounded-control border px-1.5 py-0.5 text-[10px] font-semibold" style={priorityChipStyles}>
+              {visibleSubtaskCount}
+            </span>
+          ) : null}
+          {taskHasSubtasks ? <span className={cn('text-[10px] text-muted transition-transform', expanded && 'rotate-90')}>▶</span> : null}
+        </button>
+
+        <div className="ml-auto flex items-center gap-1">
+          {onAddSubtask ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onAddSubtask(task);
+              }}
+              className={cn(
+                'text-[10px] text-muted opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100',
+                menuOpen && 'opacity-100',
+              )}
+              aria-label={`Add subtask to ${task.label}`}
+            >
+              + Subtask
+            </button>
+          ) : null}
+
+          <div className="relative">
+            <button
+              ref={triggerRef}
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (!menuOpen) {
+                  setCategoryDraft(task.categoryValue ?? '');
+                }
+                setMenuOpen((current) => !current);
+                setConfirmArchive(false);
+                if (archiveTimerRef.current !== null) {
+                  window.clearTimeout(archiveTimerRef.current);
+                  archiveTimerRef.current = null;
+                }
+              }}
+              className={cn(
+                'rounded-control px-2 py-1 text-sm text-muted opacity-0 transition-opacity hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group-hover:opacity-100 group-focus-within:opacity-100',
+                menuOpen && 'opacity-100',
+              )}
+              aria-label={`Open actions for ${task.label}`}
+            >
+              ⋯
+            </button>
+
+            {menuOpen ? (
+              <div
+                ref={menuRef}
+                role="menu"
+                tabIndex={-1}
+                aria-label={`Task actions for ${task.label}`}
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={handleMenuKeyDown}
+                className="absolute right-0 top-full z-20 mt-1 w-72 rounded-panel border border-border-muted bg-surface p-3 shadow-lg"
+              >
+                <div className="space-y-2">
+                  <div>
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Priority</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PRIORITY_MENU_OPTIONS.map((option) => {
+                        const optionStyles = option.tone
+                          ? {
+                              color: PRIORITY_COLORS[option.tone],
+                              borderColor: PRIORITY_COLORS[option.tone],
+                              backgroundColor: PRIORITY_TINT_COLORS[option.tone],
+                            }
+                          : {
+                              color: 'var(--color-text-secondary)',
+                              borderColor: 'var(--color-border-muted)',
+                              backgroundColor: 'var(--color-surface-elevated)',
+                            };
+                        const active = task.priorityValue === option.value;
+                        return (
+                          <button
+                            key={option.label}
+                            type="button"
+                            role="menuitem"
+                            data-menu-item="true"
+                            onClick={() => runMenuAction(() => onUpdateTaskPriority?.(task.id, option.value))}
+                            className={cn(
+                              'rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                              active && 'font-semibold',
+                            )}
+                            style={optionStyles}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Due date</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={toDateInputValue(task.dueAt)}
+                        onChange={(event) => {
+                          runMenuAction(() => onUpdateTaskDueDate?.(task.id, fromDateInputValue(event.target.value)));
+                        }}
+                        onClick={(event) => event.stopPropagation()}
+                        className="min-w-0 flex-1 rounded-control border border-border-muted bg-surface-elevated px-2 py-1 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      />
+                      <button
+                        type="button"
+                        role="menuitem"
+                        data-menu-item="true"
+                        onClick={() => runMenuAction(() => onUpdateTaskDueDate?.(task.id, null))}
+                        className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Category</p>
+                    <input
+                      type="text"
+                      value={categoryDraft}
+                      placeholder="Uncategorized"
+                      onChange={(event) => setCategoryDraft(event.target.value)}
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          commitCategory();
+                        }
+                      }}
+                      onBlur={(event) => {
+                        const relatedTarget = event.relatedTarget as Node | null;
+                        if (relatedTarget && menuRef.current?.contains(relatedTarget)) {
+                          return;
+                        }
+                        commitCategory();
+                      }}
+                      className="w-full rounded-control border border-border-muted bg-surface-elevated px-2 py-1 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-menu-item="true"
+                      onClick={() =>
+                        runMenuAction(() => onUpdateTaskStatus?.(task.id, status === 'cancelled' ? 'todo' : 'cancelled'))
+                      }
+                      className="rounded-control px-2 py-1 text-left text-sm text-text hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                    >
+                      {status === 'cancelled' ? 'Reopen' : 'Mark as cancelled'}
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-menu-item="true"
+                      onClick={handleArchiveClick}
+                      disabled={!onDeleteTask}
+                      className="rounded-control px-2 py-1 text-left text-sm text-danger hover:bg-danger-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {confirmArchive ? 'Confirm archive?' : 'Archive task'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
 
-      {expanded && task.subtasks.length > 0 ? (
+      {expanded && taskHasSubtasks ? (
         <ul className="mt-1 space-y-1">
           {task.subtasks.map((subtask) => (
             <SubtaskRow key={subtask.id} subtask={subtask} parentPriority={task.priority} />
@@ -312,9 +720,33 @@ export const TasksTab = ({
   onUserChange,
   onCategoryChange,
   onAddSubtask,
+  onUpdateTaskStatus,
+  onUpdateTaskPriority,
+  onUpdateTaskDueDate,
+  onUpdateTaskCategory,
+  onDeleteTask,
 }: TasksTabProps) => {
   const [collapsedClusterIds, setCollapsedClusterIds] = useState<Set<string>>(new Set());
+  const [optimisticStatus, setOptimisticStatus] = useState<{ taskKey: string; entries: Record<string, TaskStatus> }>({
+    taskKey: '',
+    entries: {},
+  });
   const dragIndexRef = useRef<number | null>(null);
+  const taskKey = useMemo(
+    () =>
+      JSON.stringify(
+        tasks.map((task) => [
+          task.id,
+          task.status,
+          task.priorityValue,
+          task.dueAt,
+          task.categoryId,
+          task.subtaskCount ?? task.subtasks.length,
+          task.label,
+        ]),
+      ),
+    [tasks],
+  );
 
   const filteredTasks = useMemo(
     () => tasks.filter((task) => (activeUserId === 'all' || task.assigneeId === activeUserId) && (activeCategoryId === 'all' || task.categoryId === activeCategoryId)),
@@ -322,6 +754,44 @@ export const TasksTab = ({
   );
 
   const clusters = useMemo(() => buildClusters(filteredTasks, sortChain), [filteredTasks, sortChain]);
+
+  const toggleStatus = (taskId: string, status: TaskStatus) => {
+    if (!onUpdateTaskStatus) {
+      return;
+    }
+
+    setOptimisticStatus((current) => ({
+      taskKey,
+      entries: {
+        ...(current.taskKey === taskKey ? current.entries : {}),
+        [taskId]: status,
+      },
+    }));
+
+    try {
+      const mutation = onUpdateTaskStatus(taskId, status);
+      void Promise.resolve(mutation).catch(() => {
+        setOptimisticStatus((current) => {
+          const next = { ...(current.taskKey === taskKey ? current.entries : {}) };
+          delete next[taskId];
+          return {
+            taskKey,
+            entries: next,
+          };
+        });
+      });
+    } catch (error) {
+      setOptimisticStatus((current) => {
+        const next = { ...(current.taskKey === taskKey ? current.entries : {}) };
+        delete next[taskId];
+        return {
+          taskKey,
+          entries: next,
+        };
+      });
+      throw error;
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -462,7 +932,18 @@ export const TasksTab = ({
               {!collapsed ? (
                 <div className="mt-1 space-y-1">
                   {cluster.items.map((task) => (
-                    <TaskRow key={task.id} task={task} onAddSubtask={onAddSubtask} />
+                    <TaskRow
+                      key={task.id}
+                      task={task}
+                      status={(optimisticStatus.taskKey === taskKey ? optimisticStatus.entries[task.id] : undefined) ?? task.status}
+                      onAddSubtask={onAddSubtask}
+                      onToggleStatus={toggleStatus}
+                      onUpdateTaskStatus={onUpdateTaskStatus}
+                      onUpdateTaskPriority={onUpdateTaskPriority}
+                      onUpdateTaskDueDate={onUpdateTaskDueDate}
+                      onUpdateTaskCategory={onUpdateTaskCategory}
+                      onDeleteTask={onDeleteTask}
+                    />
                   ))}
                 </div>
               ) : null}
