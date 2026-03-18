@@ -1,13 +1,22 @@
-import { Suspense, lazy, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import type { HubCollectionField, HubPaneSummary, HubRecordSummary } from '../../services/hub/types';
 import type { CalendarScope } from './CalendarModuleSkin';
 import type { FilesModuleItem } from './FilesModuleSkin';
-import { ModuleLoadingState } from './ModuleFeedback';
 import type { TaskItem } from './TasksTab';
-import { TimelineFeed, type TimelineCluster, type TimelineEventType } from './TimelineFeed';
+import type { TimelineCluster, TimelineEventType } from './TimelineFeed';
+import {
+  CalendarModule,
+  FilesModule,
+  KanbanModule,
+  QuickThoughtsModule,
+  RemindersModule,
+  TableModule,
+  TasksModule,
+  TimelineModule,
+} from './modules';
 
 interface WorkViewProps {
   pane: HubPaneSummary | null;
@@ -136,41 +145,6 @@ export interface WorkViewModuleRuntime {
   timeline: WorkViewTimelineRuntime;
   reminders: WorkViewRemindersRuntime;
 }
-
-const TableModuleSkin = lazy(async () => {
-  const module = await import('./TableModuleSkin');
-  return { default: module.TableModuleSkin };
-});
-
-const KanbanModuleSkin = lazy(async () => {
-  const module = await import('./KanbanModuleSkin');
-  return { default: module.KanbanModuleSkin };
-});
-
-const CalendarModuleSkin = lazy(async () => {
-  const module = await import('./CalendarModuleSkin');
-  return { default: module.CalendarModuleSkin };
-});
-
-const FilesModuleSkin = lazy(async () => {
-  const module = await import('./FilesModuleSkin');
-  return { default: module.FilesModuleSkin };
-});
-
-const RemindersModuleSkin = lazy(async () => {
-  const module = await import('./RemindersModuleSkin');
-  return { default: module.RemindersModuleSkin };
-});
-
-const TasksModuleSkin = lazy(async () => {
-  const module = await import('./TasksModuleSkin');
-  return { default: module.TasksModuleSkin };
-});
-
-const QuickThoughtsModuleSkin = lazy(async () => {
-  const module = await import('./InboxCaptureModuleSkin');
-  return { default: module.QuickThoughtsModuleSkin };
-});
 
 const normalizeModuleType = (moduleType: unknown): string => {
   if (moduleType === 'inbox') {
@@ -473,18 +447,6 @@ export const WorkView = ({
     });
   };
 
-  const resolveBoundViewId = (
-    module: ContractModuleConfig,
-    availableViews: WorkViewBoundViewSummary[],
-    defaultViewId: string | null,
-  ): string | null => {
-    const requested = module.binding?.view_id;
-    if (requested && availableViews.some((view) => view.view_id === requested)) {
-      return requested;
-    }
-    return defaultViewId;
-  };
-
   return (
     <section className="space-y-4">
       <header className="rounded-panel border border-subtle bg-elevated p-4">
@@ -562,179 +524,62 @@ export const WorkView = ({
           disableAdd={!canEditPane || modules.length >= MAX_MODULES_PER_PANE || isSavingModules}
           disableMutations={!canEditPane || isSavingModules}
           renderModuleBody={(module) => {
-          if (module.module_type === 'table') {
-            const selectedViewId = resolveBoundViewId(module, mergedRuntime.table.views, mergedRuntime.table.defaultViewId);
-            const viewData = selectedViewId ? mergedRuntime.table.dataByViewId[selectedViewId] : undefined;
-            return (
-              <div className="space-y-3">
-                {mergedRuntime.table.views.length > 0 ? (
-                  <label className="block text-xs text-muted">
-                    Source view
-                    <select
-                      value={selectedViewId || ''}
-                      disabled={!canEditPane}
-                      onChange={(event) => handleSetModuleBinding(module.module_instance_id, event.target.value)}
-                      className="mt-1 w-full rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs text-text"
-                    >
-                      {mergedRuntime.table.views.map((view) => (
-                        <option key={view.view_id} value={view.view_id}>
-                          {view.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                {viewData?.error ? <p className="text-xs text-danger">{viewData.error}</p> : null}
-                <Suspense fallback={<ModuleLoadingState label="Loading table module" rows={6} />}>
-                  <TableModuleSkin
-                    schema={viewData?.schema || null}
-                    records={viewData?.records || []}
-                    loading={viewData?.loading ?? false}
-                    onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
-                  />
-                </Suspense>
-              </div>
-            );
-          }
-
-          if (module.module_type === 'kanban') {
-            const selectedViewId = resolveBoundViewId(module, mergedRuntime.kanban.views, mergedRuntime.kanban.defaultViewId);
-            const viewData = selectedViewId ? mergedRuntime.kanban.dataByViewId[selectedViewId] : undefined;
-            return (
-              <div className="space-y-3">
-                {mergedRuntime.kanban.views.length > 0 ? (
-                  <label className="block text-xs text-muted">
-                    Source view
-                    <select
-                      value={selectedViewId || ''}
-                      disabled={!canEditPane}
-                      onChange={(event) => handleSetModuleBinding(module.module_instance_id, event.target.value)}
-                      className="mt-1 w-full rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs text-text"
-                    >
-                      {mergedRuntime.kanban.views.map((view) => (
-                        <option key={view.view_id} value={view.view_id}>
-                          {view.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                {viewData?.error ? <p className="text-xs text-danger">{viewData.error}</p> : null}
-                <Suspense fallback={<ModuleLoadingState label="Loading kanban module" rows={5} />}>
-                  <KanbanModuleSkin
-                    groups={viewData?.groups || []}
-                    groupOptions={viewData?.groupOptions || []}
-                    loading={viewData?.loading ?? false}
-                    groupingConfigured={viewData?.groupingConfigured ?? false}
-                    groupingMessage={viewData?.groupingMessage}
-                    metadataFieldIds={viewData?.metadataFieldIds}
-                    onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
-                    onMoveRecord={(recordId, nextGroup) => {
-                      if (canEditPane && selectedViewId) {
-                        mergedRuntime.kanban.onMoveRecord(selectedViewId, recordId, nextGroup);
-                      }
-                    }}
-                    readOnly={!canEditPane}
-                  />
-                </Suspense>
-              </div>
-            );
-          }
-
-          if (module.module_type === 'calendar') {
-            return (
-              <Suspense fallback={<ModuleLoadingState label="Loading calendar module" rows={5} />}>
-                <CalendarModuleSkin
-                  events={mergedRuntime.calendar.events}
-                  loading={mergedRuntime.calendar.loading}
-                  scope={mergedRuntime.calendar.scope}
-                  onScopeChange={mergedRuntime.calendar.onScopeChange}
-                  onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
+            if (module.module_type === 'table') {
+              return (
+                <TableModule
+                  module={module}
+                  runtime={mergedRuntime.table}
+                  canEditPane={canEditPane}
+                  onOpenRecord={onOpenRecord}
+                  onSetModuleBinding={handleSetModuleBinding}
                 />
-              </Suspense>
-            );
-          }
+              );
+            }
 
-          if (module.module_type === 'tasks') {
-            return (
-              <Suspense fallback={<ModuleLoadingState label="Loading tasks module" rows={4} />}>
-                <TasksModuleSkin
-                  sizeTier={module.size_tier || 'M'}
-                  tasks={mergedRuntime.tasks.items}
-                  tasksLoading={mergedRuntime.tasks.loading}
-                  onCreateTask={canEditPane ? mergedRuntime.tasks.onCreateTask : async () => {}}
-                  onUpdateTaskStatus={canEditPane ? mergedRuntime.tasks.onUpdateTaskStatus : undefined}
-                  onUpdateTaskPriority={canEditPane ? mergedRuntime.tasks.onUpdateTaskPriority : undefined}
-                  onUpdateTaskDueDate={canEditPane ? mergedRuntime.tasks.onUpdateTaskDueDate : undefined}
-                  onDeleteTask={canEditPane ? mergedRuntime.tasks.onDeleteTask : undefined}
-                  readOnly={!canEditPane}
+            if (module.module_type === 'kanban') {
+              return (
+                <KanbanModule
+                  module={module}
+                  runtime={mergedRuntime.kanban}
+                  canEditPane={canEditPane}
+                  onOpenRecord={onOpenRecord}
+                  onSetModuleBinding={handleSetModuleBinding}
                 />
-              </Suspense>
-            );
-          }
+              );
+            }
 
-          if (module.module_type === 'files') {
-            return (
-              <Suspense fallback={<ModuleLoadingState label="Loading files module" rows={4} />}>
-                <FilesModuleSkin
-                  sizeTier={module.size_tier}
-                  files={module.lens === 'project' ? mergedRuntime.files.projectFiles : mergedRuntime.files.paneFiles}
-                  onUpload={canEditPane ? (module.lens === 'project' ? mergedRuntime.files.onUploadProjectFiles : mergedRuntime.files.onUploadPaneFiles) : () => undefined}
-                  onOpenFile={mergedRuntime.files.onOpenFile}
-                  readOnly={!canEditPane}
+            if (module.module_type === 'calendar') {
+              return <CalendarModule runtime={mergedRuntime.calendar} onOpenRecord={onOpenRecord} />;
+            }
+
+            if (module.module_type === 'tasks') {
+              return <TasksModule module={module} runtime={mergedRuntime.tasks} canEditPane={canEditPane} />;
+            }
+
+            if (module.module_type === 'files') {
+              return <FilesModule module={module} runtime={mergedRuntime.files} canEditPane={canEditPane} />;
+            }
+
+            if (module.module_type === 'reminders') {
+              return <RemindersModule module={module} runtime={mergedRuntime.reminders} />;
+            }
+
+            if (module.module_type === 'quick_thoughts') {
+              return (
+                <QuickThoughtsModule
+                  module={module}
+                  runtime={mergedRuntime.quickThoughts}
+                  pane={pane}
+                  canEditPane={canEditPane}
                 />
-              </Suspense>
-            );
-          }
+              );
+            }
 
-          if (module.module_type === 'reminders') {
-            return (
-              <Suspense fallback={<ModuleLoadingState label="Loading reminders module" rows={4} />}>
-                <RemindersModuleSkin
-                  reminders={mergedRuntime.reminders.items}
-                  loading={mergedRuntime.reminders.loading}
-                  error={mergedRuntime.reminders.error}
-                  onDismiss={mergedRuntime.reminders.onDismiss}
-                  onCreate={mergedRuntime.reminders.onCreate}
-                  sizeTier={module.size_tier}
-                />
-              </Suspense>
-            );
-          }
+            if (module.module_type === 'timeline') {
+              return <TimelineModule runtime={mergedRuntime.timeline} />;
+            }
 
-          if (module.module_type === 'quick_thoughts') {
-            return (
-              <Suspense fallback={<ModuleLoadingState label="Loading Quick Thoughts module" rows={5} />}>
-                <QuickThoughtsModuleSkin
-                  key={`${mergedRuntime.quickThoughts.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}`}
-                  sizeTier={module.size_tier}
-                  storageKey={`${mergedRuntime.quickThoughts.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}`}
-                  legacyStorageKey={
-                    mergedRuntime.quickThoughts.legacyStorageKeyBase
-                      ? `${mergedRuntime.quickThoughts.legacyStorageKeyBase}:${pane.pane_id}:${module.module_instance_id}`
-                      : undefined
-                  }
-                  readOnly={!canEditPane}
-                />
-              </Suspense>
-            );
-          }
-
-          if (module.module_type === 'timeline') {
-            return (
-              <TimelineFeed
-                clusters={mergedRuntime.timeline.clusters}
-                activeFilters={mergedRuntime.timeline.activeFilters}
-                isLoading={mergedRuntime.timeline.loading}
-                hasMore={mergedRuntime.timeline.hasMore}
-                onFilterToggle={mergedRuntime.timeline.onFilterToggle}
-                onLoadMore={mergedRuntime.timeline.onLoadMore}
-                onItemClick={mergedRuntime.timeline.onItemClick}
-              />
-            );
-          }
-
-          return <p className="text-xs text-muted">{module.module_type}</p>;
+            return <p className="text-xs text-muted">{module.module_type}</p>;
           }}
         />
       ) : (
