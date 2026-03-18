@@ -21,20 +21,20 @@ const parseRecurrenceJson = (value) => {
   }
 };
 
-const nextReminderAtForFrequency = (isoValue, frequency) => {
+const nextReminderAtForFrequency = (isoValue, frequency, interval = 1) => {
   const date = new Date(isoValue);
-  if (!Number.isFinite(date.getTime()) || !frequency) {
+  if (!Number.isFinite(date.getTime()) || !frequency || !Number.isInteger(interval) || interval < 1) {
     return null;
   }
 
   if (frequency === 'daily') {
-    date.setDate(date.getDate() + 1);
+    date.setDate(date.getDate() + interval);
   } else if (frequency === 'weekly') {
-    date.setDate(date.getDate() + 7);
+    date.setDate(date.getDate() + (7 * interval));
   } else if (frequency === 'monthly') {
-    date.setMonth(date.getMonth() + 1);
+    date.setMonth(date.getMonth() + interval);
   } else if (frequency === 'yearly') {
-    date.setFullYear(date.getFullYear() + 1);
+    date.setFullYear(date.getFullYear() + interval);
   } else {
     return null;
   }
@@ -115,16 +115,23 @@ export const createReminderRoutes = (deps) => {
       dismissReminderStmt.run(timestamp, reminderId);
 
       const recurrence = parseRecurrenceJson(reminder.recurrence_json);
-      const nextRemindAt = asText(recurrence?.next_remind_at) || nextReminderAtForFrequency(reminder.remind_at, asText(recurrence?.frequency));
+      const interval =
+        Number.isInteger(recurrence?.interval) && recurrence.interval > 0 ? recurrence.interval : 1;
+      const nextRemindAt =
+        asText(recurrence?.next_remind_at)
+        || nextReminderAtForFrequency(reminder.remind_at, asText(recurrence?.frequency), interval);
       if (!nextRemindAt) {
         return;
       }
 
-      const subsequentRemindAt = asText(recurrence?.subsequent_remind_at) || nextReminderAtForFrequency(nextRemindAt, asText(recurrence?.frequency));
+      const subsequentRemindAt =
+        asText(recurrence?.subsequent_remind_at)
+        || nextReminderAtForFrequency(nextRemindAt, asText(recurrence?.frequency), interval);
       const nextRecurrence = subsequentRemindAt || recurrence?.frequency
         ? toJson({
             ...(subsequentRemindAt ? { next_remind_at: subsequentRemindAt } : {}),
             ...(recurrence?.frequency ? { frequency: recurrence.frequency } : {}),
+            ...(interval > 1 ? { interval } : {}),
           })
         : null;
 
@@ -151,7 +158,8 @@ export const createReminderRoutes = (deps) => {
     }
 
     const title = asText(body.title);
-    const remindAt = asText(body.remind_at);
+    const remindAtRaw = asText(body.remind_at);
+    const remindAtDate = remindAtRaw ? new Date(remindAtRaw) : null;
     const recurrenceJson = body.recurrence_json ? toJson(body.recurrence_json) : null;
 
     if (!title) {
@@ -159,10 +167,11 @@ export const createReminderRoutes = (deps) => {
       return;
     }
 
-    if (!remindAt) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'remind_at is required.')));
+    if (!remindAtDate || Number.isNaN(remindAtDate.getTime())) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'remind_at must be a valid ISO timestamp.')));
       return;
     }
+    const remindAt = remindAtDate.toISOString();
 
     const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
     if (!personalProject) {

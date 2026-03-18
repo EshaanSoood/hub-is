@@ -7,7 +7,7 @@ export interface HubReminderSummary {
   project_id: string;
   remind_at: string;
   channels: string[];
-  recurrence_json: { next_remind_at?: string; frequency?: string } | null;
+  recurrence_json: { next_remind_at?: string; frequency?: string; interval?: number } | null;
   created_at: string;
   fired_at: string | null;
   overdue: boolean;
@@ -16,7 +16,7 @@ export interface HubReminderSummary {
 export interface CreateReminderPayload {
   title: string;
   remind_at: string;
-  recurrence_json?: { next_remind_at?: string; frequency?: string } | null;
+  recurrence_json?: { next_remind_at?: string; frequency?: string; interval?: number } | null;
 }
 
 export const listReminders = async (accessToken: string): Promise<HubReminderSummary[]> => {

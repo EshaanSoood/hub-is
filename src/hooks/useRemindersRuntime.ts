@@ -16,6 +16,7 @@ export const useRemindersRuntime = (accessToken: string | null): RemindersRuntim
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const refreshSequenceRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -25,8 +26,9 @@ export const useRemindersRuntime = (accessToken: string | null): RemindersRuntim
   }, []);
 
   const refresh = useCallback(async () => {
+    const sequence = ++refreshSequenceRef.current;
     if (!accessToken) {
-      if (mountedRef.current) {
+      if (mountedRef.current && sequence === refreshSequenceRef.current) {
         setReminders([]);
         setLoading(false);
         setError(null);
@@ -38,15 +40,15 @@ export const useRemindersRuntime = (accessToken: string | null): RemindersRuntim
     setError(null);
     try {
       const data = await listReminders(accessToken);
-      if (mountedRef.current) {
+      if (mountedRef.current && sequence === refreshSequenceRef.current) {
         setReminders(data);
       }
     } catch (err) {
-      if (mountedRef.current) {
+      if (mountedRef.current && sequence === refreshSequenceRef.current) {
         setError(err instanceof Error ? err.message : 'Failed to load reminders.');
       }
     } finally {
-      if (mountedRef.current) {
+      if (mountedRef.current && sequence === refreshSequenceRef.current) {
         setLoading(false);
       }
     }

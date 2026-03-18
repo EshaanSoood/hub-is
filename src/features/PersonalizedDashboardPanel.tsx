@@ -752,6 +752,7 @@ export const PersonalizedDashboardPanel = ({
         <RemindersModuleSkin
           reminders={remindersRuntime.reminders}
           loading={remindersRuntime.loading}
+          error={remindersRuntime.error}
           onDismiss={remindersRuntime.dismiss}
           onCreate={remindersRuntime.create}
           sizeTier="M"

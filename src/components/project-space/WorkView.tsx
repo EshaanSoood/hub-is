@@ -110,6 +110,7 @@ export interface WorkViewTimelineRuntime {
 export interface WorkViewRemindersRuntime {
   items: HubReminderSummary[];
   loading: boolean;
+  error?: string | null;
   onDismiss: (reminderId: string) => Promise<void>;
   onCreate: (payload: CreateReminderPayload) => Promise<void>;
 }
@@ -266,6 +267,7 @@ const EMPTY_RUNTIME: WorkViewModuleRuntime = {
   reminders: {
     items: [],
     loading: false,
+    error: null,
     onDismiss: async () => undefined,
     onCreate: async () => undefined,
   },
@@ -629,10 +631,10 @@ export const WorkView = ({
                 <RemindersModuleSkin
                   reminders={mergedRuntime.reminders.items}
                   loading={mergedRuntime.reminders.loading}
+                  error={mergedRuntime.reminders.error}
                   onDismiss={mergedRuntime.reminders.onDismiss}
                   onCreate={mergedRuntime.reminders.onCreate}
                   sizeTier={module.size_tier}
-                  readOnly={!canEditPane}
                 />
               </Suspense>
             );

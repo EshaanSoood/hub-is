@@ -19,6 +19,31 @@ export const runMigrations = (db) => {
     return;
   }
 
+  const addColumnIfMissing = (tableName, columnName, columnType) => {
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      const column = db
+        .prepare(`SELECT 1 AS ok FROM pragma_table_info('${tableName}') WHERE name = ? LIMIT 1`)
+        .get(columnName);
+      if (!column?.ok) {
+        db.exec(`
+          ALTER TABLE ${tableName}
+          ADD COLUMN ${columnName} ${columnType};
+        `);
+      }
+      db.exec('COMMIT;');
+    } catch (error) {
+      try {
+        db.exec('ROLLBACK;');
+      } catch {
+        // no-op
+      }
+      if (!/duplicate column name/i.test(String(error?.message || error))) {
+        throw error;
+      }
+    }
+  };
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS pending_project_invites (
       invite_request_id TEXT PRIMARY KEY,
@@ -499,28 +524,17 @@ export const runMigrations = (db) => {
     }
   }
 
+  addColumnIfMissing('reminders', 'dismissed_at', 'TEXT');
+  addColumnIfMissing('reminders', 'recurrence_json', 'TEXT');
+  addColumnIfMissing('projects', 'reminders_collection_id', 'TEXT');
+
   db.exec('BEGIN IMMEDIATE;');
   try {
-    const reminderDismissedAtColumn = db
-      .prepare("SELECT 1 AS ok FROM pragma_table_info('reminders') WHERE name = 'dismissed_at' LIMIT 1")
-      .get();
-    if (!reminderDismissedAtColumn?.ok) {
-      db.exec(`
-        ALTER TABLE reminders
-        ADD COLUMN dismissed_at TEXT;
-      `);
-    }
-
-    const reminderRecurrenceJsonColumn = db
-      .prepare("SELECT 1 AS ok FROM pragma_table_info('reminders') WHERE name = 'recurrence_json' LIMIT 1")
-      .get();
-    if (!reminderRecurrenceJsonColumn?.ok) {
-      db.exec(`
-        ALTER TABLE reminders
-        ADD COLUMN recurrence_json TEXT;
-      `);
-    }
-
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_reminders_due_active
+      ON reminders(remind_at)
+      WHERE fired_at IS NULL AND dismissed_at IS NULL;
+    `);
     db.exec('COMMIT;');
   } catch (error) {
     try {
@@ -528,32 +542,6 @@ export const runMigrations = (db) => {
     } catch {
       // no-op
     }
-    if (!/duplicate column name/i.test(String(error?.message || error))) {
-      throw error;
-    }
-  }
-
-  db.exec('BEGIN IMMEDIATE;');
-  try {
-    const projectRemindersCollectionIdColumn = db
-      .prepare("SELECT 1 AS ok FROM pragma_table_info('projects') WHERE name = 'reminders_collection_id' LIMIT 1")
-      .get();
-    if (!projectRemindersCollectionIdColumn?.ok) {
-      db.exec(`
-        ALTER TABLE projects
-        ADD COLUMN reminders_collection_id TEXT;
-      `);
-    }
-
-    db.exec('COMMIT;');
-  } catch (error) {
-    try {
-      db.exec('ROLLBACK;');
-    } catch {
-      // no-op
-    }
-    if (!/duplicate column name/i.test(String(error?.message || error))) {
-      throw error;
-    }
+    throw error;
   }
 };

@@ -733,6 +733,7 @@ const ProjectSpaceWorkspace = ({
       reminders: {
         items: remindersRuntime.reminders,
         loading: remindersRuntime.loading,
+        error: remindersRuntime.error,
         onDismiss: remindersRuntime.dismiss,
         onCreate: remindersRuntime.create,
       },
@@ -761,6 +762,7 @@ const ProjectSpaceWorkspace = ({
       openInspector,
       remindersRuntime.create,
       remindersRuntime.dismiss,
+      remindersRuntime.error,
       remindersRuntime.loading,
       remindersRuntime.reminders,
     ],

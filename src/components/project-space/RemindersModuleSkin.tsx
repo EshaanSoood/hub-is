@@ -8,6 +8,7 @@ export type RemindersSizeTier = 'S' | 'M' | 'L';
 export interface RemindersModuleSkinProps {
   reminders: HubReminderSummary[];
   loading: boolean;
+  error?: string | null;
   onDismiss: (reminderId: string) => Promise<void>;
   onCreate: (payload: CreateReminderPayload) => Promise<void>;
   sizeTier: RemindersSizeTier;
@@ -162,8 +163,8 @@ const buildCreatePayload = (preview: ReminderParseResult, rawInput: string): Cre
     remind_at: preview.remind_at,
     recurrence_json: preview.recurrence
       ? {
-          next_remind_at: preview.remind_at,
           frequency: preview.recurrence.frequency,
+          ...(preview.recurrence.interval ? { interval: preview.recurrence.interval } : {}),
         }
       : null,
   };
@@ -183,6 +184,7 @@ const createSparkles = (): SparkleParticle[] =>
 export const RemindersModuleSkin = ({
   reminders,
   loading,
+  error = null,
   onDismiss,
   onCreate,
   sizeTier,
@@ -375,13 +377,19 @@ export const RemindersModuleSkin = ({
       </form>
 
       <div className="space-y-2">
+        {error ? (
+          <p className="rounded-panel border border-danger bg-danger-subtle px-3 py-4 text-sm text-danger">
+            {error}
+          </p>
+        ) : null}
+
         {loading && reminders.length === 0 ? (
           <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-text-secondary">
             Loading reminders…
           </p>
         ) : null}
 
-        {!loading && renderedReminders.length === 0 ? (
+        {!error && !loading && renderedReminders.length === 0 ? (
           <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-text-secondary">
             No reminders yet.
           </p>
