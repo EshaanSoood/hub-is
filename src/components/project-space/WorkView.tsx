@@ -92,6 +92,13 @@ export interface WorkViewCalendarRuntime {
   loading: boolean;
   scope: CalendarScope;
   onScopeChange: (scope: CalendarScope) => void;
+  onCreateEvent?: (payload: {
+    title: string;
+    start_dt: string;
+    end_dt: string;
+    timezone: string;
+    location?: string;
+  }) => Promise<void>;
 }
 
 export interface WorkViewFilesRuntime {
@@ -249,6 +256,7 @@ const EMPTY_RUNTIME: WorkViewModuleRuntime = {
     loading: false,
     scope: 'relevant',
     onScopeChange: () => undefined,
+    onCreateEvent: undefined,
   },
   files: {
     paneFiles: [],

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { queryCalendar } from '../services/hub/records';
 
 interface CalendarEventSummary {
@@ -15,56 +15,49 @@ interface CalendarEventSummary {
   source_pane: { pane_id: string | null; pane_name: string | null; doc_id: string | null } | null;
 }
 
-type ProjectSpaceTab = 'overview' | 'work' | 'tools';
-
 interface UseCalendarRuntimeParams {
   accessToken: string;
   projectId: string;
-  activeTab: ProjectSpaceTab;
 }
 
-export const useCalendarRuntime = ({ accessToken, projectId, activeTab }: UseCalendarRuntimeParams) => {
+export const useCalendarRuntime = ({ accessToken, projectId }: UseCalendarRuntimeParams) => {
   const [calendarMode, setCalendarMode] = useState<'relevant' | 'all'>('relevant');
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventSummary[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
+  const latestRequestRef = useRef(0);
+
+  const refreshCalendar = useCallback(async () => {
+    const requestId = latestRequestRef.current + 1;
+    latestRequestRef.current = requestId;
+    setCalendarLoading(true);
+    setCalendarError(null);
+    try {
+      const result = await queryCalendar(accessToken, projectId, calendarMode);
+      if (latestRequestRef.current === requestId) {
+        setCalendarEvents(result.events);
+      }
+    } catch (error) {
+      if (latestRequestRef.current === requestId) {
+        setCalendarError(error instanceof Error ? error.message : 'Failed to load calendar.');
+      }
+    } finally {
+      if (latestRequestRef.current === requestId) {
+        setCalendarLoading(false);
+      }
+    }
+  }, [accessToken, calendarMode, projectId]);
 
   useEffect(() => {
-    if (activeTab !== 'overview') {
-      return;
-    }
-
-    let cancelled = false;
-    const refreshCalendar = async () => {
-      setCalendarLoading(true);
-      setCalendarError(null);
-      try {
-        const result = await queryCalendar(accessToken, projectId, calendarMode);
-        if (!cancelled) {
-          setCalendarEvents(result.events);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setCalendarError(error instanceof Error ? error.message : 'Failed to load calendar.');
-        }
-      } finally {
-        if (!cancelled) {
-          setCalendarLoading(false);
-        }
-      }
-    };
-
     void refreshCalendar();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, activeTab, calendarMode, projectId]);
+  }, [refreshCalendar]);
 
   return {
     calendarError,
     calendarEvents,
     calendarLoading,
     calendarMode,
+    refreshCalendar,
     setCalendarMode,
   };
 };
