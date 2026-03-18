@@ -14,10 +14,10 @@ interface TasksModuleSkinProps {
     due_at: string | null;
     parent_record_id?: string | null;
   }) => Promise<void>;
-  onUpdateTaskStatus?: (taskId: string, status: 'todo' | 'in_progress' | 'done' | 'cancelled') => void;
-  onUpdateTaskPriority?: (taskId: string, priority: 'low' | 'medium' | 'high' | 'urgent' | null) => void;
-  onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void;
-  onDeleteTask?: (taskId: string) => void;
+  onUpdateTaskStatus?: (taskId: string, status: 'todo' | 'in_progress' | 'done' | 'cancelled') => void | Promise<void>;
+  onUpdateTaskPriority?: (taskId: string, priority: 'low' | 'medium' | 'high' | 'urgent' | null) => void | Promise<void>;
+  onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
+  onDeleteTask?: (taskId: string) => void | Promise<void>;
   onAddSubtask?: (task: TaskItem) => void;
   readOnly?: boolean;
 }
@@ -226,11 +226,13 @@ const TaskComposer = ({
         {onCancel ? (
           <button
             type="button"
+            disabled={submitting}
             onClick={() => {
+              if (submitting) return;
               reset();
               onCancel();
             }}
-            className="rounded-control border border-border-muted px-3 py-1.5 text-xs font-semibold text-primary"
+            className="rounded-control border border-border-muted px-3 py-1.5 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cancel
           </button>
@@ -326,7 +328,11 @@ const TasksModuleMedium = ({
                 <button
                   type="button"
                   disabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
-                  onClick={() => onUpdateTaskStatus?.(task.id, nextStatus)}
+                  onClick={() => {
+                    void Promise.resolve(onUpdateTaskStatus?.(task.id, nextStatus)).catch((error) => {
+                      console.error('Failed to update task status:', error);
+                    });
+                  }}
                   aria-label={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >

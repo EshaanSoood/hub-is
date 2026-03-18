@@ -553,7 +553,8 @@ const resolveRecurringReminderAt = (
     const parts = getZonedParts(now, timezone);
     const nextMonth = parts.month === 12 ? 1 : parts.month + 1;
     const year = parts.month === 12 ? parts.year + 1 : parts.year;
-    return `${toIsoDate(year, nextMonth, parts.day)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+    const safeDay = Math.min(parts.day, daysInMonth(year, nextMonth));
+    return `${toIsoDate(year, nextMonth, safeDay)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
   }
 
   if (recurrence.frequency === 'yearly') {
