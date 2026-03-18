@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
 import { Card, TabButton, Tabs, TabsList } from '../primitives';
 import { CalendarTab, type CalendarEvent, type CalendarLensOption, type CalendarTimeView } from './CalendarTab';
 import { FilterBarOverlay, type FilterGroup } from './FilterBarOverlay';
 import { OverviewHeader } from './OverviewHeader';
+import { TaskCreateDialog } from './TaskCreateDialog';
 import { TasksTab, type SortChain } from './TasksTab';
 import { TimelineTab, type TimelineCluster } from './TimelineTab';
 import { adaptTaskSummaries } from './taskAdapter';
@@ -16,6 +17,8 @@ interface OverviewViewProps {
   clients: ClientReference[];
   activeView: OverviewViewId;
   onSelectView: (viewId: OverviewViewId) => void;
+  accessToken: string;
+  projectId: string;
   tasks: HubTaskSummary[];
   tasksLoading: boolean;
   tasksError: string | null;
@@ -85,6 +88,8 @@ export const OverviewView = ({
   clients,
   activeView,
   onSelectView,
+  accessToken,
+  projectId,
   tasks,
   tasksLoading,
   tasksError,
@@ -92,6 +97,11 @@ export const OverviewView = ({
   projectMembers,
 }: OverviewViewProps) => {
   const [titleDraft, setTitleDraft] = useState(projectName);
+  const taskCreateTriggerRef = useRef<HTMLElement | null>(null);
+  const lastSubtaskParentRef = useRef<{ id: string; title: string; at: number } | null>(null);
+  const [taskCreateOpen, setTaskCreateOpen] = useState(false);
+  const [subtaskParent, setSubtaskParent] = useState<{ id: string; title: string } | null>(null);
+  const [subtaskParentRemembered, setSubtaskParentRemembered] = useState(false);
 
   const calendarCollaboratorOptions: CalendarLensOption[] = useMemo(
     () => [
@@ -172,6 +182,7 @@ export const OverviewView = ({
       })),
     ];
   }, [adaptedTasks]);
+  const tasksCollectionId = tasks[0]?.collection_id ?? null;
   const kanbanColumns = useMemo(
     () => [
       { id: 'todo', label: 'To Do', items: adaptedTasks.filter((task) => task.status === 'todo') },
@@ -180,6 +191,17 @@ export const OverviewView = ({
     ],
     [adaptedTasks],
   );
+  const taskMemberOptions = useMemo(
+    () => projectMembers.map((member) => ({ user_id: member.user_id, display_name: member.display_name })),
+    [projectMembers],
+  );
+
+  const openTaskDialog = (options?: { parent?: { id: string; title: string } | null; remembered?: boolean }) => {
+    taskCreateTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSubtaskParent(options?.parent ?? null);
+    setSubtaskParentRemembered(Boolean(options?.remembered && options?.parent));
+    setTaskCreateOpen(true);
+  };
 
   return (
     <section id="project-panel-overview" role="tabpanel" aria-labelledby="project-tab-overview" className="space-y-4">
@@ -240,6 +262,26 @@ export const OverviewView = ({
         {activeView === 'tasks' ? (
           <div id="overview-panel-tasks" role="tabpanel" aria-labelledby="overview-view-tasks" className="mt-4">
             <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => {
+                    const rememberedParent = lastSubtaskParentRef.current;
+                    if (rememberedParent && Date.now() - rememberedParent.at < 300000) {
+                      openTaskDialog({
+                        parent: { id: rememberedParent.id, title: rememberedParent.title },
+                        remembered: true,
+                      });
+                      return;
+                    }
+                    openTaskDialog();
+                  }}
+                  aria-label="New Task"
+                >
+                  New Task
+                </button>
+              </div>
               {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}
               {tasksError ? (
                 <div className="flex flex-wrap items-center gap-3">
@@ -264,8 +306,41 @@ export const OverviewView = ({
                   onSortChainChange={setSortChain}
                   onUserChange={setTasksUserId}
                   onCategoryChange={setTasksCategoryId}
+                  onAddSubtask={(task) => {
+                    openTaskDialog({ parent: { id: task.id, title: task.label } });
+                  }}
                 />
               ) : null}
+
+              <TaskCreateDialog
+                open={taskCreateOpen}
+                onClose={() => {
+                  setTaskCreateOpen(false);
+                  setSubtaskParent(null);
+                  setSubtaskParentRemembered(false);
+                }}
+                onCreated={() => {
+                  if (subtaskParent) {
+                    lastSubtaskParentRef.current = { id: subtaskParent.id, title: subtaskParent.title, at: Date.now() };
+                  }
+                  void onRefreshTasks();
+                  setTaskCreateOpen(false);
+                  setSubtaskParent(null);
+                  setSubtaskParentRemembered(false);
+                }}
+                accessToken={accessToken}
+                projectId={projectId}
+                tasksCollectionId={tasksCollectionId}
+                projectMembers={taskMemberOptions}
+                parentRecordId={subtaskParent?.id ?? null}
+                parentTaskTitle={subtaskParent?.title ?? null}
+                showRememberedParentNote={subtaskParentRemembered}
+                onSwitchToStandaloneTask={() => {
+                  setSubtaskParent(null);
+                  setSubtaskParentRemembered(false);
+                }}
+                triggerRef={taskCreateTriggerRef}
+              />
             </div>
           </div>
         ) : null}

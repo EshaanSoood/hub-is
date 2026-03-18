@@ -48,6 +48,7 @@ interface TasksTabProps {
   onSortChainChange: (chain: SortChain) => void;
   onUserChange: (userId: string) => void;
   onCategoryChange: (categoryId: string) => void;
+  onAddSubtask?: (task: TaskItem) => void;
 }
 
 const SORT_DIMENSIONS: SortDimension[] = ['date', 'priority', 'category'];
@@ -248,19 +249,33 @@ const SubtaskRow = ({ subtask, parentPriority }: { subtask: TaskSubtask; parentP
   );
 };
 
-const TaskRow = ({ task }: { task: TaskItem }) => {
+const TaskRow = ({ task, onAddSubtask }: { task: TaskItem; onAddSubtask?: (task: TaskItem) => void }) => {
   const [expanded, setExpanded] = useState(false);
   const visibleSubtaskCount = task.subtaskCount ?? task.subtasks.length;
   return (
-    <div className="rounded-control px-1 py-0.5 hover:bg-elevated">
-      <button
-        type="button"
-        onClick={() => setExpanded((current) => !current)}
-        disabled={task.subtasks.length === 0}
-        className="flex w-full items-center gap-2 text-left disabled:cursor-default"
-      >
-        <span className="h-7 w-0.5 rounded-sm" style={{ backgroundColor: PRIORITY_DOT_COLORS[task.priority] }} aria-hidden="true" />
-        <span className="flex-1 text-sm text-text">{task.label}</span>
+    <div className="group rounded-control px-1 py-0.5 hover:bg-elevated">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          disabled={task.subtasks.length === 0}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left disabled:cursor-default"
+        >
+          <span className="h-7 w-0.5 rounded-sm" style={{ backgroundColor: PRIORITY_DOT_COLORS[task.priority] }} aria-hidden="true" />
+          <span className="min-w-0 flex-1 text-sm text-text">{task.label}</span>
+          <span className="text-xs text-text-secondary">{task.dueLabel}</span>
+          {task.subtasks.length > 0 ? <span className={cn('text-[10px] text-muted transition-transform', expanded && 'rotate-90')}>▶</span> : null}
+        </button>
+        {onAddSubtask ? (
+          <button
+            type="button"
+            onClick={() => onAddSubtask(task)}
+            className="ml-auto text-[10px] text-muted opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+            aria-label={`Add subtask to ${task.label}`}
+          >
+            + Subtask
+          </button>
+        ) : null}
         {visibleSubtaskCount > 0 ? (
           <span
             className="rounded-control border px-1.5 py-0.5 text-[10px] font-semibold"
@@ -273,9 +288,7 @@ const TaskRow = ({ task }: { task: TaskItem }) => {
             {visibleSubtaskCount}
           </span>
         ) : null}
-        <span className="text-xs text-text-secondary">{task.dueLabel}</span>
-        {task.subtasks.length > 0 ? <span className={cn('text-[10px] text-muted transition-transform', expanded && 'rotate-90')}>▶</span> : null}
-      </button>
+      </div>
 
       {expanded && task.subtasks.length > 0 ? (
         <ul className="mt-1 space-y-1">
@@ -298,6 +311,7 @@ export const TasksTab = ({
   onSortChainChange,
   onUserChange,
   onCategoryChange,
+  onAddSubtask,
 }: TasksTabProps) => {
   const [collapsedClusterIds, setCollapsedClusterIds] = useState<Set<string>>(new Set());
   const dragIndexRef = useRef<number | null>(null);
@@ -448,7 +462,7 @@ export const TasksTab = ({
               {!collapsed ? (
                 <div className="mt-1 space-y-1">
                   {cluster.items.map((task) => (
-                    <TaskRow key={task.id} task={task} />
+                    <TaskRow key={task.id} task={task} onAddSubtask={onAddSubtask} />
                   ))}
                 </div>
               ) : null}

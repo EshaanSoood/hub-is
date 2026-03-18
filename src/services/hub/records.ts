@@ -20,11 +20,17 @@ export const createRecord = async (
   payload: {
     collection_id: string;
     title: string;
+    parent_record_id?: string | null;
     source_pane_id?: string;
     source_view_id?: string;
     values?: Record<string, unknown>;
     capability_types?: string[];
-    task_state?: Record<string, unknown>;
+    task_state?: {
+      status?: string;
+      priority?: string | null;
+      due_at?: string | null;
+      category?: string | null;
+    };
     event_state?: Record<string, unknown>;
     recurrence_rule?: Record<string, unknown>;
     reminders?: Array<{ remind_at: string; channels: string[] }>;
