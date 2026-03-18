@@ -69,7 +69,6 @@ const CONTRACT_INDEXES = [
   'idx_views_project_collection_type',
   'idx_event_state_start',
   'idx_event_participants_user_record',
-  'idx_reminders_due_unfired',
   'idx_reminders_due_active',
   'idx_attachments_entity_lookup',
   'idx_attachments_asset_lookup',
@@ -634,8 +633,6 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_views_project_collection_type ON views(project_id, collection_id, type);
       CREATE INDEX idx_event_state_start ON event_state(start_dt);
       CREATE INDEX idx_event_participants_user_record ON event_participants(user_id, record_id);
-      CREATE INDEX idx_reminders_due_unfired ON reminders(remind_at)
-        WHERE fired_at IS NULL;
       CREATE INDEX idx_reminders_due_active ON reminders(remind_at)
         WHERE fired_at IS NULL AND dismissed_at IS NULL;
       CREATE INDEX idx_attachments_entity_lookup ON entity_attachments(project_id, entity_type, entity_id);

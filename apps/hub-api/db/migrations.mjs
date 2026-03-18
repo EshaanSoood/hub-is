@@ -531,6 +531,7 @@ export const runMigrations = (db) => {
   db.exec('BEGIN IMMEDIATE;');
   try {
     db.exec(`
+      DROP INDEX IF EXISTS idx_reminders_due_unfired;
       CREATE INDEX IF NOT EXISTS idx_reminders_due_active
       ON reminders(remind_at)
       WHERE fired_at IS NULL AND dismissed_at IS NULL;
