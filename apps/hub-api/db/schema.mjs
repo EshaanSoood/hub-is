@@ -69,7 +69,8 @@ const CONTRACT_INDEXES = [
   'idx_views_project_collection_type',
   'idx_event_state_start',
   'idx_event_participants_user_record',
-  'idx_reminders_due_unfired',
+  'idx_reminders_due_active',
+  'idx_reminders_visible_undismissed',
   'idx_attachments_entity_lookup',
   'idx_attachments_asset_lookup',
   'idx_files_project_asset_path',
@@ -136,6 +137,7 @@ const resetSchemaToContractV1 = (db) => {
         created_by TEXT NOT NULL,
         project_type TEXT NOT NULL DEFAULT 'team' CHECK (project_type IN ('team', 'personal')),
         tasks_collection_id TEXT,
+        reminders_collection_id TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
@@ -340,6 +342,8 @@ const resetSchemaToContractV1 = (db) => {
         channels TEXT NOT NULL,
         created_at TEXT NOT NULL,
         fired_at TEXT,
+        dismissed_at TEXT,
+        recurrence_json TEXT,
         FOREIGN KEY(record_id) REFERENCES records(record_id) ON DELETE CASCADE
       );
 
@@ -633,8 +637,10 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_views_project_collection_type ON views(project_id, collection_id, type);
       CREATE INDEX idx_event_state_start ON event_state(start_dt);
       CREATE INDEX idx_event_participants_user_record ON event_participants(user_id, record_id);
-      CREATE INDEX idx_reminders_due_unfired ON reminders(remind_at)
-        WHERE fired_at IS NULL;
+      CREATE INDEX idx_reminders_due_active ON reminders(remind_at)
+        WHERE fired_at IS NULL AND dismissed_at IS NULL;
+      CREATE INDEX idx_reminders_visible_undismissed ON reminders(remind_at)
+        WHERE dismissed_at IS NULL;
       CREATE INDEX idx_attachments_entity_lookup ON entity_attachments(project_id, entity_type, entity_id);
       CREATE INDEX idx_attachments_asset_lookup ON entity_attachments(asset_root_id, asset_path);
       CREATE INDEX idx_files_project_asset_path ON files(project_id, asset_root_id, provider_path);

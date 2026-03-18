@@ -23,6 +23,7 @@ import { createFileRoutes } from './routes/files.mjs';
 import { createNotificationRoutes } from './routes/notifications.mjs';
 import { createPaneRoutes } from './routes/panes.mjs';
 import { createProjectRoutes } from './routes/projects.mjs';
+import { createReminderRoutes } from './routes/reminders.mjs';
 import { createSearchRoutes } from './routes/search.mjs';
 import { createTaskRoutes } from './routes/tasks.mjs';
 import { createUserRoutes } from './routes/users.mjs';
@@ -480,9 +481,11 @@ const {
   },
   projects: {
     updateTasksCollection: updateProjectTasksCollectionStmt,
+    updateRemindersCollection: updateProjectRemindersCollectionStmt,
     findById: projectByIdStmt,
     findPersonalProject: personalProjectByUserStmt,
     listPersonalMissingTasksCollectionIds: personalProjectsMissingTasksCollectionIdStmt,
+    listPersonalMissingRemindersCollectionIds: personalProjectsMissingRemindersCollectionIdStmt,
     insertWithType: insertProjectWithTypeStmt,
   },
   projectMembers: {
@@ -1627,6 +1630,7 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
   const displayName = asText(user.display_name) || 'Personal';
   const projectId = newId('prj');
   const collectionId = newId('col');
+  const remindersCollectionId = newId('col');
   const paneId = newId('pan');
   const docId = newId('doc');
   const assetRootId = newId('ast');
@@ -1660,6 +1664,8 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
   );
   insertCollectionStmt.run(collectionId, projectId, 'Tasks', null, null, now, now);
   updateProjectTasksCollectionStmt.run(collectionId, now, projectId);
+  insertCollectionStmt.run(remindersCollectionId, projectId, 'Reminders', null, null, now, now);
+  updateProjectRemindersCollectionStmt.run(remindersCollectionId, now, projectId);
   insertFieldStmt.run(titleFieldId, collectionId, 'title', 'text', toJson({ required: true }), 0, now, now);
   insertFieldStmt.run(
     statusFieldId,
@@ -1737,6 +1743,33 @@ const ensurePersonalProjectTasksCollectionIds = () => {
   }
 };
 ensurePersonalProjectTasksCollectionIds();
+
+const ensurePersonalProjectRemindersCollectionIds = () => {
+  const projects = personalProjectsMissingRemindersCollectionIdStmt.all();
+  if (projects.length === 0) {
+    return;
+  }
+
+  const now = nowIso();
+  db.exec('BEGIN');
+  try {
+    for (const project of projects) {
+      const remindersCollection = collectionByNameStmt.get(project.project_id, 'Reminders');
+      if (!remindersCollection) {
+        const remindersCollectionId = newId('col');
+        insertCollectionStmt.run(remindersCollectionId, project.project_id, 'Reminders', null, null, now, now);
+        updateProjectRemindersCollectionStmt.run(remindersCollectionId, now, project.project_id);
+        continue;
+      }
+      updateProjectRemindersCollectionStmt.run(remindersCollection.collection_id, now, project.project_id);
+    }
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+};
+ensurePersonalProjectRemindersCollectionIds();
 
 const recordDetailForUser = (record, userId) => {
   const detail = recordDetail(record);
@@ -2344,6 +2377,7 @@ const routeDeps = {
   pendingInviteRecord,
   pendingInvitesByProjectStmt: stmts.projectMembers.listPendingInvites,
   personalProjectByUserStmt: stmts.projects.findPersonalProject,
+  personalProjectsMissingRemindersCollectionIdStmt: stmts.projects.listPersonalMissingRemindersCollectionIds,
   personalProjectIdForUser,
   projectByIdStmt: stmts.projects.findById,
   projectForMemberStmt: stmts.projects.findByIdWithMembership,
@@ -2382,6 +2416,7 @@ const routeDeps = {
   toJson,
   trackedFileRecord,
   unreadNotificationsByUserStmt: stmts.notifications.listUnreadForUser,
+  updateProjectRemindersCollectionStmt: stmts.projects.updateRemindersCollection,
   updateAutomationRuleStmt: stmts.automation.updateRule,
   updateCommentStatusStmt: stmts.comments.updateStatus,
   updateDocStorageStmt: stmts.docs.updateStorage,
@@ -2415,6 +2450,10 @@ const routeDeps = {
   recordCapabilitiesByRecordStmt: stmts.recordCapabilities.listForRecord,
   recurrenceByRecordStmt: stmts.calendar.findRecurrence,
   remindersByRecordStmt: stmts.calendar.listReminders,
+  listRemindersForUserStmt: stmts.reminders.listForUser,
+  dismissReminderStmt: stmts.reminders.dismiss,
+  findReminderByIdStmt: stmts.reminders.findById,
+  insertStandaloneReminderStmt: stmts.reminders.insertStandalone,
   attachmentsByEntityStmt: stmts.files.listAttachmentsForEntity,
   commentsByTargetStmt: stmts.comments.listForEntity,
   deleteAutomationRuleStmt: stmts.automation.deleteRule,
@@ -2437,6 +2476,7 @@ const viewRoutes = createViewRoutes(routeDeps);
 const fileRoutes = createFileRoutes(routeDeps);
 const notificationRoutes = createNotificationRoutes(routeDeps);
 const taskRoutes = createTaskRoutes(routeDeps);
+const reminderRoutes = createReminderRoutes(routeDeps);
 const automationRoutes = createAutomationRoutes(routeDeps);
 const searchRoutes = createSearchRoutes(routeDeps);
 
@@ -2619,6 +2659,28 @@ const server = createServer(async (request, response) => {
 
     if (pathname === '/api/hub/tasks' && request.method === 'POST') {
       await taskRoutes.createHubTask({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (pathname === '/api/hub/reminders' && request.method === 'GET') {
+      await reminderRoutes.listReminders({ request, response, requestUrl, pathname, params: {} });
+      return;
+    }
+
+    if (pathname === '/api/hub/reminders' && request.method === 'POST') {
+      await reminderRoutes.createReminder({ request, response, requestUrl, pathname, params: {} });
+      return;
+    }
+
+    const reminderDismissMatch = pathMatch(pathname, /^\/api\/hub\/reminders\/([^/]+)\/dismiss$/);
+    if (reminderDismissMatch && request.method === 'POST') {
+      await reminderRoutes.dismissReminder({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { reminderId: decodeURIComponent(reminderDismissMatch[1]) },
+      });
       return;
     }
 

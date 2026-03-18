@@ -19,6 +19,31 @@ export const runMigrations = (db) => {
     return;
   }
 
+  const addColumnIfMissing = (tableName, columnName, columnType) => {
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      const column = db
+        .prepare(`SELECT 1 AS ok FROM pragma_table_info('${tableName}') WHERE name = ? LIMIT 1`)
+        .get(columnName);
+      if (!column?.ok) {
+        db.exec(`
+          ALTER TABLE ${tableName}
+          ADD COLUMN ${columnName} ${columnType};
+        `);
+      }
+      db.exec('COMMIT;');
+    } catch (error) {
+      try {
+        db.exec('ROLLBACK;');
+      } catch {
+        // no-op
+      }
+      if (!/duplicate column name/i.test(String(error?.message || error))) {
+        throw error;
+      }
+    }
+  };
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS pending_project_invites (
       invite_request_id TEXT PRIMARY KEY,
@@ -484,6 +509,7 @@ export const runMigrations = (db) => {
 
   db.exec('BEGIN IMMEDIATE;');
   try {
+    // Superseded later by idx_reminders_due_active once dismissed_at exists.
     db.exec(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_personal_owner
       ON projects(created_by)
@@ -547,5 +573,30 @@ export const runMigrations = (db) => {
       }
       throw error;
     }
+  }
+
+  addColumnIfMissing('reminders', 'dismissed_at', 'TEXT');
+  addColumnIfMissing('reminders', 'recurrence_json', 'TEXT');
+  addColumnIfMissing('projects', 'reminders_collection_id', 'TEXT');
+
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    db.exec(`
+      DROP INDEX IF EXISTS idx_reminders_due_unfired;
+      CREATE INDEX IF NOT EXISTS idx_reminders_due_active
+      ON reminders(remind_at)
+      WHERE fired_at IS NULL AND dismissed_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_reminders_visible_undismissed
+      ON reminders(remind_at)
+      WHERE dismissed_at IS NULL;
+    `);
+    db.exec('COMMIT;');
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // no-op
+    }
+    throw error;
   }
 };

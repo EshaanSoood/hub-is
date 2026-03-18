@@ -1,6 +1,7 @@
 import { Suspense, lazy, useRef, useState } from 'react';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
+import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import type { HubCollectionField, HubPaneSummary, HubRecordSummary } from '../../services/hub/types';
 import type { CalendarScope } from './CalendarModuleSkin';
 import type { FilesModuleItem } from './FilesModuleSkin';
@@ -117,6 +118,14 @@ export interface WorkViewTimelineRuntime {
   onItemClick: (recordId: string, recordType: string) => void;
 }
 
+export interface WorkViewRemindersRuntime {
+  items: HubReminderSummary[];
+  loading: boolean;
+  error?: string | null;
+  onDismiss: (reminderId: string) => Promise<void>;
+  onCreate: (payload: CreateReminderPayload) => Promise<void>;
+}
+
 export interface WorkViewModuleRuntime {
   table: WorkViewTableRuntime;
   kanban: WorkViewKanbanRuntime;
@@ -125,6 +134,7 @@ export interface WorkViewModuleRuntime {
   quickThoughts: WorkViewQuickThoughtsRuntime;
   tasks: WorkViewTasksRuntime;
   timeline: WorkViewTimelineRuntime;
+  reminders: WorkViewRemindersRuntime;
 }
 
 const TableModuleSkin = lazy(async () => {
@@ -145,6 +155,11 @@ const CalendarModuleSkin = lazy(async () => {
 const FilesModuleSkin = lazy(async () => {
   const module = await import('./FilesModuleSkin');
   return { default: module.FilesModuleSkin };
+});
+
+const RemindersModuleSkin = lazy(async () => {
+  const module = await import('./RemindersModuleSkin');
+  return { default: module.RemindersModuleSkin };
 });
 
 const TasksModuleSkin = lazy(async () => {
@@ -171,6 +186,9 @@ const defaultModuleLens = (moduleType: string): 'project' | 'pane' | 'pane_scrat
   if (moduleType === 'tasks') {
     return 'pane';
   }
+  if (moduleType === 'reminders') {
+    return 'project';
+  }
   return 'project';
 };
 
@@ -180,6 +198,9 @@ const normalizeModuleLens = (moduleType: string, lens: unknown): 'project' | 'pa
   }
   if (moduleType === 'tasks') {
     return lens === 'project' ? 'project' : 'pane';
+  }
+  if (moduleType === 'reminders') {
+    return 'project';
   }
   return lens === 'pane_scratch' ? 'pane_scratch' : 'project';
 };
@@ -283,6 +304,13 @@ const EMPTY_RUNTIME: WorkViewModuleRuntime = {
     onLoadMore: () => undefined,
     onItemClick: () => undefined,
   },
+  reminders: {
+    items: [],
+    loading: false,
+    error: null,
+    onDismiss: async () => undefined,
+    onCreate: async () => undefined,
+  },
 };
 
 export const WorkView = ({
@@ -343,6 +371,10 @@ export const WorkView = ({
     timeline: {
       ...EMPTY_RUNTIME.timeline,
       ...moduleRuntime?.timeline,
+    },
+    reminders: {
+      ...EMPTY_RUNTIME.reminders,
+      ...moduleRuntime?.reminders,
     },
   };
 
@@ -405,7 +437,7 @@ export const WorkView = ({
       module.module_instance_id === moduleInstanceId
         ? {
             ...module,
-            lens: module.module_type === 'quick_thoughts' ? 'pane_scratch' : lens,
+            lens: normalizeModuleLens(module.module_type, lens),
           }
         : module,
     );
@@ -650,6 +682,21 @@ export const WorkView = ({
                   onUpload={canEditPane ? (module.lens === 'project' ? mergedRuntime.files.onUploadProjectFiles : mergedRuntime.files.onUploadPaneFiles) : () => undefined}
                   onOpenFile={mergedRuntime.files.onOpenFile}
                   readOnly={!canEditPane}
+                />
+              </Suspense>
+            );
+          }
+
+          if (module.module_type === 'reminders') {
+            return (
+              <Suspense fallback={<ModuleLoadingState label="Loading reminders module" rows={4} />}>
+                <RemindersModuleSkin
+                  reminders={mergedRuntime.reminders.items}
+                  loading={mergedRuntime.reminders.loading}
+                  error={mergedRuntime.reminders.error}
+                  onDismiss={mergedRuntime.reminders.onDismiss}
+                  onCreate={mergedRuntime.reminders.onCreate}
+                  sizeTier={module.size_tier}
                 />
               </Suspense>
             );

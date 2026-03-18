@@ -28,6 +28,11 @@ export const createStatements = (db) => ({
       SET tasks_collection_id = ?, updated_at = ?
       WHERE project_id = ?
     `),
+    updateRemindersCollection: db.prepare(`
+      UPDATE projects
+      SET reminders_collection_id = ?, updated_at = ?
+      WHERE project_id = ?
+    `),
     findById: db.prepare('SELECT * FROM projects WHERE project_id = ?'),
     findByIdWithMembership: db.prepare(`
       SELECT p.*, pm.role AS membership_role, pm.joined_at
@@ -50,6 +55,13 @@ export const createStatements = (db) => ({
       FROM projects p
       WHERE p.project_type = 'personal'
         AND COALESCE(p.tasks_collection_id, '') = ''
+      ORDER BY p.created_at ASC, p.project_id ASC
+    `),
+    listPersonalMissingRemindersCollectionIds: db.prepare(`
+      SELECT p.project_id
+      FROM projects p
+      WHERE p.project_type = 'personal'
+        AND COALESCE(p.reminders_collection_id, '') = ''
       ORDER BY p.created_at ASC, p.project_id ASC
     `),
     listForUser: db.prepare(`
@@ -410,7 +422,7 @@ export const createStatements = (db) => ({
       SELECT r.*, rec.title AS record_title, rec.project_id
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
-      WHERE r.fired_at IS NULL AND r.remind_at <= ? AND rec.archived_at IS NULL
+      WHERE r.fired_at IS NULL AND r.dismissed_at IS NULL AND r.remind_at <= ? AND rec.archived_at IS NULL
     `),
     deleteAssignment: db.prepare('DELETE FROM assignments WHERE record_id = ? AND user_id = ?'),
   },
@@ -453,8 +465,8 @@ export const createStatements = (db) => ({
     findRecurrence: db.prepare('SELECT * FROM recurrence_rules WHERE record_id = ?'),
     deleteReminders: db.prepare('DELETE FROM reminders WHERE record_id = ?'),
     insertReminder: db.prepare(`
-      INSERT INTO reminders (reminder_id, record_id, remind_at, channels, created_at, fired_at)
-      VALUES (?, ?, ?, ?, ?, NULL)
+      INSERT INTO reminders (reminder_id, record_id, remind_at, channels, created_at, recurrence_json)
+      VALUES (?, ?, ?, ?, ?, ?)
     `),
     listReminders: db.prepare('SELECT * FROM reminders WHERE record_id = ? ORDER BY remind_at ASC'),
   },
@@ -463,9 +475,30 @@ export const createStatements = (db) => ({
       SELECT r.*, rec.title AS record_title, rec.project_id
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
-      WHERE r.fired_at IS NULL AND r.remind_at <= ? AND rec.archived_at IS NULL
+      WHERE r.fired_at IS NULL AND r.dismissed_at IS NULL AND r.remind_at <= ? AND rec.archived_at IS NULL
     `),
     claimFired: db.prepare('UPDATE reminders SET fired_at = ? WHERE reminder_id = ? AND fired_at IS NULL'),
+    listForUser: db.prepare(`
+      SELECT r.*, rec.title AS record_title, rec.project_id
+      FROM reminders r
+      JOIN records rec ON rec.record_id = r.record_id
+      JOIN project_members pm ON pm.project_id = rec.project_id AND pm.user_id = ?
+      WHERE r.dismissed_at IS NULL AND rec.archived_at IS NULL
+      ORDER BY r.remind_at ASC
+    `),
+    dismiss: db.prepare(`
+      UPDATE reminders SET dismissed_at = ? WHERE reminder_id = ? AND dismissed_at IS NULL
+    `),
+    insertStandalone: db.prepare(`
+      INSERT INTO reminders (reminder_id, record_id, remind_at, channels, created_at, recurrence_json)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `),
+    findById: db.prepare(`
+      SELECT r.*, rec.title AS record_title, rec.project_id, rec.archived_at AS record_archived_at
+      FROM reminders r
+      JOIN records rec ON rec.record_id = r.record_id
+      WHERE r.reminder_id = ?
+    `),
   },
   files: {
     insert: db.prepare(`

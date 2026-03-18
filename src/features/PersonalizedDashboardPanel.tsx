@@ -1,5 +1,7 @@
 import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAuthz } from '../context/AuthzContext';
+import { RemindersModuleSkin } from '../components/project-space/RemindersModuleSkin';
+import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { dashboardCardRegistry } from '../lib/dashboardCards';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import type { ProjectRecord } from '../types/domain';
@@ -528,13 +530,14 @@ export const PersonalizedDashboardPanel = ({
   projects: ProjectRecord[];
   onOpenRecord: (recordId: string) => void;
 }) => {
-  const { canGlobal, sessionSummary } = useAuthz();
+  const { accessToken, canGlobal, sessionSummary } = useAuthz();
   const [activeView, setActiveView] = useState<HubDashboardView>('daily-brief');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [activeViewOptionIndex, setActiveViewOptionIndex] = useState(0);
   const viewListboxId = useId();
   const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const viewListboxRef = useRef<HTMLDivElement | null>(null);
+  const remindersRuntime = useRemindersRuntime(accessToken ?? null);
   const visibleDashboardCards = useMemo(
     () =>
       dashboardCardRegistry.filter((card) => {
@@ -744,6 +747,17 @@ export const PersonalizedDashboardPanel = ({
           <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} />
         </TabsContent>
       </Tabs>
+
+      <div className="mt-4">
+        <RemindersModuleSkin
+          reminders={remindersRuntime.reminders}
+          loading={remindersRuntime.loading}
+          error={remindersRuntime.error}
+          onDismiss={remindersRuntime.dismiss}
+          onCreate={remindersRuntime.create}
+          sizeTier="M"
+        />
+      </div>
     </section>
   );
 };
