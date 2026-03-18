@@ -45,6 +45,7 @@ export const createViewRoutes = (deps) => {
     insertReminderStmt,
     calendarRecordsByProjectStmt,
     eventParticipantByRecordAndUserStmt,
+    projectMembershipsByUserStmt,
     projectByIdStmt,
     timelineByProjectStmt,
     timelineRecord,
@@ -370,6 +371,54 @@ export const createViewRoutes = (deps) => {
     send(response, jsonResponse(200, okEnvelope({ mode, events })));
   };
 
+  const listPersonalCalendar = async ({ request, response, requestUrl }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const mode = asText(requestUrl.searchParams.get('mode')).toLowerCase() === 'all' ? 'all' : 'relevant';
+    const visibleProjectIds = Array.from(
+      new Set(
+        projectMembershipsByUserStmt
+          .all(auth.user.user_id)
+          .map((membership) => asText(membership.project_id))
+          .filter(Boolean),
+      ),
+    );
+
+    const mergedRecords = visibleProjectIds.flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId));
+
+    let filtered = mergedRecords;
+    if (mode === 'relevant') {
+      filtered = filtered.filter((record) => {
+        const participant = eventParticipantByRecordAndUserStmt.get(record.record_id, auth.user.user_id);
+        return Boolean(participant?.ok);
+      });
+    }
+
+    const events = filtered
+      .flatMap((record) => {
+        const eventState = eventStateByRecordStmt.get(record.record_id);
+        if (!eventState) {
+          return [];
+        }
+        const project = projectByIdStmt.get(record.project_id);
+        return [{
+          record_id: record.record_id,
+          title: record.title,
+          project_id: record.project_id,
+          project_name: project?.name || null,
+          event_state: eventState,
+          participants: participantsByRecordStmt.all(record.record_id).map((row) => ({ user_id: row.user_id, role: row.role })),
+        }];
+      })
+      .sort((left, right) => new Date(left.event_state.start_dt).getTime() - new Date(right.event_state.start_dt).getTime());
+
+    send(response, jsonResponse(200, okEnvelope({ mode, events })));
+  };
+
   const listProjectTimeline = async ({ request, response, requestUrl, params }) => {
     const auth = await withAuth(request);
     if (auth.error) {
@@ -395,6 +444,7 @@ export const createViewRoutes = (deps) => {
 
   return {
     createEventFromNlp,
+    listPersonalCalendar,
     createView,
     listProjectCalendar,
     listProjectTimeline,

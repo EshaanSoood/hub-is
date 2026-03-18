@@ -320,6 +320,56 @@ export const queryCalendar = async (
   };
 };
 
+export const queryPersonalCalendar = async (
+  accessToken: string,
+  mode: 'relevant' | 'all',
+): Promise<{
+  mode: string;
+  events: Array<{
+    record_id: string;
+    title: string;
+    project_id: string;
+    project_name: string | null;
+    event_state: {
+      start_dt: string;
+      end_dt: string;
+      timezone: string;
+      location: string | null;
+      updated_at: string;
+    };
+    participants: Array<{ user_id: string; role: string | null }>;
+    source_pane: HubSourcePaneContext | null;
+  }>;
+}> => {
+  const data = await hubRequest<{
+    mode: string;
+    events: Array<{
+      record_id: string;
+      title: string;
+      project_id: string;
+      project_name: string | null;
+      event_state: {
+        start_dt: string;
+        end_dt: string;
+        timezone: string;
+        location: string | null;
+        updated_at: string;
+      };
+      participants: Array<{ user_id: string; role: string | null }>;
+      source_pane?: HubSourcePaneContext | null;
+    }>;
+  }>(accessToken, `/api/hub/calendar?mode=${encodeURIComponent(mode)}`, {
+    method: 'GET',
+  });
+  return {
+    ...data,
+    events: data.events.map((event) => ({
+      ...event,
+      source_pane: normalizeSourcePane(event.source_pane),
+    })),
+  };
+};
+
 export const createComment = async (
   accessToken: string,
   payload: {
