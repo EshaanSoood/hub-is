@@ -44,6 +44,7 @@ export const usePersonalCalendarRuntime = (accessToken: string | null) => {
       }
     } catch (error) {
       if (latestRequestRef.current === requestId) {
+        setCalendarEvents([]);
         setCalendarError(error instanceof Error ? error.message : 'Failed to load calendar.');
       }
     } finally {

@@ -221,6 +221,13 @@ export const CalendarModuleSkin = ({
                 return;
               }
 
+              const startDate = new Date(`${draftDay}T${draftStartTime}:00`);
+              const endDate = new Date(`${draftDay}T${draftEndTime}:00`);
+              if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate.getTime() <= startDate.getTime()) {
+                setCreateError('End time must be after start time.');
+                return;
+              }
+
               setCreateError(null);
               setIsCreatingEvent(true);
               try {
@@ -315,7 +322,10 @@ export const CalendarModuleSkin = ({
         {onCreateEvent ? (
           <button
             type="button"
-            onClick={() => openCreatePanel(todayKey)}
+            onClick={() => {
+              setView('month');
+              openCreatePanel(todayKey);
+            }}
             className="ml-auto shrink-0 rounded-control border border-primary bg-primary px-2 py-1 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             New Event

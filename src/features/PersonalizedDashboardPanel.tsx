@@ -543,6 +543,7 @@ export const PersonalizedDashboardPanel = ({
   const remindersRuntime = useRemindersRuntime(accessToken ?? null);
   const {
     calendarEvents,
+    calendarError,
     calendarLoading,
     calendarMode,
     refreshCalendar,
@@ -799,21 +800,36 @@ export const PersonalizedDashboardPanel = ({
             />
           ) : null}
         </div>
-        <CalendarModuleSkin
-          events={calendarEvents}
-          loading={calendarLoading}
-          scope={calendarMode}
-          onScopeChange={setCalendarMode}
-          onOpenRecord={onOpenRecord}
-          onCreateEvent={
-            accessToken && selectedCalendarCreateProjectId
-              ? async (payload) => {
-                  await createEventFromNlp(accessToken, selectedCalendarCreateProjectId, payload);
-                  await refreshCalendar();
-                }
-              : undefined
-          }
-        />
+        {calendarError ? (
+          <div className="rounded-panel border border-danger/30 bg-danger/5 p-4" role="alert">
+            <p className="text-sm text-danger">{calendarError}</p>
+            <button
+              type="button"
+              onClick={() => {
+                void refreshCalendar();
+              }}
+              className="mt-3 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <CalendarModuleSkin
+            events={calendarEvents}
+            loading={calendarLoading}
+            scope={calendarMode}
+            onScopeChange={setCalendarMode}
+            onOpenRecord={onOpenRecord}
+            onCreateEvent={
+              accessToken && selectedCalendarCreateProjectId
+                ? async (payload) => {
+                    await createEventFromNlp(accessToken, selectedCalendarCreateProjectId, payload);
+                    await refreshCalendar();
+                  }
+                : undefined
+            }
+          />
+        )}
       </section>
     </section>
   );

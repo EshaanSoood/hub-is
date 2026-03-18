@@ -687,10 +687,16 @@ const ProjectSpaceWorkspace = ({
         loading: calendarLoading,
         scope: calendarMode,
         onScopeChange: setCalendarMode,
-        onCreateEvent: async (payload) => {
-          await createEventFromNlp(accessToken, project.project_id, payload);
-          await refreshCalendar();
-        },
+        onCreateEvent:
+          activePaneCanEdit && canWriteProject
+            ? async (payload) => {
+                if (!accessToken) {
+                  return;
+                }
+                await createEventFromNlp(accessToken, project.project_id, payload);
+                await refreshCalendar();
+              }
+            : undefined,
       },
       files: {
         paneFiles,
@@ -804,8 +810,10 @@ const ProjectSpaceWorkspace = ({
       setCalendarMode,
       kanbanRuntimeDataByViewId,
       kanbanViews,
+      activePaneCanEdit,
       activePane?.pane_id,
       accessToken,
+      canWriteProject,
       onMoveKanbanRecord,
       onOpenPaneFile,
       onUploadPaneFiles,
