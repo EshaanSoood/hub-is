@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
+import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
 import { Card, TabButton, Tabs, TabsList } from '../primitives';
 import { CalendarTab, type CalendarEvent, type CalendarLensOption, type CalendarTimeView } from './CalendarTab';
 import { FilterBarOverlay, type FilterGroup } from './FilterBarOverlay';
 import { OverviewHeader } from './OverviewHeader';
-import { TasksTab, type TaskItem, type TasksClusterMode } from './TasksTab';
+import { TasksTab, type TasksClusterMode } from './TasksTab';
 import { TimelineTab, type TimelineCluster } from './TimelineTab';
+import { adaptTaskSummaries } from './taskAdapter';
 import type { ClientReference, Collaborator, OverviewViewId } from './types';
 
 interface OverviewViewProps {
@@ -14,6 +16,11 @@ interface OverviewViewProps {
   clients: ClientReference[];
   activeView: OverviewViewId;
   onSelectView: (viewId: OverviewViewId) => void;
+  tasks: HubTaskSummary[];
+  tasksLoading: boolean;
+  tasksError: string | null;
+  onRefreshTasks: () => void;
+  projectMembers: HubProjectMember[];
 }
 
 const overviewViews: Array<{ id: OverviewViewId; label: string }> = [
@@ -64,48 +71,12 @@ const buildCalendarEvents = (users: CalendarLensOption[]): CalendarEvent[] => {
   ];
 };
 
-const buildTasks = (users: CalendarLensOption[]): TaskItem[] => {
-  const userA = users.find((user) => user.id !== 'all')?.id ?? 'current-user';
-  const userB = users.find((user) => user.id !== 'all' && user.id !== userA)?.id ?? userA;
-
-  return [
-    {
-      id: 'task-1',
-      label: 'Write launch script',
-      dueLabel: 'March 4, 2026',
-      categoryId: 'writing',
-      assigneeId: userA,
-      priority: 'high',
-      subtasks: [
-        { id: 'task-1-sub-1', label: 'Draft intro section', dueLabel: 'Mar 4', priority: null },
-        { id: 'task-1-sub-2', label: 'Review with Sam', dueLabel: 'Mar 4', priority: 'medium' },
-      ],
-    },
-    {
-      id: 'task-2',
-      label: 'Design thumbnail',
-      dueLabel: 'March 5, 2026',
-      categoryId: 'design',
-      assigneeId: userB,
-      priority: 'medium',
-      subtasks: [
-        { id: 'task-2-sub-1', label: 'Sketch concepts', dueLabel: 'Mar 5', priority: null },
-      ],
-    },
-    {
-      id: 'task-3',
-      label: 'Upload to YouTube',
-      dueLabel: 'March 10, 2026',
-      categoryId: 'youtube',
-      assigneeId: userA,
-      priority: 'low',
-      subtasks: [
-        { id: 'task-3-sub-1', label: 'Add captions', dueLabel: 'Mar 10', priority: null },
-        { id: 'task-3-sub-2', label: 'Schedule publish time', dueLabel: 'Mar 10', priority: 'medium' },
-      ],
-    },
-  ];
-};
+const toCategoryLabel = (categoryId: string) =>
+  categoryId
+    .split(/[-_]/g)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
 
 export const OverviewView = ({
   projectName,
@@ -114,10 +85,15 @@ export const OverviewView = ({
   clients,
   activeView,
   onSelectView,
+  tasks,
+  tasksLoading,
+  tasksError,
+  onRefreshTasks,
+  projectMembers,
 }: OverviewViewProps) => {
   const [titleDraft, setTitleDraft] = useState(projectName);
 
-  const collaboratorOptions: CalendarLensOption[] = useMemo(
+  const calendarCollaboratorOptions: CalendarLensOption[] = useMemo(
     () => [
       { id: 'all', label: 'All' },
       ...collaborators.map((member) => ({
@@ -126,6 +102,17 @@ export const OverviewView = ({
       })),
     ],
     [collaborators],
+  );
+
+  const taskCollaboratorOptions = useMemo(
+    () => [
+      { id: 'all', label: 'All' },
+      ...projectMembers.map((member) => ({
+        id: member.user_id,
+        label: member.display_name,
+      })),
+    ],
+    [projectMembers],
   );
 
   const [calendarTimeView, setCalendarTimeView] = useState<CalendarTimeView>('month');
@@ -173,8 +160,26 @@ export const OverviewView = ({
       .filter((cluster) => cluster.items.length > 0);
   }, [timelineFilters]);
 
-  const calendarEvents = useMemo(() => buildCalendarEvents(collaboratorOptions), [collaboratorOptions]);
-  const tasks = useMemo(() => buildTasks(collaboratorOptions), [collaboratorOptions]);
+  const calendarEvents = useMemo(() => buildCalendarEvents(calendarCollaboratorOptions), [calendarCollaboratorOptions]);
+  const adaptedTasks = useMemo(() => adaptTaskSummaries(tasks), [tasks]);
+  const taskCategoryOptions = useMemo(() => {
+    const ids = [...new Set(adaptedTasks.map((task) => task.categoryId).filter((categoryId) => categoryId !== ''))];
+    return [
+      { id: 'all', label: 'All' },
+      ...ids.map((id) => ({
+        id,
+        label: toCategoryLabel(id),
+      })),
+    ];
+  }, [adaptedTasks]);
+  const kanbanColumns = useMemo(
+    () => [
+      { id: 'todo', label: 'To Do', items: adaptedTasks.filter((task) => task.status === 'todo') },
+      { id: 'in_progress', label: 'In Progress', items: adaptedTasks.filter((task) => task.status === 'in_progress') },
+      { id: 'done', label: 'Done', items: adaptedTasks.filter((task) => task.status === 'done') },
+    ],
+    [adaptedTasks],
+  );
 
   return (
     <section id="project-panel-overview" role="tabpanel" aria-labelledby="project-tab-overview" className="space-y-4">
@@ -220,7 +225,7 @@ export const OverviewView = ({
           <div id="overview-panel-calendar" role="tabpanel" aria-labelledby="overview-view-calendar" className="mt-4">
             <CalendarTab
               events={calendarEvents}
-              collaborators={collaboratorOptions}
+              collaborators={calendarCollaboratorOptions}
               categories={categoryOptions}
               timeView={calendarTimeView}
               activeUserId={calendarUserId}
@@ -234,17 +239,34 @@ export const OverviewView = ({
 
         {activeView === 'tasks' ? (
           <div id="overview-panel-tasks" role="tabpanel" aria-labelledby="overview-view-tasks" className="mt-4">
-            <TasksTab
-              tasks={tasks}
-              collaborators={collaboratorOptions}
-              categories={categoryOptions}
-              activeUserId={tasksUserId}
-              activeCategoryId={tasksCategoryId}
-              clusterMode={tasksClusterMode}
-              onUserChange={setTasksUserId}
-              onCategoryChange={setTasksCategoryId}
-              onClusterModeChange={setTasksClusterMode}
-            />
+            <div className="space-y-3">
+              {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}
+              {tasksError ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <p role="alert" className="text-sm text-danger">{tasksError}</p>
+                  <button
+                    type="button"
+                    onClick={() => onRefreshTasks()}
+                    className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs font-semibold text-primary"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : null}
+              {!tasksLoading && !tasksError ? (
+                <TasksTab
+                  tasks={adaptedTasks}
+                  collaborators={taskCollaboratorOptions}
+                  categories={taskCategoryOptions}
+                  activeUserId={tasksUserId}
+                  activeCategoryId={tasksCategoryId}
+                  clusterMode={tasksClusterMode}
+                  onUserChange={setTasksUserId}
+                  onCategoryChange={setTasksCategoryId}
+                  onClusterModeChange={setTasksClusterMode}
+                />
+              ) : null}
+            </div>
           </div>
         ) : null}
 
@@ -256,12 +278,8 @@ export const OverviewView = ({
                 <p className="mt-1 text-sm text-muted">This legacy overview view now exposes a board summary instead of a blank panel.</p>
               </div>
               <div className="grid gap-3 md:grid-cols-3">
-                {[
-                  { label: 'Backlog', items: tasks.slice(0, 1) },
-                  { label: 'In Progress', items: tasks.slice(1, 2) },
-                  { label: 'Done', items: tasks.slice(2) },
-                ].map((column) => (
-                  <div key={column.label} className="rounded-panel border border-border-muted bg-surface p-3">
+                {kanbanColumns.map((column) => (
+                  <div key={column.id} className="rounded-panel border border-border-muted bg-surface p-3">
                     <p className="text-xs font-bold uppercase tracking-wide text-muted">{column.label}</p>
                     <div className="mt-3 space-y-2">
                       {column.items.length === 0 ? <p className="text-sm text-muted">No cards</p> : null}

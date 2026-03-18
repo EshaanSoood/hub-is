@@ -14,10 +14,13 @@ export interface TaskSubtask {
 export interface TaskItem {
   id: string;
   label: string;
+  dueAt: string | null;
   dueLabel: string;
   categoryId: string;
   assigneeId: string;
   priority: PriorityLevel;
+  status: 'todo' | 'in_progress' | 'done' | 'cancelled';
+  subtaskCount?: number;
   subtasks: TaskSubtask[];
 }
 
@@ -54,8 +57,11 @@ const CLUSTER_LABELS: Array<{ id: TasksClusterMode; label: string }> = [
 
 const PRIORITY_ORDER: PriorityLevel[] = ['high', 'medium', 'low'];
 
-const parseDueLabel = (dueLabel: string): Date | null => {
-  const parsed = new Date(dueLabel);
+const parseDueAt = (dueAt: string | null): Date | null => {
+  if (!dueAt) {
+    return null;
+  }
+  const parsed = new Date(dueAt);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
@@ -71,7 +77,7 @@ const clusterByChronological = (tasks: TaskItem[]): Cluster[] => {
   };
 
   for (const task of tasks) {
-    const due = parseDueLabel(task.dueLabel);
+    const due = parseDueAt(task.dueAt);
     if (!due) {
       groups.later.push(task);
       continue;
@@ -145,6 +151,7 @@ const SubtaskRow = ({ subtask, parentPriority }: { subtask: TaskSubtask; parentP
 
 const TaskRow = ({ task }: { task: TaskItem }) => {
   const [expanded, setExpanded] = useState(false);
+  const visibleSubtaskCount = task.subtaskCount ?? task.subtasks.length;
   return (
     <div className="rounded-control px-1 py-0.5 hover:bg-elevated">
       <button
@@ -155,7 +162,7 @@ const TaskRow = ({ task }: { task: TaskItem }) => {
       >
         <span className="h-7 w-0.5 rounded-sm" style={{ backgroundColor: PRIORITY_DOT_COLORS[task.priority] }} aria-hidden="true" />
         <span className="flex-1 text-sm text-text">{task.label}</span>
-        {task.subtasks.length > 0 ? (
+        {visibleSubtaskCount > 0 ? (
           <span
             className="rounded-control border px-1.5 py-0.5 text-[10px] font-semibold"
             style={{
@@ -164,7 +171,7 @@ const TaskRow = ({ task }: { task: TaskItem }) => {
               backgroundColor: PRIORITY_TINT_COLORS[task.priority],
             }}
           >
-            {task.subtasks.length}
+            {visibleSubtaskCount}
           </span>
         ) : null}
         <span className="text-xs text-text-secondary">{task.dueLabel}</span>
