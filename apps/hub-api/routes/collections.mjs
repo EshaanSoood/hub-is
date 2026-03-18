@@ -110,14 +110,24 @@ export const createCollectionRoutes = (deps) => {
   const personalProjectIdForUser = (userId) => asText(personalProjectByUserStmt.get(userId, userId)?.project_id);
 
   const archiveSubtasksStmt = db.prepare(`
+    WITH RECURSIVE descendants(id) AS (
+      SELECT record_id FROM records WHERE parent_record_id = ?
+      UNION ALL
+      SELECT r.record_id FROM records r INNER JOIN descendants d ON r.parent_record_id = d.id
+    )
     UPDATE records
     SET archived_at = ?, updated_at = ?
-    WHERE parent_record_id = ? AND archived_at IS NULL
+    WHERE record_id IN (SELECT id FROM descendants) AND archived_at IS NULL
   `);
   const unarchiveSubtasksStmt = db.prepare(`
+    WITH RECURSIVE descendants(id) AS (
+      SELECT record_id FROM records WHERE parent_record_id = ?
+      UNION ALL
+      SELECT r.record_id FROM records r INNER JOIN descendants d ON r.parent_record_id = d.id
+    )
     UPDATE records
     SET archived_at = NULL, updated_at = ?
-    WHERE parent_record_id = ? AND archived_at = ?
+    WHERE record_id IN (SELECT id FROM descendants) AND archived_at = ?
   `);
 
   const listCollections = async ({ request, response, params }) => {
@@ -565,10 +575,10 @@ export const createCollectionRoutes = (deps) => {
       withTransaction(() => {
         updateRecordStmt.run(title, timestamp, archivedAt, recordId);
         if (archivedAt && !record.archived_at) {
-          archiveSubtasksStmt.run(archivedAt, timestamp, recordId);
+          archiveSubtasksStmt.run(recordId, archivedAt, timestamp);
         }
         if (!archivedAt && record.archived_at) {
-          unarchiveSubtasksStmt.run(timestamp, recordId, record.archived_at);
+          unarchiveSubtasksStmt.run(recordId, timestamp, record.archived_at);
         }
         if (!taskState) {
           return;

@@ -276,11 +276,13 @@ const yearlyOccurrence = (
   minute: number,
 ): string => {
   const nowParts = getZonedParts(now, timezone);
-  const current = `${toIsoDate(nowParts.year, month, day)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+  const safeDay = Math.min(day, daysInMonth(nowParts.year, month));
+  const current = `${toIsoDate(nowParts.year, month, safeDay)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
   if (current >= formatDateTime(now, timezone)) {
     return current;
   }
-  return `${toIsoDate(nowParts.year + 1, month, day)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+  const safeDayNextYear = Math.min(day, daysInMonth(nowParts.year + 1, month));
+  return `${toIsoDate(nowParts.year + 1, month, safeDayNextYear)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 };
 
 const stripPrefixes = (input: string): string => {
@@ -698,7 +700,12 @@ const extractTime = (
   }
 
   if (!remindAt && /\bsat morning\b/i.test(rawInput) && getZonedParts(now, timezone).weekday === 6) {
-    remindAt = withTime(addDays(now, 1), timezone, 8, 0);
+    const parts = getZonedParts(now, timezone);
+    if (parts.hour < 8) {
+      remindAt = withTime(now, timezone, 8, 0);
+    } else {
+      remindAt = withTime(addDays(now, 7), timezone, 8, 0);
+    }
     contextHint = 'Saturday morning';
     working = normalizeWhitespace(working.replace(/\bsat(?:urday)? morning\b/i, ' '));
     explicitHour = 8;

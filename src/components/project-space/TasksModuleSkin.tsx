@@ -53,7 +53,11 @@ const toIsoDate = (value: string): string | null => {
   if (!value) {
     return null;
   }
-  return new Date(`${value}T12:00:00`).toISOString();
+  const d = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(d.getTime())) {
+    return null;
+  }
+  return d.toISOString();
 };
 
 const parseDueAt = (isoString: string | null): Date | null => {
