@@ -686,15 +686,16 @@ const extractTime = (
   if (!remindAt) {
     const ordinalMatch = working.match(/\bon the (\d{1,2})(?:st|nd|rd|th)\b/i);
     if (ordinalMatch) {
-      const day = Number(ordinalMatch[1]);
       const parts = getZonedParts(now, timezone);
+      const day = Math.min(Number(ordinalMatch[1]), daysInMonth(parts.year, parts.month));
       const currentMonthCandidate = `${toIsoDate(parts.year, parts.month, day)}T09:00:00`;
       if (currentMonthCandidate >= formatDateTime(now, timezone)) {
         remindAt = currentMonthCandidate;
       } else {
         const nextMonth = parts.month === 12 ? 1 : parts.month + 1;
         const year = parts.month === 12 ? parts.year + 1 : parts.year;
-        remindAt = `${toIsoDate(year, nextMonth, day)}T09:00:00`;
+        const safeDayNextMonth = Math.min(Number(ordinalMatch[1]), daysInMonth(year, nextMonth));
+        remindAt = `${toIsoDate(year, nextMonth, safeDayNextMonth)}T09:00:00`;
       }
       working = normalizeWhitespace(working.replace(ordinalMatch[0], ' '));
     }
