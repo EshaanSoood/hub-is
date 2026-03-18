@@ -244,7 +244,7 @@ export const createViewRoutes = (deps) => {
     const participantNotificationPayloads = [];
     try {
       withTransaction(() => {
-        insertRecordStmt.run(recordId, projectId, eventsCollection.collection_id, title, auth.user.user_id, timestamp, timestamp);
+        insertRecordStmt.run(recordId, projectId, eventsCollection.collection_id, title, auth.user.user_id, timestamp, timestamp, null);
         insertRecordCapabilityStmt.run(recordId, 'calendar_event', timestamp);
         upsertEventStateStmt.run(recordId, startDt, endDt, timezone, deps.asNullableText(body.location || nlpFields.location), timestamp);
 

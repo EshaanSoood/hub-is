@@ -2,6 +2,7 @@ class ValidationError extends Error {}
 
 export const createCollectionRoutes = (deps) => {
   const {
+    db,
     withAuth,
     withTransaction,
     withProjectPolicyGate,
@@ -21,6 +22,7 @@ export const createCollectionRoutes = (deps) => {
     emitTimelineEvent,
     buildNotificationRouteContext,
     buildNotificationPayload,
+    buildTaskSummaryForUser,
     broadcastTaskChanged,
     createNotification,
     relationTargetCollectionIdFromField,
@@ -74,6 +76,7 @@ export const createCollectionRoutes = (deps) => {
     upsertRecurrenceStmt,
     clearRemindersStmt,
     insertReminderStmt,
+    subtasksByParentStmt,
     withDocPolicyGate,
     attachmentsByEntityStmt,
     commentsByTargetStmt,
@@ -103,6 +106,29 @@ export const createCollectionRoutes = (deps) => {
     }
     return map;
   };
+
+  const personalProjectIdForUser = (userId) => asText(personalProjectByUserStmt.get(userId, userId)?.project_id);
+
+  const archiveSubtasksStmt = db.prepare(`
+    WITH RECURSIVE descendants(id) AS (
+      SELECT record_id FROM records WHERE parent_record_id = ?
+      UNION ALL
+      SELECT r.record_id FROM records r INNER JOIN descendants d ON r.parent_record_id = d.id
+    )
+    UPDATE records
+    SET archived_at = ?, updated_at = ?
+    WHERE record_id IN (SELECT id FROM descendants) AND archived_at IS NULL
+  `);
+  const unarchiveSubtasksStmt = db.prepare(`
+    WITH RECURSIVE descendants(id) AS (
+      SELECT record_id FROM records WHERE parent_record_id = ?
+      UNION ALL
+      SELECT r.record_id FROM records r INNER JOIN descendants d ON r.parent_record_id = d.id
+    )
+    UPDATE records
+    SET archived_at = NULL, updated_at = ?
+    WHERE record_id IN (SELECT id FROM descendants) AND archived_at = ?
+  `);
 
   const listCollections = async ({ request, response, params }) => {
     const auth = await withAuth(request);
@@ -282,7 +308,19 @@ export const createCollectionRoutes = (deps) => {
       return;
     }
 
-    const collectionId = asText(body.collection_id);
+    const requestedCollectionId = asText(body.collection_id);
+    const parentRecordId = asText(body.parent_record_id);
+    const parentRecord = parentRecordId ? recordByIdStmt.get(parentRecordId) : null;
+    if (parentRecordId && (!parentRecord || parentRecord.project_id !== projectId || parentRecord.archived_at)) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Parent record not found, is archived, or belongs to a different project.')));
+      return;
+    }
+
+    const collectionId = parentRecord ? parentRecord.collection_id : requestedCollectionId;
+    if (parentRecord && requestedCollectionId && requestedCollectionId !== parentRecord.collection_id) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Subtask must belong to the same collection as its parent.')));
+      return;
+    }
     const collection = collectionByIdStmt.get(collectionId);
     if (!collection || collection.project_id !== projectId) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Collection must belong to project.')));
@@ -302,7 +340,7 @@ export const createCollectionRoutes = (deps) => {
 
     try {
       withTransaction(() => {
-        insertRecordStmt.run(recordId, projectId, collectionId, title, auth.user.user_id, timestamp, timestamp);
+        insertRecordStmt.run(recordId, projectId, collectionId, title, auth.user.user_id, timestamp, timestamp, parentRecordId || null);
 
         const values = parseJsonObject(body.values, {});
         for (const [fieldId, value] of Object.entries(values)) {
@@ -326,6 +364,7 @@ export const createCollectionRoutes = (deps) => {
             asText(taskState.status) || 'todo',
             deps.asNullableText(taskState.priority),
             deps.asNullableText(taskState.due_at),
+            deps.asNullableText(taskState.category),
             deps.asNullableText(taskState.completed_at),
             timestamp,
           );
@@ -521,6 +560,11 @@ export const createCollectionRoutes = (deps) => {
       return;
     }
 
+    if (Object.prototype.hasOwnProperty.call(body, 'parent_record_id')) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Reparenting tasks is not supported yet.')));
+      return;
+    }
+
     const title = body.title !== undefined ? asText(body.title) || record.title : record.title;
     const timestamp = nowIso();
     const archivedAt = body.archived === true ? timestamp : body.archived === false ? null : record.archived_at;
@@ -530,6 +574,12 @@ export const createCollectionRoutes = (deps) => {
     try {
       withTransaction(() => {
         updateRecordStmt.run(title, timestamp, archivedAt, recordId);
+        if (archivedAt && !record.archived_at) {
+          archiveSubtasksStmt.run(recordId, archivedAt, timestamp);
+        }
+        if (!archivedAt && record.archived_at) {
+          unarchiveSubtasksStmt.run(recordId, timestamp, record.archived_at);
+        }
         if (!taskState) {
           return;
         }
@@ -542,6 +592,7 @@ export const createCollectionRoutes = (deps) => {
         const hasStatus = Object.prototype.hasOwnProperty.call(taskState, 'status');
         const hasPriority = Object.prototype.hasOwnProperty.call(taskState, 'priority');
         const hasDueAt = Object.prototype.hasOwnProperty.call(taskState, 'due_at');
+        const hasCategory = Object.prototype.hasOwnProperty.call(taskState, 'category');
 
         let mergedStatus = asText(currentTaskState.status) || 'todo';
         if (hasStatus) {
@@ -574,6 +625,11 @@ export const createCollectionRoutes = (deps) => {
           }
         }
 
+        let mergedCategory = deps.asNullableText(currentTaskState.category);
+        if (hasCategory) {
+          mergedCategory = taskState.category === null ? null : deps.asNullableText(taskState.category);
+        }
+
         let mergedCompletedAt = deps.asNullableText(currentTaskState.completed_at);
         if (hasStatus) {
           mergedCompletedAt = mergedStatus === 'done'
@@ -586,6 +642,7 @@ export const createCollectionRoutes = (deps) => {
           mergedStatus,
           mergedPriority,
           mergedDueAt,
+          mergedCategory,
           mergedCompletedAt,
           timestamp,
         );
@@ -652,6 +709,32 @@ export const createCollectionRoutes = (deps) => {
     }
 
     send(response, jsonResponse(200, okEnvelope({ record: recordDetailForUser(recordByIdStmt.get(recordId), auth.user.user_id) })));
+  };
+
+  const listSubtasks = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const recordId = params.recordId;
+    const parentRecord = recordByIdStmt.get(recordId);
+    if (!parentRecord) {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Record not found.')));
+      return;
+    }
+
+    const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId: parentRecord.project_id, requiredCapability: 'view' });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+
+    const personalProjectId = personalProjectIdForUser(auth.user.user_id);
+    const subtasks = subtasksByParentStmt.all(recordId).map((row) => buildTaskSummaryForUser(row, personalProjectId));
+
+    send(response, jsonResponse(200, okEnvelope({ subtasks })));
   };
 
   const convertRecord = async ({ request, response, requestUrl, params }) => {
@@ -762,11 +845,11 @@ export const createCollectionRoutes = (deps) => {
           }
 
           targetRecordId = newId('rec');
-          insertRecordStmt.run(targetRecordId, targetProjectId, targetCollectionId, title, auth.user.user_id, timestamp, timestamp);
+          insertRecordStmt.run(targetRecordId, targetProjectId, targetCollectionId, title, auth.user.user_id, timestamp, timestamp, null);
 
           if (mode === 'task') {
             insertRecordCapabilityStmt.run(targetRecordId, 'task', timestamp);
-            upsertTaskStateStmt.run(targetRecordId, 'todo', null, null, null, timestamp);
+            upsertTaskStateStmt.run(targetRecordId, 'todo', null, null, null, null, timestamp);
           }
         }
 
@@ -1201,6 +1284,7 @@ export const createCollectionRoutes = (deps) => {
     listBacklinks,
     listCollectionFields,
     listCollections,
+    listSubtasks,
     searchMentions,
     searchProjectRecords,
     updateRecord,

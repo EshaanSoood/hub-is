@@ -236,8 +236,8 @@ export const createStatements = (db) => ({
       LIMIT ?
     `),
     insert: db.prepare(`
-      INSERT INTO records (record_id, project_id, collection_id, title, created_by, created_at, updated_at, archived_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+      INSERT INTO records (record_id, project_id, collection_id, title, created_by, created_at, updated_at, archived_at, parent_record_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)
     `),
     update: db.prepare(`
       UPDATE records
@@ -354,27 +354,45 @@ export const createStatements = (db) => ({
   },
   tasks: {
     listVisibleForProject: db.prepare(`
-      SELECT r.*
+      SELECT r.*, ts.category
       FROM records r
       JOIN task_state ts ON ts.record_id = r.record_id
-      WHERE r.project_id = ? AND r.archived_at IS NULL
+      WHERE r.project_id = ? AND r.archived_at IS NULL AND r.parent_record_id IS NULL
       ORDER BY COALESCE(ts.updated_at, r.updated_at) DESC, r.record_id DESC
     `),
     listAssignedForUser: db.prepare(`
-      SELECT r.*
+      SELECT r.*, ts.category
       FROM assignments a
       JOIN records r ON r.record_id = a.record_id
       JOIN task_state ts ON ts.record_id = r.record_id
-      WHERE a.user_id = ? AND r.archived_at IS NULL
+      WHERE a.user_id = ? AND r.archived_at IS NULL AND r.parent_record_id IS NULL
       ORDER BY COALESCE(ts.updated_at, r.updated_at) DESC, r.record_id DESC
     `),
     upsertState: db.prepare(`
-      INSERT INTO task_state (record_id, status, priority, due_at, completed_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO task_state (record_id, status, priority, due_at, category, completed_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(record_id)
-      DO UPDATE SET status = excluded.status, priority = excluded.priority, due_at = excluded.due_at, completed_at = excluded.completed_at, updated_at = excluded.updated_at
+      DO UPDATE SET
+        status = excluded.status,
+        priority = excluded.priority,
+        due_at = excluded.due_at,
+        category = excluded.category,
+        completed_at = excluded.completed_at,
+        updated_at = excluded.updated_at
     `),
     findState: db.prepare('SELECT * FROM task_state WHERE record_id = ?'),
+    listSubtasksByParent: db.prepare(`
+      SELECT r.*, ts.status, ts.priority, ts.due_at, ts.completed_at, ts.category
+      FROM records r
+      LEFT JOIN task_state ts ON ts.record_id = r.record_id
+      WHERE r.parent_record_id = ? AND r.archived_at IS NULL
+      ORDER BY ts.due_at ASC NULLS LAST, r.created_at ASC
+    `),
+    countSubtasksByParent: db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM records
+      WHERE parent_record_id = ? AND archived_at IS NULL
+    `),
     deleteAssignments: db.prepare('DELETE FROM assignments WHERE record_id = ?'),
     insertAssignment: db.prepare('INSERT OR REPLACE INTO assignments (record_id, user_id, assigned_at) VALUES (?, ?, ?)'),
     listAssignments: db.prepare('SELECT * FROM assignments WHERE record_id = ? ORDER BY assigned_at ASC'),

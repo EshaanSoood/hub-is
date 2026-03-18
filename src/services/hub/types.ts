@@ -279,12 +279,15 @@ export interface HubTaskSummary {
   collection_id: string;
   collection_name: string | null;
   title: string;
+  created_at: string;
   updated_at: string;
+  subtask_count: number;
   task_state: {
-    status: string;
-    priority: string | null;
+    status: 'todo' | 'in_progress' | 'done' | 'cancelled';
+    priority: 'low' | 'medium' | 'high' | 'urgent' | null;
     completed_at: string | null;
-    due_at?: string | null;
+    due_at: string | null;
+    category: string | null;
     updated_at: string;
   };
   assignments: Array<{ user_id: string; assigned_at: string }>;
