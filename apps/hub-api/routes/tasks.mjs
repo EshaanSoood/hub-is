@@ -40,6 +40,9 @@ export const createTaskRoutes = (deps) => {
     }
     return String(right.record_id || '').localeCompare(String(left.record_id || ''));
   };
+
+  // buildTaskSummaryForUser keeps project_id/project_name/task_state.category aligned across task endpoints.
+  // visibleProjectTasksStmt excludes subtasks from top-level listings with r.parent_record_id IS NULL.
   const listVisibleProjectTasksForUser = ({ userId, projectId = '' }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
     const personalProjectId = personalProjectIdForUser(userId);
@@ -157,6 +160,7 @@ export const createTaskRoutes = (deps) => {
       title,
       status: asText(body.status) || 'todo',
       priority: asNullableText(body.priority),
+      category: asNullableText(body.category),
     });
 
     send(response, jsonResponse(201, okEnvelope({ task: buildPersonalTaskSummaryFromRecord(taskRecord) })));
