@@ -509,6 +509,7 @@ export const runMigrations = (db) => {
 
   db.exec('BEGIN IMMEDIATE;');
   try {
+    // Superseded later by idx_reminders_due_active once dismissed_at exists.
     db.exec(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_personal_owner
       ON projects(created_by)
@@ -585,6 +586,9 @@ export const runMigrations = (db) => {
       CREATE INDEX IF NOT EXISTS idx_reminders_due_active
       ON reminders(remind_at)
       WHERE fired_at IS NULL AND dismissed_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_reminders_visible_undismissed
+      ON reminders(remind_at)
+      WHERE dismissed_at IS NULL;
     `);
     db.exec('COMMIT;');
   } catch (error) {
