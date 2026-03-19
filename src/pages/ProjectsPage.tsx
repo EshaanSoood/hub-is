@@ -59,8 +59,15 @@ export const ProjectsPage = () => {
   const selectedHubRecordIdRef = useRef<string | null>(null);
 
   const lastOpenedProjectId = safeGetLastProjectId();
+  const visibleProjects = useMemo(
+    () => projects.filter((project) => !project.isPersonal),
+    [projects],
+  );
   const lastOpenedProject = useMemo(
-    () => projects.find((project) => project.id === lastOpenedProjectId) || null,
+    () => {
+      const project = projects.find((entry) => entry.id === lastOpenedProjectId) || null;
+      return project && !project.isPersonal ? project : null;
+    },
     [lastOpenedProjectId, projects],
   );
 
@@ -314,11 +321,11 @@ export const ProjectsPage = () => {
 
         {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
 
-        {!loading && projects.length === 0 ? (
+        {!loading && visibleProjects.length === 0 ? (
           <p className="mt-3 text-sm text-muted">No projects yet. Create one to begin.</p>
         ) : (
           <ul className="mt-3 grid gap-3 md:grid-cols-2" aria-label="Project list">
-            {projects.map((project) => (
+            {visibleProjects.map((project) => (
               <li key={project.id} className="rounded-panel border border-border-muted bg-surface p-3">
                 <p className="text-sm font-bold text-text">{project.name}</p>
                 <p className="mt-1 text-xs text-text-secondary">Role: {project.membershipRole}</p>

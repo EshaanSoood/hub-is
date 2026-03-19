@@ -57,6 +57,7 @@ export interface ProjectRecord {
   summary: string;
   openProjectProjectId: string | null;
   nextcloudFolder: string | null;
+  isPersonal: boolean;
   membershipRole: ProjectMembership['role'];
 }
 

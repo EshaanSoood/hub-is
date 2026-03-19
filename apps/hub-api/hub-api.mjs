@@ -1092,6 +1092,7 @@ const projectRecord = (row) => ({
   created_by: row.created_by,
   created_at: row.created_at,
   updated_at: row.updated_at,
+  is_personal: Number(row.is_personal || 0) === 1 || asText(row.project_type).toLowerCase() === 'personal',
   membership_role: row.membership_role || null,
 });
 
@@ -1531,7 +1532,7 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
   const statusFieldId = newId('fld');
   const priorityFieldId = newId('fld');
 
-  insertProjectWithTypeStmt.run(projectId, `${displayName}'s Hub`, user.user_id, 'personal', now, now);
+  insertProjectWithTypeStmt.run(projectId, `${displayName}'s Hub`, user.user_id, 'personal', 1, now, now);
   insertProjectMemberStmt.run(projectId, user.user_id, 'owner', now);
   insertPaneStmt.run(
     paneId,

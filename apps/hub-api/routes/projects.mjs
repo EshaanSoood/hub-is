@@ -48,6 +48,11 @@ export const createProjectRoutes = (deps) => {
     reassignTasksForRemovedMember,
   } = deps;
 
+  const isPersonalProject = (projectId) => {
+    const project = projectByIdStmt.get(projectId);
+    return Boolean(project) && (Number(project.is_personal || 0) === 1 || String(project.project_type || '').toLowerCase() === 'personal');
+  };
+
   const listProjects = withPolicyGate('projects.view', async ({ response, auth }) => {
     const projects = listProjectsForUserStmt.all(auth.user.user_id).map(projectRecord);
     send(response, jsonResponse(200, okEnvelope({ projects })));
@@ -194,6 +199,10 @@ export const createProjectRoutes = (deps) => {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
+    if (isPersonalProject(projectId)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal project.')));
+      return;
+    }
     const callerRole = normalizeProjectRole(projectMembershipRoleStmt.get(projectId, auth.user.user_id)?.role);
     if (callerRole !== 'owner') {
       send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only project owners can add members directly. Use the invite flow instead.')));
@@ -288,6 +297,10 @@ export const createProjectRoutes = (deps) => {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
+    if (isPersonalProject(projectId)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal project.')));
+      return;
+    }
 
     let body;
     try {
@@ -345,6 +358,10 @@ export const createProjectRoutes = (deps) => {
     });
     if (projectGate.error) {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+    if (isPersonalProject(projectId)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal project.')));
       return;
     }
 
@@ -429,6 +446,10 @@ export const createProjectRoutes = (deps) => {
     });
     if (projectGate.error) {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+    if (isPersonalProject(projectId)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot manage collaborators on a personal project.')));
       return;
     }
 

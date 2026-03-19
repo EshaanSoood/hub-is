@@ -11,8 +11,6 @@ import type {
   ModuleType,
 } from './types';
 
-export const MAX_MODULES_PER_PANE = 6;
-
 export const moduleTemplates: ModuleTemplate[] = [
   { type: 'tasks', label: 'Tasks', defaultSize: 'M', defaultLens: 'project' },
   { type: 'calendar', label: 'Calendar', defaultSize: 'L', defaultLens: 'project' },
@@ -215,8 +213,7 @@ export const parseStoredPanes = (raw: string | null, collaboratorIds: string[]):
 
         const modules = candidate.modules
           .map((moduleValue) => parseModule(moduleValue))
-          .filter((moduleValue): moduleValue is PaneModule => moduleValue !== null)
-          .slice(0, MAX_MODULES_PER_PANE);
+          .filter((moduleValue): moduleValue is PaneModule => moduleValue !== null);
 
         const safeMembers = candidate.customMemberIds.filter((memberId) => collaboratorIds.includes(memberId));
 

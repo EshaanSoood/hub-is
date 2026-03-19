@@ -76,8 +76,8 @@ export const createStatements = (db) => ({
       VALUES (?, ?, ?, ?, ?)
     `),
     insertWithType: db.prepare(`
-      INSERT INTO projects (project_id, name, created_by, project_type, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO projects (project_id, name, created_by, project_type, is_personal, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `),
   },
   projectMembers: {

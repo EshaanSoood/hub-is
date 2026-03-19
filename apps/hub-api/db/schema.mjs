@@ -135,6 +135,7 @@ const resetSchemaToContractV1 = (db) => {
         project_id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         created_by TEXT NOT NULL,
+        is_personal INTEGER NOT NULL DEFAULT 0 CHECK (is_personal IN (0, 1)),
         project_type TEXT NOT NULL DEFAULT 'team' CHECK (project_type IN ('team', 'personal')),
         tasks_collection_id TEXT,
         reminders_collection_id TEXT,

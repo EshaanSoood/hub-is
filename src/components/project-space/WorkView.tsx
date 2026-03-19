@@ -237,8 +237,6 @@ const serializeModules = (modules: ContractModuleConfig[]): Array<Record<string,
     ...(module.binding?.view_id ? { binding: { view_id: module.binding.view_id } } : {}),
   }));
 
-const MAX_MODULES_PER_PANE = 6;
-
 const EMPTY_RUNTIME: WorkViewModuleRuntime = {
   table: {
     views: [],
@@ -391,18 +389,13 @@ export const WorkView = ({
     });
   };
 
-  const handleAddModule = (moduleType: string) => {
-    if (modules.length >= MAX_MODULES_PER_PANE) {
-      setModuleError(`A pane supports up to ${MAX_MODULES_PER_PANE} modules.`);
-      return;
-    }
-
+  const handleAddModule = (moduleType: string, sizeTier: ContractModuleConfig['size_tier']) => {
     const nextModules: ContractModuleConfig[] = [
       ...modules,
       {
         module_instance_id: `${moduleType}-${Date.now()}`,
         module_type: normalizeModuleType(moduleType),
-        size_tier: 'M',
+        size_tier: sizeTier,
         lens: defaultModuleLens(normalizeModuleType(moduleType)),
       },
     ];
@@ -420,6 +413,18 @@ export const WorkView = ({
         ? {
             ...module,
             lens: normalizeModuleLens(module.module_type, lens),
+          }
+        : module,
+    );
+    void saveModules(nextModules);
+  };
+
+  const handleResizeModule = (moduleInstanceId: string, sizeTier: ContractModuleConfig['size_tier']) => {
+    const nextModules = modules.map((module) =>
+      module.module_instance_id === moduleInstanceId
+        ? {
+            ...module,
+            size_tier: sizeTier,
           }
         : module,
     );
@@ -528,8 +533,9 @@ export const WorkView = ({
           onAddModule={handleAddModule}
           onRemoveModule={handleRemoveModule}
           onSetModuleLens={handleSetModuleLens}
+          onResizeModule={handleResizeModule}
           showAddControls={canEditPane}
-          disableAdd={!canEditPane || modules.length >= MAX_MODULES_PER_PANE || isSavingModules}
+          disableAdd={!canEditPane || isSavingModules}
           disableMutations={!canEditPane || isSavingModules}
           renderModuleBody={(module) => {
             if (module.module_type === 'table') {
