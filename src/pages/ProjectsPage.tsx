@@ -23,6 +23,27 @@ const safeGetLastProjectId = (): string => {
   }
 };
 
+const resolveFocusRestoreTarget = (candidate: HTMLElement | null): HTMLElement | null => {
+  if (candidate && candidate.isConnected) {
+    return candidate;
+  }
+  const mainContent = document.getElementById('main-content');
+  if (mainContent instanceof HTMLElement) {
+    if (!mainContent.hasAttribute('tabindex')) {
+      mainContent.setAttribute('tabindex', '-1');
+    }
+    return mainContent;
+  }
+  return null;
+};
+
+const getActiveFocusTarget = (): HTMLElement | null => {
+  if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+    return document.activeElement;
+  }
+  return resolveFocusRestoreTarget(null);
+};
+
 export const ProjectsPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,6 +77,7 @@ export const ProjectsPage = () => {
   const selectedRecordAbortControllerRef = useRef<AbortController | null>(null);
   const selectedRecordRequestIdRef = useRef(0);
   const selectedHubRecordIdRef = useRef<string | null>(null);
+  const selectedHubRecordTriggerRef = useRef<HTMLElement | null>(null);
 
   const lastOpenedProjectId = safeGetLastProjectId();
   const visibleProjects = useMemo(
@@ -75,6 +97,7 @@ export const ProjectsPage = () => {
     if (!taskId) {
       return;
     }
+    selectedHubRecordTriggerRef.current = getActiveFocusTarget();
     selectedHubRecordIdRef.current = taskId;
     setSelectedHubRecordId(taskId);
 
@@ -231,11 +254,13 @@ export const ProjectsPage = () => {
   };
 
   const onOpenHubRecord = useCallback((recordId: string) => {
+    selectedHubRecordTriggerRef.current = getActiveFocusTarget();
     selectedHubRecordIdRef.current = recordId;
     setSelectedHubRecordId(recordId);
   }, []);
 
   const onCloseSelectedRecord = useCallback(() => {
+    selectedHubRecordTriggerRef.current = resolveFocusRestoreTarget(selectedHubRecordTriggerRef.current);
     selectedRecordAbortControllerRef.current?.abort();
     selectedRecordAbortControllerRef.current = null;
     selectedRecordRequestIdRef.current += 1;
@@ -350,6 +375,7 @@ export const ProjectsPage = () => {
       <Dialog
         open={Boolean(selectedHubRecordId)}
         onClose={onCloseSelectedRecord}
+        triggerRef={selectedHubRecordTriggerRef}
         title="Record Inspector"
         description="Review the selected Hub item without leaving the Hub."
         panelClassName="max-w-2xl"

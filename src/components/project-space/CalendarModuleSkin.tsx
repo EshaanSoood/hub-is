@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ModuleEmptyState, ModuleLoadingState } from './ModuleFeedback';
 import { cn } from '../../lib/cn';
 
@@ -130,6 +130,8 @@ export const CalendarModuleSkin = ({
   const [draftTitle, setDraftTitle] = useState('');
   const [draftStartTime, setDraftStartTime] = useState('09:00');
   const [draftEndTime, setDraftEndTime] = useState('10:00');
+  const overflowPopoverRef = useRef<HTMLDivElement | null>(null);
+  const overflowTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const monthLabel = monthCursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
@@ -146,6 +148,16 @@ export const CalendarModuleSkin = ({
     setDraftEndTime('10:00');
     setCreateError(null);
   };
+  const closeOverflowDay = useCallback((restoreFocus = true) => {
+    setOverflowDay(null);
+    if (restoreFocus) {
+      window.setTimeout(() => {
+        if (overflowTriggerRef.current?.isConnected) {
+          overflowTriggerRef.current.focus();
+        }
+      }, 0);
+    }
+  }, []);
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEventSummary[]>();
@@ -160,6 +172,42 @@ export const CalendarModuleSkin = ({
   }, [events]);
 
   const monthCells = useMemo(() => buildMonthCells(monthCursor), [monthCursor]);
+
+  useEffect(() => {
+    if (!overflowDay) {
+      return;
+    }
+
+    const focusTimer = window.setTimeout(() => {
+      const focusTarget = overflowPopoverRef.current?.querySelector<HTMLElement>('button:not([disabled])');
+      if (focusTarget?.isConnected) {
+        focusTarget.focus();
+      }
+    }, 0);
+
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (overflowPopoverRef.current?.contains(target) || overflowTriggerRef.current?.contains(target)) {
+        return;
+      }
+      closeOverflowDay(true);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeOverflowDay(true);
+      }
+    };
+
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [closeOverflowDay, overflowDay]);
 
   const createEventPanel =
     draftDay && onCreateEvent ? (
@@ -433,9 +481,11 @@ export const CalendarModuleSkin = ({
                     })}
                     {hiddenCount > 0 ? (
                       <button
+                        ref={overflowDay === cell.iso ? overflowTriggerRef : undefined}
                         type="button"
                         onClick={(clickEvent) => {
                           clickEvent.stopPropagation();
+                          overflowTriggerRef.current = clickEvent.currentTarget;
                           setOverflowDay((current) => (current === cell.iso ? null : cell.iso));
                         }}
                         className="text-[11px] text-muted underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -446,7 +496,12 @@ export const CalendarModuleSkin = ({
                     ) : null}
                   </div>
                   {overflowDay === cell.iso ? (
-                    <div role="dialog" aria-label="All events this day" className="absolute left-0 top-full z-20 mt-1 w-56 rounded-control border border-border-muted bg-surface-elevated p-2 shadow-soft">
+                    <div
+                      ref={overflowPopoverRef}
+                      role="dialog"
+                      aria-label="All events this day"
+                      className="absolute left-0 top-full z-20 mt-1 w-56 rounded-control border border-border-muted bg-surface-elevated p-2 shadow-soft"
+                    >
                       <ul className="space-y-1">
                         {dayEvents.map((event) => {
                           const timeLabel = formatEventTime(event.event_state.start_dt);
@@ -457,6 +512,7 @@ export const CalendarModuleSkin = ({
                                 className="w-full truncate rounded-control px-1 py-1 text-left text-xs text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                                 onClick={(clickEvent) => {
                                   clickEvent.stopPropagation();
+                                  setOverflowDay(null);
                                   onOpenRecord(event.record_id);
                                 }}
                               >

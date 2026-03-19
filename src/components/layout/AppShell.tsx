@@ -4,6 +4,7 @@ import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
 import { useProjects } from '../../context/ProjectsContext';
 import { QuickCapturePanel } from '../../features/QuickCapture';
+import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
 import { getHubHome } from '../../services/hub/records';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
@@ -164,6 +165,23 @@ const isTextInputElement = (target: EventTarget | null): boolean => {
   return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target.isContentEditable;
 };
 
+const focusElementSoon = (element: HTMLElement | null | undefined) => {
+  window.setTimeout(() => {
+    if (element?.isConnected) {
+      element.focus();
+    }
+  }, 0);
+};
+
+const focusFirstDescendantSoon = (container: HTMLElement | null | undefined, selector: string) => {
+  window.setTimeout(() => {
+    const target = container?.querySelector<HTMLElement>(selector);
+    if (target?.isConnected) {
+      target.focus();
+    }
+  }, 0);
+};
+
 const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
   record: 'Record',
   project: 'Project',
@@ -214,6 +232,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const { sessionSummary, canGlobal, accessToken, signOut } = useAuthz();
   const { projects } = useProjects();
 
+  useRouteFocusReset();
+
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [avatarBroken, setAvatarBroken] = useState(false);
@@ -248,11 +268,21 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const searchDismissedRef = useRef(false);
   const searchRequestVersionRef = useRef(0);
   const quickNavRef = useRef<HTMLDivElement | null>(null);
+  const quickNavTriggerRef = useRef<HTMLButtonElement | null>(null);
   const quickNavInputRef = useRef<HTMLInputElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
+  const profileTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
+  const notificationsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const notificationsPanelRef = useRef<HTMLDivElement | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
+  const contextMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const captureTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const quickNavWasOpenRef = useRef(false);
+  const notificationsWereOpenRef = useRef(false);
+  const profileWasOpenRef = useRef(false);
+  const contextMenuWasOpenRef = useRef(false);
 
   const visibleTabs = appTabs.filter((tab) => canGlobal(tab.capability));
   const currentContext = deriveContext(location.pathname);
@@ -597,6 +627,73 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     };
   }, [closeQuickNav, navigate, normalizedQuickNavActiveIndex, quickNavItems, quickNavOpen]);
 
+  useEffect(() => {
+    if (quickNavOpen) {
+      focusElementSoon(quickNavInputRef.current);
+    } else if (
+      quickNavWasOpenRef.current
+      && !searchOpen
+      && !notificationsOpen
+      && !profileOpen
+      && !contextMenuOpen
+      && !captureOpen
+    ) {
+      focusElementSoon(quickNavTriggerRef.current);
+    }
+    quickNavWasOpenRef.current = quickNavOpen;
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+
+  useEffect(() => {
+    if (notificationsOpen) {
+      focusFirstDescendantSoon(
+        notificationsPanelRef.current,
+        'button:not([disabled]), select:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+    } else if (
+      notificationsWereOpenRef.current
+      && !searchOpen
+      && !quickNavOpen
+      && !profileOpen
+      && !contextMenuOpen
+      && !captureOpen
+    ) {
+      focusElementSoon(notificationsTriggerRef.current);
+    }
+    notificationsWereOpenRef.current = notificationsOpen;
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+
+  useEffect(() => {
+    if (profileOpen) {
+      focusFirstDescendantSoon(profileMenuRef.current, '[role="menuitem"]');
+    } else if (
+      profileWasOpenRef.current
+      && !searchOpen
+      && !quickNavOpen
+      && !notificationsOpen
+      && !contextMenuOpen
+      && !captureOpen
+    ) {
+      focusElementSoon(profileTriggerRef.current);
+    }
+    profileWasOpenRef.current = profileOpen;
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+
+  useEffect(() => {
+    if (contextMenuOpen) {
+      focusFirstDescendantSoon(contextMenuRef.current, '[role="menuitem"]');
+    } else if (
+      contextMenuWasOpenRef.current
+      && !searchOpen
+      && !quickNavOpen
+      && !notificationsOpen
+      && !profileOpen
+      && !captureOpen
+    ) {
+      focusElementSoon(contextMenuTriggerRef.current);
+    }
+    contextMenuWasOpenRef.current = contextMenuOpen;
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+
   const visibleNotifications = useMemo(() => {
     return notifications.filter((notification) => {
       if (notifFilter === 'unread' && notification.read) {
@@ -734,6 +831,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
         <div className="relative" ref={quickNavRef}>
           <button
+            ref={quickNavTriggerRef}
             type="button"
             onClick={() => {
               if (quickNavOpen) {
@@ -980,6 +1078,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 <Icon name="plus" className="text-[14px]" />
               </button>
               <button
+                ref={contextMenuTriggerRef}
                 type="button"
                 aria-label="Open quick add menu"
                 aria-haspopup="menu"
@@ -1056,6 +1155,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
         <div className="relative" ref={notificationsRef}>
           <button
+            ref={notificationsTriggerRef}
             type="button"
             onClick={() => {
               setNotificationsOpen((current) => !current);
@@ -1083,6 +1183,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
           {notificationsOpen ? (
             <div
+              ref={notificationsPanelRef}
               role="dialog"
               aria-label="Notifications"
               className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-[360px] rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
@@ -1184,6 +1285,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
         <div className="relative" ref={profileRef}>
           <button
+            ref={profileTriggerRef}
             type="button"
             onClick={() => {
               setProfileOpen((current) => !current);
@@ -1214,6 +1316,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
           {profileOpen ? (
             <div
+              ref={profileMenuRef}
               role="menu"
               className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-56 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
             >

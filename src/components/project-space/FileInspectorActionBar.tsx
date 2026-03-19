@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 import { AlertDialog } from '../primitives';
 import { FileMovePopover } from './FileMovePopover';
 
@@ -18,13 +18,16 @@ const ActionButton = ({
   onClick,
   danger = false,
   expanded,
+  buttonRef,
 }: {
   label: string;
   onClick: () => void;
   danger?: boolean;
   expanded?: boolean;
+  buttonRef?: RefObject<HTMLButtonElement | null>;
 }) => (
   <button
+    ref={buttonRef}
     type="button"
     aria-expanded={expanded}
     onClick={onClick}
@@ -56,6 +59,12 @@ export const FileInspectorActionBar = ({
   const [renaming, setRenaming] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const moveRef = useRef<HTMLDivElement | null>(null);
+  const moveTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const renameTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const removeTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const renameRef = useRef<HTMLFormElement | null>(null);
+  const moveWasOpenRef = useRef(false);
+  const renameWasOpenRef = useRef(false);
 
   useEffect(() => {
     setRenameValue(fileName);
@@ -77,6 +86,59 @@ export const FileInspectorActionBar = ({
       document.removeEventListener('mousedown', onMouseDown);
     };
   }, [moveOpen]);
+
+  useEffect(() => {
+    if (!renameOpen) {
+      return;
+    }
+    const onMouseDown = (event: MouseEvent) => {
+      if (
+        renameRef.current
+        && !renameRef.current.contains(event.target as Node)
+        && !renameTriggerRef.current?.contains(event.target as Node)
+      ) {
+        setRenameValue(fileName);
+        setRenameError(null);
+        setRenameOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setRenameValue(fileName);
+        setRenameError(null);
+        setRenameOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [fileName, renameOpen]);
+
+  useEffect(() => {
+    if (!moveOpen && moveWasOpenRef.current) {
+      window.setTimeout(() => {
+        if (moveTriggerRef.current?.isConnected) {
+          moveTriggerRef.current.focus();
+        }
+      }, 0);
+    }
+    moveWasOpenRef.current = moveOpen;
+  }, [moveOpen]);
+
+  useEffect(() => {
+    if (!renameOpen && renameWasOpenRef.current) {
+      window.setTimeout(() => {
+        if (renameTriggerRef.current?.isConnected) {
+          renameTriggerRef.current.focus();
+        }
+      }, 0);
+    }
+    renameWasOpenRef.current = renameOpen;
+  }, [renameOpen]);
 
   const onCopyLink = async () => {
     try {
@@ -106,7 +168,7 @@ export const FileInspectorActionBar = ({
         {!readOnly ? (
           <>
             <div className="relative" ref={moveRef}>
-              <ActionButton label="Move" onClick={() => setMoveOpen((current) => !current)} expanded={moveOpen} />
+              <ActionButton buttonRef={moveTriggerRef} label="Move" onClick={() => setMoveOpen((current) => !current)} expanded={moveOpen} />
               {moveOpen ? (
                 <FileMovePopover
                   panes={panes}
@@ -121,6 +183,7 @@ export const FileInspectorActionBar = ({
             </div>
             <div className="relative">
               <ActionButton
+                buttonRef={renameTriggerRef}
                 label="Rename"
                 onClick={() => {
                   setRenameError(null);
@@ -130,6 +193,7 @@ export const FileInspectorActionBar = ({
               />
               {renameOpen ? (
                 <form
+                  ref={renameRef}
                   className="absolute left-0 top-[calc(100%+4px)] z-[200] min-w-[220px] space-y-xs rounded-panel border border-border-muted bg-surface-elevated p-xs shadow-soft"
                   onSubmit={async (event) => {
                     event.preventDefault();
@@ -189,7 +253,7 @@ export const FileInspectorActionBar = ({
                 </form>
               ) : null}
             </div>
-            <ActionButton label="Remove" onClick={() => setRemoveOpen(true)} danger />
+            <ActionButton buttonRef={removeTriggerRef} label="Remove" onClick={() => setRemoveOpen(true)} danger />
           </>
         ) : null}
       </div>
@@ -201,6 +265,7 @@ export const FileInspectorActionBar = ({
         description="This file will be detached from the record."
         confirmLabel="Remove file"
         onConfirm={onRemove}
+        triggerRef={removeTriggerRef}
       />
     </>
   );
