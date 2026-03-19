@@ -32,7 +32,11 @@ const SvgIcon = ({ className, children, viewBox }: SvgIconProps) => (
 type IconComponent = ComponentType<IconGraphicProps>;
 
 const formatCalendarDay = (value?: Date | number | string, timeZone?: string): string => {
-  const source = value ?? new Date();
+  if (value == null) {
+    return '';
+  }
+
+  const source = value;
   const date = source instanceof Date ? source : new Date(source);
   if (Number.isNaN(date.getTime())) {
     return '';

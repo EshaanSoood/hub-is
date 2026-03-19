@@ -13,10 +13,11 @@ export const ProfilePanel = () => {
   const { sessionSummary, signOut } = useAuthz();
   const { projects } = useProjects();
   const [open, setOpen] = useState(false);
-  const [avatarBroken, setAvatarBroken] = useState(false);
+  const [brokenAvatarUrl, setBrokenAvatarUrl] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const avatarSeed = encodeURIComponent(sessionSummary.name || sessionSummary.email || sessionSummary.userId);
   const avatarUrl = `https://api.dicebear.com/9.x/initials/svg?seed=${avatarSeed}`;
+  const avatarBroken = brokenAvatarUrl === avatarUrl;
   const projectNames =
     projects.length > 0
       ? projects.map((project) => project.name)
@@ -58,7 +59,7 @@ export const ProfilePanel = () => {
               src={avatarUrl}
               alt={`${sessionSummary.name} profile`}
               className="h-24 w-24 rounded-full border-4 border-surface object-cover"
-              onError={() => setAvatarBroken(true)}
+              onError={() => setBrokenAvatarUrl(avatarUrl)}
             />
           )}
           <h2 className="heading-2 mt-4 text-primary-strong">{sessionSummary.name}</h2>
