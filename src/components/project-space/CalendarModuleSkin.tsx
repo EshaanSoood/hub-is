@@ -234,8 +234,8 @@ export const CalendarModuleSkin = ({
                 const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
                 await onCreateEvent({
                   title: draftTitle.trim(),
-                  start_dt: `${draftDay}T${draftStartTime}:00`,
-                  end_dt: `${draftDay}T${draftEndTime}:00`,
+                  start_dt: startDate.toISOString(),
+                  end_dt: endDate.toISOString(),
                   timezone: detectedTimezone,
                 });
                 resetCreateDraft();
