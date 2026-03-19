@@ -3,12 +3,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
 import { useProjects } from '../../context/ProjectsContext';
+import { QuickCapturePanel } from '../../features/QuickCapture';
+import { getHubHome } from '../../services/hub/records';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
 import type { HubNotification } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
 import { buildNotificationDestinationHref } from '../../lib/hubRoutes';
-import { Icon } from '../primitives';
+import { Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
 
 interface ToolbarNotification {
   id: string;
@@ -229,6 +231,18 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [quickNavQuery, setQuickNavQuery] = useState('');
   const [quickNavActiveIndex, setQuickNavActiveIndex] = useState(-1);
   const [notifications, setNotifications] = useState<ToolbarNotification[]>([]);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const [captureIntent, setCaptureIntent] = useState<string | null>(null);
+  const [captureActivationKey, setCaptureActivationKey] = useState(0);
+  const [captureAnnouncement, setCaptureAnnouncement] = useState('');
+  const [captureHomeData, setCaptureHomeData] = useState<{
+    personalProjectId: string | null;
+    captures: Awaited<ReturnType<typeof getHubHome>>['captures'];
+  }>({
+    personalProjectId: null,
+    captures: [],
+  });
+  const [captureLoading, setCaptureLoading] = useState(false);
 
   const searchRef = useRef<HTMLDivElement | null>(null);
   const searchDismissedRef = useRef(false);
@@ -238,14 +252,52 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const profileRef = useRef<HTMLDivElement | null>(null);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
+  const captureTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const visibleTabs = appTabs.filter((tab) => canGlobal(tab.capability));
   const currentContext = deriveContext(location.pathname);
   const isOnHubHome = location.pathname === '/projects';
+  const currentProjectId = useMemo(() => {
+    const match = location.pathname.match(/^\/projects\/([^/]+)/);
+    if (!match || location.pathname === '/projects') {
+      return null;
+    }
+    return decodeURIComponent(match[1]);
+  }, [location.pathname]);
+  const preferredCaptureProjectId = useMemo(() => {
+    if (!currentProjectId) {
+      return null;
+    }
+    const project = projects.find((entry) => entry.id === currentProjectId) || null;
+    return project && !project.isPersonal ? project.id : null;
+  }, [currentProjectId, projects]);
   const breadcrumb = useMemo(
     () => buildBreadcrumb(location.pathname, projects.map((project) => ({ id: project.id, name: project.name }))),
     [location.pathname, projects],
   );
+
+  const refreshCaptureData = useCallback(async () => {
+    if (!accessToken) {
+      setCaptureHomeData({ personalProjectId: null, captures: [] });
+      setCaptureLoading(false);
+      return;
+    }
+    setCaptureLoading(true);
+    try {
+      const next = await getHubHome(accessToken, {
+        tasks_limit: 1,
+        events_limit: 1,
+        captures_limit: 20,
+        notifications_limit: 1,
+      });
+      setCaptureHomeData({
+        personalProjectId: next.personal_project_id,
+        captures: next.captures,
+      });
+    } finally {
+      setCaptureLoading(false);
+    }
+  }, [accessToken]);
 
   const refreshNotifications = useCallback(async () => {
     if (!accessToken) {
@@ -260,6 +312,24 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       return null;
     }
   }, [accessToken]);
+
+  useEffect(() => {
+    void refreshCaptureData();
+  }, [refreshCaptureData]);
+
+  useEffect(() => {
+    if (!captureOpen) {
+      return;
+    }
+    void refreshCaptureData();
+    setCaptureAnnouncement('Quick capture panel opened.');
+    const timer = window.setTimeout(() => {
+      setCaptureAnnouncement('');
+    }, 1500);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [captureOpen, refreshCaptureData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -368,6 +438,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        setCaptureOpen(false);
         closeSearch();
         closeQuickNav();
         setProfileOpen(false);
@@ -564,32 +635,30 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const navigateToCapture = (intent: string | null) => {
-    const params = new URLSearchParams(location.search);
-    params.set('capture', '1');
-    if (intent && intent !== 'inbox') {
-      params.set('intent', intent);
-    } else {
-      params.delete('intent');
-    }
-
-    const isProjectContext = /^\/projects\/[^/]+/.test(location.pathname) && location.pathname !== '/projects';
-    if (isProjectContext) {
-      navigate(`${location.pathname}?${params.toString()}`);
-      return;
-    }
-
-    navigate(`/projects?${params.toString()}`);
-  };
+  const openCapturePanel = useCallback((intent: string | null) => {
+    setCaptureIntent(intent && intent !== 'inbox' ? intent : null);
+    setCaptureActivationKey((current) => current + 1);
+    setCaptureOpen(true);
+    closeSearch();
+    closeQuickNav();
+    setProfileOpen(false);
+    setNotificationsOpen(false);
+    setContextMenuOpen(false);
+  }, [closeQuickNav, closeSearch]);
 
   const onQuickAdd = () => {
-    navigateToCapture(null);
+    if (captureOpen && !captureIntent) {
+      setCaptureOpen(false);
+      return;
+    }
+    openCapturePanel(null);
   };
 
   const openContextMenu = (anchor: HTMLElement) => {
     const rect = anchor.getBoundingClientRect();
     setContextMenuPos({ x: rect.left, y: rect.top - 8 });
     setContextMenuOpen(true);
+    setCaptureOpen(false);
     setNotificationsOpen(false);
     setProfileOpen(false);
     closeSearch();
@@ -597,7 +666,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   };
 
   const onQuickAddContextual = (type: string) => {
-    navigateToCapture(type === 'inbox' ? null : type);
+    openCapturePanel(type === 'inbox' ? null : type);
   };
 
   const onSelectSearchResult = useCallback(
@@ -612,6 +681,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       setNotificationsOpen(false);
       setProfileOpen(false);
       setContextMenuOpen(false);
+      setCaptureOpen(false);
     },
     [closeQuickNav, navigate, resetSearch],
   );
@@ -676,6 +746,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               setProfileOpen(false);
               setNotificationsOpen(false);
               setContextMenuOpen(false);
+              setCaptureOpen(false);
             }}
             aria-label="Quick navigation"
             aria-expanded={quickNavOpen}
@@ -756,6 +827,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 setProfileOpen(false);
                 setNotificationsOpen(false);
                 setContextMenuOpen(false);
+                setCaptureOpen(false);
               }}
               onKeyDown={(event) => {
                 if (event.key === 'ArrowDown') {
@@ -894,30 +966,69 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </div>
         </div>
 
-        <div className="flex items-center overflow-hidden rounded-control border border-border-muted">
-          <button
-            type="button"
-            onClick={onQuickAdd}
-            aria-label="Quick add to inbox"
-            className="flex h-7 w-7 items-center justify-center text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          >
-            <Icon name="plus" className="text-[14px]" />
-          </button>
-          <button
-            type="button"
-            aria-label="Open quick add menu"
-            aria-haspopup="menu"
-            aria-expanded={contextMenuOpen}
-            onClick={(event) => openContextMenu(event.currentTarget)}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              openContextMenu(event.currentTarget);
-            }}
-            className="flex h-7 w-6 items-center justify-center border-l border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          >
-            <Icon name="chevron-down" className="text-[10px]" />
-          </button>
-        </div>
+        <Popover open={captureOpen} onOpenChange={setCaptureOpen} modal>
+          <PopoverAnchor asChild>
+            <div className="flex items-center overflow-hidden rounded-control border border-border-muted">
+              <button
+                ref={captureTriggerRef}
+                type="button"
+                onClick={onQuickAdd}
+                aria-label="Open quick capture"
+                aria-expanded={captureOpen}
+                className="flex h-7 w-7 items-center justify-center text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              >
+                <Icon name="plus" className="text-[14px]" />
+              </button>
+              <button
+                type="button"
+                aria-label="Open quick add menu"
+                aria-haspopup="menu"
+                aria-expanded={contextMenuOpen}
+                onClick={(event) => openContextMenu(event.currentTarget)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  openContextMenu(event.currentTarget);
+                }}
+                className="flex h-7 w-6 items-center justify-center border-l border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              >
+                <Icon name="chevron-down" className="text-[10px]" />
+              </button>
+            </div>
+          </PopoverAnchor>
+
+          {captureOpen ? (
+            <PopoverContent
+              side="top"
+              align="center"
+              sideOffset={8}
+              role="dialog"
+              aria-label="Quick capture"
+              className="z-[120] w-[min(92vw,440px)] rounded-panel border border-border-muted bg-surface-elevated p-4 shadow-soft"
+              onOpenAutoFocus={(event) => {
+                event.preventDefault();
+              }}
+              onCloseAutoFocus={(event) => {
+                if (captureTriggerRef.current) {
+                  event.preventDefault();
+                  captureTriggerRef.current.focus();
+                }
+              }}
+            >
+              <QuickCapturePanel
+                accessToken={accessToken ?? null}
+                projects={projects}
+                personalProjectId={captureHomeData.personalProjectId}
+                captures={captureHomeData.captures}
+                capturesLoading={captureLoading}
+                onCaptureComplete={() => void refreshCaptureData()}
+                preferredProjectId={preferredCaptureProjectId}
+                initialIntent={captureIntent}
+                activationKey={captureActivationKey}
+                onRequestClose={() => setCaptureOpen(false)}
+              />
+            </PopoverContent>
+          ) : null}
+        </Popover>
 
         {contextMenuOpen ? (
           <div
@@ -952,6 +1063,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               closeSearch();
               closeQuickNav();
               setContextMenuOpen(false);
+              setCaptureOpen(false);
             }}
             aria-label={unreadNotifications > 0 ? `${unreadNotifications} unread notifications` : 'Notifications'}
             className="relative flex h-9 w-9 items-center justify-center rounded-control text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -1079,6 +1191,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               closeSearch();
               closeQuickNav();
               setContextMenuOpen(false);
+              setCaptureOpen(false);
             }}
             aria-label="Account menu"
             aria-expanded={profileOpen}
@@ -1148,6 +1261,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </div>
         </nav>
       </footer>
+      <div className="sr-only" aria-live="polite">
+        {captureAnnouncement}
+      </div>
     </div>
   );
 };

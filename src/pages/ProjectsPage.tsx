@@ -5,7 +5,6 @@ import { useAuthz } from '../context/AuthzContext';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Dialog } from '../components/primitives';
 import { PersonalizedDashboardPanel } from '../features/PersonalizedDashboardPanel';
-import { QuickCapture } from '../features/QuickCapture';
 import { createHubProject } from '../services/projectsService';
 import { getHubHome, getRecordDetail } from '../services/hub/records';
 import type { HubRecordDetail } from '../services/hub/types';
@@ -254,13 +253,6 @@ export const ProjectsPage = () => {
         description="Your personal big picture across projects, with work opening in the Record Inspector without leaving the Hub."
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <QuickCapture
-              accessToken={accessToken ?? null}
-              projects={projects}
-              personalProjectId={homeData.personal_project_id ?? null}
-              captures={homeData.captures}
-              onCaptureComplete={() => void refreshHome()}
-            />
             {lastOpenedProject ? (
               <button
                 type="button"
