@@ -53,6 +53,11 @@ jobs:
 
       - name: Deploy tuwunel
         run: |
+          if [ ! -f "$DEPLOY_REMOTE_TUWUNEL_DIR/.env" ]; then
+            echo "Skipping Tuwunel deploy because $DEPLOY_REMOTE_TUWUNEL_DIR/.env is not provisioned on the server."
+            exit 0
+          fi
+
           mkdir -p "$DEPLOY_REMOTE_TUWUNEL_DIR"
           cp -a apps/tuwunel/. "$DEPLOY_REMOTE_TUWUNEL_DIR/"
           docker compose -f "$DEPLOY_REMOTE_TUWUNEL_DIR/docker-compose.yml" up -d --build
