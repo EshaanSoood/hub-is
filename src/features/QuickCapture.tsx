@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { IconButton, Select } from '../components/primitives';
+import { Icon, IconButton, Select } from '../components/primitives';
 import { Dialog as DialogRoot, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { focusWhenReady } from '../lib/focusWhenReady';
 import { listCollections } from '../services/hub/collections';
@@ -541,19 +541,10 @@ export const QuickCapture = ({
   };
 
   const renderAssignmentIcon = (expanded: boolean) => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {expanded ? (
-        <>
-          <path d="M18 15 12 9 6 15" />
-        </>
-      ) : (
-        <>
-          <path d="M3 7h18" />
-          <path d="M6 12h12" />
-          <path d="M10 17h4" />
-        </>
-      )}
-    </svg>
+    <Icon
+      name={expanded ? 'chevron-down' : 'menu'}
+      className={expanded ? 'rotate-180 text-[14px] transition-transform' : 'text-[14px]'}
+    />
   );
 
   return (
@@ -562,8 +553,9 @@ export const QuickCapture = ({
         type="button"
         onClick={onOpenCapture}
         ref={captureTriggerRef}
-        className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="inline-flex items-center gap-2 rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       >
+        <Icon name="thought-pile" className="text-[16px]" />
         New Capture
       </button>
 
@@ -588,8 +580,9 @@ export const QuickCapture = ({
             <button
               type="button"
               onClick={onCloseCapture}
-              className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
+              <Icon name="close" className="text-[12px]" />
               Close
             </button>
           </DialogHeader>

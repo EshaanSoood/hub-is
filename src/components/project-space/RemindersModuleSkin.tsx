@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Icon } from '../primitives';
 import { parseReminderInput } from '../../lib/nlp/reminder-parser/index';
 import type { ReminderParseResult } from '../../lib/nlp/reminder-parser/types';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
@@ -310,6 +311,13 @@ export const RemindersModuleSkin = ({
 
   return (
     <section className="space-y-3" aria-label="Reminders module">
+      <div className="flex items-center justify-between gap-2">
+        <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
+          <Icon name="reminders" className="text-[16px]" />
+          Reminders
+        </p>
+        <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{reminders.length}</span>
+      </div>
       <form
         className="space-y-2"
         onSubmit={(event) => {
@@ -341,8 +349,9 @@ export const RemindersModuleSkin = ({
           <button
             type="submit"
             disabled={readOnly || submitting}
-            className="rounded-panel border border-border-muted px-3 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-panel border border-border-muted px-3 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
+            <Icon name="plus" className="text-[14px]" />
             Add
           </button>
         </div>
@@ -456,9 +465,7 @@ export const RemindersModuleSkin = ({
                   }}
                   className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1 text-primary outline-none transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <span aria-hidden="true" className="text-base leading-none">
-                    ✓
-                  </span>
+                  <Icon name="checkmark" className="text-[14px]" />
                 </button>
               </div>
             </div>

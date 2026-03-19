@@ -8,6 +8,7 @@ import { searchHub, type HubSearchResult } from '../../services/hub/search';
 import type { HubNotification } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
 import { buildNotificationDestinationHref } from '../../lib/hubRoutes';
+import { Icon } from '../primitives';
 
 interface ToolbarNotification {
   id: string;
@@ -213,6 +214,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const [quickNavOpen, setQuickNavOpen] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
@@ -682,9 +684,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               background: quickNavOpen ? 'color-mix(in srgb, var(--color-primary) 12%, transparent)' : 'transparent',
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M2 4h10M2 7h7M2 10h5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-            </svg>
+            <Icon name="menu" className="text-[14px]" />
             Nav
           </button>
 
@@ -901,9 +901,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             aria-label="Quick add to inbox"
             className="flex h-7 w-7 items-center justify-center text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <Icon name="plus" className="text-[14px]" />
           </button>
           <button
             type="button"
@@ -917,9 +915,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             }}
             className="flex h-7 w-6 items-center justify-center border-l border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-              <path d="M2 3.5 5 6.5 8 3.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <Icon name="chevron-down" className="text-[10px]" />
           </button>
         </div>
 
@@ -960,15 +956,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             aria-label={unreadNotifications > 0 ? `${unreadNotifications} unread notifications` : 'Notifications'}
             className="relative flex h-9 w-9 items-center justify-center rounded-control text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-              <path
-                d="M9 2a5 5 0 00-5 5v3l-1.5 2h13L14 10V7a5 5 0 00-5-5zM7 14a2 2 0 004 0"
-                stroke="currentColor"
-                strokeWidth="1.25"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <Icon
+              name={unreadNotifications > 0 ? 'bell-unread' : 'bell-read'}
+              className="text-[18px]"
+            />
             {unreadNotifications > 0 ? (
               <span
                 aria-hidden="true"
@@ -1094,7 +1085,18 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             className="h-7 w-7 overflow-hidden rounded-full border-2 border-transparent bg-muted p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             style={{ borderColor: profileOpen ? 'var(--color-primary)' : 'transparent' }}
           >
-            <img src={avatarUrl} alt={sessionSummary.name} className="h-full w-full object-cover" />
+            {avatarBroken ? (
+              <span className="flex h-full w-full items-center justify-center text-text">
+                <Icon name="user" className="text-[16px]" />
+              </span>
+            ) : (
+              <img
+                src={avatarUrl}
+                alt={sessionSummary.name}
+                className="h-full w-full object-cover"
+                onError={() => setAvatarBroken(true)}
+              />
+            )}
           </button>
 
           {profileOpen ? (
@@ -1103,7 +1105,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-56 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
             >
               <div className="flex items-center gap-sm border-b border-border-muted px-md py-md">
-                <img src={avatarUrl} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                {avatarBroken ? (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-text"
+                  >
+                    <Icon name="user" className="text-[18px]" />
+                  </span>
+                ) : (
+                  <img src={avatarUrl} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                )}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-text">{sessionSummary.name}</p>
                   <p className="truncate text-xs text-muted">{sessionSummary.email}</p>

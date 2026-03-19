@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from '../primitives';
 
 interface QuickThoughtEntry {
   id: string;
@@ -214,8 +215,9 @@ const ThoughtRow = ({
                   type="button"
                   disabled={readOnly}
                   onClick={onSelect}
-                  className="rounded-control border border-border-muted px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
+                  <Icon name="edit" className="text-[12px]" />
                   Edit
                 </button>
                 <button
@@ -242,8 +244,9 @@ const ThoughtRow = ({
                 type="button"
                 disabled={readOnly}
                 onClick={onDelete}
-                className="rounded-control border border-border-muted px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               >
+                <Icon name="trash" className="text-[12px]" />
                 Delete
               </button>
             ) : null}
@@ -396,7 +399,10 @@ export const QuickThoughtsModuleSkin = ({
 
       <div className="mb-xs flex items-start justify-between gap-xs">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-muted">Quick Thoughts</p>
+          <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted">
+            <Icon name="thought-pile" className="text-[16px]" />
+            Quick Thoughts
+          </p>
           <p className="mt-1 text-[11px] text-text-secondary">Pane-local capture. These notes stay in this workspace only.</p>
         </div>
         <button
@@ -407,10 +413,10 @@ export const QuickThoughtsModuleSkin = ({
             setDraftText('');
             setAnnouncement('Ready for a new Quick Thought.');
           }}
-          className="h-7 w-7 rounded-control border border-border-muted text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           aria-label="New Quick Thought"
         >
-          +
+          <Icon name="plus" className="text-[14px]" />
         </button>
       </div>
 

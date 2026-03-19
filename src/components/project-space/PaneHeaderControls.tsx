@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { IconButton, Popover, PopoverContent, PopoverTrigger, ToggleButton } from '../primitives';
+import { Icon, IconButton, Popover, PopoverContent, PopoverTrigger, ToggleButton } from '../primitives';
 import type { AudienceMode } from './types';
 import { cn } from '../../lib/cn';
 
@@ -30,28 +30,10 @@ interface PaneHeaderControlsProps {
   disabled?: boolean;
 }
 
-const PinIcon = ({ filled }: { filled: boolean }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <line x1="12" y1="17" x2="12" y2="22" />
-    <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
-  </svg>
-);
-
 const FocusIcon = ({ active }: { active: boolean }) => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="12" cy="12" r={active ? '4' : '2'} fill={active ? 'currentColor' : 'none'} />
     <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
-  </svg>
-);
-
-const TuneIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <line x1="4" y1="6" x2="20" y2="6" />
-    <line x1="4" y1="12" x2="20" y2="12" />
-    <line x1="4" y1="18" x2="20" y2="18" />
-    <circle cx="8" cy="6" r="2" fill="currentColor" />
-    <circle cx="16" cy="12" r="2" fill="currentColor" />
-    <circle cx="10" cy="18" r="2" fill="currentColor" />
   </svg>
 );
 
@@ -101,7 +83,7 @@ export const PaneHeaderControls = ({
             aria-expanded={configOpen}
             disabled={disabled}
           >
-            <TuneIcon />
+            <Icon name="settings" className="text-[14px]" />
           </IconButton>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-72 space-y-3">
@@ -155,7 +137,7 @@ export const PaneHeaderControls = ({
         disabled={disabled}
         onClick={onPinToggle}
       >
-        <PinIcon filled={isPinned} />
+        <Icon name="pin" className="text-[14px]" />
       </IconButton>
 
       <IconButton

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Icon } from '../primitives';
 import { cn } from '../../lib/cn';
 import { PRIORITY_DOT_COLORS, type PriorityLevel } from './designTokens';
 import { TasksTab, type SortChain, type TaskItem, type TaskPriorityValue, type TaskStatus } from './TasksTab';
@@ -253,19 +254,20 @@ const TaskComposer = ({
                 setParentTaskId('');
                 setParentPickerOpen(false);
               }}
-              className="text-xs text-muted hover:text-danger"
+              className="inline-flex items-center text-xs text-muted hover:text-danger"
               aria-label="Clear parent task"
             >
-              ×
+              <Icon name="close" className="text-[12px]" />
             </button>
           </div>
         ) : (
           <button
             type="button"
             onClick={() => setParentPickerOpen((current) => !current)}
-            className="text-xs text-muted hover:text-text"
+            className="inline-flex items-center gap-1 text-xs text-muted hover:text-text"
           >
-            + Subtask of...
+            <Icon name="plus" className="text-[12px]" />
+            Subtask of...
           </button>
         )}
 
@@ -313,7 +315,10 @@ const TasksModuleMedium = ({
   return (
     <section className="rounded-panel border border-border-muted bg-surface-elevated p-4" aria-label="Tasks module">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-text">Tasks</p>
+        <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
+          <Icon name="tasks" className="text-[16px]" />
+          Tasks
+        </p>
         <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
       </div>
 
@@ -407,13 +412,21 @@ const TasksModuleLarge = ({
 
   return (
     <section className="space-y-3" aria-label="Tasks module">
+      <div className="flex items-center justify-between gap-2">
+        <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
+          <Icon name="tasks" className="text-[16px]" />
+          Tasks
+        </p>
+        <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
+      </div>
       {!readOnly ? (
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => handleOpenComposer(null)}
-            className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary"
+            className="inline-flex items-center gap-2 rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary"
           >
+            <Icon name="plus" className="text-[14px]" />
             New Task
           </button>
           {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}

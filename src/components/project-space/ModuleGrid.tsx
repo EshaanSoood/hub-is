@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Icon, type IconName } from '../primitives';
 
 export type ContractModuleLens = 'project' | 'pane' | 'pane_scratch';
 
@@ -46,6 +47,22 @@ const moduleLabel = (moduleType: string): string =>
 const isLensConfigurable = (moduleType: string): boolean =>
   MODULE_CATALOG.find((entry) => entry.type === moduleType)?.lensConfigurable ?? true;
 
+const moduleIconName = (moduleType: string): IconName | null => {
+  if (moduleType === 'calendar') {
+    return 'calendar';
+  }
+  if (moduleType === 'tasks') {
+    return 'tasks';
+  }
+  if (moduleType === 'reminders') {
+    return 'reminders';
+  }
+  if (moduleType === 'quick_thoughts') {
+    return 'thought-pile';
+  }
+  return null;
+};
+
 export const ModuleGrid = ({
   modules,
   onAddModule,
@@ -66,7 +83,12 @@ export const ModuleGrid = ({
             className={`rounded-panel border border-subtle bg-elevated p-3 ${sizeClass[module.size_tier]}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-primary">{moduleLabel(module.module_type)}</p>
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                {moduleIconName(module.module_type) ? (
+                  <Icon name={moduleIconName(module.module_type)!} className="text-[16px]" />
+                ) : null}
+                {moduleLabel(module.module_type)}
+              </p>
               <div className="flex flex-wrap items-center gap-2">
                 {isLensConfigurable(module.module_type) ? (
                   <>
@@ -98,8 +120,9 @@ export const ModuleGrid = ({
                   type="button"
                   disabled={disableMutations}
                   onClick={() => onRemoveModule(module.module_instance_id)}
-                  className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  <Icon name="trash" className="text-[12px]" />
                   Remove
                 </button>
               </div>
@@ -121,8 +144,13 @@ export const ModuleGrid = ({
               data-testid={`add-module-${moduleType.type}`}
               disabled={disableAdd}
               onClick={() => onAddModule(moduleType.type)}
-              className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
+              {moduleIconName(moduleType.type) ? (
+                <Icon name={moduleIconName(moduleType.type)!} className="text-[16px]" />
+              ) : (
+                <Icon name="plus" className="text-[14px]" />
+              )}
               Add module: {moduleType.label}
             </button>
           ))}
