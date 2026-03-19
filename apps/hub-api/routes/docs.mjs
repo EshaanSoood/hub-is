@@ -762,7 +762,6 @@ export const createDocRoutes = (deps) => {
       userId: auth.user.user_id,
       displayName: auth.user.display_name,
       accessToken: auth.token,
-      devAuthMode: auth.devAuthMode,
     });
 
     send(
@@ -781,7 +780,6 @@ export const createDocRoutes = (deps) => {
             ticket_issued_at: ticket.issued_at,
             ticket_expires_at: ticket.expires_at,
             ticket_expires_in_ms: ticket.expires_in_ms,
-            dev_auth_mode: Boolean(auth.devAuthMode),
           },
         }),
       ),

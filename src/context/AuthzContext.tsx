@@ -1,10 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { anonymousUser } from '../data/authzData';
-import { env } from '../lib/env';
 import { getKeycloak, isKeycloakConfigured } from '../lib/keycloak';
 import { getMembershipForProject, hasGlobalCapability } from '../lib/policy';
 import { fetchSessionSummary } from '../services/sessionService';
-import { HUB_DEV_AUTH_ACCESS_TOKEN } from '../services/hubAuthHeaders';
 import type {
   GlobalCapability,
   ProjectCapability,
@@ -19,7 +17,6 @@ interface AuthzContextValue {
   sessionSummary: SessionSummary;
   signedIn: boolean;
   authReady: boolean;
-  devAuthMode: boolean;
   keycloakConfigured: boolean;
   authError?: string;
   accessToken?: string;
@@ -82,15 +79,12 @@ const clearE2eAccessToken = (): void => {
 
 export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
   const keycloakConfigured = isKeycloakConfigured;
-  const [authReady, setAuthReady] = useState(!keycloakConfigured && !env.hubDevAuthEnabled);
+  const [authReady, setAuthReady] = useState(!keycloakConfigured);
   const [signedIn, setSignedIn] = useState(false);
-  const [devAuthMode, setDevAuthMode] = useState(false);
   const [authError, setAuthError] = useState<string | undefined>(
-    env.hubDevAuthEnabled
+    keycloakConfigured
       ? undefined
-      : keycloakConfigured
-        ? undefined
-        : 'Keycloak is not configured. Set VITE_KEYCLOAK_URL, VITE_KEYCLOAK_REALM, and VITE_KEYCLOAK_CLIENT_ID.',
+      : 'Keycloak is not configured. Set VITE_KEYCLOAK_URL, VITE_KEYCLOAK_REALM, and VITE_KEYCLOAK_CLIENT_ID.',
   );
   const [sessionSummary, setSessionSummary] = useState<SessionSummary>(emptySessionSummary);
   const [accessToken, setAccessToken] = useState<string | undefined>(undefined);
@@ -100,13 +94,12 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
     if (e2eAccessToken) {
       let cancelled = false;
       void fetchSessionSummary(e2eAccessToken)
-        .then((result) => {
+        .then((nextSessionSummary) => {
           if (cancelled) {
             return;
           }
-          setSessionSummary(result.sessionSummary);
+          setSessionSummary(nextSessionSummary);
           setAccessToken(e2eAccessToken);
-          setDevAuthMode(result.devAuthMode);
           setSignedIn(true);
           setAuthError(undefined);
           setAuthReady(true);
@@ -117,40 +110,9 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
           }
           clearE2eAccessToken();
           setSignedIn(false);
-          setDevAuthMode(false);
           setSessionSummary(emptySessionSummary);
           setAccessToken(undefined);
           setAuthError(error instanceof Error ? error.message : 'Failed to load session from bootstrap token.');
-          setAuthReady(true);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    if (env.hubDevAuthEnabled) {
-      let cancelled = false;
-      void fetchSessionSummary(HUB_DEV_AUTH_ACCESS_TOKEN)
-        .then((result) => {
-          if (cancelled) {
-            return;
-          }
-          setSessionSummary(result.sessionSummary);
-          setAccessToken(HUB_DEV_AUTH_ACCESS_TOKEN);
-          setSignedIn(true);
-          setDevAuthMode(result.devAuthMode);
-          setAuthError(undefined);
-          setAuthReady(true);
-        })
-        .catch((error) => {
-          if (cancelled) {
-            return;
-          }
-          setSignedIn(false);
-          setDevAuthMode(false);
-          setSessionSummary(emptySessionSummary);
-          setAccessToken(undefined);
-          setAuthError(error instanceof Error ? error.message : 'Unable to enable local development auth mode.');
           setAuthReady(true);
         });
       return () => {
@@ -181,7 +143,6 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (!authenticated || !keycloak.token) {
           setSignedIn(false);
-          setDevAuthMode(false);
           setSessionSummary(emptySessionSummary);
           setAccessToken(undefined);
           setAuthError(undefined);
@@ -190,14 +151,13 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
-          const result = await fetchSessionSummary(keycloak.token);
+          const nextSessionSummary = await fetchSessionSummary(keycloak.token);
           if (cancelled) {
             return;
           }
 
-          setSessionSummary(result.sessionSummary);
+          setSessionSummary(nextSessionSummary);
           setAccessToken(keycloak.token);
-          setDevAuthMode(result.devAuthMode);
           setSignedIn(true);
           setAuthError(undefined);
           setAuthReady(true);
@@ -208,7 +168,6 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
 
           console.error('Session summary fetch failed', error);
           setSignedIn(false);
-          setDevAuthMode(false);
           setSessionSummary(emptySessionSummary);
           setAccessToken(undefined);
           setAuthError(
@@ -226,7 +185,6 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
 
         console.error('Keycloak init failed', error);
         setSignedIn(false);
-        setDevAuthMode(false);
         setSessionSummary(emptySessionSummary);
         setAccessToken(undefined);
         setAuthError('Unable to initialize Keycloak authentication.');
@@ -239,7 +197,7 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (readE2eAccessToken() || env.hubDevAuthEnabled) {
+    if (readE2eAccessToken()) {
       return;
     }
 
@@ -258,14 +216,12 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        const result = await fetchSessionSummary(keycloak.token);
-        setSessionSummary(result.sessionSummary);
+        const nextSessionSummary = await fetchSessionSummary(keycloak.token);
+        setSessionSummary(nextSessionSummary);
         setAccessToken(keycloak.token);
-        setDevAuthMode(result.devAuthMode);
       } catch (error) {
         console.error('Token/session refresh failed', error);
         setSignedIn(false);
-        setDevAuthMode(false);
         setSessionSummary(emptySessionSummary);
         setAccessToken(undefined);
       }
@@ -310,7 +266,6 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
       sessionSummary,
       signedIn,
       authReady,
-      devAuthMode,
       keycloakConfigured,
       authError,
       accessToken,
@@ -331,9 +286,8 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
-          const result = await fetchSessionSummary(token);
-          setSessionSummary(result.sessionSummary);
-          setDevAuthMode(result.devAuthMode);
+          const nextSessionSummary = await fetchSessionSummary(token);
+          setSessionSummary(nextSessionSummary);
           setAccessToken(token);
           setAuthError(undefined);
         } catch (error) {
@@ -343,10 +297,6 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
       signIn: async () => {
         const keycloak = getKeycloak();
         if (!keycloak) {
-          if (env.hubDevAuthEnabled) {
-            setAuthError('Dev auth mode is active locally. Disable VITE_HUB_DEV_AUTH_ENABLED to use Keycloak sign-in.');
-            return;
-          }
           setAuthError(
             'Keycloak is not configured. Set VITE_KEYCLOAK_URL, VITE_KEYCLOAK_REALM, and VITE_KEYCLOAK_CLIENT_ID.',
           );
@@ -364,16 +314,14 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
           // no-op
         }
         const keycloak = getKeycloak();
-        if (devAuthMode || !keycloak) {
+        if (!keycloak) {
           setSignedIn(false);
-          setDevAuthMode(false);
           setSessionSummary(emptySessionSummary);
           setAccessToken(undefined);
           return;
         }
 
         setSignedIn(false);
-        setDevAuthMode(false);
         setSessionSummary(emptySessionSummary);
         setAccessToken(undefined);
         await keycloak.logout({
@@ -381,7 +329,7 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
         });
       },
     }),
-    [accessToken, authError, authReady, devAuthMode, globalCapabilities, keycloakConfigured, memberships, sessionSummary, signedIn, user],
+    [accessToken, authError, authReady, globalCapabilities, keycloakConfigured, memberships, sessionSummary, signedIn, user],
   );
 
   return <AuthzContext.Provider value={value}>{children}</AuthzContext.Provider>;

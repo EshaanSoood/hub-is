@@ -28,7 +28,6 @@ export const createUserRoutes = (deps) => {
           },
           memberships,
           sessionSummary,
-          dev_auth_mode: Boolean(auth.devAuthMode),
         }),
       ),
     );

@@ -8,21 +8,6 @@ const readNumber = (key: string, fallback: number): number => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-const isLoopbackHostName = (hostname: string): boolean => {
-  const normalized = hostname.trim().toLowerCase();
-  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1' || normalized === '[::1]';
-};
-
-const canEnableDevAuthClient = (): boolean => {
-  if (import.meta.env.VITE_HUB_DEV_AUTH_ENABLED !== 'true') {
-    return false;
-  }
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  return isLoopbackHostName(window.location.hostname);
-};
-
 const defaultCollabWsUrl = (): string => {
   if (typeof window === 'undefined') {
     return 'wss://collab.eshaansood.org';
@@ -69,5 +54,4 @@ export const env = {
   nextcloudAppPassword: read('VITE_NEXTCLOUD_APP_PASSWORD'),
   githubRepo: read('VITE_GITHUB_REPOSITORY'),
   githubToken: read('VITE_GITHUB_TOKEN'),
-  hubDevAuthEnabled: canEnableDevAuthClient(),
 };

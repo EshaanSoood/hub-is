@@ -13,7 +13,6 @@ const PORT = Number(process.env.PORT || '1234');
 const HOST = (process.env.HOST || '0.0.0.0').trim();
 const HUB_API_URL = (process.env.HUB_API_URL || 'http://127.0.0.1:3001').trim().replace(/\/+$/, '');
 const HUB_DB_PATH = process.env.HUB_DB_PATH || '/data/hub.sqlite';
-const HUB_DEV_AUTH_ENABLED = process.env.HUB_DEV_AUTH_ENABLED === 'true';
 const KEYCLOAK_ISSUER = (process.env.KEYCLOAK_ISSUER || '').trim();
 const KEYCLOAK_AUDIENCE = (process.env.KEYCLOAK_AUDIENCE || '').trim();
 const KEYCLOAK_JWKS_CACHE_MAX_AGE_MS = Number(process.env.KEYCLOAK_JWKS_CACHE_MAX_AGE_MS || '600000');
@@ -23,10 +22,6 @@ const HUB_COLLAB_MAX_CONNECTIONS = Number(process.env.HUB_COLLAB_MAX_CONNECTIONS
 const HUB_COLLAB_MAX_DOCUMENTS = Number(process.env.HUB_COLLAB_MAX_DOCUMENTS || '500');
 const DOC_SAVE_DEBOUNCE_MS = Number(process.env.HUB_COLLAB_SAVE_DEBOUNCE_MS || '750');
 const HUB_API_FETCH_TIMEOUT_MS = Number(process.env.HUB_API_FETCH_TIMEOUT_MS || '8000');
-const HUB_DEV_AUTH_HEADER = 'x-hub-dev-auth';
-const HUB_DEV_AUTH_COOKIE = 'hub_dev_auth';
-const HUB_DEV_AUTH_SUB = 'dev-auth-local-sub';
-const HUB_DEV_AUTH_ACCESS_TOKEN = 'dev-auth-local-token';
 
 const wsReadyStateConnecting = WebSocket.CONNECTING;
 const wsReadyStateOpen = WebSocket.OPEN;
@@ -46,18 +41,7 @@ const jwtVerifier = (() => {
     });
   }
 
-  if (HUB_DEV_AUTH_ENABLED) {
-    return {
-      verifyToken: async () => {
-        throw new Error('JWT verification unavailable while running local dev auth mode.');
-      },
-      jwksUrl: '',
-      issuer: '',
-      expectedAudiences: [],
-    };
-  }
-
-  throw new Error('KEYCLOAK_ISSUER must be configured unless HUB_DEV_AUTH_ENABLED=true.');
+  throw new Error('KEYCLOAK_ISSUER must be configured.');
 })();
 
 const db = new DatabaseSync(HUB_DB_PATH, {
@@ -117,54 +101,12 @@ const parseTokenFromProtocols = (headerValue) => {
   return '';
 };
 
-const normalizeRemoteAddress = (value) => asText(value).replace(/^::ffff:/i, '').toLowerCase();
-
-const isLoopbackAddress = (value) => {
-  const address = normalizeRemoteAddress(value);
-  return address === '127.0.0.1' || address === '::1';
-};
-
-const parseCookieHeader = (request) => {
-  const raw = asText(request.headers.cookie || '');
-  const cookieMap = new Map();
-  if (!raw) {
-    return cookieMap;
-  }
-  for (const segment of raw.split(';')) {
-    const [name, ...valueParts] = segment.split('=');
-    const key = asText(name);
-    if (!key) {
-      continue;
-    }
-    cookieMap.set(key, asText(valueParts.join('=')));
-  }
-  return cookieMap;
-};
-
-const isDevAuthRequest = (request) => {
-  if (!HUB_DEV_AUTH_ENABLED) {
-    return false;
-  }
-
-  if (!isLoopbackAddress(request.socket?.remoteAddress || request.connection?.remoteAddress || '')) {
-    return false;
-  }
-
-  const headerRaw = request.headers[HUB_DEV_AUTH_HEADER];
-  const headerValue = Array.isArray(headerRaw) ? asText(headerRaw[0]) : asText(headerRaw);
-  const cookieValue = parseCookieHeader(request).get(HUB_DEV_AUTH_COOKIE);
-  return headerValue === '1' || cookieValue === '1';
-};
-
-const buildHubApiAuthHeaders = (token, { hasBody = false, devAuthMode = false } = {}) => {
+const buildHubApiAuthHeaders = (token, { hasBody = false } = {}) => {
   const headers = {
     Authorization: `Bearer ${token}`,
   };
   if (hasBody) {
     headers['Content-Type'] = 'application/json';
-  }
-  if (devAuthMode) {
-    headers['X-Hub-Dev-Auth'] = '1';
   }
   return headers;
 };
@@ -245,7 +187,6 @@ const createDocState = (docId) => {
     lastKnownToken: '',
     projectId: '',
     paneId: '',
-    devAuthMode: null,
   };
 
   ydoc.on('update', (update, origin) => {
@@ -363,47 +304,9 @@ const authorizeJwtConnection = async (token, docId) => {
     user_id: user.user_id,
     display_name: displayName,
     access_token: token,
-    dev_auth_mode: false,
   };
 };
-
-const authorizeDevConnection = async (docId) => {
-  const user = userByKcSubStmt.get(HUB_DEV_AUTH_SUB);
-  if (!user) {
-    throw new Error('user_not_registered');
-  }
-
-  const doc = docAccessByIdStmt.get(docId);
-  if (!doc) {
-    throw new Error('doc_not_found');
-  }
-
-  const projectMembership = projectMembershipStmt.get(doc.project_id, user.user_id);
-  if (!projectMembership) {
-    throw new Error('project_membership_required');
-  }
-
-  const isOwner = normalizeProjectRole(projectMembership.role) === 'owner';
-  const paneEditor = paneEditorStmt.get(doc.pane_id, user.user_id);
-  if (!isOwner && !paneEditor?.ok) {
-    throw new Error('pane_write_required');
-  }
-
-  return {
-    doc_id: doc.doc_id,
-    pane_id: doc.pane_id,
-    project_id: doc.project_id,
-    user_id: user.user_id,
-    display_name: user.display_name || 'Dev Local User',
-    access_token: HUB_DEV_AUTH_ACCESS_TOKEN,
-    dev_auth_mode: true,
-  };
-};
-
-const authorizeConnection = async (request, token, docId) => {
-  if (isDevAuthRequest(request)) {
-    return authorizeDevConnection(docId);
-  }
+const authorizeConnection = async (token, docId) => {
   return authorizeJwtConnection(token, docId);
 };
 
@@ -435,7 +338,7 @@ const authorizeWithWsTicket = async (wsTicket, docId) => {
   return payload.data.ticket;
 };
 
-const loadDocSnapshot = async (state, token, devAuthMode = false) => {
+const loadDocSnapshot = async (state, token) => {
   if (state.loaded) {
     return;
   }
@@ -447,7 +350,7 @@ const loadDocSnapshot = async (state, token, devAuthMode = false) => {
         try {
           response = await fetchWithTimeout(`${HUB_API_URL}/api/hub/docs/${encodeURIComponent(state.docId)}`, {
             method: 'GET',
-            headers: buildHubApiAuthHeaders(token, { devAuthMode }),
+            headers: buildHubApiAuthHeaders(token),
           });
         } catch (error) {
           if (error instanceof DOMException && error.name === 'AbortError') {
@@ -503,7 +406,7 @@ const persistDocSnapshot = async (state) => {
   try {
     response = await fetchWithTimeout(`${HUB_API_URL}/api/hub/docs/${encodeURIComponent(state.docId)}`, {
       method: 'PUT',
-      headers: buildHubApiAuthHeaders(state.lastKnownToken, { hasBody: true, devAuthMode: state.devAuthMode }),
+      headers: buildHubApiAuthHeaders(state.lastKnownToken, { hasBody: true }),
       body: JSON.stringify({
         snapshot_version: nextVersion,
         snapshot_payload: {
@@ -587,7 +490,7 @@ const server = createServer((request, response) => {
 const wss = new WebSocketServer({ noServer: true, maxPayload: 50 * 1024 * 1024 });
 
 wss.on('connection', async (ws, request, context) => {
-  const { docId, token, projectId, paneId, userId, displayName, devAuthMode } = context;
+  const { docId, token, projectId, paneId, userId, displayName } = context;
 
   ws.docId = docId;
   ws.userId = userId;
@@ -602,16 +505,10 @@ wss.on('connection', async (ws, request, context) => {
 
   state.projectId = projectId;
   state.paneId = paneId;
-  const requestedDevAuthMode = Boolean(devAuthMode);
-  if (state.devAuthMode !== null && state.devAuthMode !== requestedDevAuthMode) {
-    ws.close(1008, 'auth_mode_conflict');
-    return;
-  }
   state.lastKnownToken = token;
-  state.devAuthMode = requestedDevAuthMode;
 
   try {
-    await loadDocSnapshot(state, token, requestedDevAuthMode);
+    await loadDocSnapshot(state, token);
   } catch (error) {
     ws.close(1011, error instanceof Error ? error.message : 'snapshot_load_failed');
     return;
@@ -695,7 +592,7 @@ server.on('upgrade', async (request, socket, head) => {
 
     const authorization = wsTicket
       ? await authorizeWithWsTicket(wsTicket, docId)
-      : await authorizeConnection(request, token, docId);
+      : await authorizeConnection(token, docId);
     const context = {
       docId: authorization.doc_id,
       projectId: authorization.project_id,
@@ -703,7 +600,6 @@ server.on('upgrade', async (request, socket, head) => {
       userId: authorization.user_id,
       displayName: authorization.display_name || 'Collaborator',
       token: authorization.access_token || token,
-      devAuthMode: Boolean(authorization.dev_auth_mode),
     };
 
     wss.handleUpgrade(request, socket, head, (ws) => {

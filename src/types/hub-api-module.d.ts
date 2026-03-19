@@ -8,7 +8,6 @@ declare module '../../apps/hub-api/hub-api.mjs' {
       };
       token?: string;
       claims?: unknown;
-      devAuthMode?: boolean;
       error?: never;
     };
     params?: Record<string, string>;

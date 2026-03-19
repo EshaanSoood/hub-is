@@ -32,7 +32,6 @@ import { createViewRoutes } from './routes/views.mjs';
 const PORT = Number(process.env.PORT || '3001');
 const HUB_DB_PATH = process.env.HUB_DB_PATH || '/data/hub.sqlite';
 const ALLOWED_ORIGIN = process.env.POSTMARK_ALLOWED_ORIGIN || '*';
-const HUB_DEV_AUTH_ENABLED = process.env.HUB_DEV_AUTH_ENABLED === 'true';
 const KEYCLOAK_ISSUER = (process.env.KEYCLOAK_ISSUER || '').trim();
 const KEYCLOAK_AUDIENCE = (process.env.KEYCLOAK_AUDIENCE || '').trim();
 const KEYCLOAK_JWKS_CACHE_MAX_AGE_MS = Number(process.env.KEYCLOAK_JWKS_CACHE_MAX_AGE_MS || '600000');
@@ -46,12 +45,6 @@ const HUB_COLLAB_TICKET_TTL_MS_RAW = Number.parseInt(String(process.env.HUB_COLL
 const HUB_COLLAB_TICKET_TTL_MS = Number.isInteger(HUB_COLLAB_TICKET_TTL_MS_RAW)
   ? Math.min(900_000, Math.max(10_000, HUB_COLLAB_TICKET_TTL_MS_RAW))
   : 120_000;
-const HUB_DEV_AUTH_HEADER = 'x-hub-dev-auth';
-const HUB_DEV_AUTH_COOKIE = 'hub_dev_auth';
-const HUB_DEV_AUTH_ACCESS_TOKEN = 'dev-auth-local-token';
-const HUB_DEV_AUTH_SUB = 'dev-auth-local-sub';
-const HUB_DEV_AUTH_NAME = 'Dev Local User';
-const HUB_DEV_AUTH_EMAIL = 'dev@local';
 const MATRIX_HOMESERVER_URL = 'https://chat.eshaansood.org';
 const MATRIX_SERVER_NAME = 'chat.eshaansood.org';
 const MATRIX_ACCOUNT_SECRET_VERSION = 'v1';
@@ -341,47 +334,6 @@ const parseBearerToken = (request) => {
   return token;
 };
 
-const normalizeRemoteAddress = (value) => asText(value).replace(/^::ffff:/i, '').toLowerCase();
-
-const isLoopbackAddress = (value) => {
-  const address = normalizeRemoteAddress(value);
-  return address === '127.0.0.1' || address === '::1';
-};
-
-const parseCookieHeader = (request) => {
-  const raw = asText(request.headers.cookie || '');
-  const cookieMap = new Map();
-  if (!raw) {
-    return cookieMap;
-  }
-
-  for (const segment of raw.split(';')) {
-    const [name, ...valueParts] = segment.split('=');
-    const key = asText(name);
-    if (!key) {
-      continue;
-    }
-    cookieMap.set(key, asText(valueParts.join('=')));
-  }
-  return cookieMap;
-};
-
-const isDevAuthRequest = (request) => {
-  if (!HUB_DEV_AUTH_ENABLED) {
-    return false;
-  }
-
-  if (!isLoopbackAddress(request.socket?.remoteAddress || request.connection?.remoteAddress || '')) {
-    return false;
-  }
-
-  const headerRaw = request.headers[HUB_DEV_AUTH_HEADER];
-  const headerValue = Array.isArray(headerRaw) ? asText(headerRaw[0]) : asText(headerRaw);
-  const headerEnabled = headerValue === '1';
-  const cookieEnabled = parseCookieHeader(request).get(HUB_DEV_AUTH_COOKIE) === '1';
-  return headerEnabled || cookieEnabled;
-};
-
 const projectRoleSet = new Set(['owner', 'member']);
 const fieldTypeSet = new Set([
   'text',
@@ -446,18 +398,7 @@ const jwtVerifier = (() => {
     });
   }
 
-  if (HUB_DEV_AUTH_ENABLED) {
-    return {
-      verifyToken: async () => {
-        throw new Error('JWT verification unavailable while running local dev auth mode.');
-      },
-      jwksUrl: '',
-      issuer: '',
-      expectedAudiences: [],
-    };
-  }
-
-  throw new Error('KEYCLOAK_ISSUER must be configured unless HUB_DEV_AUTH_ENABLED=true.');
+  throw new Error('KEYCLOAK_ISSUER must be configured.');
 })();
 
 const db = new DatabaseSync(HUB_DB_PATH);
@@ -1017,7 +958,7 @@ const cleanupExpiredCollabTickets = () => {
 const collabTicketCleanupInterval = setInterval(cleanupExpiredCollabTickets, 60_000);
 collabTicketCleanupInterval.unref?.();
 
-const issueCollabTicket = ({ docId, paneId, projectId, userId, displayName, accessToken, devAuthMode = false }) => {
+const issueCollabTicket = ({ docId, paneId, projectId, userId, displayName, accessToken }) => {
   cleanupExpiredCollabTickets();
   const ticket = `wst_${randomUUID().replace(/-/g, '')}`;
   const issuedAtMs = Date.now();
@@ -1030,7 +971,6 @@ const issueCollabTicket = ({ docId, paneId, projectId, userId, displayName, acce
     user_id: userId,
     display_name: displayName,
     access_token: accessToken,
-    dev_auth_mode: devAuthMode,
     issued_at_ms: issuedAtMs,
     expires_at_ms: expiresAtMs,
   });
@@ -1064,57 +1004,13 @@ const consumeCollabTicket = ({ wsTicket, docId }) => {
       user_id: entry.user_id,
       display_name: entry.display_name,
       access_token: entry.access_token,
-      dev_auth_mode: Boolean(entry.dev_auth_mode),
       issued_at: new Date(entry.issued_at_ms).toISOString(),
       expires_at: new Date(entry.expires_at_ms).toISOString(),
     },
   };
 };
 
-const ensureDevAuthUser = () => {
-  const existing = userByKcSubStmt.get(HUB_DEV_AUTH_SUB);
-  if (!existing) {
-    const now = nowIso();
-    const userId = newId('usr');
-    db.exec('BEGIN');
-    try {
-      insertUserStmt.run(userId, HUB_DEV_AUTH_SUB, HUB_DEV_AUTH_NAME, HUB_DEV_AUTH_EMAIL, now, now);
-      createPersonalProjectForUser({
-        user_id: userId,
-        kc_sub: HUB_DEV_AUTH_SUB,
-        display_name: HUB_DEV_AUTH_NAME,
-        email: HUB_DEV_AUTH_EMAIL,
-        created_at: now,
-        updated_at: now,
-      });
-      db.exec('COMMIT');
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
-    return userByIdStmt.get(userId);
-  }
-
-  updateUserStmt.run(HUB_DEV_AUTH_NAME, HUB_DEV_AUTH_EMAIL, nowIso(), existing.user_id);
-  return userByIdStmt.get(existing.user_id);
-};
-
 const ensureUserFromRequest = async (request) => {
-  if (isDevAuthRequest(request)) {
-    const user = ensureDevAuthUser();
-    return {
-      status: 200,
-      token: HUB_DEV_AUTH_ACCESS_TOKEN,
-      claims: {
-        sub: HUB_DEV_AUTH_SUB,
-        name: HUB_DEV_AUTH_NAME,
-        email: HUB_DEV_AUTH_EMAIL,
-      },
-      user,
-      devAuthMode: true,
-    };
-  }
-
   const token = parseBearerToken(request);
   if (!token) {
     return { status: 401, code: 'unauthorized', message: 'Missing bearer token.' };
@@ -1152,7 +1048,6 @@ const ensureUserFromRequest = async (request) => {
         token,
         claims,
         user: userByIdStmt.get(existingByEmail.user_id),
-        devAuthMode: false,
       };
     }
 
@@ -1179,7 +1074,6 @@ const ensureUserFromRequest = async (request) => {
       token,
       claims,
       user: userByIdStmt.get(userId),
-      devAuthMode: false,
     };
   }
 
@@ -1189,7 +1083,6 @@ const ensureUserFromRequest = async (request) => {
     token,
     claims,
     user: userByIdStmt.get(existing.user_id),
-    devAuthMode: false,
   };
 };
 
@@ -2097,7 +1990,6 @@ const withAuth = async (request) => {
     user: identity.user,
     token: identity.token,
     claims: identity.claims,
-    devAuthMode: Boolean(identity.devAuthMode),
   };
 };
 
