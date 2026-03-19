@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { AlertDialog } from '../primitives';
+import { AlertDialog, Icon } from '../primitives';
 
 type TriggerEvent =
   | 'record.created'
@@ -247,10 +247,10 @@ export const AutomationBuilder = ({
           <button
             type="button"
             onClick={closeEditor}
-            className="rounded-control border border-border-muted px-2 py-1 text-sm text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1 text-sm text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             aria-label="Back to automation list"
           >
-            {'<'}
+            <Icon name="back" className="text-[12px]" />
           </button>
           <h2 className="heading-3 text-primary">{editingRule ? 'Edit rule' : 'New rule'}</h2>
         </div>
@@ -480,16 +480,18 @@ export const AutomationBuilder = ({
                           type="button"
                           disabled={isBusy}
                           onClick={() => openEditEditor(rule)}
-                          className="rounded-control border border-border-muted px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-60"
+                          className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-60"
                         >
+                          <Icon name="edit" className="text-[12px]" />
                           Edit
                         </button>
                         <button
                           type="button"
                           disabled={isBusy}
                           onClick={() => setDeleteTarget(rule)}
-                          className="rounded-control border border-border-muted px-2 py-1 text-xs text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-60"
+                          className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1 text-xs text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-60"
                         >
+                          <Icon name="trash" className="text-[12px]" />
                           Delete
                         </button>
                       </div>

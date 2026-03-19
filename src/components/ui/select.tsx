@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { cn } from '../../lib/cn';
+import { Icon } from '../primitives/Icon';
 
 export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
@@ -20,7 +21,9 @@ export const SelectTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <SelectPrimitive.Icon className="text-muted">▾</SelectPrimitive.Icon>
+    <SelectPrimitive.Icon className="text-muted">
+      <Icon name="chevron-down" className="text-[14px]" />
+    </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
@@ -40,11 +43,11 @@ export const SelectContent = React.forwardRef<
       {...props}
     >
       <SelectPrimitive.ScrollUpButton className="flex cursor-default items-center justify-center py-1 text-muted">
-        ↑
+        <Icon name="chevron-down" className="rotate-180 text-[14px]" />
       </SelectPrimitive.ScrollUpButton>
       <SelectPrimitive.Viewport className="p-1">{children}</SelectPrimitive.Viewport>
       <SelectPrimitive.ScrollDownButton className="flex cursor-default items-center justify-center py-1 text-muted">
-        ↓
+        <Icon name="chevron-down" className="text-[14px]" />
       </SelectPrimitive.ScrollDownButton>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
@@ -64,7 +67,9 @@ export const SelectItem = React.forwardRef<
     {...props}
   >
     <span className="absolute left-2 inline-flex h-4 w-4 items-center justify-center">
-      <SelectPrimitive.ItemIndicator>✓</SelectPrimitive.ItemIndicator>
+      <SelectPrimitive.ItemIndicator>
+        <Icon name="checkmark" className="text-[12px]" />
+      </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>

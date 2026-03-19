@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjects } from '../../context/ProjectsContext';
-import { AccessibleDialog } from '../primitives';
+import { AccessibleDialog, Icon } from '../primitives';
 
 const projectToneClasses = [
   'bg-info-subtle text-primary-strong',
@@ -13,9 +13,11 @@ export const ProfilePanel = () => {
   const { sessionSummary, signOut } = useAuthz();
   const { projects } = useProjects();
   const [open, setOpen] = useState(false);
+  const [brokenAvatarUrl, setBrokenAvatarUrl] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const avatarSeed = encodeURIComponent(sessionSummary.name || sessionSummary.email || sessionSummary.userId);
   const avatarUrl = `https://api.dicebear.com/9.x/initials/svg?seed=${avatarSeed}`;
+  const avatarBroken = brokenAvatarUrl === avatarUrl;
   const projectNames =
     projects.length > 0
       ? projects.map((project) => project.name)
@@ -48,11 +50,18 @@ export const ProfilePanel = () => {
         panelClassName="w-full max-w-sm rounded-panel bg-surface-elevated p-6 shadow-soft"
       >
         <div className="flex flex-col items-center">
-          <img
-            src={avatarUrl}
-            alt={`${sessionSummary.name} profile`}
-            className="h-24 w-24 rounded-full border-4 border-surface object-cover"
-          />
+          {avatarBroken ? (
+            <span className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-surface bg-surface text-text">
+              <Icon name="user" className="text-[40px]" />
+            </span>
+          ) : (
+            <img
+              src={avatarUrl}
+              alt={`${sessionSummary.name} profile`}
+              className="h-24 w-24 rounded-full border-4 border-surface object-cover"
+              onError={() => setBrokenAvatarUrl(avatarUrl)}
+            />
+          )}
           <h2 className="heading-2 mt-4 text-primary-strong">{sessionSummary.name}</h2>
           <p className="mt-1 text-sm text-muted">{sessionSummary.role}</p>
         </div>

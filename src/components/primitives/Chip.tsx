@@ -1,3 +1,4 @@
+import { Icon } from './Icon';
 import { cn } from '../../lib/cn';
 
 type ChipVariant = 'neutral' | 'selected' | 'dismissible';
@@ -55,7 +56,7 @@ export const FilterChip = ({
         aria-label="Dismiss filter"
         className="rounded-control px-0.5 text-current"
       >
-        ×
+        <Icon name="close" className="text-[12px]" />
       </button>
     ) : null}
   </span>

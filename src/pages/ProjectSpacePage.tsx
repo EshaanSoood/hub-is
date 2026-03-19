@@ -31,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/project-space/ProjectSpaceDialogPrimitives';
-import { InlineNotice } from '../components/primitives';
+import { Icon, InlineNotice } from '../components/primitives';
 import { BacklinksPanel } from '../components/project-space/BacklinksPanel';
 import { CommentComposer } from '../components/project-space/CommentComposer';
 import { CommentRail } from '../components/project-space/CommentRail';
@@ -1076,14 +1076,15 @@ const ProjectSpaceWorkspace = ({
                               </button>
                               <button
                                 type="button"
-                                className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
+                                className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
                                 onClick={() => void onTogglePinned(pane)}
                               >
+                                <Icon name="pin" className="text-[12px]" />
                                 {pane.pinned ? 'Unpin' : 'Pin'}
                               </button>
                               <button
                                 type="button"
-                                className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
+                                className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
                                 onClick={() => {
                                   const nextName = window.prompt('Rename pane', pane.name);
                                   if (nextName) {
@@ -1091,14 +1092,16 @@ const ProjectSpaceWorkspace = ({
                                   }
                                 }}
                               >
+                                <Icon name="edit" className="text-[12px]" />
                                 Rename
                               </button>
                               {editablePanes.length > 1 ? (
                                 <button
                                   type="button"
-                                  className="rounded-panel border border-danger px-2 py-1 text-xs font-semibold text-danger"
+                                  className="inline-flex items-center gap-1 rounded-panel border border-danger px-2 py-1 text-xs font-semibold text-danger"
                                   onClick={() => void onDeletePaneWithNavigation(pane)}
                                 >
+                                  <Icon name="trash" className="text-[12px]" />
                                   Delete
                                 </button>
                               ) : null}
@@ -1355,8 +1358,9 @@ const ProjectSpaceWorkspace = ({
                           <button
                             type="submit"
                             disabled={uploadingDocAsset}
-                            className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
                           >
+                            <Icon name="upload" className="text-[12px]" />
                             {uploadingDocAsset ? 'Uploading...' : 'Upload + embed'}
                           </button>
                         </form>
@@ -1642,8 +1646,9 @@ const ProjectSpaceWorkspace = ({
                     <button
                       type="submit"
                       disabled={uploadingAttachment}
-                      className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
                     >
+                      <Icon name="upload" className="text-[12px]" />
                       {uploadingAttachment ? 'Uploading...' : 'Attach'}
                     </button>
                   </form>

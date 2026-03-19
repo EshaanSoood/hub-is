@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from '../primitives';
 
 export interface FilesModuleItem {
   id: string;
@@ -234,11 +235,11 @@ const DropZone = ({ compact, onFiles, readOnly = false }: { compact?: boolean; o
       <button
         type="button"
         disabled={readOnly}
-        className="h-7 w-7 rounded-control border border-border-muted bg-surface text-lg text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted bg-surface text-lg text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={() => inputRef.current?.click()}
         aria-label="Upload files"
       >
-        +
+        <Icon name="upload" className="text-[14px]" />
       </button>
       <input
         ref={inputRef}
