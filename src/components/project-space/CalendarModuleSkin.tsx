@@ -23,6 +23,13 @@ interface CalendarModuleSkinProps {
   loading: boolean;
   scope: CalendarScope;
   onScopeChange: (scope: CalendarScope) => void;
+  onCreateEvent?: (payload: {
+    title: string;
+    start_dt: string;
+    end_dt: string;
+    timezone: string;
+    location?: string;
+  }) => Promise<void>;
   onOpenRecord: (recordId: string) => void;
 }
 
@@ -111,15 +118,34 @@ export const CalendarModuleSkin = ({
   loading,
   scope,
   onScopeChange,
+  onCreateEvent,
   onOpenRecord,
 }: CalendarModuleSkinProps) => {
   const [view, setView] = useState<CalendarView>('month');
   const [monthCursor, setMonthCursor] = useState(() => new Date());
   const [overflowDay, setOverflowDay] = useState<string | null>(null);
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [draftDay, setDraftDay] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState('');
+  const [draftStartTime, setDraftStartTime] = useState('09:00');
+  const [draftEndTime, setDraftEndTime] = useState('10:00');
 
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const monthLabel = monthCursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   const todayKey = toLocalDateKey(new Date());
+  const openCreatePanel = (day: string) => {
+    setDraftDay(day);
+    setOverflowDay(null);
+    setCreateError(null);
+  };
+  const resetCreateDraft = () => {
+    setDraftDay(null);
+    setDraftTitle('');
+    setDraftStartTime('09:00');
+    setDraftEndTime('10:00');
+    setCreateError(null);
+  };
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEventSummary[]>();
@@ -135,20 +161,123 @@ export const CalendarModuleSkin = ({
 
   const monthCells = useMemo(() => buildMonthCells(monthCursor), [monthCursor]);
 
+  const createEventPanel =
+    draftDay && onCreateEvent ? (
+      <section className="space-y-3 rounded-panel border border-subtle bg-surface-elevated p-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold text-text">{asDateLabel(fromLocalDateKey(draftDay))}</h3>
+        </div>
+        <label className="flex flex-col gap-1 text-xs text-muted">
+          Event title
+          <input
+            autoFocus
+            type="text"
+            value={draftTitle}
+            onChange={(event) => setDraftTitle(event.target.value)}
+            disabled={isCreatingEvent}
+            className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            placeholder="New event"
+          />
+        </label>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            Start time
+            <input
+              type="time"
+              value={draftStartTime}
+              onChange={(event) => setDraftStartTime(event.target.value)}
+              disabled={isCreatingEvent}
+              className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            End time
+            <input
+              type="time"
+              value={draftEndTime}
+              onChange={(event) => setDraftEndTime(event.target.value)}
+              disabled={isCreatingEvent}
+              className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            />
+          </label>
+        </div>
+        <div aria-live="polite" className="min-h-5 text-xs text-danger">
+          {createError || ''}
+        </div>
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={resetCreateDraft}
+            disabled={isCreatingEvent}
+            className="rounded-control border border-border-muted px-3 py-1.5 text-sm text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={draftTitle.trim().length === 0 || isCreatingEvent}
+            onClick={async () => {
+              if (!onCreateEvent || !draftDay || draftTitle.trim().length === 0) {
+                return;
+              }
+
+              const startDate = new Date(`${draftDay}T${draftStartTime}:00`);
+              const endDate = new Date(`${draftDay}T${draftEndTime}:00`);
+              if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate.getTime() <= startDate.getTime()) {
+                setCreateError('End time must be after start time.');
+                return;
+              }
+
+              setCreateError(null);
+              setIsCreatingEvent(true);
+              try {
+                await onCreateEvent({
+                  title: draftTitle.trim(),
+                  start_dt: startDate.toISOString(),
+                  end_dt: endDate.toISOString(),
+                  timezone,
+                });
+                resetCreateDraft();
+              } catch (error) {
+                setCreateError(error instanceof Error ? error.message : 'Failed to create event.');
+              } finally {
+                setIsCreatingEvent(false);
+              }
+            }}
+            className="rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isCreatingEvent ? 'Creating...' : 'Create'}
+          </button>
+        </div>
+      </section>
+    ) : null;
+
   if (loading) {
     return <ModuleLoadingState label="Loading calendar" rows={5} />;
   }
 
   if (events.length === 0) {
     return (
-      <ModuleEmptyState
-        title={scope === 'relevant' ? 'No relevant events yet.' : 'No project events yet.'}
-        description={
-          scope === 'relevant'
-            ? 'Relevant is showing only your events right now. Switch to All to see the wider project calendar.'
-            : 'Create an event to populate this calendar.'
-        }
-      />
+      <div className="space-y-3">
+        <ModuleEmptyState
+          title={scope === 'relevant' ? 'No relevant events yet.' : 'No project events yet.'}
+          description={
+            scope === 'relevant'
+              ? 'Relevant is showing only your events right now. Switch to All to see the wider project calendar.'
+              : 'Create an event to populate this calendar.'
+          }
+        />
+        {onCreateEvent ? (
+          <button
+            type="button"
+            onClick={() => openCreatePanel(todayKey)}
+            className="rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          >
+            New Event
+          </button>
+        ) : null}
+        {createEventPanel}
+      </div>
     );
   }
 
@@ -189,15 +318,28 @@ export const CalendarModuleSkin = ({
           </button>
         ))}
 
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          className="ml-auto shrink-0 rounded-control border border-subtle bg-surface px-2 py-1 text-xs text-text-secondary"
-          title="Timezone controls are coming soon."
-        >
-          {timezone}
-        </button>
+        {onCreateEvent ? (
+          <button
+            type="button"
+            onClick={() => {
+              setView('month');
+              openCreatePanel(todayKey);
+            }}
+            className="ml-auto shrink-0 rounded-control border border-primary bg-primary px-2 py-1 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          >
+            New Event
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            className="ml-auto shrink-0 rounded-control border border-subtle bg-surface px-2 py-1 text-xs text-text-secondary"
+            title="Timezone controls are coming soon."
+          >
+            {timezone}
+          </button>
+        )}
       </div>
 
       {view === 'month' ? (
@@ -241,10 +383,23 @@ export const CalendarModuleSkin = ({
                   key={cell.iso}
                   role="gridcell"
                   aria-label={asDateLabel(fromLocalDateKey(cell.iso))}
+                  onClick={onCreateEvent ? () => openCreatePanel(cell.iso) : undefined}
+                  onKeyDown={
+                    onCreateEvent
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openCreatePanel(cell.iso);
+                          }
+                        }
+                      : undefined
+                  }
+                  tabIndex={onCreateEvent ? 0 : undefined}
                   className={cn(
                     'relative min-h-24 rounded-control p-1 shadow-[0_1px_2px_rgb(0_0_0_/_0.12)]',
                     isToday ? 'border border-primary bg-primary/10' : 'border border-transparent bg-surface-elevated',
                     !cell.currentMonth && 'opacity-20',
+                    onCreateEvent && 'cursor-pointer',
                   )}
                 >
                   <p className="flex justify-end">
@@ -265,7 +420,10 @@ export const CalendarModuleSkin = ({
                           key={event.record_id}
                           type="button"
                           className="w-full truncate rounded-control border-l-2 border-primary bg-primary/10 px-1 py-0.5 text-left text-[11px] text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                          onClick={() => onOpenRecord(event.record_id)}
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            onOpenRecord(event.record_id);
+                          }}
                           aria-label={`${event.title}${timeLabel ? `, ${timeLabel}` : ''}`}
                         >
                           {timeLabel ? <span className="mr-1 text-text-secondary">{timeLabel}</span> : null}
@@ -276,7 +434,10 @@ export const CalendarModuleSkin = ({
                     {hiddenCount > 0 ? (
                       <button
                         type="button"
-                        onClick={() => setOverflowDay((current) => (current === cell.iso ? null : cell.iso))}
+                        onClick={(clickEvent) => {
+                          clickEvent.stopPropagation();
+                          setOverflowDay((current) => (current === cell.iso ? null : cell.iso));
+                        }}
                         className="text-[11px] text-muted underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                         aria-label={`${hiddenCount} more events on ${asDateLabel(fromLocalDateKey(cell.iso))}. Show all.`}
                       >
@@ -294,7 +455,10 @@ export const CalendarModuleSkin = ({
                               <button
                                 type="button"
                                 className="w-full truncate rounded-control px-1 py-1 text-left text-xs text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                                onClick={() => onOpenRecord(event.record_id)}
+                                onClick={(clickEvent) => {
+                                  clickEvent.stopPropagation();
+                                  onOpenRecord(event.record_id);
+                                }}
                               >
                                 {timeLabel ? <span className="mr-1 text-text-secondary">{timeLabel}</span> : null}
                                 {event.title}
@@ -311,6 +475,8 @@ export const CalendarModuleSkin = ({
           </div>
         </section>
       ) : null}
+
+      {view === 'month' ? createEventPanel : null}
 
       {view === 'year' ? (
         <section className="grid grid-cols-2 gap-2 md:grid-cols-4">

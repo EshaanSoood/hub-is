@@ -3096,6 +3096,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'GET' && pathname === '/api/hub/calendar') {
+      await viewRoutes.listPersonalCalendar({ request, response, requestUrl, pathname });
+      return;
+    }
+
     const eventFromNlpMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/events\/from-nlp$/);
     if (eventFromNlpMatch && request.method === 'POST') {
       await viewRoutes.createEventFromNlp({

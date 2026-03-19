@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { queryCalendar } from '../services/hub/records';
+import { queryPersonalCalendar } from '../services/hub/records';
 
-interface CalendarEventSummary {
+interface PersonalCalendarEventSummary {
   record_id: string;
   title: string;
+  project_id: string;
+  project_name: string | null;
   event_state: {
     start_dt: string;
     end_dt: string;
@@ -15,30 +17,34 @@ interface CalendarEventSummary {
   source_pane: { pane_id: string | null; pane_name: string | null; doc_id: string | null } | null;
 }
 
-interface UseCalendarRuntimeParams {
-  accessToken: string;
-  projectId: string;
-}
-
-export const useCalendarRuntime = ({ accessToken, projectId }: UseCalendarRuntimeParams) => {
+export const usePersonalCalendarRuntime = (accessToken: string | null) => {
   const [calendarMode, setCalendarMode] = useState<'relevant' | 'all'>('relevant');
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEventSummary[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<PersonalCalendarEventSummary[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const latestRequestRef = useRef(0);
 
   const refreshCalendar = useCallback(async () => {
+    if (!accessToken) {
+      latestRequestRef.current += 1;
+      setCalendarEvents([]);
+      setCalendarLoading(false);
+      setCalendarError(null);
+      return;
+    }
+
     const requestId = latestRequestRef.current + 1;
     latestRequestRef.current = requestId;
     setCalendarLoading(true);
     setCalendarError(null);
     try {
-      const result = await queryCalendar(accessToken, projectId, calendarMode);
+      const result = await queryPersonalCalendar(accessToken, calendarMode);
       if (latestRequestRef.current === requestId) {
         setCalendarEvents(result.events);
       }
     } catch (error) {
       if (latestRequestRef.current === requestId) {
+        setCalendarEvents([]);
         setCalendarError(error instanceof Error ? error.message : 'Failed to load calendar.');
       }
     } finally {
@@ -46,18 +52,18 @@ export const useCalendarRuntime = ({ accessToken, projectId }: UseCalendarRuntim
         setCalendarLoading(false);
       }
     }
-  }, [accessToken, calendarMode, projectId]);
+  }, [accessToken, calendarMode]);
 
   useEffect(() => {
     void refreshCalendar();
   }, [refreshCalendar]);
 
   return {
-    calendarError,
     calendarEvents,
     calendarLoading,
+    calendarError,
     calendarMode,
-    refreshCalendar,
     setCalendarMode,
+    refreshCalendar,
   };
 };

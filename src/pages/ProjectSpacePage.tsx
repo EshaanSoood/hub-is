@@ -21,7 +21,7 @@ import { useRecordInspector } from '../hooks/useRecordInspector';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { useTimelineRuntime } from '../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../hooks/useWorkspaceDocRuntime';
-import { archiveRecord, createRecord, updateRecord } from '../services/hub/records';
+import { archiveRecord, createEventFromNlp, createRecord, updateRecord } from '../services/hub/records';
 import { AccessDeniedView } from '../components/auth/AccessDeniedView';
 import {
   Dialog,
@@ -235,10 +235,9 @@ const ProjectSpaceWorkspace = ({
   const [showOtherPanes, setShowOtherPanes] = useState(false);
   const [otherPaneQuery, setOtherPaneQuery] = useState('');
 
-  const { calendarEvents, calendarLoading, calendarMode, setCalendarMode } = useCalendarRuntime({
+  const { calendarEvents, calendarLoading, calendarMode, refreshCalendar, setCalendarMode } = useCalendarRuntime({
     accessToken,
     projectId: project.project_id,
-    activeTab,
   });
   const {
     loadProjectTaskPage,
@@ -688,6 +687,16 @@ const ProjectSpaceWorkspace = ({
         loading: calendarLoading,
         scope: calendarMode,
         onScopeChange: setCalendarMode,
+        onCreateEvent:
+          activePaneCanEdit && canWriteProject
+            ? async (payload) => {
+                if (!accessToken) {
+                  return;
+                }
+                await createEventFromNlp(accessToken, project.project_id, payload);
+                await refreshCalendar();
+              }
+            : undefined,
       },
       files: {
         paneFiles,
@@ -797,11 +806,14 @@ const ProjectSpaceWorkspace = ({
       calendarEvents,
       calendarLoading,
       calendarMode,
+      refreshCalendar,
       setCalendarMode,
       kanbanRuntimeDataByViewId,
       kanbanViews,
+      activePaneCanEdit,
       activePane?.pane_id,
       accessToken,
+      canWriteProject,
       onMoveKanbanRecord,
       onOpenPaneFile,
       onUploadPaneFiles,
