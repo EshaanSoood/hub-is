@@ -231,12 +231,11 @@ export const CalendarModuleSkin = ({
               setCreateError(null);
               setIsCreatingEvent(true);
               try {
-                const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
                 await onCreateEvent({
                   title: draftTitle.trim(),
                   start_dt: startDate.toISOString(),
                   end_dt: endDate.toISOString(),
-                  timezone: detectedTimezone,
+                  timezone,
                 });
                 resetCreateDraft();
               } catch (error) {
