@@ -149,11 +149,12 @@ export const CalendarModuleSkin = ({
     setCreateError(null);
   };
   const closeOverflowDay = useCallback((restoreFocus = true) => {
+    const overflowTrigger = overflowTriggerRef.current;
     setOverflowDay(null);
     if (restoreFocus) {
       window.setTimeout(() => {
-        if (overflowTriggerRef.current?.isConnected) {
-          overflowTriggerRef.current.focus();
+        if (overflowTrigger?.isConnected) {
+          overflowTrigger.focus();
         }
       }, 0);
     }

@@ -14,7 +14,8 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        event.preventDefault();
+        onClose({ restoreFocus: true });
         return;
       }
       if (event.key !== 'Tab' || !popoverRef.current) {

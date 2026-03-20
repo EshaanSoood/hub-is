@@ -273,11 +273,7 @@ export const FileInspectorActionBar = ({
                     <button
                       type="button"
                       disabled={renaming}
-                      onClick={() => {
-                        setRenameValue(fileName);
-                        setRenameError(null);
-                        setRenameOpen(false);
-                      }}
+                      onClick={() => closeRename({ restoreFocus: true })}
                       className="flex-1 rounded-control border border-border-muted px-sm py-xs text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                     >
                       Cancel
