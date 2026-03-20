@@ -873,16 +873,18 @@ export const PersonalizedDashboardPanel = ({
         </TabsContent>
       </Tabs>
 
-      <div className="mt-4">
-        <RemindersModuleSkin
-          reminders={remindersRuntime.reminders}
-          loading={remindersRuntime.loading}
-          error={remindersRuntime.error}
-          onDismiss={remindersRuntime.dismiss}
-          onCreate={remindersRuntime.create}
-          sizeTier="M"
-        />
-      </div>
+      {selectedView !== 'daily-brief' ? (
+        <div className="mt-4">
+          <RemindersModuleSkin
+            reminders={remindersRuntime.reminders}
+            loading={remindersRuntime.loading}
+            error={remindersRuntime.error}
+            onDismiss={remindersRuntime.dismiss}
+            onCreate={remindersRuntime.create}
+            sizeTier="M"
+          />
+        </div>
+      ) : null}
 
       <section className="mt-4 space-y-3" aria-labelledby="personal-dashboard-calendar-heading">
         <div className="flex flex-wrap items-center justify-between gap-3">
