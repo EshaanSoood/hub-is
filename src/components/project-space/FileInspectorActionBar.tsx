@@ -233,13 +233,14 @@ export const FileInspectorActionBar = ({
                     const trimmed = renameValue.trim();
                     if (!trimmed || trimmed === fileName) {
                       setRenameError(null);
-                      closeRename({ restoreFocus: true, resetValue: false });
+                      closeRename({ restoreFocus: true, resetValue: true });
                       return;
                     }
                     setRenameError(null);
                     setRenaming(true);
                     try {
                       await onRename(trimmed);
+                      setRenameValue(trimmed);
                       closeRename({ restoreFocus: true, resetValue: false });
                     } catch (error) {
                       setRenameError(error instanceof Error ? error.message : 'Failed to rename file.');

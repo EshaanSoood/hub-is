@@ -130,8 +130,13 @@ export const CalendarModuleSkin = ({
   const [draftTitle, setDraftTitle] = useState('');
   const [draftStartTime, setDraftStartTime] = useState('09:00');
   const [draftEndTime, setDraftEndTime] = useState('10:00');
+  const [overflowPopoverMounted, setOverflowPopoverMounted] = useState(false);
   const overflowPopoverRef = useRef<HTMLDivElement | null>(null);
   const overflowTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const setOverflowPopoverNode = useCallback((node: HTMLDivElement | null) => {
+    overflowPopoverRef.current = node;
+    setOverflowPopoverMounted(Boolean(node));
+  }, []);
 
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const monthLabel = monthCursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
@@ -175,7 +180,7 @@ export const CalendarModuleSkin = ({
   const monthCells = useMemo(() => buildMonthCells(monthCursor), [monthCursor]);
 
   useEffect(() => {
-    if (!overflowDay) {
+    if (!overflowDay || !overflowPopoverMounted) {
       return;
     }
 
@@ -208,7 +213,7 @@ export const CalendarModuleSkin = ({
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closeOverflowDay, overflowDay]);
+  }, [closeOverflowDay, overflowDay, overflowPopoverMounted]);
 
   const createEventPanel =
     draftDay && onCreateEvent ? (
@@ -498,7 +503,7 @@ export const CalendarModuleSkin = ({
                   </div>
                   {overflowDay === cell.iso ? (
                     <div
-                      ref={overflowPopoverRef}
+                      ref={setOverflowPopoverNode}
                       role="dialog"
                       aria-label="All events this day"
                       className="absolute left-0 top-full z-20 mt-1 w-56 rounded-control border border-border-muted bg-surface-elevated p-2 shadow-soft"
