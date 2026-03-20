@@ -5,7 +5,6 @@ import { useAuthz } from '../context/AuthzContext';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Dialog } from '../components/primitives';
 import { PersonalizedDashboardPanel } from '../features/PersonalizedDashboardPanel';
-import { QuickCapture } from '../features/QuickCapture';
 import { createHubProject } from '../services/projectsService';
 import { getHubHome, getRecordDetail } from '../services/hub/records';
 import type { HubRecordDetail } from '../services/hub/types';
@@ -22,6 +21,27 @@ const safeGetLastProjectId = (): string => {
   } catch {
     return '';
   }
+};
+
+const resolveFocusRestoreTarget = (candidate: HTMLElement | null): HTMLElement | null => {
+  if (candidate && candidate.isConnected) {
+    return candidate;
+  }
+  const mainContent = document.getElementById('main-content');
+  if (mainContent instanceof HTMLElement) {
+    if (!mainContent.hasAttribute('tabindex')) {
+      mainContent.setAttribute('tabindex', '-1');
+    }
+    return mainContent;
+  }
+  return null;
+};
+
+const getActiveFocusTarget = (): HTMLElement | null => {
+  if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+    return document.activeElement;
+  }
+  return resolveFocusRestoreTarget(null);
 };
 
 export const ProjectsPage = () => {
@@ -57,10 +77,18 @@ export const ProjectsPage = () => {
   const selectedRecordAbortControllerRef = useRef<AbortController | null>(null);
   const selectedRecordRequestIdRef = useRef(0);
   const selectedHubRecordIdRef = useRef<string | null>(null);
+  const selectedHubRecordTriggerRef = useRef<HTMLElement | null>(null);
 
   const lastOpenedProjectId = safeGetLastProjectId();
+  const visibleProjects = useMemo(
+    () => projects.filter((project) => !project.isPersonal),
+    [projects],
+  );
   const lastOpenedProject = useMemo(
-    () => projects.find((project) => project.id === lastOpenedProjectId) || null,
+    () => {
+      const project = projects.find((entry) => entry.id === lastOpenedProjectId) || null;
+      return project && !project.isPersonal ? project : null;
+    },
     [lastOpenedProjectId, projects],
   );
 
@@ -69,6 +97,7 @@ export const ProjectsPage = () => {
     if (!taskId) {
       return;
     }
+    selectedHubRecordTriggerRef.current = getActiveFocusTarget();
     selectedHubRecordIdRef.current = taskId;
     setSelectedHubRecordId(taskId);
 
@@ -225,11 +254,13 @@ export const ProjectsPage = () => {
   };
 
   const onOpenHubRecord = useCallback((recordId: string) => {
+    selectedHubRecordTriggerRef.current = getActiveFocusTarget();
     selectedHubRecordIdRef.current = recordId;
     setSelectedHubRecordId(recordId);
   }, []);
 
   const onCloseSelectedRecord = useCallback(() => {
+    selectedHubRecordTriggerRef.current = resolveFocusRestoreTarget(selectedHubRecordTriggerRef.current);
     selectedRecordAbortControllerRef.current?.abort();
     selectedRecordAbortControllerRef.current = null;
     selectedRecordRequestIdRef.current += 1;
@@ -247,13 +278,6 @@ export const ProjectsPage = () => {
         description="Your personal big picture across projects, with work opening in the Record Inspector without leaving the Hub."
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <QuickCapture
-              accessToken={accessToken ?? null}
-              projects={projects}
-              personalProjectId={homeData.personal_project_id ?? null}
-              captures={homeData.captures}
-              onCaptureComplete={() => void refreshHome()}
-            />
             {lastOpenedProject ? (
               <button
                 type="button"
@@ -314,11 +338,11 @@ export const ProjectsPage = () => {
 
         {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
 
-        {!loading && projects.length === 0 ? (
+        {!loading && visibleProjects.length === 0 ? (
           <p className="mt-3 text-sm text-muted">No projects yet. Create one to begin.</p>
         ) : (
           <ul className="mt-3 grid gap-3 md:grid-cols-2" aria-label="Project list">
-            {projects.map((project) => (
+            {visibleProjects.map((project) => (
               <li key={project.id} className="rounded-panel border border-border-muted bg-surface p-3">
                 <p className="text-sm font-bold text-text">{project.name}</p>
                 <p className="mt-1 text-xs text-text-secondary">Role: {project.membershipRole}</p>
@@ -351,6 +375,7 @@ export const ProjectsPage = () => {
       <Dialog
         open={Boolean(selectedHubRecordId)}
         onClose={onCloseSelectedRecord}
+        triggerRef={selectedHubRecordTriggerRef}
         title="Record Inspector"
         description="Review the selected Hub item without leaving the Hub."
         panelClassName="max-w-2xl"

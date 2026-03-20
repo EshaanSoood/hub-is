@@ -3,12 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
 import { useProjects } from '../../context/ProjectsContext';
+import { QuickCapturePanel } from '../../features/QuickCapture';
+import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
+import { getHubHome } from '../../services/hub/records';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
 import type { HubNotification } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
 import { buildNotificationDestinationHref } from '../../lib/hubRoutes';
-import { Icon } from '../primitives';
+import { Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
 
 interface ToolbarNotification {
   id: string;
@@ -162,6 +165,23 @@ const isTextInputElement = (target: EventTarget | null): boolean => {
   return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target.isContentEditable;
 };
 
+const focusElementSoon = (element: HTMLElement | null | undefined) => {
+  window.setTimeout(() => {
+    if (element?.isConnected) {
+      element.focus();
+    }
+  }, 0);
+};
+
+const focusFirstDescendantSoon = (container: HTMLElement | null | undefined, selector: string) => {
+  window.setTimeout(() => {
+    const target = container?.querySelector<HTMLElement>(selector);
+    if (target?.isConnected) {
+      target.focus();
+    }
+  }, 0);
+};
+
 const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
   record: 'Record',
   project: 'Project',
@@ -212,6 +232,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const { sessionSummary, canGlobal, accessToken, signOut } = useAuthz();
   const { projects } = useProjects();
 
+  useRouteFocusReset();
+
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [avatarBroken, setAvatarBroken] = useState(false);
@@ -229,23 +251,103 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [quickNavQuery, setQuickNavQuery] = useState('');
   const [quickNavActiveIndex, setQuickNavActiveIndex] = useState(-1);
   const [notifications, setNotifications] = useState<ToolbarNotification[]>([]);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const [captureIntent, setCaptureIntent] = useState<string | null>(null);
+  const [captureActivationKey, setCaptureActivationKey] = useState(0);
+  const [captureAnnouncement, setCaptureAnnouncement] = useState('');
+  const [captureHomeData, setCaptureHomeData] = useState<{
+    personalProjectId: string | null;
+    captures: Awaited<ReturnType<typeof getHubHome>>['captures'];
+  }>({
+    personalProjectId: null,
+    captures: [],
+  });
+  const [captureLoading, setCaptureLoading] = useState(false);
 
   const searchRef = useRef<HTMLDivElement | null>(null);
   const searchDismissedRef = useRef(false);
   const searchRequestVersionRef = useRef(0);
   const quickNavRef = useRef<HTMLDivElement | null>(null);
+  const quickNavTriggerRef = useRef<HTMLButtonElement | null>(null);
   const quickNavInputRef = useRef<HTMLInputElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
+  const profileTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
+  const notificationsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const notificationsPanelRef = useRef<HTMLDivElement | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
+  const contextMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const captureTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const captureRestoreTargetRef = useRef<HTMLElement | null>(null);
+  const captureRequestVersionRef = useRef(0);
+  const quickNavWasOpenRef = useRef(false);
+  const notificationsWereOpenRef = useRef(false);
+  const profileWasOpenRef = useRef(false);
+  const contextMenuWasOpenRef = useRef(false);
+  const skipQuickNavFocusRestoreRef = useRef(false);
+  const skipNotificationsFocusRestoreRef = useRef(false);
+  const skipProfileFocusRestoreRef = useRef(false);
+  const skipContextMenuFocusRestoreRef = useRef(false);
+  const skipCaptureFocusRestoreRef = useRef(false);
 
   const visibleTabs = appTabs.filter((tab) => canGlobal(tab.capability));
   const currentContext = deriveContext(location.pathname);
   const isOnHubHome = location.pathname === '/projects';
+  const currentProjectId = useMemo(() => {
+    const match = location.pathname.match(/^\/projects\/([^/]+)/);
+    if (!match || location.pathname === '/projects') {
+      return null;
+    }
+    return decodeURIComponent(match[1]);
+  }, [location.pathname]);
+  const preferredCaptureProjectId = useMemo(() => {
+    if (!currentProjectId) {
+      return null;
+    }
+    const project = projects.find((entry) => entry.id === currentProjectId) || null;
+    return project && !project.isPersonal ? project.id : null;
+  }, [currentProjectId, projects]);
   const breadcrumb = useMemo(
     () => buildBreadcrumb(location.pathname, projects.map((project) => ({ id: project.id, name: project.name }))),
     [location.pathname, projects],
   );
+
+  const refreshCaptureData = useCallback(async () => {
+    if (!accessToken) {
+      captureRequestVersionRef.current += 1;
+      setCaptureHomeData({ personalProjectId: null, captures: [] });
+      setCaptureLoading(false);
+      return;
+    }
+    const requestVersion = captureRequestVersionRef.current + 1;
+    captureRequestVersionRef.current = requestVersion;
+    setCaptureLoading(true);
+    try {
+      const next = await getHubHome(accessToken, {
+        tasks_limit: 1,
+        events_limit: 1,
+        captures_limit: 20,
+        notifications_limit: 1,
+      });
+      if (captureRequestVersionRef.current !== requestVersion) {
+        return;
+      }
+      setCaptureHomeData({
+        personalProjectId: next.personal_project_id,
+        captures: next.captures,
+      });
+    } catch {
+      if (captureRequestVersionRef.current !== requestVersion) {
+        return;
+      }
+      // Best-effort toolbar data.
+    } finally {
+      if (captureRequestVersionRef.current === requestVersion) {
+        setCaptureLoading(false);
+      }
+    }
+  }, [accessToken]);
 
   const refreshNotifications = useCallback(async () => {
     if (!accessToken) {
@@ -260,6 +362,24 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       return null;
     }
   }, [accessToken]);
+
+  useEffect(() => {
+    void refreshCaptureData();
+  }, [refreshCaptureData]);
+
+  useEffect(() => {
+    if (!captureOpen) {
+      return;
+    }
+    void refreshCaptureData();
+    setCaptureAnnouncement('Quick capture panel opened.');
+    const timer = window.setTimeout(() => {
+      setCaptureAnnouncement('');
+    }, 1500);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [captureOpen, refreshCaptureData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -328,6 +448,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setQuickNavActiveIndex(-1);
   }, []);
 
+  const closeCapturePanel = useCallback((options?: { restoreFocus?: boolean }) => {
+    skipCaptureFocusRestoreRef.current = options?.restoreFocus === false;
+    setCaptureOpen(false);
+  }, []);
+
   const resetSearch = useCallback(() => {
     searchRequestVersionRef.current += 1;
     searchDismissedRef.current = true;
@@ -368,6 +493,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        closeCapturePanel();
         closeSearch();
         closeQuickNav();
         setProfileOpen(false);
@@ -382,7 +508,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closeQuickNav, closeSearch, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [closeCapturePanel, closeQuickNav, closeSearch, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
 
   const unreadNotifications = notifications.filter((notification) => !notification.read).length;
 
@@ -509,6 +635,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
       if (event.key === 'Enter' && normalizedQuickNavActiveIndex >= 0 && quickNavItems[normalizedQuickNavActiveIndex]) {
         event.preventDefault();
+        skipQuickNavFocusRestoreRef.current = true;
         navigate(quickNavItems[normalizedQuickNavActiveIndex].href);
         closeQuickNav();
         return;
@@ -525,6 +652,89 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       document.removeEventListener('keydown', onQuickNavKeyDown);
     };
   }, [closeQuickNav, navigate, normalizedQuickNavActiveIndex, quickNavItems, quickNavOpen]);
+
+  useEffect(() => {
+    if (quickNavOpen) {
+      focusElementSoon(quickNavInputRef.current);
+    } else if (
+      quickNavWasOpenRef.current
+      && !skipQuickNavFocusRestoreRef.current
+      && !searchOpen
+      && !notificationsOpen
+      && !profileOpen
+      && !contextMenuOpen
+      && !captureOpen
+    ) {
+      focusElementSoon(quickNavTriggerRef.current);
+    }
+    if (!quickNavOpen) {
+      skipQuickNavFocusRestoreRef.current = false;
+    }
+    quickNavWasOpenRef.current = quickNavOpen;
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+
+  useEffect(() => {
+    if (notificationsOpen) {
+      focusFirstDescendantSoon(
+        notificationsPanelRef.current,
+        'button:not([disabled]), select:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+    } else if (
+      notificationsWereOpenRef.current
+      && !skipNotificationsFocusRestoreRef.current
+      && !searchOpen
+      && !quickNavOpen
+      && !profileOpen
+      && !contextMenuOpen
+      && !captureOpen
+    ) {
+      focusElementSoon(notificationsTriggerRef.current);
+    }
+    if (!notificationsOpen) {
+      skipNotificationsFocusRestoreRef.current = false;
+    }
+    notificationsWereOpenRef.current = notificationsOpen;
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+
+  useEffect(() => {
+    if (profileOpen) {
+      focusFirstDescendantSoon(profileMenuRef.current, '[role="menuitem"]');
+    } else if (
+      profileWasOpenRef.current
+      && !skipProfileFocusRestoreRef.current
+      && !searchOpen
+      && !quickNavOpen
+      && !notificationsOpen
+      && !contextMenuOpen
+      && !captureOpen
+    ) {
+      focusElementSoon(profileTriggerRef.current);
+    }
+    if (!profileOpen) {
+      skipProfileFocusRestoreRef.current = false;
+    }
+    profileWasOpenRef.current = profileOpen;
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+
+  useEffect(() => {
+    if (contextMenuOpen) {
+      focusFirstDescendantSoon(contextMenuRef.current, '[role="menuitem"]');
+    } else if (
+      contextMenuWasOpenRef.current
+      && !skipContextMenuFocusRestoreRef.current
+      && !searchOpen
+      && !quickNavOpen
+      && !notificationsOpen
+      && !profileOpen
+      && !captureOpen
+    ) {
+      focusElementSoon(contextMenuTriggerRef.current);
+    }
+    if (!contextMenuOpen) {
+      skipContextMenuFocusRestoreRef.current = false;
+    }
+    contextMenuWasOpenRef.current = contextMenuOpen;
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
 
   const visibleNotifications = useMemo(() => {
     return notifications.filter((notification) => {
@@ -558,38 +768,39 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   const onNavigateNotification = async (notification: ToolbarNotification) => {
     navigate(notification.href);
+    skipNotificationsFocusRestoreRef.current = true;
     setNotificationsOpen(false);
     if (!notification.read) {
       await onMarkNotificationRead(notification.id);
     }
   };
 
-  const navigateToCapture = (intent: string | null) => {
-    const params = new URLSearchParams(location.search);
-    params.set('capture', '1');
-    if (intent && intent !== 'inbox') {
-      params.set('intent', intent);
-    } else {
-      params.delete('intent');
-    }
-
-    const isProjectContext = /^\/projects\/[^/]+/.test(location.pathname) && location.pathname !== '/projects';
-    if (isProjectContext) {
-      navigate(`${location.pathname}?${params.toString()}`);
-      return;
-    }
-
-    navigate(`/projects?${params.toString()}`);
-  };
+  const openCapturePanel = useCallback((intent: string | null, restoreTarget?: HTMLElement | null) => {
+    captureRestoreTargetRef.current = restoreTarget ?? captureTriggerRef.current;
+    skipCaptureFocusRestoreRef.current = false;
+    setCaptureIntent(intent && intent !== 'inbox' ? intent : null);
+    setCaptureActivationKey((current) => current + 1);
+    setCaptureOpen(true);
+    closeSearch();
+    closeQuickNav();
+    setProfileOpen(false);
+    setNotificationsOpen(false);
+    setContextMenuOpen(false);
+  }, [closeQuickNav, closeSearch]);
 
   const onQuickAdd = () => {
-    navigateToCapture(null);
+    if (captureOpen && !captureIntent) {
+      closeCapturePanel();
+      return;
+    }
+    openCapturePanel(null, captureTriggerRef.current);
   };
 
   const openContextMenu = (anchor: HTMLElement) => {
     const rect = anchor.getBoundingClientRect();
     setContextMenuPos({ x: rect.left, y: rect.top - 8 });
     setContextMenuOpen(true);
+    closeCapturePanel({ restoreFocus: false });
     setNotificationsOpen(false);
     setProfileOpen(false);
     closeSearch();
@@ -597,7 +808,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   };
 
   const onQuickAddContextual = (type: string) => {
-    navigateToCapture(type === 'inbox' ? null : type);
+    openCapturePanel(type === 'inbox' ? null : type, contextMenuTriggerRef.current);
   };
 
   const onSelectSearchResult = useCallback(
@@ -608,12 +819,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       }
       navigate(href);
       resetSearch();
+      skipQuickNavFocusRestoreRef.current = true;
       closeQuickNav();
       setNotificationsOpen(false);
       setProfileOpen(false);
       setContextMenuOpen(false);
+      closeCapturePanel({ restoreFocus: false });
     },
-    [closeQuickNav, navigate, resetSearch],
+    [closeCapturePanel, closeQuickNav, navigate, resetSearch],
   );
 
   const accountInitials = sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId);
@@ -664,6 +877,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
         <div className="relative" ref={quickNavRef}>
           <button
+            ref={quickNavTriggerRef}
             type="button"
             onClick={() => {
               if (quickNavOpen) {
@@ -676,6 +890,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               setProfileOpen(false);
               setNotificationsOpen(false);
               setContextMenuOpen(false);
+              closeCapturePanel({ restoreFocus: false });
             }}
             aria-label="Quick navigation"
             aria-expanded={quickNavOpen}
@@ -723,6 +938,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                         }}
                         onMouseEnter={() => setQuickNavActiveIndex(index)}
                         onClick={() => {
+                          skipQuickNavFocusRestoreRef.current = true;
                           navigate(item.href);
                           closeQuickNav();
                         }}
@@ -756,6 +972,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 setProfileOpen(false);
                 setNotificationsOpen(false);
                 setContextMenuOpen(false);
+                closeCapturePanel({ restoreFocus: false });
               }}
               onKeyDown={(event) => {
                 if (event.key === 'ArrowDown') {
@@ -894,30 +1111,75 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </div>
         </div>
 
-        <div className="flex items-center overflow-hidden rounded-control border border-border-muted">
-          <button
-            type="button"
-            onClick={onQuickAdd}
-            aria-label="Quick add to inbox"
-            className="flex h-7 w-7 items-center justify-center text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          >
-            <Icon name="plus" className="text-[14px]" />
-          </button>
-          <button
-            type="button"
-            aria-label="Open quick add menu"
-            aria-haspopup="menu"
-            aria-expanded={contextMenuOpen}
-            onClick={(event) => openContextMenu(event.currentTarget)}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              openContextMenu(event.currentTarget);
-            }}
-            className="flex h-7 w-6 items-center justify-center border-l border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          >
-            <Icon name="chevron-down" className="text-[10px]" />
-          </button>
-        </div>
+        <Popover open={captureOpen} onOpenChange={setCaptureOpen} modal>
+          <PopoverAnchor asChild>
+            <div className="flex items-center overflow-hidden rounded-control border border-border-muted">
+              <button
+                ref={captureTriggerRef}
+                type="button"
+                onClick={onQuickAdd}
+                aria-label="Open quick capture"
+                aria-expanded={captureOpen}
+                className="flex h-7 w-7 items-center justify-center text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              >
+                <Icon name="plus" className="text-[14px]" />
+              </button>
+              <button
+                ref={contextMenuTriggerRef}
+                type="button"
+                aria-label="Open quick add menu"
+                aria-haspopup="menu"
+                aria-expanded={contextMenuOpen}
+                onClick={(event) => openContextMenu(event.currentTarget)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  openContextMenu(event.currentTarget);
+                }}
+                className="flex h-7 w-6 items-center justify-center border-l border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              >
+                <Icon name="chevron-down" className="text-[10px]" />
+              </button>
+            </div>
+          </PopoverAnchor>
+
+          {captureOpen ? (
+            <PopoverContent
+              side="top"
+              align="center"
+              sideOffset={8}
+              role="dialog"
+              aria-label="Quick capture"
+              className="z-[120] w-[min(92vw,440px)] rounded-panel border border-border-muted bg-surface-elevated p-4 shadow-soft"
+              onOpenAutoFocus={(event) => {
+                event.preventDefault();
+              }}
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                if (skipCaptureFocusRestoreRef.current) {
+                  skipCaptureFocusRestoreRef.current = false;
+                  return;
+                }
+                const restoreTarget = captureRestoreTargetRef.current;
+                if (restoreTarget?.isConnected) {
+                  restoreTarget.focus();
+                }
+              }}
+            >
+              <QuickCapturePanel
+                accessToken={accessToken ?? null}
+                projects={projects}
+                personalProjectId={captureHomeData.personalProjectId}
+                captures={captureHomeData.captures}
+                capturesLoading={captureLoading}
+                onCaptureComplete={() => void refreshCaptureData()}
+                preferredProjectId={preferredCaptureProjectId}
+                initialIntent={captureIntent}
+                activationKey={captureActivationKey}
+                onRequestClose={(options) => closeCapturePanel(options)}
+              />
+            </PopoverContent>
+          ) : null}
+        </Popover>
 
         {contextMenuOpen ? (
           <div
@@ -945,6 +1207,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
         <div className="relative" ref={notificationsRef}>
           <button
+            ref={notificationsTriggerRef}
             type="button"
             onClick={() => {
               setNotificationsOpen((current) => !current);
@@ -952,6 +1215,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               closeSearch();
               closeQuickNav();
               setContextMenuOpen(false);
+              closeCapturePanel({ restoreFocus: false });
             }}
             aria-label={unreadNotifications > 0 ? `${unreadNotifications} unread notifications` : 'Notifications'}
             className="relative flex h-9 w-9 items-center justify-center rounded-control text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -971,6 +1235,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
           {notificationsOpen ? (
             <div
+              ref={notificationsPanelRef}
               role="dialog"
               aria-label="Notifications"
               className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-[360px] rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
@@ -1072,6 +1337,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
         <div className="relative" ref={profileRef}>
           <button
+            ref={profileTriggerRef}
             type="button"
             onClick={() => {
               setProfileOpen((current) => !current);
@@ -1079,6 +1345,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               closeSearch();
               closeQuickNav();
               setContextMenuOpen(false);
+              closeCapturePanel({ restoreFocus: false });
             }}
             aria-label="Account menu"
             aria-expanded={profileOpen}
@@ -1101,6 +1368,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
           {profileOpen ? (
             <div
+              ref={profileMenuRef}
               role="menu"
               className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-56 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
             >
@@ -1126,6 +1394,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 role="menuitem"
                 className="block w-full px-md py-sm text-left text-sm text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 onClick={() => {
+                  skipProfileFocusRestoreRef.current = true;
                   navigate('/projects');
                   setProfileOpen(false);
                 }}
@@ -1137,6 +1406,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 role="menuitem"
                 className="block w-full px-md py-sm text-left text-sm text-danger hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 onClick={() => {
+                  skipProfileFocusRestoreRef.current = true;
                   void signOut();
                   setProfileOpen(false);
                 }}
@@ -1148,6 +1418,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </div>
         </nav>
       </footer>
+      <div className="sr-only" aria-live="polite">
+        {captureAnnouncement}
+      </div>
     </div>
   );
 };

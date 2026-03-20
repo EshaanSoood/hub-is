@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { forwardRef, useEffect } from 'react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 import { buttonBaseClass, getButtonClassName, type ButtonSize } from './buttonStyles';
@@ -18,14 +18,17 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   'aria-label': string;
 }
 
-export const IconButton = ({
-  children,
-  variant = 'ghost',
-  size = 'md',
-  className,
-  'aria-label': ariaLabel,
-  ...props
-}: IconButtonProps) => {
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
+  {
+    children,
+    variant = 'ghost',
+    size = 'md',
+    className,
+    'aria-label': ariaLabel,
+    ...props
+  },
+  ref,
+) {
   useEffect(() => {
     if (import.meta.env.DEV && !ariaLabel.trim()) {
       // Keep runtime signal in dev for icon-only buttons that must be named.
@@ -37,6 +40,7 @@ export const IconButton = ({
 
   return (
     <button
+      ref={ref}
       type="button"
       {...props}
       aria-label={ariaLabel}
@@ -51,4 +55,4 @@ export const IconButton = ({
       {children}
     </button>
   );
-};
+});

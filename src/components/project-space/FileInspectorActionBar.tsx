@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { AlertDialog } from '../primitives';
 import { FileMovePopover } from './FileMovePopover';
 
@@ -18,13 +18,16 @@ const ActionButton = ({
   onClick,
   danger = false,
   expanded,
+  buttonRef,
 }: {
   label: string;
   onClick: () => void;
   danger?: boolean;
   expanded?: boolean;
+  buttonRef?: RefObject<HTMLButtonElement | null>;
 }) => (
   <button
+    ref={buttonRef}
     type="button"
     aria-expanded={expanded}
     onClick={onClick}
@@ -56,6 +59,28 @@ export const FileInspectorActionBar = ({
   const [renaming, setRenaming] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const moveRef = useRef<HTMLDivElement | null>(null);
+  const moveTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const renameTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const removeTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const renameRef = useRef<HTMLFormElement | null>(null);
+  const moveWasOpenRef = useRef(false);
+  const renameWasOpenRef = useRef(false);
+  const moveRestoreFocusRef = useRef(false);
+  const renameRestoreFocusRef = useRef(false);
+
+  const closeMove = useCallback((options?: { restoreFocus?: boolean }) => {
+    moveRestoreFocusRef.current = options?.restoreFocus ?? false;
+    setMoveOpen(false);
+  }, []);
+
+  const closeRename = useCallback((options?: { restoreFocus?: boolean; resetValue?: boolean }) => {
+    renameRestoreFocusRef.current = options?.restoreFocus ?? false;
+    if (options?.resetValue !== false) {
+      setRenameValue(fileName);
+      setRenameError(null);
+    }
+    setRenameOpen(false);
+  }, [fileName]);
 
   useEffect(() => {
     setRenameValue(fileName);
@@ -69,14 +94,69 @@ export const FileInspectorActionBar = ({
     }
     const onMouseDown = (event: MouseEvent) => {
       if (moveRef.current && !moveRef.current.contains(event.target as Node)) {
-        setMoveOpen(false);
+        closeMove({ restoreFocus: false });
       }
     };
     document.addEventListener('mousedown', onMouseDown);
     return () => {
       document.removeEventListener('mousedown', onMouseDown);
     };
+  }, [closeMove, moveOpen]);
+
+  useEffect(() => {
+    if (!renameOpen) {
+      return;
+    }
+    const onMouseDown = (event: MouseEvent) => {
+      if (
+        renameRef.current
+        && !renameRef.current.contains(event.target as Node)
+        && !renameTriggerRef.current?.contains(event.target as Node)
+      ) {
+        closeRename({ restoreFocus: false });
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeRename({ restoreFocus: true });
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [closeRename, renameOpen]);
+
+  useEffect(() => {
+    if (!moveOpen && moveWasOpenRef.current && moveRestoreFocusRef.current) {
+      window.setTimeout(() => {
+        if (moveTriggerRef.current?.isConnected) {
+          moveTriggerRef.current.focus();
+        }
+      }, 0);
+    }
+    if (!moveOpen) {
+      moveRestoreFocusRef.current = false;
+    }
+    moveWasOpenRef.current = moveOpen;
   }, [moveOpen]);
+
+  useEffect(() => {
+    if (!renameOpen && renameWasOpenRef.current && renameRestoreFocusRef.current) {
+      window.setTimeout(() => {
+        if (renameTriggerRef.current?.isConnected) {
+          renameTriggerRef.current.focus();
+        }
+      }, 0);
+    }
+    if (!renameOpen) {
+      renameRestoreFocusRef.current = false;
+    }
+    renameWasOpenRef.current = renameOpen;
+  }, [renameOpen]);
 
   const onCopyLink = async () => {
     try {
@@ -106,44 +186,62 @@ export const FileInspectorActionBar = ({
         {!readOnly ? (
           <>
             <div className="relative" ref={moveRef}>
-              <ActionButton label="Move" onClick={() => setMoveOpen((current) => !current)} expanded={moveOpen} />
+              <ActionButton
+                buttonRef={moveTriggerRef}
+                label="Move"
+                onClick={() => {
+                  if (moveOpen) {
+                    closeMove({ restoreFocus: false });
+                    return;
+                  }
+                  setMoveOpen(true);
+                }}
+                expanded={moveOpen}
+              />
               {moveOpen ? (
                 <FileMovePopover
                   panes={panes}
                   currentFileName={fileName}
                   onSelect={(paneId) => {
                     onMove(paneId);
-                    setMoveOpen(false);
+                    closeMove({ restoreFocus: true });
                   }}
-                  onClose={() => setMoveOpen(false)}
+                  onClose={(options) => closeMove(options)}
                 />
               ) : null}
             </div>
             <div className="relative">
               <ActionButton
+                buttonRef={renameTriggerRef}
                 label="Rename"
                 onClick={() => {
                   setRenameError(null);
-                  setRenameOpen((current) => !current);
+                  if (renameOpen) {
+                    closeRename({ restoreFocus: false });
+                    return;
+                  }
+                  setRenameOpen(true);
                 }}
                 expanded={renameOpen}
               />
               {renameOpen ? (
                 <form
+                  ref={renameRef}
                   className="absolute left-0 top-[calc(100%+4px)] z-[200] min-w-[220px] space-y-xs rounded-panel border border-border-muted bg-surface-elevated p-xs shadow-soft"
                   onSubmit={async (event) => {
                     event.preventDefault();
                     const trimmed = renameValue.trim();
                     if (!trimmed || trimmed === fileName) {
                       setRenameError(null);
-                      setRenameOpen(false);
+                      closeRename({ restoreFocus: true, resetValue: true });
                       return;
                     }
                     setRenameError(null);
                     setRenaming(true);
                     try {
                       await onRename(trimmed);
-                      setRenameOpen(false);
+                      setRenameValue(trimmed);
+                      closeRename({ restoreFocus: true, resetValue: false });
                     } catch (error) {
                       setRenameError(error instanceof Error ? error.message : 'Failed to rename file.');
                     } finally {
@@ -176,11 +274,7 @@ export const FileInspectorActionBar = ({
                     <button
                       type="button"
                       disabled={renaming}
-                      onClick={() => {
-                        setRenameValue(fileName);
-                        setRenameError(null);
-                        setRenameOpen(false);
-                      }}
+                      onClick={() => closeRename({ restoreFocus: true })}
                       className="flex-1 rounded-control border border-border-muted px-sm py-xs text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                     >
                       Cancel
@@ -189,7 +283,7 @@ export const FileInspectorActionBar = ({
                 </form>
               ) : null}
             </div>
-            <ActionButton label="Remove" onClick={() => setRemoveOpen(true)} danger />
+            <ActionButton buttonRef={removeTriggerRef} label="Remove" onClick={() => setRemoveOpen(true)} danger />
           </>
         ) : null}
       </div>
@@ -201,6 +295,7 @@ export const FileInspectorActionBar = ({
         description="This file will be detached from the record."
         confirmLabel="Remove file"
         onConfirm={onRemove}
+        triggerRef={removeTriggerRef}
       />
     </>
   );

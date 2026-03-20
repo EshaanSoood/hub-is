@@ -6,6 +6,7 @@ import type { ProjectRecord } from '../types/domain';
 interface ProjectsContextValue {
   projects: ProjectRecord[];
   loading: boolean;
+  initialized: boolean;
   error?: string;
   refreshProjects: () => Promise<void>;
 }
@@ -16,15 +17,18 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
   const { signedIn, accessToken } = useAuthz();
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
   const refreshProjects = useCallback(async () => {
     if (!signedIn || !accessToken) {
       setProjects([]);
       setError(undefined);
+      setInitialized(true);
       return;
     }
 
+    setInitialized(false);
     setLoading(true);
     try {
       const result = await listHubProjects(accessToken);
@@ -38,6 +42,7 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
       setError(undefined);
     } finally {
       setLoading(false);
+      setInitialized(true);
     }
   }, [accessToken, signedIn]);
 
@@ -49,10 +54,11 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
     () => ({
       projects,
       loading,
+      initialized,
       error,
       refreshProjects,
     }),
-    [error, loading, projects, refreshProjects],
+    [error, initialized, loading, projects, refreshProjects],
   );
 
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;

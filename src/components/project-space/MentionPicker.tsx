@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { searchMentionTargets } from '../../services/hub/records';
 import type { HubMentionTarget } from '../../services/hub/types';
@@ -21,6 +21,8 @@ export const MentionPicker = ({
   includeTypes = ['user', 'record'],
 }: MentionPickerProps) => {
   const queryInputId = useId();
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,6 +40,12 @@ export const MentionPicker = ({
     if (!open) {
       return;
     }
+
+    const focusTimer = window.setTimeout(() => {
+      if (searchInputRef.current?.isConnected) {
+        searchInputRef.current.focus();
+      }
+    }, 0);
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
@@ -66,6 +74,7 @@ export const MentionPicker = ({
 
     return () => {
       cancelled = true;
+      window.clearTimeout(focusTimer);
       window.clearTimeout(timer);
     };
   }, [accessToken, open, projectId, query]);
@@ -76,20 +85,36 @@ export const MentionPicker = ({
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
           aria-label={ariaLabel}
+          aria-expanded={open}
+          aria-haspopup="dialog"
         >
           {buttonLabel}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-80 p-2">
+      <PopoverContent
+        align="start"
+        className="w-80 p-2"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          if (triggerRef.current) {
+            event.preventDefault();
+            triggerRef.current.focus();
+          }
+        }}
+      >
         <div className="space-y-2">
           <label className="sr-only" htmlFor={queryInputId}>
             Search mention targets
           </label>
           <input
             id={queryInputId}
+            ref={searchInputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="w-full rounded-panel border border-border-muted bg-surface px-2 py-1.5 text-xs text-text"

@@ -182,6 +182,27 @@ const readLayoutBool = (config: Record<string, unknown> | null | undefined, key:
   return typeof value === 'boolean' ? value : fallback;
 };
 
+const resolveInspectorFocusTarget = (candidate: HTMLElement | null): HTMLElement | null => {
+  if (candidate && candidate.isConnected) {
+    return candidate;
+  }
+  const mainContent = document.getElementById('main-content');
+  if (mainContent instanceof HTMLElement) {
+    if (!mainContent.hasAttribute('tabindex')) {
+      mainContent.setAttribute('tabindex', '-1');
+    }
+    return mainContent;
+  }
+  return null;
+};
+
+const getActiveInspectorFocusTarget = (): HTMLElement | null => {
+  if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+    return document.activeElement;
+  }
+  return resolveInspectorFocusTarget(null);
+};
+
 const ProjectSpaceWorkspace = ({
   activeTab,
   project,
@@ -234,6 +255,7 @@ const ProjectSpaceWorkspace = ({
   const [showPaneSwitcher, setShowPaneSwitcher] = useState(searchParams.get('pinned') !== '1');
   const [showOtherPanes, setShowOtherPanes] = useState(false);
   const [otherPaneQuery, setOtherPaneQuery] = useState('');
+  const inspectorTriggerRef = useRef<HTMLElement | null>(null);
 
   const { calendarEvents, calendarLoading, calendarMode, refreshCalendar, setCalendarMode } = useCalendarRuntime({
     accessToken,
@@ -438,6 +460,17 @@ const ProjectSpaceWorkspace = ({
   }, [searchParams]);
 
   const activePaneDocId = activePane?.doc_id || null;
+  const openInspectorWithFocusRestore = useCallback(
+    async (recordId: string, options?: { mutationPaneId?: string | null }) => {
+      inspectorTriggerRef.current = getActiveInspectorFocusTarget();
+      await openInspector(recordId, options);
+    },
+    [openInspector],
+  );
+  const closeInspectorWithFocusRestore = useCallback(() => {
+    inspectorTriggerRef.current = resolveInspectorFocusTarget(inspectorTriggerRef.current);
+    closeInspector();
+  }, [closeInspector]);
   const { createAndOpenCaptureRecord, quickCaptureInFlightRef } = useQuickCapture({
     accessToken,
     projectId: project.project_id,
@@ -446,7 +479,7 @@ const ProjectSpaceWorkspace = ({
     activePaneCanEdit,
     collections,
     focusedWorkViewId,
-    openInspector,
+    openInspector: openInspectorWithFocusRestore,
     refreshViewsAndRecords,
     setPaneMutationError,
   });
@@ -475,7 +508,7 @@ const ProjectSpaceWorkspace = ({
 
     let cancelled = false;
     void (async () => {
-      await openInspector(recordId);
+      await openInspectorWithFocusRestore(recordId);
       if (cancelled) {
         return;
       }
@@ -487,7 +520,7 @@ const ProjectSpaceWorkspace = ({
     return () => {
       cancelled = true;
     };
-  }, [activePane, activeTab, hasRequestedPane, openInspector, paneId, searchParams, setSearchParams]);
+  }, [activePane, activeTab, hasRequestedPane, openInspectorWithFocusRestore, paneId, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (searchParams.get('capture') !== '1') {
@@ -791,7 +824,7 @@ const ProjectSpaceWorkspace = ({
           void refreshProjectData();
         },
         onItemClick: (recordId) => {
-          void openInspector(recordId);
+          void openInspectorWithFocusRestore(recordId);
         },
       },
       reminders: {
@@ -831,7 +864,7 @@ const ProjectSpaceWorkspace = ({
       timelineFilters,
       toggleTimelineFilter,
       refreshProjectData,
-      openInspector,
+      openInspectorWithFocusRestore,
       remindersRuntime.create,
       remindersRuntime.dismiss,
       remindersRuntime.error,
@@ -1204,7 +1237,7 @@ const ProjectSpaceWorkspace = ({
                           groupingMessage={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupingMessage}
                           metadataFieldIds={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.metadataFieldIds}
                           onOpenRecord={(recordId) => {
-                            void openInspector(recordId);
+                            void openInspectorWithFocusRestore(recordId);
                           }}
                           onMoveRecord={(recordId, nextGroup) => {
                             if (activePaneCanEdit) {
@@ -1223,7 +1256,7 @@ const ProjectSpaceWorkspace = ({
                           records={focusedWorkViewData?.records || []}
                           loading={focusedWorkViewLoading}
                           onOpenRecord={(recordId) => {
-                            void openInspector(recordId);
+                            void openInspectorWithFocusRestore(recordId);
                           }}
                         />
                       </Suspense>
@@ -1243,7 +1276,7 @@ const ProjectSpaceWorkspace = ({
                 }}
                 onUpdatePane={onUpdatePaneFromWorkView}
                 onOpenRecord={(recordId) => {
-                  void openInspector(recordId);
+                  void openInspectorWithFocusRestore(recordId);
                 }}
                 moduleRuntime={workViewModuleRuntime}
               />
@@ -1291,7 +1324,7 @@ const ProjectSpaceWorkspace = ({
                         viewEmbedRuntime={{
                           accessToken,
                           onOpenRecord: (recordId) => {
-                            void openInspector(recordId);
+                            void openInspectorWithFocusRestore(recordId);
                           },
                           onOpenView: (viewId) => {
                             const targetView = views.find((view) => view.view_id === viewId);
@@ -1508,8 +1541,16 @@ const ProjectSpaceWorkspace = ({
         </section>
       ) : null}
 
-      <Dialog open={Boolean(inspectorRecordId)} onOpenChange={(open) => (!open ? closeInspector() : undefined)}>
-        <DialogContent className="left-0 top-0 h-screen max-w-[min(42rem,92vw)] translate-x-0 translate-y-0 overflow-y-auto rounded-none border-r border-border-muted">
+      <Dialog open={Boolean(inspectorRecordId)} onOpenChange={(open) => (!open ? closeInspectorWithFocusRestore() : undefined)}>
+        <DialogContent
+          className="left-0 top-0 h-screen max-w-[min(42rem,92vw)] translate-x-0 translate-y-0 overflow-y-auto rounded-none border-r border-border-muted"
+          onCloseAutoFocus={(event) => {
+            if (inspectorTriggerRef.current) {
+              event.preventDefault();
+              inspectorTriggerRef.current.focus();
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Record Inspector</DialogTitle>
             <DialogDescription className="sr-only">

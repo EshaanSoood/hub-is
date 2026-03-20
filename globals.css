@@ -35,6 +35,11 @@ body {
   box-shadow: var(--shadow-focus-ring);
 }
 
+#main-content h1[tabindex="-1"]:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 ::selection {
   background: var(--color-warning-subtle);
   color: var(--color-text);

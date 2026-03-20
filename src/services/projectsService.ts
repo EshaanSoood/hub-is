@@ -74,6 +74,7 @@ const toProjectRecord = (project: HubProject): ProjectRecord => ({
   summary: '',
   openProjectProjectId: null,
   nextcloudFolder: null,
+  isPersonal: project.is_personal,
   membershipRole:
     project.membership_role === 'owner' || project.membership_role === 'member'
       ? project.membership_role

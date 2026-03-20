@@ -4,7 +4,7 @@ interface FileMovePopoverProps {
   panes: Array<{ id: string; name: string }>;
   currentFileName: string;
   onSelect: (paneId: string) => void;
-  onClose: () => void;
+  onClose: (options?: { restoreFocus?: boolean }) => void;
 }
 
 export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: FileMovePopoverProps) => {
@@ -14,7 +14,8 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        event.preventDefault();
+        onClose({ restoreFocus: true });
         return;
       }
       if (event.key !== 'Tab' || !popoverRef.current) {

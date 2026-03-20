@@ -411,6 +411,76 @@ export const runMigrations = (db) => {
     }
   }
 
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    const projectIsPersonalColumn = db
+      .prepare("SELECT 1 AS ok FROM pragma_table_info('projects') WHERE name = 'is_personal' LIMIT 1")
+      .get();
+    if (!projectIsPersonalColumn?.ok) {
+      db.exec(`
+        ALTER TABLE projects
+        ADD COLUMN is_personal INTEGER NOT NULL DEFAULT 0
+        CHECK (is_personal IN (0, 1));
+      `);
+    }
+
+    db.prepare(`
+      UPDATE projects
+      SET is_personal = 1
+      WHERE project_type = 'personal'
+        AND COALESCE(is_personal, 0) != 1
+    `).run();
+    db.prepare(`
+      UPDATE projects
+      SET project_type = 'personal'
+      WHERE COALESCE(is_personal, 0) = 1
+        AND COALESCE(project_type, 'team') != 'personal'
+    `).run();
+    db.prepare(`
+      UPDATE projects
+      SET project_type = 'team'
+      WHERE COALESCE(is_personal, 0) = 0
+        AND COALESCE(project_type, 'team') != 'team'
+    `).run();
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS projects_personal_consistency_insert
+      BEFORE INSERT ON projects
+      FOR EACH ROW
+      BEGIN
+        SELECT
+          CASE
+            WHEN (
+              (COALESCE(NEW.is_personal, 0) = 1 AND COALESCE(NEW.project_type, 'team') != 'personal')
+              OR (COALESCE(NEW.is_personal, 0) = 0 AND COALESCE(NEW.project_type, 'team') != 'team')
+            )
+            THEN RAISE(ABORT, 'projects.is_personal must match project_type')
+          END;
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS projects_personal_consistency_update
+      BEFORE UPDATE OF is_personal, project_type ON projects
+      FOR EACH ROW
+      BEGIN
+        SELECT
+          CASE
+            WHEN (
+              (COALESCE(NEW.is_personal, 0) = 1 AND COALESCE(NEW.project_type, 'team') != 'personal')
+              OR (COALESCE(NEW.is_personal, 0) = 0 AND COALESCE(NEW.project_type, 'team') != 'team')
+            )
+            THEN RAISE(ABORT, 'projects.is_personal must match project_type')
+          END;
+      END;
+    `);
+    db.exec('COMMIT;');
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // no-op
+    }
+    throw error;
+  }
+
   const projectTasksCollectionIdColumn = db
     .prepare("SELECT 1 AS ok FROM pragma_table_info('projects') WHERE name = 'tasks_collection_id' LIMIT 1")
     .get();

@@ -15,6 +15,7 @@ export interface HubProject {
   created_by: string;
   created_at: string;
   updated_at: string;
+  is_personal: boolean;
   membership_role: string | null;
 }
 
