@@ -467,18 +467,23 @@ const ProjectLensView = ({
   onOpenRecord: (recordId: string) => void;
 }) => {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const projectLensProjects = useMemo(
+    () => projects.filter((project) => !project.isPersonal),
+    [projects],
+  );
+
   const groupedItems = useMemo(() => {
     const map = new Map<string, HubDashboardItem[]>();
     map.set('__inbox__', items.filter((item) => !item.projectId));
-    for (const project of projects) {
+    for (const project of projectLensProjects) {
       map.set(project.id, items.filter((item) => item.projectId === project.id));
     }
     return map;
-  }, [items, projects]);
+  }, [items, projectLensProjects]);
 
   const sections = [
     { id: '__inbox__', name: 'Inbox & Unassigned', items: groupedItems.get('__inbox__') || [] },
-    ...projects.map((project) => ({
+    ...projectLensProjects.map((project) => ({
       id: project.id,
       name: project.name,
       items: groupedItems.get(project.id) || [],
@@ -520,7 +525,7 @@ const ProjectLensView = ({
           </section>
         );
       })}
-      {projects.length === 0 ? <p className="rounded-panel border border-border-muted bg-surface px-4 py-8 text-center text-sm text-muted">No projects yet.</p> : null}
+      {projectLensProjects.length === 0 ? <p className="rounded-panel border border-border-muted bg-surface px-4 py-8 text-center text-sm text-muted">No projects yet.</p> : null}
     </div>
   );
 };

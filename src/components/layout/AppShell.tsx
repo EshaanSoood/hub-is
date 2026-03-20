@@ -318,6 +318,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const quickAddTaskMetadataRequestRef = useRef(0);
   const captureTriggerRef = useRef<HTMLButtonElement | null>(null);
   const captureRestoreTargetRef = useRef<HTMLElement | null>(null);
+  const taskTitleInputRef = useRef<HTMLInputElement | null>(null);
   const eventProjectSelectRef = useRef<HTMLSelectElement | null>(null);
   const reminderInputRef = useRef<HTMLInputElement | null>(null);
   const reminderProjectSelectRef = useRef<HTMLSelectElement | null>(null);
@@ -634,6 +635,19 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [captureOpen, refreshCaptureData]);
 
   useEffect(() => {
+    if (!contextMenuOpen) {
+      return;
+    }
+    const frameId = window.requestAnimationFrame(() => {
+      setQuickAddActiveIndex(0);
+      focusElementSoon(quickAddItemRefs.current[0]);
+    });
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [contextMenuOpen]);
+
+  useEffect(() => {
     if (quickAddDialog !== 'reminder') {
       return;
     }
@@ -653,6 +667,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [loadTaskProjectMetadata, quickAddDialog, quickAddProjectId]);
 
   useEffect(() => {
+    if (quickAddDialog === 'task') {
+      focusElementSoon(taskTitleInputRef.current);
+      return;
+    }
     if (quickAddDialog === 'event') {
       focusElementSoon(eventProjectSelectRef.current);
       return;
@@ -1490,7 +1508,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               ref={captureTriggerRef}
               type="button"
               onClick={onQuickCapture}
-              aria-label="Open quick capture"
+              aria-label="Thought Pile"
               aria-expanded={captureOpen}
               className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
@@ -1504,7 +1522,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               align="center"
               sideOffset={8}
               role="dialog"
-              aria-label="Quick capture"
+              aria-label="Thought Pile"
               className="z-[120] w-[min(92vw,440px)] rounded-panel border border-border-muted bg-surface-elevated p-4 shadow-soft"
               onOpenAutoFocus={(event) => {
                 event.preventDefault();
@@ -1551,6 +1569,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={contextMenuTriggerRef}
           projectOptions={quickAddProjectOptions}
           selectedProjectId={quickAddProjectId}
+          titleInputRef={taskTitleInputRef}
           onSelectedProjectIdChange={(projectId) => {
             setQuickAddProjectId(projectId);
             void loadTaskProjectMetadata(projectId);

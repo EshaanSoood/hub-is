@@ -20,6 +20,7 @@ interface TaskCreateDialogProps {
   projectOptions?: Array<{ value: string; label: string }>;
   selectedProjectId?: string;
   onSelectedProjectIdChange?: (projectId: string) => void;
+  titleInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 type TouchField = 'title' | 'priority' | 'dueDate' | 'assignee' | 'category' | 'status';
@@ -68,6 +69,7 @@ export const TaskCreateDialog = ({
   projectOptions,
   selectedProjectId = '',
   onSelectedProjectIdChange,
+  titleInputRef,
 }: TaskCreateDialogProps) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const projectSelectRef = useRef<HTMLSelectElement | null>(null);
@@ -115,6 +117,10 @@ export const TaskCreateDialog = ({
       return;
     }
     const frame = requestAnimationFrame(() => {
+      if (titleInputRef?.current) {
+        titleInputRef.current.focus();
+        return;
+      }
       if (projectOptions && onSelectedProjectIdChange) {
         projectSelectRef.current?.focus();
         return;
@@ -122,7 +128,7 @@ export const TaskCreateDialog = ({
       textareaRef.current?.focus();
     });
     return () => cancelAnimationFrame(frame);
-  }, [onSelectedProjectIdChange, open, projectOptions]);
+  }, [onSelectedProjectIdChange, open, projectOptions, titleInputRef]);
 
   useEffect(() => {
     if (!open) {
@@ -293,6 +299,7 @@ export const TaskCreateDialog = ({
             </label>
             <input
               id="task-create-title"
+              ref={titleInputRef}
               value={titleValue}
               onChange={(event) => {
                 markTouched('title');
