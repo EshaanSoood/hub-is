@@ -149,7 +149,7 @@ interface QuickCapturePanelProps {
   preferredProjectId?: string | null;
   initialIntent?: string | null;
   activationKey?: number;
-  onRequestClose: () => void;
+  onRequestClose: (options?: { restoreFocus?: boolean }) => void;
 }
 
 export const QuickCapturePanel = ({
@@ -181,6 +181,7 @@ export const QuickCapturePanel = ({
   const captureInputRef = useRef<HTMLInputElement | null>(null);
   const hoverExpandTimerRef = useRef<number | null>(null);
   const projectCollectionsCacheRef = useRef<Record<string, HubCollection[]>>({});
+  const defaultProjectCaptureTargetRef = useRef(PERSONAL_CAPTURE_TARGET);
 
   const visibleProjects = useMemo(
     () => projects.filter((project) => !project.isPersonal),
@@ -196,6 +197,11 @@ export const QuickCapturePanel = ({
     [preferredProjectId, visibleProjects],
   );
   const defaultProjectCaptureTarget = preferredProject?.id ?? lastOpenedProject?.id ?? visibleProjects[0]?.id ?? PERSONAL_CAPTURE_TARGET;
+
+  useEffect(() => {
+    defaultProjectCaptureTargetRef.current = defaultProjectCaptureTarget;
+  }, [defaultProjectCaptureTarget]);
+
   const captureProjectOptions = useMemo(
     () => [
       { value: PERSONAL_CAPTURE_TARGET, label: 'Personal Hub', disabled: captureMode === 'reminder' || captureMode === 'calendar' },
@@ -278,10 +284,10 @@ export const QuickCapturePanel = ({
 
   useEffect(() => {
     const nextMode = captureModeFromIntent(initialIntent);
-    const nextProjectId = nextMode === 'thought' ? PERSONAL_CAPTURE_TARGET : defaultProjectCaptureTarget;
+    const nextProjectId = nextMode === 'thought' ? PERSONAL_CAPTURE_TARGET : defaultProjectCaptureTargetRef.current;
     resetCaptureComposer(nextMode, nextMode !== 'thought', nextProjectId);
     void focusCaptureInput();
-  }, [activationKey, defaultProjectCaptureTarget, focusCaptureInput, initialIntent, resetCaptureComposer]);
+  }, [activationKey, focusCaptureInput, initialIntent, resetCaptureComposer]);
 
   useEffect(() => {
     if (!captureNotice) {
@@ -413,7 +419,7 @@ export const QuickCapturePanel = ({
         );
         setCaptureText('');
         setCaptureError(null);
-        onRequestClose();
+        onRequestClose({ restoreFocus: false });
         navigate(`/projects/${captureTargetProjectId}/work?capture=1&intent=${encodeURIComponent(intent)}`);
       } catch (error) {
         setCaptureError(error instanceof Error ? error.message : 'Failed to save capture.');

@@ -190,7 +190,7 @@ export const CalendarModuleSkin = ({
       if (overflowPopoverRef.current?.contains(target) || overflowTriggerRef.current?.contains(target)) {
         return;
       }
-      closeOverflowDay(true);
+      closeOverflowDay(false);
     };
 
     const onKeyDown = (event: KeyboardEvent) => {

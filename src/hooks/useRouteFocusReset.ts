@@ -19,6 +19,19 @@ export const useRouteFocusReset = () => {
           return;
         }
 
+        const activeElement = document.activeElement;
+        if (
+          activeElement instanceof HTMLElement
+          && activeElement !== document.body
+          && activeElement !== document.documentElement
+          && (
+            mainContent.contains(activeElement)
+            || activeElement.closest('[role="dialog"], [aria-modal="true"]')
+          )
+        ) {
+          return;
+        }
+
         const heading = mainContent.querySelector('h1');
         const focusTarget = heading instanceof HTMLElement ? heading : mainContent;
         ensureProgrammaticFocusability(focusTarget);

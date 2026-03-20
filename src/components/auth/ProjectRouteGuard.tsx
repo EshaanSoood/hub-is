@@ -7,10 +7,10 @@ import { AccessDeniedView } from './AccessDeniedView';
 export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
   const { projectId = '' } = useParams();
   const { canProject } = useAuthz();
-  const { projects, loading } = useProjects();
+  const { projects, loading, initialized } = useProjects();
   const project = projects.find((entry) => entry.id === projectId) || null;
 
-  if (loading) {
+  if (loading || !initialized) {
     return (
       <div className="p-4" role="status" aria-live="polite">
         <p className="text-sm text-muted">Loading project...</p>

@@ -4,7 +4,7 @@ interface FileMovePopoverProps {
   panes: Array<{ id: string; name: string }>;
   currentFileName: string;
   onSelect: (paneId: string) => void;
-  onClose: () => void;
+  onClose: (options?: { restoreFocus?: boolean }) => void;
 }
 
 export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: FileMovePopoverProps) => {

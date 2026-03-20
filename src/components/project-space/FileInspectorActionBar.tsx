@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { AlertDialog } from '../primitives';
 import { FileMovePopover } from './FileMovePopover';
 
@@ -65,6 +65,22 @@ export const FileInspectorActionBar = ({
   const renameRef = useRef<HTMLFormElement | null>(null);
   const moveWasOpenRef = useRef(false);
   const renameWasOpenRef = useRef(false);
+  const moveRestoreFocusRef = useRef(false);
+  const renameRestoreFocusRef = useRef(false);
+
+  const closeMove = useCallback((options?: { restoreFocus?: boolean }) => {
+    moveRestoreFocusRef.current = options?.restoreFocus ?? false;
+    setMoveOpen(false);
+  }, []);
+
+  const closeRename = useCallback((options?: { restoreFocus?: boolean; resetValue?: boolean }) => {
+    renameRestoreFocusRef.current = options?.restoreFocus ?? false;
+    if (options?.resetValue !== false) {
+      setRenameValue(fileName);
+      setRenameError(null);
+    }
+    setRenameOpen(false);
+  }, [fileName]);
 
   useEffect(() => {
     setRenameValue(fileName);
@@ -78,14 +94,14 @@ export const FileInspectorActionBar = ({
     }
     const onMouseDown = (event: MouseEvent) => {
       if (moveRef.current && !moveRef.current.contains(event.target as Node)) {
-        setMoveOpen(false);
+        closeMove({ restoreFocus: false });
       }
     };
     document.addEventListener('mousedown', onMouseDown);
     return () => {
       document.removeEventListener('mousedown', onMouseDown);
     };
-  }, [moveOpen]);
+  }, [closeMove, moveOpen]);
 
   useEffect(() => {
     if (!renameOpen) {
@@ -97,17 +113,13 @@ export const FileInspectorActionBar = ({
         && !renameRef.current.contains(event.target as Node)
         && !renameTriggerRef.current?.contains(event.target as Node)
       ) {
-        setRenameValue(fileName);
-        setRenameError(null);
-        setRenameOpen(false);
+        closeRename({ restoreFocus: false });
       }
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        setRenameValue(fileName);
-        setRenameError(null);
-        setRenameOpen(false);
+        closeRename({ restoreFocus: true });
       }
     };
     document.addEventListener('mousedown', onMouseDown);
@@ -116,26 +128,32 @@ export const FileInspectorActionBar = ({
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [fileName, renameOpen]);
+  }, [closeRename, renameOpen]);
 
   useEffect(() => {
-    if (!moveOpen && moveWasOpenRef.current) {
+    if (!moveOpen && moveWasOpenRef.current && moveRestoreFocusRef.current) {
       window.setTimeout(() => {
         if (moveTriggerRef.current?.isConnected) {
           moveTriggerRef.current.focus();
         }
       }, 0);
     }
+    if (!moveOpen) {
+      moveRestoreFocusRef.current = false;
+    }
     moveWasOpenRef.current = moveOpen;
   }, [moveOpen]);
 
   useEffect(() => {
-    if (!renameOpen && renameWasOpenRef.current) {
+    if (!renameOpen && renameWasOpenRef.current && renameRestoreFocusRef.current) {
       window.setTimeout(() => {
         if (renameTriggerRef.current?.isConnected) {
           renameTriggerRef.current.focus();
         }
       }, 0);
+    }
+    if (!renameOpen) {
+      renameRestoreFocusRef.current = false;
     }
     renameWasOpenRef.current = renameOpen;
   }, [renameOpen]);
@@ -168,16 +186,27 @@ export const FileInspectorActionBar = ({
         {!readOnly ? (
           <>
             <div className="relative" ref={moveRef}>
-              <ActionButton buttonRef={moveTriggerRef} label="Move" onClick={() => setMoveOpen((current) => !current)} expanded={moveOpen} />
+              <ActionButton
+                buttonRef={moveTriggerRef}
+                label="Move"
+                onClick={() => {
+                  if (moveOpen) {
+                    closeMove({ restoreFocus: false });
+                    return;
+                  }
+                  setMoveOpen(true);
+                }}
+                expanded={moveOpen}
+              />
               {moveOpen ? (
                 <FileMovePopover
                   panes={panes}
                   currentFileName={fileName}
                   onSelect={(paneId) => {
                     onMove(paneId);
-                    setMoveOpen(false);
+                    closeMove({ restoreFocus: true });
                   }}
-                  onClose={() => setMoveOpen(false)}
+                  onClose={(options) => closeMove(options)}
                 />
               ) : null}
             </div>
@@ -187,7 +216,11 @@ export const FileInspectorActionBar = ({
                 label="Rename"
                 onClick={() => {
                   setRenameError(null);
-                  setRenameOpen((current) => !current);
+                  if (renameOpen) {
+                    closeRename({ restoreFocus: false });
+                    return;
+                  }
+                  setRenameOpen(true);
                 }}
                 expanded={renameOpen}
               />
@@ -200,14 +233,14 @@ export const FileInspectorActionBar = ({
                     const trimmed = renameValue.trim();
                     if (!trimmed || trimmed === fileName) {
                       setRenameError(null);
-                      setRenameOpen(false);
+                      closeRename({ restoreFocus: true, resetValue: false });
                       return;
                     }
                     setRenameError(null);
                     setRenaming(true);
                     try {
                       await onRename(trimmed);
-                      setRenameOpen(false);
+                      closeRename({ restoreFocus: true, resetValue: false });
                     } catch (error) {
                       setRenameError(error instanceof Error ? error.message : 'Failed to rename file.');
                     } finally {
