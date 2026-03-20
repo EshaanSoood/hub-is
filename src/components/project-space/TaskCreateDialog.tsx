@@ -17,6 +17,9 @@ interface TaskCreateDialogProps {
   showRememberedParentNote?: boolean;
   onSwitchToStandaloneTask?: () => void;
   triggerRef?: RefObject<HTMLElement | null>;
+  projectOptions?: Array<{ value: string; label: string }>;
+  selectedProjectId?: string;
+  onSelectedProjectIdChange?: (projectId: string) => void;
 }
 
 type TouchField = 'title' | 'priority' | 'dueDate' | 'assignee' | 'category' | 'status';
@@ -62,8 +65,12 @@ export const TaskCreateDialog = ({
   showRememberedParentNote = false,
   onSwitchToStandaloneTask,
   triggerRef,
+  projectOptions,
+  selectedProjectId = '',
+  onSelectedProjectIdChange,
 }: TaskCreateDialogProps) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const projectSelectRef = useRef<HTMLSelectElement | null>(null);
   const touchedFieldsRef = useRef<Set<TouchField>>(new Set());
   const submitInFlightRef = useRef(false);
   const [nlInput, setNlInput] = useState('');
@@ -108,10 +115,14 @@ export const TaskCreateDialog = ({
       return;
     }
     const frame = requestAnimationFrame(() => {
+      if (projectOptions && onSelectedProjectIdChange) {
+        projectSelectRef.current?.focus();
+        return;
+      }
       textareaRef.current?.focus();
     });
     return () => cancelAnimationFrame(frame);
-  }, [open]);
+  }, [onSelectedProjectIdChange, open, projectOptions]);
 
   useEffect(() => {
     if (!open) {
@@ -212,6 +223,27 @@ export const TaskCreateDialog = ({
       triggerRef={triggerRef}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
+        {projectOptions && onSelectedProjectIdChange ? (
+          <div className="space-y-1">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="task-create-project">
+              Project
+            </label>
+            <select
+              id="task-create-project"
+              ref={projectSelectRef}
+              value={selectedProjectId}
+              onChange={(event) => onSelectedProjectIdChange(event.target.value)}
+              className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+            >
+              {projectOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+
         <div className="space-y-2">
           <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="task-create-nl">
             Task Description

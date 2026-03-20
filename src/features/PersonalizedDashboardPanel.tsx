@@ -1,13 +1,10 @@
 import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAuthz } from '../context/AuthzContext';
-import { CalendarModuleSkin } from '../components/project-space/CalendarModuleSkin';
 import { RemindersModuleSkin } from '../components/project-space/RemindersModuleSkin';
-import { usePersonalCalendarRuntime } from '../hooks/usePersonalCalendarRuntime';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { dashboardCardRegistry } from '../lib/dashboardCards';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import type { ProjectRecord } from '../types/domain';
-import { createEventFromNlp } from '../services/hub/records';
 import type { getHubHome } from '../services/hub/records';
 import type { HubReminderSummary } from '../services/hub/reminders';
 import { Chip, FilterChip, Icon, Popover, PopoverContent, PopoverTrigger, Select, Tabs, TabsContent } from '../components/primitives';
@@ -617,12 +614,14 @@ export const PersonalizedDashboardPanel = ({
   homeError,
   projects,
   onOpenRecord,
+  onViewChange,
 }: {
   homeData: HubHomeData;
   homeLoading: boolean;
   homeError: string | null;
   projects: ProjectRecord[];
   onOpenRecord: (recordId: string) => void;
+  onViewChange?: (view: HubDashboardView) => void;
 }) => {
   const { accessToken, canGlobal, sessionSummary } = useAuthz();
   const [activeView, setActiveView] = useState<HubDashboardView>('daily-brief');
@@ -632,15 +631,6 @@ export const PersonalizedDashboardPanel = ({
   const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const viewListboxRef = useRef<HTMLDivElement | null>(null);
   const remindersRuntime = useRemindersRuntime(accessToken ?? null);
-  const {
-    calendarEvents,
-    calendarError,
-    calendarLoading,
-    calendarMode,
-    refreshCalendar,
-    setCalendarMode,
-  } = usePersonalCalendarRuntime(accessToken ?? null);
-  const [calendarCreateProjectId, setCalendarCreateProjectId] = useState(() => projects[0]?.id || '');
 
   const visibleDashboardCards = useMemo(
     () =>
@@ -675,21 +665,12 @@ export const PersonalizedDashboardPanel = ({
     () => (hasHubView ? VIEW_ORDER : (['daily-brief'] as HubDashboardView[])),
     [hasHubView],
   );
-  const calendarProjectOptions = useMemo(
-    () => projects.map((project) => ({ value: project.id, label: project.name })),
-    [projects],
-  );
-  const selectedCalendarCreateProjectId = useMemo(() => {
-    if (projects.length === 0) {
-      return '';
-    }
-    if (projects.some((project) => project.id === calendarCreateProjectId)) {
-      return calendarCreateProjectId;
-    }
-    return projects[0]?.id || '';
-  }, [calendarCreateProjectId, projects]);
 
   const selectedView = availableViewIds.includes(activeView) ? activeView : availableViewIds[0];
+
+  useEffect(() => {
+    onViewChange?.(selectedView);
+  }, [onViewChange, selectedView]);
 
   useEffect(() => {
     if (!viewMenuOpen) {
@@ -885,53 +866,6 @@ export const PersonalizedDashboardPanel = ({
           />
         </div>
       ) : null}
-
-      <section className="mt-4 space-y-3" aria-labelledby="personal-dashboard-calendar-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 id="personal-dashboard-calendar-heading" className="text-sm font-semibold text-text">
-            Calendar
-          </h3>
-          {calendarProjectOptions.length > 0 ? (
-            <Select
-              value={selectedCalendarCreateProjectId}
-              onValueChange={setCalendarCreateProjectId}
-              options={calendarProjectOptions}
-              ariaLabel="Select project for new personal calendar events"
-              triggerClassName="min-w-44"
-            />
-          ) : null}
-        </div>
-        {calendarError ? (
-          <div className="rounded-panel border border-danger/30 bg-danger/5 p-4" role="alert">
-            <p className="text-sm text-danger">{calendarError}</p>
-            <button
-              type="button"
-              onClick={() => {
-                void refreshCalendar();
-              }}
-              className="mt-3 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <CalendarModuleSkin
-            events={calendarEvents}
-            loading={calendarLoading}
-            scope={calendarMode}
-            onScopeChange={setCalendarMode}
-            onOpenRecord={onOpenRecord}
-            onCreateEvent={
-              accessToken && selectedCalendarCreateProjectId
-                ? async (payload) => {
-                    await createEventFromNlp(accessToken, selectedCalendarCreateProjectId, payload);
-                    await refreshCalendar();
-                  }
-                : undefined
-            }
-          />
-        )}
-      </section>
     </section>
   );
 };
