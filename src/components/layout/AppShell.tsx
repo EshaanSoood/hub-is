@@ -193,13 +193,32 @@ const toDateTimeLocalInput = (date: Date): string => {
 const nowPlusHours = (hours: number): Date => new Date(Date.now() + hours * 60 * 60 * 1000);
 
 const hasMeaningfulReminderPreview = (preview: ReminderParseResult): boolean =>
-  Boolean(preview.title.trim() || preview.remind_at || preview.recurrence || preview.context_hint);
+  Boolean(preview.fields.title.trim() || preview.fields.remind_at || preview.fields.recurrence || preview.fields.context_hint);
 
 const emptyReminderPreview = (): ReminderParseResult => ({
-  title: '',
-  remind_at: null,
-  recurrence: null,
-  context_hint: null,
+  fields: {
+    title: '',
+    remind_at: null,
+    recurrence: null,
+    context_hint: null,
+  },
+  meta: {
+    confidence: {
+      title: 0,
+      remind_at: 0,
+      recurrence: 0,
+      context_hint: 0,
+    },
+    spans: {
+      title: [],
+      remind_at: [],
+      recurrence: [],
+      context_hint: [],
+    },
+    debugSteps: [],
+    maskedInput: '',
+  },
+  warnings: null,
 });
 
 const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
@@ -555,8 +574,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const title = reminderPreview.title.trim() || reminderDraft.trim();
-    if (!title || !reminderPreview.remind_at) {
+    const title = reminderPreview.fields.title.trim() || reminderDraft.trim();
+    if (!title || !reminderPreview.fields.remind_at) {
       setReminderError('Add a title and time to create a reminder.');
       return;
     }
@@ -566,11 +585,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     try {
       await createReminder(accessToken, {
         title,
-        remind_at: reminderPreview.remind_at,
-        recurrence_json: reminderPreview.recurrence
+        remind_at: reminderPreview.fields.remind_at,
+        recurrence_json: reminderPreview.fields.recurrence
           ? {
-              frequency: reminderPreview.recurrence.frequency,
-              interval: reminderPreview.recurrence.interval,
+              frequency: reminderPreview.fields.recurrence.frequency,
+              interval: reminderPreview.fields.recurrence.interval,
             }
           : null,
       });
@@ -1714,9 +1733,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
             {hasMeaningfulReminderPreview(reminderPreview) ? (
               <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
-                {reminderPreview.title ? <p><span className="font-semibold text-text">Title:</span> {reminderPreview.title}</p> : null}
-                {reminderPreview.remind_at ? <p><span className="font-semibold text-text">When:</span> {reminderPreview.context_hint || reminderPreview.remind_at}</p> : null}
-                {reminderPreview.recurrence ? <p><span className="font-semibold text-text">Recurs:</span> {reminderPreview.recurrence.frequency}</p> : null}
+                {reminderPreview.fields.title ? <p><span className="font-semibold text-text">Title:</span> {reminderPreview.fields.title}</p> : null}
+                {reminderPreview.fields.remind_at ? <p><span className="font-semibold text-text">When:</span> {reminderPreview.fields.context_hint || reminderPreview.fields.remind_at}</p> : null}
+                {reminderPreview.fields.recurrence ? <p><span className="font-semibold text-text">Recurs:</span> {reminderPreview.fields.recurrence.frequency}</p> : null}
               </div>
             ) : null}
 

@@ -148,16 +148,16 @@ export const TaskCreateDialog = ({
       setParseResult(parsed);
 
       if (!touchedFieldsRef.current.has('title')) {
-        setTitleValue(parsed.title || nlInput.trim());
+        setTitleValue(parsed.fields.title || nlInput.trim());
       }
       if (!touchedFieldsRef.current.has('priority')) {
-        setPriorityValue(parsed.priority || '');
+        setPriorityValue(parsed.fields.priority || '');
       }
       if (!touchedFieldsRef.current.has('dueDate')) {
-        setDueDateValue(toDateTimeLocal(parsed.due_at));
+        setDueDateValue(toDateTimeLocal(parsed.fields.due_at));
       }
       if (!touchedFieldsRef.current.has('assignee')) {
-        setAssigneeValue(findSuggestedAssignee(parsed.assignee_hints, projectMembers));
+        setAssigneeValue(findSuggestedAssignee(parsed.fields.assignee_hints, projectMembers));
       }
     }, 300);
 
@@ -270,8 +270,22 @@ export const TaskCreateDialog = ({
             {!intentResult?.ambiguous && intentResult && intentResult.intent !== 'task'
               ? `This looks more like a ${intentResult.intent} than a task. Creating as a task anyway.`
               : null}
-            {!intentResult && parseResult ? `Parsed task title: ${parseResult.title || 'Untitled task'}` : null}
+            {!intentResult && parseResult ? `Parsed task title: ${parseResult.fields.title || 'Untitled task'}` : null}
+            {parseResult && parseResult.meta.confidence.title < 0.6 ? ' Title confidence is low — review before saving.' : null}
           </div>
+          {import.meta.env.DEV && parseResult ? (
+            <details className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-muted">
+              <summary className="cursor-pointer select-none">Task Parser Debug</summary>
+              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap">
+                {parseResult.meta.debugSteps.map((step) => `${step.pass} | ${step.ruleId} | ${step.note}`).join('\n') || 'No steps'}
+              </pre>
+              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap">
+                {intentResult
+                  ? intentResult.meta.debugSteps.map((step) => `${step.pass} | ${step.ruleId} | ${step.note}`).join('\n')
+                  : 'No intent steps'}
+              </pre>
+            </details>
+          ) : null}
         </div>
 
         {showRememberedParentNote && parentRecordId ? (

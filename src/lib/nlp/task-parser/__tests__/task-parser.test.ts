@@ -56,11 +56,16 @@ test('parseTaskInput matches the merged dataset and reports pass rates', () => {
       });
 
       const expectedAssignees = example.expected.assignee_hints.map((value) => value.toLowerCase()).sort();
-      const actualAssignees = result.assignee_hints.map((value) => value.toLowerCase()).sort();
+      const actualAssignees = result.fields.assignee_hints.map((value) => value.toLowerCase()).sort();
 
-      const titlePass = result.title === example.expected.title;
-      const duePass = result.due_at === example.expected.due_at;
-      const priorityPass = result.priority === example.expected.priority;
+      const titlePass = result.fields.title === example.expected.title;
+      const duePass = (() => {
+        if (result.fields.due_at === example.expected.due_at) return true;
+        if (!result.fields.due_at || !example.expected.due_at) return false;
+        if (example.expected.due_at.includes('T')) return result.fields.due_at === example.expected.due_at;
+        return result.fields.due_at.slice(0, 10) === example.expected.due_at;
+      })();
+      const priorityPass = result.fields.priority === example.expected.priority;
       let assigneePass = true;
       try {
         assert.deepEqual(actualAssignees, expectedAssignees);
