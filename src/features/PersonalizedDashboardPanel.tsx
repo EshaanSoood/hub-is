@@ -15,6 +15,7 @@ type HubDashboardView = 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
 type BriefFilter = 'timeline' | 'calendar' | 'tasks' | 'reminders';
+const ALL_DAILY_BRIEF_PROJECTS_FILTER = '__all_projects__';
 
 type HubDashboardItem =
   | {
@@ -270,7 +271,7 @@ const DailyBriefView = ({
   onOpenRecord: (recordId: string) => void;
 }) => {
   const [briefFilter, setBriefFilter] = useState<BriefFilter>('timeline');
-  const [briefProjectFilter, setBriefProjectFilter] = useState<string>('');
+  const [briefProjectFilter, setBriefProjectFilter] = useState<string>(ALL_DAILY_BRIEF_PROJECTS_FILTER);
 
   const todayEventsBase = useMemo(
     () =>
@@ -345,7 +346,7 @@ const DailyBriefView = ({
     }
 
     return [
-      { value: '', label: 'All Projects' },
+      { value: ALL_DAILY_BRIEF_PROJECTS_FILTER, label: 'All Projects' },
       ...Array.from(projectMap.entries())
         .sort((left, right) => left[1].localeCompare(right[1]))
         .map(([value, label]) => ({ value, label })),
@@ -353,17 +354,21 @@ const DailyBriefView = ({
   }, [todayEventsBase, todayRemindersBase, todayTasksBase]);
 
   const todayEvents = useMemo(
-    () => (briefProjectFilter ? todayEventsBase.filter((event) => event.project_id === briefProjectFilter) : todayEventsBase),
+    () => (briefProjectFilter === ALL_DAILY_BRIEF_PROJECTS_FILTER
+      ? todayEventsBase
+      : todayEventsBase.filter((event) => event.project_id === briefProjectFilter)),
     [briefProjectFilter, todayEventsBase],
   );
 
   const todayTasks = useMemo(
-    () => (briefProjectFilter ? todayTasksBase.filter((task) => task.project_id === briefProjectFilter) : todayTasksBase),
+    () => (briefProjectFilter === ALL_DAILY_BRIEF_PROJECTS_FILTER
+      ? todayTasksBase
+      : todayTasksBase.filter((task) => task.project_id === briefProjectFilter)),
     [briefProjectFilter, todayTasksBase],
   );
 
   const todayReminders = useMemo(() => {
-    if (!briefProjectFilter) {
+    if (briefProjectFilter === ALL_DAILY_BRIEF_PROJECTS_FILTER) {
       return todayRemindersBase;
     }
     return todayRemindersBase.filter((reminder) => {
