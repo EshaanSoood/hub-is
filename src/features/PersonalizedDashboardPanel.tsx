@@ -1,6 +1,5 @@
 import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAuthz } from '../context/AuthzContext';
-import { RemindersModuleSkin } from '../components/project-space/RemindersModuleSkin';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { dashboardCardRegistry } from '../lib/dashboardCards';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
@@ -12,9 +11,10 @@ import { Chip, FilterChip, Icon, Popover, PopoverContent, PopoverTrigger, Select
 type HubHomeData = Awaited<ReturnType<typeof getHubHome>>;
 type HubTask = HubHomeData['tasks'][number];
 type HubEvent = HubHomeData['events'][number];
-type HubDashboardView = 'daily-brief' | 'project-lens' | 'stream';
+type HubDashboardView = 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
+type BriefFilter = 'timeline' | 'calendar' | 'tasks' | 'reminders';
 
 type HubDashboardItem =
   | {
@@ -46,11 +46,10 @@ type HubDashboardItem =
       explicitHref: string;
     };
 
-const VIEW_ORDER: HubDashboardView[] = ['daily-brief', 'project-lens', 'stream'];
+const VIEW_ORDER: HubDashboardView[] = ['project-lens', 'stream'];
 const STREAM_FILTERS: StreamTypeFilter[] = ['all', 'tasks', 'events'];
 
 const viewLabels: Record<HubDashboardView, string> = {
-  'daily-brief': 'Daily Brief',
   'project-lens': 'Project Lens',
   stream: 'Stream',
 };
@@ -60,6 +59,13 @@ const streamFilterLabels: Record<StreamTypeFilter, string> = {
   tasks: 'Tasks',
   events: 'Events',
 };
+
+const briefFilterOptions: Array<{ value: BriefFilter; label: string }> = [
+  { value: 'timeline', label: 'Timeline' },
+  { value: 'calendar', label: 'Calendar' },
+  { value: 'tasks', label: 'Tasks' },
+  { value: 'reminders', label: 'Reminders' },
+];
 
 const startOfDay = (date: Date): Date => {
   const next = new Date(date);
@@ -270,6 +276,7 @@ const DailyBriefView = ({
   remindersError: string | null;
   onOpenRecord: (recordId: string) => void;
 }) => {
+  const [briefFilter, setBriefFilter] = useState<BriefFilter>('timeline');
   const todayEvents = useMemo(
     () =>
       events
@@ -313,6 +320,9 @@ const DailyBriefView = ({
 
   const normalizedDisplayName = userDisplayName.trim();
   const greetingText = normalizedDisplayName ? `Hey ${normalizedDisplayName}` : 'Hey';
+  const showCalendarSection = briefFilter === 'timeline' || briefFilter === 'calendar';
+  const showTasksSection = briefFilter === 'timeline' || briefFilter === 'tasks';
+  const showRemindersSection = briefFilter === 'timeline' || briefFilter === 'reminders';
 
   return (
     <div className="relative rounded-panel border border-border-muted bg-surface">
@@ -337,116 +347,133 @@ const DailyBriefView = ({
           </p>
         </section>
 
-        <section className="space-y-2" aria-labelledby="daily-brief-calendar-heading">
-          <h3 id="daily-brief-calendar-heading" className="text-sm font-semibold text-text">
-            Calendar
-          </h3>
-          {todayEvents.length === 0 ? (
-            <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
-              No calendar events today.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {todayEvents.map((event) => (
-                <li key={event.record_id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenRecord(event.record_id)}
-                    className="flex w-full items-start justify-between gap-3 rounded-panel border border-border-muted bg-surface-elevated px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-text">{event.title || 'Untitled event'}</span>
-                      <span className="mt-1 block text-xs text-muted">{event.project_name || 'Unnamed project'}</span>
-                    </span>
-                    <span className="shrink-0 text-xs text-muted">{formatTimeOnly(event.event_state.start_dt)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+        <section className="space-y-1">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted">View</span>
+          <Select
+            value={briefFilter}
+            onValueChange={(value) => setBriefFilter(value as BriefFilter)}
+            options={briefFilterOptions}
+            ariaLabel="Daily Brief view"
+            triggerClassName="min-w-44"
+          />
         </section>
 
-        <section className="space-y-2" aria-labelledby="daily-brief-tasks-heading">
-          <h3 id="daily-brief-tasks-heading" className="text-sm font-semibold text-text">
-            Tasks Due Today
-          </h3>
-          {todayTasks.length === 0 ? (
-            <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
-              No tasks due today.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {todayTasks.map((task) => (
-                <li key={task.record_id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenRecord(task.record_id)}
-                    className="flex w-full items-start justify-between gap-3 rounded-panel border border-border-muted bg-surface-elevated px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-text">{task.title}</span>
-                      <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${projectDotClassName(task.project_id)}`} aria-hidden="true" />
-                        <span>{task.project_name || 'Inbox & Unassigned'}</span>
-                        {task.task_state.priority ? <Chip variant="neutral">{task.task_state.priority}</Chip> : null}
+        {showCalendarSection ? (
+          <section className="space-y-2" aria-labelledby="daily-brief-calendar-heading">
+            <h3 id="daily-brief-calendar-heading" className="text-sm font-semibold text-text">
+              Calendar
+            </h3>
+            {todayEvents.length === 0 ? (
+              <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
+                No calendar events today.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {todayEvents.map((event) => (
+                  <li key={event.record_id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenRecord(event.record_id)}
+                      className="flex w-full items-start justify-between gap-3 rounded-panel border border-border-muted bg-surface-elevated px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-text">{event.title || 'Untitled event'}</span>
+                        <span className="mt-1 block text-xs text-muted">{event.project_name || 'Unnamed project'}</span>
                       </span>
-                    </span>
-                    <span className="shrink-0 text-xs text-muted">{formatTimeOnly(task.task_state.due_at)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                      <span className="shrink-0 text-xs text-muted">{formatTimeOnly(event.event_state.start_dt)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
 
-        <section className="space-y-2" aria-labelledby="daily-brief-reminders-heading">
-          <h3 id="daily-brief-reminders-heading" className="text-sm font-semibold text-text">
-            Reminders Due Today
-          </h3>
-          {remindersError ? (
-            <p className="rounded-panel border border-danger bg-danger-subtle px-3 py-4 text-sm text-danger">
-              {remindersError}
-            </p>
-          ) : null}
-          {!remindersError && remindersLoading && reminders.length === 0 ? (
-            <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
-              Loading reminders…
-            </p>
-          ) : null}
-          {!remindersError && !remindersLoading && todayReminders.length === 0 ? (
-            <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
-              No reminders due today.
-            </p>
-          ) : null}
-          {todayReminders.length > 0 ? (
-            <ul className="space-y-2">
-              {todayReminders.map((reminder) => (
-                <li key={reminder.reminder_id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenRecord(reminder.record_id)}
-                    className={`relative flex w-full min-h-16 items-stretch overflow-hidden border-l-2 text-left ${
-                      reminder.overdue ? 'bg-danger-subtle border-danger' : 'bg-surface-elevated border-border-muted'
-                    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring`}
-                    style={{
-                      clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)',
-                      borderLeftColor: reminder.overdue ? 'var(--color-danger)' : 'var(--color-capture-rail)',
-                    }}
-                  >
-                    <span className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3">
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-text">{reminder.record_title || 'Untitled reminder'}</span>
-                        <span className={`mt-1 block text-xs ${reminder.overdue ? 'text-danger underline' : 'text-text-secondary'}`}>
-                          {formatTimeOnly(reminder.remind_at)}
+        {showTasksSection ? (
+          <section className="space-y-2" aria-labelledby="daily-brief-tasks-heading">
+            <h3 id="daily-brief-tasks-heading" className="text-sm font-semibold text-text">
+              Tasks Due Today
+            </h3>
+            {todayTasks.length === 0 ? (
+              <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
+                No tasks due today.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {todayTasks.map((task) => (
+                  <li key={task.record_id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenRecord(task.record_id)}
+                      className="flex w-full items-start justify-between gap-3 rounded-panel border border-border-muted bg-surface-elevated px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-text">{task.title}</span>
+                        <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                          <span className={`inline-block h-2.5 w-2.5 rounded-full ${projectDotClassName(task.project_id)}`} aria-hidden="true" />
+                          <span>{task.project_name || 'Inbox & Unassigned'}</span>
+                          {task.task_state.priority ? <Chip variant="neutral">{task.task_state.priority}</Chip> : null}
                         </span>
                       </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
+                      <span className="shrink-0 text-xs text-muted">{formatTimeOnly(task.task_state.due_at)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
+        {showRemindersSection ? (
+          <section className="space-y-2" aria-labelledby="daily-brief-reminders-heading">
+            <h3 id="daily-brief-reminders-heading" className="text-sm font-semibold text-text">
+              Reminders Due Today
+            </h3>
+            {remindersError ? (
+              <p className="rounded-panel border border-danger bg-danger-subtle px-3 py-4 text-sm text-danger">
+                {remindersError}
+              </p>
+            ) : null}
+            {!remindersError && remindersLoading && reminders.length === 0 ? (
+              <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
+                Loading reminders…
+              </p>
+            ) : null}
+            {!remindersError && !remindersLoading && todayReminders.length === 0 ? (
+              <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
+                No reminders due today.
+              </p>
+            ) : null}
+            {todayReminders.length > 0 ? (
+              <ul className="space-y-2">
+                {todayReminders.map((reminder) => (
+                  <li key={reminder.reminder_id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenRecord(reminder.record_id)}
+                      className={`relative flex w-full min-h-16 items-stretch overflow-hidden border-l-2 text-left ${
+                        reminder.overdue ? 'bg-danger-subtle border-danger' : 'bg-surface-elevated border-border-muted'
+                      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring`}
+                      style={{
+                        clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)',
+                        borderLeftColor: reminder.overdue ? 'var(--color-danger)' : 'var(--color-capture-rail)',
+                      }}
+                    >
+                      <span className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3">
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-text">{reminder.record_title || 'Untitled reminder'}</span>
+                          <span className={`mt-1 block text-xs ${reminder.overdue ? 'text-danger underline' : 'text-text-secondary'}`}>
+                            {formatTimeOnly(reminder.remind_at)}
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ) : null}
       </div>
 
       <div
@@ -629,7 +656,7 @@ export const PersonalizedDashboardPanel = ({
   onViewChange?: (view: HubDashboardView) => void;
 }) => {
   const { accessToken, canGlobal, sessionSummary } = useAuthz();
-  const [activeView, setActiveView] = useState<HubDashboardView>('daily-brief');
+  const [activeView, setActiveView] = useState<HubDashboardView>('project-lens');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [activeViewOptionIndex, setActiveViewOptionIndex] = useState(0);
   const viewListboxId = useId();
@@ -667,7 +694,7 @@ export const PersonalizedDashboardPanel = ({
 
   const hasHubView = canGlobal('hub.view') || visibleDashboardCards.some((card) => card.requiredGlobalCapabilities.includes('hub.view'));
   const availableViewIds = useMemo(
-    () => (hasHubView ? VIEW_ORDER : (['daily-brief'] as HubDashboardView[])),
+    () => (hasHubView ? VIEW_ORDER : (['project-lens'] as HubDashboardView[])),
     [hasHubView],
   );
 
@@ -765,6 +792,18 @@ export const PersonalizedDashboardPanel = ({
         </p>
       ) : null}
 
+      <div className="mt-4">
+        <DailyBriefView
+          userDisplayName={sessionSummary.name || ''}
+          tasks={homeData.tasks}
+          events={homeData.events}
+          reminders={remindersRuntime.reminders}
+          remindersLoading={remindersRuntime.loading}
+          remindersError={remindersRuntime.error}
+          onOpenRecord={onOpenRecord}
+        />
+      </div>
+
       <Tabs value={selectedView} onValueChange={(value) => setActiveView(value as HubDashboardView)} className="mt-4">
         <Popover open={viewMenuOpen} onOpenChange={handleViewMenuOpenChange}>
           <PopoverTrigger asChild>
@@ -840,17 +879,6 @@ export const PersonalizedDashboardPanel = ({
           </PopoverContent>
         </Popover>
 
-        <TabsContent value="daily-brief" className="mt-4">
-          <DailyBriefView
-            userDisplayName={sessionSummary.name || ''}
-            tasks={homeData.tasks}
-            events={homeData.events}
-            reminders={remindersRuntime.reminders}
-            remindersLoading={remindersRuntime.loading}
-            remindersError={remindersRuntime.error}
-            onOpenRecord={onOpenRecord}
-          />
-        </TabsContent>
         <TabsContent value="project-lens" className="mt-4">
           <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} />
         </TabsContent>
@@ -858,19 +886,6 @@ export const PersonalizedDashboardPanel = ({
           <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} />
         </TabsContent>
       </Tabs>
-
-      {selectedView !== 'daily-brief' ? (
-        <div className="mt-4">
-          <RemindersModuleSkin
-            reminders={remindersRuntime.reminders}
-            loading={remindersRuntime.loading}
-            error={remindersRuntime.error}
-            onDismiss={remindersRuntime.dismiss}
-            onCreate={remindersRuntime.create}
-            sizeTier="M"
-          />
-        </div>
-      ) : null}
     </section>
   );
 };
