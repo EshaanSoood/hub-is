@@ -554,6 +554,11 @@ export const applyDateTypoCorrections = (input: string): {
 };
 
 const resolveSpecialDate = (text: string, now: Date, timezone: string, preferNextWeekStart: boolean): string | null => {
+  const hasExplicitTimeExpression =
+    /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i.test(text) ||
+    /\bat\s+\d{1,2}(?::\d{2})?\b/i.test(text) ||
+    /\b(?:noon|midnight)\b/i.test(text);
+
   if (
     /\b(?:tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next\s+\w+|march|april|\d{1,2}\/\d{1,2})\b/i.test(
       text,
@@ -563,21 +568,40 @@ const resolveSpecialDate = (text: string, now: Date, timezone: string, preferNex
     return null;
   }
   if (/\bend of (?:the )?month\b/i.test(text)) {
+    if (hasExplicitTimeExpression) {
+      return null;
+    }
     return endOfMonthIso(now, timezone);
   }
   if (/\b(?:end of week|this week)\b/i.test(text)) {
+    if (hasExplicitTimeExpression) {
+      return null;
+    }
     return fridayOfCurrentWeekIso(now, timezone);
   }
   if (/\bthis weekend\b/i.test(text)) {
+    if (hasExplicitTimeExpression) {
+      return null;
+    }
     return sundayOfCurrentWeekendIso(now, timezone);
   }
   if (/\bnext week\b/i.test(text)) {
+    if (hasExplicitTimeExpression) {
+      return null;
+    }
     return preferNextWeekStart ? nextMondayIso(now, timezone) : nextWeekIso(now, timezone);
   }
   if (/\bstandup\b/i.test(text)) {
+    if (hasExplicitTimeExpression) {
+      return null;
+    }
     return nextDayIso(now, timezone);
   }
   if (/\b(?:tonight|today|now|immediately|end of day)\b/i.test(text)) {
+    // If a concrete time is present, let chrono resolve full date+time.
+    if (hasExplicitTimeExpression) {
+      return null;
+    }
     return formatDateInTimezone(now, timezone);
   }
   return null;

@@ -428,12 +428,38 @@ export const applyRelativeTimeRules = (
   confidence: number;
 } => {
   let working = preprocessTimeText(workingInput);
+  const hasExplicitClockTime =
+    /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i.test(working) ||
+    /\bat\s+\d{1,2}(?::\d{2})?\b/i.test(working) ||
+    /\b(?:noon|midnight)\b/i.test(working);
   let remindAt: string | null = null;
   let contextHint: string | null = null;
   let explicitHour: number | null = null;
   let explicitMinute: number | null = null;
   let span: { start: number; end: number; text: string } | null = null;
   let confidence = 0;
+
+  if (hasExplicitClockTime) {
+    const contextMatch =
+      working.match(/\bfirst thing(?: in the morning)?\b/i) ||
+      working.match(/\bafter lunch\b/i) ||
+      working.match(/\b(?:mid-afternoon|mid afternoon|arvo|this afternoon)\b/i) ||
+      working.match(/\b(?:end of day|eod|before I leave today)\b/i) ||
+      working.match(/\bthis weekend\b/i) ||
+      working.match(/\btonight\b/i) ||
+      working.match(/\bsat(?:urday)? morning\b/i) ||
+      working.match(/\b(?:tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)?\s*morning\b/i);
+
+    if (contextMatch) {
+      span = {
+        start: contextMatch.index ?? 0,
+        end: (contextMatch.index ?? 0) + contextMatch[0].length,
+        text: contextMatch[0],
+      };
+      contextHint = normalizeWhitespace(contextMatch[0]).toLowerCase();
+      confidence = 0.6;
+    }
+  }
 
   const consume = (regex: RegExp): RegExpMatchArray | null => {
     const match = working.match(regex);
@@ -449,16 +475,18 @@ export const applyRelativeTimeRules = (
     return match;
   };
 
-  const firstThing = consume(/\bfirst thing(?: in the morning)?\b/i);
-  if (firstThing) {
-    remindAt = withTime(addDays(now, 1), timezone, 9, 0);
-    contextHint = 'first thing in the morning';
-    explicitHour = 9;
-    explicitMinute = 0;
-    confidence = 0.86;
+  if (!hasExplicitClockTime) {
+    const firstThing = consume(/\bfirst thing(?: in the morning)?\b/i);
+    if (firstThing) {
+      remindAt = withTime(addDays(now, 1), timezone, 9, 0);
+      contextHint = 'first thing in the morning';
+      explicitHour = 9;
+      explicitMinute = 0;
+      confidence = 0.86;
+    }
   }
 
-  if (!remindAt) {
+  if (!remindAt && !hasExplicitClockTime) {
     const afterLunch = consume(/\bafter lunch\b/i);
     if (afterLunch) {
       remindAt = withTime(now, timezone, 13, 0);
@@ -469,7 +497,7 @@ export const applyRelativeTimeRules = (
     }
   }
 
-  if (!remindAt) {
+  if (!remindAt && !hasExplicitClockTime) {
     const afternoon = consume(/\b(?:mid-afternoon|mid afternoon|arvo|this afternoon)\b/i);
     if (afternoon) {
       const dateLike = findDateLike(working, now, timezone);
@@ -481,7 +509,7 @@ export const applyRelativeTimeRules = (
     }
   }
 
-  if (!remindAt) {
+  if (!remindAt && !hasExplicitClockTime) {
     const eod = consume(/\b(?:end of day|eod|before I leave today)\b/i);
     if (eod) {
       remindAt = withTime(now, timezone, 17, 0);
@@ -492,7 +520,7 @@ export const applyRelativeTimeRules = (
     }
   }
 
-  if (!remindAt) {
+  if (!remindAt && !hasExplicitClockTime) {
     const weekend = consume(/\bthis weekend\b/i);
     if (weekend) {
       remindAt = upcomingWeekend(now, timezone);
@@ -503,7 +531,7 @@ export const applyRelativeTimeRules = (
     }
   }
 
-  if (!remindAt) {
+  if (!remindAt && !hasExplicitClockTime) {
     const fortnight = consume(/\bin a fortnight\b/i);
     if (fortnight) {
       remindAt = withTime(addDays(now, 14), timezone, 9, 0);
@@ -551,7 +579,7 @@ export const applyRelativeTimeRules = (
     }
   }
 
-  if (!remindAt) {
+  if (!remindAt && !hasExplicitClockTime) {
     const tonight = consume(/\btonight\b/i);
     if (tonight) {
       remindAt = withTime(now, timezone, 20, 0);
@@ -562,7 +590,7 @@ export const applyRelativeTimeRules = (
     }
   }
 
-  if (!remindAt) {
+  if (!remindAt && !hasExplicitClockTime) {
     const satMorning = consume(/\bsat(?:urday)? morning\b/i);
     if (satMorning && getZonedParts(now, timezone).weekday === 6) {
       const parts = getZonedParts(now, timezone);
@@ -574,7 +602,7 @@ export const applyRelativeTimeRules = (
     }
   }
 
-  if (!remindAt) {
+  if (!remindAt && !hasExplicitClockTime) {
     const morning = consume(/\b(?:tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)?\s*morning\b/i);
     if (morning) {
       const normalized = normalizeWhitespace(morning[0]).toLowerCase();
