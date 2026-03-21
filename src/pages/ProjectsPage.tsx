@@ -12,19 +12,6 @@ import { subscribeHubLive } from '../services/hubLive';
 import { CalendarModuleSkin } from '../components/project-space/CalendarModuleSkin';
 import { usePersonalCalendarRuntime } from '../hooks/usePersonalCalendarRuntime';
 
-const LAST_PROJECT_KEY = 'hub:last-opened-project-id';
-
-const safeGetLastProjectId = (): string => {
-  if (typeof window === 'undefined') {
-    return '';
-  }
-  try {
-    return window.localStorage.getItem(LAST_PROJECT_KEY) || '';
-  } catch {
-    return '';
-  }
-};
-
 const resolveFocusRestoreTarget = (candidate: HTMLElement | null): HTMLElement | null => {
   if (candidate && candidate.isConnected) {
     return candidate;
@@ -91,7 +78,6 @@ export const ProjectsPage = () => {
   const selectedHubRecordIdRef = useRef<string | null>(null);
   const selectedHubRecordTriggerRef = useRef<HTMLElement | null>(null);
 
-  const lastOpenedProjectId = safeGetLastProjectId();
   const visibleProjects = useMemo(
     () => projects.filter((project) => !project.isPersonal),
     [projects],
@@ -109,14 +95,6 @@ export const ProjectsPage = () => {
     }
     return projects[0]?.id || '';
   }, [calendarCreateProjectId, projects]);
-  const lastOpenedProject = useMemo(
-    () => {
-      const project = projects.find((entry) => entry.id === lastOpenedProjectId) || null;
-      return project && !project.isPersonal ? project : null;
-    },
-    [lastOpenedProjectId, projects],
-  );
-
   useEffect(() => {
     const taskId = searchParams.get('task_id');
     if (!taskId) {
@@ -301,19 +279,6 @@ export const ProjectsPage = () => {
       <PageHeader
         title="Hub"
         description="Your personal big picture across projects, with work opening in the Record Inspector without leaving the Hub."
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            {lastOpenedProject ? (
-              <button
-                type="button"
-                onClick={() => navigate(`/projects/${lastOpenedProject.id}/work`)}
-                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              >
-                Resume {lastOpenedProject.name}
-              </button>
-            ) : null}
-          </div>
-        }
       />
 
       <PersonalizedDashboardPanel
