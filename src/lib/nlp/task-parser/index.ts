@@ -247,6 +247,25 @@ const formatDateInTimezone = (date: Date, timezone: string): string => {
   return toIsoDate(parts.year, parts.month, parts.day);
 };
 
+const formatDateTimeInTimezone = (date: Date, timezone: string): string => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value || '0000';
+  const month = parts.find((part) => part.type === 'month')?.value || '01';
+  const day = parts.find((part) => part.type === 'day')?.value || '01';
+  const hour = parts.find((part) => part.type === 'hour')?.value || '00';
+  const minute = parts.find((part) => part.type === 'minute')?.value || '00';
+  return `${year}-${month}-${day}T${hour}:${minute}:00`;
+};
+
 const addDays = (date: Date, days: number): Date => new Date(date.getTime() + days * 86400000);
 
 const endOfMonthIso = (now: Date, timezone: string): string => {
@@ -596,14 +615,14 @@ const resolveSpecialDate = (text: string, now: Date, timezone: string, preferNex
 const parseDueDate = (candidate: string, now: Date, timezone: string, preferNextWeekStart: boolean): string | null => {
   const special = resolveSpecialDate(candidate, now, timezone, preferNextWeekStart);
   if (special) {
-    return special;
+    return special.includes('T') ? special : `${special}T23:59:00`;
   }
   const parsed = chrono.parse(candidate, now, { forwardDate: true });
   const best = parsed[0];
   if (!best) {
     return null;
   }
-  return formatDateInTimezone(best.start.date(), timezone);
+  return formatDateTimeInTimezone(best.start.date(), timezone);
 };
 
 const chooseChronoCandidate = (working: string): Array<{ text: string; start: number; fromMarker: boolean }> => {
@@ -640,7 +659,7 @@ const extractDueDate = (
   preferNextWeekStart: boolean,
 ): { working: string; dueAt: string | null } => {
   let working = preprocessDateText(input);
-  let dueAt: string | null = dueForcedToday ? formatDateInTimezone(now, timezone) : null;
+  let dueAt: string | null = dueForcedToday ? formatDateTimeInTimezone(now, timezone) : null;
   if (dueForcedToday) {
     working = normalizeWhitespace(working.replace(/\b(?:now|immediately)\b/gi, ' '));
   }

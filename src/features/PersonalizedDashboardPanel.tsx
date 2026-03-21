@@ -6,7 +6,7 @@ import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubR
 import type { ProjectRecord } from '../types/domain';
 import type { getHubHome } from '../services/hub/records';
 import type { HubReminderSummary } from '../services/hub/reminders';
-import { Chip, FilterChip, Icon, Popover, PopoverContent, PopoverTrigger, Select, TabButton, Tabs, TabsContent, TabsList } from '../components/primitives';
+import { Chip, FilterChip, Icon, Popover, PopoverContent, PopoverTrigger, Select, Tabs, TabsContent } from '../components/primitives';
 
 type HubHomeData = Awaited<ReturnType<typeof getHubHome>>;
 type HubTask = HubHomeData['tasks'][number];
@@ -409,14 +409,24 @@ const DailyBriefView = ({
           </p>
         </section>
 
-        <Tabs value={briefFilter} onValueChange={(value) => setBriefFilter(value as BriefFilter)}>
-          <TabsList aria-label="Daily Brief view">
-            <TabButton value="timeline">Timeline</TabButton>
-            <TabButton value="calendar">Calendar</TabButton>
-            <TabButton value="tasks">Tasks</TabButton>
-            <TabButton value="reminders">Reminders</TabButton>
-          </TabsList>
-        </Tabs>
+        <div role="tablist" aria-label="Daily brief filter" className="flex flex-wrap gap-1">
+          {(['timeline', 'calendar', 'tasks', 'reminders'] as const).map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              role="tab"
+              aria-selected={briefFilter === filter}
+              onClick={() => setBriefFilter(filter)}
+              className={`rounded-control px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                briefFilter === filter
+                  ? 'bg-accent text-on-primary'
+                  : 'text-muted hover:bg-surface-elevated'
+              }`}
+            >
+              {filter.charAt(0).toUpperCase() + filter.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="relative">
@@ -856,10 +866,7 @@ export const PersonalizedDashboardPanel = ({
 
   return (
     <section className="rounded-panel border border-subtle bg-elevated p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="heading-3 text-primary">Hub</h2>
-        {homeLoading ? <span className="text-xs text-muted">Refreshing…</span> : null}
-      </div>
+      {homeLoading ? <p className="text-xs text-muted">Refreshing…</p> : null}
 
       {homeError ? (
         <p className="mt-3 text-sm text-danger" role="alert">

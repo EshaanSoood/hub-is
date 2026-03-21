@@ -29,7 +29,8 @@ const toDateTimeLocal = (isoString: string | null) => {
   if (!isoString) {
     return '';
   }
-  const parsed = new Date(isoString);
+  const normalizedIso = isoString.includes('T') ? isoString : `${isoString}T23:59`;
+  const parsed = new Date(normalizedIso);
   if (Number.isNaN(parsed.getTime())) {
     return '';
   }
