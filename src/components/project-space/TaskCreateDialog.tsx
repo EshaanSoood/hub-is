@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Dialog } from '../primitives/Dialog';
 import { classifyIntent, type IntentResult } from '../../lib/nlp/intent';
 import { parseTaskInput, type TaskParseResult } from '../../lib/nlp/task-parser';
-import { createRecord } from '../../services/hub/records';
+import { createTask } from '../../services/hub/records';
 
 interface TaskCreateDialogProps {
   open: boolean;
@@ -10,7 +10,6 @@ interface TaskCreateDialogProps {
   onCreated: () => void;
   accessToken: string;
   projectId: string;
-  tasksCollectionId: string | null;
   projectMembers: Array<{ user_id: string; display_name: string }>;
   parentRecordId?: string | null;
   parentTaskTitle?: string | null;
@@ -60,7 +59,6 @@ export const TaskCreateDialog = ({
   onCreated,
   accessToken,
   projectId,
-  tasksCollectionId,
   projectMembers,
   parentRecordId = null,
   parentTaskTitle = null,
@@ -189,27 +187,18 @@ export const TaskCreateDialog = ({
       return;
     }
 
-    if (!tasksCollectionId) {
-      setSubmitError('No task collection found for this project. Create a task from a pane first.');
-      return;
-    }
-
     if (submitInFlightRef.current) return;
     submitInFlightRef.current = true;
     setSubmitting(true);
     try {
-      await createRecord(accessToken, projectId, {
-        collection_id: tasksCollectionId,
+      await createTask(accessToken, {
+        project_id: projectId,
         title: trimmedTitle,
-        capability_types: ['task'],
-        task_state: {
-          status: statusValue,
-          priority: priorityValue || null,
-          due_at: dueDateValue ? new Date(dueDateValue).toISOString() : null,
-          category: categoryValue.trim() || null,
-        },
-        assignment_user_ids: assigneeValue ? [assigneeValue] : [],
-        parent_record_id: parentRecordId || null,
+        status: statusValue,
+        priority: priorityValue || null,
+        due_at: dueDateValue ? new Date(dueDateValue).toISOString() : null,
+        category: categoryValue.trim() || null,
+        assignee_user_ids: assigneeValue ? [assigneeValue] : [],
       });
       onCreated();
       handleClose();

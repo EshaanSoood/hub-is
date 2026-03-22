@@ -6,13 +6,12 @@ import { useProjects } from '../../context/ProjectsContext';
 import { QuickCapturePanel } from '../../features/QuickCapture';
 import { TaskCreateDialog } from '../project-space/TaskCreateDialog';
 import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
-import { listCollections } from '../../services/hub/collections';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
 import { createEventFromNlp, getHubHome } from '../../services/hub/records';
 import { createReminder } from '../../services/hub/reminders';
 import { listProjectMembers } from '../../services/hub/projects';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
-import type { HubCollection, HubNotification, HubProjectMember } from '../../services/hub/types';
+import type { HubNotification, HubProjectMember } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
 import { buildNotificationDestinationHref } from '../../lib/hubRoutes';
 import { parseReminderInput, type ReminderParseResult } from '../../lib/nlp/reminder-parser';
@@ -170,17 +169,6 @@ const focusFirstDescendantSoon = (container: HTMLElement | null | undefined, sel
   }, 0);
 };
 
-const findTaskCollectionId = (collections: HubCollection[]): string | null => {
-  if (collections.length === 0) {
-    return null;
-  }
-  const candidate = collections.find((collection) => {
-    const normalized = collection.name.toLowerCase();
-    return normalized.includes('task') || normalized.includes('todo');
-  });
-  return candidate?.collection_id || collections[0]?.collection_id || null;
-};
-
 const toDateTimeLocalInput = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -281,7 +269,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [quickAddActiveIndex, setQuickAddActiveIndex] = useState(0);
   const [quickAddDialog, setQuickAddDialog] = useState<QuickAddDialog>(null);
   const [quickAddProjectId, setQuickAddProjectId] = useState('');
-  const [taskCollectionIdByProjectId, setTaskCollectionIdByProjectId] = useState<Record<string, string | null>>({});
   const [taskProjectMembersById, setTaskProjectMembersById] = useState<Record<string, HubProjectMember[]>>({});
   const [eventTitle, setEventTitle] = useState('');
   const [eventStartAt, setEventStartAt] = useState(() => toDateTimeLocalInput(nowPlusHours(1)));
@@ -385,10 +372,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     () => taskProjectMembersById[quickAddProjectId] ?? [],
     [quickAddProjectId, taskProjectMembersById],
   );
-  const selectedTaskCollectionId = useMemo(
-    () => taskCollectionIdByProjectId[quickAddProjectId] ?? null,
-    [quickAddProjectId, taskCollectionIdByProjectId],
-  );
 
   const refreshCaptureData = useCallback(async () => {
     if (!accessToken) {
@@ -454,34 +437,29 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     return projects[0]?.id || '';
   }, [captureHomeData.personalProjectId, currentProjectId, projects]);
 
-  const loadTaskProjectMetadata = useCallback(async (projectId: string) => {
+  const loadTaskProjectMembers = useCallback(async (projectId: string) => {
     if (!accessToken || !projectId) {
       return;
     }
     const hasMembers = taskProjectMembersById[projectId] !== undefined;
-    const hasCollection = taskCollectionIdByProjectId[projectId] !== undefined;
-    if (hasMembers && hasCollection) {
+    if (hasMembers) {
       return;
     }
 
     const requestVersion = quickAddTaskMetadataRequestRef.current + 1;
     quickAddTaskMetadataRequestRef.current = requestVersion;
     try {
-      const [members, collections] = await Promise.all([
-        listProjectMembers(accessToken, projectId),
-        listCollections(accessToken, projectId),
-      ]);
+      const members = await listProjectMembers(accessToken, projectId);
       if (quickAddTaskMetadataRequestRef.current !== requestVersion) {
         return;
       }
       setTaskProjectMembersById((current) => ({ ...current, [projectId]: members }));
-      setTaskCollectionIdByProjectId((current) => ({ ...current, [projectId]: findTaskCollectionId(collections) }));
     } catch {
       if (quickAddTaskMetadataRequestRef.current !== requestVersion) {
         return;
       }
     }
-  }, [accessToken, taskCollectionIdByProjectId, taskProjectMembersById]);
+  }, [accessToken, taskProjectMembersById]);
 
   const closeQuickAddDialog = useCallback(() => {
     setQuickAddDialog(null);
@@ -508,7 +486,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
       if (dialogType === 'task') {
         if (defaultProjectId) {
-          void loadTaskProjectMetadata(defaultProjectId);
+          void loadTaskProjectMembers(defaultProjectId);
         }
       }
       if (dialogType === 'event') {
@@ -525,7 +503,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
       setQuickAddDialog(dialogType);
     },
-    [accessToken, loadTaskProjectMetadata, refreshCaptureData, resolveDefaultQuickAddProjectId],
+    [accessToken, loadTaskProjectMembers, refreshCaptureData, resolveDefaultQuickAddProjectId],
   );
 
   const onCreateQuickAddEvent = useCallback(async (event: FormEvent<HTMLFormElement>) => {
@@ -682,8 +660,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     if (quickAddDialog !== 'task' || !quickAddProjectId) {
       return;
     }
-    void loadTaskProjectMetadata(quickAddProjectId);
-  }, [loadTaskProjectMetadata, quickAddDialog, quickAddProjectId]);
+    void loadTaskProjectMembers(quickAddProjectId);
+  }, [loadTaskProjectMembers, quickAddDialog, quickAddProjectId]);
 
   useEffect(() => {
     if (quickAddDialog === 'task') {
@@ -1577,10 +1555,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         <TaskCreateDialog
           open={quickAddDialog === 'task'}
           onClose={closeQuickAddDialog}
-          onCreated={closeQuickAddDialog}
+          onCreated={() => {
+            void refreshCaptureData();
+            closeQuickAddDialog();
+          }}
           accessToken={accessToken ?? ''}
           projectId={quickAddProjectId}
-          tasksCollectionId={selectedTaskCollectionId}
           projectMembers={selectedTaskProjectMembers.map((member) => ({
             user_id: member.user_id,
             display_name: member.display_name,
@@ -1591,7 +1571,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           titleInputRef={taskTitleInputRef}
           onSelectedProjectIdChange={(projectId) => {
             setQuickAddProjectId(projectId);
-            void loadTaskProjectMetadata(projectId);
+            void loadTaskProjectMembers(projectId);
           }}
         />
 

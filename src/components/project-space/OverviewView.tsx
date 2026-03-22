@@ -183,7 +183,6 @@ export const OverviewView = ({
       })),
     ];
   }, [adaptedTasks]);
-  const tasksCollectionId = tasks.find((task) => task.collection_id)?.collection_id ?? null;
   const kanbanColumns = useMemo(
     () => [
       { id: 'todo', label: 'To Do', items: adaptedTasks.filter((task) => task.status === 'todo') },
@@ -402,7 +401,6 @@ export const OverviewView = ({
                 }}
                 accessToken={accessToken}
                 projectId={projectId}
-                tasksCollectionId={tasksCollectionId}
                 projectMembers={taskMemberOptions}
                 parentRecordId={subtaskParent?.id ?? null}
                 parentTaskTitle={subtaskParent?.title ?? null}

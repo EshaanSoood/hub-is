@@ -395,7 +395,11 @@ export const QuickCapturePanel = ({
         }
 
         if (captureMode === 'task' && captureTargetProjectId === PERSONAL_CAPTURE_TARGET) {
-          await createPersonalTask(accessToken, { title: trimmed });
+          if (!personalProjectId) {
+            setCaptureError('Personal capture is unavailable right now.');
+            return;
+          }
+          await createPersonalTask(accessToken, { project_id: personalProjectId, title: trimmed });
           await onCaptureComplete();
           setCaptureNotice('Saved');
           setCaptureText('');

@@ -1,7 +1,11 @@
 export const createTaskRoutes = (deps) => {
+  const taskStatusSet = new Set(['todo', 'in_progress', 'done', 'cancelled']);
+  const taskPrioritySet = new Set(['low', 'medium', 'high', 'urgent']);
+
   const {
     withPolicyGate,
     withProjectPolicyGate,
+    withTransaction,
     send,
     jsonResponse,
     okEnvelope,
@@ -11,13 +15,19 @@ export const createTaskRoutes = (deps) => {
     asText,
     asBoolean,
     asNullableText,
+    nowIso,
+    newId,
+    buildNotificationRouteContext,
+    buildNotificationPayload,
+    createNotification,
+    normalizeParticipants,
     parseCursorOffset,
     encodeCursorOffset,
     notificationRecord,
     buildTaskSummaryForUser,
-    buildPersonalTaskSummaryFromRecord,
+    recordByIdStmt,
+    recordDetail,
     buildHomeEventSummary,
-    createPersonalTaskRecord,
     personalProjectIdForUser,
     projectMembershipsByUserStmt,
     personalProjectByUserStmt,
@@ -27,6 +37,13 @@ export const createTaskRoutes = (deps) => {
     assignedTasksStmt,
     homeEventsByProjectStmt,
     personalCapturesStmt,
+    collectionsByProjectStmt,
+    insertCollectionStmt,
+    insertRecordStmt,
+    insertRecordCapabilityStmt,
+    upsertTaskStateStmt,
+    clearAssignmentsStmt,
+    insertAssignmentStmt,
   } = deps;
 
   const visibleProjectIdsForUser = (userId) =>
@@ -132,7 +149,19 @@ export const createTaskRoutes = (deps) => {
     try {
       body = await parseBody(request);
     } catch {
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_body', 'Invalid request body.')));
+      return;
+    }
+
+    const projectId = asText(body.project_id);
+    if (!projectId) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required.')));
+      return;
+    }
+
+    const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'write' });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
 
@@ -142,28 +171,100 @@ export const createTaskRoutes = (deps) => {
       return;
     }
 
-    const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
-    if (!personalProject) {
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal project is unavailable.')));
-      return;
-    }
-    const tasksCollectionId = asText(personalProject.tasks_collection_id);
-    if (!tasksCollectionId) {
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal tasks collection is unavailable.')));
+    const status = asText(body.status) || 'todo';
+    if (!taskStatusSet.has(status)) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'status must be one of todo, in_progress, done, or cancelled.')));
       return;
     }
 
-    const taskRecord = createPersonalTaskRecord({
-      userId: auth.user.user_id,
-      projectId: personalProject.project_id,
-      collectionId: tasksCollectionId,
-      title,
-      status: asText(body.status) || 'todo',
-      priority: asNullableText(body.priority),
-      category: asNullableText(body.category),
-    });
+    let priority = asNullableText(body.priority);
+    if (priority && !taskPrioritySet.has(priority)) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'priority must be low, medium, high, urgent, or null.')));
+      return;
+    }
 
-    send(response, jsonResponse(201, okEnvelope({ task: buildPersonalTaskSummaryFromRecord(taskRecord) })));
+    let dueAt = asNullableText(body.due_at);
+    if (dueAt) {
+      const parsedDueAt = new Date(dueAt);
+      if (Number.isNaN(parsedDueAt.getTime())) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'due_at must be a valid ISO timestamp or null.')));
+        return;
+      }
+      dueAt = parsedDueAt.toISOString();
+    }
+
+    const category = asNullableText(body.category);
+    const assigneeUserIds = normalizeParticipants(
+      projectId,
+      body.assignee_user_ids || body.assignment_user_ids || [],
+    );
+
+    const timestamp = nowIso();
+    const notificationContext = buildNotificationRouteContext({ projectId });
+    const pendingNotifications = [];
+    const recordId = newId('rec');
+    let collectionId = '';
+
+    try {
+      withTransaction(() => {
+        const collections = collectionsByProjectStmt.all(projectId);
+        const matchedCollection = collections.find((collection) => {
+          const name = asText(collection.name).toLowerCase();
+          return name.includes('task') || name.includes('todo');
+        });
+        if (matchedCollection) {
+          collectionId = matchedCollection.collection_id;
+        } else {
+          collectionId = newId('col');
+          insertCollectionStmt.run(collectionId, projectId, 'Tasks', null, null, timestamp, timestamp);
+        }
+
+        insertRecordStmt.run(recordId, projectId, collectionId, title, auth.user.user_id, timestamp, timestamp, null);
+        insertRecordCapabilityStmt.run(recordId, 'task', timestamp);
+        upsertTaskStateStmt.run(
+          recordId,
+          status,
+          priority,
+          dueAt,
+          category,
+          status === 'done' ? timestamp : null,
+          timestamp,
+        );
+
+        clearAssignmentsStmt.run(recordId);
+        for (const userId of assigneeUserIds) {
+          insertAssignmentStmt.run(recordId, userId, timestamp);
+          if (userId === auth.user.user_id) {
+            continue;
+          }
+          pendingNotifications.push({
+            projectId,
+            userId,
+            reason: 'assignment',
+            entityType: 'record',
+            entityId: recordId,
+            notificationScope: 'network',
+            payload: buildNotificationPayload({
+              message: 'You were assigned to a record.',
+              ...notificationContext,
+            }),
+          });
+        }
+      });
+    } catch (error) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', error instanceof Error ? error.message : 'Failed to create task.')));
+      return;
+    }
+
+    for (const notification of pendingNotifications) {
+      try {
+        createNotification(notification);
+      } catch {
+        // Best effort; task creation should still succeed.
+      }
+    }
+
+    send(response, jsonResponse(201, okEnvelope({ record: recordDetail(recordByIdStmt.get(recordId)) })));
   });
 
   const getHubHome = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
