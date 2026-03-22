@@ -326,6 +326,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const captureTriggerRef = useRef<HTMLButtonElement | null>(null);
   const captureRestoreTargetRef = useRef<HTMLElement | null>(null);
   const taskTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const eventTitleInputRef = useRef<HTMLInputElement | null>(null);
   const eventProjectSelectRef = useRef<HTMLSelectElement | null>(null);
   const reminderInputRef = useRef<HTMLInputElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -684,7 +685,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       return;
     }
     if (quickAddDialog === 'event') {
-      focusElementSoon(eventProjectSelectRef.current);
+      focusElementSoon(eventTitleInputRef.current);
       return;
     }
     if (quickAddDialog === 'reminder') {
@@ -1624,6 +1625,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               </label>
               <input
                 id="quick-add-event-title"
+                ref={eventTitleInputRef}
                 type="text"
                 value={eventTitle}
                 onChange={(event) => setEventTitle(event.target.value)}
