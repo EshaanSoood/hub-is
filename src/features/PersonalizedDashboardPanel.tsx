@@ -152,14 +152,6 @@ const isSameLocalDay = (left: Date, right: Date): boolean =>
   && left.getMonth() === right.getMonth()
   && left.getDate() === right.getDate();
 
-const isDateOnToday = (value: string | null | undefined): boolean => {
-  const parsed = parseIso(value);
-  if (!parsed) {
-    return false;
-  }
-  return isSameLocalDay(parsed, new Date());
-};
-
 const formatTimeOnly = (value: string | null | undefined): string => {
   const parsed = parseIso(value);
   if (!parsed) {
@@ -272,30 +264,64 @@ const DailyBriefView = ({
 }) => {
   const [briefFilter, setBriefFilter] = useState<BriefFilter>('timeline');
   const [briefProjectFilter, setBriefProjectFilter] = useState<string>(ALL_DAILY_BRIEF_PROJECTS_FILTER);
+  const [dayKey, setDayKey] = useState(() => new Date().toDateString());
+
+  useEffect(() => {
+    let timer: number | null = null;
+
+    const scheduleMidnightTick = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const delay = Math.max(1000, nextMidnight.getTime() - now.getTime() + 50);
+      timer = window.setTimeout(() => {
+        setDayKey(new Date().toDateString());
+        scheduleMidnightTick();
+      }, delay);
+    };
+
+    scheduleMidnightTick();
+    return () => {
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, []);
 
   const todayEventsBase = useMemo(
-    () =>
+    () => {
+      const today = new Date(dayKey);
+      return (
       events
-        .filter((event) => isDateOnToday(event.event_state.start_dt))
+        .filter((event) => {
+          const startAt = parseIso(event.event_state.start_dt);
+          if (!startAt) {
+            return false;
+          }
+          return isSameLocalDay(startAt, today);
+        })
         .sort((left, right) => {
           const leftStart = parseIso(left.event_state.start_dt)?.getTime() ?? Number.POSITIVE_INFINITY;
           const rightStart = parseIso(right.event_state.start_dt)?.getTime() ?? Number.POSITIVE_INFINITY;
           return leftStart - rightStart;
-        }),
-    [events],
+        })
+      );
+    },
+    [events, dayKey],
   );
 
   const todayTasksBase = useMemo(
     () => {
       const now = new Date();
       const nowMs = now.getTime();
+      const today = new Date(dayKey);
       return tasks
         .filter((task) => {
           const dueAt = parseIso(task.task_state.due_at);
           if (!dueAt) {
             return false;
           }
-          return isSameLocalDay(dueAt, now) || dueAt.getTime() < nowMs;
+          return isSameLocalDay(dueAt, today) || dueAt.getTime() < nowMs;
         })
         .sort((left, right) => {
           const leftDue = parseIso(left.task_state.due_at)?.getTime() ?? Number.POSITIVE_INFINITY;
@@ -308,20 +334,21 @@ const DailyBriefView = ({
           return rightUpdated - leftUpdated;
         });
     },
-    [tasks],
+    [tasks, dayKey],
   );
 
   const todayRemindersBase = useMemo(
     () => {
       const now = new Date();
       const nowMs = now.getTime();
+      const today = new Date(dayKey);
       return reminders
         .filter((reminder) => {
           const remindAt = parseIso(reminder.remind_at);
           if (!remindAt) {
             return false;
           }
-          return isSameLocalDay(remindAt, now) || remindAt.getTime() < nowMs;
+          return isSameLocalDay(remindAt, today) || remindAt.getTime() < nowMs;
         })
         .sort((left, right) => {
           const leftTime = parseIso(left.remind_at)?.getTime() ?? Number.POSITIVE_INFINITY;
@@ -329,7 +356,7 @@ const DailyBriefView = ({
           return leftTime - rightTime;
         });
     },
-    [reminders],
+    [reminders, dayKey],
   );
 
   const projectFilterOptions = useMemo(() => {
@@ -392,7 +419,7 @@ const DailyBriefView = ({
     return todayRemindersBase.filter((reminder) => {
       const projectId = typeof reminder.project_id === 'string' ? reminder.project_id : '';
       if (!projectId) {
-        return true;
+        return false;
       }
       return projectId === briefProjectFilter;
     });

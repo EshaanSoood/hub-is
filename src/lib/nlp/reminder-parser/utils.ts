@@ -14,6 +14,7 @@ import {
   DEFAULT_TIMEZONE,
   PREFIX_FILLER_PATTERNS,
   PREFIX_PATTERNS,
+  PHRASE_CORRECTIONS,
   RECURRENCE_DAY_LIST,
   START_STRIP_PATTERNS,
   TIME_PREPROCESS_REPLACEMENTS,
@@ -282,13 +283,13 @@ export const extractRecurrence = (input: string): {
     working = normalizeWhitespace(working.replace(multiDayMatch[0], ' '));
   }
 
-  const weekdayPatterns: Array<{ regex: RegExp; frequency: ReminderRecurrenceFrequency; interval: number }> = [
+  const weekdayPatterns: Array<{ regex: RegExp; frequency: ReminderRecurrenceFrequency; interval: number | null }> = [
     { regex: /\bevery\s+weekday\b/i, frequency: 'weekly', interval: 1 },
     { regex: /\bevery\s+other\s+day\b/i, frequency: 'daily', interval: 2 },
     { regex: /\bevery\s+other\s+(mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i, frequency: 'weekly', interval: 2 },
-    { regex: /\bevery\s+(\d+)\s+days\b/i, frequency: 'daily', interval: 1 },
-    { regex: /\bevery\s+(\d+)\s+weeks\b/i, frequency: 'weekly', interval: 1 },
-    { regex: /\bevery\s+(\d+)\s+months\b/i, frequency: 'monthly', interval: 1 },
+    { regex: /\bevery\s+(\d+)\s+days\b/i, frequency: 'daily', interval: null },
+    { regex: /\bevery\s+(\d+)\s+weeks\b/i, frequency: 'weekly', interval: null },
+    { regex: /\bevery\s+(\d+)\s+months\b/i, frequency: 'monthly', interval: null },
     { regex: /\bevery\s+week\s+on\s+(mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i, frequency: 'weekly', interval: 1 },
     { regex: /\bevery\s+(mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i, frequency: 'weekly', interval: 1 },
     { regex: /\bevery\s+day\b/i, frequency: 'daily', interval: 1 },
@@ -308,18 +309,21 @@ export const extractRecurrence = (input: string): {
 
     if (!recurrence) {
       if (rule.regex.source.includes('(\\d+)')) {
-        const amount = Number(match[1]);
+        const parsedAmount = Number(match[1]);
+        const interval = Number.isInteger(parsedAmount) && parsedAmount > 0
+          ? parsedAmount
+          : (rule.interval ?? 1);
         recurrence = makeRecurrence(
           rule.frequency === 'monthly' ? 'monthly' : rule.frequency === 'weekly' ? 'weekly' : 'daily',
-          amount || 1,
+          interval,
           null,
         );
       } else if (match[1] && WEEKDAY_SET.has(match[1].toLowerCase())) {
-        recurrence = makeRecurrence(rule.frequency, rule.interval, [toWeekday(match[1]) || 'monday']);
+        recurrence = makeRecurrence(rule.frequency, rule.interval ?? 1, [toWeekday(match[1]) || 'monday']);
       } else if (rule.frequency === 'weekly' && /weekday/i.test(match[0])) {
         recurrence = makeRecurrence('weekly', 1, ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
       } else {
-        recurrence = makeRecurrence(rule.frequency, rule.interval, null);
+        recurrence = makeRecurrence(rule.frequency, rule.interval ?? 1, null);
       }
     }
 
@@ -930,7 +934,7 @@ const cleanTitleWord = (word: string): string => {
 
 const smartTitleCase = (input: string): string => {
   const smallWords = new Set(['a', 'an', 'and', 'at', 'for', 'from', 'in', 'of', 'on', 'the', 'to']);
-  return input
+  let output = input
     .split(/\s+/)
     .filter(Boolean)
     .map((word, index) => {
@@ -947,15 +951,13 @@ const smartTitleCase = (input: string): string => {
       }
       return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
     })
-    .join(' ')
-    .replace(/\bHub Os\b/g, 'Hub OS')
-    .replace(/\bMoms Bday\b/g, "Mom's Birthday")
-    .replace(/\bThe Contract Renewal\b/g, 'Contract Renewal')
-    .replace(/\bThe Webinar\b/g, 'Webinar')
-    .replace(/^The Meeting$/g, 'Meeting')
-    .replace(/\bMom's Bday\b/g, "Mom's Birthday")
-    .replace(/\bThe SVG Logo\b/g, 'SVG Logo')
-    .replace(/\bKeys(?: Keys)+\b/g, 'Keys');
+    .join(' ');
+
+  for (const [pattern, replacement] of PHRASE_CORRECTIONS) {
+    output = output.replace(pattern, replacement);
+  }
+
+  return output;
 };
 
 export const extractTitle = (input: string): string => {

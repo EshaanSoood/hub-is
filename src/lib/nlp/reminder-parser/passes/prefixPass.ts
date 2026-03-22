@@ -17,6 +17,13 @@ export const prefixPass: ReminderParsePass = (ctx) => {
       confidence: 1,
       note: 'stripped reminder prefix/filler',
     });
-    addFieldSpan(ctx, 'title', span);
+  }
+
+  if (ctx.working) {
+    addFieldSpan(ctx, 'title', {
+      start: 0,
+      end: ctx.working.length,
+      text: ctx.working,
+    });
   }
 };

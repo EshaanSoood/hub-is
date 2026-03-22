@@ -1,6 +1,6 @@
 import { classifyIntent } from '../intent/index.ts';
 import type { ParseWarning } from '../shared/types.ts';
-import { parseReferenceDate } from '../shared/utils.ts';
+import { formatDateTimeInTimezone, parseReferenceDate } from '../shared/utils.ts';
 import { DEFAULT_KNOWN_ASSIGNEES } from './constants.ts';
 import { assigneePass } from './passes/assigneePass.ts';
 import { dateTypoCorrectionPass } from './passes/dateTypoCorrectionPass.ts';
@@ -12,21 +12,29 @@ import { createTaskParseContext, getKnownAssigneeSet } from './utils.ts';
 
 const PIPELINE: TaskParsePass[] = [priorityPass, assigneePass, dateTypoCorrectionPass, dueDatePass, titlePass];
 
-const parseComparableDate = (value: string | null): Date | null => {
+const parseComparableDate = (value: string | null, timezone: string): Date | null => {
   if (!value) {
     return null;
   }
-  const parsed = new Date(`${value}Z`);
+  const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     return null;
+  }
+  if (!/(?:[zZ]|[+-]\d{2}:\d{2})$/.test(value)) {
+    const zonedComparable = formatDateTimeInTimezone(parsed, timezone);
+    const zonedParsed = new Date(zonedComparable);
+    if (!Number.isNaN(zonedParsed.getTime())) {
+      return zonedParsed;
+    }
   }
   return parsed;
 };
 
 const buildWarnings = (ctx: TaskParseContext): ParseWarning[] => {
   const warnings: ParseWarning[] = [];
-  const dueAt = parseComparableDate(ctx.result.fields.due_at);
-  if (dueAt && dueAt.getTime() < ctx.now.getTime()) {
+  const dueAt = parseComparableDate(ctx.result.fields.due_at, ctx.options.timezone);
+  const nowComparable = parseComparableDate(formatDateTimeInTimezone(ctx.now, ctx.options.timezone), ctx.options.timezone) || ctx.now;
+  if (dueAt && dueAt.getTime() < nowComparable.getTime()) {
     warnings.push({
       code: 'due_date_past',
       severity: 'warning',

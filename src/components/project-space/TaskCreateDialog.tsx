@@ -152,11 +152,11 @@ export const TaskCreateDialog = ({
       setIntentResult(intent);
       setParseResult(parsed);
 
-      if (!touchedFieldsRef.current.has('priority') && parsed.fields.priority) {
-        setPriorityValue(parsed.fields.priority);
+      if (!touchedFieldsRef.current.has('priority')) {
+        setPriorityValue(parsed.fields.priority || 'medium');
       }
-      if (!touchedFieldsRef.current.has('dueDate') && parsed.fields.due_at) {
-        setDueDateValue(toDateTimeLocal(parsed.fields.due_at));
+      if (!touchedFieldsRef.current.has('dueDate')) {
+        setDueDateValue(parsed.fields.due_at ? toDateTimeLocal(parsed.fields.due_at) : getDefaultDueDateValue());
       }
       if (!touchedFieldsRef.current.has('assignee')) {
         const suggestedAssignee = findSuggestedAssignee(parsed.fields.assignee_hints, projectMembers);
@@ -210,10 +210,10 @@ export const TaskCreateDialog = ({
 
       const effectivePriority = untouchedFields.has('priority')
         ? priorityValue
-        : (parsedOnSubmit.fields.priority || priorityValue);
+        : (parsedOnSubmit.fields.priority || 'medium');
       const effectiveDueDateValue = untouchedFields.has('dueDate')
         ? dueDateValue
-        : (parsedDueDateValue || dueDateValue);
+        : (parsedDueDateValue || getDefaultDueDateValue());
       const effectiveAssigneeValue = untouchedFields.has('assignee')
         ? assigneeValue
         : (parsedAssigneeValue || assigneeValue);
@@ -230,6 +230,7 @@ export const TaskCreateDialog = ({
 
       await createTask(accessToken, {
         project_id: projectId,
+        parent_record_id: parentRecordId || null,
         title: effectiveTitle,
         status: statusValue,
         priority: effectivePriority || null,

@@ -130,18 +130,18 @@ const recurrenceLabel = (preview: ReminderParseResult): string | null => {
   if (!preview.fields.recurrence) {
     return null;
   }
-  const base =
+  const unit =
     preview.fields.recurrence.frequency === 'daily'
-      ? 'Every day'
+      ? 'day'
       : preview.fields.recurrence.frequency === 'weekly'
-        ? 'Every week'
+        ? 'week'
         : preview.fields.recurrence.frequency === 'monthly'
-          ? 'Every month'
-          : 'Every year';
-
-  return preview.fields.recurrence.interval && preview.fields.recurrence.interval > 1
-    ? `${base.replace('Every', `Every ${preview.fields.recurrence.interval}`)}`
-    : base;
+          ? 'month'
+          : 'year';
+  const interval = preview.fields.recurrence.interval && preview.fields.recurrence.interval > 0
+    ? preview.fields.recurrence.interval
+    : 1;
+  return interval > 1 ? `Every ${interval} ${unit}s` : `Every ${unit}`;
 };
 
 const hasMeaningfulPreview = (preview: ReminderParseResult): boolean =>
@@ -173,8 +173,8 @@ const emptyPreview = (): ReminderParseResult => ({
   warnings: null,
 });
 
-const buildCreatePayload = (preview: ReminderParseResult, rawInput: string): CreateReminderPayload | null => {
-  const title = preview.fields.title.trim() || rawInput.trim();
+const buildCreatePayload = (preview: ReminderParseResult): CreateReminderPayload | null => {
+  const title = preview.fields.title.trim();
   if (!title || !preview.fields.remind_at) {
     return null;
   }
@@ -261,7 +261,7 @@ export const RemindersModuleSkin = ({
 
   const hiddenCount = Math.max(0, reminders.length - visibleReminders.length);
   const showPreview = draft.length > 0;
-  const payload = buildCreatePayload(preview, draft);
+  const payload = buildCreatePayload(preview);
 
   const submitReminder = async () => {
     if (readOnly || submitting) {

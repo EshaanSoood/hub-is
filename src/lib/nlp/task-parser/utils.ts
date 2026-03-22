@@ -232,7 +232,9 @@ export const detectPriority = (input: string): {
     matches.push(...emphasisMatches);
   }
 
-  const dueForcedToday = false;
+  const immediacySignal = /\b(?:today|asap|urgent|now|immediately)\b/i.test(input);
+  const deescalationSignal = /\b(?:not\s+urgent|no\s+rush|whenever|when\s+you\s+can)\b/i.test(input);
+  const dueForcedToday = immediacySignal && !deescalationSignal;
   working = normalizeWhitespace(working.replace(/\s*:\s*/g, ' '));
 
   return { priority, working, dueForcedToday, matches };
@@ -783,7 +785,7 @@ const normalizeTitleText = (input: string): string => {
     output = output.replace(pattern, '');
   }
   output = output.replace(/\b(?:plz|pls)\b/gi, ' ');
-  output = output.replace(/\bn\b/gi, ' and ');
+  output = output.replace(/(?<=\b[A-Za-z]+)\s+n\s+(?=[A-Za-z]+\b)/gi, ' and ');
   output = output.replace(/\bcan u\b/gi, ' ');
   output = output.replace(/\bshould\b/gi, ' ');
   output = output.replace(/\bprobly\b/gi, ' ');
@@ -847,11 +849,13 @@ const smartTitleCase = (input: string): string =>
         const [base] = word.split(/['’]/);
         return `${titleCaseWord(base, index)}'s`;
       }
-      if (word.includes("'")) {
+      if (/['’]/.test(word)) {
+        const apostropheMatch = word.match(/['’]/);
+        const apostropheChar = apostropheMatch ? apostropheMatch[0] : "'";
         return word
-          .split("'")
+          .split(/['’]/)
           .map((part, partIndex) => (part === 's' ? 's' : titleCaseWord(part, index + partIndex)))
-          .join("'");
+          .join(apostropheChar);
       }
       return titleCaseWord(word, index);
     })

@@ -25,7 +25,7 @@ const parseComparableDate = (value: string | null): Date | null => {
   if (!value) {
     return null;
   }
-  const parsed = new Date(`${value}Z`);
+  const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
@@ -106,7 +106,7 @@ const buildWarnings = (ctx: ReminderParseContext): ParseWarning[] => {
 
   const recurrence = ctx.result.fields.recurrence;
   if (recurrence?.frequency === 'weekly' && recurrence.days && recurrence.days.length > 0 && remindAt) {
-    const weekday = WEEKDAY_NAMES[remindAt.getUTCDay()];
+    const weekday = WEEKDAY_NAMES[remindAt.getDay()];
     if (!recurrence.days.includes(weekday)) {
       warnings.push({
         code: 'recurrence_day_mismatch',

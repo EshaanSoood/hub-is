@@ -559,8 +559,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const title = reminderPreview.fields.title.trim() || reminderDraft.trim();
-    const remindAtRaw = reminderPreview.fields.remind_at;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const latestPreview = reminderDraft.trim() ? parseReminderInput(reminderDraft, { timezone }) : emptyReminderPreview();
+    const title = latestPreview.fields.title.trim() || reminderDraft.trim();
+    const remindAtRaw = latestPreview.fields.remind_at;
     if (!title || !remindAtRaw) {
       setReminderError('Add a title and time to create a reminder.');
       return;
@@ -577,12 +579,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       await createReminder(accessToken, {
         title,
         remind_at: remindAtDate.toISOString(),
-        recurrence_json: reminderPreview.fields.recurrence
-          ? {
-              frequency: reminderPreview.fields.recurrence.frequency,
-              interval: reminderPreview.fields.recurrence.interval,
-            }
-          : null,
+        recurrence_json: latestPreview.fields.recurrence ? { ...latestPreview.fields.recurrence } : null,
       });
       void refreshCaptureData();
       requestHubHomeRefresh();
@@ -592,7 +589,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     } finally {
       setReminderSubmitting(false);
     }
-  }, [accessToken, reminderDraft, reminderPreview, refreshCaptureData]);
+  }, [accessToken, reminderDraft, refreshCaptureData]);
 
   const onCreateQuickAddProject = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

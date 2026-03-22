@@ -277,6 +277,7 @@ export const createTask = async (
   accessToken: string,
   payload: {
     project_id: string;
+    parent_record_id?: string | null;
     title: string;
     status?: string;
     priority?: string | null;
@@ -665,11 +666,14 @@ export const queryTasks = async (
 export const createPersonalTask = async (
   accessToken: string,
   payload: { project_id: string; title: string; status?: string; priority?: string | null },
-): Promise<{ task: HubTaskSummary }> => {
-  return hubRequest<{ task: HubTaskSummary }>(accessToken, '/api/hub/tasks', {
+): Promise<{ record: HubRecordDetail }> => {
+  const data = await hubRequest<{ record: HubRecordDetail }>(accessToken, '/api/hub/tasks', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+  return {
+    record: normalizeRecordDetail(data.record),
+  };
 };
 
 export const getHubHome = async (

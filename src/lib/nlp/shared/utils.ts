@@ -155,6 +155,10 @@ export const formatDateTimeInTimezone = (date: Date, timezone: string): string =
   return `${toIsoDate(parts.year, parts.month, parts.day)}T${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}:00`;
 };
 
-export const addDays = (date: Date, days: number): Date => new Date(date.getTime() + days * 86400000);
+export const addDays = (date: Date, days: number): Date => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
 
 export const addMinutes = (date: Date, minutes: number): Date => new Date(date.getTime() + minutes * 60000);

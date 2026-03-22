@@ -41,6 +41,9 @@ const PRIORITY_MARKERS = [
   'eod',
 ];
 
+const escapeRegexLiteral = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const PRIORITY_MARKER_REGEXES = PRIORITY_MARKERS.map((marker) => new RegExp(`\\b${escapeRegexLiteral(marker)}\\b`));
+
 const EVENT_WORDS = [...EVENT_KEYWORDS];
 
 interface SignalHit {
@@ -193,7 +196,7 @@ const scoreTask = (normalized: string, tokens: string[]): ScoredLead => {
     });
   }
 
-  if (PRIORITY_MARKERS.some((marker) => normalized.includes(marker))) {
+  if (PRIORITY_MARKER_REGEXES.some((pattern) => pattern.test(normalized))) {
     score += 0.16;
     steps.push({
       ruleId: 'pattern.task.priority_marker',

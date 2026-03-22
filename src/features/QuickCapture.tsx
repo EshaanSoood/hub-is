@@ -663,13 +663,13 @@ export const QuickCapturePanel = ({
           ) : null}
         </div>
 
-        {captures.length > 0 ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-primary">Recent Captures</h3>
-                <p className="text-xs text-muted">Recent uncategorized notes waiting to be sorted into real work.</p>
-              </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-primary">Recent Captures</h3>
+              <p className="text-xs text-muted">Recent uncategorized notes waiting to be sorted into real work.</p>
+            </div>
+            {sortedCaptures.length > 0 ? (
               <button
                 type="button"
                 onClick={() => {
@@ -680,14 +680,15 @@ export const QuickCapturePanel = ({
               >
                 {captureSortDirection === 'desc' ? 'Newest ↓' : 'Oldest ↑'}
               </button>
-            </div>
+            ) : null}
+          </div>
 
-            {capturesLoading ? (
-              <div className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted" role="status" aria-live="polite">
-                Loading recent captures...
-              </div>
-            ) : sortedCaptures.length > 0 ? (
-              <div className="max-h-80 space-y-2 overflow-y-auto rounded-panel border border-border-muted bg-surface p-2">
+          {capturesLoading ? (
+            <div className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted" role="status" aria-live="polite">
+              Loading recent captures...
+            </div>
+          ) : sortedCaptures.length > 0 ? (
+            <div className="max-h-80 space-y-2 overflow-y-auto rounded-panel border border-border-muted bg-surface p-2">
                 {sortedCaptures.map((capture) => {
                 const assignmentExpanded = expandedCaptureAssignment?.recordId === capture.record_id;
                 const assignmentProjectId = expandedCaptureAssignment?.recordId === capture.record_id
@@ -804,10 +805,13 @@ export const QuickCapturePanel = ({
                   </div>
                 );
                 })}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+            </div>
+          ) : (
+            <div className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted">
+              No recent captures yet.
+            </div>
+          )}
+        </div>
       </form>
     </section>
   );

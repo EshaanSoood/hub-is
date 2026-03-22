@@ -17,9 +17,9 @@ export const confidencePass: IntentPass = (ctx) => {
     return;
   }
 
-  ctx.scores.task = clamp(ctx.scores.task || task.score);
-  ctx.scores.reminder = clamp(ctx.scores.reminder || reminder.score);
-  ctx.scores.event = clamp(ctx.scores.event || event.score);
+  ctx.scores.task = clamp(ctx.scores.task ?? task.score);
+  ctx.scores.reminder = clamp(ctx.scores.reminder ?? reminder.score);
+  ctx.scores.event = clamp(ctx.scores.event ?? event.score);
   ctx.scores.note = 0;
 
   const ranked = (Object.entries({

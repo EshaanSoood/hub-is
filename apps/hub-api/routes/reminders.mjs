@@ -156,8 +156,12 @@ export const createReminderRoutes = (deps) => {
         },
         auth.user.user_id,
       );
-    } catch {
-      // Best effort; reminder dismissal should still succeed.
+    } catch (error) {
+      console.debug('broadcastReminderChanged failed during reminder dismissal', {
+        reminderId,
+        userId: auth.user.user_id,
+        error,
+      });
     }
 
     send(response, jsonResponse(200, okEnvelope({ dismissed: true, reminder_id: reminderId })));
@@ -228,8 +232,12 @@ export const createReminderRoutes = (deps) => {
         },
         auth.user.user_id,
       );
-    } catch {
-      // Best effort; reminder creation should still succeed.
+    } catch (error) {
+      console.debug('broadcastReminderChanged failed during reminder creation', {
+        reminderId,
+        userId: auth.user.user_id,
+        error,
+      });
     }
 
     send(

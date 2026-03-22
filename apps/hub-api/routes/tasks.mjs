@@ -77,24 +77,48 @@ export const createTaskRoutes = (deps) => {
     return tasks.sort(compareTasksByUpdatedAt);
   };
 
-  const listAssignedTasksForUser = ({ userId, projectId = '' }) => {
-    const visibleProjectIds = new Set(visibleProjectIdsForUser(userId));
-    const personalProjectId = personalProjectIdForUser(userId);
-    const rows = assignedTasksStmt.all(userId);
-    return rows
-      .filter((row) => visibleProjectIds.has(row.project_id) && (!projectId || row.project_id === projectId))
-      .map((row) => buildTaskSummaryForUser(row, personalProjectId));
+  const getVisibleTaskRowsByProject = ({ userId, projectId = '', rowsByProjectCache = null }) => {
+    const visibleProjectIds = visibleProjectIdsForUser(userId).filter((visibleProjectId) => !projectId || visibleProjectId === projectId);
+    const rowsByProject = rowsByProjectCache || new Map();
+    for (const visibleProjectId of visibleProjectIds) {
+      if (!rowsByProject.has(visibleProjectId)) {
+        rowsByProject.set(visibleProjectId, visibleProjectTasksStmt.all(visibleProjectId));
+      }
+    }
+    return {
+      visibleProjectIds,
+      rowsByProject,
+    };
   };
 
-  const listCreatedTasksForUser = ({ userId, projectId = '' }) => {
-    const visibleProjectIds = visibleProjectIdsForUser(userId);
+  const listAssignedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
     const personalProjectId = personalProjectIdForUser(userId);
+    const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
+    const assignedRecordIds = new Set(
+      assignedTasksStmt
+        .all(userId)
+        .filter((row) => !projectId || row.project_id === projectId)
+        .map((row) => row.record_id),
+    );
     const tasks = [];
     for (const visibleProjectId of visibleProjectIds) {
-      if (projectId && visibleProjectId !== projectId) {
-        continue;
+      const records = rowsByProject.get(visibleProjectId) || [];
+      for (const record of records) {
+        if (!assignedRecordIds.has(record.record_id)) {
+          continue;
+        }
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId));
       }
-      const records = visibleProjectTasksStmt.all(visibleProjectId);
+    }
+    return tasks.sort(compareTasksByUpdatedAt);
+  };
+
+  const listCreatedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
+    const personalProjectId = personalProjectIdForUser(userId);
+    const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
+    const tasks = [];
+    for (const visibleProjectId of visibleProjectIds) {
+      const records = rowsByProject.get(visibleProjectId) || [];
       for (const record of records) {
         if (record.created_by !== userId) {
           continue;
@@ -298,7 +322,20 @@ export const createTaskRoutes = (deps) => {
         }
       });
     } catch (error) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', error instanceof Error ? error.message : 'Failed to create task.')));
+      const isValidationError = error instanceof Error && error.name === 'ValidationError';
+      if (!isValidationError) {
+        console.error('Failed to create task record:', error);
+      }
+      send(
+        response,
+        jsonResponse(
+          isValidationError ? 400 : 500,
+          errorEnvelope(
+            isValidationError ? 'invalid_input' : 'server_error',
+            isValidationError && error instanceof Error ? error.message : 'Failed to create task.',
+          ),
+        ),
+      );
       return;
     }
 
@@ -335,8 +372,9 @@ export const createTaskRoutes = (deps) => {
       return;
     }
 
-    const assignedTasks = listAssignedTasksForUser({ userId: auth.user.user_id });
-    const createdTasks = listCreatedTasksForUser({ userId: auth.user.user_id });
+    const rowsByProjectCache = new Map();
+    const assignedTasks = listAssignedTasksForUser({ userId: auth.user.user_id, rowsByProjectCache });
+    const createdTasks = listCreatedTasksForUser({ userId: auth.user.user_id, rowsByProjectCache });
     const allTasks = mergeTaskSummaries(assignedTasks, createdTasks)
       .sort(compareTasksByUpdatedAt);
     const tasks = allTasks.slice(0, tasksLimit);

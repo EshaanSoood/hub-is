@@ -72,6 +72,17 @@ export const ACRONYM_MAP: Record<string, string> = {
   usb: 'USB',
 };
 
+export const PHRASE_CORRECTIONS: Array<[RegExp, string]> = [
+  [/\bHub Os\b/g, 'Hub OS'],
+  [/\bMoms Bday\b/g, "Mom's Birthday"],
+  [/\bThe Contract Renewal\b/g, 'Contract Renewal'],
+  [/\bThe Webinar\b/g, 'Webinar'],
+  [/^The Meeting$/g, 'Meeting'],
+  [/\bMom's Bday\b/g, "Mom's Birthday"],
+  [/\bThe SVG Logo\b/g, 'SVG Logo'],
+  [/\bKeys(?: Keys)+\b/g, 'Keys'],
+];
+
 export const PREFIX_FILLER_PATTERNS: RegExp[] = [
   /^(?:\p{Emoji}|\p{Emoji_Modifier}|\p{Emoji_Component}|\uFE0F|\u200D|\s|[!?.,:;-])+/u,
   /^\s*hey siri i mean claude\b[\s,:-]*/i,
