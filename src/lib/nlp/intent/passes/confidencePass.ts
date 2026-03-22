@@ -28,6 +28,7 @@ export const confidencePass: IntentPass = (ctx) => {
   const [topIntent, topScore] = ranked[0] || ['task', 0];
   const [, secondScore] = ranked[1] || ['task', 0];
   ctx.topTwoGap = topScore - secondScore;
+  const isTaskReminderContested = topIntent === 'task' || topIntent === 'reminder';
 
   const strongestSignal = scoreStrength({
     reminder: ctx.scores.reminder,
@@ -74,7 +75,7 @@ export const confidencePass: IntentPass = (ctx) => {
   const forgetHits = ctx.normalizedInput.match(/\bforget\b/g) || [];
   const forgetReminder = /\b(?:dont|don't)\s+for(?:get|g+e?t)\b/.test(ctx.normalizedInput);
   if (
-    topIntent === 'reminder' &&
+    isTaskReminderContested &&
     forgetReminder &&
     (ctx.tokens.length <= 4 || /\bthing\b/.test(ctx.normalizedInput) || forgetHits.length >= 2)
   ) {
@@ -85,7 +86,7 @@ export const confidencePass: IntentPass = (ctx) => {
   }
 
   if (
-    topIntent === 'reminder' &&
+    isTaskReminderContested &&
     forgetReminder &&
     /\b(?:appointment|apointment|appt|docter|doctors)\b/.test(ctx.normalizedInput)
   ) {
@@ -109,7 +110,12 @@ export const confidencePass: IntentPass = (ctx) => {
     });
   }
 
-  if (/\?/.test(ctx.normalizedInput) || /\b(?:ish|maybe)\b/.test(ctx.normalizedInput)) {
+  const hasUncertaintyMarker =
+    /\?/.test(ctx.normalizedInput) ||
+    /\bmaybe\b/.test(ctx.normalizedInput) ||
+    /\b(?:\d{1,2}(?::\d{2})?|soon|later|early|late)-?ish\b/.test(ctx.normalizedInput) ||
+    /\bish\b/.test(ctx.normalizedInput);
+  if (hasUncertaintyMarker) {
     ambiguitySteps.push({
       ruleId: 'confidence.uncertainty_markers',
       note: 'uncertainty marker found in text',

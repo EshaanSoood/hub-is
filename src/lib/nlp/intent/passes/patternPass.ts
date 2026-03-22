@@ -38,7 +38,6 @@ const PRIORITY_MARKERS = [
   'no rush',
   'nice to have',
   'now',
-  'eod',
 ];
 
 const escapeRegexLiteral = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
