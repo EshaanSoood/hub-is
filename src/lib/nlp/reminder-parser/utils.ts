@@ -992,7 +992,7 @@ export const extractTitle = (input: string): string => {
     .join(' ')
     .replace(/\bpickup\b/gi, 'pick up')
     .replace(/\bmums\b/gi, "mum's")
-    .replace(/\bbday\b/gi, 'bday')
+    .replace(/\bbday\b/gi, 'birthday')
     .replace(/\bcehck\b/gi, 'check')
     .replace(/\b(on|at|by)\b$/i, '')
     .replace(/\s+/g, ' ')

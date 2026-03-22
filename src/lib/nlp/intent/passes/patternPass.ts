@@ -14,7 +14,7 @@ import {
 } from '../utils.ts';
 import type { IntentPass } from '../types.ts';
 
-const ACTION_VERBS = [...TASK_VERB_LIST];
+const ACTION_VERBS = TASK_VERB_LIST;
 
 const TASK_PHRASES = [
   ['clean', 'up'],
@@ -44,7 +44,7 @@ const PRIORITY_MARKERS = [
 const escapeRegexLiteral = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const PRIORITY_MARKER_REGEXES = PRIORITY_MARKERS.map((marker) => new RegExp(`\\b${escapeRegexLiteral(marker)}\\b`));
 
-const EVENT_WORDS = [...EVENT_KEYWORDS];
+const EVENT_WORDS = EVENT_KEYWORDS;
 
 interface SignalHit {
   score: number;
@@ -60,6 +60,14 @@ interface ScoringStep {
 interface ScoredLead extends ScoreLead {
   steps: ScoringStep[];
 }
+
+const isScoredLead = (value: unknown): value is ScoredLead => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Partial<ScoredLead>;
+  return typeof candidate.score === 'number' && Array.isArray(candidate.steps);
+};
 
 const findTaskVerbHits = (tokens: string[]): number[] => {
   const hits: number[] = [];
@@ -409,15 +417,11 @@ const scoreEvent = (normalized: string, tokens: string[]): ScoredLead => {
 };
 
 export const patternPass: IntentPass = (ctx) => {
-  const scoredTask = ctx.state.task ? (ctx.state.task as ScoredLead) : scoreTask(ctx.normalizedInput, ctx.tokens);
-  if (!ctx.state.task) {
-    ctx.state.task = scoredTask;
-  }
+  const scoredTask = isScoredLead(ctx.state.task) ? ctx.state.task : scoreTask(ctx.normalizedInput, ctx.tokens);
+  ctx.state.task = scoredTask;
 
-  const scoredEvent = ctx.state.event ? (ctx.state.event as ScoredLead) : scoreEvent(ctx.normalizedInput, ctx.tokens);
-  if (!ctx.state.event) {
-    ctx.state.event = scoredEvent;
-  }
+  const scoredEvent = isScoredLead(ctx.state.event) ? ctx.state.event : scoreEvent(ctx.normalizedInput, ctx.tokens);
+  ctx.state.event = scoredEvent;
 
   ctx.scores.task = scoredTask.score;
   ctx.scores.event = scoredEvent.score;

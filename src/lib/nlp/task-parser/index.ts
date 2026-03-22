@@ -12,6 +12,14 @@ import { createTaskParseContext, getKnownAssigneeSet } from './utils.ts';
 
 const PIPELINE: TaskParsePass[] = [priorityPass, assigneePass, dateTypoCorrectionPass, dueDatePass, titlePass];
 
+const OFFSET_OR_Z_SUFFIX_REGEX = /(?:[zZ]|[+-]\d{2}:\d{2})$/;
+
+const parseIsoAsUtcMs = (value: string): number | null => {
+  const parsed = new Date(`${value}Z`);
+  const time = parsed.getTime();
+  return Number.isNaN(time) ? null : time;
+};
+
 const parseComparableDate = (value: string | null, timezone: string): Date | null => {
   if (!value) {
     return null;
@@ -20,11 +28,16 @@ const parseComparableDate = (value: string | null, timezone: string): Date | nul
   if (Number.isNaN(parsed.getTime())) {
     return null;
   }
-  if (!/(?:[zZ]|[+-]\d{2}:\d{2})$/.test(value)) {
+  if (!OFFSET_OR_Z_SUFFIX_REGEX.test(value)) {
+    const comparableUtcMs = parseIsoAsUtcMs(value);
+    if (comparableUtcMs === null) {
+      return parsed;
+    }
     const zonedComparable = formatDateTimeInTimezone(parsed, timezone);
-    const zonedParsed = new Date(zonedComparable);
-    if (!Number.isNaN(zonedParsed.getTime())) {
-      return zonedParsed;
+    const zonedComparableUtcMs = parseIsoAsUtcMs(zonedComparable);
+    if (zonedComparableUtcMs !== null) {
+      const adjustedTimestamp = parsed.getTime() + (comparableUtcMs - zonedComparableUtcMs);
+      return new Date(adjustedTimestamp);
     }
   }
   return parsed;

@@ -159,10 +159,7 @@ export const TaskCreateDialog = ({
         setDueDateValue(parsed.fields.due_at ? toDateTimeLocal(parsed.fields.due_at) : getDefaultDueDateValue());
       }
       if (!touchedFieldsRef.current.has('assignee')) {
-        const suggestedAssignee = findSuggestedAssignee(parsed.fields.assignee_hints, projectMembers);
-        if (suggestedAssignee) {
-          setAssigneeValue(suggestedAssignee);
-        }
+        setAssigneeValue(findSuggestedAssignee(parsed.fields.assignee_hints, projectMembers));
       }
     }, PARSE_DEBOUNCE_MS);
 
@@ -216,7 +213,7 @@ export const TaskCreateDialog = ({
         : (parsedDueDateValue || getDefaultDueDateValue());
       const effectiveAssigneeValue = untouchedFields.has('assignee')
         ? assigneeValue
-        : (parsedAssigneeValue || assigneeValue);
+        : parsedAssigneeValue;
 
       if (!untouchedFields.has('priority') && effectivePriority !== priorityValue) {
         setPriorityValue(effectivePriority);

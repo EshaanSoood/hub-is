@@ -178,7 +178,7 @@ const fridayOfCurrentWeekIso = (now: Date, timezone: string): string => {
 
 const sundayOfCurrentWeekendIso = (now: Date, timezone: string): string => {
   const parts = getZonedDateParts(now, timezone);
-  const delta = parts.weekday === 6 ? 1 : parts.weekday === 0 ? 0 : 6 - parts.weekday;
+  const delta = parts.weekday === 0 ? 0 : 7 - parts.weekday;
   return formatDateInTimezone(addDays(now, delta), timezone);
 };
 
@@ -621,11 +621,11 @@ const findSpecialDateMatch = (
   }
 
   const text = match[0];
-  if (hasExplicitTimeExpression(text)) {
+  if (hasExplicitTimeExpression(working)) {
     return null;
   }
 
-  const special = resolveSpecialDate(text, now, timezone, preferNextWeekStart);
+  const special = resolveSpecialDate(working, now, timezone, preferNextWeekStart);
   if (!special) {
     return null;
   }

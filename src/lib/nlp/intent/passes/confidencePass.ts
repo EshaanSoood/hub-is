@@ -2,11 +2,8 @@ import { SIGNAL_FLOOR } from '../constants.ts';
 import { clamp } from '../utils.ts';
 import type { IntentPass } from '../types.ts';
 
-const scoreStrength = (
-  reminder: { score: number },
-  event: { score: number },
-  task: { score: number },
-): number => Math.max(reminder.score, event.score, task.score);
+const scoreStrength = (scores: { reminder: number; event: number; task: number }): number =>
+  Math.max(scores.reminder, scores.event, scores.task);
 
 export const confidencePass: IntentPass = (ctx) => {
   const reminder = ctx.state.reminder;
@@ -32,7 +29,11 @@ export const confidencePass: IntentPass = (ctx) => {
   const [, secondScore] = ranked[1] || ['task', 0];
   ctx.topTwoGap = topScore - secondScore;
 
-  const strongestSignal = scoreStrength(reminder, event, task);
+  const strongestSignal = scoreStrength({
+    reminder: ctx.scores.reminder,
+    event: ctx.scores.event,
+    task: ctx.scores.task,
+  });
   const ambiguitySteps: Array<{ ruleId: string; note: string }> = [];
 
   if (ctx.topTwoGap <= 0.15) {
@@ -108,7 +109,7 @@ export const confidencePass: IntentPass = (ctx) => {
     });
   }
 
-  if (/\?/.test(ctx.normalizedInput) || /\b(?:ish|maybe|like)\b/.test(ctx.normalizedInput)) {
+  if (/\?/.test(ctx.normalizedInput) || /\b(?:ish|maybe)\b/.test(ctx.normalizedInput)) {
     ambiguitySteps.push({
       ruleId: 'confidence.uncertainty_markers',
       note: 'uncertainty marker found in text',
@@ -148,7 +149,7 @@ export const confidencePass: IntentPass = (ctx) => {
       fieldHints: ['intent'],
       spans: [{ start: 0, end: ctx.rawInput.length, text: ctx.rawInput }],
       details: {
-        scores: ctx.scores,
+        scores: { ...ctx.scores },
         topTwoGap: ctx.topTwoGap,
       },
     });
