@@ -9,6 +9,7 @@ import { createHubProject } from '../services/projectsService';
 import { createEventFromNlp, getHubHome, getRecordDetail } from '../services/hub/records';
 import type { HubRecordDetail } from '../services/hub/types';
 import { subscribeHubLive } from '../services/hubLive';
+import { subscribeHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { CalendarModuleSkin } from '../components/project-space/CalendarModuleSkin';
 import { usePersonalCalendarRuntime } from '../hooks/usePersonalCalendarRuntime';
 
@@ -195,6 +196,10 @@ export const ProjectsPage = () => {
   useEffect(() => {
     void refreshHome();
   }, [refreshHome]);
+
+  useEffect(() => subscribeHubHomeRefresh(() => {
+    void refreshHome();
+  }), [refreshHome]);
 
   useEffect(() => {
     void refreshSelectedRecord(selectedHubRecordId);

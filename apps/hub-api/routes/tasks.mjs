@@ -19,6 +19,7 @@ export const createTaskRoutes = (deps) => {
     newId,
     buildNotificationRouteContext,
     buildNotificationPayload,
+    broadcastTaskChanged,
     createNotification,
     normalizeParticipants,
     parseCursorOffset,
@@ -83,6 +84,48 @@ export const createTaskRoutes = (deps) => {
     return rows
       .filter((row) => visibleProjectIds.has(row.project_id) && (!projectId || row.project_id === projectId))
       .map((row) => buildTaskSummaryForUser(row, personalProjectId));
+  };
+
+  const listCreatedTasksForUser = ({ userId, projectId = '' }) => {
+    const visibleProjectIds = visibleProjectIdsForUser(userId);
+    const personalProjectId = personalProjectIdForUser(userId);
+    const tasks = [];
+    for (const visibleProjectId of visibleProjectIds) {
+      if (projectId && visibleProjectId !== projectId) {
+        continue;
+      }
+      const records = visibleProjectTasksStmt.all(visibleProjectId);
+      for (const record of records) {
+        if (record.created_by !== userId) {
+          continue;
+        }
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId));
+      }
+    }
+    return tasks;
+  };
+
+  const mergeTaskSummaries = (...lists) => {
+    const byRecordId = new Map();
+    for (const list of lists) {
+      for (const task of list) {
+        const recordId = String(task?.record_id || '');
+        if (!recordId) {
+          continue;
+        }
+        const existing = byRecordId.get(recordId);
+        if (!existing) {
+          byRecordId.set(recordId, task);
+          continue;
+        }
+        const existingUpdatedAt = new Date(existing.updated_at || 0).getTime();
+        const candidateUpdatedAt = new Date(task.updated_at || 0).getTime();
+        if (candidateUpdatedAt > existingUpdatedAt) {
+          byRecordId.set(recordId, task);
+        }
+      }
+    }
+    return [...byRecordId.values()];
   };
 
   const listHomeEventsForUser = ({ userId, limit }) => {
@@ -194,10 +237,13 @@ export const createTaskRoutes = (deps) => {
     }
 
     const category = asNullableText(body.category);
-    const assigneeUserIds = normalizeParticipants(
+    let assigneeUserIds = normalizeParticipants(
       projectId,
       body.assignee_user_ids || body.assignment_user_ids || [],
     );
+    if (assigneeUserIds.length === 0) {
+      assigneeUserIds = normalizeParticipants(projectId, [auth.user.user_id]);
+    }
 
     const timestamp = nowIso();
     const notificationContext = buildNotificationRouteContext({ projectId });
@@ -264,6 +310,16 @@ export const createTaskRoutes = (deps) => {
       }
     }
 
+    try {
+      const createdRecord = recordByIdStmt.get(recordId);
+      const liveRecipients = new Set([auth.user.user_id, ...assigneeUserIds]);
+      for (const userId of liveRecipients) {
+        broadcastTaskChanged(createdRecord, userId);
+      }
+    } catch {
+      // Best effort; task creation should still succeed.
+    }
+
     send(response, jsonResponse(201, okEnvelope({ record: recordDetail(recordByIdStmt.get(recordId)) })));
   });
 
@@ -279,7 +335,9 @@ export const createTaskRoutes = (deps) => {
       return;
     }
 
-    const allTasks = listAssignedTasksForUser({ userId: auth.user.user_id })
+    const assignedTasks = listAssignedTasksForUser({ userId: auth.user.user_id });
+    const createdTasks = listCreatedTasksForUser({ userId: auth.user.user_id });
+    const allTasks = mergeTaskSummaries(assignedTasks, createdTasks)
       .sort(compareTasksByUpdatedAt);
     const tasks = allTasks.slice(0, tasksLimit);
     const tasksNextCursor = allTasks.length > tasksLimit ? encodeCursorOffset(tasksLimit) : null;

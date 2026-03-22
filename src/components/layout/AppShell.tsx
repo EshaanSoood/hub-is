@@ -14,6 +14,7 @@ import { searchHub, type HubSearchResult } from '../../services/hub/search';
 import type { HubNotification, HubProjectMember } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
 import { buildNotificationDestinationHref } from '../../lib/hubRoutes';
+import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { parseReminderInput, type ReminderParseResult } from '../../lib/nlp/reminder-parser';
 import { createHubProject } from '../../services/projectsService';
 import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
@@ -537,13 +538,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         end_dt: endDate.toISOString(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
+      void refreshCaptureData();
+      requestHubHomeRefresh();
       setQuickAddDialog(null);
     } catch (error) {
       setEventError(error instanceof Error ? error.message : 'Failed to create event.');
     } finally {
       setEventSubmitting(false);
     }
-  }, [accessToken, eventEndAt, eventStartAt, eventTitle, quickAddProjectId]);
+  }, [accessToken, eventEndAt, eventStartAt, eventTitle, quickAddProjectId, refreshCaptureData]);
 
   const onCreateQuickAddReminder = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -571,13 +574,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             }
           : null,
       });
+      void refreshCaptureData();
+      requestHubHomeRefresh();
       setQuickAddDialog(null);
     } catch (error) {
       setReminderError(error instanceof Error ? error.message : 'Failed to create reminder.');
     } finally {
       setReminderSubmitting(false);
     }
-  }, [accessToken, reminderDraft, reminderPreview]);
+  }, [accessToken, reminderDraft, reminderPreview, refreshCaptureData]);
 
   const onCreateQuickAddProject = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1557,6 +1562,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           onClose={closeQuickAddDialog}
           onCreated={() => {
             void refreshCaptureData();
+            requestHubHomeRefresh();
             closeQuickAddDialog();
           }}
           accessToken={accessToken ?? ''}
