@@ -23,6 +23,7 @@ interface TaskCreateDialogProps {
 }
 
 type TouchField = 'title' | 'priority' | 'dueDate' | 'assignee' | 'category' | 'status';
+const PARSE_DEBOUNCE_MS = 120;
 
 const toDateTimeLocal = (isoString: string | null) => {
   if (!isoString) {
@@ -150,16 +151,19 @@ export const TaskCreateDialog = ({
       setIntentResult(intent);
       setParseResult(parsed);
 
-      if (!touchedFieldsRef.current.has('priority')) {
-        setPriorityValue(parsed.fields.priority || '');
+      if (!touchedFieldsRef.current.has('priority') && parsed.fields.priority) {
+        setPriorityValue(parsed.fields.priority);
       }
-      if (!touchedFieldsRef.current.has('dueDate')) {
+      if (!touchedFieldsRef.current.has('dueDate') && parsed.fields.due_at) {
         setDueDateValue(toDateTimeLocal(parsed.fields.due_at));
       }
       if (!touchedFieldsRef.current.has('assignee')) {
-        setAssigneeValue(findSuggestedAssignee(parsed.fields.assignee_hints, projectMembers));
+        const suggestedAssignee = findSuggestedAssignee(parsed.fields.assignee_hints, projectMembers);
+        if (suggestedAssignee) {
+          setAssigneeValue(suggestedAssignee);
+        }
       }
-    }, 300);
+    }, PARSE_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timeout);
   }, [titleValue, open, projectMembers]);
@@ -193,14 +197,39 @@ export const TaskCreateDialog = ({
     submitInFlightRef.current = true;
     setSubmitting(true);
     try {
+      const parsedOnSubmit = parseTaskInput(trimmedTitle);
+      const untouchedFields = touchedFieldsRef.current;
+      const parsedDueDateValue = parsedOnSubmit.fields.due_at ? toDateTimeLocal(parsedOnSubmit.fields.due_at) : '';
+      const parsedAssigneeValue = findSuggestedAssignee(parsedOnSubmit.fields.assignee_hints, projectMembers);
+
+      const effectivePriority = untouchedFields.has('priority')
+        ? priorityValue
+        : (parsedOnSubmit.fields.priority || priorityValue);
+      const effectiveDueDateValue = untouchedFields.has('dueDate')
+        ? dueDateValue
+        : (parsedDueDateValue || dueDateValue);
+      const effectiveAssigneeValue = untouchedFields.has('assignee')
+        ? assigneeValue
+        : (parsedAssigneeValue || assigneeValue);
+
+      if (!untouchedFields.has('priority') && effectivePriority !== priorityValue) {
+        setPriorityValue(effectivePriority);
+      }
+      if (!untouchedFields.has('dueDate') && effectiveDueDateValue !== dueDateValue) {
+        setDueDateValue(effectiveDueDateValue);
+      }
+      if (!untouchedFields.has('assignee') && effectiveAssigneeValue !== assigneeValue) {
+        setAssigneeValue(effectiveAssigneeValue);
+      }
+
       await createTask(accessToken, {
         project_id: projectId,
         title: trimmedTitle,
         status: statusValue,
-        priority: priorityValue || null,
-        due_at: dueDateValue ? new Date(dueDateValue).toISOString() : null,
+        priority: effectivePriority || null,
+        due_at: effectiveDueDateValue ? new Date(effectiveDueDateValue).toISOString() : null,
         category: categoryValue.trim() || null,
-        assignee_user_ids: assigneeValue ? [assigneeValue] : [],
+        assignee_user_ids: effectiveAssigneeValue ? [effectiveAssigneeValue] : [],
       });
       onCreated();
       handleClose();

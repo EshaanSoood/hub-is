@@ -286,9 +286,17 @@ const DailyBriefView = ({
   );
 
   const todayTasksBase = useMemo(
-    () =>
-      tasks
-        .filter((task) => isDateOnToday(task.task_state.due_at))
+    () => {
+      const now = new Date();
+      const nowMs = now.getTime();
+      return tasks
+        .filter((task) => {
+          const dueAt = parseIso(task.task_state.due_at);
+          if (!dueAt) {
+            return false;
+          }
+          return isSameLocalDay(dueAt, now) || dueAt.getTime() < nowMs;
+        })
         .sort((left, right) => {
           const leftDue = parseIso(left.task_state.due_at)?.getTime() ?? Number.POSITIVE_INFINITY;
           const rightDue = parseIso(right.task_state.due_at)?.getTime() ?? Number.POSITIVE_INFINITY;
@@ -298,19 +306,29 @@ const DailyBriefView = ({
           const leftUpdated = parseIso(left.updated_at)?.getTime() ?? 0;
           const rightUpdated = parseIso(right.updated_at)?.getTime() ?? 0;
           return rightUpdated - leftUpdated;
-        }),
+        });
+    },
     [tasks],
   );
 
   const todayRemindersBase = useMemo(
-    () =>
-      reminders
-        .filter((reminder) => isDateOnToday(reminder.remind_at))
+    () => {
+      const now = new Date();
+      const nowMs = now.getTime();
+      return reminders
+        .filter((reminder) => {
+          const remindAt = parseIso(reminder.remind_at);
+          if (!remindAt) {
+            return false;
+          }
+          return isSameLocalDay(remindAt, now) || remindAt.getTime() < nowMs;
+        })
         .sort((left, right) => {
           const leftTime = parseIso(left.remind_at)?.getTime() ?? Number.POSITIVE_INFINITY;
           const rightTime = parseIso(right.remind_at)?.getTime() ?? Number.POSITIVE_INFINITY;
           return leftTime - rightTime;
-        }),
+        });
+    },
     [reminders],
   );
 
@@ -465,11 +483,11 @@ const DailyBriefView = ({
           {showTasksSection ? (
             <section className="space-y-2" aria-labelledby="daily-brief-tasks-heading">
               <h3 id="daily-brief-tasks-heading" className="text-sm font-semibold text-text">
-                Tasks Due Today
+                Tasks
               </h3>
               {todayTasks.length === 0 ? (
                 <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
-                  No tasks due today.
+                  No tasks for today or overdue.
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -500,7 +518,7 @@ const DailyBriefView = ({
           {showRemindersSection ? (
             <section className="space-y-2" aria-labelledby="daily-brief-reminders-heading">
               <h3 id="daily-brief-reminders-heading" className="text-sm font-semibold text-text">
-                Reminders Due Today
+                Reminders
               </h3>
               {remindersError ? (
                 <p className="rounded-panel border border-danger bg-danger-subtle px-3 py-4 text-sm text-danger">
@@ -514,7 +532,7 @@ const DailyBriefView = ({
               ) : null}
               {!remindersError && !remindersLoading && todayReminders.length === 0 ? (
                 <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
-                  No reminders due today.
+                  No reminders for today or overdue.
                 </p>
               ) : null}
               {todayReminders.length > 0 ? (
