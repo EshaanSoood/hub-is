@@ -36,6 +36,13 @@ const toDateTimeLocal = (isoString: string | null) => {
   return new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 };
 
+const getDefaultDueDateValue = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(9, 0, 0, 0);
+  return new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+};
+
 const findSuggestedAssignee = (
   hints: string[],
   projectMembers: Array<{ user_id: string; display_name: string }>,
@@ -70,15 +77,14 @@ export const TaskCreateDialog = ({
   onSelectedProjectIdChange,
   titleInputRef,
 }: TaskCreateDialogProps) => {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const localTitleInputRef = useRef<HTMLInputElement | null>(null);
   const projectSelectRef = useRef<HTMLSelectElement | null>(null);
   const touchedFieldsRef = useRef<Set<TouchField>>(new Set());
   const submitInFlightRef = useRef(false);
-  const [nlInput, setNlInput] = useState('');
   const [titleValue, setTitleValue] = useState('');
   const [statusValue, setStatusValue] = useState<'todo' | 'in_progress' | 'done'>('todo');
-  const [priorityValue, setPriorityValue] = useState('');
-  const [dueDateValue, setDueDateValue] = useState('');
+  const [priorityValue, setPriorityValue] = useState('medium');
+  const [dueDateValue, setDueDateValue] = useState(getDefaultDueDateValue);
   const [categoryValue, setCategoryValue] = useState('');
   const [assigneeValue, setAssigneeValue] = useState('');
   const [parseResult, setParseResult] = useState<TaskParseResult | null>(null);
@@ -89,11 +95,10 @@ export const TaskCreateDialog = ({
 
   const resetState = () => {
     touchedFieldsRef.current.clear();
-    setNlInput('');
     setTitleValue('');
     setStatusValue('todo');
-    setPriorityValue('');
-    setDueDateValue('');
+    setPriorityValue('medium');
+    setDueDateValue(getDefaultDueDateValue());
     setCategoryValue('');
     setAssigneeValue('');
     setParseResult(null);
@@ -124,7 +129,7 @@ export const TaskCreateDialog = ({
         projectSelectRef.current?.focus();
         return;
       }
-      textareaRef.current?.focus();
+      localTitleInputRef.current?.focus();
     });
     return () => cancelAnimationFrame(frame);
   }, [onSelectedProjectIdChange, open, projectOptions, titleInputRef]);
@@ -133,21 +138,18 @@ export const TaskCreateDialog = ({
     if (!open) {
       return;
     }
-    if (!nlInput.trim()) {
+    if (!titleValue.trim()) {
       setParseResult(null);
       setIntentResult(null);
       return;
     }
 
     const timeout = window.setTimeout(() => {
-      const intent = classifyIntent(nlInput);
-      const parsed = parseTaskInput(nlInput);
+      const intent = classifyIntent(titleValue);
+      const parsed = parseTaskInput(titleValue);
       setIntentResult(intent);
       setParseResult(parsed);
 
-      if (!touchedFieldsRef.current.has('title')) {
-        setTitleValue(parsed.fields.title || nlInput.trim());
-      }
       if (!touchedFieldsRef.current.has('priority')) {
         setPriorityValue(parsed.fields.priority || '');
       }
@@ -160,7 +162,7 @@ export const TaskCreateDialog = ({
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [nlInput, open, projectMembers]);
+  }, [titleValue, open, projectMembers]);
 
   const markTouched = (field: TouchField) => {
     touchedFieldsRef.current.add(field);
@@ -240,43 +242,6 @@ export const TaskCreateDialog = ({
           </div>
         ) : null}
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="task-create-nl">
-            Task Description
-          </label>
-          <textarea
-            id="task-create-nl"
-            ref={textareaRef}
-            value={nlInput}
-            onChange={(event) => setNlInput(event.target.value)}
-            aria-label="Describe your task in natural language"
-            placeholder="Describe your task..."
-            rows={4}
-            className="min-h-24 w-full resize-y rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-          />
-          <div role="status" aria-live="polite" className="text-xs text-muted">
-            {intentResult?.ambiguous ? 'Not sure if this is a task — check the fields below.' : null}
-            {!intentResult?.ambiguous && intentResult && intentResult.intent !== 'task'
-              ? `This looks more like a ${intentResult.intent} than a task. Creating as a task anyway.`
-              : null}
-            {!intentResult && parseResult ? `Parsed task title: ${parseResult.fields.title || 'Untitled task'}` : null}
-            {parseResult && parseResult.meta.confidence.title < 0.6 ? ' Title confidence is low — review before saving.' : null}
-          </div>
-          {import.meta.env.DEV && parseResult ? (
-            <details className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-muted">
-              <summary className="cursor-pointer select-none">Task Parser Debug</summary>
-              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap">
-                {parseResult.meta.debugSteps.map((step) => `${step.pass} | ${step.ruleId} | ${step.note}`).join('\n') || 'No steps'}
-              </pre>
-              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap">
-                {intentResult
-                  ? intentResult.meta.debugSteps.map((step) => `${step.pass} | ${step.ruleId} | ${step.note}`).join('\n')
-                  : 'No intent steps'}
-              </pre>
-            </details>
-          ) : null}
-        </div>
-
         {showRememberedParentNote && parentRecordId ? (
           <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-muted">
             Creating subtask of {parentTaskTitle || 'task'}.
@@ -303,7 +268,7 @@ export const TaskCreateDialog = ({
             </label>
             <input
               id="task-create-title"
-              ref={titleInputRef}
+              ref={titleInputRef ?? localTitleInputRef}
               value={titleValue}
               onChange={(event) => {
                 markTouched('title');
@@ -315,6 +280,13 @@ export const TaskCreateDialog = ({
               className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
             />
             {titleError ? <p role="alert" className="text-xs text-danger">{titleError}</p> : null}
+            <div role="status" aria-live="polite" className="text-xs text-muted">
+              {intentResult?.ambiguous ? 'Not sure if this is a task — check the fields below.' : null}
+              {!intentResult?.ambiguous && intentResult && intentResult.intent !== 'task'
+                ? `This looks more like a ${intentResult.intent} than a task. Creating as a task anyway.`
+                : null}
+              {parseResult && parseResult.meta.confidence.title < 0.6 ? 'Title confidence is low — review before saving.' : null}
+            </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
