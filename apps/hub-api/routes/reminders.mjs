@@ -56,6 +56,7 @@ export const createReminderRoutes = (deps) => {
     newId,
     toJson,
     withTransaction,
+    broadcastReminderChanged,
     personalProjectByUserStmt,
     insertRecordStmt,
     insertRecordCapabilityStmt,
@@ -145,6 +146,24 @@ export const createReminderRoutes = (deps) => {
       );
     });
 
+    try {
+      broadcastReminderChanged(
+        {
+          reminder_id: reminderId,
+          record_id: reminder.record_id,
+          project_id: reminder.project_id,
+          action: 'dismissed',
+        },
+        auth.user.user_id,
+      );
+    } catch (error) {
+      console.debug('broadcastReminderChanged failed during reminder dismissal', {
+        reminderId,
+        userId: auth.user.user_id,
+        error,
+      });
+    }
+
     send(response, jsonResponse(200, okEnvelope({ dismissed: true, reminder_id: reminderId })));
   });
 
@@ -202,6 +221,24 @@ export const createReminderRoutes = (deps) => {
       insertRecordCapabilityStmt.run(recordId, 'remindable', timestamp);
       insertStandaloneReminderStmt.run(reminderId, recordId, remindAt, toJson(['in_app']), timestamp, recurrenceJson);
     });
+
+    try {
+      broadcastReminderChanged(
+        {
+          reminder_id: reminderId,
+          record_id: recordId,
+          project_id: personalProject.project_id,
+          action: 'created',
+        },
+        auth.user.user_id,
+      );
+    } catch (error) {
+      console.debug('broadcastReminderChanged failed during reminder creation', {
+        reminderId,
+        userId: auth.user.user_id,
+        error,
+      });
+    }
 
     send(
       response,

@@ -11,6 +11,16 @@ export interface HubLiveTaskChangedMessage {
   };
 }
 
+export interface HubLiveReminderChangedMessage {
+  type: 'reminder.changed';
+  reminder: {
+    reminder_id: string;
+    record_id: string;
+    project_id: string | null;
+    action: 'created' | 'dismissed';
+  };
+}
+
 export interface HubLiveReadyMessage {
   type: 'ready';
   user_id: string;
@@ -21,7 +31,11 @@ export interface HubLiveNotificationNewMessage {
   notification: HubNotification;
 }
 
-export type HubLiveMessage = HubLiveReadyMessage | HubLiveTaskChangedMessage | HubLiveNotificationNewMessage;
+export type HubLiveMessage =
+  | HubLiveReadyMessage
+  | HubLiveTaskChangedMessage
+  | HubLiveReminderChangedMessage
+  | HubLiveNotificationNewMessage;
 
 const wsUrlWithTicket = (wsTicket: string): string => {
   const url = new URL(env.hubLiveWsUrl, typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
@@ -53,6 +67,19 @@ const isHubLiveMessage = (value: unknown): value is HubLiveMessage => {
       typeof taskCandidate.record_id === 'string' &&
       (typeof taskCandidate.project_id === 'string' || taskCandidate.project_id === null) &&
       isTaskOriginKind(taskCandidate.origin_kind)
+    );
+  }
+  if (candidate.type === 'reminder.changed') {
+    const reminder = candidate.reminder;
+    if (!reminder || typeof reminder !== 'object') {
+      return false;
+    }
+    const reminderCandidate = reminder as Record<string, unknown>;
+    return (
+      typeof reminderCandidate.reminder_id === 'string' &&
+      typeof reminderCandidate.record_id === 'string' &&
+      (typeof reminderCandidate.project_id === 'string' || reminderCandidate.project_id === null) &&
+      (reminderCandidate.action === 'created' || reminderCandidate.action === 'dismissed')
     );
   }
   if (candidate.type === 'notification.new') {

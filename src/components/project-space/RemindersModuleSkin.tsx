@@ -127,45 +127,68 @@ const formatPreviewDateTime = (value: string | null): string | null => {
 };
 
 const recurrenceLabel = (preview: ReminderParseResult): string | null => {
-  if (!preview.recurrence) {
+  if (!preview.fields.recurrence) {
     return null;
   }
-  const base =
-    preview.recurrence.frequency === 'daily'
-      ? 'Every day'
-      : preview.recurrence.frequency === 'weekly'
-        ? 'Every week'
-        : preview.recurrence.frequency === 'monthly'
-          ? 'Every month'
-          : 'Every year';
-
-  return preview.recurrence.interval && preview.recurrence.interval > 1
-    ? `${base.replace('Every', `Every ${preview.recurrence.interval}`)}`
-    : base;
+  const unit =
+    preview.fields.recurrence.frequency === 'daily'
+      ? 'day'
+      : preview.fields.recurrence.frequency === 'weekly'
+        ? 'week'
+        : preview.fields.recurrence.frequency === 'monthly'
+          ? 'month'
+          : 'year';
+  const interval = preview.fields.recurrence.interval && preview.fields.recurrence.interval > 0
+    ? preview.fields.recurrence.interval
+    : 1;
+  return interval > 1 ? `Every ${interval} ${unit}s` : `Every ${unit}`;
 };
 
 const hasMeaningfulPreview = (preview: ReminderParseResult): boolean =>
-  Boolean(preview.title.trim() || preview.remind_at || preview.recurrence || preview.context_hint);
+  Boolean(preview.fields.title.trim() || preview.fields.remind_at || preview.fields.recurrence || preview.fields.context_hint);
 
 const emptyPreview = (): ReminderParseResult => ({
-  title: '',
-  remind_at: null,
-  recurrence: null,
-  context_hint: null,
+  fields: {
+    title: '',
+    remind_at: null,
+    recurrence: null,
+    context_hint: null,
+  },
+  meta: {
+    confidence: {
+      title: 0,
+      remind_at: 0,
+      recurrence: 0,
+      context_hint: 0,
+    },
+    spans: {
+      title: [],
+      remind_at: [],
+      recurrence: [],
+      context_hint: [],
+    },
+    debugSteps: [],
+    maskedInput: '',
+  },
+  warnings: null,
 });
 
-const buildCreatePayload = (preview: ReminderParseResult, rawInput: string): CreateReminderPayload | null => {
-  const title = preview.title.trim() || rawInput.trim();
-  if (!title || !preview.remind_at) {
+const buildCreatePayload = (preview: ReminderParseResult): CreateReminderPayload | null => {
+  const title = preview.fields.title.trim();
+  if (!title || !preview.fields.remind_at) {
+    return null;
+  }
+  const remindAtDate = new Date(preview.fields.remind_at);
+  if (Number.isNaN(remindAtDate.getTime())) {
     return null;
   }
   return {
     title,
-    remind_at: preview.remind_at,
-    recurrence_json: preview.recurrence
+    remind_at: remindAtDate.toISOString(),
+    recurrence_json: preview.fields.recurrence
       ? {
-          frequency: preview.recurrence.frequency,
-          ...(preview.recurrence.interval ? { interval: preview.recurrence.interval } : {}),
+          frequency: preview.fields.recurrence.frequency,
+          ...(preview.fields.recurrence.interval ? { interval: preview.fields.recurrence.interval } : {}),
         }
       : null,
   };
@@ -203,8 +226,9 @@ export const RemindersModuleSkin = ({
   }, []);
 
   useEffect(() => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const timer = window.setTimeout(() => {
-      setPreview(draft.trim() ? parseReminderInput(draft) : emptyPreview());
+      setPreview(draft.trim() ? parseReminderInput(draft, { timezone }) : emptyPreview());
     }, 300);
     return () => {
       window.clearTimeout(timer);
@@ -237,7 +261,7 @@ export const RemindersModuleSkin = ({
 
   const hiddenCount = Math.max(0, reminders.length - visibleReminders.length);
   const showPreview = draft.length > 0;
-  const payload = buildCreatePayload(preview, draft);
+  const payload = buildCreatePayload(preview);
 
   const submitReminder = async () => {
     if (readOnly || submitting) {
@@ -360,17 +384,17 @@ export const RemindersModuleSkin = ({
           <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
             {hasMeaningfulPreview(preview) ? (
               <div className="space-y-1">
-                {preview.title ? (
+                {preview.fields.title ? (
                   <p>
-                    <span className="font-semibold text-text">Title:</span> {preview.title}
+                    <span className="font-semibold text-text">Title:</span> {preview.fields.title}
                   </p>
                 ) : null}
-                {preview.remind_at ? (
+                {preview.fields.remind_at ? (
                   <p>
-                    <span className="font-semibold text-text">When:</span> {preview.context_hint || formatPreviewDateTime(preview.remind_at)}
+                    <span className="font-semibold text-text">When:</span> {preview.fields.context_hint || formatPreviewDateTime(preview.fields.remind_at)}
                   </p>
                 ) : null}
-                {preview.recurrence ? (
+                {preview.fields.recurrence ? (
                   <p>
                     <span className="font-semibold text-text">Recurs:</span> {recurrenceLabel(preview)}
                   </p>
@@ -379,6 +403,14 @@ export const RemindersModuleSkin = ({
             ) : (
               <p>Just set a time — e.g. &quot;call dentist tomorrow at 3pm&quot;</p>
             )}
+            {import.meta.env.DEV ? (
+              <details className="mt-2">
+                <summary className="cursor-pointer select-none">Reminder Parser Debug</summary>
+                <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-[11px]">
+                  {preview.meta.debugSteps.map((step) => `${step.pass} | ${step.ruleId} | ${step.note}`).join('\n') || 'No steps'}
+                </pre>
+              </details>
+            ) : null}
           </div>
         ) : null}
 

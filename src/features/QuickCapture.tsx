@@ -395,7 +395,11 @@ export const QuickCapturePanel = ({
         }
 
         if (captureMode === 'task' && captureTargetProjectId === PERSONAL_CAPTURE_TARGET) {
-          await createPersonalTask(accessToken, { title: trimmed });
+          if (!personalProjectId) {
+            setCaptureError('Personal capture is unavailable right now.');
+            return;
+          }
+          await createPersonalTask(accessToken, { project_id: personalProjectId, title: trimmed });
           await onCaptureComplete();
           setCaptureNotice('Saved');
           setCaptureText('');
@@ -546,11 +550,11 @@ export const QuickCapturePanel = ({
   );
 
   return (
-    <section className="space-y-4" aria-label="Quick capture panel">
+    <section className="space-y-4" aria-label="Thought Pile">
       <div className="flex items-start justify-between gap-3 border-b border-border-muted pb-3">
         <div className="space-y-1">
-          <h2 className="text-base font-semibold text-primary">Quick Capture</h2>
-          <p className="text-sm text-muted">Quick capture across all your projects.</p>
+          <h2 className="text-base font-semibold text-primary">Thought Pile</h2>
+          <p className="text-sm text-muted">Drop a thought. It lands in your pile.</p>
         </div>
         <button
           type="button"
@@ -665,16 +669,18 @@ export const QuickCapturePanel = ({
               <h3 className="text-sm font-semibold text-primary">Recent Captures</h3>
               <p className="text-xs text-muted">Recent uncategorized notes waiting to be sorted into real work.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setCaptureSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'));
-              }}
-              className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              aria-label={captureSortDirection === 'desc' ? 'Sort oldest first' : 'Sort newest first'}
-            >
-              {captureSortDirection === 'desc' ? 'Newest ↓' : 'Oldest ↑'}
-            </button>
+            {sortedCaptures.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCaptureSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'));
+                }}
+                className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                aria-label={captureSortDirection === 'desc' ? 'Sort oldest first' : 'Sort newest first'}
+              >
+                {captureSortDirection === 'desc' ? 'Newest ↓' : 'Oldest ↑'}
+              </button>
+            ) : null}
           </div>
 
           {capturesLoading ? (
@@ -683,7 +689,7 @@ export const QuickCapturePanel = ({
             </div>
           ) : sortedCaptures.length > 0 ? (
             <div className="max-h-80 space-y-2 overflow-y-auto rounded-panel border border-border-muted bg-surface p-2">
-              {sortedCaptures.map((capture) => {
+                {sortedCaptures.map((capture) => {
                 const assignmentExpanded = expandedCaptureAssignment?.recordId === capture.record_id;
                 const assignmentProjectId = expandedCaptureAssignment?.recordId === capture.record_id
                   ? expandedCaptureAssignment.projectId
@@ -798,12 +804,11 @@ export const QuickCapturePanel = ({
                     ) : null}
                   </div>
                 );
-              })}
+                })}
             </div>
           ) : (
-            <div className="rounded-panel border border-border-muted bg-surface px-4 py-5 text-center">
-              <p className="text-sm font-semibold text-primary">Nothing captured yet.</p>
-              <p className="mt-1 text-sm text-muted">Drop a thought, task, reminder, or event here to get started.</p>
+            <div className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted">
+              No recent captures yet.
             </div>
           )}
         </div>

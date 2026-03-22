@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Dialog } from '../primitives/Dialog';
 import { classifyIntent, type IntentResult } from '../../lib/nlp/intent';
 import { parseTaskInput, type TaskParseResult } from '../../lib/nlp/task-parser';
-import { createRecord } from '../../services/hub/records';
+import { createTask } from '../../services/hub/records';
 
 interface TaskCreateDialogProps {
   open: boolean;
@@ -10,26 +10,38 @@ interface TaskCreateDialogProps {
   onCreated: () => void;
   accessToken: string;
   projectId: string;
-  tasksCollectionId: string | null;
   projectMembers: Array<{ user_id: string; display_name: string }>;
   parentRecordId?: string | null;
   parentTaskTitle?: string | null;
   showRememberedParentNote?: boolean;
   onSwitchToStandaloneTask?: () => void;
   triggerRef?: RefObject<HTMLElement | null>;
+  projectOptions?: Array<{ value: string; label: string }>;
+  selectedProjectId?: string;
+  onSelectedProjectIdChange?: (projectId: string) => void;
+  titleInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 type TouchField = 'title' | 'priority' | 'dueDate' | 'assignee' | 'category' | 'status';
+const PARSE_DEBOUNCE_MS = 120;
 
 const toDateTimeLocal = (isoString: string | null) => {
   if (!isoString) {
     return '';
   }
-  const parsed = new Date(isoString);
+  const normalizedIso = isoString.includes('T') ? isoString : `${isoString}T23:59`;
+  const parsed = new Date(normalizedIso);
   if (Number.isNaN(parsed.getTime())) {
     return '';
   }
   return new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+};
+
+const getDefaultDueDateValue = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(9, 0, 0, 0);
+  return new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 };
 
 const findSuggestedAssignee = (
@@ -55,22 +67,25 @@ export const TaskCreateDialog = ({
   onCreated,
   accessToken,
   projectId,
-  tasksCollectionId,
   projectMembers,
   parentRecordId = null,
   parentTaskTitle = null,
   showRememberedParentNote = false,
   onSwitchToStandaloneTask,
   triggerRef,
+  projectOptions,
+  selectedProjectId = '',
+  onSelectedProjectIdChange,
+  titleInputRef,
 }: TaskCreateDialogProps) => {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const localTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const projectSelectRef = useRef<HTMLSelectElement | null>(null);
   const touchedFieldsRef = useRef<Set<TouchField>>(new Set());
   const submitInFlightRef = useRef(false);
-  const [nlInput, setNlInput] = useState('');
   const [titleValue, setTitleValue] = useState('');
   const [statusValue, setStatusValue] = useState<'todo' | 'in_progress' | 'done'>('todo');
-  const [priorityValue, setPriorityValue] = useState('');
-  const [dueDateValue, setDueDateValue] = useState('');
+  const [priorityValue, setPriorityValue] = useState('medium');
+  const [dueDateValue, setDueDateValue] = useState(getDefaultDueDateValue);
   const [categoryValue, setCategoryValue] = useState('');
   const [assigneeValue, setAssigneeValue] = useState('');
   const [parseResult, setParseResult] = useState<TaskParseResult | null>(null);
@@ -81,11 +96,10 @@ export const TaskCreateDialog = ({
 
   const resetState = () => {
     touchedFieldsRef.current.clear();
-    setNlInput('');
     setTitleValue('');
     setStatusValue('todo');
-    setPriorityValue('');
-    setDueDateValue('');
+    setPriorityValue('medium');
+    setDueDateValue(getDefaultDueDateValue());
     setCategoryValue('');
     setAssigneeValue('');
     setParseResult(null);
@@ -108,43 +122,49 @@ export const TaskCreateDialog = ({
       return;
     }
     const frame = requestAnimationFrame(() => {
-      textareaRef.current?.focus();
+      if (titleInputRef?.current) {
+        titleInputRef.current.focus();
+        return;
+      }
+      if (projectOptions && onSelectedProjectIdChange) {
+        projectSelectRef.current?.focus();
+        return;
+      }
+      localTitleInputRef.current?.focus();
     });
     return () => cancelAnimationFrame(frame);
-  }, [open]);
+  }, [onSelectedProjectIdChange, open, projectOptions, titleInputRef]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
-    if (!nlInput.trim()) {
+    if (!titleValue.trim()) {
       setParseResult(null);
       setIntentResult(null);
       return;
     }
 
     const timeout = window.setTimeout(() => {
-      const intent = classifyIntent(nlInput);
-      const parsed = parseTaskInput(nlInput);
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const intent = classifyIntent(titleValue);
+      const parsed = parseTaskInput(titleValue, { timezone });
       setIntentResult(intent);
       setParseResult(parsed);
 
-      if (!touchedFieldsRef.current.has('title')) {
-        setTitleValue(parsed.title || nlInput.trim());
-      }
       if (!touchedFieldsRef.current.has('priority')) {
-        setPriorityValue(parsed.priority || '');
+        setPriorityValue(parsed.fields.priority || 'medium');
       }
       if (!touchedFieldsRef.current.has('dueDate')) {
-        setDueDateValue(toDateTimeLocal(parsed.due_at));
+        setDueDateValue(parsed.fields.due_at ? toDateTimeLocal(parsed.fields.due_at) : getDefaultDueDateValue());
       }
       if (!touchedFieldsRef.current.has('assignee')) {
-        setAssigneeValue(findSuggestedAssignee(parsed.assignee_hints, projectMembers));
+        setAssigneeValue(findSuggestedAssignee(parsed.fields.assignee_hints, projectMembers));
       }
-    }, 300);
+    }, PARSE_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timeout);
-  }, [nlInput, open, projectMembers]);
+  }, [titleValue, open, projectMembers]);
 
   const markTouched = (field: TouchField) => {
     touchedFieldsRef.current.add(field);
@@ -171,27 +191,52 @@ export const TaskCreateDialog = ({
       return;
     }
 
-    if (!tasksCollectionId) {
-      setSubmitError('No task collection found for this project. Create a task from a pane first.');
-      return;
-    }
-
     if (submitInFlightRef.current) return;
     submitInFlightRef.current = true;
     setSubmitting(true);
     try {
-      await createRecord(accessToken, projectId, {
-        collection_id: tasksCollectionId,
-        title: trimmedTitle,
-        capability_types: ['task'],
-        task_state: {
-          status: statusValue,
-          priority: priorityValue || null,
-          due_at: dueDateValue ? new Date(dueDateValue).toISOString() : null,
-          category: categoryValue.trim() || null,
-        },
-        assignment_user_ids: assigneeValue ? [assigneeValue] : [],
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const parsedOnSubmit = parseTaskInput(trimmedTitle, { timezone });
+      const untouchedFields = touchedFieldsRef.current;
+      const parsedDueDateValue = parsedOnSubmit.fields.due_at ? toDateTimeLocal(parsedOnSubmit.fields.due_at) : '';
+      const parsedAssigneeValue = findSuggestedAssignee(parsedOnSubmit.fields.assignee_hints, projectMembers);
+      const parsedTitleValue = parsedOnSubmit.fields.title.trim();
+      const effectiveTitle = parsedTitleValue && parsedTitleValue !== 'Task'
+        ? parsedTitleValue
+        : trimmedTitle;
+      const effectiveProjectId = projectOptions && onSelectedProjectIdChange
+        ? (selectedProjectId || projectId)
+        : projectId;
+
+      const effectivePriority = untouchedFields.has('priority')
+        ? priorityValue
+        : (parsedOnSubmit.fields.priority || 'medium');
+      const effectiveDueDateValue = untouchedFields.has('dueDate')
+        ? dueDateValue
+        : (parsedDueDateValue || getDefaultDueDateValue());
+      const effectiveAssigneeValue = untouchedFields.has('assignee')
+        ? assigneeValue
+        : parsedAssigneeValue;
+
+      if (!untouchedFields.has('priority') && effectivePriority !== priorityValue) {
+        setPriorityValue(effectivePriority);
+      }
+      if (!untouchedFields.has('dueDate') && effectiveDueDateValue !== dueDateValue) {
+        setDueDateValue(effectiveDueDateValue);
+      }
+      if (!untouchedFields.has('assignee') && effectiveAssigneeValue !== assigneeValue) {
+        setAssigneeValue(effectiveAssigneeValue);
+      }
+
+      await createTask(accessToken, {
+        project_id: effectiveProjectId,
         parent_record_id: parentRecordId || null,
+        title: effectiveTitle,
+        status: statusValue,
+        priority: effectivePriority || null,
+        due_at: effectiveDueDateValue ? new Date(effectiveDueDateValue).toISOString() : null,
+        category: categoryValue.trim() || null,
+        assignee_user_ids: effectiveAssigneeValue ? [effectiveAssigneeValue] : [],
       });
       onCreated();
       handleClose();
@@ -212,28 +257,26 @@ export const TaskCreateDialog = ({
       triggerRef={triggerRef}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="space-y-2">
-          <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="task-create-nl">
-            Task Description
-          </label>
-          <textarea
-            id="task-create-nl"
-            ref={textareaRef}
-            value={nlInput}
-            onChange={(event) => setNlInput(event.target.value)}
-            aria-label="Describe your task in natural language"
-            placeholder="Describe your task..."
-            rows={4}
-            className="min-h-24 w-full resize-y rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-          />
-          <div role="status" aria-live="polite" className="text-xs text-muted">
-            {intentResult?.ambiguous ? 'Not sure if this is a task — check the fields below.' : null}
-            {!intentResult?.ambiguous && intentResult && intentResult.intent !== 'task'
-              ? `This looks more like a ${intentResult.intent} than a task. Creating as a task anyway.`
-              : null}
-            {!intentResult && parseResult ? `Parsed task title: ${parseResult.title || 'Untitled task'}` : null}
+        {projectOptions && onSelectedProjectIdChange ? (
+          <div className="space-y-1">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="task-create-project">
+              Project
+            </label>
+            <select
+              id="task-create-project"
+              ref={projectSelectRef}
+              value={selectedProjectId}
+              onChange={(event) => onSelectedProjectIdChange(event.target.value)}
+              className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+            >
+              {projectOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
+        ) : null}
 
         {showRememberedParentNote && parentRecordId ? (
           <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-muted">
@@ -261,6 +304,7 @@ export const TaskCreateDialog = ({
             </label>
             <input
               id="task-create-title"
+              ref={titleInputRef ?? localTitleInputRef}
               value={titleValue}
               onChange={(event) => {
                 markTouched('title');
@@ -272,6 +316,13 @@ export const TaskCreateDialog = ({
               className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
             />
             {titleError ? <p role="alert" className="text-xs text-danger">{titleError}</p> : null}
+            <div role="status" aria-live="polite" className="text-xs text-muted">
+              {intentResult?.ambiguous ? 'Not sure if this is a task — check the fields below.' : null}
+              {!intentResult?.ambiguous && intentResult && intentResult.intent !== 'task'
+                ? `This looks more like a ${intentResult.intent} than a task. Creating as a task anyway.`
+                : null}
+              {parseResult && parseResult.meta.confidence.title < 0.6 ? 'Title confidence is low — review before saving.' : null}
+            </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
