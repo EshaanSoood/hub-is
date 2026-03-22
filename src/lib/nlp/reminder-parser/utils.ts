@@ -132,6 +132,15 @@ const withTime = (date: Date, timezone: string, hour: number, minute: number): s
   return `${isoDate}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 };
 
+const nextOccurrenceAtTime = (now: Date, timezone: string, hour: number, minute: number): string => {
+  const nowIso = formatDateTimeInTimezone(now, timezone);
+  const todayCandidate = withTime(now, timezone, hour, minute);
+  if (todayCandidate >= nowIso) {
+    return todayCandidate;
+  }
+  return withTime(addDays(now, 1), timezone, hour, minute);
+};
+
 const monthlyOccurrence = (now: Date, timezone: string, dayOfMonth: number, hour: number, minute: number): string => {
   const nowParts = getZonedParts(now, timezone);
   const safeDayThisMonth = Math.min(dayOfMonth, daysInMonth(nowParts.year, nowParts.month));
@@ -493,7 +502,7 @@ export const applyRelativeTimeRules = (
   if (!remindAt && !hasExplicitClockTime) {
     const afterLunch = consume(/\bafter lunch\b/i);
     if (afterLunch) {
-      remindAt = withTime(now, timezone, 13, 0);
+      remindAt = nextOccurrenceAtTime(now, timezone, 13, 0);
       contextHint = 'after lunch';
       explicitHour = 13;
       explicitMinute = 0;
@@ -505,7 +514,7 @@ export const applyRelativeTimeRules = (
     const afternoon = consume(/\b(?:mid-afternoon|mid afternoon|arvo|this afternoon)\b/i);
     if (afternoon) {
       const dateLike = findDateLike(working, now, timezone);
-      remindAt = dateLike ? `${dateLike.slice(0, 10)}T15:00:00` : withTime(now, timezone, 15, 0);
+      remindAt = dateLike ? `${dateLike.slice(0, 10)}T15:00:00` : nextOccurrenceAtTime(now, timezone, 15, 0);
       contextHint = afternoon[0];
       explicitHour = 15;
       explicitMinute = 0;
@@ -516,7 +525,7 @@ export const applyRelativeTimeRules = (
   if (!remindAt && !hasExplicitClockTime) {
     const eod = consume(/\b(?:end of day|eod|before I leave today)\b/i);
     if (eod) {
-      remindAt = withTime(now, timezone, 17, 0);
+      remindAt = nextOccurrenceAtTime(now, timezone, 17, 0);
       contextHint = eod[0].toLowerCase();
       explicitHour = 17;
       explicitMinute = 0;

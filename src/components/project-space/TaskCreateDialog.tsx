@@ -201,9 +201,12 @@ export const TaskCreateDialog = ({
       const parsedDueDateValue = parsedOnSubmit.fields.due_at ? toDateTimeLocal(parsedOnSubmit.fields.due_at) : '';
       const parsedAssigneeValue = findSuggestedAssignee(parsedOnSubmit.fields.assignee_hints, projectMembers);
       const parsedTitleValue = parsedOnSubmit.fields.title.trim();
-      const effectiveTitle = parsedOnSubmit.fields.due_at && parsedTitleValue && parsedTitleValue !== 'Task'
+      const effectiveTitle = parsedTitleValue && parsedTitleValue !== 'Task'
         ? parsedTitleValue
         : trimmedTitle;
+      const effectiveProjectId = projectOptions && onSelectedProjectIdChange
+        ? (selectedProjectId || projectId)
+        : projectId;
 
       const effectivePriority = untouchedFields.has('priority')
         ? priorityValue
@@ -226,7 +229,7 @@ export const TaskCreateDialog = ({
       }
 
       await createTask(accessToken, {
-        project_id: projectId,
+        project_id: effectiveProjectId,
         parent_record_id: parentRecordId || null,
         title: effectiveTitle,
         status: statusValue,

@@ -137,10 +137,13 @@ const findLocationSignal = (tokens: string[]): SignalHit | null => {
     };
   }
 
-  if (findPhraseIndex(tokens, ['conf', 'room']) >= 0 || findPhraseIndex(tokens, ['room', 'a']) >= 0) {
+  const roomPhraseIndexes = [findPhraseIndex(tokens, ['conf', 'room']), findPhraseIndex(tokens, ['room', 'a'])].filter(
+    (index) => index >= 0,
+  );
+  if (roomPhraseIndexes.length > 0) {
     return {
       score: 0.18,
-      index: 0,
+      index: Math.min(...roomPhraseIndexes),
     };
   }
 
@@ -382,7 +385,12 @@ const scoreEvent = (normalized: string, tokens: string[]): ScoredLead => {
     });
   }
 
-  if (/\b\d{1,2}-\d{1,2}\b/.test(normalized) && /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|december)\b/.test(normalized)) {
+  if (
+    /\b\d{1,2}-\d{1,2}\b/.test(normalized) &&
+    /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/.test(
+      normalized,
+    )
+  ) {
     score += 0.18;
     steps.push({
       ruleId: 'pattern.event.month_date_range',

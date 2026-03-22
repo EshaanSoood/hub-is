@@ -64,7 +64,7 @@ export const confidencePass: IntentPass = (ctx) => {
     });
   }
 
-  if (topIntent === 'task' && topScore < 0.6 && (task.leadIndex === null || ctx.tokens.length <= 2)) {
+  if (topIntent === 'task' && topScore < 0.6 && task.leadIndex === null) {
     ambiguitySteps.push({
       ruleId: 'confidence.weak_task_lead',
       note: 'task lead is weak due to low score and sparse/unclear imperative lead',

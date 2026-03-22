@@ -13,6 +13,7 @@ import { createTaskParseContext, getKnownAssigneeSet } from './utils.ts';
 const PIPELINE: TaskParsePass[] = [priorityPass, assigneePass, dateTypoCorrectionPass, dueDatePass, titlePass];
 
 const OFFSET_OR_Z_SUFFIX_REGEX = /(?:[zZ]|[+-]\d{2}:\d{2})$/;
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 const parseIsoAsUtcMs = (value: string): number | null => {
   const parsed = new Date(`${value}Z`);
@@ -24,12 +25,13 @@ const parseComparableDate = (value: string | null, timezone: string): Date | nul
   if (!value) {
     return null;
   }
-  const parsed = new Date(value);
+  const normalizedValue = DATE_ONLY_REGEX.test(value) ? `${value}T23:59:00` : value;
+  const parsed = new Date(normalizedValue);
   if (Number.isNaN(parsed.getTime())) {
     return null;
   }
-  if (!OFFSET_OR_Z_SUFFIX_REGEX.test(value)) {
-    const comparableUtcMs = parseIsoAsUtcMs(value);
+  if (!OFFSET_OR_Z_SUFFIX_REGEX.test(normalizedValue)) {
+    const comparableUtcMs = parseIsoAsUtcMs(normalizedValue);
     if (comparableUtcMs === null) {
       return parsed;
     }
