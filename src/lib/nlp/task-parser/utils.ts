@@ -638,13 +638,30 @@ const findSpecialDateMatch = (
 
 const stripDueDateSpan = (working: string, start: number, end: number): string => {
   let removeStart = start;
+  let removeEnd = end;
   const before = working.slice(0, start);
   const markerMatch = before.match(DUE_DATE_MARKER_TAIL_REGEX);
   if (markerMatch) {
     removeStart = start - markerMatch[0].length;
+  } else {
+    const recurrenceLeadMatch = before.match(/\bevery\s*$/i);
+    if (recurrenceLeadMatch) {
+      removeStart = start - recurrenceLeadMatch[0].length;
+    } else {
+      const prepositionLeadMatch = before.match(/\b(?:on|at)\s*$/i);
+      if (prepositionLeadMatch) {
+        removeStart = start - prepositionLeadMatch[0].length;
+      }
+    }
   }
 
-  return normalizeWhitespace(`${working.slice(0, removeStart)} ${working.slice(end)}`)
+  const after = working.slice(end);
+  const trailingPunctuationMatch = after.match(/^\s*[.,;:]+/);
+  if (trailingPunctuationMatch) {
+    removeEnd = end + trailingPunctuationMatch[0].length;
+  }
+
+  return normalizeWhitespace(`${working.slice(0, removeStart)} ${working.slice(removeEnd)}`)
     .replace(DUE_DATE_MARKER_TAIL_REGEX, '')
     .replace(DUE_DATE_MARKER_HEAD_REGEX, '');
 };

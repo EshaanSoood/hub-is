@@ -662,8 +662,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     if (quickAddDialog !== 'reminder') {
       return;
     }
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const timer = window.setTimeout(() => {
-      setReminderPreview(reminderDraft.trim() ? parseReminderInput(reminderDraft) : emptyReminderPreview());
+      setReminderPreview(reminderDraft.trim() ? parseReminderInput(reminderDraft, { timezone }) : emptyReminderPreview());
     }, 250);
     return () => {
       window.clearTimeout(timer);

@@ -178,9 +178,13 @@ const buildCreatePayload = (preview: ReminderParseResult, rawInput: string): Cre
   if (!title || !preview.fields.remind_at) {
     return null;
   }
+  const remindAtDate = new Date(preview.fields.remind_at);
+  if (Number.isNaN(remindAtDate.getTime())) {
+    return null;
+  }
   return {
     title,
-    remind_at: preview.fields.remind_at,
+    remind_at: remindAtDate.toISOString(),
     recurrence_json: preview.fields.recurrence
       ? {
           frequency: preview.fields.recurrence.frequency,
@@ -222,8 +226,9 @@ export const RemindersModuleSkin = ({
   }, []);
 
   useEffect(() => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const timer = window.setTimeout(() => {
-      setPreview(draft.trim() ? parseReminderInput(draft) : emptyPreview());
+      setPreview(draft.trim() ? parseReminderInput(draft, { timezone }) : emptyPreview());
     }, 300);
     return () => {
       window.clearTimeout(timer);
