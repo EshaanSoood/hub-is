@@ -553,12 +553,12 @@ export const applyDateTypoCorrections = (input: string): {
   };
 };
 
-const resolveSpecialDate = (text: string, now: Date, timezone: string, preferNextWeekStart: boolean): string | null => {
-  const hasExplicitTimeExpression =
-    /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i.test(text) ||
-    /\bat\s+\d{1,2}(?::\d{2})?\b/i.test(text) ||
-    /\b(?:noon|midnight)\b/i.test(text);
+const hasExplicitTimeExpression = (text: string): boolean =>
+  /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i.test(text) ||
+  /\bat\s+\d{1,2}(?::\d{2})?\b/i.test(text) ||
+  /\b(?:noon|midnight)\b/i.test(text);
 
+const resolveSpecialDate = (text: string, now: Date, timezone: string, preferNextWeekStart: boolean): string | null => {
   if (
     /\b(?:tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next\s+\w+|march|april|\d{1,2}\/\d{1,2})\b/i.test(
       text,
@@ -568,69 +568,85 @@ const resolveSpecialDate = (text: string, now: Date, timezone: string, preferNex
     return null;
   }
   if (/\bend of (?:the )?month\b/i.test(text)) {
-    if (hasExplicitTimeExpression) {
+    if (hasExplicitTimeExpression(text)) {
       return null;
     }
     return endOfMonthIso(now, timezone);
   }
   if (/\b(?:end of week|this week)\b/i.test(text)) {
-    if (hasExplicitTimeExpression) {
+    if (hasExplicitTimeExpression(text)) {
       return null;
     }
     return fridayOfCurrentWeekIso(now, timezone);
   }
   if (/\bthis weekend\b/i.test(text)) {
-    if (hasExplicitTimeExpression) {
+    if (hasExplicitTimeExpression(text)) {
       return null;
     }
     return sundayOfCurrentWeekendIso(now, timezone);
   }
   if (/\bnext week\b/i.test(text)) {
-    if (hasExplicitTimeExpression) {
+    if (hasExplicitTimeExpression(text)) {
       return null;
     }
     return preferNextWeekStart ? nextMondayIso(now, timezone) : nextWeekIso(now, timezone);
   }
   if (/\bstandup\b/i.test(text)) {
-    if (hasExplicitTimeExpression) {
+    if (hasExplicitTimeExpression(text)) {
       return null;
     }
     return nextDayIso(now, timezone);
   }
-  if (/\b(?:tonight|today|now|immediately|end of day)\b/i.test(text)) {
-    // If a concrete time is present, let chrono resolve full date+time.
-    if (hasExplicitTimeExpression) {
-      return null;
-    }
+  if (/\bend of day\b/i.test(text)) {
     return formatDateInTimezone(now, timezone);
   }
   return null;
 };
 
-const chooseChronoCandidate = (working: string): Array<{ text: string; start: number; fromMarker: boolean }> => {
-  const candidates: Array<{ text: string; start: number; fromMarker: boolean }> = [];
-  const markerRegex = /\b(?:by|before|due(?:\s+by)?|due|until|b4)\b/gi;
-  let markerMatch: RegExpExecArray | null;
-  while ((markerMatch = markerRegex.exec(working)) !== null) {
-    candidates.push({
-      text: working.slice(markerMatch.index),
-      start: markerMatch.index,
-      fromMarker: true,
-    });
+const SPECIAL_DATE_REGEX = /\b(?:end of (?:the )?month|end of week|this week|this weekend|next week|standup|end of day)\b/i;
+const DUE_DATE_MARKER_TAIL_REGEX = /\b(?:by|before|due(?:\s+by)?|due|until|b4)\b\s*$/i;
+const DUE_DATE_MARKER_HEAD_REGEX = /^\b(?:by|before|due(?:\s+by)?|due|until|b4)\b\s*/i;
+
+const findSpecialDateMatch = (
+  working: string,
+  now: Date,
+  timezone: string,
+  preferNextWeekStart: boolean,
+): { dueAt: string; start: number; end: number; text: string } | null => {
+  const match = SPECIAL_DATE_REGEX.exec(working);
+  if (!match || match.index == null) {
+    return null;
   }
 
-  const fallbackRegex =
-    /\b(?:tonight|tomorrow(?:\s+morning|\s+afternoon)?|next\s+\w+|this\s+weekend|end of (?:the )?month|end of week|in \d+ days|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}|[A-Za-z]+\s+\d{1,2}|\d{1,2}\s+[A-Za-z]+|\d+(?::\d{2})?\s*(?:am|pm)|noon)\b/gi;
-  let fallbackMatch: RegExpExecArray | null;
-  while ((fallbackMatch = fallbackRegex.exec(working)) !== null) {
-    candidates.push({
-      text: fallbackMatch[0],
-      start: fallbackMatch.index,
-      fromMarker: false,
-    });
+  const text = match[0];
+  if (hasExplicitTimeExpression(text)) {
+    return null;
   }
 
-  return candidates.sort((left, right) => left.start - right.start);
+  const special = resolveSpecialDate(text, now, timezone, preferNextWeekStart);
+  if (!special) {
+    return null;
+  }
+
+  return {
+    dueAt: `${special}T23:59:00`,
+    start: match.index,
+    end: match.index + text.length,
+    text,
+  };
+};
+
+const stripDueDateSpan = (working: string, start: number, end: number): string => {
+  let removeStart = start;
+  const before = working.slice(0, start);
+  const markerMatch = before.match(DUE_DATE_MARKER_TAIL_REGEX);
+  if (markerMatch) {
+    removeStart = start - markerMatch[0].length;
+  }
+
+  return normalizeWhitespace(`${working.slice(0, removeStart)} ${working.slice(end)}`)
+    .replace(DUE_DATE_MARKER_TAIL_REGEX, '')
+    .replace(DUE_DATE_MARKER_HEAD_REGEX, '');
 };
 
 const scoreDueDateConfidence = (sourceText: string, bestResult: chrono.ParsedResult | null): number => {
@@ -683,45 +699,33 @@ export const extractDueDate = (
     working = normalizeWhitespace(working.replace(/\b(?:now|immediately)\b/gi, ' '));
   }
 
-  const candidates = chooseChronoCandidate(working);
-  for (const candidate of candidates) {
-    const special = resolveSpecialDate(candidate.text, now, timezone, preferNextWeekStart);
-    const parsedResults = chrono.parse(candidate.text, now, { forwardDate: true });
-    const bestResult = parsedResults[0] || null;
-
-    let parsed: string | null = null;
-    if (special) {
-      parsed = `${special}T23:59:00`;
-    } else if (bestResult) {
-      parsed = formatDateTimeInTimezone(bestResult.start.date(), timezone);
-    }
-
-    if (!parsed) {
-      continue;
-    }
-
-    dueAt = parsed;
-    confidence = scoreDueDateConfidence(candidate.text, bestResult);
-    const parsedStart = candidate.start + (bestResult?.index ?? 0);
-    const parsedEnd = parsedStart + (bestResult?.text.length ?? candidate.text.length);
-    const removalEnd =
-      candidate.fromMarker &&
-      /\b(?:end of week|end of month|end of day|this weekend|standup|next week)\b/i.test(candidate.text)
-        ? candidate.start + candidate.text.length
-        : parsedEnd;
-
+  const specialMatch = findSpecialDateMatch(working, now, timezone, preferNextWeekStart);
+  if (specialMatch) {
+    dueAt = specialMatch.dueAt;
+    confidence = scoreDueDateConfidence(specialMatch.text, null);
     span = {
-      start: parsedStart,
-      end: parsedEnd,
-      text: working.slice(parsedStart, parsedEnd) || candidate.text,
+      start: specialMatch.start,
+      end: specialMatch.end,
+      text: specialMatch.text,
     };
+    note = 'resolved due date from special-date rule';
+    working = stripDueDateSpan(working, specialMatch.start, specialMatch.end);
+  } else {
+    const bestResult = chrono.parse(working, now, { forwardDate: true })[0] || null;
+    if (bestResult) {
+      const parsedStart = bestResult.index ?? 0;
+      const parsedEnd = parsedStart + bestResult.text.length;
 
-    note = special ? 'resolved due date from special-date rule' : 'resolved due date using chrono';
-
-    working = normalizeWhitespace(`${working.slice(0, candidate.start)} ${working.slice(removalEnd)}`)
-      .replace(/\b(?:by|before|due(?:\s+by)?|due|until|b4)\b\s*$/i, '')
-      .replace(/^\b(?:by|before|due(?:\s+by)?|due|until|b4)\b\s*/i, '');
-    break;
+      dueAt = formatDateTimeInTimezone(bestResult.start.date(), timezone);
+      confidence = scoreDueDateConfidence(working, bestResult);
+      span = {
+        start: parsedStart,
+        end: parsedEnd,
+        text: bestResult.text,
+      };
+      note = `resolved due date using chrono match "${bestResult.text}"`;
+      working = stripDueDateSpan(working, parsedStart, parsedEnd);
+    }
   }
 
   return {
