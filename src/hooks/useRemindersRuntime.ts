@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CreateReminderPayload, HubReminderSummary } from '../services/hub/reminders';
 import { createReminder, dismissReminder, listReminders } from '../services/hub/reminders';
+import { subscribeHubHomeRefresh } from '../lib/hubHomeRefresh';
+import { subscribeHubLive } from '../services/hubLive';
 
 export interface RemindersRuntime {
   reminders: HubReminderSummary[];
@@ -57,6 +59,22 @@ export const useRemindersRuntime = (accessToken: string | null): RemindersRuntim
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => subscribeHubHomeRefresh(() => {
+    void refresh();
+  }), [refresh]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      return;
+    }
+    return subscribeHubLive(accessToken, (message) => {
+      if (message.type !== 'reminder.changed') {
+        return;
+      }
+      void refresh();
+    });
+  }, [accessToken, refresh]);
 
   const dismiss = useCallback(async (reminderId: string) => {
     if (!accessToken) {

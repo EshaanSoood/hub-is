@@ -328,7 +328,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const taskTitleInputRef = useRef<HTMLInputElement | null>(null);
   const eventProjectSelectRef = useRef<HTMLSelectElement | null>(null);
   const reminderInputRef = useRef<HTMLInputElement | null>(null);
-  const reminderProjectSelectRef = useRef<HTMLSelectElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
   const captureRequestVersionRef = useRef(0);
   const quickNavWasOpenRef = useRef(false);
@@ -367,6 +366,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         value: project.id,
         label: project.isPersonal ? `${project.name} (Personal)` : project.name,
       })),
+    [projects],
+  );
+  const personalReminderProjectLabel = useMemo(
+    () => projects.find((project) => project.isPersonal)?.name || 'Personal',
     [projects],
   );
   const selectedTaskProjectMembers = useMemo(
@@ -556,8 +559,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
 
     const title = reminderPreview.fields.title.trim() || reminderDraft.trim();
-    if (!title || !reminderPreview.fields.remind_at) {
+    const remindAtRaw = reminderPreview.fields.remind_at;
+    if (!title || !remindAtRaw) {
       setReminderError('Add a title and time to create a reminder.');
+      return;
+    }
+    const remindAtDate = new Date(remindAtRaw);
+    if (Number.isNaN(remindAtDate.getTime())) {
+      setReminderError('Reminder time is invalid.');
       return;
     }
 
@@ -566,7 +575,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     try {
       await createReminder(accessToken, {
         title,
-        remind_at: reminderPreview.fields.remind_at,
+        remind_at: remindAtDate.toISOString(),
         recurrence_json: reminderPreview.fields.recurrence
           ? {
               frequency: reminderPreview.fields.recurrence.frequency,
@@ -678,7 +687,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       return;
     }
     if (quickAddDialog === 'reminder') {
-      focusElementSoon(reminderProjectSelectRef.current);
+      focusElementSoon(reminderInputRef.current);
       return;
     }
     if (quickAddDialog === 'project') {
@@ -1678,24 +1687,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           description="Create a reminder from natural language."
         >
           <form className="space-y-4" onSubmit={onCreateQuickAddReminder}>
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-reminder-project">
-                Project
-              </label>
-              <select
-                id="quick-add-reminder-project"
-                ref={reminderProjectSelectRef}
-                value={quickAddProjectId}
-                onChange={(event) => setQuickAddProjectId(event.target.value)}
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-              >
-                {quickAddProjectOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <p className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
+              Reminders are saved to your {personalReminderProjectLabel} project.
+            </p>
 
             <div className="space-y-1">
               <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-reminder-input">
