@@ -146,8 +146,9 @@ export const TaskCreateDialog = ({
     }
 
     const timeout = window.setTimeout(() => {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const intent = classifyIntent(titleValue);
-      const parsed = parseTaskInput(titleValue);
+      const parsed = parseTaskInput(titleValue, { timezone });
       setIntentResult(intent);
       setParseResult(parsed);
 
@@ -197,7 +198,8 @@ export const TaskCreateDialog = ({
     submitInFlightRef.current = true;
     setSubmitting(true);
     try {
-      const parsedOnSubmit = parseTaskInput(trimmedTitle);
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const parsedOnSubmit = parseTaskInput(trimmedTitle, { timezone });
       const untouchedFields = touchedFieldsRef.current;
       const parsedDueDateValue = parsedOnSubmit.fields.due_at ? toDateTimeLocal(parsedOnSubmit.fields.due_at) : '';
       const parsedAssigneeValue = findSuggestedAssignee(parsedOnSubmit.fields.assignee_hints, projectMembers);
