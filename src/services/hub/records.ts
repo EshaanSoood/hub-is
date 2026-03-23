@@ -675,7 +675,6 @@ export const getHubHome = async (
       ...event,
       source_pane: normalizeSourcePane(event.source_pane),
     })),
-    notifications: data.home.notifications,
   };
 };
 

@@ -1,4 +1,4 @@
-import type { HubRecordDetail } from '../../services/hub/types';
+import type { HubRecordDetail } from './records';
 import type { SourcePaneContext } from './tasks';
 
 export interface EventState {

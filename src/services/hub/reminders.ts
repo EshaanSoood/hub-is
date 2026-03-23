@@ -2,7 +2,6 @@ import { hubRequest } from './transport';
 import type {
   CreateReminderRequest,
   CreateReminderResponse,
-  DismissReminderResponse,
   ListRemindersResponse,
   ReminderSummary,
 } from '../../shared/api-types';
@@ -17,8 +16,8 @@ export const listReminders = async (accessToken: string): Promise<HubReminderSum
   return data.reminders;
 };
 
-export const dismissReminder = async (accessToken: string, reminderId: string): Promise<DismissReminderResponse> => {
-  return hubRequest<DismissReminderResponse>(
+export const dismissReminder = async (accessToken: string, reminderId: string): Promise<void> => {
+  await hubRequest<{ dismissed: boolean }>(
     accessToken,
     `/api/hub/reminders/${encodeURIComponent(reminderId)}/dismiss`,
     {
