@@ -1,7 +1,10 @@
+import { createRequestLogger } from '../lib/logger.mjs';
+
 /**
  * Database schema initialization — creates all tables, indexes, and constraints from scratch when no schema exists.
  */
 const HUB_API_ALLOW_SCHEMA_RESET = (process.env.HUB_API_ALLOW_SCHEMA_RESET || '').trim().toLowerCase() === 'true';
+const schemaLog = createRequestLogger('system', 'SYSTEM', '/db/schema', 'system');
 
 const notificationReasons = Object.freeze([
   'mention', 'assignment', 'reminder', 'comment_reply', 'automation', 'update', 'comment', 'snapshot',
@@ -666,8 +669,8 @@ const resetSchemaToContractV1 = (db) => {
   } catch (error) {
     try {
       db.exec('ROLLBACK;');
-    } catch {
-      // no-op
+    } catch (rollbackError) {
+      schemaLog.warn('Schema reset rollback failed.', { error: rollbackError });
     }
     db.exec('PRAGMA foreign_keys = ON;');
     throw error;

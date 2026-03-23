@@ -85,7 +85,8 @@ export const createViewRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for view creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -131,7 +132,8 @@ export const createViewRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for view query.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -207,7 +209,8 @@ export const createViewRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for NLP event creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -289,7 +292,8 @@ export const createViewRoutes = (deps) => {
         }
       });
     } catch (error) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', error instanceof Error ? error.message : 'Failed to create event record.')));
+      request.log.error('Failed to create NLP event record.', { error, projectId });
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Unable to create event from the provided input.')));
       return;
     }
 

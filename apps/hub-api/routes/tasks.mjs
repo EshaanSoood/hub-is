@@ -41,6 +41,8 @@ export const createTaskRoutes = (deps) => {
     return String(right.record_id || '').localeCompare(String(left.record_id || ''));
   };
 
+  const elapsedMs = (startedAtMs) => Number((performance.now() - startedAtMs).toFixed(2));
+
   // buildTaskSummaryForUser keeps project_id/project_name/task_state.category aligned across task endpoints.
   // visibleProjectTasksStmt excludes subtasks from top-level listings with r.parent_record_id IS NULL.
   const listVisibleProjectTasksForUser = ({ userId, projectId = '' }) => {
@@ -103,7 +105,8 @@ export const createTaskRoutes = (deps) => {
     const offset = parseCursorOffset(requestUrl.searchParams.get('cursor'));
     const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
     if (!personalProject) {
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal project is unavailable.')));
+      request.log.error('Personal project is unavailable during task listing.', { userId: auth.user.user_id });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
     }
 
@@ -131,7 +134,8 @@ export const createTaskRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for task creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -144,29 +148,43 @@ export const createTaskRoutes = (deps) => {
 
     const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
     if (!personalProject) {
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal project is unavailable.')));
+      request.log.error('Personal project is unavailable during task creation.', { userId: auth.user.user_id });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
     }
     const tasksCollectionId = asText(personalProject.tasks_collection_id);
     if (!tasksCollectionId) {
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal tasks collection is unavailable.')));
+      request.log.error('Personal tasks collection is unavailable during task creation.', { userId: auth.user.user_id });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
     }
 
-    const taskRecord = createPersonalTaskRecord({
-      userId: auth.user.user_id,
-      projectId: personalProject.project_id,
-      collectionId: tasksCollectionId,
-      title,
-      status: asText(body.status) || 'todo',
-      priority: asNullableText(body.priority),
-      category: asNullableText(body.category),
+    const taskCreateStartedAt = performance.now();
+    let taskRecord;
+    try {
+      taskRecord = createPersonalTaskRecord({
+        userId: auth.user.user_id,
+        projectId: personalProject.project_id,
+        collectionId: tasksCollectionId,
+        title,
+        status: asText(body.status) || 'todo',
+        priority: asNullableText(body.priority),
+        category: asNullableText(body.category),
+      });
+    } catch (error) {
+      request.log.error('Failed to create personal task record.', { error });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
+      return;
+    }
+    request.log.debug('Task creation query completed.', {
+      durationMs: elapsedMs(taskCreateStartedAt),
     });
 
     send(response, jsonResponse(201, okEnvelope({ task: buildPersonalTaskSummaryFromRecord(taskRecord) })));
   });
 
-  const getHubHome = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
+  const getHubHome = withPolicyGate('hub.view', async ({ request, response, requestUrl, auth }) => {
+    const homeStartedAt = performance.now();
     const tasksLimit = asInteger(requestUrl.searchParams.get('tasks_limit'), 8, 1, 50);
     const eventsLimit = asInteger(requestUrl.searchParams.get('events_limit'), 8, 1, 50);
     const capturesLimit = asInteger(requestUrl.searchParams.get('captures_limit'), 20, 1, 50);
@@ -174,20 +192,41 @@ export const createTaskRoutes = (deps) => {
     const unreadOnly = asBoolean(requestUrl.searchParams.get('unread'), false);
     const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
     if (!personalProject) {
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal project is unavailable.')));
+      request.log.error('Personal project is unavailable during hub home load.', { userId: auth.user.user_id });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
     }
 
+    const tasksQueryStartedAt = performance.now();
     const allTasks = listAssignedTasksForUser({ userId: auth.user.user_id })
       .sort(compareTasksByUpdatedAt);
+    request.log.debug('Hub home tasks query completed.', {
+      durationMs: elapsedMs(tasksQueryStartedAt),
+    });
     const tasks = allTasks.slice(0, tasksLimit);
     const tasksNextCursor = allTasks.length > tasksLimit ? encodeCursorOffset(tasksLimit) : null;
 
+    const notificationsQueryStartedAt = performance.now();
     const notifications = (
       unreadOnly
         ? unreadNotificationsByUserStmt.all(auth.user.user_id, notificationsLimit)
         : notificationsByUserStmt.all(auth.user.user_id, notificationsLimit)
     ).map(notificationRecord);
+    request.log.debug('Hub home notifications query completed.', {
+      durationMs: elapsedMs(notificationsQueryStartedAt),
+    });
+
+    const capturesQueryStartedAt = performance.now();
+    const captures = listPersonalCapturesForUser({ projectId: personalProject.project_id, limit: capturesLimit });
+    request.log.debug('Hub home captures query completed.', {
+      durationMs: elapsedMs(capturesQueryStartedAt),
+    });
+
+    const eventsQueryStartedAt = performance.now();
+    const events = listHomeEventsForUser({ userId: auth.user.user_id, limit: eventsLimit });
+    request.log.debug('Hub home events query completed.', {
+      durationMs: elapsedMs(eventsQueryStartedAt),
+    });
 
     send(
       response,
@@ -198,13 +237,16 @@ export const createTaskRoutes = (deps) => {
             personal_project_id: personalProject.project_id,
             tasks,
             tasks_next_cursor: tasksNextCursor,
-            captures: listPersonalCapturesForUser({ projectId: personalProject.project_id, limit: capturesLimit }),
-            events: listHomeEventsForUser({ userId: auth.user.user_id, limit: eventsLimit }),
+            captures,
+            events,
             notifications,
           },
         }),
       ),
     );
+    request.log.debug('Hub home request completed.', {
+      durationMs: elapsedMs(homeStartedAt),
+    });
   });
 
   const listProjectTasks = async ({ request, response, requestUrl, params }) => {

@@ -62,7 +62,8 @@ export const createProjectRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for project creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -212,7 +213,8 @@ export const createProjectRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for project member add.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -257,11 +259,9 @@ export const createProjectRoutes = (deps) => {
           }),
         });
       } catch (error) {
-        console.error('projects.mjs addProjectMember notification failed', {
-          file: 'apps/hub-api/routes/projects.mjs',
-          handler: 'addProjectMember',
-          userId: auth.user.user_id,
-          entityId: projectId,
+        request.log.warn('Project member notification failed (best-effort).', {
+          projectId,
+          targetUserId,
           error,
         });
       }
@@ -305,7 +305,8 @@ export const createProjectRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for project invite creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -374,7 +375,8 @@ export const createProjectRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for invite review.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }

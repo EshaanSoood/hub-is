@@ -1,3 +1,7 @@
+import { createRequestLogger } from '../lib/logger.mjs';
+
+const transactionLog = createRequestLogger('system', 'SYSTEM', '/db/transaction', 'system');
+
 /**
  * Shared SQLite transaction wrapper for route-level mutations.
  */
@@ -14,8 +18,8 @@ export const withTransaction = (db, fn) => {
   } catch (error) {
     try {
       db.exec('ROLLBACK');
-    } catch {
-      // The transaction may already be rolled back above.
+    } catch (rollbackError) {
+      transactionLog.warn('Rollback failed while unwinding transaction.', { error: rollbackError });
     }
     throw error;
   }

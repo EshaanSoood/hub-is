@@ -53,7 +53,8 @@ export const createFileRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for file upload.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -166,7 +167,8 @@ export const createFileRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for attachment creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -329,7 +331,8 @@ export const createFileRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for asset root creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -440,7 +443,8 @@ export const createFileRoutes = (deps) => {
         return;
       }
     } catch (error) {
-      send(response, jsonResponse(502, errorEnvelope('upstream_error', `Nextcloud request failed: ${error instanceof Error ? error.message : String(error)}`)));
+      request.log.error('Nextcloud asset list request failed.', { error, projectId });
+      send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Upstream request failed.')));
       return;
     }
 
@@ -475,7 +479,8 @@ export const createFileRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for asset upload.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -586,7 +591,8 @@ export const createFileRoutes = (deps) => {
         return;
       }
     } catch (error) {
-      send(response, jsonResponse(502, errorEnvelope('upstream_error', `Nextcloud request failed: ${error instanceof Error ? error.message : String(error)}`)));
+      request.log.error('Nextcloud asset delete request failed.', { error, projectId });
+      send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Upstream request failed.')));
       return;
     }
 
@@ -640,7 +646,8 @@ export const createFileRoutes = (deps) => {
         return;
       }
     } catch (error) {
-      send(response, jsonResponse(502, errorEnvelope('upstream_error', `Nextcloud request failed: ${error instanceof Error ? error.message : String(error)}`)));
+      request.log.error('Nextcloud asset proxy request failed.', { error, projectId });
+      send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Upstream request failed.')));
       return;
     }
 
