@@ -526,12 +526,14 @@ export const PersonalizedDashboardPanel = ({
   homeError,
   projects,
   onOpenRecord,
+  onViewChange,
 }: {
   homeData: HubHomeData;
   homeLoading: boolean;
   homeError: string | null;
   projects: ProjectRecord[];
   onOpenRecord: (recordId: string) => void;
+  onViewChange?: (view: HubDashboardView) => void;
 }) => {
   const { accessToken, canGlobal, sessionSummary } = useAuthz();
   const [activeView, setActiveView] = useState<HubDashboardView>('daily-brief');
@@ -599,6 +601,10 @@ export const PersonalizedDashboardPanel = ({
   }, [calendarCreateProjectId, projects]);
 
   const selectedView = availableViewIds.includes(activeView) ? activeView : availableViewIds[0];
+
+  useEffect(() => {
+    onViewChange?.(selectedView);
+  }, [onViewChange, selectedView]);
 
   useEffect(() => {
     if (!viewMenuOpen) {

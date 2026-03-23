@@ -23,6 +23,7 @@ interface TaskCreateDialogProps {
 }
 
 type TouchField = 'title' | 'priority' | 'dueDate' | 'assignee' | 'category' | 'status';
+type PrioritySelectValue = '' | 'low' | 'medium' | 'high' | 'urgent';
 const PARSE_DEBOUNCE_MS = 120;
 
 const toDateTimeLocal = (isoString: string | null) => {
@@ -61,6 +62,13 @@ const findSuggestedAssignee = (
   return '';
 };
 
+const normalizePriorityValue = (value: string | null | undefined): PrioritySelectValue => {
+  if (value === 'low' || value === 'medium' || value === 'high' || value === 'urgent') {
+    return value;
+  }
+  return '';
+};
+
 export const TaskCreateDialog = ({
   open,
   onClose,
@@ -84,7 +92,7 @@ export const TaskCreateDialog = ({
   const submitInFlightRef = useRef(false);
   const [titleValue, setTitleValue] = useState('');
   const [statusValue, setStatusValue] = useState<'todo' | 'in_progress' | 'done'>('todo');
-  const [priorityValue, setPriorityValue] = useState('medium');
+  const [priorityValue, setPriorityValue] = useState<PrioritySelectValue>('medium');
   const [dueDateValue, setDueDateValue] = useState(getDefaultDueDateValue);
   const [categoryValue, setCategoryValue] = useState('');
   const [assigneeValue, setAssigneeValue] = useState('');
@@ -153,7 +161,7 @@ export const TaskCreateDialog = ({
       setParseResult(parsed);
 
       if (!touchedFieldsRef.current.has('priority')) {
-        setPriorityValue(parsed.fields.priority || 'medium');
+        setPriorityValue(normalizePriorityValue(parsed.fields.priority) || 'medium');
       }
       if (!touchedFieldsRef.current.has('dueDate')) {
         setDueDateValue(parsed.fields.due_at ? toDateTimeLocal(parsed.fields.due_at) : getDefaultDueDateValue());
@@ -208,9 +216,9 @@ export const TaskCreateDialog = ({
         ? (selectedProjectId || projectId)
         : projectId;
 
-      const effectivePriority = untouchedFields.has('priority')
+      const effectivePriority: PrioritySelectValue = untouchedFields.has('priority')
         ? priorityValue
-        : (parsedOnSubmit.fields.priority || 'medium');
+        : (normalizePriorityValue(parsedOnSubmit.fields.priority) || 'medium');
       const effectiveDueDateValue = untouchedFields.has('dueDate')
         ? dueDateValue
         : (parsedDueDateValue || getDefaultDueDateValue());
@@ -233,7 +241,7 @@ export const TaskCreateDialog = ({
         parent_record_id: parentRecordId || null,
         title: effectiveTitle,
         status: statusValue,
-        priority: effectivePriority || null,
+        priority: effectivePriority === '' ? null : effectivePriority,
         due_at: effectiveDueDateValue ? new Date(effectiveDueDateValue).toISOString() : null,
         category: categoryValue.trim() || null,
         assignee_user_ids: effectiveAssigneeValue ? [effectiveAssigneeValue] : [],
@@ -354,7 +362,7 @@ export const TaskCreateDialog = ({
                 value={priorityValue}
                 onChange={(event) => {
                   markTouched('priority');
-                  setPriorityValue(event.target.value);
+                  setPriorityValue(normalizePriorityValue(event.target.value));
                 }}
                 className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
               >

@@ -77,14 +77,24 @@ export interface TaskPage {
 }
 
 export interface CreateTaskRequest {
+  /** Optional destination project ID; defaults to the caller's personal project when omitted by backend policy. */
+  project_id?: string;
+  /** Optional parent task/record ID when creating a subtask. */
+  parent_record_id?: string | null;
   /** Required non-empty task title. */
   title: string;
   /** Optional initial task status. Defaults to `todo` when omitted. */
   status?: TaskStatus;
   /** Optional initial task priority; null explicitly clears priority. */
   priority?: TaskPriority | null;
+  /** Optional ISO 8601 due datetime; null clears due date. */
+  due_at?: string | null;
   /** Optional task category label; null explicitly clears category. */
   category?: string | null;
+  /** Optional assignee IDs for direct assignment. */
+  assignee_user_ids?: string[];
+  /** Optional legacy assignment field alias. */
+  assignment_user_ids?: string[];
 }
 
 export interface CreateTaskResponse {
