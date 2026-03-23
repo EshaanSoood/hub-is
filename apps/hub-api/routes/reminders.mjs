@@ -1,22 +1,26 @@
-const parseJsonArray = (value, fallback = []) => {
+const elapsedMs = (startedAtMs) => Number((performance.now() - startedAtMs).toFixed(2));
+
+const parseJsonArray = (value, fallback = [], requestLog = null) => {
   if (typeof value !== 'string' || !value) {
     return fallback;
   }
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : fallback;
-  } catch {
+  } catch (error) {
+    requestLog?.warn?.('Failed to parse reminder channels JSON.', { error });
     return fallback;
   }
 };
 
-const parseRecurrenceJson = (value) => {
+const parseRecurrenceJson = (value, requestLog = null) => {
   if (typeof value !== 'string' || !value) {
     return null;
   }
   try {
     return JSON.parse(value);
-  } catch {
+  } catch (error) {
+    requestLog?.warn?.('Failed to parse reminder recurrence JSON.', { error });
     return null;
   }
 };
@@ -66,8 +70,10 @@ export const createReminderRoutes = (deps) => {
     insertStandaloneReminderStmt,
   } = deps;
 
-  const listReminders = withPolicyGate('hub.view', async ({ response, auth }) => {
+  const listReminders = withPolicyGate('hub.view', async ({ request, response, auth }) => {
+    const listQueryStartedAt = performance.now();
     const rows = listRemindersForUserStmt.all(auth.user.user_id);
+    request.log.debug('Reminder listing query completed.', { durationMs: elapsedMs(listQueryStartedAt) });
     const now = nowIso();
 
     const reminders = rows.map((row) => ({
@@ -76,8 +82,8 @@ export const createReminderRoutes = (deps) => {
       record_title: row.record_title,
       project_id: row.project_id,
       remind_at: row.remind_at,
-      channels: parseJsonArray(row.channels, ['in_app']),
-      recurrence_json: parseRecurrenceJson(row.recurrence_json),
+      channels: parseJsonArray(row.channels, ['in_app'], request.log),
+      recurrence_json: parseRecurrenceJson(row.recurrence_json, request.log),
       created_at: row.created_at,
       fired_at: row.fired_at ?? null,
       overdue: row.remind_at < now,
@@ -86,7 +92,7 @@ export const createReminderRoutes = (deps) => {
     send(response, jsonResponse(200, okEnvelope({ reminders })));
   });
 
-  const dismissReminder = withPolicyGate('hub.tasks.write', async ({ response, auth, params }) => {
+  const dismissReminder = withPolicyGate('hub.tasks.write', async ({ request, response, auth, params }) => {
     const reminderId = asText(params.reminderId);
     const reminder = reminderId ? findReminderByIdStmt.get(reminderId) : null;
 
@@ -112,39 +118,45 @@ export const createReminderRoutes = (deps) => {
 
     const timestamp = nowIso();
 
-    withTransaction(() => {
-      dismissReminderStmt.run(timestamp, reminderId);
+    try {
+      withTransaction(() => {
+        dismissReminderStmt.run(timestamp, reminderId);
 
-      const recurrence = parseRecurrenceJson(reminder.recurrence_json);
-      const interval =
-        Number.isInteger(recurrence?.interval) && recurrence.interval > 0 ? recurrence.interval : 1;
-      const nextRemindAt =
-        asText(recurrence?.next_remind_at)
-        || nextReminderAtForFrequency(reminder.remind_at, asText(recurrence?.frequency), interval);
-      if (!nextRemindAt) {
-        return;
-      }
+        const recurrence = parseRecurrenceJson(reminder.recurrence_json, request.log);
+        const interval =
+          Number.isInteger(recurrence?.interval) && recurrence.interval > 0 ? recurrence.interval : 1;
+        const nextRemindAt =
+          asText(recurrence?.next_remind_at)
+          || nextReminderAtForFrequency(reminder.remind_at, asText(recurrence?.frequency), interval);
+        if (!nextRemindAt) {
+          return;
+        }
 
-      const subsequentRemindAt =
-        asText(recurrence?.subsequent_remind_at)
-        || nextReminderAtForFrequency(nextRemindAt, asText(recurrence?.frequency), interval);
-      const nextRecurrence = subsequentRemindAt || recurrence?.frequency
-        ? toJson({
-            ...(subsequentRemindAt ? { next_remind_at: subsequentRemindAt } : {}),
-            ...(recurrence?.frequency ? { frequency: recurrence.frequency } : {}),
-            ...(interval > 1 ? { interval } : {}),
-          })
-        : null;
+        const subsequentRemindAt =
+          asText(recurrence?.subsequent_remind_at)
+          || nextReminderAtForFrequency(nextRemindAt, asText(recurrence?.frequency), interval);
+        const nextRecurrence = subsequentRemindAt || recurrence?.frequency
+          ? toJson({
+              ...(subsequentRemindAt ? { next_remind_at: subsequentRemindAt } : {}),
+              ...(recurrence?.frequency ? { frequency: recurrence.frequency } : {}),
+              ...(interval > 1 ? { interval } : {}),
+            })
+          : null;
 
-      insertStandaloneReminderStmt.run(
-        newId('rem'),
-        reminder.record_id,
-        nextRemindAt,
-        reminder.channels,
-        timestamp,
-        nextRecurrence,
-      );
-    });
+        insertStandaloneReminderStmt.run(
+          newId('rem'),
+          reminder.record_id,
+          nextRemindAt,
+          reminder.channels,
+          timestamp,
+          nextRecurrence,
+        );
+      });
+    } catch (error) {
+      request.log.error('Failed to dismiss reminder.', { error });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
+      return;
+    }
 
     try {
       broadcastReminderChanged(
@@ -171,7 +183,8 @@ export const createReminderRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for reminder creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_body', 'Invalid request body.')));
       return;
     }
@@ -200,7 +213,10 @@ export const createReminderRoutes = (deps) => {
 
     const collectionId = asText(personalProject.reminders_collection_id);
     if (!collectionId) {
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Personal reminders collection is unavailable.')));
+      request.log.error('Personal reminders collection is unavailable during reminder creation.', {
+        userId: auth.user.user_id,
+      });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
     }
 
@@ -208,19 +224,25 @@ export const createReminderRoutes = (deps) => {
     const recordId = newId('rec');
     const reminderId = newId('rem');
 
-    withTransaction(() => {
-      insertRecordStmt.run(
-        recordId,
-        personalProject.project_id,
-        collectionId,
-        title,
-        auth.user.user_id,
-        timestamp,
-        timestamp,
-      );
-      insertRecordCapabilityStmt.run(recordId, 'remindable', timestamp);
-      insertStandaloneReminderStmt.run(reminderId, recordId, remindAt, toJson(['in_app']), timestamp, recurrenceJson);
-    });
+    try {
+      withTransaction(() => {
+        insertRecordStmt.run(
+          recordId,
+          personalProject.project_id,
+          collectionId,
+          title,
+          auth.user.user_id,
+          timestamp,
+          timestamp,
+        );
+        insertRecordCapabilityStmt.run(recordId, 'remindable', timestamp);
+        insertStandaloneReminderStmt.run(reminderId, recordId, remindAt, toJson(['in_app']), timestamp, recurrenceJson);
+      });
+    } catch (error) {
+      request.log.error('Failed to create reminder record.', { error });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
+      return;
+    }
 
     try {
       broadcastReminderChanged(

@@ -79,7 +79,8 @@ export const createPaneRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for pane creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -144,11 +145,9 @@ export const createPaneRoutes = (deps) => {
         });
       }
     } catch (error) {
-      console.error('panes.mjs createProjectPane notification fan-out failed', {
-        file: 'apps/hub-api/routes/panes.mjs',
-        handler: 'createProjectPane',
-        userId: auth.user.user_id,
-        entityId: paneId,
+      request.log.warn('Pane creation notification fan-out failed (best-effort).', {
+        paneId,
+        projectId,
         error,
       });
     }
@@ -178,7 +177,8 @@ export const createPaneRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for pane update.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -262,7 +262,8 @@ export const createPaneRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for pane member add.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }

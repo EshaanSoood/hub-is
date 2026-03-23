@@ -195,7 +195,8 @@ const buildRouteSnapshot = async (baseUrl, route) => {
   if (contentType.toLowerCase().includes('application/json')) {
     try {
       bodyShape = shapeOf(JSON.parse(bodyText));
-    } catch {
+    } catch (error) {
+      process.stderr.write(`[api-snapshot] Failed to parse JSON body for ${route.method} ${route.path}: ${error instanceof Error ? error.message : String(error)}\n`);
       bodyShape = { parse_error: 'invalid_json' };
     }
   } else if (bodyText) {
@@ -225,8 +226,8 @@ const resolveBaseUrl = async () => {
       if (response.ok) {
         return candidate;
       }
-    } catch {
-      // Try the next candidate.
+    } catch (error) {
+      process.stderr.write(`[api-snapshot] Health probe failed for ${candidate}: ${error instanceof Error ? error.message : String(error)}\n`);
     }
   }
 

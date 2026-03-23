@@ -1,6 +1,10 @@
+import { createRequestLogger } from '../lib/logger.mjs';
+
 /**
  * Incremental schema migrations — additive ALTER TABLE and CREATE INDEX operations applied conditionally based on column/index existence checks.
  */
+const migrationLog = createRequestLogger('system', 'SYSTEM', '/db/migrations', 'system');
+
 const notificationReasons = Object.freeze([
   'mention', 'assignment', 'reminder', 'comment_reply', 'automation', 'update', 'comment', 'snapshot',
 ]);
@@ -35,7 +39,8 @@ export const runMigrations = (db) => {
     } catch (error) {
       try {
         db.exec('ROLLBACK;');
-      } catch {
+      } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
         // no-op
       }
       if (!/duplicate column name/i.test(String(error?.message || error))) {
@@ -81,7 +86,8 @@ export const runMigrations = (db) => {
   } catch (error) {
     try {
       db.exec('ROLLBACK;');
-    } catch {
+    } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
       // no-op
     }
     if (!/duplicate column name/i.test(String(error?.message || error))) {
@@ -146,7 +152,8 @@ export const runMigrations = (db) => {
     } catch (error) {
       try {
         db.exec('ROLLBACK;');
-      } catch {
+      } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
         // no-op
       }
       throw error;
@@ -215,7 +222,8 @@ export const runMigrations = (db) => {
     } catch (error) {
       try {
         db.exec('ROLLBACK;');
-      } catch {
+      } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
         // no-op
       }
       if (!/duplicate column name/i.test(String(error?.message || error))) {
@@ -264,7 +272,7 @@ export const runMigrations = (db) => {
         );
       `).get();
       if (Number(orphanedChatSnapshots?.orphaned_count || 0) > 0) {
-        console.warn('[hub-api] Dropping orphaned chat_snapshots during FK migration', {
+        migrationLog.warn('[hub-api] Dropping orphaned chat_snapshots during FK migration', {
           orphaned_count: Number(orphanedChatSnapshots.orphaned_count || 0),
           missing_project_count: Number(orphanedChatSnapshots.missing_project_count || 0),
           missing_creator_count: Number(orphanedChatSnapshots.missing_creator_count || 0),
@@ -318,7 +326,8 @@ export const runMigrations = (db) => {
     } catch (error) {
       try {
         db.exec('ROLLBACK;');
-      } catch {
+      } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
         // no-op
       }
       throw error;
@@ -343,7 +352,7 @@ export const runMigrations = (db) => {
         );
       `).get();
       if (Number(orphanedMatrixAccounts?.orphaned_count || 0) > 0) {
-        console.warn('[hub-api] Dropping orphaned matrix_accounts during FK migration', {
+        migrationLog.warn('[hub-api] Dropping orphaned matrix_accounts during FK migration', {
           orphaned_count: Number(orphanedMatrixAccounts.orphaned_count || 0),
         });
       }
@@ -380,7 +389,8 @@ export const runMigrations = (db) => {
     } catch (error) {
       try {
         db.exec('ROLLBACK;');
-      } catch {
+      } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
         // no-op
       }
       throw error;
@@ -402,7 +412,8 @@ export const runMigrations = (db) => {
     } catch (error) {
       try {
         db.exec('ROLLBACK;');
-      } catch {
+      } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
         // no-op
       }
       if (!/duplicate column name/i.test(String(error?.message || error))) {
@@ -475,7 +486,8 @@ export const runMigrations = (db) => {
   } catch (error) {
     try {
       db.exec('ROLLBACK;');
-    } catch {
+    } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
       // no-op
     }
     throw error;
@@ -495,7 +507,8 @@ export const runMigrations = (db) => {
     } catch (error) {
       try {
         db.exec('ROLLBACK;');
-      } catch {
+      } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
         // no-op
       }
       if (!/duplicate column name/i.test(String(error?.message || error))) {
@@ -523,7 +536,8 @@ export const runMigrations = (db) => {
   } catch (error) {
     try {
       db.exec('ROLLBACK;');
-    } catch {
+    } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
       // no-op
     }
     if (!/duplicate column name/i.test(String(error?.message || error))) {
@@ -546,7 +560,8 @@ export const runMigrations = (db) => {
   } catch (error) {
     try {
       db.exec('ROLLBACK;');
-    } catch {
+    } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
       // no-op
     }
     if (!/duplicate column name/i.test(String(error?.message || error))) {
@@ -569,7 +584,8 @@ export const runMigrations = (db) => {
   } catch (error) {
     try {
       db.exec('ROLLBACK;');
-    } catch {
+    } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
       // no-op
     }
     if (!/duplicate column name/i.test(String(error?.message || error))) {
@@ -592,7 +608,8 @@ export const runMigrations = (db) => {
   } catch (error) {
     try {
       db.exec('ROLLBACK;');
-    } catch {
+    } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
       // no-op
     }
     throw error;
@@ -616,7 +633,7 @@ export const runMigrations = (db) => {
           (total, row) => total + Number(row.duplicate_count || 0) - 1,
           0,
         );
-        console.warn('[hub-api] Deduplicating record_relations before unique index creation', {
+        migrationLog.warn('[hub-api] Deduplicating record_relations before unique index creation', {
           duplicate_groups: duplicateGroups.length,
           duplicate_rows_to_delete: duplicateRowsToDelete,
           sample: duplicateGroups.slice(0, 5),
@@ -638,7 +655,8 @@ export const runMigrations = (db) => {
     } catch (error) {
       try {
         db.exec('ROLLBACK;');
-      } catch {
+      } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
         // no-op
       }
       throw error;
@@ -664,7 +682,8 @@ export const runMigrations = (db) => {
   } catch (error) {
     try {
       db.exec('ROLLBACK;');
-    } catch {
+    } catch (rollbackError) {
+        migrationLog.warn('Rollback failed during migration cleanup.', { error: rollbackError });
       // no-op
     }
     throw error;

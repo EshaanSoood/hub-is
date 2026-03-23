@@ -15,6 +15,8 @@ import { initSearch } from './db/search-setup.mjs';
 import { initSchema } from './db/schema.mjs';
 import { createStatements } from './db/statements.mjs';
 import { withTransaction } from './db/transaction.mjs';
+import { createRequestLogger } from './lib/logger.mjs';
+import { applyRequestContext } from './lib/requestContext.mjs';
 import { createAutomationRoutes } from './routes/automation.mjs';
 import { createChatRoutes } from './routes/chat.mjs';
 import { createCollectionRoutes } from './routes/collections.mjs';
@@ -50,6 +52,10 @@ const MATRIX_SERVER_NAME = 'chat.eshaansood.org';
 const MATRIX_ACCOUNT_SECRET_VERSION = 'v1';
 const WS_READY_STATE_OPEN = 1;
 const REMINDER_CHECK_INTERVAL_MS = 30_000;
+const APP_VERSION = process.env.npm_package_version || 'unknown';
+const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
+const REGISTERED_ROUTE_COUNT = 79;
+const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const nowIso = () => new Date().toISOString();
 const asText = (value) => (typeof value === 'string' ? value.trim() : '');
@@ -110,7 +116,7 @@ const decryptMatrixAccountSecret = (value) => {
 };
 
 if (!safeTuwunelConfig()) {
-  console.warn('[hub-api] Matrix chat provisioning is disabled until TUWUNEL_REGISTRATION_SHARED_SECRET and MATRIX_ACCOUNT_ENCRYPTION_KEY are configured.');
+  systemLog.warn('Matrix chat provisioning is disabled until TUWUNEL_REGISTRATION_SHARED_SECRET and MATRIX_ACCOUNT_ENCRYPTION_KEY are configured.');
 }
 
 const asInteger = (value, fallback, min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER) => {
@@ -149,7 +155,11 @@ const parseJson = (value, fallback = null) => {
   }
   try {
     return JSON.parse(String(value));
-  } catch {
+  } catch (error) {
+    systemLog.warn('Failed to parse JSON value; using fallback.', {
+      error,
+      valueType: typeof value,
+    });
     return fallback;
   }
 };
@@ -752,8 +762,8 @@ const sendHubLiveMessage = (socket, message) => {
   }
   try {
     socket.send(JSON.stringify(message), () => {});
-  } catch {
-    // ignore socket send failures
+  } catch (error) {
+    systemLog.warn('Hub live socket send failed (best-effort).', { error });
   }
 };
 
@@ -1043,10 +1053,11 @@ const ensureUserFromRequest = async (request) => {
   try {
     verification = await jwtVerifier.verifyToken(token);
   } catch (error) {
+    request.log?.warn?.('Bearer token verification failed.', { error });
     return {
       status: 401,
       code: 'unauthorized',
-      message: error instanceof Error ? error.message : 'JWT verification failed.',
+      message: 'Invalid token.',
     };
   }
 
@@ -1054,7 +1065,8 @@ const ensureUserFromRequest = async (request) => {
 
   const kcSub = asText(claims.sub);
   if (!kcSub) {
-    return { status: 401, code: 'unauthorized', message: 'Bearer token missing sub.' };
+    request.log?.warn?.('Bearer token missing subject claim.');
+    return { status: 401, code: 'unauthorized', message: 'Invalid token.' };
   }
 
   const displayName = asText(claims.name) || asText(claims.preferred_username) || asText(claims.email) || 'Hub User';
@@ -1090,6 +1102,11 @@ const ensureUserFromRequest = async (request) => {
       db.exec('COMMIT');
     } catch (error) {
       db.exec('ROLLBACK');
+      request.log?.error?.('Failed to persist newly authenticated user.', {
+        userId,
+        kcSub,
+        error,
+      });
       throw error;
     }
     return {
@@ -1631,6 +1648,10 @@ const ensurePersonalProjectForUser = (user) => {
     db.exec('COMMIT');
   } catch (error) {
     db.exec('ROLLBACK');
+    systemLog.error('Failed to ensure personal project for user.', {
+      userId: user?.user_id,
+      error,
+    });
     throw error;
   }
 
@@ -1656,6 +1677,7 @@ const ensurePersonalProjectTasksCollectionIds = () => {
     db.exec('COMMIT');
   } catch (error) {
     db.exec('ROLLBACK');
+    systemLog.error('Failed to backfill personal tasks collection ids.', { error });
     throw error;
   }
 };
@@ -1683,6 +1705,7 @@ const ensurePersonalProjectRemindersCollectionIds = () => {
     db.exec('COMMIT');
   } catch (error) {
     db.exec('ROLLBACK');
+    systemLog.error('Failed to backfill personal reminders collection ids.', { error });
     throw error;
   }
 };
@@ -1990,7 +2013,8 @@ const parseCursorOffset = (cursorRaw) => {
     const payload = JSON.parse(fromBase64Url(cursor));
     const offset = Number(payload?.offset);
     return Number.isInteger(offset) && offset >= 0 ? offset : 0;
-  } catch {
+  } catch (error) {
+    systemLog.warn('Failed to decode pagination cursor; defaulting to offset 0.', { error });
     return 0;
   }
 };
@@ -2005,9 +2029,17 @@ const encodeCursorOffset = (offset) =>
 const withAuth = async (request) => {
   const identity = await ensureUserFromRequest(request);
   if (identity.status !== 200) {
+    request.log?.warn?.('Authentication failed.', {
+      status: identity.status,
+      code: identity.code,
+    });
     return {
       error: jsonResponse(identity.status, errorEnvelope(identity.code, identity.message)),
     };
+  }
+
+  if (identity?.user?.user_id) {
+    request.log?.setUserId?.(identity.user.user_id);
   }
 
   return {
@@ -2480,22 +2512,28 @@ const fireDueReminders = () => {
           });
         }
 
-        console.log(`[hub-api] Fired reminder ${reminder.reminder_id} for record ${reminder.record_id}`);
+        systemLog.info('Reminder fired.', {
+          reminderId: reminder.reminder_id,
+          recordId: reminder.record_id,
+        });
       } catch (error) {
-        console.error('[hub-api] Failed to fire reminder', {
-          reminder_id: reminder.reminder_id,
-          record_id: reminder.record_id,
-          error: error instanceof Error ? error.message : error,
+        systemLog.error('Failed to fire reminder.', {
+          reminderId: reminder.reminder_id,
+          recordId: reminder.record_id,
+          error,
         });
       }
     }
   } catch (error) {
-    console.error('[hub-api] Reminder check loop tick failed', error);
+    systemLog.error('Reminder check loop tick failed.', { error });
   }
 };
 
 const server = createServer(async (request, response) => {
+  applyRequestContext(request, response);
+
   if (!request.url) {
+    request.log.error('Missing request URL.');
     send(response, jsonResponse(400, errorEnvelope('bad_request', 'Missing request URL.')));
     return;
   }
@@ -2509,6 +2547,19 @@ const server = createServer(async (request, response) => {
   }
 
   try {
+    if (request.method === 'GET' && pathname === '/api/health') {
+      send(
+        response,
+        jsonResponse(200, {
+          status: 'ok',
+          timestamp: nowIso(),
+          uptime: process.uptime(),
+          version: APP_VERSION,
+        }),
+      );
+      return;
+    }
+
     if (request.method === 'GET' && pathname === '/api/hub/health') {
       send(
         response,
@@ -3285,12 +3336,10 @@ const server = createServer(async (request, response) => {
 
     send(response, jsonResponse(404, errorEnvelope('not_found', 'Endpoint not found.')));
   } catch (error) {
+    request.log.error('Unhandled request error.', { error });
     send(
       response,
-      jsonResponse(
-        500,
-        errorEnvelope('internal_error', error instanceof Error ? error.message : 'Internal server error.'),
-      ),
+      jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')),
     );
   }
 });
@@ -3323,14 +3372,21 @@ server.on('upgrade', (request, socket, head) => {
     hubLiveWss.handleUpgrade(request, socket, head, (ws) => {
       hubLiveWss.emit('connection', ws, request, consumed.ticket);
     });
-  } catch {
+  } catch (error) {
+    systemLog.warn('WebSocket upgrade failed.', { error });
     socket.destroy();
   }
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  // eslint-disable-next-line no-console
-  console.log(`Hub API contract server listening on ${PORT}`);
+  systemLog.info('Hub API server started.', {
+    version: APP_VERSION,
+    port: PORT,
+    nodeVersion: process.version,
+    environment: NODE_ENVIRONMENT,
+    routeCount: REGISTERED_ROUTE_COUNT,
+    databasePath: HUB_DB_PATH,
+  });
   setInterval(fireDueReminders, REMINDER_CHECK_INTERVAL_MS);
-  console.log('[hub-api] Reminder check loop started (30s interval)');
+  systemLog.info('Reminder check loop started.', { intervalMs: REMINDER_CHECK_INTERVAL_MS });
 });

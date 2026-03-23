@@ -172,7 +172,8 @@ export const createCollectionRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for collection creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -262,7 +263,8 @@ export const createCollectionRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for collection field creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -293,7 +295,8 @@ export const createCollectionRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for record creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -458,16 +461,17 @@ export const createCollectionRoutes = (deps) => {
       });
     } catch (error) {
       if (error instanceof ValidationError) {
+        request.log.warn('Record creation validation failed.', { error });
         send(response, jsonResponse(400, errorEnvelope('invalid_input', error.message)));
         return;
       }
-      console.error('collections.mjs createRecord failed', {
+      request.log.error('Failed to create record.', {
         projectId,
         collectionId,
         recordId,
         error,
       });
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Failed to create record.')));
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
     }
 
@@ -475,7 +479,7 @@ export const createCollectionRoutes = (deps) => {
       try {
         createNotification(notification);
       } catch (error) {
-        console.error('collections.mjs createRecord notification delivery failed', {
+        request.log.warn('Record create notification delivery failed (best-effort).', {
           recordId,
           userId: notification.userId,
           reason: notification.reason,
@@ -545,7 +549,8 @@ export const createCollectionRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for record update.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -650,17 +655,15 @@ export const createCollectionRoutes = (deps) => {
       });
     } catch (error) {
       if (error instanceof ValidationError) {
+        request.log.warn('Record update validation failed.', { error });
         send(response, jsonResponse(400, errorEnvelope('invalid_input', error.message)));
         return;
       }
-      console.error('collections.mjs updateRecord failed', {
-        file: 'apps/hub-api/routes/collections.mjs',
-        handler: 'updateRecord',
+      request.log.error('Failed to update record.', {
         recordId,
-        userId: auth.user.user_id,
         error,
       });
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Failed to update record.')));
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
     }
 
@@ -699,11 +702,8 @@ export const createCollectionRoutes = (deps) => {
         }
       }
     } catch (error) {
-      console.error('collections.mjs updateRecord notification fan-out failed', {
-        file: 'apps/hub-api/routes/collections.mjs',
-        handler: 'updateRecord',
-        userId: auth.user.user_id,
-        entityId: recordId,
+      request.log.warn('Record update notification fan-out failed (best-effort).', {
+        recordId,
         error,
       });
     }
@@ -758,7 +758,8 @@ export const createCollectionRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for record conversion.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -875,16 +876,17 @@ export const createCollectionRoutes = (deps) => {
       });
     } catch (error) {
       if (error instanceof ValidationError) {
+        request.log.warn('Record conversion validation failed.', { error });
         send(response, jsonResponse(400, errorEnvelope('invalid_input', error.message)));
         return;
       }
-      console.error('collections.mjs convertRecord failed', {
+      request.log.error('Failed to convert record.', {
         sourceRecordId,
         targetProjectId,
         mode,
         error,
       });
-      send(response, jsonResponse(500, errorEnvelope('server_error', 'Failed to convert record.')));
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
     }
 
@@ -933,7 +935,8 @@ export const createCollectionRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for record values update.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -990,11 +993,8 @@ export const createCollectionRoutes = (deps) => {
         });
       }
     } catch (error) {
-      console.error('collections.mjs updateRecordValues notification fan-out failed', {
-        file: 'apps/hub-api/routes/collections.mjs',
-        handler: 'updateRecordValues',
-        userId: auth.user.user_id,
-        entityId: recordId,
+      request.log.warn('Record values notification fan-out failed (best-effort).', {
+        recordId,
         error,
       });
     }
@@ -1023,7 +1023,8 @@ export const createCollectionRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for record relation creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -1108,6 +1109,12 @@ export const createCollectionRoutes = (deps) => {
         send(response, jsonResponse(409, errorEnvelope('conflict', relationConflictMessage)));
         return;
       }
+      request.log.error('Failed to create record relation.', {
+        fromRecordId,
+        toRecordId,
+        viaFieldId,
+        error,
+      });
       throw error;
     }
 

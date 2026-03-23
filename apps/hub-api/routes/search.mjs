@@ -49,7 +49,7 @@ export const createSearchRoutes = (deps) => {
     return String(left.title || '').localeCompare(String(right.title || ''));
   };
 
-  const searchRecords = ({ query, limit, visibleProjectIds }) => {
+  const searchRecords = ({ query, limit, visibleProjectIds, requestLog = null }) => {
     const placeholders = visibleProjectIds.map(() => '?').join(', ');
     const matchSql = `
       SELECT
@@ -105,7 +105,8 @@ export const createSearchRoutes = (deps) => {
 
     try {
       return db.prepare(matchSql).all(query, ...visibleProjectIds, limit);
-    } catch {
+    } catch (error) {
+      requestLog?.warn?.('FTS record search failed; using LIKE fallback.', { error });
       return db.prepare(fallbackSql).all(
         loweredQuery,
         `${escapedQuery}%`,
@@ -116,7 +117,7 @@ export const createSearchRoutes = (deps) => {
     }
   };
 
-  const searchProjects = ({ query, limit, visibleProjectIds }) => {
+  const searchProjects = ({ query, limit, visibleProjectIds, requestLog = null }) => {
     const placeholders = visibleProjectIds.map(() => '?').join(', ');
     const matchSql = `
       SELECT
@@ -154,7 +155,8 @@ export const createSearchRoutes = (deps) => {
 
     try {
       return db.prepare(matchSql).all(query, ...visibleProjectIds, limit);
-    } catch {
+    } catch (error) {
+      requestLog?.warn?.('FTS project search failed; using LIKE fallback.', { error });
       return db.prepare(fallbackSql).all(
         loweredQuery,
         `${escapedQuery}%`,
@@ -165,7 +167,7 @@ export const createSearchRoutes = (deps) => {
     }
   };
 
-  const searchPanes = ({ query, limit, visibleProjectIds }) => {
+  const searchPanes = ({ query, limit, visibleProjectIds, requestLog = null }) => {
     const placeholders = visibleProjectIds.map(() => '?').join(', ');
     const matchSql = `
       SELECT
@@ -205,7 +207,8 @@ export const createSearchRoutes = (deps) => {
 
     try {
       return db.prepare(matchSql).all(query, ...visibleProjectIds, limit);
-    } catch {
+    } catch (error) {
+      requestLog?.warn?.('FTS pane search failed; using LIKE fallback.', { error });
       return db.prepare(fallbackSql).all(
         loweredQuery,
         `${escapedQuery}%`,
@@ -216,7 +219,7 @@ export const createSearchRoutes = (deps) => {
     }
   };
 
-  const globalSearch = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
+  const globalSearch = withPolicyGate('hub.view', async ({ request, response, requestUrl, auth }) => {
     const query = asText(requestUrl.searchParams.get('q'));
     if (!query) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'q is required.')));
@@ -242,7 +245,7 @@ export const createSearchRoutes = (deps) => {
     for (const type of typesToSearch) {
       if (type === 'record') {
         results.push(
-          ...searchRecords({ query, limit, visibleProjectIds }).map((row) => ({
+          ...searchRecords({ query, limit, visibleProjectIds, requestLog: request.log }).map((row) => ({
             type: 'record',
             id: row.id,
             title: row.title,
@@ -254,7 +257,7 @@ export const createSearchRoutes = (deps) => {
         );
       } else if (type === 'project') {
         results.push(
-          ...searchProjects({ query, limit, visibleProjectIds }).map((row) => ({
+          ...searchProjects({ query, limit, visibleProjectIds, requestLog: request.log }).map((row) => ({
             type: 'project',
             id: row.id,
             title: row.title,
@@ -265,7 +268,7 @@ export const createSearchRoutes = (deps) => {
         );
       } else if (type === 'pane') {
         results.push(
-          ...searchPanes({ query, limit, visibleProjectIds }).map((row) => ({
+          ...searchPanes({ query, limit, visibleProjectIds, requestLog: request.log }).map((row) => ({
             type: 'pane',
             id: row.id,
             title: row.title,

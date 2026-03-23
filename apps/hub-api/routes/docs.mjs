@@ -117,7 +117,8 @@ export const createDocRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for doc update.', { error, docId });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -187,10 +188,9 @@ export const createDocRoutes = (deps) => {
     try {
       body = await parseBody(request);
     } catch (error) {
-      console.warn('updateDocPresence: failed to parse body', {
+      request.log.warn('Failed to parse request body for doc presence update; using empty payload.', {
         docId,
-        userId: auth.user.user_id,
-        error: error instanceof Error ? error.message : String(error),
+        error,
       });
       body = {};
     }
@@ -209,7 +209,8 @@ export const createDocRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for comment creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -316,11 +317,8 @@ export const createDocRoutes = (deps) => {
           });
         }
       } catch (error) {
-        console.error('docs.mjs createComment record notification fan-out failed', {
-          file: 'apps/hub-api/routes/docs.mjs',
-          handler: 'createComment',
-          userId: auth.user.user_id,
-          entityId: commentId,
+        request.log.warn('Comment notification fan-out failed for record mentions (best-effort).', {
+          commentId,
           error,
         });
       }
@@ -345,11 +343,8 @@ export const createDocRoutes = (deps) => {
           });
         }
       } catch (error) {
-        console.error('docs.mjs createComment doc notification fan-out failed', {
-          file: 'apps/hub-api/routes/docs.mjs',
-          handler: 'createComment',
-          userId: auth.user.user_id,
-          entityId: commentId,
+        request.log.warn('Comment notification fan-out failed for doc collaborators (best-effort).', {
+          commentId,
           error,
         });
       }
@@ -377,7 +372,8 @@ export const createDocRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for doc anchor comment creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -472,11 +468,8 @@ export const createDocRoutes = (deps) => {
         });
       }
     } catch (error) {
-      console.error('docs.mjs createDocAnchorComment notification fan-out failed', {
-        file: 'apps/hub-api/routes/docs.mjs',
-        handler: 'createDocAnchorComment',
-        userId: auth.user.user_id,
-        entityId: commentId,
+      request.log.warn('Doc anchor comment notification fan-out failed (best-effort).', {
+        commentId,
         error,
       });
     }
@@ -522,7 +515,8 @@ export const createDocRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for comment status update.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -663,7 +657,8 @@ export const createDocRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for mention materialization.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -790,7 +785,8 @@ export const createDocRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for collab ticket consume.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }

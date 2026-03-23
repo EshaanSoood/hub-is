@@ -13,10 +13,11 @@ const sanitizeMatrixLocalpart = (value) => {
   return normalized || 'user';
 };
 
-const parseJsonSafe = async (response) => {
+const parseJsonSafe = async (response, requestLog = null) => {
   try {
     return await response.json();
-  } catch {
+  } catch (error) {
+    requestLog?.warn?.('Failed to parse Matrix upstream JSON response.', { error });
     return null;
   }
 };
@@ -82,7 +83,7 @@ export const createChatRoutes = (deps) => {
 
   const matrixDeviceId = () => `HUB${randomBytes(10).toString('hex').toUpperCase()}`;
 
-  const postMatrixJson = async (pathname, payload) => {
+  const postMatrixJson = async (pathname, payload, requestLog = null) => {
     const upstream = await fetch(new URL(pathname, TUWUNEL_INTERNAL_URL), {
       method: 'POST',
       headers: {
@@ -91,11 +92,11 @@ export const createChatRoutes = (deps) => {
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(MATRIX_REQUEST_TIMEOUT_MS),
     });
-    const body = await parseJsonSafe(upstream);
+    const body = await parseJsonSafe(upstream, requestLog);
     return { upstream, body };
   };
 
-  const provision = withPolicyGate('hub.chat.provision', async ({ response, auth }) => {
+  const provision = withPolicyGate('hub.chat.provision', async ({ request, response, auth }) => {
     if (!safeTuwunelConfig()) {
       send(response, jsonResponse(503, errorEnvelope('matrix_unavailable', 'Matrix runtime credentials are not configured.')));
       return;
@@ -118,12 +119,12 @@ export const createChatRoutes = (deps) => {
         reservedAccount = true;
       } catch (error) {
         if (!isUniqueConstraintError(error)) {
-          console.error('chat.mjs provision failed to reserve Matrix account link', {
+          request.log.error('Failed to reserve Matrix account link.', {
             userId: auth.user.user_id,
             matrixUserId,
             error,
           });
-          send(response, jsonResponse(500, errorEnvelope('server_error', 'Matrix account link could not be reserved.')));
+          send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
           return;
         }
         account = matrixAccountByUserIdStmt.get(auth.user.user_id);
@@ -140,8 +141,9 @@ export const createChatRoutes = (deps) => {
               type: 'm.login.registration_token',
               token: TUWUNEL_REGISTRATION_SHARED_SECRET,
             },
-          });
-        } catch {
+          }, request.log);
+        } catch (error) {
+          request.log.error('Matrix registration request failed.', { error, userId: auth.user.user_id });
           deleteMatrixAccountStmt.run(auth.user.user_id);
           send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Matrix registration request failed.')));
           return;
@@ -196,18 +198,18 @@ export const createChatRoutes = (deps) => {
             try {
               deleteMatrixAccountStmt.run(auth.user.user_id);
             } catch (cleanupError) {
-              console.error('chat.mjs provision failed to clean up Matrix reservation after persistence failure', {
+              request.log.warn('Failed to clean up Matrix reservation after persistence failure.', {
                 userId: auth.user.user_id,
                 matrixUserId,
                 error: cleanupError,
               });
             }
-            console.error('chat.mjs provision failed to persist Matrix credentials after registration', {
+            request.log.error('Failed to persist Matrix credentials after registration.', {
               userId: auth.user.user_id,
               matrixUserId,
               error,
             });
-            send(response, jsonResponse(500, errorEnvelope('server_error', 'Matrix account credentials could not be persisted.')));
+            send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
             return;
           }
         }
@@ -228,7 +230,8 @@ export const createChatRoutes = (deps) => {
     let password;
     try {
       password = decryptMatrixAccountSecret(encryptedPassword);
-    } catch {
+    } catch (error) {
+      request.log.error('Failed to decrypt Matrix account credentials.', { error, userId: auth.user.user_id });
       send(response, jsonResponse(503, errorEnvelope('matrix_unavailable', 'Matrix account credentials could not be decrypted.')));
       return;
     }
@@ -242,8 +245,9 @@ export const createChatRoutes = (deps) => {
         password,
         device_id: requestedDeviceId,
         initial_device_display_name: MATRIX_DEVICE_DISPLAY_NAME,
-      });
-    } catch {
+      }, request.log);
+    } catch (error) {
+      request.log.error('Matrix login request failed.', { error, userId: auth.user.user_id });
       send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Matrix login request failed.')));
       return;
     }
@@ -290,7 +294,8 @@ export const createChatRoutes = (deps) => {
     let body;
     try {
       body = await parseBody(request);
-    } catch {
+    } catch (error) {
+      request.log.warn('Failed to parse request body for chat snapshot creation.', { error });
       send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
       return;
     }
@@ -368,10 +373,7 @@ export const createChatRoutes = (deps) => {
         });
       }
     } catch (error) {
-      console.error('chat.mjs createSnapshot notification fan-out failed', {
-        file: 'apps/hub-api/routes/chat.mjs',
-        handler: 'createSnapshot',
-        userId: auth.user.user_id,
+      request.log.warn('Chat snapshot notification fan-out failed (best-effort).', {
         projectId,
         snapshotId: snapshot.snapshot_id,
         error,
