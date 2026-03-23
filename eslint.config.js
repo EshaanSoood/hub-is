@@ -5,7 +5,19 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'deploy', 'working files', 'apps', 'docs', 'playwright-report', 'test-results'] },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'deploy',
+      'working files',
+      'apps',
+      'docs',
+      'playwright-report',
+      'test-results',
+      'e2e/scripts/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
