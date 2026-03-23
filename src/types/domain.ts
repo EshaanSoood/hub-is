@@ -1,3 +1,8 @@
+import type {
+  ProjectRecord as SharedProjectRecord,
+  SessionSummary as SharedSessionSummary,
+} from '../shared/api-types';
+
 export type ServiceId =
   | 'keycloak'
   | 'n8n'
@@ -50,16 +55,7 @@ export interface Project {
   automations: string[];
 }
 
-export interface ProjectRecord {
-  id: string;
-  name: string;
-  status: 'active' | 'paused';
-  summary: string;
-  openProjectProjectId: string | null;
-  nextcloudFolder: string | null;
-  isPersonal: boolean;
-  membershipRole: ProjectMembership['role'];
-}
+export type ProjectRecord = SharedProjectRecord;
 
 export interface HubNote {
   id: string;
@@ -145,20 +141,7 @@ export interface ProjectMembership {
 
 export type SessionRole = 'Owner' | 'Collaborator' | 'Viewer';
 
-export interface SessionSummary {
-  userId: string;
-  name: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: SessionRole;
-  projectMemberships: Array<{
-    projectId: string;
-    membershipRole: ProjectMembership['role'];
-  }>;
-  globalCapabilities: GlobalCapability[];
-  projectCapabilities: Record<string, ProjectCapability[]>;
-}
+export type SessionSummary = SharedSessionSummary;
 
 export interface HubInviteRecord {
   id: string;

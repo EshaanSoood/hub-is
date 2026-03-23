@@ -1,17 +1,21 @@
 import { hubRequest, normalizeRecordDetail, normalizeSourcePane } from './transport';
+import type {
+  CreateEventRequest,
+  CreateEventResponse,
+  CreateTaskRequest,
+  CreateTaskResponse,
+  HubHomeEnvelopeResponse,
+  HubHomeResponse,
+  TaskPage,
+} from '../../shared/api-types';
 
 import type {
   HubBacklink,
-  HubHomeCapture,
-  HubHomeEvent,
   HubMaterializedMention,
   HubMentionTarget,
-  HubNotification,
   HubRecordDetail,
   HubRelationSearchRecord,
   HubSourcePaneContext,
-  HubTaskPage,
-  HubTaskSummary,
 } from './types';
 
 export const createRecord = async (
@@ -246,21 +250,9 @@ export const listBacklinks = async (
 export const createEventFromNlp = async (
   accessToken: string,
   projectId: string,
-  payload: {
-    pane_id?: string;
-    source_pane_id?: string;
-    nlp_fields_json?: Record<string, unknown>;
-    title?: string;
-    start_dt?: string;
-    end_dt?: string;
-    timezone?: string;
-    location?: string;
-    participants_user_ids?: string[];
-    reminders?: Array<{ remind_at: string; channels: string[] }>;
-    recurrence_rule?: Record<string, unknown>;
-  },
-): Promise<{ record: HubRecordDetail }> => {
-  const data = await hubRequest<{ record: HubRecordDetail }>(
+  payload: CreateEventRequest,
+): Promise<CreateEventResponse> => {
+  const data = await hubRequest<CreateEventResponse>(
     accessToken,
     `/api/hub/projects/${encodeURIComponent(projectId)}/events/from-nlp`,
     {
@@ -595,7 +587,7 @@ export const listProjectTasks = async (
   accessToken: string,
   projectId: string,
   options?: { limit?: number; cursor?: string; source_pane_id?: string },
-): Promise<HubTaskPage> => {
+): Promise<TaskPage> => {
   const params = new URLSearchParams();
   if (typeof options?.limit === 'number') {
     params.set('limit', String(options.limit));
@@ -607,7 +599,7 @@ export const listProjectTasks = async (
     params.set('source_pane_id', options.source_pane_id);
   }
   const query = params.toString();
-  return hubRequest<HubTaskPage>(
+  return hubRequest<TaskPage>(
     accessToken,
     `/api/hub/projects/${encodeURIComponent(projectId)}/tasks${query ? `?${query}` : ''}`,
     { method: 'GET' },
@@ -620,7 +612,7 @@ export const queryTasks = async (
     | { lens: 'project'; project_id: string; limit?: number; cursor?: string; source_pane_id?: string }
     | { lens: 'assigned'; limit?: number; cursor?: string; project_id?: string }
     | { lens: 'pane'; project_id: string; pane_id: string; limit?: number; cursor?: string },
-): Promise<HubTaskPage> => {
+): Promise<TaskPage> => {
   const params = new URLSearchParams();
   params.set('lens', options.lens);
   if ('project_id' in options && options.project_id) {
@@ -638,30 +630,25 @@ export const queryTasks = async (
   if (options.cursor) {
     params.set('cursor', options.cursor);
   }
-  return hubRequest<HubTaskPage>(accessToken, `/api/hub/tasks?${params.toString()}`, { method: 'GET' });
+  return hubRequest<TaskPage>(accessToken, `/api/hub/tasks?${params.toString()}`, { method: 'GET' });
 };
 
 export const createPersonalTask = async (
   accessToken: string,
-  payload: { title: string; status?: string; priority?: string | null },
-): Promise<{ task: HubTaskSummary }> => {
-  return hubRequest<{ task: HubTaskSummary }>(accessToken, '/api/hub/tasks', {
+  payload: CreateTaskRequest,
+): Promise<CreateTaskResponse> => {
+  return hubRequest<CreateTaskResponse>(accessToken, '/api/hub/tasks', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 };
 
+export const createTask = createPersonalTask;
+
 export const getHubHome = async (
   accessToken: string,
   options?: { tasks_limit?: number; events_limit?: number; captures_limit?: number; notifications_limit?: number; unread?: boolean },
-): Promise<{
-  personal_project_id: string | null;
-  tasks: HubTaskSummary[];
-  tasks_next_cursor: string | null;
-  captures: HubHomeCapture[];
-  events: HubHomeEvent[];
-  notifications: HubNotification[];
-}> => {
+): Promise<HubHomeResponse> => {
   const params = new URLSearchParams();
   if (typeof options?.tasks_limit === 'number') {
     params.set('tasks_limit', String(options.tasks_limit));
@@ -679,16 +666,7 @@ export const getHubHome = async (
     params.set('unread', '1');
   }
   const query = params.toString();
-  const data = await hubRequest<{
-    home: {
-      personal_project_id: string | null;
-      tasks: HubTaskSummary[];
-      tasks_next_cursor: string | null;
-      captures: HubHomeCapture[];
-      events: HubHomeEvent[];
-      notifications: HubNotification[];
-    };
-  }>(accessToken, `/api/hub/home${query ? `?${query}` : ''}`, {
+  const data = await hubRequest<HubHomeEnvelopeResponse>(accessToken, `/api/hub/home${query ? `?${query}` : ''}`, {
     method: 'GET',
   });
   return {

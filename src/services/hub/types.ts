@@ -1,3 +1,13 @@
+import type {
+  EventSummary,
+  HomeCaptureSummary,
+  NotificationSummary,
+  ProjectSummary,
+  SourcePaneContext,
+  TaskPage,
+  TaskSummary,
+} from '../../shared/api-types';
+
 export interface HubErrorPayload {
   code: string;
   message: string;
@@ -9,15 +19,7 @@ export interface HubEnvelope<T> {
   error: HubErrorPayload | null;
 }
 
-export interface HubProject {
-  project_id: string;
-  name: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  is_personal: boolean;
-  membership_role: string | null;
-}
+export type HubProject = ProjectSummary;
 
 export interface HubUserSummary {
   user_id: string;
@@ -60,11 +62,7 @@ export interface HubPaneSummary {
   can_edit?: boolean;
 }
 
-export interface HubSourcePaneContext {
-  pane_id: string | null;
-  pane_name: string | null;
-  doc_id: string | null;
-}
+export type HubSourcePaneContext = SourcePaneContext;
 
 export interface HubCollabAuthorization {
   doc_id: string;
@@ -273,71 +271,8 @@ export interface HubTrackedFile {
   proxy_url: string;
 }
 
-export interface HubTaskSummary {
-  record_id: string;
-  project_id: string | null;
-  project_name: string | null;
-  collection_id: string;
-  collection_name: string | null;
-  title: string;
-  created_at: string;
-  updated_at: string;
-  subtask_count: number;
-  task_state: {
-    status: 'todo' | 'in_progress' | 'done' | 'cancelled';
-    priority: 'low' | 'medium' | 'high' | 'urgent' | null;
-    completed_at: string | null;
-    due_at: string | null;
-    category: string | null;
-    updated_at: string;
-  };
-  assignments: Array<{ user_id: string; assigned_at: string }>;
-  origin_kind: 'pane' | 'project' | 'personal';
-  source_view_id: string | null;
-  source_pane: HubSourcePaneContext | null;
-}
-
-export interface HubTaskPage {
-  tasks: HubTaskSummary[];
-  next_cursor: string | null;
-}
-
-export interface HubHomeCapture {
-  record_id: string;
-  project_id: string;
-  collection_id: string;
-  title: string;
-  created_at: string;
-}
-
-export interface HubHomeEvent {
-  record_id: string;
-  project_id: string;
-  project_name: string | null;
-  collection_id: string;
-  collection_name: string | null;
-  title: string;
-  updated_at: string;
-  event_state: {
-    start_dt: string;
-    end_dt: string;
-    timezone: string;
-    location: string | null;
-    updated_at: string;
-  };
-  participants: Array<{ user_id: string; role: string | null; added_at: string }>;
-  source_pane: HubSourcePaneContext | null;
-}
-
-export interface HubNotification {
-  notification_id: string;
-  project_id: string;
-  user_id: string;
-  reason: string;
-  entity_type: string;
-  entity_id: string;
-  payload: Record<string, unknown>;
-  notification_scope: 'network' | 'local';
-  read_at: string | null;
-  created_at: string;
-}
+export type HubTaskSummary = TaskSummary;
+export type HubTaskPage = TaskPage;
+export type HubHomeCapture = HomeCaptureSummary;
+export type HubHomeEvent = EventSummary;
+export type HubNotification = NotificationSummary;

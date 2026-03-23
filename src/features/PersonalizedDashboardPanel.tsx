@@ -8,13 +8,13 @@ import { dashboardCardRegistry } from '../lib/dashboardCards';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import type { ProjectRecord } from '../types/domain';
 import { createEventFromNlp } from '../services/hub/records';
-import type { getHubHome } from '../services/hub/records';
+import type { EventSummary, HubHomeResponse, TaskSummary } from '../shared/api-types';
 import { Chip, FilterChip, Popover, PopoverContent, PopoverTrigger, Select, Tabs, TabsContent } from '../components/primitives';
 
-type HubHomeData = Awaited<ReturnType<typeof getHubHome>>;
+type HubHomeData = HubHomeResponse;
 type HubCapture = HubHomeData['captures'][number];
-type HubTask = HubHomeData['tasks'][number];
-type HubEvent = HubHomeData['events'][number];
+type HubTask = TaskSummary;
+type HubEvent = EventSummary;
 type HubDashboardView = 'daily-brief' | 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
