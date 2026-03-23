@@ -9,13 +9,11 @@ describe('intent classifier scoring edge cases', () => {
   test('classifies "meeting with sarah at 3pm" as calendar_event', () => {
     const result = classifyIntent('meeting with sarah at 3pm');
     assert.equal(result.intent, 'calendar_event');
-    assert.notEqual(result.intent, 'task');
   });
 
   test('classifies "buy groceries" as task', () => {
     const result = classifyIntent('buy groceries');
     assert.equal(result.intent, 'task');
-    assert.notEqual(result.intent, 'calendar_event');
   });
 
   test('classifies "remind me to call mom" as reminder', () => {
@@ -27,6 +25,7 @@ describe('intent classifier scoring edge cases', () => {
     const result = classifyIntent('dentist at 4');
     // Known issue: this looks event-like but currently resolves to task.
     assert.equal(result.intent, 'task');
+    assert.equal(result.ambiguous, true);
     assert.equal(result.secondaryIntent, 'calendar_event');
   });
 
@@ -46,8 +45,9 @@ describe('intent classifier scoring edge cases', () => {
     assert.equal(result.ambiguous, true);
   });
 
-  test('classifies "schedule a call with vendor" as task', () => {
+  test('classifies "schedule a call with vendor" as task (no concrete time)', () => {
     const result = classifyIntent('schedule a call with vendor');
+    // "schedule" by itself does not promote to calendar_event without a specific time/date.
     assert.equal(result.intent, 'task');
   });
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CreateReminderPayload, HubReminderSummary } from '../services/hub/reminders';
-import { createReminder, dismissReminder, listReminders } from '../services/hub/reminders';
+import type { CreateReminderPayload, HubReminderSummary } from '../services/hub/reminders.ts';
+import { createReminder, dismissReminder, listReminders } from '../services/hub/reminders.ts';
 
 export interface RemindersRuntime {
   reminders: HubReminderSummary[];

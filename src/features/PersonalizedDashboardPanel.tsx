@@ -4,7 +4,7 @@ import { CalendarModuleSkin } from '../components/project-space/CalendarModuleSk
 import { RemindersModuleSkin } from '../components/project-space/RemindersModuleSkin';
 import { usePersonalCalendarRuntime } from '../hooks/usePersonalCalendarRuntime';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
-import { dashboardCardRegistry } from '../lib/dashboardCards';
+import { filterDashboardCards } from '../lib/dashboardCards';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import type { ProjectRecord } from '../types/domain';
 import { createEventFromNlp } from '../services/hub/records';
@@ -552,22 +552,7 @@ export const PersonalizedDashboardPanel = ({
   const [calendarCreateProjectId, setCalendarCreateProjectId] = useState(() => projects[0]?.id || '');
 
   const visibleDashboardCards = useMemo(
-    () =>
-      dashboardCardRegistry.filter((card) => {
-        const hasGlobalCaps = card.requiredGlobalCapabilities.every((capability) =>
-          sessionSummary.globalCapabilities.includes(capability),
-        );
-        if (!hasGlobalCaps) {
-          return false;
-        }
-        if (!card.requiredProjectCapability) {
-          return true;
-        }
-        const requiredProjectCapability = card.requiredProjectCapability;
-        return projects.some((project) =>
-          (sessionSummary.projectCapabilities[project.id] ?? []).includes(requiredProjectCapability),
-        );
-      }),
+    () => filterDashboardCards(sessionSummary, projects),
     [projects, sessionSummary.globalCapabilities, sessionSummary.projectCapabilities],
   );
 

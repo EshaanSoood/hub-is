@@ -3,31 +3,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 
-import { dashboardCardRegistry } from '../dashboardCards.ts';
-import type { GlobalCapability, ProjectCapability } from '../../types/domain.ts';
-
-type SessionLike = {
-  globalCapabilities: GlobalCapability[];
-  projectCapabilities: Record<string, ProjectCapability[]>;
-};
-
-type ProjectLike = { id: string };
-
-const filterVisibleCards = (session: SessionLike, projects: ProjectLike[]) =>
-  dashboardCardRegistry.filter((card) => {
-    const hasGlobalCaps = card.requiredGlobalCapabilities.every((capability) =>
-      session.globalCapabilities.includes(capability),
-    );
-    if (!hasGlobalCaps) {
-      return false;
-    }
-    if (!card.requiredProjectCapability) {
-      return true;
-    }
-    return projects.some((project) =>
-      (session.projectCapabilities[project.id] ?? []).includes(card.requiredProjectCapability as ProjectCapability),
-    );
-  });
+import { dashboardCardRegistry, filterDashboardCards } from '../dashboardCards.ts';
 
 describe('dashboard card registry', () => {
   test('contains expected card IDs', () => {
@@ -52,7 +28,7 @@ describe('dashboard card registry', () => {
   test('filters cards by global and project capabilities', () => {
     const projects = [{ id: 'p1' }, { id: 'p2' }];
 
-    const onlyHubView = filterVisibleCards(
+    const onlyHubView = filterDashboardCards(
       {
         globalCapabilities: ['hub.view'],
         projectCapabilities: {},
@@ -61,16 +37,16 @@ describe('dashboard card registry', () => {
     ).map((card) => card.id);
     assert.deepEqual(onlyHubView.sort(), ['notifications', 'service-status']);
 
-    const withTaskCapability = filterVisibleCards(
+    const withTaskCapability = filterDashboardCards(
       {
         globalCapabilities: ['projects.view'],
         projectCapabilities: { p1: ['project.activity.view'] },
       },
       projects,
     ).map((card) => card.id);
-    assert.deepEqual(withTaskCapability, ['tasks-today']);
+    assert.deepEqual(withTaskCapability.sort(), ['tasks-today']);
 
-    const withFileCapability = filterVisibleCards(
+    const withFileCapability = filterDashboardCards(
       {
         globalCapabilities: ['hub.view'],
         projectCapabilities: { p2: ['project.files.view'] },

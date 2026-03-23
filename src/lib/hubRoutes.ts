@@ -68,12 +68,17 @@ export const buildTaskDestinationHref = (task: HubTaskSummary): string =>
         })
       : '/projects';
 
-export const buildEventDestinationHref = (event: HubHomeEvent): string =>
-  buildPaneContextHref({
-    projectId: event.project_id,
+export const buildEventDestinationHref = (event: HubHomeEvent): string => {
+  const projectId = asText(event.project_id);
+  if (!projectId) {
+    return '/projects';
+  }
+  return buildPaneContextHref({
+    projectId,
     sourcePane: event.source_pane,
-    fallbackHref: `/projects/${encodePathSegment(event.project_id)}/overview?view=calendar`,
+    fallbackHref: `/projects/${encodePathSegment(projectId)}/overview?view=calendar`,
   });
+};
 
 export const buildNotificationDestinationHref = ({
   projectId,

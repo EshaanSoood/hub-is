@@ -100,8 +100,7 @@ describe('hubRoutes URL builders', () => {
 
     assert.equal(missingProjectTaskHref, '/projects');
     assert.equal(missingRecordPersonalHref, '/projects?intent=open&task_id=');
-    // Potential issue: missing project_id currently yields a double slash.
-    assert.equal(missingProjectEventHref, '/projects//overview?view=calendar');
+    assert.equal(missingProjectEventHref, '/projects');
     assert.equal(encodedTaskHref, '/projects/proj%2Fwith%20spaces/work/pane%2F%26%3F');
     assert.equal(encodedEventHref, '/projects/proj%20id%2F%25/work/pane%20id%2F%26');
   });
