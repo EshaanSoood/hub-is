@@ -21,7 +21,7 @@ test('quick-add menu focus management', async ({ page }) => {
 
   const menuItems = menu.getByRole('menuitem');
   const itemCount = await menuItems.count();
-  expect(itemCount).toBeGreaterThan(0);
+  expect(itemCount).toBeGreaterThanOrEqual(3);
   await expect(menuItems.first()).toBeFocused();
 
   if (itemCount > 0) {
