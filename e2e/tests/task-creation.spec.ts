@@ -49,27 +49,32 @@ test('create task from quick-add menu with NLP', async ({ page }) => {
   const titleInput = dialog.locator('#task-create-title:visible');
   await titleInput.fill(taskTitle);
 
-  await page.waitForTimeout(500);
-
   const dueDateField = dialog.locator('#task-create-due-date:visible');
   await expect(dueDateField).not.toHaveValue('');
 
-  const createRequest = page.waitForResponse(
-    (response) => response.url().includes('/api/hub/tasks') && response.request().method() === 'POST',
-    { timeout: LIVE_TIMEOUT_MS },
-  );
-  await dialog.getByRole('button', { name: /^Create Task$/i }).click();
-  await createRequest;
-  await expect(dialog).toBeHidden({ timeout: LIVE_TIMEOUT_MS });
-  await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
-  await page.waitForTimeout(2_000);
+  let createdTask = false;
+  try {
+    const createRequest = page.waitForResponse(
+      (response) => response.url().includes('/api/hub/tasks') && response.request().method() === 'POST',
+      { timeout: LIVE_TIMEOUT_MS },
+    );
+    await dialog.getByRole('button', { name: /^Create Task$/i }).click();
+    const createResponse = await createRequest;
+    expect([200, 201]).toContain(createResponse.status());
+    createdTask = true;
 
-  await page.goto('/projects', { waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
-  await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
+    await expect(dialog).toBeHidden({ timeout: LIVE_TIMEOUT_MS });
+    await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
 
-  await expect(page.getByText(new RegExp(uniqueToken, 'i')).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await page.goto('/projects', { waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
+    await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
 
-  await archiveMostRecentTaskByTitleIncludes(token, uniqueToken).catch(() => undefined);
+    await expect(page.getByText(new RegExp(uniqueToken, 'i')).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  } finally {
+    if (createdTask) {
+      await archiveMostRecentTaskByTitleIncludes(token, uniqueToken).catch(() => undefined);
+    }
+  }
 });
 
 test('create task with manual field entry', async ({ page }) => {

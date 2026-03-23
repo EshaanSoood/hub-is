@@ -42,6 +42,7 @@ test('create reminder from quick-add menu', async ({ page }) => {
   );
   await dialog.getByRole('button', { name: /^Add$/i }).click();
   const createResponse = await createRequest;
+  expect([200, 201]).toContain(createResponse.status());
   const createdPayload = await createResponse.json().catch(() => null);
   const createdReminderId: string | undefined =
     createdPayload?.data?.reminder?.reminder_id || createdPayload?.data?.reminder_id || undefined;

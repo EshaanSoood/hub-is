@@ -31,7 +31,6 @@ test('task created in personal project appears in Daily Brief', async ({ page })
 
   try {
     await openHubHome(page);
-    await page.waitForTimeout(2_000);
     await expect(page.getByText(title).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   } finally {
     await archiveRecordViaApi(token, created.record_id).catch(() => undefined);
@@ -55,7 +54,6 @@ test('overdue task from yesterday still visible', async ({ page }) => {
 
   try {
     await openHubHome(page);
-    await page.waitForTimeout(2_000);
     await expect(page.getByText(title).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   } finally {
     await archiveRecordViaApi(token, created.record_id).catch(() => undefined);
@@ -76,7 +74,6 @@ test('dismissed reminder disappears', async ({ page }) => {
 
   try {
     await openHubHome(page);
-    await page.waitForTimeout(2_000);
 
     await expect(page.getByRole('heading', { name: /^Reminders$/i })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await expect(page.getByText(title).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
@@ -84,7 +81,6 @@ test('dismissed reminder disappears', async ({ page }) => {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
-    await page.waitForTimeout(1_000);
     await expect(page.getByText(title)).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
   } finally {
     await dismissReminderViaApi(token, created.reminder_id).catch(() => undefined);

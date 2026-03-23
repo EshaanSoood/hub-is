@@ -2,38 +2,26 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseEnvFile } from './helpers/env';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const parseEnvFile = (raw: string): Record<string, string> => {
-  const parsed: Record<string, string> = {};
-  for (const line of raw.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
-      continue;
-    }
-
-    const splitIndex = trimmed.indexOf('=');
-    if (splitIndex <= 0) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, splitIndex).trim();
-    let value = trimmed.slice(splitIndex + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    parsed[key] = value;
-  }
-  return parsed;
-};
-
 export default async function globalSetup(): Promise<void> {
-  execSync('node scripts/mint-tokens.mjs', {
-    cwd: __dirname,
-    stdio: 'inherit',
-  });
+  const timeoutMs = Number.parseInt(process.env.E2E_MINT_TOKENS_TIMEOUT_MS || '60000', 10);
+  const mintTimeoutMs = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 60_000;
+
+  try {
+    execSync('node scripts/mint-tokens.mjs', {
+      cwd: __dirname,
+      stdio: 'inherit',
+      timeout: mintTimeoutMs,
+    });
+  } catch (error) {
+    throw new Error(`Failed to mint E2E tokens within ${mintTimeoutMs}ms.`, {
+      cause: error instanceof Error ? error : undefined,
+    });
+  }
 
   const tokensPath = resolve(__dirname, '.env.tokens.local');
   const envMap = parseEnvFile(readFileSync(tokensPath, 'utf8'));

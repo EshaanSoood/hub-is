@@ -41,7 +41,15 @@ const normalizePath = (path: string): string => {
 
 export const loadTokenFromLocalEnv = async (tokenName = 'TOKEN_A'): Promise<string> => {
   const tokenFilePath = fileURLToPath(new URL('../.env.tokens.local', import.meta.url));
-  const raw = await readFile(tokenFilePath, 'utf8');
+  let raw: string;
+  try {
+    raw = await readFile(tokenFilePath, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      throw new Error(`Cannot read ${tokenFilePath}. Run e2e/scripts/mint-tokens.mjs first.`);
+    }
+    throw error;
+  }
 
   for (const line of raw.split(/\r?\n/)) {
     const parsed = parseEnvLine(line);

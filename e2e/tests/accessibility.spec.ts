@@ -1,9 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { authenticateAsUserA } from '../helpers/auth';
 
 const LIVE_TIMEOUT_MS = 60_000;
 
-const openHubHome = async (page: Parameters<typeof test>[0]['page']): Promise<void> => {
+const openHubHome = async (page: Page): Promise<void> => {
   await page.goto('/projects', { waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
   await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
   await expect(page.getByRole('heading', { name: /^Hub$/i }).first()).toBeVisible({ timeout: 15_000 });
@@ -20,18 +20,20 @@ test('quick-add menu focus management', async ({ page }) => {
   await expect(menu).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
   const menuItems = menu.getByRole('menuitem');
+  const itemCount = await menuItems.count();
+  expect(itemCount).toBeGreaterThan(0);
   await expect(menuItems.first()).toBeFocused();
 
-  if (await menuItems.count()) {
+  if (itemCount > 0) {
     await page.keyboard.press('ArrowDown');
   }
 
-  if ((await menuItems.count()) > 1) {
+  if (itemCount > 1) {
     await expect(menuItems.nth(1)).toBeFocused();
     await page.keyboard.press('ArrowDown');
   }
 
-  if ((await menuItems.count()) > 2) {
+  if (itemCount > 2) {
     await expect(menuItems.nth(2)).toBeFocused();
     await page.keyboard.press('ArrowDown');
   }

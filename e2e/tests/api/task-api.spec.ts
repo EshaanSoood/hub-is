@@ -69,6 +69,7 @@ test.describe('Task API contract tests', () => {
   let personalProjectId = '';
   let creatorUserId = '';
   const createdRecordIds = new Set<string>();
+  const createdProjectIds = new Set<string>();
 
   const getHome = async (): Promise<HubHomePayload['home']> => {
     const response = await client.get('/api/hub/home?tasks_limit=50&events_limit=20&captures_limit=20');
@@ -115,6 +116,10 @@ test.describe('Task API contract tests', () => {
       await client.patch(`/api/hub/records/${encodeURIComponent(recordId)}`, { archived: true });
     }
     createdRecordIds.clear();
+    for (const projectId of createdProjectIds) {
+      await client.delete(`/api/hub/projects/${encodeURIComponent(projectId)}`).catch(() => undefined);
+    }
+    createdProjectIds.clear();
   });
 
   test('POST /api/hub/tasks creates a task with all fields', async () => {
@@ -153,6 +158,7 @@ test.describe('Task API contract tests', () => {
       || projectEnvelope?.data?.project_id
       || '';
     expect(projectId).toBeTruthy();
+    createdProjectIds.add(projectId);
 
     const createResponse = await client.post('/api/hub/tasks', {
       project_id: projectId,

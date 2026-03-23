@@ -61,7 +61,6 @@ test('create event from quick-add menu', async ({ page }) => {
   const createPayload = await createResponse.json().catch(() => null);
   const createdRecordId: string | undefined = createPayload?.data?.record?.record_id || createPayload?.data?.record_id || undefined;
   await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
-  await page.waitForTimeout(2_000);
 
   await expect(dialog).toBeHidden({ timeout: LIVE_TIMEOUT_MS });
 

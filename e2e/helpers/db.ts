@@ -1,4 +1,13 @@
-const API_BASE_URL = (process.env.HUB_API_BASE_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://api.eshaansood.org').replace(/\/$/, '');
+const rawApiBaseUrl = process.env.HUB_API_BASE_URL ?? process.env.PLAYWRIGHT_BASE_URL;
+if (!rawApiBaseUrl) {
+  throw new Error(
+    'Missing HUB_API_BASE_URL or PLAYWRIGHT_BASE_URL for E2E API helpers. Refusing to run against an implicit host.',
+  );
+}
+
+const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
+const timeoutFromEnv = Number.parseInt(process.env.HUB_API_REQUEST_TIMEOUT_MS || '15000', 10);
+const API_REQUEST_TIMEOUT_MS = Number.isFinite(timeoutFromEnv) && timeoutFromEnv > 0 ? timeoutFromEnv : 15_000;
 
 interface HubEnvelope<T> {
   ok: boolean;
@@ -61,15 +70,31 @@ const apiRequest = async <T>(
     body?: string;
   },
 ): Promise<T> => {
-  const response = await fetch(toUrl(path), {
-    method: init?.method || 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    ...(init?.body ? { body: init.body } : {}),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, API_REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(toUrl(path), {
+      method: init?.method || 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(init?.body ? { body: init.body } : {}),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(`API request timed out after ${API_REQUEST_TIMEOUT_MS}ms for ${path}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     throw await toError(response);
@@ -158,10 +183,20 @@ export const createReminderViaApi = async (
 };
 
 export const dismissReminderViaApi = async (token: string, reminderId: string): Promise<void> => {
-  await apiRequest<{ dismissed: boolean; reminder_id: string }>(token, `/api/hub/reminders/${encodeURIComponent(reminderId)}/dismiss`, {
+  const result = await apiRequest<{ dismissed: boolean; reminder_id: string }>(
+    token,
+    `/api/hub/reminders/${encodeURIComponent(reminderId)}/dismiss`,
+    {
     method: 'POST',
     body: JSON.stringify({}),
-  });
+    },
+  );
+  if (!result.dismissed) {
+    throw new Error(`Reminder ${reminderId} was not dismissed.`);
+  }
+  if (result.reminder_id !== reminderId) {
+    throw new Error(`Dismissed reminder id mismatch: expected ${reminderId}, got ${result.reminder_id}`);
+  }
 };
 
 const listProjectCollections = async (token: string, projectId: string): Promise<HubCollection[]> => {
