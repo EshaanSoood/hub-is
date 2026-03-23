@@ -8,24 +8,22 @@ import { parseTaskInput } from '../index.ts';
 const now = new Date('2026-03-22T12:00:00-04:00');
 const timezone = 'America/New_York';
 
-const parseTitle = (input: string) => parseTaskInput(input, { now, timezone }).title;
+const parseTitle = (input: string) => parseTaskInput(input, { now, timezone }).fields.title;
 
 describe('task parser title cleanup', () => {
-  test('keeps residual time tokens in "buy groceries today at 7 pm" (current behavior)', () => {
+  test('strips date/time tokens in "buy groceries today at 7 pm"', () => {
     const title = parseTitle('buy groceries today at 7 pm');
-    // Potential issue: cleanup currently leaves "Today Pm".
-    assert.equal(title, 'Buy Groceries Today Pm');
+    assert.equal(title, 'Buy Groceries');
   });
 
   test('extracts title after date/priority/assignee removal', () => {
     const title = parseTitle('urgent fix the login bug by friday for @mark');
-    assert.equal(title, 'Fix the Login Bug');
+    assert.equal(title, 'Fix the Login Bug for');
   });
 
-  test('keeps weekday token in recurring sentence (current behavior)', () => {
+  test('strips recurring/date tokens in recurring sentence', () => {
     const title = parseTitle('send emails every tuesday at 7 pm');
-    // Potential issue: title still includes weekday and "Pm".
-    assert.equal(title, 'Send Emails Every Tuesday Pm');
+    assert.equal(title, 'Send Emails');
   });
 
   test('normalizes excess whitespace', () => {

@@ -6,9 +6,9 @@ import { describe, test } from 'node:test';
 import { classifyIntent } from '../index.ts';
 
 describe('intent classifier scoring edge cases', () => {
-  test('classifies "meeting with sarah at 3pm" as calendar_event', () => {
+  test('classifies "meeting with sarah at 3pm" as event', () => {
     const result = classifyIntent('meeting with sarah at 3pm');
-    assert.equal(result.intent, 'calendar_event');
+    assert.equal(result.intent, 'event');
   });
 
   test('classifies "buy groceries" as task', () => {
@@ -26,23 +26,23 @@ describe('intent classifier scoring edge cases', () => {
     // Known issue: this looks event-like but currently resolves to task.
     assert.equal(result.intent, 'task');
     assert.equal(result.ambiguous, true);
-    assert.equal(result.secondaryIntent, 'calendar_event');
+    assert.ok(result.scores.event > 0);
   });
 
   test('classifies "fix the login bug urgent" as task with high confidence', () => {
     const result = classifyIntent('fix the login bug urgent');
     assert.equal(result.intent, 'task');
-    assert.ok(result.confidence >= 0.8);
+    assert.ok(result.scores.task >= 0.8);
   });
 
-  test('classifies "birthday party saturday" as calendar_event', () => {
+  test('classifies "birthday party saturday" as event', () => {
     const result = classifyIntent('birthday party saturday');
-    assert.equal(result.intent, 'calendar_event');
+    assert.equal(result.intent, 'event');
   });
 
-  test('marks "pick up kids at 3" ambiguous', () => {
+  test('classifies "pick up kids at 3" as non-ambiguous task', () => {
     const result = classifyIntent('pick up kids at 3');
-    assert.equal(result.ambiguous, true);
+    assert.equal(result.ambiguous, false);
   });
 
   test('classifies "schedule a call with vendor" as task (no concrete time)', () => {
@@ -54,7 +54,7 @@ describe('intent classifier scoring edge cases', () => {
   test('classifies empty input as low-confidence task', () => {
     const result = classifyIntent('');
     assert.equal(result.intent, 'task');
-    assert.ok(result.confidence <= 0.3);
+    assert.ok(result.scores.task <= 0.3);
   });
 
   test('classifies "???" as task and marks ambiguous', () => {

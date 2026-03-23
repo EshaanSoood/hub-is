@@ -7,6 +7,7 @@ const read = (relativePath) => readFile(path.join(root, relativePath), 'utf8');
 
 const authzContext = await read('src/context/AuthzContext.tsx');
 const dashboardPanel = await read('src/features/PersonalizedDashboardPanel.tsx');
+const dashboardCards = await read('src/lib/dashboardCards.ts');
 const profilePanel = await read('src/components/auth/ProfilePanel.tsx');
 const serverRoutes = await read('src/server/routes.ts');
 
@@ -20,7 +21,11 @@ const checks = [
   },
   {
     label: 'Home dashboard cards are capability-filtered',
-    pass: /dashboardCardRegistry\.filter/.test(dashboardPanel) && /requiredGlobalCapabilities/.test(dashboardPanel),
+    pass:
+      (/dashboardCardRegistry\.filter/.test(dashboardPanel) && /requiredGlobalCapabilities/.test(dashboardPanel)) ||
+      (/filterDashboardCards\(/.test(dashboardPanel) &&
+        /filterDashboardCards\s*=/.test(dashboardCards) &&
+        /requiredGlobalCapabilities/.test(dashboardCards)),
   },
   {
     label: 'Profile panel trigger is labeled and uses focus-return dialog',

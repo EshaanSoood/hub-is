@@ -796,7 +796,7 @@ export const PersonalizedDashboardPanel = ({
 
   const visibleDashboardCards = useMemo(
     () => filterDashboardCards(sessionSummary, projects),
-    [projects, sessionSummary.globalCapabilities, sessionSummary.projectCapabilities],
+    [projects, sessionSummary],
   );
 
   const items = useMemo(
