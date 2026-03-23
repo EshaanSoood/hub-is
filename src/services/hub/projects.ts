@@ -1,9 +1,16 @@
 import { hubRequest } from './transport';
+import type {
+  CreateProjectRequest,
+  CreateProjectResponse,
+  GetProjectResponse,
+  ListProjectsResponse,
+  ProjectSummary,
+} from '../../shared/api-types';
 
-import type { HubProject, HubProjectInvite, HubProjectMember } from './types';
+import type { HubProjectInvite, HubProjectMember } from './types';
 
-export const listProjects = async (accessToken: string): Promise<HubProject[]> => {
-  const data = await hubRequest<{ projects: HubProject[] }>(accessToken, '/api/hub/projects', {
+export const listProjects = async (accessToken: string): Promise<ProjectSummary[]> => {
+  const data = await hubRequest<ListProjectsResponse>(accessToken, '/api/hub/projects', {
     method: 'GET',
   });
   return data.projects;
@@ -11,17 +18,17 @@ export const listProjects = async (accessToken: string): Promise<HubProject[]> =
 
 export const createProject = async (
   accessToken: string,
-  payload: { name: string; project_id?: string },
-): Promise<HubProject> => {
-  const data = await hubRequest<{ project: HubProject }>(accessToken, '/api/hub/projects', {
+  payload: CreateProjectRequest,
+): Promise<ProjectSummary> => {
+  const data = await hubRequest<CreateProjectResponse>(accessToken, '/api/hub/projects', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
   return data.project;
 };
 
-export const getProject = async (accessToken: string, projectId: string): Promise<HubProject> => {
-  const data = await hubRequest<{ project: HubProject }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}`, {
+export const getProject = async (accessToken: string, projectId: string): Promise<ProjectSummary> => {
+  const data = await hubRequest<GetProjectResponse>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}`, {
     method: 'GET',
   });
   return data.project;
