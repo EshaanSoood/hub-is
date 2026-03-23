@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const repoRoot = resolve(__dirname, '..');
+const e2eRoot = resolve(__dirname, '..');
 
 const parseEnvLine = (line) => {
   const trimmed = line.trim();
@@ -47,7 +47,7 @@ const loadEnvFile = async (path) => {
   }
 };
 
-await loadEnvFile(resolve(repoRoot, '.env.users.local'));
+await loadEnvFile(resolve(e2eRoot, '.env.users.local'));
 
 const required = [
   'HUB_SMOKE_USER_A_USERNAME',
@@ -67,7 +67,7 @@ const keycloakUrl = String(process.env.KEYCLOAK_URL || 'https://auth.eshaansood.
 const keycloakRealm = String(process.env.KEYCLOAK_REALM || 'eshaan-os').trim();
 const keycloakClientId = String(process.env.KEYCLOAK_CLIENT_ID || 'eshaan-os-hub').trim();
 const keycloakRedirectUri = String(process.env.KEYCLOAK_REDIRECT_URI || 'https://eshaansood.org/').trim();
-const outputFile = resolve(repoRoot, String(process.env.HUB_SMOKE_TOKENS_FILE || '.env.tokens.local').trim());
+const outputFile = resolve(e2eRoot, String(process.env.HUB_SMOKE_TOKENS_FILE || '.env.tokens.local').trim());
 
 const htmlDecode = (value) => String(value || '')
   .replace(/&amp;/g, '&')
