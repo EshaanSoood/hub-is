@@ -1,33 +1,23 @@
 import { hubRequest } from './transport';
+import type {
+  CreateReminderRequest,
+  CreateReminderResponse,
+  ListRemindersResponse,
+  ReminderSummary,
+} from '../../shared/api-types';
 
-export interface HubReminderSummary {
-  reminder_id: string;
-  record_id: string;
-  record_title: string;
-  project_id: string;
-  remind_at: string;
-  channels: string[];
-  recurrence_json: { next_remind_at?: string; frequency?: string; interval?: number } | null;
-  created_at: string;
-  fired_at: string | null;
-  overdue: boolean;
-}
-
-export interface CreateReminderPayload {
-  title: string;
-  remind_at: string;
-  recurrence_json?: { next_remind_at?: string; frequency?: string; interval?: number } | null;
-}
+export type HubReminderSummary = ReminderSummary;
+export type CreateReminderPayload = CreateReminderRequest;
 
 export const listReminders = async (accessToken: string): Promise<HubReminderSummary[]> => {
-  const data = await hubRequest<{ reminders: HubReminderSummary[] }>(accessToken, '/api/hub/reminders', {
+  const data = await hubRequest<ListRemindersResponse>(accessToken, '/api/hub/reminders', {
     method: 'GET',
   });
   return data.reminders;
 };
 
 export const dismissReminder = async (accessToken: string, reminderId: string): Promise<void> => {
-  await hubRequest<{ dismissed: boolean; reminder_id: string }>(
+  await hubRequest<{ dismissed: boolean }>(
     accessToken,
     `/api/hub/reminders/${encodeURIComponent(reminderId)}/dismiss`,
     {
@@ -38,7 +28,7 @@ export const dismissReminder = async (accessToken: string, reminderId: string): 
 };
 
 export const createReminder = async (accessToken: string, payload: CreateReminderPayload): Promise<HubReminderSummary> => {
-  const data = await hubRequest<{ reminder: HubReminderSummary }>(accessToken, '/api/hub/reminders', {
+  const data = await hubRequest<CreateReminderResponse>(accessToken, '/api/hub/reminders', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

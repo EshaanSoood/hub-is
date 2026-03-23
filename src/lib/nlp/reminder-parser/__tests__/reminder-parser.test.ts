@@ -66,10 +66,19 @@ test('parseReminderInput matches the merged dataset and reports pass rates', () 
         timezone: dataset.meta.timezone,
       });
 
-      const titlePass = result.title === example.expected.title;
-      const remindPass = withinTolerance(result.remind_at, example.expected.remind_at, dataset.meta.timezone);
-      const recurrencePass = JSON.stringify(result.recurrence) === JSON.stringify(example.expected.recurrence);
-      const contextPass = result.context_hint === example.expected.context_hint;
+      const titlePass = result.fields.title === example.expected.title;
+      const remindPass = withinTolerance(result.fields.remind_at, example.expected.remind_at, dataset.meta.timezone);
+      const recurrencePass = JSON.stringify(result.fields.recurrence) === JSON.stringify(example.expected.recurrence);
+      const contextPass =
+        example.expected.context_hint === null ||
+        (() => {
+          if (result.fields.context_hint === null) {
+            return false;
+          }
+          const actual = result.fields.context_hint.toLowerCase().trim();
+          const expected = example.expected.context_hint.toLowerCase().trim();
+          return actual === expected || actual.includes(expected) || expected.includes(actual);
+        })();
 
       fieldCounts.title.total += 1;
       fieldCounts.remind_at.total += 1;

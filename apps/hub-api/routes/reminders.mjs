@@ -60,6 +60,7 @@ export const createReminderRoutes = (deps) => {
     newId,
     toJson,
     withTransaction,
+    broadcastReminderChanged,
     personalProjectByUserStmt,
     insertRecordStmt,
     insertRecordCapabilityStmt,
@@ -157,6 +158,24 @@ export const createReminderRoutes = (deps) => {
       return;
     }
 
+    try {
+      broadcastReminderChanged(
+        {
+          reminder_id: reminderId,
+          record_id: reminder.record_id,
+          project_id: reminder.project_id,
+          action: 'dismissed',
+        },
+        auth.user.user_id,
+      );
+    } catch (error) {
+      console.debug('broadcastReminderChanged failed during reminder dismissal', {
+        reminderId,
+        userId: auth.user.user_id,
+        error,
+      });
+    }
+
     send(response, jsonResponse(200, okEnvelope({ dismissed: true, reminder_id: reminderId })));
   });
 
@@ -223,6 +242,24 @@ export const createReminderRoutes = (deps) => {
       request.log.error('Failed to create reminder record.', { error });
       send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
+    }
+
+    try {
+      broadcastReminderChanged(
+        {
+          reminder_id: reminderId,
+          record_id: recordId,
+          project_id: personalProject.project_id,
+          action: 'created',
+        },
+        auth.user.user_id,
+      );
+    } catch (error) {
+      console.debug('broadcastReminderChanged failed during reminder creation', {
+        reminderId,
+        userId: auth.user.user_id,
+        error,
+      });
     }
 
     send(

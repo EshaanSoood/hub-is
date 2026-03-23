@@ -3,25 +3,15 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useProjects } from '../context/ProjectsContext';
 import { useAuthz } from '../context/AuthzContext';
 import { PageHeader } from '../components/layout/PageHeader';
-import { Dialog } from '../components/primitives';
+import { Dialog, Select } from '../components/primitives';
 import { PersonalizedDashboardPanel } from '../features/PersonalizedDashboardPanel';
 import { createHubProject } from '../services/projectsService';
-import { getHubHome, getRecordDetail } from '../services/hub/records';
+import { createEventFromNlp, getHubHome, getRecordDetail } from '../services/hub/records';
 import type { HubRecordDetail } from '../services/hub/types';
 import { subscribeHubLive } from '../services/hubLive';
-
-const LAST_PROJECT_KEY = 'hub:last-opened-project-id';
-
-const safeGetLastProjectId = (): string => {
-  if (typeof window === 'undefined') {
-    return '';
-  }
-  try {
-    return window.localStorage.getItem(LAST_PROJECT_KEY) || '';
-  } catch {
-    return '';
-  }
-};
+import { subscribeHubHomeRefresh } from '../lib/hubHomeRefresh';
+import { CalendarModuleSkin } from '../components/project-space/CalendarModuleSkin';
+import { usePersonalCalendarRuntime } from '../hooks/usePersonalCalendarRuntime';
 
 const resolveFocusRestoreTarget = (candidate: HTMLElement | null): HTMLElement | null => {
   if (candidate && candidate.isConnected) {
@@ -53,6 +43,7 @@ export const ProjectsPage = () => {
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [hubView, setHubView] = useState<'daily-brief' | 'project-lens' | 'stream'>('daily-brief');
   const [homeLoading, setHomeLoading] = useState(false);
   const [homeError, setHomeError] = useState<string | null>(null);
   const [homeData, setHomeData] = useState<{
@@ -74,24 +65,37 @@ export const ProjectsPage = () => {
   const [selectedHubRecord, setSelectedHubRecord] = useState<HubRecordDetail | null>(null);
   const [selectedHubRecordLoading, setSelectedHubRecordLoading] = useState(false);
   const [selectedHubRecordError, setSelectedHubRecordError] = useState<string | null>(null);
+  const {
+    calendarEvents,
+    calendarError,
+    calendarLoading,
+    calendarMode,
+    refreshCalendar,
+    setCalendarMode,
+  } = usePersonalCalendarRuntime(accessToken ?? null);
+  const [calendarCreateProjectId, setCalendarCreateProjectId] = useState(() => projects[0]?.id || '');
   const selectedRecordAbortControllerRef = useRef<AbortController | null>(null);
   const selectedRecordRequestIdRef = useRef(0);
   const selectedHubRecordIdRef = useRef<string | null>(null);
   const selectedHubRecordTriggerRef = useRef<HTMLElement | null>(null);
 
-  const lastOpenedProjectId = safeGetLastProjectId();
   const visibleProjects = useMemo(
     () => projects.filter((project) => !project.isPersonal),
     [projects],
   );
-  const lastOpenedProject = useMemo(
-    () => {
-      const project = projects.find((entry) => entry.id === lastOpenedProjectId) || null;
-      return project && !project.isPersonal ? project : null;
-    },
-    [lastOpenedProjectId, projects],
+  const calendarProjectOptions = useMemo(
+    () => projects.map((project) => ({ value: project.id, label: project.name })),
+    [projects],
   );
-
+  const selectedCalendarCreateProjectId = useMemo(() => {
+    if (projects.length === 0) {
+      return '';
+    }
+    if (projects.some((project) => project.id === calendarCreateProjectId)) {
+      return calendarCreateProjectId;
+    }
+    return projects[0]?.id || '';
+  }, [calendarCreateProjectId, projects]);
   useEffect(() => {
     const taskId = searchParams.get('task_id');
     if (!taskId) {
@@ -193,6 +197,10 @@ export const ProjectsPage = () => {
     void refreshHome();
   }, [refreshHome]);
 
+  useEffect(() => subscribeHubHomeRefresh(() => {
+    void refreshHome();
+  }), [refreshHome]);
+
   useEffect(() => {
     void refreshSelectedRecord(selectedHubRecordId);
   }, [refreshSelectedRecord, selectedHubRecordId]);
@@ -276,19 +284,6 @@ export const ProjectsPage = () => {
       <PageHeader
         title="Hub"
         description="Your personal big picture across projects, with work opening in the Record Inspector without leaving the Hub."
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            {lastOpenedProject ? (
-              <button
-                type="button"
-                onClick={() => navigate(`/projects/${lastOpenedProject.id}/work`)}
-                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              >
-                Resume {lastOpenedProject.name}
-              </button>
-            ) : null}
-          </div>
-        }
       />
 
       <PersonalizedDashboardPanel
@@ -297,80 +292,134 @@ export const ProjectsPage = () => {
         homeError={homeError}
         projects={projects}
         onOpenRecord={onOpenHubRecord}
+        onViewChange={setHubView}
       />
 
-      <section id="quick-create" className="rounded-panel border border-subtle bg-elevated p-4">
-        <h2 className="heading-3 text-primary">Create Project</h2>
-        <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={onCreateProject}>
-          <label className="flex min-w-64 flex-1 flex-col gap-1 text-sm text-muted" htmlFor="create-project-name">
-            Project name
-            <input
-              id="create-project-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-              placeholder="New project"
-              disabled={creating}
-              autoComplete="off"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={creating}
-            className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {creating ? 'Creating...' : 'Create'}
-          </button>
-        </form>
+      {hubView === 'project-lens' ? (
+        <>
+          <section className="rounded-panel border border-subtle bg-elevated p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="heading-3 text-primary">Projects</h2>
+              {loading ? <span className="text-xs text-muted">Loading...</span> : null}
+            </div>
 
-        {createError ? (
-          <p className="mt-2 text-sm text-danger" role="alert" aria-live="polite">
-            {createError}
-          </p>
-        ) : null}
-      </section>
+            {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
 
-      <section className="rounded-panel border border-subtle bg-elevated p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="heading-3 text-primary">Projects</h2>
-          {loading ? <span className="text-xs text-muted">Loading...</span> : null}
-        </div>
+            {!loading && visibleProjects.length === 0 ? (
+              <p className="mt-3 text-sm text-muted">No projects yet. Create one to begin.</p>
+            ) : (
+              <ul className="mt-3 grid gap-3 md:grid-cols-2" aria-label="Project list">
+                {visibleProjects.map((project) => (
+                  <li key={project.id} className="rounded-panel border border-border-muted bg-surface p-3">
+                    <p className="text-sm font-bold text-text">{project.name}</p>
+                    <p className="mt-1 text-xs text-text-secondary">Role: {project.membershipRole}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link
+                        to={`/projects/${project.id}/overview`}
+                        className="rounded-control border border-border-muted px-3 py-1.5 text-sm font-medium text-primary"
+                      >
+                        Overview
+                      </Link>
+                      <Link
+                        to={`/projects/${project.id}/work`}
+                        className="rounded-control border border-border-muted px-3 py-1.5 text-sm font-medium text-primary"
+                      >
+                        Work
+                      </Link>
+                      <Link
+                        to={`/projects/${project.id}/tools`}
+                        className="rounded-control border border-border-muted px-3 py-1.5 text-sm font-medium text-primary"
+                      >
+                        Tools
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-        {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
+          <section id="quick-create" className="rounded-panel border border-subtle bg-elevated p-4">
+            <h2 className="heading-3 text-primary">Create Project</h2>
+            <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={onCreateProject}>
+              <label className="flex min-w-64 flex-1 flex-col gap-1 text-sm text-muted" htmlFor="create-project-name">
+                Project name
+                <input
+                  id="create-project-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  placeholder="New project"
+                  disabled={creating}
+                  autoComplete="off"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={creating}
+                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {creating ? 'Creating...' : 'Create'}
+              </button>
+            </form>
 
-        {!loading && visibleProjects.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">No projects yet. Create one to begin.</p>
-        ) : (
-          <ul className="mt-3 grid gap-3 md:grid-cols-2" aria-label="Project list">
-            {visibleProjects.map((project) => (
-              <li key={project.id} className="rounded-panel border border-border-muted bg-surface p-3">
-                <p className="text-sm font-bold text-text">{project.name}</p>
-                <p className="mt-1 text-xs text-text-secondary">Role: {project.membershipRole}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    to={`/projects/${project.id}/overview`}
-                    className="rounded-control border border-border-muted px-3 py-1.5 text-sm font-medium text-primary"
-                  >
-                    Overview
-                  </Link>
-                  <Link
-                    to={`/projects/${project.id}/work`}
-                    className="rounded-control border border-border-muted px-3 py-1.5 text-sm font-medium text-primary"
-                  >
-                    Work
-                  </Link>
-                  <Link
-                    to={`/projects/${project.id}/tools`}
-                    className="rounded-control border border-border-muted px-3 py-1.5 text-sm font-medium text-primary"
-                  >
-                    Tools
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+            {createError ? (
+              <p className="mt-2 text-sm text-danger" role="alert" aria-live="polite">
+                {createError}
+              </p>
+            ) : null}
+          </section>
+
+          <section className="rounded-panel border border-subtle bg-elevated p-4" aria-labelledby="personal-dashboard-calendar-heading">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="personal-dashboard-calendar-heading" className="heading-3 text-primary">
+                Calendar
+              </h2>
+              {calendarProjectOptions.length > 0 ? (
+                <Select
+                  value={selectedCalendarCreateProjectId}
+                  onValueChange={setCalendarCreateProjectId}
+                  options={calendarProjectOptions}
+                  ariaLabel="Select project for new personal calendar events"
+                  triggerClassName="min-w-44"
+                />
+              ) : null}
+            </div>
+            {calendarError ? (
+              <div className="mt-3 rounded-panel border border-danger/30 bg-danger/5 p-4" role="alert">
+                <p className="text-sm text-danger">{calendarError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refreshCalendar();
+                  }}
+                  className="mt-3 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <CalendarModuleSkin
+                  events={calendarEvents}
+                  loading={calendarLoading}
+                  scope={calendarMode}
+                  onScopeChange={setCalendarMode}
+                  onOpenRecord={onOpenHubRecord}
+                  onCreateEvent={
+                    accessToken && selectedCalendarCreateProjectId
+                      ? async (payload) => {
+                          await createEventFromNlp(accessToken, selectedCalendarCreateProjectId, payload);
+                          await refreshCalendar();
+                        }
+                      : undefined
+                  }
+                />
+              </div>
+            )}
+          </section>
+        </>
+      ) : null}
 
       <Dialog
         open={Boolean(selectedHubRecordId)}

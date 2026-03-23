@@ -8,13 +8,13 @@ import { dashboardCardRegistry } from '../lib/dashboardCards';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import type { ProjectRecord } from '../types/domain';
 import { createEventFromNlp } from '../services/hub/records';
-import type { getHubHome } from '../services/hub/records';
+import type { EventSummary, HubHomeResponse, TaskSummary } from '../shared/api-types';
 import { Chip, FilterChip, Popover, PopoverContent, PopoverTrigger, Select, Tabs, TabsContent } from '../components/primitives';
 
-type HubHomeData = Awaited<ReturnType<typeof getHubHome>>;
+type HubHomeData = HubHomeResponse;
 type HubCapture = HubHomeData['captures'][number];
-type HubTask = HubHomeData['tasks'][number];
-type HubEvent = HubHomeData['events'][number];
+type HubTask = TaskSummary;
+type HubEvent = EventSummary;
 type HubDashboardView = 'daily-brief' | 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
@@ -526,12 +526,14 @@ export const PersonalizedDashboardPanel = ({
   homeError,
   projects,
   onOpenRecord,
+  onViewChange,
 }: {
   homeData: HubHomeData;
   homeLoading: boolean;
   homeError: string | null;
   projects: ProjectRecord[];
   onOpenRecord: (recordId: string) => void;
+  onViewChange?: (view: HubDashboardView) => void;
 }) => {
   const { accessToken, canGlobal, sessionSummary } = useAuthz();
   const [activeView, setActiveView] = useState<HubDashboardView>('daily-brief');
@@ -599,6 +601,10 @@ export const PersonalizedDashboardPanel = ({
   }, [calendarCreateProjectId, projects]);
 
   const selectedView = availableViewIds.includes(activeView) ? activeView : availableViewIds[0];
+
+  useEffect(() => {
+    onViewChange?.(selectedView);
+  }, [onViewChange, selectedView]);
 
   useEffect(() => {
     if (!viewMenuOpen) {

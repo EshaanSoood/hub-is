@@ -227,10 +227,17 @@ export const createViewRoutes = (deps) => {
 
     const nlpFields = parseJsonObject(body.nlp_fields_json, {});
     const title = asText(body.title || nlpFields.title) || 'Untitled Event';
-    const startDt = asText(body.start_dt || body.start || nlpFields.start_dt || nlpFields.start);
-    const endDt = asText(body.end_dt || body.end || nlpFields.end_dt || nlpFields.end);
+    const startDtRaw = asText(body.start_dt || body.start || nlpFields.start_dt || nlpFields.start);
+    const endDtRaw = asText(body.end_dt || body.end || nlpFields.end_dt || nlpFields.end);
+    const startDtDate = startDtRaw ? new Date(startDtRaw) : null;
+    const endDtDate = endDtRaw ? new Date(endDtRaw) : null;
+    const startDt = startDtDate && !Number.isNaN(startDtDate.getTime()) ? startDtDate.toISOString() : null;
+    const endDt = endDtDate && !Number.isNaN(endDtDate.getTime()) ? endDtDate.toISOString() : null;
     if (!startDt || !endDt) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'start_dt and end_dt are required.')));
+      send(
+        response,
+        jsonResponse(400, errorEnvelope('invalid_input', 'start_dt and end_dt are required and must be valid ISO timestamps.')),
+      );
       return;
     }
 

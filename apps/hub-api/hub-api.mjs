@@ -916,6 +916,29 @@ const broadcastTaskChanged = (record, userId) => {
   });
 };
 
+const broadcastReminderChanged = (reminder, userId) => {
+  const normalizedUserId = asText(userId);
+  if (!reminder || !normalizedUserId) {
+    return;
+  }
+  const reminderId = asText(reminder.reminder_id);
+  const recordId = asText(reminder.record_id);
+  const projectId = asText(reminder.project_id) || null;
+  const action = asText(reminder.action);
+  if (!reminderId || !recordId || (action !== 'created' && action !== 'dismissed')) {
+    return;
+  }
+  broadcastHubLiveToUser(normalizedUserId, {
+    type: 'reminder.changed',
+    reminder: {
+      reminder_id: reminderId,
+      record_id: recordId,
+      project_id: projectId,
+      action,
+    },
+  });
+};
+
 // Hub Live WebSocket — network notification relay
 // Carries lightweight real-time signals to the client when server-side events occur.
 // Payload is always small JSON — "something happened, go fetch details from the REST API."
@@ -2193,6 +2216,7 @@ const routeDeps = {
   buildHomeEventSummary,
   buildNotificationPayload,
   buildNotificationRouteContext,
+  broadcastReminderChanged,
   broadcastTaskChanged,
   buildPersonalTaskSummaryFromRecord,
   buildSessionSummary,

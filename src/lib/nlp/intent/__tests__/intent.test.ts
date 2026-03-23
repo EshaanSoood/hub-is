@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 
 import { classifyIntent } from '../index.ts';
 
-type IntentType = 'task' | 'reminder' | 'calendar_event';
+type IntentType = 'task' | 'reminder' | 'event' | 'note' | 'ambiguous' | 'calendar_event';
 
 interface DatasetExample {
   id: string;
@@ -32,11 +32,8 @@ test('classifyIntent matches the merged dataset', () => {
     for (const example of tier.examples) {
       const result = classifyIntent(example.input);
       try {
-        assert.equal(
-          result.intent,
-          example.expected_intent,
-          `${example.id} expected ${example.expected_intent} but got ${result.intent} for "${example.input}"`,
-        );
+        const expectedIntent = example.expected_intent === 'calendar_event' ? 'event' : example.expected_intent;
+        assert.equal(result.intent, expectedIntent, `${example.id} expected ${expectedIntent} but got ${result.intent} for "${example.input}"`);
         assert.equal(
           result.ambiguous,
           example.ambiguous,
@@ -46,7 +43,7 @@ test('classifyIntent matches the merged dataset', () => {
         const details = [
           `${tierName}:${example.id} "${example.input}"`,
           `expected intent=${example.expected_intent} ambiguous=${example.ambiguous}`,
-          `received intent=${result.intent} ambiguous=${result.ambiguous} confidence=${result.confidence.toFixed(2)}`,
+          `received intent=${result.intent} ambiguous=${result.ambiguous} topTwoGap=${result.meta.topTwoGap.toFixed(2)}`,
           `scores=${JSON.stringify(result.scores)}`,
         ].join(' | ');
         throw new assert.AssertionError({

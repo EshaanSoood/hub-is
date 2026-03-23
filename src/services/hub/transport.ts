@@ -1,4 +1,4 @@
-import { buildHubAuthHeaders } from '../hubAuthHeaders';
+import { buildHubAuthHeaders } from '../hubAuthHeaders.ts';
 
 import type { HubEnvelope, HubLiveAuthorization, HubRecordDetail, HubRecordSummary, HubSourcePaneContext } from './types';
 
