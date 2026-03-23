@@ -273,6 +273,28 @@ export const createEventFromNlp = async (
   };
 };
 
+export const createTask = async (
+  accessToken: string,
+  payload: {
+    project_id: string;
+    parent_record_id?: string | null;
+    title: string;
+    status?: string;
+    priority?: string | null;
+    due_at?: string | null;
+    category?: string | null;
+    assignee_user_ids?: string[];
+  },
+): Promise<{ record: HubRecordDetail }> => {
+  const data = await hubRequest<{ record: HubRecordDetail }>(accessToken, '/api/hub/tasks', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return {
+    record: normalizeRecordDetail(data.record),
+  };
+};
+
 export const queryCalendar = async (
   accessToken: string,
   projectId: string,
@@ -643,12 +665,9 @@ export const queryTasks = async (
 
 export const createPersonalTask = async (
   accessToken: string,
-  payload: { title: string; status?: string; priority?: string | null },
-): Promise<{ task: HubTaskSummary }> => {
-  return hubRequest<{ task: HubTaskSummary }>(accessToken, '/api/hub/tasks', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  payload: { project_id: string; title: string; status?: string; priority?: string | null },
+): Promise<{ record: HubRecordDetail }> => {
+  return createTask(accessToken, payload);
 };
 
 export const getHubHome = async (

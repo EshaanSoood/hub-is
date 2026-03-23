@@ -1,24 +1,21 @@
 import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAuthz } from '../context/AuthzContext';
-import { CalendarModuleSkin } from '../components/project-space/CalendarModuleSkin';
-import { RemindersModuleSkin } from '../components/project-space/RemindersModuleSkin';
-import { usePersonalCalendarRuntime } from '../hooks/usePersonalCalendarRuntime';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { filterDashboardCards } from '../lib/dashboardCards';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import type { ProjectRecord } from '../types/domain';
-import { createEventFromNlp } from '../services/hub/records';
 import type { getHubHome } from '../services/hub/records';
-import { Chip, FilterChip, Popover, PopoverContent, PopoverTrigger, Select, Tabs, TabsContent } from '../components/primitives';
+import type { HubReminderSummary } from '../services/hub/reminders';
+import { Chip, FilterChip, Icon, Popover, PopoverContent, PopoverTrigger, Select, Tabs, TabsContent } from '../components/primitives';
 
 type HubHomeData = Awaited<ReturnType<typeof getHubHome>>;
-type HubCapture = HubHomeData['captures'][number];
 type HubTask = HubHomeData['tasks'][number];
 type HubEvent = HubHomeData['events'][number];
-type HubDashboardView = 'daily-brief' | 'project-lens' | 'stream';
+type HubDashboardView = 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
-type DailyBucket = 'today' | 'next-7-days' | 'later';
+type BriefFilter = 'timeline' | 'calendar' | 'tasks' | 'reminders';
+const ALL_DAILY_BRIEF_PROJECTS_FILTER = '__all_projects__';
 
 type HubDashboardItem =
   | {
@@ -50,11 +47,10 @@ type HubDashboardItem =
       explicitHref: string;
     };
 
-const VIEW_ORDER: HubDashboardView[] = ['daily-brief', 'project-lens', 'stream'];
+const VIEW_ORDER: HubDashboardView[] = ['project-lens', 'stream'];
 const STREAM_FILTERS: StreamTypeFilter[] = ['all', 'tasks', 'events'];
 
 const viewLabels: Record<HubDashboardView, string> = {
-  'daily-brief': 'Daily Brief',
   'project-lens': 'Project Lens',
   stream: 'Stream',
 };
@@ -65,21 +61,9 @@ const streamFilterLabels: Record<StreamTypeFilter, string> = {
   events: 'Events',
 };
 
-const bucketLabels: Record<DailyBucket, string> = {
-  today: 'Today',
-  'next-7-days': 'Next 7 Days',
-  later: 'Later',
-};
-
 const startOfDay = (date: Date): Date => {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
-  return next;
-};
-
-const endOfDay = (date: Date): Date => {
-  const next = new Date(date);
-  next.setHours(23, 59, 59, 999);
   return next;
 };
 
@@ -109,14 +93,6 @@ const formatRelativeDateTime = (value: string | null): string => {
   }
   if (dayDelta < 0) {
     return `Overdue ${parsed.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
-  }
-  return parsed.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-};
-
-const formatCreatedAt = (value: string | null): string => {
-  const parsed = parseIso(value);
-  if (!parsed) {
-    return 'Unknown date';
   }
   return parsed.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 };
@@ -171,21 +147,17 @@ const buildEventItems = (events: HubEvent[]): HubDashboardItem[] =>
     explicitHref: buildEventDestinationHref(event),
   }));
 
-const toDailyBucket = (item: HubDashboardItem): DailyBucket => {
-  const due = parseIso(item.dueAt);
-  if (!due) {
-    return 'today';
+const isSameLocalDay = (left: Date, right: Date): boolean =>
+  left.getFullYear() === right.getFullYear()
+  && left.getMonth() === right.getMonth()
+  && left.getDate() === right.getDate();
+
+const formatTimeOnly = (value: string | null | undefined): string => {
+  const parsed = parseIso(value);
+  if (!parsed) {
+    return 'No time';
   }
-  const now = new Date();
-  if (due <= endOfDay(now)) {
-    return 'today';
-  }
-  const nextWeek = startOfDay(now);
-  nextWeek.setDate(nextWeek.getDate() + 7);
-  if (due <= endOfDay(nextWeek)) {
-    return 'next-7-days';
-  }
-  return 'later';
+  return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 };
 
 const projectDotClassNames = [
@@ -274,97 +246,370 @@ const ItemRow = ({
 };
 
 const DailyBriefView = ({
-  captures,
-  items,
+  userDisplayName,
+  tasks,
+  events,
+  reminders,
+  remindersLoading,
+  remindersError,
   onOpenRecord,
 }: {
-  captures: HubCapture[];
-  items: HubDashboardItem[];
+  userDisplayName: string;
+  tasks: HubTask[];
+  events: HubEvent[];
+  reminders: HubReminderSummary[];
+  remindersLoading: boolean;
+  remindersError: string | null;
   onOpenRecord: (recordId: string) => void;
 }) => {
-  const grouped = useMemo(() => {
-    const buckets: Record<DailyBucket, HubDashboardItem[]> = {
-      today: [],
-      'next-7-days': [],
-      later: [],
+  const [briefFilter, setBriefFilter] = useState<BriefFilter>('timeline');
+  const [briefProjectFilter, setBriefProjectFilter] = useState<string>(ALL_DAILY_BRIEF_PROJECTS_FILTER);
+  const [dayKey, setDayKey] = useState(() => new Date().toDateString());
+
+  useEffect(() => {
+    let timer: number | null = null;
+
+    const scheduleMidnightTick = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const delay = Math.max(1000, nextMidnight.getTime() - now.getTime() + 50);
+      timer = window.setTimeout(() => {
+        setDayKey(new Date().toDateString());
+        scheduleMidnightTick();
+      }, delay);
     };
-    for (const item of items) {
-      const bucket = toDailyBucket(item);
-      buckets[bucket].push(item);
+
+    scheduleMidnightTick();
+    return () => {
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, []);
+
+  const todayEventsBase = useMemo(
+    () => {
+      const today = new Date(dayKey);
+      return (
+      events
+        .filter((event) => {
+          const startAt = parseIso(event.event_state.start_dt);
+          if (!startAt) {
+            return false;
+          }
+          return isSameLocalDay(startAt, today);
+        })
+        .sort((left, right) => {
+          const leftStart = parseIso(left.event_state.start_dt)?.getTime() ?? Number.POSITIVE_INFINITY;
+          const rightStart = parseIso(right.event_state.start_dt)?.getTime() ?? Number.POSITIVE_INFINITY;
+          return leftStart - rightStart;
+        })
+      );
+    },
+    [events, dayKey],
+  );
+
+  const todayTasksBase = useMemo(
+    () => {
+      const now = new Date();
+      const nowMs = now.getTime();
+      const today = new Date(dayKey);
+      return tasks
+        .filter((task) => {
+          const dueAt = parseIso(task.task_state.due_at);
+          if (!dueAt) {
+            return false;
+          }
+          return isSameLocalDay(dueAt, today) || dueAt.getTime() < nowMs;
+        })
+        .sort((left, right) => {
+          const leftDue = parseIso(left.task_state.due_at)?.getTime() ?? Number.POSITIVE_INFINITY;
+          const rightDue = parseIso(right.task_state.due_at)?.getTime() ?? Number.POSITIVE_INFINITY;
+          if (leftDue !== rightDue) {
+            return leftDue - rightDue;
+          }
+          const leftUpdated = parseIso(left.updated_at)?.getTime() ?? 0;
+          const rightUpdated = parseIso(right.updated_at)?.getTime() ?? 0;
+          return rightUpdated - leftUpdated;
+        });
+    },
+    [tasks, dayKey],
+  );
+
+  const todayRemindersBase = useMemo(
+    () => {
+      const now = new Date();
+      const nowMs = now.getTime();
+      const today = new Date(dayKey);
+      return reminders
+        .filter((reminder) => {
+          const remindAt = parseIso(reminder.remind_at);
+          if (!remindAt) {
+            return false;
+          }
+          return isSameLocalDay(remindAt, today) || remindAt.getTime() < nowMs;
+        })
+        .sort((left, right) => {
+          const leftTime = parseIso(left.remind_at)?.getTime() ?? Number.POSITIVE_INFINITY;
+          const rightTime = parseIso(right.remind_at)?.getTime() ?? Number.POSITIVE_INFINITY;
+          return leftTime - rightTime;
+        });
+    },
+    [reminders, dayKey],
+  );
+
+  const projectFilterOptions = useMemo(() => {
+    const projectMap = new Map<string, string>();
+
+    for (const event of todayEventsBase) {
+      if (!event.project_id) {
+        continue;
+      }
+      const existingLabel = projectMap.get(event.project_id);
+      if (!existingLabel) {
+        projectMap.set(event.project_id, event.project_name || 'Unnamed project');
+      }
     }
-    return {
-      today: sortByDueThenUpdated(buckets.today),
-      'next-7-days': sortByDueThenUpdated(buckets['next-7-days']),
-      later: sortByDueThenUpdated(buckets.later),
-    };
-  }, [items]);
+
+    for (const task of todayTasksBase) {
+      if (!task.project_id) {
+        continue;
+      }
+      const existingLabel = projectMap.get(task.project_id);
+      if (!existingLabel) {
+        projectMap.set(task.project_id, task.project_name || 'Unnamed project');
+      }
+    }
+
+    for (const reminder of todayRemindersBase) {
+      const projectId = typeof reminder.project_id === 'string' ? reminder.project_id : '';
+      if (!projectId || projectMap.has(projectId)) {
+        continue;
+      }
+      projectMap.set(projectId, 'Unnamed project');
+    }
+
+    return [
+      { value: ALL_DAILY_BRIEF_PROJECTS_FILTER, label: 'All Projects' },
+      ...Array.from(projectMap.entries())
+        .sort((left, right) => left[1].localeCompare(right[1]))
+        .map(([value, label]) => ({ value, label })),
+    ];
+  }, [todayEventsBase, todayRemindersBase, todayTasksBase]);
+
+  const todayEvents = useMemo(
+    () => (briefProjectFilter === ALL_DAILY_BRIEF_PROJECTS_FILTER
+      ? todayEventsBase
+      : todayEventsBase.filter((event) => event.project_id === briefProjectFilter)),
+    [briefProjectFilter, todayEventsBase],
+  );
+
+  const todayTasks = useMemo(
+    () => (briefProjectFilter === ALL_DAILY_BRIEF_PROJECTS_FILTER
+      ? todayTasksBase
+      : todayTasksBase.filter((task) => task.project_id === briefProjectFilter)),
+    [briefProjectFilter, todayTasksBase],
+  );
+
+  const todayReminders = useMemo(() => {
+    if (briefProjectFilter === ALL_DAILY_BRIEF_PROJECTS_FILTER) {
+      return todayRemindersBase;
+    }
+    return todayRemindersBase.filter((reminder) => {
+      const projectId = typeof reminder.project_id === 'string' ? reminder.project_id : '';
+      if (!projectId) {
+        return false;
+      }
+      return projectId === briefProjectFilter;
+    });
+  }, [briefProjectFilter, todayRemindersBase]);
+
+  const normalizedDisplayName = userDisplayName.trim();
+  const greetingText = normalizedDisplayName ? `Hey ${normalizedDisplayName}` : 'Hey';
+  const showCalendarSection = briefFilter === 'timeline' || briefFilter === 'calendar';
+  const showTasksSection = briefFilter === 'timeline' || briefFilter === 'tasks';
+  const showRemindersSection = briefFilter === 'timeline' || briefFilter === 'reminders';
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-3">
-        <div className="sticky top-0 z-10 rounded-panel border border-border-muted bg-surface-elevated px-3 py-2">
-          <h3 className="text-sm font-semibold text-primary">Inbox</h3>
-        </div>
-        {captures.length === 0 ? (
-          <p className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted">
-            Nothing uncategorized.
+    <div className="rounded-panel border border-border-muted bg-surface">
+      <div className="space-y-3 px-4 py-4">
+        <section className="space-y-2">
+          <h3 className="text-xl font-semibold text-primary">{greetingText}</h3>
+          <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+            <span className="inline-flex items-center gap-1">
+              <Icon name="calendar" className="text-[12px] text-primary" />
+              <span>{todayEvents.length} event{todayEvents.length === 1 ? '' : 's'}</span>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Icon name="tasks" className="text-[12px] text-primary" />
+              <span>{todayTasks.length} task{todayTasks.length === 1 ? '' : 's'}</span>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Icon name="reminders" className="text-[12px] text-primary" />
+              <span>{todayReminders.length} reminder{todayReminders.length === 1 ? '' : 's'}</span>
+            </span>
           </p>
-        ) : (
-          <div className="space-y-2">
-            {captures.map((capture) => (
-              <button
-                key={capture.record_id}
-                type="button"
-                onClick={() => onOpenRecord(capture.record_id)}
-                className="flex w-full items-center justify-between gap-3 rounded-panel border border-border-muted bg-surface px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              >
-                <span className="min-w-0 truncate text-sm font-semibold text-text">{capture.title || 'Untitled record'}</span>
-                <span className="shrink-0 text-xs text-muted">{formatCreatedAt(capture.created_at)}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
+        </section>
 
-      {(['today', 'next-7-days', 'later'] as DailyBucket[]).map((bucket) => {
-        if (bucket === 'later' && grouped.later.length === 0) {
-          return null;
-        }
-        const bucketItems = grouped[bucket];
-        return (
-          <section key={bucket} className="space-y-3">
-            <div className="sticky top-0 z-10 rounded-panel border border-border-muted bg-surface-elevated px-3 py-2">
-              <h3 className="text-sm font-semibold text-primary">{bucketLabels[bucket]}</h3>
-            </div>
-            {bucketItems.length === 0 ? (
-              <p className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted">
-                {bucket === 'today' ? 'Nothing due today.' : 'Clear week ahead.'}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {(['task', 'event'] as HubDashboardItem['kind'][]).map((kind) => {
-                  const kindItems = bucketItems.filter((item) => item.kind === kind);
-                  if (kindItems.length === 0) {
-                    return null;
-                  }
-                  return (
-                    <div key={kind} className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                        {kind === 'task' ? 'Tasks' : 'Events'}
-                      </p>
-                      <div className="space-y-2">
-                        {kindItems.map((item) => (
-                          <ItemRow key={item.id} item={item} onOpen={onOpenRecord} />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        );
-      })}
+        <div role="tablist" aria-label="Daily brief filter" className="flex flex-wrap gap-1">
+          {(['timeline', 'calendar', 'tasks', 'reminders'] as const).map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              role="tab"
+              aria-selected={briefFilter === filter}
+              onClick={() => setBriefFilter(filter)}
+              className={`rounded-control px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                briefFilter === filter
+                  ? 'bg-accent text-on-primary'
+                  : 'text-muted hover:bg-surface-elevated'
+              }`}
+            >
+              {filter.charAt(0).toUpperCase() + filter.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative">
+        <div className="max-h-[50vh] space-y-6 overflow-y-auto px-4 pb-10 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {showCalendarSection ? (
+            <section className="space-y-2" aria-labelledby="daily-brief-calendar-heading">
+              <h3 id="daily-brief-calendar-heading" className="text-sm font-semibold text-text">
+                Calendar
+              </h3>
+              {todayEvents.length === 0 ? (
+                <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
+                  No calendar events today.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {todayEvents.map((event) => (
+                    <li key={event.record_id}>
+                      <button
+                        type="button"
+                        onClick={() => onOpenRecord(event.record_id)}
+                        className="flex w-full items-start justify-between gap-3 rounded-panel border border-border-muted bg-surface-elevated px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-text">{event.title || 'Untitled event'}</span>
+                          <span className="mt-1 block text-xs text-muted">{event.project_name || 'Unnamed project'}</span>
+                        </span>
+                        <span className="shrink-0 text-xs text-muted">{formatTimeOnly(event.event_state.start_dt)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : null}
+
+          {showTasksSection ? (
+            <section className="space-y-2" aria-labelledby="daily-brief-tasks-heading">
+              <h3 id="daily-brief-tasks-heading" className="text-sm font-semibold text-text">
+                Tasks
+              </h3>
+              {todayTasks.length === 0 ? (
+                <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
+                  No tasks for today or overdue.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {todayTasks.map((task) => (
+                    <li key={task.record_id}>
+                      <button
+                        type="button"
+                        onClick={() => onOpenRecord(task.record_id)}
+                        className="flex w-full items-start justify-between gap-3 rounded-panel border border-border-muted bg-surface-elevated px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-text">{task.title}</span>
+                          <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                            <span className={`inline-block h-2.5 w-2.5 rounded-full ${projectDotClassName(task.project_id)}`} aria-hidden="true" />
+                            <span>{task.project_name || 'Inbox & Unassigned'}</span>
+                            {task.task_state.priority ? <Chip variant="neutral">{task.task_state.priority}</Chip> : null}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-xs text-muted">{formatTimeOnly(task.task_state.due_at)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : null}
+
+          {showRemindersSection ? (
+            <section className="space-y-2" aria-labelledby="daily-brief-reminders-heading">
+              <h3 id="daily-brief-reminders-heading" className="text-sm font-semibold text-text">
+                Reminders
+              </h3>
+              {remindersError ? (
+                <p className="rounded-panel border border-danger bg-danger-subtle px-3 py-4 text-sm text-danger">
+                  {remindersError}
+                </p>
+              ) : null}
+              {!remindersError && remindersLoading && reminders.length === 0 ? (
+                <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
+                  Loading reminders…
+                </p>
+              ) : null}
+              {!remindersError && !remindersLoading && todayReminders.length === 0 ? (
+                <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-muted">
+                  No reminders for today or overdue.
+                </p>
+              ) : null}
+              {todayReminders.length > 0 ? (
+                <ul className="space-y-2">
+                  {todayReminders.map((reminder) => (
+                    <li key={reminder.reminder_id}>
+                      <button
+                        type="button"
+                        onClick={() => onOpenRecord(reminder.record_id)}
+                        className={`relative flex w-full min-h-16 items-stretch overflow-hidden border-l-2 text-left ${
+                          reminder.overdue ? 'bg-danger-subtle border-danger' : 'bg-surface-elevated border-border-muted'
+                        } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring`}
+                        style={{
+                          clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)',
+                          borderLeftColor: reminder.overdue ? 'var(--color-danger)' : 'var(--color-capture-rail)',
+                        }}
+                      >
+                        <span className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3">
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-text">{reminder.record_title || 'Untitled reminder'}</span>
+                            <span className={`mt-1 block text-xs ${reminder.overdue ? 'text-danger underline' : 'text-text-secondary'}`}>
+                              {formatTimeOnly(reminder.remind_at)}
+                            </span>
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ) : null}
+        </div>
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[color:var(--color-surface)] to-transparent"
+        />
+      </div>
+
+      <section className="space-y-1 border-t border-border-muted px-4 py-3">
+        <span className="text-xs font-medium text-muted">Project</span>
+        <Select
+          value={briefProjectFilter}
+          onValueChange={setBriefProjectFilter}
+          options={projectFilterOptions}
+          ariaLabel="Filter Daily Brief by project"
+          triggerClassName="min-w-44"
+        />
+      </section>
     </div>
   );
 };
@@ -379,18 +624,23 @@ const ProjectLensView = ({
   onOpenRecord: (recordId: string) => void;
 }) => {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const projectLensProjects = useMemo(
+    () => projects.filter((project) => !project.isPersonal),
+    [projects],
+  );
+
   const groupedItems = useMemo(() => {
     const map = new Map<string, HubDashboardItem[]>();
     map.set('__inbox__', items.filter((item) => !item.projectId));
-    for (const project of projects) {
+    for (const project of projectLensProjects) {
       map.set(project.id, items.filter((item) => item.projectId === project.id));
     }
     return map;
-  }, [items, projects]);
+  }, [items, projectLensProjects]);
 
   const sections = [
     { id: '__inbox__', name: 'Inbox & Unassigned', items: groupedItems.get('__inbox__') || [] },
-    ...projects.map((project) => ({
+    ...projectLensProjects.map((project) => ({
       id: project.id,
       name: project.name,
       items: groupedItems.get(project.id) || [],
@@ -432,7 +682,7 @@ const ProjectLensView = ({
           </section>
         );
       })}
-      {projects.length === 0 ? <p className="rounded-panel border border-border-muted bg-surface px-4 py-8 text-center text-sm text-muted">No projects yet.</p> : null}
+      {projectLensProjects.length === 0 ? <p className="rounded-panel border border-border-muted bg-surface px-4 py-8 text-center text-sm text-muted">No projects yet.</p> : null}
     </div>
   );
 };
@@ -526,30 +776,23 @@ export const PersonalizedDashboardPanel = ({
   homeError,
   projects,
   onOpenRecord,
+  onViewChange,
 }: {
   homeData: HubHomeData;
   homeLoading: boolean;
   homeError: string | null;
   projects: ProjectRecord[];
   onOpenRecord: (recordId: string) => void;
+  onViewChange?: (view: HubDashboardView) => void;
 }) => {
   const { accessToken, canGlobal, sessionSummary } = useAuthz();
-  const [activeView, setActiveView] = useState<HubDashboardView>('daily-brief');
+  const [activeView, setActiveView] = useState<HubDashboardView>('project-lens');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [activeViewOptionIndex, setActiveViewOptionIndex] = useState(0);
   const viewListboxId = useId();
   const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const viewListboxRef = useRef<HTMLDivElement | null>(null);
   const remindersRuntime = useRemindersRuntime(accessToken ?? null);
-  const {
-    calendarEvents,
-    calendarError,
-    calendarLoading,
-    calendarMode,
-    refreshCalendar,
-    setCalendarMode,
-  } = usePersonalCalendarRuntime(accessToken ?? null);
-  const [calendarCreateProjectId, setCalendarCreateProjectId] = useState(() => projects[0]?.id || '');
 
   const visibleDashboardCards = useMemo(
     () => filterDashboardCards(sessionSummary, projects),
@@ -566,24 +809,15 @@ export const PersonalizedDashboardPanel = ({
 
   const hasHubView = canGlobal('hub.view') || visibleDashboardCards.some((card) => card.requiredGlobalCapabilities.includes('hub.view'));
   const availableViewIds = useMemo(
-    () => (hasHubView ? VIEW_ORDER : (['daily-brief'] as HubDashboardView[])),
+    () => (hasHubView ? VIEW_ORDER : (['project-lens'] as HubDashboardView[])),
     [hasHubView],
   );
-  const calendarProjectOptions = useMemo(
-    () => projects.map((project) => ({ value: project.id, label: project.name })),
-    [projects],
-  );
-  const selectedCalendarCreateProjectId = useMemo(() => {
-    if (projects.length === 0) {
-      return '';
-    }
-    if (projects.some((project) => project.id === calendarCreateProjectId)) {
-      return calendarCreateProjectId;
-    }
-    return projects[0]?.id || '';
-  }, [calendarCreateProjectId, projects]);
 
   const selectedView = availableViewIds.includes(activeView) ? activeView : availableViewIds[0];
+
+  useEffect(() => {
+    onViewChange?.(selectedView);
+  }, [onViewChange, selectedView]);
 
   useEffect(() => {
     if (!viewMenuOpen) {
@@ -662,16 +896,25 @@ export const PersonalizedDashboardPanel = ({
 
   return (
     <section className="rounded-panel border border-subtle bg-elevated p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="heading-3 text-primary">Hub</h2>
-        {homeLoading ? <span className="text-xs text-muted">Refreshing…</span> : null}
-      </div>
+      {homeLoading ? <p className="text-xs text-muted">Refreshing…</p> : null}
 
       {homeError ? (
         <p className="mt-3 text-sm text-danger" role="alert">
           {homeError}
         </p>
       ) : null}
+
+      <div className="mt-4">
+        <DailyBriefView
+          userDisplayName={sessionSummary.name || ''}
+          tasks={homeData.tasks}
+          events={homeData.events}
+          reminders={remindersRuntime.reminders}
+          remindersLoading={remindersRuntime.loading}
+          remindersError={remindersRuntime.error}
+          onOpenRecord={onOpenRecord}
+        />
+      </div>
 
       <Tabs value={selectedView} onValueChange={(value) => setActiveView(value as HubDashboardView)} className="mt-4">
         <Popover open={viewMenuOpen} onOpenChange={handleViewMenuOpenChange}>
@@ -748,9 +991,6 @@ export const PersonalizedDashboardPanel = ({
           </PopoverContent>
         </Popover>
 
-        <TabsContent value="daily-brief" className="mt-4">
-          <DailyBriefView captures={homeData.captures} items={items} onOpenRecord={onOpenRecord} />
-        </TabsContent>
         <TabsContent value="project-lens" className="mt-4">
           <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} />
         </TabsContent>
@@ -758,64 +998,6 @@ export const PersonalizedDashboardPanel = ({
           <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} />
         </TabsContent>
       </Tabs>
-
-      <div className="mt-4">
-        <RemindersModuleSkin
-          reminders={remindersRuntime.reminders}
-          loading={remindersRuntime.loading}
-          error={remindersRuntime.error}
-          onDismiss={remindersRuntime.dismiss}
-          onCreate={remindersRuntime.create}
-          sizeTier="M"
-        />
-      </div>
-
-      <section className="mt-4 space-y-3" aria-labelledby="personal-dashboard-calendar-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 id="personal-dashboard-calendar-heading" className="text-sm font-semibold text-text">
-            Calendar
-          </h3>
-          {calendarProjectOptions.length > 0 ? (
-            <Select
-              value={selectedCalendarCreateProjectId}
-              onValueChange={setCalendarCreateProjectId}
-              options={calendarProjectOptions}
-              ariaLabel="Select project for new personal calendar events"
-              triggerClassName="min-w-44"
-            />
-          ) : null}
-        </div>
-        {calendarError ? (
-          <div className="rounded-panel border border-danger/30 bg-danger/5 p-4" role="alert">
-            <p className="text-sm text-danger">{calendarError}</p>
-            <button
-              type="button"
-              onClick={() => {
-                void refreshCalendar();
-              }}
-              className="mt-3 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <CalendarModuleSkin
-            events={calendarEvents}
-            loading={calendarLoading}
-            scope={calendarMode}
-            onScopeChange={setCalendarMode}
-            onOpenRecord={onOpenRecord}
-            onCreateEvent={
-              accessToken && selectedCalendarCreateProjectId
-                ? async (payload) => {
-                    await createEventFromNlp(accessToken, selectedCalendarCreateProjectId, payload);
-                    await refreshCalendar();
-                  }
-                : undefined
-            }
-          />
-        )}
-      </section>
     </section>
   );
 };
