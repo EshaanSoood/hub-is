@@ -1,6 +1,6 @@
-import { env } from '../lib/env';
-import { authorizeHubLive } from './hub/transport';
-import type { HubNotification } from './hub/types';
+import { env } from '../lib/env.ts';
+import { authorizeHubLive } from './hub/transport.ts';
+import type { HubNotification } from './hub/types.ts';
 
 export interface HubLiveTaskChangedMessage {
   type: 'task.changed';

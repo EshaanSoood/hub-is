@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CreateReminderPayload, HubReminderSummary } from '../services/hub/reminders';
-import { createReminder, dismissReminder, listReminders } from '../services/hub/reminders';
-import { subscribeHubHomeRefresh } from '../lib/hubHomeRefresh';
-import { subscribeHubLive } from '../services/hubLive';
+import type { CreateReminderPayload, HubReminderSummary } from '../services/hub/reminders.ts';
+import { createReminder, dismissReminder, listReminders } from '../services/hub/reminders.ts';
+import { subscribeHubHomeRefresh } from '../lib/hubHomeRefresh.ts';
+import { subscribeHubLive } from '../services/hubLive.ts';
 
 export interface RemindersRuntime {
   reminders: HubReminderSummary[];

@@ -1,7 +1,7 @@
 import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAuthz } from '../context/AuthzContext';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
-import { dashboardCardRegistry } from '../lib/dashboardCards';
+import { filterDashboardCards } from '../lib/dashboardCards';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import type { ProjectRecord } from '../types/domain';
 import type { getHubHome } from '../services/hub/records';
@@ -795,22 +795,7 @@ export const PersonalizedDashboardPanel = ({
   const remindersRuntime = useRemindersRuntime(accessToken ?? null);
 
   const visibleDashboardCards = useMemo(
-    () =>
-      dashboardCardRegistry.filter((card) => {
-        const hasGlobalCaps = card.requiredGlobalCapabilities.every((capability) =>
-          sessionSummary.globalCapabilities.includes(capability),
-        );
-        if (!hasGlobalCaps) {
-          return false;
-        }
-        if (!card.requiredProjectCapability) {
-          return true;
-        }
-        const requiredProjectCapability = card.requiredProjectCapability;
-        return projects.some((project) =>
-          (sessionSummary.projectCapabilities[project.id] ?? []).includes(requiredProjectCapability),
-        );
-      }),
+    () => filterDashboardCards(sessionSummary, projects),
     [projects, sessionSummary.globalCapabilities, sessionSummary.projectCapabilities],
   );
 
