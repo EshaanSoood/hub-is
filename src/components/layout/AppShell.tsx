@@ -1,17 +1,23 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
 import { useProjects } from '../../context/ProjectsContext';
 import { QuickCapturePanel } from '../../features/QuickCapture';
+import { TaskCreateDialog } from '../project-space/TaskCreateDialog';
 import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
-import { getHubHome } from '../../services/hub/records';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
+import { createEventFromNlp, getHubHome } from '../../services/hub/records';
+import { createReminder } from '../../services/hub/reminders';
+import { listProjectMembers } from '../../services/hub/projects';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
-import type { HubNotification } from '../../services/hub/types';
+import type { HubNotification, HubProjectMember } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
 import { buildNotificationDestinationHref } from '../../lib/hubRoutes';
-import { Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
+import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
+import { parseReminderInput, type ReminderParseResult } from '../../lib/nlp/reminder-parser';
+import { createHubProject } from '../../services/projectsService';
+import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
 
 interface ToolbarNotification {
   id: string;
@@ -27,27 +33,19 @@ interface ToolbarNotification {
 }
 
 type NotificationFilter = 'unread' | 'all';
-
-const CONTEXTUAL_ACTIONS: Record<string, Array<{ label: string; type: string }>> = {
-  calendar: [
-    { label: 'Capture to inbox', type: 'inbox' },
-    { label: 'Add event', type: 'event' },
-    { label: 'Add reminder', type: 'reminder' },
-  ],
-  project: [
-    { label: 'Capture to inbox', type: 'inbox' },
-    { label: 'Add task to this project', type: 'project-task' },
-    { label: 'Add reminder', type: 'reminder' },
-  ],
-  inbox: [
-    { label: 'Capture to inbox', type: 'inbox' },
-    { label: 'Add reminder', type: 'reminder' },
-  ],
-  other: [
-    { label: 'Capture to inbox', type: 'inbox' },
-    { label: 'Add reminder', type: 'reminder' },
-  ],
+type QuickAddDialog = 'task' | 'event' | 'reminder' | 'project' | null;
+type QuickAddOption = {
+  key: Exclude<QuickAddDialog, null>;
+  label: string;
+  iconName: 'tasks' | 'calendar' | 'reminders' | 'menu';
 };
+
+const QUICK_ADD_OPTIONS: QuickAddOption[] = [
+  { key: 'task', label: 'Task', iconName: 'tasks' },
+  { key: 'event', label: 'Calendar Event', iconName: 'calendar' },
+  { key: 'reminder', label: 'Reminder', iconName: 'reminders' },
+  { key: 'project', label: 'Project', iconName: 'menu' },
+];
 
 const relativeTimeLabel = (iso: string): string => {
   const timestamp = Number(new Date(iso));
@@ -68,16 +66,6 @@ const relativeTimeLabel = (iso: string): string => {
   }
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
-};
-
-const deriveContext = (pathname: string): keyof typeof CONTEXTUAL_ACTIONS => {
-  if (pathname.includes('/calendar')) {
-    return 'calendar';
-  }
-  if (pathname.includes('/projects')) {
-    return 'project';
-  }
-  return 'other';
 };
 
 const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; name: string }>): string[] => {
@@ -182,6 +170,46 @@ const focusFirstDescendantSoon = (container: HTMLElement | null | undefined, sel
   }, 0);
 };
 
+const toDateTimeLocalInput = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+};
+
+const nowPlusHours = (hours: number): Date => new Date(Date.now() + hours * 60 * 60 * 1000);
+
+const hasMeaningfulReminderPreview = (preview: ReminderParseResult): boolean =>
+  Boolean(preview.fields.title.trim() || preview.fields.remind_at || preview.fields.recurrence || preview.fields.context_hint);
+
+const emptyReminderPreview = (): ReminderParseResult => ({
+  fields: {
+    title: '',
+    remind_at: null,
+    recurrence: null,
+    context_hint: null,
+  },
+  meta: {
+    confidence: {
+      title: 0,
+      remind_at: 0,
+      recurrence: 0,
+      context_hint: 0,
+    },
+    spans: {
+      title: [],
+      remind_at: [],
+      recurrence: [],
+      context_hint: [],
+    },
+    debugSteps: [],
+    maskedInput: '',
+  },
+  warnings: null,
+});
+
 const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
   record: 'Record',
   project: 'Project',
@@ -230,7 +258,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { sessionSummary, canGlobal, accessToken, signOut } = useAuthz();
-  const { projects } = useProjects();
+  const { projects, refreshProjects } = useProjects();
 
   useRouteFocusReset();
 
@@ -239,7 +267,22 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [avatarBroken, setAvatarBroken] = useState(false);
   const [quickNavOpen, setQuickNavOpen] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
-  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
+  const [quickAddActiveIndex, setQuickAddActiveIndex] = useState(0);
+  const [quickAddDialog, setQuickAddDialog] = useState<QuickAddDialog>(null);
+  const [quickAddProjectId, setQuickAddProjectId] = useState('');
+  const [taskProjectMembersById, setTaskProjectMembersById] = useState<Record<string, HubProjectMember[]>>({});
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventStartAt, setEventStartAt] = useState(() => toDateTimeLocalInput(nowPlusHours(1)));
+  const [eventEndAt, setEventEndAt] = useState(() => toDateTimeLocalInput(nowPlusHours(2)));
+  const [eventSubmitting, setEventSubmitting] = useState(false);
+  const [eventError, setEventError] = useState<string | null>(null);
+  const [reminderDraft, setReminderDraft] = useState('');
+  const [reminderPreview, setReminderPreview] = useState<ReminderParseResult>(() => emptyReminderPreview());
+  const [reminderSubmitting, setReminderSubmitting] = useState(false);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+  const [projectDialogName, setProjectDialogName] = useState('');
+  const [projectDialogSubmitting, setProjectDialogSubmitting] = useState(false);
+  const [projectDialogError, setProjectDialogError] = useState<string | null>(null);
   const [notifFilter, setNotifFilter] = useState<NotificationFilter>('unread');
   const [notifProjectFilter, setNotifProjectFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -278,8 +321,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const notificationsPanelRef = useRef<HTMLDivElement | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
   const contextMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const quickAddItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const quickAddTaskMetadataRequestRef = useRef(0);
   const captureTriggerRef = useRef<HTMLButtonElement | null>(null);
   const captureRestoreTargetRef = useRef<HTMLElement | null>(null);
+  const taskTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const eventTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const eventProjectSelectRef = useRef<HTMLSelectElement | null>(null);
+  const reminderInputRef = useRef<HTMLInputElement | null>(null);
+  const projectNameInputRef = useRef<HTMLInputElement | null>(null);
   const captureRequestVersionRef = useRef(0);
   const quickNavWasOpenRef = useRef(false);
   const notificationsWereOpenRef = useRef(false);
@@ -292,7 +342,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const skipCaptureFocusRestoreRef = useRef(false);
 
   const visibleTabs = appTabs.filter((tab) => canGlobal(tab.capability));
-  const currentContext = deriveContext(location.pathname);
   const isOnHubHome = location.pathname === '/projects';
   const currentProjectId = useMemo(() => {
     const match = location.pathname.match(/^\/projects\/([^/]+)/);
@@ -311,6 +360,22 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const breadcrumb = useMemo(
     () => buildBreadcrumb(location.pathname, projects.map((project) => ({ id: project.id, name: project.name }))),
     [location.pathname, projects],
+  );
+  const quickAddProjectOptions = useMemo(
+    () =>
+      projects.map((project) => ({
+        value: project.id,
+        label: project.isPersonal ? `${project.name} (Personal)` : project.name,
+      })),
+    [projects],
+  );
+  const personalReminderProjectLabel = useMemo(
+    () => projects.find((project) => project.isPersonal)?.name || 'Personal',
+    [projects],
+  );
+  const selectedTaskProjectMembers = useMemo(
+    () => taskProjectMembersById[quickAddProjectId] ?? [],
+    [quickAddProjectId, taskProjectMembersById],
   );
 
   const refreshCaptureData = useCallback(async () => {
@@ -363,6 +428,203 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
   }, [accessToken]);
 
+  const resolveDefaultQuickAddProjectId = useCallback((): string => {
+    if (currentProjectId && projects.some((project) => project.id === currentProjectId)) {
+      return currentProjectId;
+    }
+    if (captureHomeData.personalProjectId && projects.some((project) => project.id === captureHomeData.personalProjectId)) {
+      return captureHomeData.personalProjectId;
+    }
+    const personalProjectId = projects.find((project) => project.isPersonal)?.id;
+    if (personalProjectId) {
+      return personalProjectId;
+    }
+    return projects[0]?.id || '';
+  }, [captureHomeData.personalProjectId, currentProjectId, projects]);
+
+  const loadTaskProjectMembers = useCallback(async (projectId: string) => {
+    if (!accessToken || !projectId) {
+      return;
+    }
+    const hasMembers = taskProjectMembersById[projectId] !== undefined;
+    if (hasMembers) {
+      return;
+    }
+
+    const requestVersion = quickAddTaskMetadataRequestRef.current + 1;
+    quickAddTaskMetadataRequestRef.current = requestVersion;
+    try {
+      const members = await listProjectMembers(accessToken, projectId);
+      if (quickAddTaskMetadataRequestRef.current !== requestVersion) {
+        return;
+      }
+      setTaskProjectMembersById((current) => ({ ...current, [projectId]: members }));
+    } catch {
+      if (quickAddTaskMetadataRequestRef.current !== requestVersion) {
+        return;
+      }
+    }
+  }, [accessToken, taskProjectMembersById]);
+
+  const closeQuickAddDialog = useCallback(() => {
+    setQuickAddDialog(null);
+    setEventError(null);
+    setReminderError(null);
+    setProjectDialogError(null);
+  }, []);
+
+  const openQuickAddDialog = useCallback(
+    async (dialogType: Exclude<QuickAddDialog, null>) => {
+      if (dialogType === 'project') {
+        setProjectDialogName('');
+        setProjectDialogError(null);
+        setQuickAddDialog(dialogType);
+        return;
+      }
+
+      let defaultProjectId = resolveDefaultQuickAddProjectId();
+      if (!defaultProjectId && accessToken) {
+        await refreshCaptureData();
+        defaultProjectId = resolveDefaultQuickAddProjectId();
+      }
+      setQuickAddProjectId(defaultProjectId);
+
+      if (dialogType === 'task') {
+        if (defaultProjectId) {
+          void loadTaskProjectMembers(defaultProjectId);
+        }
+      }
+      if (dialogType === 'event') {
+        setEventTitle('');
+        setEventStartAt(toDateTimeLocalInput(nowPlusHours(1)));
+        setEventEndAt(toDateTimeLocalInput(nowPlusHours(2)));
+        setEventError(null);
+      }
+      if (dialogType === 'reminder') {
+        setReminderDraft('');
+        setReminderPreview(emptyReminderPreview());
+        setReminderError(null);
+      }
+
+      setQuickAddDialog(dialogType);
+    },
+    [accessToken, loadTaskProjectMembers, refreshCaptureData, resolveDefaultQuickAddProjectId],
+  );
+
+  const onCreateQuickAddEvent = useCallback(async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!accessToken) {
+      setEventError('An authenticated session is required.');
+      return;
+    }
+    if (!quickAddProjectId) {
+      setEventError('Select a project.');
+      return;
+    }
+    const trimmedTitle = eventTitle.trim();
+    if (!trimmedTitle) {
+      setEventError('Event title is required.');
+      return;
+    }
+    const startDate = new Date(eventStartAt);
+    const endDate = new Date(eventEndAt);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate.getTime() <= startDate.getTime()) {
+      setEventError('End time must be after start time.');
+      return;
+    }
+
+    setEventSubmitting(true);
+    setEventError(null);
+    try {
+      await createEventFromNlp(accessToken, quickAddProjectId, {
+        title: trimmedTitle,
+        start_dt: startDate.toISOString(),
+        end_dt: endDate.toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+      void refreshCaptureData();
+      requestHubHomeRefresh();
+      setQuickAddDialog(null);
+    } catch (error) {
+      setEventError(error instanceof Error ? error.message : 'Failed to create event.');
+    } finally {
+      setEventSubmitting(false);
+    }
+  }, [accessToken, eventEndAt, eventStartAt, eventTitle, quickAddProjectId, refreshCaptureData]);
+
+  const onCreateQuickAddReminder = useCallback(async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!accessToken) {
+      setReminderError('An authenticated session is required.');
+      return;
+    }
+
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const latestPreview = reminderDraft.trim() ? parseReminderInput(reminderDraft, { timezone }) : emptyReminderPreview();
+    const title = latestPreview.fields.title.trim() || reminderDraft.trim();
+    const remindAtRaw = latestPreview.fields.remind_at;
+    if (!title || !remindAtRaw) {
+      setReminderError('Add a title and time to create a reminder.');
+      return;
+    }
+    const remindAtDate = new Date(remindAtRaw);
+    if (Number.isNaN(remindAtDate.getTime())) {
+      setReminderError('Reminder time is invalid.');
+      return;
+    }
+
+    setReminderSubmitting(true);
+    setReminderError(null);
+    try {
+      await createReminder(accessToken, {
+        title,
+        remind_at: remindAtDate.toISOString(),
+        recurrence_json: latestPreview.fields.recurrence ? { ...latestPreview.fields.recurrence } : null,
+      });
+      void refreshCaptureData();
+      requestHubHomeRefresh();
+      setQuickAddDialog(null);
+    } catch (error) {
+      setReminderError(error instanceof Error ? error.message : 'Failed to create reminder.');
+    } finally {
+      setReminderSubmitting(false);
+    }
+  }, [accessToken, reminderDraft, refreshCaptureData]);
+
+  const onCreateQuickAddProject = useCallback(async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!accessToken) {
+      setProjectDialogError('An authenticated session is required.');
+      return;
+    }
+    const trimmedName = projectDialogName.trim();
+    if (!trimmedName) {
+      setProjectDialogError('Project name is required.');
+      return;
+    }
+
+    setProjectDialogSubmitting(true);
+    setProjectDialogError(null);
+    try {
+      const created = await createHubProject(accessToken, {
+        name: trimmedName,
+        summary: '',
+      });
+      if (created.error || !created.data) {
+        setProjectDialogError(created.error || 'Project creation failed.');
+        return;
+      }
+      setQuickAddDialog(null);
+      setProjectDialogName('');
+      await refreshProjects();
+      navigate(`/projects/${created.data.id}/overview`);
+    } catch (error) {
+      setProjectDialogError(error instanceof Error ? error.message : 'Project creation failed.');
+    } finally {
+      setProjectDialogSubmitting(false);
+    }
+  }, [accessToken, navigate, projectDialogName, refreshProjects]);
+
   useEffect(() => {
     void refreshCaptureData();
   }, [refreshCaptureData]);
@@ -380,6 +642,57 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       window.clearTimeout(timer);
     };
   }, [captureOpen, refreshCaptureData]);
+
+  useEffect(() => {
+    if (!contextMenuOpen) {
+      return;
+    }
+    const frameId = window.requestAnimationFrame(() => {
+      setQuickAddActiveIndex(0);
+      focusElementSoon(quickAddItemRefs.current[0]);
+    });
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [contextMenuOpen]);
+
+  useEffect(() => {
+    if (quickAddDialog !== 'reminder') {
+      return;
+    }
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timer = window.setTimeout(() => {
+      setReminderPreview(reminderDraft.trim() ? parseReminderInput(reminderDraft, { timezone }) : emptyReminderPreview());
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [quickAddDialog, reminderDraft]);
+
+  useEffect(() => {
+    if (quickAddDialog !== 'task' || !quickAddProjectId) {
+      return;
+    }
+    void loadTaskProjectMembers(quickAddProjectId);
+  }, [loadTaskProjectMembers, quickAddDialog, quickAddProjectId]);
+
+  useEffect(() => {
+    if (quickAddDialog === 'task') {
+      focusElementSoon(taskTitleInputRef.current);
+      return;
+    }
+    if (quickAddDialog === 'event') {
+      focusElementSoon(eventTitleInputRef.current);
+      return;
+    }
+    if (quickAddDialog === 'reminder') {
+      focusElementSoon(reminderInputRef.current);
+      return;
+    }
+    if (quickAddDialog === 'project') {
+      focusElementSoon(projectNameInputRef.current);
+    }
+  }, [quickAddDialog]);
 
   useEffect(() => {
     let cancelled = false;
@@ -788,7 +1101,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setContextMenuOpen(false);
   }, [closeQuickNav, closeSearch]);
 
-  const onQuickAdd = () => {
+  const onQuickCapture = () => {
     if (captureOpen && !captureIntent) {
       closeCapturePanel();
       return;
@@ -796,20 +1109,63 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     openCapturePanel(null, captureTriggerRef.current);
   };
 
-  const openContextMenu = (anchor: HTMLElement) => {
-    const rect = anchor.getBoundingClientRect();
-    setContextMenuPos({ x: rect.left, y: rect.top - 8 });
-    setContextMenuOpen(true);
+  const focusQuickAddMenuItem = useCallback((index: number) => {
+    const itemCount = QUICK_ADD_OPTIONS.length;
+    if (itemCount === 0) {
+      return;
+    }
+    const normalized = (index + itemCount) % itemCount;
+    setQuickAddActiveIndex(normalized);
+    focusElementSoon(quickAddItemRefs.current[normalized]);
+  }, []);
+
+  const toggleQuickAddMenu = useCallback(() => {
+    setContextMenuOpen((current) => {
+      const nextOpen = !current;
+      if (nextOpen) {
+        setQuickAddActiveIndex(0);
+      }
+      return nextOpen;
+    });
     closeCapturePanel({ restoreFocus: false });
     setNotificationsOpen(false);
     setProfileOpen(false);
     closeSearch();
     closeQuickNav();
-  };
+  }, [closeCapturePanel, closeQuickNav, closeSearch]);
 
-  const onQuickAddContextual = (type: string) => {
-    openCapturePanel(type === 'inbox' ? null : type, contextMenuTriggerRef.current);
-  };
+  const onSelectQuickAddOption = useCallback((option: QuickAddOption) => {
+    skipContextMenuFocusRestoreRef.current = true;
+    setContextMenuOpen(false);
+    void openQuickAddDialog(option.key);
+  }, [openQuickAddDialog]);
+
+  const onQuickAddMenuItemKeyDown = useCallback((event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusQuickAddMenuItem(index + 1);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusQuickAddMenuItem(index - 1);
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      focusQuickAddMenuItem(0);
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      focusQuickAddMenuItem(QUICK_ADD_OPTIONS.length - 1);
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setContextMenuOpen(false);
+    }
+  }, [focusQuickAddMenuItem]);
 
   const onSelectSearchResult = useCallback(
     (result: HubSearchResult) => {
@@ -1111,35 +1467,63 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </div>
         </div>
 
+        <div className="relative" ref={contextMenuRef}>
+          <button
+            ref={contextMenuTriggerRef}
+            type="button"
+            aria-label="Open quick add menu"
+            aria-haspopup="menu"
+            aria-expanded={contextMenuOpen}
+            onClick={toggleQuickAddMenu}
+            className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          >
+            <Icon name="plus" className="text-[14px]" />
+          </button>
+
+          {contextMenuOpen ? (
+            <div
+              role="menu"
+              aria-label="Quick add"
+              className="absolute bottom-[calc(100%+8px)] left-0 z-[200] min-w-[220px] rounded-control border border-border-muted bg-surface-elevated py-1 shadow-soft"
+            >
+              {QUICK_ADD_OPTIONS.map((option, index) => (
+                <button
+                  key={option.key}
+                  ref={(node) => {
+                    quickAddItemRefs.current[index] = node;
+                  }}
+                  type="button"
+                  role="menuitem"
+                  tabIndex={quickAddActiveIndex === index ? 0 : -1}
+                  className="flex w-full items-center gap-2 px-md py-xs text-left text-sm text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  style={{
+                    background:
+                      quickAddActiveIndex === index ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)' : 'transparent',
+                  }}
+                  onMouseEnter={() => setQuickAddActiveIndex(index)}
+                  onKeyDown={(event) => onQuickAddMenuItemKeyDown(event, index)}
+                  onClick={() => onSelectQuickAddOption(option)}
+                >
+                  <Icon name={option.iconName} className="text-[14px] text-primary" />
+                  <span>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
         <Popover open={captureOpen} onOpenChange={setCaptureOpen} modal>
           <PopoverAnchor asChild>
-            <div className="flex items-center overflow-hidden rounded-control border border-border-muted">
-              <button
-                ref={captureTriggerRef}
-                type="button"
-                onClick={onQuickAdd}
-                aria-label="Open quick capture"
-                aria-expanded={captureOpen}
-                className="flex h-7 w-7 items-center justify-center text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              >
-                <Icon name="plus" className="text-[14px]" />
-              </button>
-              <button
-                ref={contextMenuTriggerRef}
-                type="button"
-                aria-label="Open quick add menu"
-                aria-haspopup="menu"
-                aria-expanded={contextMenuOpen}
-                onClick={(event) => openContextMenu(event.currentTarget)}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  openContextMenu(event.currentTarget);
-                }}
-                className="flex h-7 w-6 items-center justify-center border-l border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              >
-                <Icon name="chevron-down" className="text-[10px]" />
-              </button>
-            </div>
+            <button
+              ref={captureTriggerRef}
+              type="button"
+              onClick={onQuickCapture}
+              aria-label="Thought Pile"
+              aria-expanded={captureOpen}
+              className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            >
+              <Icon name="thought-pile" className="text-[14px]" />
+            </button>
           </PopoverAnchor>
 
           {captureOpen ? (
@@ -1148,7 +1532,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               align="center"
               sideOffset={8}
               role="dialog"
-              aria-label="Quick capture"
+              aria-label="Thought Pile"
               className="z-[120] w-[min(92vw,440px)] rounded-panel border border-border-muted bg-surface-elevated p-4 shadow-soft"
               onOpenAutoFocus={(event) => {
                 event.preventDefault();
@@ -1181,29 +1565,224 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           ) : null}
         </Popover>
 
-        {contextMenuOpen ? (
-          <div
-            ref={contextMenuRef}
-            role="menu"
-            className="fixed z-[200] min-w-[180px] rounded-control border border-border-muted bg-surface-elevated py-1 shadow-soft"
-            style={{ top: contextMenuPos.y, left: contextMenuPos.x, transform: 'translateY(-100%)' }}
-          >
-            {(CONTEXTUAL_ACTIONS[currentContext] ?? CONTEXTUAL_ACTIONS.other).map((item) => (
-              <button
-                key={item.type}
-                type="button"
-                role="menuitem"
-                className="block w-full px-md py-xs text-left text-sm text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                onClick={() => {
-                  onQuickAddContextual(item.type);
-                  setContextMenuOpen(false);
-                }}
+        <TaskCreateDialog
+          open={quickAddDialog === 'task'}
+          onClose={closeQuickAddDialog}
+          onCreated={() => {
+            void refreshCaptureData();
+            requestHubHomeRefresh();
+            closeQuickAddDialog();
+          }}
+          accessToken={accessToken ?? ''}
+          projectId={quickAddProjectId}
+          projectMembers={selectedTaskProjectMembers.map((member) => ({
+            user_id: member.user_id,
+            display_name: member.display_name,
+          }))}
+          triggerRef={contextMenuTriggerRef}
+          projectOptions={quickAddProjectOptions}
+          selectedProjectId={quickAddProjectId}
+          titleInputRef={taskTitleInputRef}
+          onSelectedProjectIdChange={(projectId) => {
+            setQuickAddProjectId(projectId);
+            void loadTaskProjectMembers(projectId);
+          }}
+        />
+
+        <Dialog
+          open={quickAddDialog === 'event'}
+          onClose={closeQuickAddDialog}
+          triggerRef={contextMenuTriggerRef}
+          title="New Calendar Event"
+          description="Create a calendar event."
+        >
+          <form className="space-y-4" onSubmit={onCreateQuickAddEvent}>
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-project">
+                Project
+              </label>
+              <select
+                id="quick-add-event-project"
+                ref={eventProjectSelectRef}
+                value={quickAddProjectId}
+                onChange={(event) => setQuickAddProjectId(event.target.value)}
+                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
               >
-                {item.label}
+                {quickAddProjectOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-title">
+                Event title
+              </label>
+              <input
+                id="quick-add-event-title"
+                ref={eventTitleInputRef}
+                type="text"
+                value={eventTitle}
+                onChange={(event) => setEventTitle(event.target.value)}
+                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                placeholder="New event"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-start">
+                  Start
+                </label>
+                <input
+                  id="quick-add-event-start"
+                  type="datetime-local"
+                  value={eventStartAt}
+                  onChange={(event) => setEventStartAt(event.target.value)}
+                  className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-end">
+                  End
+                </label>
+                <input
+                  id="quick-add-event-end"
+                  type="datetime-local"
+                  value={eventEndAt}
+                  onChange={(event) => setEventEndAt(event.target.value)}
+                  className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                />
+              </div>
+            </div>
+
+            {eventError ? <p className="text-sm text-danger">{eventError}</p> : null}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeQuickAddDialog}
+                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
+              >
+                Cancel
               </button>
-            ))}
-          </div>
-        ) : null}
+              <button
+                type="submit"
+                disabled={eventSubmitting}
+                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {eventSubmitting ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </form>
+        </Dialog>
+
+        <Dialog
+          open={quickAddDialog === 'reminder'}
+          onClose={closeQuickAddDialog}
+          triggerRef={contextMenuTriggerRef}
+          title="New Reminder"
+          description="Create a reminder from natural language."
+        >
+          <form className="space-y-4" onSubmit={onCreateQuickAddReminder}>
+            <p className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
+              Reminders are saved to your {personalReminderProjectLabel} project.
+            </p>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-reminder-input">
+                Reminder
+              </label>
+              <input
+                id="quick-add-reminder-input"
+                ref={reminderInputRef}
+                type="text"
+                value={reminderDraft}
+                onChange={(event) => {
+                  setReminderDraft(event.target.value);
+                  if (reminderError) {
+                    setReminderError(null);
+                  }
+                }}
+                placeholder="Add a reminder…"
+                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+              />
+            </div>
+
+            {hasMeaningfulReminderPreview(reminderPreview) ? (
+              <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
+                {reminderPreview.fields.title ? <p><span className="font-semibold text-text">Title:</span> {reminderPreview.fields.title}</p> : null}
+                {reminderPreview.fields.remind_at ? <p><span className="font-semibold text-text">When:</span> {reminderPreview.fields.context_hint || reminderPreview.fields.remind_at}</p> : null}
+                {reminderPreview.fields.recurrence ? <p><span className="font-semibold text-text">Recurs:</span> {reminderPreview.fields.recurrence.frequency}</p> : null}
+              </div>
+            ) : null}
+
+            {reminderError ? <p className="text-sm text-danger">{reminderError}</p> : null}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeQuickAddDialog}
+                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={reminderSubmitting}
+                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {reminderSubmitting ? 'Adding...' : 'Add'}
+              </button>
+            </div>
+          </form>
+        </Dialog>
+
+        <Dialog
+          open={quickAddDialog === 'project'}
+          onClose={closeQuickAddDialog}
+          triggerRef={contextMenuTriggerRef}
+          title="Create Project"
+          description="Create a new project."
+        >
+          <form className="space-y-4" onSubmit={onCreateQuickAddProject}>
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-project-name">
+                Project name
+              </label>
+              <input
+                id="quick-add-project-name"
+                ref={projectNameInputRef}
+                type="text"
+                value={projectDialogName}
+                onChange={(event) => setProjectDialogName(event.target.value)}
+                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                placeholder="New project"
+              />
+            </div>
+
+            {projectDialogError ? <p className="text-sm text-danger">{projectDialogError}</p> : null}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeQuickAddDialog}
+                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={projectDialogSubmitting}
+                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {projectDialogSubmitting ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </form>
+        </Dialog>
 
         <div className="relative" ref={notificationsRef}>
           <button
