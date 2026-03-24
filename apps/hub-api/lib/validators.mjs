@@ -1,6 +1,9 @@
 // Ported from src/shared/api-types/validators.ts — keep in sync manually until build pipeline bridges TS→MJS.
 
 const TASK_STATUSES = ['todo', 'in_progress', 'done', 'cancelled'];
+const TASK_STATUS_ALIASES = new Map([
+  ['in-progress', 'in_progress'],
+]);
 const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 const REMINDER_FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly'];
 
@@ -61,7 +64,8 @@ const asStringArray = (value, fieldName) => {
 };
 
 const validateTaskStatus = (value) => {
-  const status = asNonEmptyString(value, 'status');
+  const rawStatus = asNonEmptyString(value, 'status');
+  const status = TASK_STATUS_ALIASES.get(rawStatus) ?? rawStatus;
   if (!TASK_STATUSES.includes(status)) {
     throw new Error(`status must be one of: ${TASK_STATUSES.join(', ')}.`);
   }
@@ -151,6 +155,73 @@ const asOptionalObject = (value, fieldName) => {
   return value;
 };
 
+const validateEventNlpFields = (value) => {
+  if (!isRecord(value)) {
+    throw new Error('nlp_fields_json must be an object when provided.');
+  }
+
+  const normalized = {};
+
+  const title = asOptionalString(value.title, 'nlp_fields_json.title');
+  if (title) {
+    normalized.title = title;
+  }
+
+  const start = asOptionalString(value.start, 'nlp_fields_json.start');
+  if (start) {
+    normalized.start = start;
+  }
+
+  const startDt = asOptionalString(value.start_dt, 'nlp_fields_json.start_dt');
+  if (startDt) {
+    normalized.start_dt = startDt;
+  }
+
+  const end = asOptionalString(value.end, 'nlp_fields_json.end');
+  if (end) {
+    normalized.end = end;
+  }
+
+  const endDt = asOptionalString(value.end_dt, 'nlp_fields_json.end_dt');
+  if (endDt) {
+    normalized.end_dt = endDt;
+  }
+
+  const timezone = asOptionalString(value.timezone, 'nlp_fields_json.timezone');
+  if (timezone) {
+    normalized.timezone = timezone;
+  }
+
+  const location = asOptionalString(value.location, 'nlp_fields_json.location');
+  if (location) {
+    normalized.location = location;
+  }
+
+  if (typeof value.participants_user_ids !== 'undefined') {
+    normalized.participants_user_ids = asStringArray(value.participants_user_ids, 'nlp_fields_json.participants_user_ids');
+  }
+
+  if (typeof value.participant_user_ids !== 'undefined') {
+    normalized.participant_user_ids = asStringArray(value.participant_user_ids, 'nlp_fields_json.participant_user_ids');
+  }
+
+  if (typeof value.reminders !== 'undefined') {
+    normalized.reminders = validateEventReminders(value.reminders);
+  }
+
+  const recurrenceRule = asOptionalObject(value.recurrence_rule, 'nlp_fields_json.recurrence_rule');
+  if (recurrenceRule) {
+    normalized.recurrence_rule = recurrenceRule;
+  }
+
+  const ruleJson = asOptionalObject(value.rule_json, 'nlp_fields_json.rule_json');
+  if (ruleJson) {
+    normalized.rule_json = ruleJson;
+  }
+
+  return normalized;
+};
+
 export const validateCreateTaskRequest = (body) => {
   if (!isRecord(body)) {
     throw new Error('Request body must be a JSON object.');
@@ -222,7 +293,9 @@ export const validateCreateEventRequest = (body) => {
     throw new Error('Request body must be a JSON object.');
   }
 
-  const nlpFields = isRecord(body.nlp_fields_json) ? body.nlp_fields_json : undefined;
+  const nlpFields = typeof body.nlp_fields_json === 'undefined'
+    ? undefined
+    : validateEventNlpFields(body.nlp_fields_json);
   const startCandidate = firstDefinedString(body.start_dt, body.start, nlpFields?.start_dt, nlpFields?.start);
   const endCandidate = firstDefinedString(body.end_dt, body.end, nlpFields?.end_dt, nlpFields?.end);
 
@@ -276,9 +349,8 @@ export const validateCreateEventRequest = (body) => {
     request.location = location;
   }
 
-  const nlpFieldsJson = asOptionalObject(body.nlp_fields_json, 'nlp_fields_json');
-  if (nlpFieldsJson) {
-    request.nlp_fields_json = nlpFieldsJson;
+  if (nlpFields) {
+    request.nlp_fields = nlpFields;
   }
 
   if (typeof body.participants_user_ids !== 'undefined') {

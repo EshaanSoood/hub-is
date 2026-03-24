@@ -237,7 +237,7 @@ export const createViewRoutes = (deps) => {
       return;
     }
 
-    const nlpFields = parseJsonObject(validated.nlp_fields_json, {});
+    const nlpFields = validated.nlp_fields || {};
     const title = asText(validated.title || nlpFields.title) || 'Untitled Event';
     const startDt = validated.start_dt;
     const endDt = validated.end_dt;
