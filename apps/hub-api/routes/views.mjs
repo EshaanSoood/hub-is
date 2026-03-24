@@ -1,3 +1,5 @@
+import { validateCreateEventRequest } from '../lib/validators.mjs';
+
 export const createViewRoutes = (deps) => {
   const {
     withAuth,
@@ -215,41 +217,40 @@ export const createViewRoutes = (deps) => {
       return;
     }
 
+    let validated;
+    try {
+      validated = validateCreateEventRequest(body);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid request body.';
+      request.log.warn('Event validation failed', { error: message, projectId });
+      send(response, jsonResponse(400, errorEnvelope('validation_error', message)));
+      return;
+    }
+
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId,
-      paneId: body.source_pane_id || body.pane_id,
+      paneId: validated.source_pane_id || validated.pane_id,
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
       return;
     }
 
-    const nlpFields = parseJsonObject(body.nlp_fields_json, {});
-    const title = asText(body.title || nlpFields.title) || 'Untitled Event';
-    const startDtRaw = asText(body.start_dt || body.start || nlpFields.start_dt || nlpFields.start);
-    const endDtRaw = asText(body.end_dt || body.end || nlpFields.end_dt || nlpFields.end);
-    const startDtDate = startDtRaw ? new Date(startDtRaw) : null;
-    const endDtDate = endDtRaw ? new Date(endDtRaw) : null;
-    const startDt = startDtDate && !Number.isNaN(startDtDate.getTime()) ? startDtDate.toISOString() : null;
-    const endDt = endDtDate && !Number.isNaN(endDtDate.getTime()) ? endDtDate.toISOString() : null;
-    if (!startDt || !endDt) {
-      send(
-        response,
-        jsonResponse(400, errorEnvelope('invalid_input', 'start_dt and end_dt are required and must be valid ISO timestamps.')),
-      );
-      return;
-    }
+    const nlpFields = validated.nlp_fields || {};
+    const title = asText(validated.title || nlpFields.title) || 'Untitled Event';
+    const startDt = validated.start_dt;
+    const endDt = validated.end_dt;
 
     const eventsCollection = findOrCreateEventsCollection(projectId);
     const timestamp = nowIso();
     const recordId = newId('rec');
-    const timezone = asText(body.timezone || nlpFields.timezone) || 'UTC';
+    const timezone = asText(validated.timezone || nlpFields.timezone) || 'UTC';
     const notificationContext = buildNotificationRouteContext({
       projectId,
-      sourcePaneId: body.source_pane_id || body.pane_id,
-      sourceDocId: body.source_doc_id,
-      sourceNodeKey: body.source_node_key,
+      sourcePaneId: validated.source_pane_id || validated.pane_id,
+      sourceDocId: validated.source_doc_id,
+      sourceNodeKey: validated.source_node_key,
     });
 
     const participantNotificationPayloads = [];
@@ -257,11 +258,11 @@ export const createViewRoutes = (deps) => {
       withTransaction(() => {
         insertRecordStmt.run(recordId, projectId, eventsCollection.collection_id, title, auth.user.user_id, timestamp, timestamp, null);
         insertRecordCapabilityStmt.run(recordId, 'calendar_event', timestamp);
-        upsertEventStateStmt.run(recordId, startDt, endDt, timezone, deps.asNullableText(body.location || nlpFields.location), timestamp);
+        upsertEventStateStmt.run(recordId, startDt, endDt, timezone, deps.asNullableText(validated.location || nlpFields.location), timestamp);
 
         const participantIds = normalizeParticipants(
           projectId,
-          body.participants_user_ids || body.participant_user_ids || nlpFields.participants_user_ids || [auth.user.user_id],
+          validated.participants_user_ids || validated.participant_user_ids || nlpFields.participants_user_ids || [auth.user.user_id],
         );
         clearEventParticipantsStmt.run(recordId);
         for (const userId of participantIds) {
@@ -274,14 +275,14 @@ export const createViewRoutes = (deps) => {
           }
         }
 
-        const recurrenceRule = body.recurrence_rule || body.rule_json || nlpFields.recurrence_rule || nlpFields.rule_json;
+        const recurrenceRule = validated.recurrence_rule || validated.rule_json || nlpFields.recurrence_rule || nlpFields.rule_json;
         if (recurrenceRule) {
           insertRecordCapabilityStmt.run(recordId, 'recurring', timestamp);
           upsertRecurrenceStmt.run(recordId, toJson(recurrenceRule), timestamp);
         }
 
-        const reminders = Array.isArray(body.reminders)
-          ? body.reminders
+        const reminders = Array.isArray(validated.reminders)
+          ? validated.reminders
           : Array.isArray(nlpFields.reminders)
             ? nlpFields.reminders
             : [];

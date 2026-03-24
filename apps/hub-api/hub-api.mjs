@@ -25,6 +25,7 @@ import { createFileRoutes } from './routes/files.mjs';
 import { createNotificationRoutes } from './routes/notifications.mjs';
 import { createPaneRoutes } from './routes/panes.mjs';
 import { createProjectRoutes } from './routes/projects.mjs';
+import { createRecordRoutes } from './routes/records.mjs';
 import { createReminderRoutes } from './routes/reminders.mjs';
 import { createSearchRoutes } from './routes/search.mjs';
 import { createTaskRoutes } from './routes/tasks.mjs';
@@ -2421,6 +2422,7 @@ const projectRoutes = createProjectRoutes(routeDeps);
 const paneRoutes = createPaneRoutes(routeDeps);
 const docRoutes = createDocRoutes(routeDeps);
 const collectionRoutes = createCollectionRoutes(routeDeps);
+const recordRoutes = createRecordRoutes(routeDeps);
 const viewRoutes = createViewRoutes(routeDeps);
 const fileRoutes = createFileRoutes(routeDeps);
 const notificationRoutes = createNotificationRoutes(routeDeps);
@@ -2907,7 +2909,7 @@ const server = createServer(async (request, response) => {
 
     const projectRecordsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/records$/);
     if (projectRecordsMatch && request.method === 'POST') {
-      await collectionRoutes.createRecord({
+      await recordRoutes.createRecord({
         request,
         response,
         requestUrl,
@@ -2919,7 +2921,7 @@ const server = createServer(async (request, response) => {
 
     const projectRecordSearchMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/records\/search$/);
     if (projectRecordSearchMatch && request.method === 'GET') {
-      await collectionRoutes.searchProjectRecords({
+      await recordRoutes.searchProjectRecords({
         request,
         response,
         requestUrl,
@@ -2931,7 +2933,7 @@ const server = createServer(async (request, response) => {
 
     const recordConvertMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/convert$/);
     if (recordConvertMatch && request.method === 'POST') {
-      await collectionRoutes.convertRecord({
+      await recordRoutes.convertRecord({
         request,
         response,
         requestUrl,
@@ -2943,7 +2945,7 @@ const server = createServer(async (request, response) => {
 
     const recordSubtasksMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/subtasks$/);
     if (recordSubtasksMatch && request.method === 'GET') {
-      await collectionRoutes.listSubtasks({
+      await recordRoutes.listSubtasks({
         request,
         response,
         requestUrl,
@@ -2955,7 +2957,7 @@ const server = createServer(async (request, response) => {
 
     const recordItemMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)$/);
     if (recordItemMatch && request.method === 'PATCH') {
-      await collectionRoutes.updateRecord({
+      await recordRoutes.updateRecord({
         request,
         response,
         requestUrl,
@@ -2966,7 +2968,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (recordItemMatch && request.method === 'GET') {
-      await collectionRoutes.getRecord({
+      await recordRoutes.getRecord({
         request,
         response,
         requestUrl,
@@ -2978,7 +2980,7 @@ const server = createServer(async (request, response) => {
 
     const recordValuesMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/values$/);
     if (recordValuesMatch && request.method === 'POST') {
-      await collectionRoutes.updateRecordValues({
+      await recordRoutes.updateRecordValues({
         request,
         response,
         requestUrl,
@@ -2990,7 +2992,7 @@ const server = createServer(async (request, response) => {
 
     const recordRelationsMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/relations$/);
     if (recordRelationsMatch && request.method === 'POST') {
-      await collectionRoutes.createRecordRelation({
+      await recordRoutes.createRecordRelation({
         request,
         response,
         requestUrl,
@@ -3002,7 +3004,7 @@ const server = createServer(async (request, response) => {
 
     const relationItemMatch = pathMatch(pathname, /^\/api\/hub\/relations\/([^/]+)$/);
     if (relationItemMatch && request.method === 'DELETE') {
-      await collectionRoutes.deleteRelation({
+      await recordRoutes.deleteRelation({
         request,
         response,
         requestUrl,

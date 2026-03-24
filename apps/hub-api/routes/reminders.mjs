@@ -1,3 +1,5 @@
+import { validateCreateReminderRequest } from '../lib/validators.mjs';
+
 const elapsedMs = (startedAtMs) => Number((performance.now() - startedAtMs).toFixed(2));
 
 const parseJsonArray = (value, fallback = [], requestLog = null) => {
@@ -189,21 +191,19 @@ export const createReminderRoutes = (deps) => {
       return;
     }
 
-    const title = asText(body.title);
-    const remindAtRaw = asText(body.remind_at);
-    const remindAtDate = remindAtRaw ? new Date(remindAtRaw) : null;
-    const recurrenceJson = body.recurrence_json ? toJson(body.recurrence_json) : null;
-
-    if (!title) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'title is required.')));
+    let validated;
+    try {
+      validated = validateCreateReminderRequest(body);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid request body.';
+      request.log.warn('Reminder validation failed', { error: message });
+      send(response, jsonResponse(400, errorEnvelope('validation_error', message)));
       return;
     }
 
-    if (!remindAtDate || Number.isNaN(remindAtDate.getTime())) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'remind_at must be a valid ISO timestamp.')));
-      return;
-    }
-    const remindAt = remindAtDate.toISOString();
+    const title = validated.title;
+    const remindAt = validated.remind_at;
+    const recurrenceJson = validated.recurrence_json ? toJson(validated.recurrence_json) : null;
 
     const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
     if (!personalProject) {
@@ -274,7 +274,7 @@ export const createReminderRoutes = (deps) => {
             project_id: personalProject.project_id,
             remind_at: remindAt,
             channels: ['in_app'],
-            recurrence_json: body.recurrence_json ?? null,
+            recurrence_json: validated.recurrence_json ?? null,
             created_at: timestamp,
             fired_at: null,
             overdue: remindAt < timestamp,
