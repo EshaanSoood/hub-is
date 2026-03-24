@@ -51,7 +51,7 @@ export const ContextBar = ({
             onValueChange={onProjectFilterChange}
             options={projectOptions}
             ariaLabel="Filter daily brief by project"
-            triggerClassName="min-w-44"
+            triggerClassName="min-w-44 focus-visible:ring-1 focus-visible:ring-[color:var(--color-border-secondary)]"
           />
         </div>
 

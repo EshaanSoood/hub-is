@@ -92,6 +92,7 @@ export const DayStrip = ({
   const [now, setNow] = useState(() => new Date());
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const hasNoScheduledItems = events.length === 0 && tasks.length === 0 && reminders.length === 0;
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -274,90 +275,131 @@ export const DayStrip = ({
 
   return (
     <div role="region" aria-label="Day timeline" className="rounded-panel border border-border-muted bg-surface p-2">
-      <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div
-          ref={timelineRef}
-          className="relative h-[146px] min-w-full select-none"
-          style={{ width: `${widthPx}px` }}
-          onDragOver={(event) => {
-            if (!onDropFromTriage) {
-              return;
-            }
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'move';
-          }}
-          onDrop={handleDrop}
-        >
-          <div className="absolute inset-x-0 top-10 h-12 rounded-control border border-border-muted bg-surface-elevated/70" />
-          <div className="absolute bottom-7 left-0 right-0 border-t border-border-muted" />
+      {hasNoScheduledItems ? (
+        <div className="flex h-20 items-center justify-center rounded-control border border-border-muted bg-surface-elevated px-4 text-center">
+          <p className="text-[15px] italic text-text-secondary">
+            The day is your oyster. Or carrot. Or something… — Shakespeare
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div
-            aria-hidden="true"
-            className="absolute bottom-7 top-4 w-0.5 rounded-full bg-accent shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-accent)_40%,transparent)]"
-            style={{ left: `${nowPercent}%` }}
-          />
+            ref={timelineRef}
+            className="relative h-[146px] min-w-full select-none px-6"
+            style={{ width: `${widthPx}px` }}
+            onDragOver={(event) => {
+              if (!onDropFromTriage) {
+                return;
+              }
+              event.preventDefault();
+              event.dataTransfer.dropEffect = 'move';
+            }}
+            onDrop={handleDrop}
+          >
+            <div className="absolute inset-x-0 top-10 h-12 rounded-control border border-border-muted bg-surface-elevated/70" />
+            <div className="absolute bottom-7 left-0 right-0 border-t border-border-muted" />
+            <div
+              aria-hidden="true"
+              className="absolute bottom-7 top-4 w-0.5 rounded-full bg-accent shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-accent)_40%,transparent)]"
+              style={{ left: `${nowPercent}%` }}
+            />
 
-          {ticks.map((tick) => {
-            const left = percentForMs(tick.ms);
-            return (
-              <div key={tick.key} className="absolute bottom-0 -translate-x-1/2" style={{ left: `${left}%` }}>
-                <span
-                  className={`absolute bottom-7 left-1/2 -translate-x-1/2 ${tick.midnight ? 'h-5 w-0.5 bg-border-strong' : tick.major ? 'h-4 w-px bg-border-strong' : 'h-2.5 w-px bg-border-muted'}`}
-                  aria-hidden="true"
-                />
-                {tick.label ? <span className="text-[11px] text-muted">{tick.label}</span> : null}
-                {tick.midnight ? (
-                  <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-muted">{formatDateMarker(new Date(tick.ms))}</span>
-                ) : null}
-              </div>
-            );
-          })}
-
-          {timelineItems.map((item) => {
-            if (item.kind === 'event') {
-              const left = percentForMs(item.startMs);
-              const right = percentForMs(item.endMs);
-              const width = Math.max(0.9, right - left);
-              const inPast = item.endMs < now.getTime();
-              const clippedRight = item.endMs > range.endMs;
-              const startText = formatTimeLabel(new Date(item.startMs));
-              const endText = formatTimeLabel(new Date(item.endMs));
-
+            {ticks.map((tick) => {
+              const left = percentForMs(tick.ms);
               return (
-                <button
-                  key={item.id}
-                  ref={(node) => {
-                    itemRefs.current[item.id] = node;
-                  }}
-                  type="button"
-                  aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
-                  className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                    inPast
-                      ? 'border-primary/25 bg-primary/15 text-text-secondary'
-                      : 'border-primary/45 bg-primary/25 text-text'
-                  }`}
-                  style={{ left: `${left}%`, width: `${width}%` }}
-                  onClick={() => onOpenRecord(item.recordId)}
-                  onKeyDown={(event) => handleItemKeyDown(event, item.id)}
-                >
-                  <span className="block truncate">
-                    {item.title}
-                    {clippedRight ? ' →' : ''}
-                  </span>
-                </button>
+                <div key={tick.key} className="absolute bottom-0 -translate-x-1/2" style={{ left: `${left}%` }}>
+                  <span
+                    className={`absolute bottom-7 left-1/2 -translate-x-1/2 ${tick.midnight ? 'h-5 w-0.5 bg-border-strong' : tick.major ? 'h-4 w-px bg-border-strong' : 'h-2.5 w-px bg-border-muted'}`}
+                    aria-hidden="true"
+                  />
+                  {tick.label ? <span className="text-[11px] text-text-secondary">{tick.label}</span> : null}
+                  {tick.midnight ? (
+                    <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-text-secondary">{formatDateMarker(new Date(tick.ms))}</span>
+                  ) : null}
+                </div>
               );
-            }
+            })}
 
-            const timeMs = item.timeMs;
-            const lane = markerLaneById.get(item.id) ?? 0;
-            const markerTop = lane === 0 ? 22 : 86;
-            const labelTop = lane === 0 ? 2 : 104;
-            const left = percentForMs(timeMs);
-            const timeLabel = formatTimeLabel(new Date(timeMs));
+            {timelineItems.map((item) => {
+              if (item.kind === 'event') {
+                const left = percentForMs(item.startMs);
+                const right = percentForMs(item.endMs);
+                const width = Math.max(0.9, right - left);
+                const inPast = item.endMs < now.getTime();
+                const clippedRight = item.endMs > range.endMs;
+                const startText = formatTimeLabel(new Date(item.startMs));
+                const endText = formatTimeLabel(new Date(item.endMs));
 
-            if (item.kind === 'task') {
-              const complete = item.status === 'done' || item.status === 'cancelled';
-              const overdue = !complete && timeMs < now.getTime();
+                return (
+                  <button
+                    key={item.id}
+                    ref={(node) => {
+                      itemRefs.current[item.id] = node;
+                    }}
+                    type="button"
+                    aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
+                    className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                      inPast
+                        ? 'border-primary/25 bg-primary/15 text-text-secondary'
+                        : 'border-primary/45 bg-primary/25 text-text'
+                    }`}
+                    style={{ left: `${left}%`, width: `${width}%` }}
+                    onClick={() => onOpenRecord(item.recordId)}
+                    onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+                  >
+                    <span className="block truncate">
+                      {item.title}
+                      {clippedRight ? ' →' : ''}
+                    </span>
+                  </button>
+                );
+              }
 
+              const timeMs = item.timeMs;
+              const lane = markerLaneById.get(item.id) ?? 0;
+              const markerTop = lane === 0 ? 22 : 86;
+              const labelTop = lane === 0 ? 2 : 104;
+              const left = percentForMs(timeMs);
+              const timeLabel = formatTimeLabel(new Date(timeMs));
+
+              if (item.kind === 'task') {
+                const complete = item.status === 'done' || item.status === 'cancelled';
+                const overdue = !complete && timeMs < now.getTime();
+
+                return (
+                  <div key={item.id} className="absolute -translate-x-1/2" style={{ left: `${left}%` }}>
+                    <button
+                      ref={(node) => {
+                        itemRefs.current[item.id] = node;
+                      }}
+                      type="button"
+                      aria-label={`Task: ${item.title} at ${timeLabel}`}
+                      className={`absolute h-3.5 w-3.5 rounded-full border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                        complete
+                          ? 'border-success bg-success/15 text-success'
+                          : overdue
+                            ? 'border-danger bg-danger/15 text-danger'
+                            : 'border-primary bg-surface text-primary'
+                      }`}
+                      style={{ top: `${markerTop}px` }}
+                      onClick={() => onOpenRecord(item.recordId)}
+                      onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+                    >
+                      {complete ? <span className="absolute inset-0 grid place-items-center text-[9px] leading-none">✓</span> : null}
+                    </button>
+                    <span
+                      className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-muted"
+                      style={{ left: '50%', top: `${labelTop}px` }}
+                      title={item.title}
+                    >
+                      {item.title}
+                    </span>
+                  </div>
+                );
+              }
+
+              const pastUndismissed = !item.dismissed && timeMs < now.getTime();
+              const settledDismissed = item.dismissed && timeMs < now.getTime();
               return (
                 <div key={item.id} className="absolute -translate-x-1/2" style={{ left: `${left}%` }}>
                   <button
@@ -365,20 +407,18 @@ export const DayStrip = ({
                       itemRefs.current[item.id] = node;
                     }}
                     type="button"
-                    aria-label={`Task: ${item.title} at ${timeLabel}`}
-                    className={`absolute h-3.5 w-3.5 rounded-full border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                      complete
-                        ? 'border-success bg-success/15 text-success'
-                        : overdue
-                          ? 'border-danger bg-danger/15 text-danger'
-                          : 'border-primary bg-surface text-primary'
+                    aria-label={`Reminder: ${item.title} at ${timeLabel}`}
+                    className={`absolute h-3.5 w-3.5 rotate-45 border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                      settledDismissed
+                        ? 'border-border-strong bg-surface-elevated'
+                        : pastUndismissed
+                          ? 'border-danger bg-danger/15'
+                          : 'border-warning bg-warning/15'
                     }`}
                     style={{ top: `${markerTop}px` }}
                     onClick={() => onOpenRecord(item.recordId)}
                     onKeyDown={(event) => handleItemKeyDown(event, item.id)}
-                  >
-                    {complete ? <span className="absolute inset-0 grid place-items-center text-[9px] leading-none">✓</span> : null}
-                  </button>
+                  />
                   <span
                     className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-muted"
                     style={{ left: '50%', top: `${labelTop}px` }}
@@ -388,41 +428,10 @@ export const DayStrip = ({
                   </span>
                 </div>
               );
-            }
-
-            const pastUndismissed = !item.dismissed && timeMs < now.getTime();
-            const settledDismissed = item.dismissed && timeMs < now.getTime();
-            return (
-              <div key={item.id} className="absolute -translate-x-1/2" style={{ left: `${left}%` }}>
-                <button
-                  ref={(node) => {
-                    itemRefs.current[item.id] = node;
-                  }}
-                  type="button"
-                  aria-label={`Reminder: ${item.title} at ${timeLabel}`}
-                  className={`absolute h-3.5 w-3.5 rotate-45 border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                    settledDismissed
-                      ? 'border-border-strong bg-surface-elevated'
-                      : pastUndismissed
-                        ? 'border-danger bg-danger/15'
-                        : 'border-warning bg-warning/15'
-                  }`}
-                  style={{ top: `${markerTop}px` }}
-                  onClick={() => onOpenRecord(item.recordId)}
-                  onKeyDown={(event) => handleItemKeyDown(event, item.id)}
-                />
-                <span
-                  className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-muted"
-                  style={{ left: '50%', top: `${labelTop}px` }}
-                  title={item.title}
-                >
-                  {item.title}
-                </span>
-              </div>
-            );
-          })}
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
