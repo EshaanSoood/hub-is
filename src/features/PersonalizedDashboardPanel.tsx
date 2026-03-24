@@ -1,24 +1,41 @@
-import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAuthz } from '../context/AuthzContext';
-import { CalendarModuleSkin } from '../components/project-space/CalendarModuleSkin';
-import { RemindersModuleSkin } from '../components/project-space/RemindersModuleSkin';
-import { usePersonalCalendarRuntime } from '../hooks/usePersonalCalendarRuntime';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { dashboardCardRegistry } from '../lib/dashboardCards';
+import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import type { ProjectRecord } from '../types/domain';
-import { createEventFromNlp } from '../services/hub/records';
+import { updateRecord } from '../services/hub/records';
+import { dismissReminder, updateReminder } from '../services/hub/reminders';
 import type { EventSummary, HubHomeResponse, TaskSummary } from '../shared/api-types';
-import { Chip, FilterChip, Popover, PopoverContent, PopoverTrigger, Select, Tabs, TabsContent } from '../components/primitives';
+import {
+  Chip,
+  FilterChip,
+  Icon,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Select,
+} from '../components/primitives';
+import { ContextBar } from '../components/hub-home/ContextBar';
+import { DayStrip } from '../components/hub-home/DayStrip';
+import { TriagePanel } from '../components/hub-home/TriagePanel';
+import type {
+  DayStripEventItem,
+  DayStripReminderItem,
+  DayStripTaskItem,
+  TimelineTypeFilter,
+  TriageDragPayload,
+  TriageReminderItem,
+  TriageTaskItem,
+} from '../components/hub-home/types';
 
 type HubHomeData = HubHomeResponse;
-type HubCapture = HubHomeData['captures'][number];
 type HubTask = TaskSummary;
 type HubEvent = EventSummary;
 type HubDashboardView = 'daily-brief' | 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
-type DailyBucket = 'today' | 'next-7-days' | 'later';
 
 type HubDashboardItem =
   | {
@@ -65,21 +82,9 @@ const streamFilterLabels: Record<StreamTypeFilter, string> = {
   events: 'Events',
 };
 
-const bucketLabels: Record<DailyBucket, string> = {
-  today: 'Today',
-  'next-7-days': 'Next 7 Days',
-  later: 'Later',
-};
-
 const startOfDay = (date: Date): Date => {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
-  return next;
-};
-
-const endOfDay = (date: Date): Date => {
-  const next = new Date(date);
-  next.setHours(23, 59, 59, 999);
   return next;
 };
 
@@ -89,6 +94,19 @@ const parseIso = (value: string | null | undefined): Date | null => {
   }
   const parsed = new Date(value);
   return Number.isFinite(parsed.getTime()) ? parsed : null;
+};
+
+const isSameCalendarDay = (left: Date, right: Date): boolean =>
+  startOfDay(left).getTime() === startOfDay(right).getTime();
+
+const isMidnightLocal = (date: Date): boolean =>
+  date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0 && date.getMilliseconds() === 0;
+
+const tomorrowAtNineIso = (): string => {
+  const next = new Date();
+  next.setDate(next.getDate() + 1);
+  next.setHours(9, 0, 0, 0);
+  return next.toISOString();
 };
 
 const formatRelativeDateTime = (value: string | null): string => {
@@ -109,14 +127,6 @@ const formatRelativeDateTime = (value: string | null): string => {
   }
   if (dayDelta < 0) {
     return `Overdue ${parsed.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
-  }
-  return parsed.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-};
-
-const formatCreatedAt = (value: string | null): string => {
-  const parsed = parseIso(value);
-  if (!parsed) {
-    return 'Unknown date';
   }
   return parsed.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 };
@@ -170,23 +180,6 @@ const buildEventItems = (events: HubEvent[]): HubDashboardItem[] =>
     badgeLabel: 'Event',
     explicitHref: buildEventDestinationHref(event),
   }));
-
-const toDailyBucket = (item: HubDashboardItem): DailyBucket => {
-  const due = parseIso(item.dueAt);
-  if (!due) {
-    return 'today';
-  }
-  const now = new Date();
-  if (due <= endOfDay(now)) {
-    return 'today';
-  }
-  const nextWeek = startOfDay(now);
-  nextWeek.setDate(nextWeek.getDate() + 7);
-  if (due <= endOfDay(nextWeek)) {
-    return 'next-7-days';
-  }
-  return 'later';
-};
 
 const projectDotClassNames = [
   'bg-[color:var(--color-primary)]',
@@ -253,12 +246,11 @@ const ItemRow = ({
     );
   }
 
-  const recordId = item.recordId;
   return (
     <div className="flex flex-wrap items-start gap-2">
       <button
         type="button"
-        onClick={() => onOpen(recordId)}
+        onClick={() => onOpen(item.recordId)}
         className={`min-w-0 flex-1 rounded-panel border p-3 text-left ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring`}
       >
         {content}
@@ -269,102 +261,6 @@ const ItemRow = ({
       >
         Go to project
       </a>
-    </div>
-  );
-};
-
-const DailyBriefView = ({
-  captures,
-  items,
-  onOpenRecord,
-}: {
-  captures: HubCapture[];
-  items: HubDashboardItem[];
-  onOpenRecord: (recordId: string) => void;
-}) => {
-  const grouped = useMemo(() => {
-    const buckets: Record<DailyBucket, HubDashboardItem[]> = {
-      today: [],
-      'next-7-days': [],
-      later: [],
-    };
-    for (const item of items) {
-      const bucket = toDailyBucket(item);
-      buckets[bucket].push(item);
-    }
-    return {
-      today: sortByDueThenUpdated(buckets.today),
-      'next-7-days': sortByDueThenUpdated(buckets['next-7-days']),
-      later: sortByDueThenUpdated(buckets.later),
-    };
-  }, [items]);
-
-  return (
-    <div className="space-y-6">
-      <section className="space-y-3">
-        <div className="sticky top-0 z-10 rounded-panel border border-border-muted bg-surface-elevated px-3 py-2">
-          <h3 className="text-sm font-semibold text-primary">Inbox</h3>
-        </div>
-        {captures.length === 0 ? (
-          <p className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted">
-            Nothing uncategorized.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {captures.map((capture) => (
-              <button
-                key={capture.record_id}
-                type="button"
-                onClick={() => onOpenRecord(capture.record_id)}
-                className="flex w-full items-center justify-between gap-3 rounded-panel border border-border-muted bg-surface px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              >
-                <span className="min-w-0 truncate text-sm font-semibold text-text">{capture.title || 'Untitled record'}</span>
-                <span className="shrink-0 text-xs text-muted">{formatCreatedAt(capture.created_at)}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {(['today', 'next-7-days', 'later'] as DailyBucket[]).map((bucket) => {
-        if (bucket === 'later' && grouped.later.length === 0) {
-          return null;
-        }
-        const bucketItems = grouped[bucket];
-        return (
-          <section key={bucket} className="space-y-3">
-            <div className="sticky top-0 z-10 rounded-panel border border-border-muted bg-surface-elevated px-3 py-2">
-              <h3 className="text-sm font-semibold text-primary">{bucketLabels[bucket]}</h3>
-            </div>
-            {bucketItems.length === 0 ? (
-              <p className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted">
-                {bucket === 'today' ? 'Nothing due today.' : 'Clear week ahead.'}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {(['task', 'event'] as HubDashboardItem['kind'][]).map((kind) => {
-                  const kindItems = bucketItems.filter((item) => item.kind === kind);
-                  if (kindItems.length === 0) {
-                    return null;
-                  }
-                  return (
-                    <div key={kind} className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                        {kind === 'task' ? 'Tasks' : 'Events'}
-                      </p>
-                      <div className="space-y-2">
-                        {kindItems.map((item) => (
-                          <ItemRow key={item.id} item={item} onOpen={onOpenRecord} />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        );
-      })}
     </div>
   );
 };
@@ -520,6 +416,18 @@ const StreamView = ({
   );
 };
 
+const greetingForHour = (hour: number): string => {
+  if (hour < 12) {
+    return 'Good morning';
+  }
+  if (hour < 18) {
+    return 'Good afternoon';
+  }
+  return 'Good evening';
+};
+
+const isTaskComplete = (status: HubTask['task_state']['status']): boolean => status === 'done' || status === 'cancelled';
+
 export const PersonalizedDashboardPanel = ({
   homeData,
   homeLoading,
@@ -536,22 +444,18 @@ export const PersonalizedDashboardPanel = ({
   onViewChange?: (view: HubDashboardView) => void;
 }) => {
   const { accessToken, canGlobal, sessionSummary } = useAuthz();
+  const remindersRuntime = useRemindersRuntime(accessToken ?? null);
+
   const [activeView, setActiveView] = useState<HubDashboardView>('daily-brief');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [activeViewOptionIndex, setActiveViewOptionIndex] = useState(0);
+  const [projectFilter, setProjectFilter] = useState<string>('all');
+  const [timelineTypeFilter, setTimelineTypeFilter] = useState<TimelineTypeFilter>('all');
+  const [triageOpen, setTriageOpen] = useState(false);
+
   const viewListboxId = useId();
   const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const viewListboxRef = useRef<HTMLDivElement | null>(null);
-  const remindersRuntime = useRemindersRuntime(accessToken ?? null);
-  const {
-    calendarEvents,
-    calendarError,
-    calendarLoading,
-    calendarMode,
-    refreshCalendar,
-    setCalendarMode,
-  } = usePersonalCalendarRuntime(accessToken ?? null);
-  const [calendarCreateProjectId, setCalendarCreateProjectId] = useState(() => projects[0]?.id || '');
 
   const visibleDashboardCards = useMemo(
     () =>
@@ -586,19 +490,6 @@ export const PersonalizedDashboardPanel = ({
     () => (hasHubView ? VIEW_ORDER : (['daily-brief'] as HubDashboardView[])),
     [hasHubView],
   );
-  const calendarProjectOptions = useMemo(
-    () => projects.map((project) => ({ value: project.id, label: project.name })),
-    [projects],
-  );
-  const selectedCalendarCreateProjectId = useMemo(() => {
-    if (projects.length === 0) {
-      return '';
-    }
-    if (projects.some((project) => project.id === calendarCreateProjectId)) {
-      return calendarCreateProjectId;
-    }
-    return projects[0]?.id || '';
-  }, [calendarCreateProjectId, projects]);
 
   const selectedView = availableViewIds.includes(activeView) ? activeView : availableViewIds[0];
 
@@ -610,11 +501,9 @@ export const PersonalizedDashboardPanel = ({
     if (!viewMenuOpen) {
       return;
     }
-
     const frameId = window.requestAnimationFrame(() => {
       viewListboxRef.current?.focus();
     });
-
     return () => {
       window.cancelAnimationFrame(frameId);
     };
@@ -681,6 +570,234 @@ export const PersonalizedDashboardPanel = ({
     }
   };
 
+  const projectNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const project of projects) {
+      map.set(project.id, project.name);
+    }
+    return map;
+  }, [projects]);
+
+  const projectOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All projects' },
+      ...projects.map((project) => ({ value: project.id, label: project.name })),
+    ],
+    [projects],
+  );
+  const activeProjectFilter = projectFilter === 'all' || projects.some((project) => project.id === projectFilter)
+    ? projectFilter
+    : 'all';
+
+  const dailyData = useMemo(() => {
+    const now = new Date();
+    const todayStart = startOfDay(now);
+
+    const dayEvents: DayStripEventItem[] = homeData.events.flatMap((event) => {
+      const startAt = parseIso(event.event_state.start_dt);
+      const endAt = parseIso(event.event_state.end_dt);
+      if (!startAt || !endAt || !isSameCalendarDay(startAt, now)) {
+        return [];
+      }
+      return [{
+        id: `event:${event.record_id}`,
+        recordId: event.record_id,
+        projectId: event.project_id,
+        projectName: event.project_name,
+        title: event.title,
+        startAtIso: startAt.toISOString(),
+        endAtIso: endAt.toISOString(),
+      }];
+    });
+
+    const timedTasks: DayStripTaskItem[] = [];
+    const overdueTasks: TriageTaskItem[] = [];
+    const untimedTasks: TriageTaskItem[] = [];
+
+    for (const task of homeData.tasks) {
+      const dueAt = parseIso(task.task_state.due_at);
+      const complete = isTaskComplete(task.task_state.status);
+      if (dueAt && dueAt < todayStart && !complete) {
+        overdueTasks.push({
+          id: `triage-overdue:${task.record_id}`,
+          recordId: task.record_id,
+          projectId: task.project_id,
+          projectName: task.project_name,
+          title: task.title,
+          dueAtIso: dueAt.toISOString(),
+          priority: task.task_state.priority,
+        });
+      }
+
+      if (!dueAt || !isSameCalendarDay(dueAt, now)) {
+        continue;
+      }
+
+      if (isMidnightLocal(dueAt)) {
+        untimedTasks.push({
+          id: `triage-untimed:${task.record_id}`,
+          recordId: task.record_id,
+          projectId: task.project_id,
+          projectName: task.project_name,
+          title: task.title,
+          dueAtIso: dueAt.toISOString(),
+          priority: task.task_state.priority,
+        });
+      } else {
+        timedTasks.push({
+          id: `task:${task.record_id}`,
+          recordId: task.record_id,
+          projectId: task.project_id,
+          projectName: task.project_name,
+          title: task.title,
+          dueAtIso: dueAt.toISOString(),
+          status: task.task_state.status,
+        });
+      }
+    }
+
+    const timedReminders: DayStripReminderItem[] = [];
+    const missedReminders: TriageReminderItem[] = [];
+
+    for (const reminder of remindersRuntime.reminders) {
+      const remindAt = parseIso(reminder.remind_at);
+      if (!remindAt) {
+        continue;
+      }
+      const projectName = projectNameById.get(reminder.project_id) || null;
+      if (isSameCalendarDay(remindAt, now)) {
+        timedReminders.push({
+          id: `reminder:${reminder.reminder_id}`,
+          reminderId: reminder.reminder_id,
+          recordId: reminder.record_id,
+          projectId: reminder.project_id,
+          projectName,
+          title: reminder.record_title || 'Untitled reminder',
+          remindAtIso: remindAt.toISOString(),
+          dismissed: false,
+        });
+      }
+      if (remindAt < now) {
+        missedReminders.push({
+          id: `triage-reminder:${reminder.reminder_id}`,
+          reminderId: reminder.reminder_id,
+          recordId: reminder.record_id,
+          projectId: reminder.project_id,
+          projectName,
+          title: reminder.record_title || 'Untitled reminder',
+          remindAtIso: remindAt.toISOString(),
+        });
+      }
+    }
+
+    return {
+      dayEvents,
+      timedTasks,
+      untimedTasks,
+      overdueTasks,
+      timedReminders,
+      missedReminders,
+    };
+  }, [homeData.events, homeData.tasks, projectNameById, remindersRuntime.reminders]);
+
+  const filteredDailyData = useMemo(() => {
+    const matchesProject = (projectId: string | null): boolean => activeProjectFilter === 'all' || projectId === activeProjectFilter;
+
+    return {
+      dayEvents: dailyData.dayEvents.filter((event) => matchesProject(event.projectId)),
+      timedTasks: dailyData.timedTasks.filter((task) => matchesProject(task.projectId)),
+      untimedTasks: dailyData.untimedTasks.filter((task) => matchesProject(task.projectId)),
+      overdueTasks: dailyData.overdueTasks.filter((task) => matchesProject(task.projectId)),
+      timedReminders: dailyData.timedReminders.filter((reminder) => matchesProject(reminder.projectId)),
+      missedReminders: dailyData.missedReminders.filter((reminder) => matchesProject(reminder.projectId)),
+    };
+  }, [activeProjectFilter, dailyData]);
+
+  const dayCounts = useMemo(() => {
+    const events = filteredDailyData.dayEvents.length;
+    const tasks = filteredDailyData.timedTasks.length + filteredDailyData.untimedTasks.length;
+    const reminders = filteredDailyData.timedReminders.length;
+    const triage = filteredDailyData.overdueTasks.length + filteredDailyData.untimedTasks.length + filteredDailyData.missedReminders.length;
+    return { events, tasks, reminders, triage };
+  }, [filteredDailyData]);
+
+  const totalPipCounts = useMemo(() => {
+    const now = new Date();
+    const events = homeData.events.filter((event) => {
+      const startAt = parseIso(event.event_state.start_dt);
+      return startAt ? isSameCalendarDay(startAt, now) : false;
+    }).length;
+    const tasks = homeData.tasks.filter((task) => {
+      const dueAt = parseIso(task.task_state.due_at);
+      return dueAt ? isSameCalendarDay(dueAt, now) : false;
+    }).length;
+    const reminders = remindersRuntime.reminders.filter((reminder) => {
+      const remindAt = parseIso(reminder.remind_at);
+      return remindAt ? isSameCalendarDay(remindAt, now) : false;
+    }).length;
+    return { events, tasks, reminders };
+  }, [homeData.events, homeData.tasks, remindersRuntime.reminders]);
+
+  const refreshAfterMutation = useCallback(async () => {
+    requestHubHomeRefresh();
+    await remindersRuntime.refresh();
+  }, [remindersRuntime]);
+
+  const onCompleteTask = useCallback(async (recordId: string) => {
+    if (!accessToken) {
+      return;
+    }
+    await updateRecord(accessToken, recordId, { task_state: { status: 'done' } });
+    await refreshAfterMutation();
+  }, [accessToken, refreshAfterMutation]);
+
+  const onRescheduleTask = useCallback(async (recordId: string, dueAtIso: string) => {
+    if (!accessToken) {
+      return;
+    }
+    await updateRecord(accessToken, recordId, { task_state: { due_at: dueAtIso } });
+    await refreshAfterMutation();
+  }, [accessToken, refreshAfterMutation]);
+
+  const onSnoozeTask = useCallback(async (recordId: string) => {
+    if (!accessToken) {
+      return;
+    }
+    await updateRecord(accessToken, recordId, { task_state: { due_at: tomorrowAtNineIso() } });
+    await refreshAfterMutation();
+  }, [accessToken, refreshAfterMutation]);
+
+  const onDismissReminder = useCallback(async (reminderId: string) => {
+    if (!accessToken) {
+      return;
+    }
+    await dismissReminder(accessToken, reminderId);
+    await refreshAfterMutation();
+  }, [accessToken, refreshAfterMutation]);
+
+  const onSnoozeReminder = useCallback(async (reminderId: string, remindAtIso: string) => {
+    if (!accessToken) {
+      return;
+    }
+    await updateReminder(accessToken, reminderId, { remind_at: remindAtIso });
+    await refreshAfterMutation();
+  }, [accessToken, refreshAfterMutation]);
+
+  const onDropFromTriage = useCallback(async (payload: TriageDragPayload, assignedAt: Date) => {
+    if (!accessToken) {
+      return;
+    }
+    const assignedAtIso = assignedAt.toISOString();
+    if (payload.kind === 'task') {
+      await updateRecord(accessToken, payload.recordId, { task_state: { due_at: assignedAtIso } });
+    } else {
+      await updateReminder(accessToken, payload.reminderId, { remind_at: assignedAtIso });
+    }
+    await refreshAfterMutation();
+  }, [accessToken, refreshAfterMutation]);
+
+  const greeting = greetingForHour(new Date().getHours());
+
   return (
     <section className="rounded-panel border border-subtle bg-elevated p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -694,7 +811,65 @@ export const PersonalizedDashboardPanel = ({
         </p>
       ) : null}
 
-      <Tabs value={selectedView} onValueChange={(value) => setActiveView(value as HubDashboardView)} className="mt-4">
+      <div className="mt-4 space-y-3">
+        <section className="rounded-panel border border-border-muted bg-surface px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-text">{greeting}</p>
+            <div className="flex items-center gap-2 text-xs text-muted" aria-label="Today counts">
+              <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
+                <Icon name="calendar" className="text-[13px]" />
+                <span>{totalPipCounts.events}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
+                <Icon name="tasks" className="text-[13px]" />
+                <span>{totalPipCounts.tasks}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
+                <Icon name="reminders" className="text-[13px]" />
+                <span>{totalPipCounts.reminders}</span>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <DayStrip
+          events={filteredDailyData.dayEvents}
+          tasks={filteredDailyData.timedTasks}
+          reminders={filteredDailyData.timedReminders}
+          typeFilter={timelineTypeFilter}
+          onOpenRecord={onOpenRecord}
+          onDropFromTriage={onDropFromTriage}
+        />
+
+        <ContextBar
+          projectFilter={activeProjectFilter}
+          projectOptions={projectOptions}
+          onProjectFilterChange={setProjectFilter}
+          eventCount={dayCounts.events}
+          taskCount={dayCounts.tasks}
+          reminderCount={dayCounts.reminders}
+          triageCount={dayCounts.triage}
+          timelineTypeFilter={timelineTypeFilter}
+          onToggleTimelineType={(type) => {
+            setTimelineTypeFilter((current) => (current === type ? 'all' : type));
+          }}
+          onToggleTriagePanel={() => setTriageOpen((current) => !current)}
+          triageOpen={triageOpen}
+        />
+
+        <TriagePanel
+          open={triageOpen}
+          overdueTasks={filteredDailyData.overdueTasks}
+          untimedTasks={filteredDailyData.untimedTasks}
+          missedReminders={filteredDailyData.missedReminders}
+          onCompleteTask={onCompleteTask}
+          onRescheduleTask={onRescheduleTask}
+          onSnoozeTask={onSnoozeTask}
+          onAssignTaskTime={onRescheduleTask}
+          onDismissReminder={onDismissReminder}
+          onSnoozeReminder={onSnoozeReminder}
+        />
+
         <Popover open={viewMenuOpen} onOpenChange={handleViewMenuOpenChange}>
           <PopoverTrigger asChild>
             <button
@@ -711,7 +886,7 @@ export const PersonalizedDashboardPanel = ({
               </span>
             </button>
           </PopoverTrigger>
-        <PopoverContent
+          <PopoverContent
             align="start"
             className="w-56 border border-border-muted bg-surface p-1.5"
             onOpenAutoFocus={(event) => {
@@ -769,74 +944,9 @@ export const PersonalizedDashboardPanel = ({
           </PopoverContent>
         </Popover>
 
-        <TabsContent value="daily-brief" className="mt-4">
-          <DailyBriefView captures={homeData.captures} items={items} onOpenRecord={onOpenRecord} />
-        </TabsContent>
-        <TabsContent value="project-lens" className="mt-4">
-          <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} />
-        </TabsContent>
-        <TabsContent value="stream" className="mt-4">
-          <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} />
-        </TabsContent>
-      </Tabs>
-
-      <div className="mt-4">
-        <RemindersModuleSkin
-          reminders={remindersRuntime.reminders}
-          loading={remindersRuntime.loading}
-          error={remindersRuntime.error}
-          onDismiss={remindersRuntime.dismiss}
-          onCreate={remindersRuntime.create}
-          sizeTier="M"
-        />
+        {selectedView === 'project-lens' ? <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
+        {selectedView === 'stream' ? <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
       </div>
-
-      <section className="mt-4 space-y-3" aria-labelledby="personal-dashboard-calendar-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 id="personal-dashboard-calendar-heading" className="text-sm font-semibold text-text">
-            Calendar
-          </h3>
-          {calendarProjectOptions.length > 0 ? (
-            <Select
-              value={selectedCalendarCreateProjectId}
-              onValueChange={setCalendarCreateProjectId}
-              options={calendarProjectOptions}
-              ariaLabel="Select project for new personal calendar events"
-              triggerClassName="min-w-44"
-            />
-          ) : null}
-        </div>
-        {calendarError ? (
-          <div className="rounded-panel border border-danger/30 bg-danger/5 p-4" role="alert">
-            <p className="text-sm text-danger">{calendarError}</p>
-            <button
-              type="button"
-              onClick={() => {
-                void refreshCalendar();
-              }}
-              className="mt-3 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <CalendarModuleSkin
-            events={calendarEvents}
-            loading={calendarLoading}
-            scope={calendarMode}
-            onScopeChange={setCalendarMode}
-            onOpenRecord={onOpenRecord}
-            onCreateEvent={
-              accessToken && selectedCalendarCreateProjectId
-                ? async (payload) => {
-                    await createEventFromNlp(accessToken, selectedCalendarCreateProjectId, payload);
-                    await refreshCalendar();
-                  }
-                : undefined
-            }
-          />
-        )}
-      </section>
     </section>
   );
 };

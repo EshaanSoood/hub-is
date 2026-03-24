@@ -1,0 +1,428 @@
+import { type DragEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  DayStripEventItem,
+  DayStripReminderItem,
+  DayStripTaskItem,
+  TimelineTypeFilter,
+  TriageDragPayload,
+} from './types';
+import { HUB_TRIAGE_DRAG_MIME } from './types';
+
+const HOUR_MS = 60 * 60 * 1000;
+
+const parseIso = (value: string): Date | null => {
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed : null;
+};
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+const formatHourLabel = (date: Date): string => {
+  const hour = date.getHours();
+  const suffix = hour >= 12 ? 'p' : 'a';
+  const normalized = hour % 12 === 0 ? 12 : hour % 12;
+  return `${normalized}${suffix}`;
+};
+
+const formatTimeLabel = (date: Date): string =>
+  date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+const formatDateMarker = (date: Date): string =>
+  date.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+
+type TimelineEvent = {
+  id: string;
+  kind: 'event';
+  recordId: string;
+  title: string;
+  startMs: number;
+  endMs: number;
+};
+
+type TimelineTask = {
+  id: string;
+  kind: 'task';
+  recordId: string;
+  title: string;
+  timeMs: number;
+  status: DayStripTaskItem['status'];
+};
+
+type TimelineReminder = {
+  id: string;
+  kind: 'reminder';
+  reminderId: string;
+  recordId: string;
+  title: string;
+  timeMs: number;
+  dismissed: boolean;
+};
+
+type TimelineItem = TimelineEvent | TimelineTask | TimelineReminder;
+
+const isValidDragPayload = (value: unknown): value is TriageDragPayload => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  if (candidate.kind === 'task') {
+    return typeof candidate.recordId === 'string' && candidate.recordId.length > 0;
+  }
+  if (candidate.kind === 'reminder') {
+    return typeof candidate.reminderId === 'string' && candidate.reminderId.length > 0;
+  }
+  return false;
+};
+
+export const DayStrip = ({
+  events,
+  tasks,
+  reminders,
+  typeFilter,
+  onOpenRecord,
+  onDropFromTriage,
+}: {
+  events: DayStripEventItem[];
+  tasks: DayStripTaskItem[];
+  reminders: DayStripReminderItem[];
+  typeFilter: TimelineTypeFilter;
+  onOpenRecord: (recordId: string) => void;
+  onDropFromTriage?: (payload: TriageDragPayload, assignedAt: Date) => void | Promise<void>;
+}) => {
+  const [now, setNow] = useState(() => new Date());
+  const timelineRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const timelineItems = useMemo(() => {
+    const next: TimelineItem[] = [];
+
+    if (typeFilter === 'all' || typeFilter === 'events') {
+      for (const event of events) {
+        const start = parseIso(event.startAtIso);
+        const end = parseIso(event.endAtIso);
+        if (!start || !end) {
+          continue;
+        }
+        next.push({
+          id: event.id,
+          kind: 'event',
+          recordId: event.recordId,
+          title: event.title,
+          startMs: start.getTime(),
+          endMs: end.getTime(),
+        });
+      }
+    }
+
+    if (typeFilter === 'all' || typeFilter === 'tasks') {
+      for (const task of tasks) {
+        const due = parseIso(task.dueAtIso);
+        if (!due) {
+          continue;
+        }
+        next.push({
+          id: task.id,
+          kind: 'task',
+          recordId: task.recordId,
+          title: task.title,
+          timeMs: due.getTime(),
+          status: task.status,
+        });
+      }
+    }
+
+    if (typeFilter === 'all' || typeFilter === 'reminders') {
+      for (const reminder of reminders) {
+        const remindAt = parseIso(reminder.remindAtIso);
+        if (!remindAt) {
+          continue;
+        }
+        next.push({
+          id: reminder.id,
+          kind: 'reminder',
+          reminderId: reminder.reminderId,
+          recordId: reminder.recordId,
+          title: reminder.title,
+          timeMs: remindAt.getTime(),
+          dismissed: reminder.dismissed,
+        });
+      }
+    }
+
+    return next.sort((left, right) => {
+      const leftAnchor = left.kind === 'event' ? left.startMs : left.timeMs;
+      const rightAnchor = right.kind === 'event' ? right.startMs : right.timeMs;
+      if (leftAnchor !== rightAnchor) {
+        return leftAnchor - rightAnchor;
+      }
+      return left.id.localeCompare(right.id);
+    });
+  }, [events, reminders, tasks, typeFilter]);
+
+  const range = useMemo(() => {
+    const nowMs = now.getTime();
+    const defaultStart = nowMs;
+    const defaultEnd = nowMs + 12 * HOUR_MS;
+    if (timelineItems.length === 0) {
+      return { startMs: defaultStart, endMs: defaultEnd };
+    }
+
+    const earliest = timelineItems.reduce((acc, item) => {
+      const next = item.kind === 'event' ? item.startMs : item.timeMs;
+      return Math.min(acc, next);
+    }, Number.POSITIVE_INFINITY);
+
+    const latest = timelineItems.reduce((acc, item) => {
+      const next = item.kind === 'event' ? item.endMs : item.timeMs;
+      return Math.max(acc, next);
+    }, Number.NEGATIVE_INFINITY);
+
+    const startMs = earliest < nowMs ? Math.min(defaultStart, earliest - HOUR_MS) : defaultStart;
+    const endMs = latest > defaultEnd ? latest + HOUR_MS : defaultEnd;
+    return { startMs, endMs };
+  }, [now, timelineItems]);
+
+  const totalMs = Math.max(HOUR_MS, range.endMs - range.startMs);
+  const nowPercent = clamp(((now.getTime() - range.startMs) / totalMs) * 100, 0, 100);
+  const spanHours = totalMs / HOUR_MS;
+  const widthPx = Math.max(720, Math.ceil(spanHours * 90));
+
+  const ticks = useMemo(() => {
+    const first = new Date(range.startMs);
+    first.setMinutes(0, 0, 0);
+    if (first.getTime() < range.startMs) {
+      first.setHours(first.getHours() + 1);
+    }
+    const next: Array<{ key: string; ms: number; major: boolean; midnight: boolean; label: string }> = [];
+    for (let current = new Date(first); current.getTime() <= range.endMs; current.setHours(current.getHours() + 1)) {
+      const ms = current.getTime();
+      const major = current.getHours() % 3 === 0;
+      next.push({
+        key: current.toISOString(),
+        ms,
+        major,
+        midnight: current.getHours() === 0,
+        label: major ? formatHourLabel(current) : '',
+      });
+    }
+    return next;
+  }, [range.endMs, range.startMs]);
+
+  const markerLaneById = useMemo(() => {
+    const markers = timelineItems.filter((item) => item.kind !== 'event');
+    return new Map(markers.map((item, index) => [item.id, index % 2]));
+  }, [timelineItems]);
+
+  const orderedIds = useMemo(() => timelineItems.map((item) => item.id), [timelineItems]);
+  const orderedIdIndex = useMemo(() => new Map(orderedIds.map((id, index) => [id, index])), [orderedIds]);
+
+  const percentForMs = (ms: number): number => clamp(((ms - range.startMs) / totalMs) * 100, 0, 100);
+
+  const handleItemKeyDown = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      return;
+    }
+    event.preventDefault();
+    const currentIndex = orderedIdIndex.get(id);
+    if (typeof currentIndex !== 'number') {
+      return;
+    }
+    const nextIndex = event.key === 'ArrowLeft' ? currentIndex - 1 : currentIndex + 1;
+    if (nextIndex < 0 || nextIndex >= orderedIds.length) {
+      return;
+    }
+    const targetId = orderedIds[nextIndex];
+    if (!targetId) {
+      return;
+    }
+    itemRefs.current[targetId]?.focus();
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    if (!onDropFromTriage || !timelineRef.current) {
+      return;
+    }
+    event.preventDefault();
+    const payloadRaw = event.dataTransfer.getData(HUB_TRIAGE_DRAG_MIME);
+    if (!payloadRaw) {
+      return;
+    }
+    let payloadParsed: unknown = null;
+    try {
+      payloadParsed = JSON.parse(payloadRaw);
+    } catch {
+      return;
+    }
+    if (!isValidDragPayload(payloadParsed)) {
+      return;
+    }
+    const bounds = timelineRef.current.getBoundingClientRect();
+    const relativeX = clamp(event.clientX - bounds.left, 0, bounds.width);
+    const ratio = bounds.width > 0 ? relativeX / bounds.width : 0;
+    const assignedAt = new Date(range.startMs + ratio * totalMs);
+    void onDropFromTriage(payloadParsed, assignedAt);
+  };
+
+  return (
+    <div role="region" aria-label="Day timeline" className="rounded-panel border border-border-muted bg-surface p-2">
+      <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          ref={timelineRef}
+          className="relative h-[146px] min-w-full select-none"
+          style={{ width: `${widthPx}px` }}
+          onDragOver={(event) => {
+            if (!onDropFromTriage) {
+              return;
+            }
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+          }}
+          onDrop={handleDrop}
+        >
+          <div className="absolute inset-x-0 top-10 h-12 rounded-control border border-border-muted bg-surface-elevated/70" />
+          <div className="absolute bottom-7 left-0 right-0 border-t border-border-muted" />
+          <div
+            aria-hidden="true"
+            className="absolute bottom-7 top-4 w-0.5 rounded-full bg-accent shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-accent)_40%,transparent)]"
+            style={{ left: `${nowPercent}%` }}
+          />
+
+          {ticks.map((tick) => {
+            const left = percentForMs(tick.ms);
+            return (
+              <div key={tick.key} className="absolute bottom-0 -translate-x-1/2" style={{ left: `${left}%` }}>
+                <span
+                  className={`absolute bottom-7 left-1/2 -translate-x-1/2 ${tick.midnight ? 'h-5 w-0.5 bg-border-strong' : tick.major ? 'h-4 w-px bg-border-strong' : 'h-2.5 w-px bg-border-muted'}`}
+                  aria-hidden="true"
+                />
+                {tick.label ? <span className="text-[11px] text-muted">{tick.label}</span> : null}
+                {tick.midnight ? (
+                  <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-muted">{formatDateMarker(new Date(tick.ms))}</span>
+                ) : null}
+              </div>
+            );
+          })}
+
+          {timelineItems.map((item) => {
+            if (item.kind === 'event') {
+              const left = percentForMs(item.startMs);
+              const right = percentForMs(item.endMs);
+              const width = Math.max(0.9, right - left);
+              const inPast = item.endMs < now.getTime();
+              const clippedRight = item.endMs > range.endMs;
+              const startText = formatTimeLabel(new Date(item.startMs));
+              const endText = formatTimeLabel(new Date(item.endMs));
+
+              return (
+                <button
+                  key={item.id}
+                  ref={(node) => {
+                    itemRefs.current[item.id] = node;
+                  }}
+                  type="button"
+                  aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
+                  className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                    inPast
+                      ? 'border-primary/25 bg-primary/15 text-text-secondary'
+                      : 'border-primary/45 bg-primary/25 text-text'
+                  }`}
+                  style={{ left: `${left}%`, width: `${width}%` }}
+                  onClick={() => onOpenRecord(item.recordId)}
+                  onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+                >
+                  <span className="block truncate">
+                    {item.title}
+                    {clippedRight ? ' →' : ''}
+                  </span>
+                </button>
+              );
+            }
+
+            const timeMs = item.timeMs;
+            const lane = markerLaneById.get(item.id) ?? 0;
+            const markerTop = lane === 0 ? 22 : 86;
+            const labelTop = lane === 0 ? 2 : 104;
+            const left = percentForMs(timeMs);
+            const timeLabel = formatTimeLabel(new Date(timeMs));
+
+            if (item.kind === 'task') {
+              const complete = item.status === 'done' || item.status === 'cancelled';
+              const overdue = !complete && timeMs < now.getTime();
+
+              return (
+                <div key={item.id} className="absolute -translate-x-1/2" style={{ left: `${left}%` }}>
+                  <button
+                    ref={(node) => {
+                      itemRefs.current[item.id] = node;
+                    }}
+                    type="button"
+                    aria-label={`Task: ${item.title} at ${timeLabel}`}
+                    className={`absolute h-3.5 w-3.5 rounded-full border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                      complete
+                        ? 'border-success bg-success/15 text-success'
+                        : overdue
+                          ? 'border-danger bg-danger/15 text-danger'
+                          : 'border-primary bg-surface text-primary'
+                    }`}
+                    style={{ top: `${markerTop}px` }}
+                    onClick={() => onOpenRecord(item.recordId)}
+                    onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+                  >
+                    {complete ? <span className="absolute inset-0 grid place-items-center text-[9px] leading-none">✓</span> : null}
+                  </button>
+                  <span
+                    className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-muted"
+                    style={{ left: '50%', top: `${labelTop}px` }}
+                    title={item.title}
+                  >
+                    {item.title}
+                  </span>
+                </div>
+              );
+            }
+
+            const pastUndismissed = !item.dismissed && timeMs < now.getTime();
+            const settledDismissed = item.dismissed && timeMs < now.getTime();
+            return (
+              <div key={item.id} className="absolute -translate-x-1/2" style={{ left: `${left}%` }}>
+                <button
+                  ref={(node) => {
+                    itemRefs.current[item.id] = node;
+                  }}
+                  type="button"
+                  aria-label={`Reminder: ${item.title} at ${timeLabel}`}
+                  className={`absolute h-3.5 w-3.5 rotate-45 border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                    settledDismissed
+                      ? 'border-border-strong bg-surface-elevated'
+                      : pastUndismissed
+                        ? 'border-danger bg-danger/15'
+                        : 'border-warning bg-warning/15'
+                  }`}
+                  style={{ top: `${markerTop}px` }}
+                  onClick={() => onOpenRecord(item.recordId)}
+                  onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+                />
+                <span
+                  className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-muted"
+                  style={{ left: '50%', top: `${labelTop}px` }}
+                  title={item.title}
+                >
+                  {item.title}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};

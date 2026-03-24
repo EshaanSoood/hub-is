@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - main
+      - daily-brief-view
 
 jobs:
   deploy:
