@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
 const MATRIX_REQUEST_TIMEOUT_MS = 15_000;
-const MATRIX_DEVICE_DISPLAY_NAME = 'eshaan-os hub';
+const MATRIX_DEVICE_DISPLAY_NAME = 'hub-os hub';
 const MATRIX_PASSWORD_RESET_REQUIRED = '__MATRIX_PASSWORD_RESET_REQUIRED__';
 
 const sanitizeMatrixLocalpart = (value) => {

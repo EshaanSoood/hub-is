@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useProjects } from '../context/ProjectsContext';
 import { useAuthz } from '../context/AuthzContext';
 import { PageHeader } from '../components/layout/PageHeader';
-import { Dialog, Select } from '../components/primitives';
+import { Dialog, HubOsWordmark, Select } from '../components/primitives';
 import { PersonalizedDashboardPanel } from '../features/PersonalizedDashboardPanel';
 import { createHubProject } from '../services/projectsService';
 import { createEventFromNlp, getHubHome, getRecordDetail } from '../services/hub/records';
@@ -282,7 +282,7 @@ export const ProjectsPage = () => {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Hub"
+        title={<HubOsWordmark aria-label="Hub OS" className="block h-9 w-auto" />}
         description="Your personal big picture across projects, with work opening in the Record Inspector without leaving the Hub."
       />
 

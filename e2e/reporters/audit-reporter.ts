@@ -125,7 +125,7 @@ class AuditReporter implements Reporter {
     const consoleErrors = Array.from(new Set(this.entries.flatMap((entry) => entry.consoleErrors))).filter(Boolean);
     const knownGaps = Array.from(new Set(this.entries.flatMap((entry) => entry.knownGaps))).filter(Boolean);
 
-    console.log('=== ESHAAN OS E2E AUDIT REPORT ===');
+    console.log('=== Hub OS E2E AUDIT REPORT ===');
     console.log('');
     console.log(`Date: ${timestamp}`);
     console.log(`Branch: ${branch}`);

@@ -14,7 +14,7 @@ export const LoginPage = () => {
     <div className="flex min-h-[80vh] items-center justify-center px-4">
       <div className="w-full max-w-md">
         <Stack gap="lg" className="mb-6 text-center">
-          <h1 className="heading-1 text-primary">Eshaan OS</h1>
+          <h1 className="heading-1 text-primary">Hub OS</h1>
         </Stack>
 
         <Panel title="Sign In" headingLevel={2}>

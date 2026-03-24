@@ -1,4 +1,4 @@
-# Eshaan OS — Documentation
+# Hub OS — Documentation
 
 Documentation for this project lives in two places:
 
