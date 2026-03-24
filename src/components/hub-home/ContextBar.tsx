@@ -12,6 +12,7 @@ const adjectiveForCount = (count: number): string => {
 };
 
 export const ContextBar = ({
+  className,
   projectFilter,
   projectOptions,
   onProjectFilterChange,
@@ -24,6 +25,7 @@ export const ContextBar = ({
   onToggleTriagePanel,
   triageOpen,
 }: {
+  className?: string;
   projectFilter: string;
   projectOptions: Array<{ value: string; label: string }>;
   onProjectFilterChange: (value: string) => void;
@@ -43,15 +45,15 @@ export const ContextBar = ({
     : 'border-border-muted bg-surface text-muted';
 
   return (
-    <section className="rounded-panel border border-border-muted bg-surface px-3 py-2">
+    <section className={`rounded-panel border border-border-muted bg-surface px-3 py-2 ${className ?? ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="shrink-0">
           <Select
             value={projectFilter}
             onValueChange={onProjectFilterChange}
             options={projectOptions}
-            ariaLabel="Filter daily brief by project"
-            triggerClassName="min-w-44 focus-visible:ring-1 focus-visible:ring-[color:var(--color-border-secondary)]"
+            ariaLabel="Filter timeline by project"
+            triggerClassName="min-w-44"
           />
         </div>
 
@@ -59,7 +61,7 @@ export const ContextBar = ({
           <span>{adjective} day ahead. You have </span>
           <button
             type="button"
-            className={`underline decoration-dotted underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${timelineTypeFilter === 'events' ? 'text-primary font-semibold' : 'text-primary'}`}
+            className={`underline decoration-dotted underline-offset-2 ${timelineTypeFilter === 'events' ? 'text-primary font-semibold' : 'text-primary'}`}
             onClick={() => onToggleTimelineType('events')}
             aria-pressed={timelineTypeFilter === 'events'}
           >
@@ -68,7 +70,7 @@ export const ContextBar = ({
           <span>, </span>
           <button
             type="button"
-            className={`underline decoration-dotted underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${timelineTypeFilter === 'tasks' ? 'text-primary font-semibold' : 'text-primary'}`}
+            className={`underline decoration-dotted underline-offset-2 ${timelineTypeFilter === 'tasks' ? 'text-primary font-semibold' : 'text-primary'}`}
             onClick={() => onToggleTimelineType('tasks')}
             aria-pressed={timelineTypeFilter === 'tasks'}
           >
@@ -77,7 +79,7 @@ export const ContextBar = ({
           <span> and </span>
           <button
             type="button"
-            className={`underline decoration-dotted underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${timelineTypeFilter === 'reminders' ? 'text-primary font-semibold' : 'text-primary'}`}
+            className={`underline decoration-dotted underline-offset-2 ${timelineTypeFilter === 'reminders' ? 'text-primary font-semibold' : 'text-primary'}`}
             onClick={() => onToggleTimelineType('reminders')}
             aria-pressed={timelineTypeFilter === 'reminders'}
           >
@@ -89,7 +91,7 @@ export const ContextBar = ({
               <span> You also have </span>
               <button
                 type="button"
-                className="text-primary underline decoration-dotted underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                className="text-primary underline decoration-dotted underline-offset-2"
                 onClick={onToggleTriagePanel}
               >
                 {triageCount} overdue or unassigned items
@@ -101,7 +103,7 @@ export const ContextBar = ({
 
         <button
           type="button"
-          className={`shrink-0 rounded-control border px-2.5 py-1 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${triageButtonClassName}`}
+          className={`shrink-0 rounded-control border px-2.5 py-1 text-xs font-semibold ${triageButtonClassName}`}
           onClick={onToggleTriagePanel}
           aria-label={`${triageCount} items need attention`}
           aria-expanded={triageOpen}

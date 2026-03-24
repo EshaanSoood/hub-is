@@ -30,9 +30,16 @@ body {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-primary);
+  outline: 2px solid var(--color-border-primary);
   outline-offset: 2px;
-  box-shadow: var(--shadow-focus-ring);
+  border-radius: 2px;
+}
+
+input:focus,
+textarea:focus {
+  outline: 2px solid var(--color-border-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 #main-content h1[tabindex="-1"]:focus {

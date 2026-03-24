@@ -75,6 +75,7 @@ const isValidDragPayload = (value: unknown): value is TriageDragPayload => {
 };
 
 export const DayStrip = ({
+  className,
   events,
   tasks,
   reminders,
@@ -82,6 +83,7 @@ export const DayStrip = ({
   onOpenRecord,
   onDropFromTriage,
 }: {
+  className?: string;
   events: DayStripEventItem[];
   tasks: DayStripTaskItem[];
   reminders: DayStripReminderItem[];
@@ -274,7 +276,7 @@ export const DayStrip = ({
   };
 
   return (
-    <div role="region" aria-label="Day timeline" className="rounded-panel border border-border-muted bg-surface p-2">
+    <div role="region" aria-label="Day timeline" className={`rounded-panel border border-border-muted bg-surface p-2 ${className ?? ''}`}>
       {hasNoScheduledItems ? (
         <div className="flex h-20 items-center justify-center rounded-control border border-border-muted bg-surface-elevated px-4 text-center">
           <p className="text-[15px] italic text-text-secondary">
@@ -338,7 +340,7 @@ export const DayStrip = ({
                     }}
                     type="button"
                     aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
-                    className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                    className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium ${
                       inPast
                         ? 'border-primary/25 bg-primary/15 text-text-secondary'
                         : 'border-primary/45 bg-primary/25 text-text'
@@ -374,7 +376,7 @@ export const DayStrip = ({
                       }}
                       type="button"
                       aria-label={`Task: ${item.title} at ${timeLabel}`}
-                      className={`absolute h-3.5 w-3.5 rounded-full border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                      className={`absolute h-3.5 w-3.5 rounded-full border-2 ${
                         complete
                           ? 'border-success bg-success/15 text-success'
                           : overdue
@@ -408,7 +410,7 @@ export const DayStrip = ({
                     }}
                     type="button"
                     aria-label={`Reminder: ${item.title} at ${timeLabel}`}
-                    className={`absolute h-3.5 w-3.5 rotate-45 border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                    className={`absolute h-3.5 w-3.5 rotate-45 border-2 ${
                       settledDismissed
                         ? 'border-border-strong bg-surface-elevated'
                         : pastUndismissed

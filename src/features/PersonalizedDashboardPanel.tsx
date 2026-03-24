@@ -11,6 +11,7 @@ import type { EventSummary, HubHomeResponse, TaskSummary } from '../shared/api-t
 import {
   Chip,
   FilterChip,
+  HubOsWordmark,
   Icon,
   Popover,
   PopoverContent,
@@ -33,7 +34,7 @@ import type {
 type HubHomeData = HubHomeResponse;
 type HubTask = TaskSummary;
 type HubEvent = EventSummary;
-type HubDashboardView = 'daily-brief' | 'project-lens' | 'stream';
+type HubDashboardView = 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
 
@@ -67,11 +68,10 @@ type HubDashboardItem =
       explicitHref: string;
     };
 
-const VIEW_ORDER: HubDashboardView[] = ['daily-brief', 'project-lens', 'stream'];
+const VIEW_ORDER: HubDashboardView[] = ['project-lens', 'stream'];
 const STREAM_FILTERS: StreamTypeFilter[] = ['all', 'tasks', 'events'];
 
 const viewLabels: Record<HubDashboardView, string> = {
-  'daily-brief': 'Daily Brief',
   'project-lens': 'Project Lens',
   stream: 'Stream',
 };
@@ -251,7 +251,7 @@ const ItemRow = ({
       <button
         type="button"
         onClick={() => onOpen(item.recordId)}
-        className={`min-w-0 flex-1 rounded-panel border p-3 text-left ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring`}
+        className={`min-w-0 flex-1 rounded-panel border p-3 text-left ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface`}
       >
         {content}
       </button>
@@ -446,7 +446,7 @@ export const PersonalizedDashboardPanel = ({
   const { accessToken, canGlobal, sessionSummary } = useAuthz();
   const remindersRuntime = useRemindersRuntime(accessToken ?? null);
 
-  const [activeView, setActiveView] = useState<HubDashboardView>('daily-brief');
+  const [activeView, setActiveView] = useState<HubDashboardView>('project-lens');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [activeViewOptionIndex, setActiveViewOptionIndex] = useState(0);
   const [projectFilter, setProjectFilter] = useState<string>('all');
@@ -487,7 +487,7 @@ export const PersonalizedDashboardPanel = ({
 
   const hasHubView = canGlobal('hub.view') || visibleDashboardCards.some((card) => card.requiredGlobalCapabilities.includes('hub.view'));
   const availableViewIds = useMemo(
-    () => (hasHubView ? VIEW_ORDER : (['daily-brief'] as HubDashboardView[])),
+    () => (hasHubView ? VIEW_ORDER : (['project-lens'] as HubDashboardView[])),
     [hasHubView],
   );
 
@@ -801,7 +801,9 @@ export const PersonalizedDashboardPanel = ({
   return (
     <section className="rounded-panel border border-subtle bg-elevated p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="heading-3 text-primary">Hub</h2>
+        <div role="heading" aria-level={1} aria-label="Hub OS" className="text-primary">
+          <HubOsWordmark aria-label="Hub OS" className="block h-auto w-[132px]" width={132} />
+        </div>
         {homeLoading ? <span className="text-xs text-muted">Refreshing…</span> : null}
       </div>
 
@@ -811,142 +813,143 @@ export const PersonalizedDashboardPanel = ({
         </p>
       ) : null}
 
-      <div className="mt-4 space-y-3">
-        <section className="rounded-panel border border-border-muted bg-surface px-3 py-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-text">{greeting}</p>
-            <div className="flex items-center gap-2 text-xs text-muted" aria-label="Today counts">
-              <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
-                <Icon name="calendar" className="text-[13px]" />
-                <span>{totalPipCounts.events}</span>
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
-                <Icon name="tasks" className="text-[13px]" />
-                <span>{totalPipCounts.tasks}</span>
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
-                <Icon name="reminders" className="text-[13px]" />
-                <span>{totalPipCounts.reminders}</span>
-              </span>
-            </div>
+      <section className={`${homeError ? 'mt-3' : 'mt-4'} rounded-panel border border-border-muted bg-surface px-3 py-2`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-text">{greeting}</p>
+          <div className="flex items-center gap-2 text-xs text-muted" aria-label="Today counts">
+            <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
+              <Icon name="calendar" className="text-[13px]" />
+              <span>{totalPipCounts.events}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
+              <Icon name="tasks" className="text-[13px]" />
+              <span>{totalPipCounts.tasks}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
+              <Icon name="reminders" className="text-[13px]" />
+              <span>{totalPipCounts.reminders}</span>
+            </span>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <DayStrip
-          events={filteredDailyData.dayEvents}
-          tasks={filteredDailyData.timedTasks}
-          reminders={filteredDailyData.timedReminders}
-          typeFilter={timelineTypeFilter}
-          onOpenRecord={onOpenRecord}
-          onDropFromTriage={onDropFromTriage}
-        />
+      <DayStrip
+        className="mt-3"
+        events={filteredDailyData.dayEvents}
+        tasks={filteredDailyData.timedTasks}
+        reminders={filteredDailyData.timedReminders}
+        typeFilter={timelineTypeFilter}
+        onOpenRecord={onOpenRecord}
+        onDropFromTriage={onDropFromTriage}
+      />
 
-        <ContextBar
-          projectFilter={activeProjectFilter}
-          projectOptions={projectOptions}
-          onProjectFilterChange={setProjectFilter}
-          eventCount={dayCounts.events}
-          taskCount={dayCounts.tasks}
-          reminderCount={dayCounts.reminders}
-          triageCount={dayCounts.triage}
-          timelineTypeFilter={timelineTypeFilter}
-          onToggleTimelineType={(type) => {
-            setTimelineTypeFilter((current) => (current === type ? 'all' : type));
-          }}
-          onToggleTriagePanel={() => setTriageOpen((current) => !current)}
-          triageOpen={triageOpen}
-        />
+      <ContextBar
+        className="mt-3"
+        projectFilter={activeProjectFilter}
+        projectOptions={projectOptions}
+        onProjectFilterChange={setProjectFilter}
+        eventCount={dayCounts.events}
+        taskCount={dayCounts.tasks}
+        reminderCount={dayCounts.reminders}
+        triageCount={dayCounts.triage}
+        timelineTypeFilter={timelineTypeFilter}
+        onToggleTimelineType={(type) => {
+          setTimelineTypeFilter((current) => (current === type ? 'all' : type));
+        }}
+        onToggleTriagePanel={() => setTriageOpen((current) => !current)}
+        triageOpen={triageOpen}
+      />
 
-        <TriagePanel
-          open={triageOpen}
-          overdueTasks={filteredDailyData.overdueTasks}
-          untimedTasks={filteredDailyData.untimedTasks}
-          missedReminders={filteredDailyData.missedReminders}
-          onCompleteTask={onCompleteTask}
-          onRescheduleTask={onRescheduleTask}
-          onSnoozeTask={onSnoozeTask}
-          onAssignTaskTime={onRescheduleTask}
-          onDismissReminder={onDismissReminder}
-          onSnoozeReminder={onSnoozeReminder}
-        />
+      <TriagePanel
+        className="mt-3"
+        open={triageOpen}
+        overdueTasks={filteredDailyData.overdueTasks}
+        untimedTasks={filteredDailyData.untimedTasks}
+        missedReminders={filteredDailyData.missedReminders}
+        onCompleteTask={onCompleteTask}
+        onRescheduleTask={onRescheduleTask}
+        onSnoozeTask={onSnoozeTask}
+        onAssignTaskTime={onRescheduleTask}
+        onDismissReminder={onDismissReminder}
+        onSnoozeReminder={onSnoozeReminder}
+      />
 
-        <Popover open={viewMenuOpen} onOpenChange={handleViewMenuOpenChange}>
-          <PopoverTrigger asChild>
-            <button
-              ref={viewTriggerRef}
-              type="button"
-              className="inline-flex items-center gap-2 rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              aria-haspopup="listbox"
-              aria-expanded={viewMenuOpen}
-              aria-controls={viewMenuOpen ? viewListboxId : undefined}
-            >
-              <span>{viewLabels[selectedView]}</span>
-              <span aria-hidden="true" className="text-xs text-muted">
-                ▾
-              </span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="start"
-            className="w-56 border border-border-muted bg-surface p-1.5"
-            onOpenAutoFocus={(event) => {
-              event.preventDefault();
-            }}
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              viewTriggerRef.current?.focus();
-            }}
+      <Popover open={viewMenuOpen} onOpenChange={handleViewMenuOpenChange}>
+        <PopoverTrigger asChild>
+          <button
+            ref={viewTriggerRef}
+            type="button"
+            className="mt-3 inline-flex items-center gap-2 rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm font-semibold text-text"
+            aria-haspopup="listbox"
+            aria-expanded={viewMenuOpen}
+            aria-controls={viewMenuOpen ? viewListboxId : undefined}
           >
-            <div
-              id={viewListboxId}
-              ref={viewListboxRef}
-              role="listbox"
-              tabIndex={-1}
-              aria-label="Hub view mode"
-              aria-activedescendant={`${viewListboxId}-option-${availableViewIds[activeViewOptionIndex]}`}
-              className="space-y-1 outline-none"
-              onKeyDown={handleViewListboxKeyDown}
-            >
-              {availableViewIds.map((viewId, index) => {
-                const selected = selectedView === viewId;
-                const active = activeViewOptionIndex === index;
-                return (
-                  <button
-                    key={viewId}
-                    id={`${viewListboxId}-option-${viewId}`}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    tabIndex={-1}
-                    className={`flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-sm transition-colors ${
-                      active
-                        ? 'bg-accent text-on-primary'
-                        : selected
-                          ? 'bg-surface-elevated text-primary ring-1 ring-border-muted'
-                          : 'text-text hover:bg-surface-elevated'
-                    }`}
-                    onMouseEnter={() => setActiveViewOptionIndex(index)}
-                    onClick={() => selectView(viewId)}
-                  >
-                    <span>{viewLabels[viewId]}</span>
-                    {selected ? (
-                      <span className={`text-[11px] font-medium ${active ? 'text-on-primary/80' : 'text-muted'}`}>Current</span>
-                    ) : null}
-                    {selected ? (
-                      <span aria-hidden="true" className="text-xs">
-                        ✓
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
+            <span>{viewLabels[selectedView]}</span>
+            <span aria-hidden="true" className="text-xs text-muted">
+              ▾
+            </span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-56 border border-border-muted bg-surface p-1.5"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            viewTriggerRef.current?.focus();
+          }}
+        >
+          <div
+            id={viewListboxId}
+            ref={viewListboxRef}
+            role="listbox"
+            tabIndex={-1}
+            aria-label="Hub view mode"
+            aria-activedescendant={`${viewListboxId}-option-${availableViewIds[activeViewOptionIndex]}`}
+            className="space-y-1 outline-none"
+            onKeyDown={handleViewListboxKeyDown}
+          >
+            {availableViewIds.map((viewId, index) => {
+              const selected = selectedView === viewId;
+              const active = activeViewOptionIndex === index;
+              return (
+                <button
+                  key={viewId}
+                  id={`${viewListboxId}-option-${viewId}`}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  tabIndex={-1}
+                  className={`flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-sm transition-colors ${
+                    active
+                      ? 'bg-accent text-on-primary'
+                      : selected
+                        ? 'bg-surface-elevated text-primary ring-1 ring-border-muted'
+                        : 'text-text hover:bg-surface-elevated'
+                  }`}
+                  onMouseEnter={() => setActiveViewOptionIndex(index)}
+                  onClick={() => selectView(viewId)}
+                >
+                  <span>{viewLabels[viewId]}</span>
+                  {selected ? (
+                    <span className={`text-[11px] font-medium ${active ? 'text-on-primary/80' : 'text-muted'}`}>Current</span>
+                  ) : null}
+                  {selected ? (
+                    <span aria-hidden="true" className="text-xs">
+                      ✓
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
 
-        {selectedView === 'project-lens' ? <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
-        {selectedView === 'stream' ? <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
-      </div>
+      {selectedView === 'project-lens' ? <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
+      {selectedView === 'stream' ? <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
     </section>
   );
 };

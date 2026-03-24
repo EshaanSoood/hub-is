@@ -73,7 +73,7 @@ const defaultReminderSnoozeValue = (): string => {
 };
 
 const actionButtonClassName =
-  'rounded-control border border-border-muted px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60';
+  'rounded-control border border-border-muted px-2 py-1 text-xs text-text disabled:cursor-not-allowed disabled:opacity-60';
 
 const priorityClassName = (priority: TriageTaskItem['priority']): string => {
   if (priority === 'urgent') {
@@ -92,6 +92,7 @@ const priorityClassName = (priority: TriageTaskItem['priority']): string => {
 };
 
 export const TriagePanel = ({
+  className,
   open,
   overdueTasks,
   untimedTasks,
@@ -103,6 +104,7 @@ export const TriagePanel = ({
   onDismissReminder,
   onSnoozeReminder,
 }: {
+  className?: string;
   open: boolean;
   overdueTasks: TriageTaskItem[];
   untimedTasks: TriageTaskItem[];
@@ -148,7 +150,7 @@ export const TriagePanel = ({
   }
 
   return (
-    <div role="region" aria-label="Items needing attention" className="rounded-panel border border-border-muted bg-surface p-3">
+    <div role="region" aria-label="Items needing attention" className={`rounded-panel border border-border-muted bg-surface p-3 ${className ?? ''}`}>
       {!anyGroups ? (
         <p className="text-sm text-muted">No items currently need triage.</p>
       ) : (
@@ -223,7 +225,7 @@ export const TriagePanel = ({
                               const value = event.target.value;
                               setRescheduleDrafts((current) => ({ ...current, [task.recordId]: value }));
                             }}
-                            className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                            className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text"
                           />
                           <button
                             type="button"
@@ -319,7 +321,7 @@ export const TriagePanel = ({
                               const value = event.target.value;
                               setAssignTimeDrafts((current) => ({ ...current, [task.recordId]: value }));
                             }}
-                            className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                            className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text"
                           />
                           <button
                             type="button"
@@ -404,7 +406,7 @@ export const TriagePanel = ({
                               const value = event.target.value;
                               setReminderSnoozeDrafts((current) => ({ ...current, [reminder.reminderId]: value }));
                             }}
-                            className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                            className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text"
                           />
                           <button
                             type="button"

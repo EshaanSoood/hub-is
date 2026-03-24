@@ -29,12 +29,13 @@
   --color-capture-rail-actioned: var(--color-primary);
   --color-muted-subtle: var(--color-surface-elevated);
   --color-border-muted: rgb(51 65 85);
+  --color-border-primary: var(--color-border-muted);
   --color-overlay: rgb(15 23 42 / 0.6);
   --color-elevated: var(--color-surface-elevated);
   --color-subtle: var(--color-muted-subtle);
   --color-accent: var(--color-primary);
   --color-border-subtle: var(--color-border-muted);
-  --color-focus-ring: var(--color-accent);
+  --color-focus-ring: var(--color-border-primary);
 
   --radius-panel: 0.75rem;
   --radius-control: 0.625rem;
@@ -71,6 +72,7 @@
     --color-primary-strong: rgb(148 16 78);
     --color-on-primary: rgb(255 255 255);
     --color-border-muted: rgb(203 213 225);
+    --color-border-primary: var(--color-border-muted);
   }
 }
 
@@ -92,6 +94,7 @@
   --color-capture-rail: var(--color-capture-rail);
   --color-capture-rail-actioned: var(--color-capture-rail-actioned);
   --color-border-muted: var(--color-border-muted);
+  --color-border-primary: var(--color-border-primary);
   --color-overlay: var(--color-overlay);
   --color-elevated: var(--color-elevated);
   --color-subtle: var(--color-subtle);
