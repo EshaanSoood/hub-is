@@ -1,7 +1,6 @@
-export const createTaskRoutes = (deps) => {
-  const taskStatusSet = new Set(['todo', 'in_progress', 'done', 'cancelled']);
-  const taskPrioritySet = new Set(['low', 'medium', 'high', 'urgent']);
+import { validateCreateTaskRequest } from '../lib/validators.mjs';
 
+export const createTaskRoutes = (deps) => {
   const {
     withPolicyGate,
     withProjectPolicyGate,
@@ -14,7 +13,6 @@ export const createTaskRoutes = (deps) => {
     asInteger,
     asText,
     asBoolean,
-    asNullableText,
     nowIso,
     newId,
     buildNotificationRouteContext,
@@ -224,7 +222,17 @@ export const createTaskRoutes = (deps) => {
       return;
     }
 
-    const projectId = asText(body.project_id);
+    let validated;
+    try {
+      validated = validateCreateTaskRequest(body);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid request body.';
+      request.log.warn('Task validation failed', { error: message });
+      send(response, jsonResponse(400, errorEnvelope('validation_error', message)));
+      return;
+    }
+
+    const projectId = asText(validated.project_id);
     if (!projectId) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required.')));
       return;
@@ -236,38 +244,14 @@ export const createTaskRoutes = (deps) => {
       return;
     }
 
-    const title = asText(body.title);
-    if (!title) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'title is required.')));
-      return;
-    }
-
-    const status = asText(body.status) || 'todo';
-    if (!taskStatusSet.has(status)) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'status must be one of todo, in_progress, done, or cancelled.')));
-      return;
-    }
-
-    let priority = asNullableText(body.priority);
-    if (priority && !taskPrioritySet.has(priority)) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'priority must be low, medium, high, urgent, or null.')));
-      return;
-    }
-
-    let dueAt = asNullableText(body.due_at);
-    if (dueAt) {
-      const parsedDueAt = new Date(dueAt);
-      if (Number.isNaN(parsedDueAt.getTime())) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'due_at must be a valid ISO timestamp or null.')));
-        return;
-      }
-      dueAt = parsedDueAt.toISOString();
-    }
-
-    const category = asNullableText(body.category);
+    const title = validated.title;
+    const status = validated.status || 'todo';
+    const priority = typeof validated.priority === 'undefined' ? null : validated.priority;
+    const dueAt = typeof validated.due_at === 'undefined' ? null : validated.due_at;
+    const category = typeof validated.category === 'undefined' ? null : validated.category;
     let assigneeUserIds = normalizeParticipants(
       projectId,
-      body.assignee_user_ids || body.assignment_user_ids || [],
+      validated.assignee_user_ids || validated.assignment_user_ids || [],
     );
     if (assigneeUserIds.length === 0) {
       assigneeUserIds = normalizeParticipants(projectId, [auth.user.user_id]);
