@@ -11,7 +11,6 @@ import { HUB_TRIAGE_DRAG_MIME } from './types';
 const HOUR_MS = 60 * 60 * 1000;
 const ITEM_MIN_WIDTH_PX = 180;
 const ITEM_TITLE_MAX_CHARS = 30;
-const TIMELINE_SIDE_PADDING_PX = 96;
 
 const parseIso = (value: string): Date | null => {
   const parsed = new Date(value);
@@ -100,6 +99,7 @@ export const DayStrip = ({
   const [now, setNow] = useState(() => new Date());
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
+  const nowNeedleRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const autoScrollKeyRef = useRef<string>('');
   const hasNoScheduledItems = events.length === 0 && tasks.length === 0 && reminders.length === 0;
@@ -253,7 +253,9 @@ export const DayStrip = ({
     let frameId = 0;
     const alignNowNeedle = () => {
       const viewport = scrollViewportRef.current;
-      if (!viewport) {
+      const timeline = timelineRef.current;
+      const nowNeedle = nowNeedleRef.current;
+      if (!viewport || !timeline || !nowNeedle) {
         frameId = window.requestAnimationFrame(alignNowNeedle);
         return;
       }
@@ -261,7 +263,9 @@ export const DayStrip = ({
         frameId = window.requestAnimationFrame(alignNowNeedle);
         return;
       }
-      const nowPixel = TIMELINE_SIDE_PADDING_PX + (nowPercent / 100) * widthPx;
+      const computedStyle = window.getComputedStyle(viewport);
+      const viewportPaddingLeft = Number.parseFloat(computedStyle.paddingLeft || '0') || 0;
+      const nowPixel = viewportPaddingLeft + nowNeedle.offsetLeft + nowNeedle.offsetWidth / 2;
       const targetScrollLeft = nowPixel - viewport.clientWidth * 0.25;
       const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
       viewport.scrollLeft = clamp(targetScrollLeft, 0, maxScrollLeft);
@@ -352,6 +356,7 @@ export const DayStrip = ({
             <div className="absolute inset-x-0 top-10 h-12 rounded-control border border-border-muted bg-surface-elevated/70" />
             <div className="absolute bottom-7 left-0 right-0 border-t border-border-muted" />
             <div
+              ref={nowNeedleRef}
               aria-hidden="true"
               className="absolute bottom-7 top-4 w-[2px] rounded-full bg-text"
               style={{ left: `${nowPercent}%` }}
