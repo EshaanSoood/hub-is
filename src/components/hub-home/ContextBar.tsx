@@ -11,6 +11,9 @@ const adjectiveForCount = (count: number): string => {
   return 'Packed';
 };
 
+const nounForCount = (count: number, singular: string, plural: string): string =>
+  count === 1 ? singular : plural;
+
 export const ContextBar = ({
   className,
   projectFilter,
@@ -65,7 +68,7 @@ export const ContextBar = ({
             onClick={() => onToggleTimelineType('events')}
             aria-pressed={timelineTypeFilter === 'events'}
           >
-            {eventCount} events
+            {eventCount} {nounForCount(eventCount, 'event', 'events')}
           </button>
           <span>, </span>
           <button
@@ -74,7 +77,7 @@ export const ContextBar = ({
             onClick={() => onToggleTimelineType('tasks')}
             aria-pressed={timelineTypeFilter === 'tasks'}
           >
-            {taskCount} tasks
+            {taskCount} {nounForCount(taskCount, 'task', 'tasks')}
           </button>
           <span> and </span>
           <button
@@ -83,7 +86,7 @@ export const ContextBar = ({
             onClick={() => onToggleTimelineType('reminders')}
             aria-pressed={timelineTypeFilter === 'reminders'}
           >
-            {reminderCount} reminders
+            {reminderCount} {nounForCount(reminderCount, 'reminder', 'reminders')}
           </button>
           <span> due today.</span>
           {triageCount > 0 ? (
