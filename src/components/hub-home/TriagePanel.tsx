@@ -167,7 +167,9 @@ export const TriagePanel = ({
               <div className="space-y-2">
                 {overdueTasks.map((task) => {
                   const key = `task-overdue-${task.recordId}`;
+                  const itemBusy = busy(key);
                   const draft = rescheduleDrafts[task.recordId] || (task.dueAtIso ? toDateTimeLocalValue(task.dueAtIso) : '');
+                  const nextIso = fromDateTimeLocalValue(draft);
                   return (
                     <article
                       key={task.id}
@@ -194,9 +196,9 @@ export const TriagePanel = ({
                           type="button"
                           className={actionButtonClassName}
                           onClick={() => {
-                            void runWithBusy(`${key}-complete`, () => onCompleteTask(task.recordId));
+                            void runWithBusy(key, () => onCompleteTask(task.recordId));
                           }}
-                          disabled={busy(`${key}-complete`)}
+                          disabled={itemBusy}
                         >
                           Complete
                         </button>
@@ -206,6 +208,7 @@ export const TriagePanel = ({
                           onClick={() => {
                             setRescheduleOpenId((current) => (current === task.recordId ? null : task.recordId));
                           }}
+                          disabled={itemBusy}
                         >
                           Reschedule
                         </button>
@@ -213,9 +216,9 @@ export const TriagePanel = ({
                           type="button"
                           className={actionButtonClassName}
                           onClick={() => {
-                            void runWithBusy(`${key}-snooze`, () => onSnoozeTask(task.recordId));
+                            void runWithBusy(key, () => onSnoozeTask(task.recordId));
                           }}
-                          disabled={busy(`${key}-snooze`)}
+                          disabled={itemBusy}
                         >
                           Snooze
                         </button>
@@ -225,6 +228,7 @@ export const TriagePanel = ({
                           <input
                             type="datetime-local"
                             value={draft}
+                            aria-label={`Reschedule ${task.title}`}
                             onChange={(event) => {
                               const value = event.target.value;
                               setRescheduleDrafts((current) => ({ ...current, [task.recordId]: value }));
@@ -235,16 +239,15 @@ export const TriagePanel = ({
                             type="button"
                             className={actionButtonClassName}
                             onClick={() => {
-                              const nextIso = fromDateTimeLocalValue(draft);
                               if (!nextIso) {
                                 return;
                               }
-                              void runWithBusy(`${key}-reschedule`, async () => {
+                              void runWithBusy(key, async () => {
                                 await onRescheduleTask(task.recordId, nextIso);
                                 setRescheduleOpenId(null);
                               });
                             }}
-                            disabled={busy(`${key}-reschedule`)}
+                            disabled={itemBusy || !nextIso}
                           >
                             Save
                           </button>
@@ -265,7 +268,9 @@ export const TriagePanel = ({
               <div className="space-y-2">
                 {untimedTasks.map((task) => {
                   const key = `task-untimed-${task.recordId}`;
+                  const itemBusy = busy(key);
                   const draft = assignTimeDrafts[task.recordId] || toTimeValue(task.dueAtIso);
+                  const nextIso = combineDateWithTime(task.dueAtIso, draft);
                   return (
                     <article
                       key={task.id}
@@ -290,9 +295,9 @@ export const TriagePanel = ({
                           type="button"
                           className={actionButtonClassName}
                           onClick={() => {
-                            void runWithBusy(`${key}-complete`, () => onCompleteTask(task.recordId));
+                            void runWithBusy(key, () => onCompleteTask(task.recordId));
                           }}
-                          disabled={busy(`${key}-complete`)}
+                          disabled={itemBusy}
                         >
                           Complete
                         </button>
@@ -302,6 +307,7 @@ export const TriagePanel = ({
                           onClick={() => {
                             setAssignTimeOpenId((current) => (current === task.recordId ? null : task.recordId));
                           }}
+                          disabled={itemBusy}
                         >
                           Assign time
                         </button>
@@ -309,9 +315,9 @@ export const TriagePanel = ({
                           type="button"
                           className={actionButtonClassName}
                           onClick={() => {
-                            void runWithBusy(`${key}-snooze`, () => onSnoozeTask(task.recordId));
+                            void runWithBusy(key, () => onSnoozeTask(task.recordId));
                           }}
-                          disabled={busy(`${key}-snooze`)}
+                          disabled={itemBusy}
                         >
                           Snooze
                         </button>
@@ -321,6 +327,7 @@ export const TriagePanel = ({
                           <input
                             type="time"
                             value={draft}
+                            aria-label={`Assign time for ${task.title}`}
                             onChange={(event) => {
                               const value = event.target.value;
                               setAssignTimeDrafts((current) => ({ ...current, [task.recordId]: value }));
@@ -331,16 +338,15 @@ export const TriagePanel = ({
                             type="button"
                             className={actionButtonClassName}
                             onClick={() => {
-                              const nextIso = combineDateWithTime(task.dueAtIso, draft);
                               if (!nextIso) {
                                 return;
                               }
-                              void runWithBusy(`${key}-assign`, async () => {
+                              void runWithBusy(key, async () => {
                                 await onAssignTaskTime(task.recordId, nextIso);
                                 setAssignTimeOpenId(null);
                               });
                             }}
-                            disabled={busy(`${key}-assign`)}
+                            disabled={itemBusy || !nextIso}
                           >
                             Save
                           </button>
@@ -361,7 +367,9 @@ export const TriagePanel = ({
               <div className="space-y-2">
                 {missedReminders.map((reminder) => {
                   const key = `reminder-${reminder.reminderId}`;
+                  const itemBusy = busy(key);
                   const draft = reminderDefaultDrafts[reminder.reminderId] || defaultReminderSnoozeValue();
+                  const nextIso = fromDateTimeLocalValue(draft);
                   return (
                     <article
                       key={reminder.id}
@@ -381,9 +389,9 @@ export const TriagePanel = ({
                           type="button"
                           className={actionButtonClassName}
                           onClick={() => {
-                            void runWithBusy(`${key}-dismiss`, () => onDismissReminder(reminder.reminderId));
+                            void runWithBusy(key, () => onDismissReminder(reminder.reminderId));
                           }}
-                          disabled={busy(`${key}-dismiss`)}
+                          disabled={itemBusy}
                         >
                           Dismiss
                         </button>
@@ -397,6 +405,7 @@ export const TriagePanel = ({
                               [reminder.reminderId]: current[reminder.reminderId] || draft,
                             }));
                           }}
+                          disabled={itemBusy}
                         >
                           Snooze
                         </button>
@@ -406,6 +415,7 @@ export const TriagePanel = ({
                           <input
                             type="datetime-local"
                             value={draft}
+                            aria-label={`Snooze ${reminder.title}`}
                             onChange={(event) => {
                               const value = event.target.value;
                               setReminderSnoozeDrafts((current) => ({ ...current, [reminder.reminderId]: value }));
@@ -416,16 +426,15 @@ export const TriagePanel = ({
                             type="button"
                             className={actionButtonClassName}
                             onClick={() => {
-                              const nextIso = fromDateTimeLocalValue(draft);
                               if (!nextIso) {
                                 return;
                               }
-                              void runWithBusy(`${key}-snooze`, async () => {
+                              void runWithBusy(key, async () => {
                                 await onSnoozeReminder(reminder.reminderId, nextIso);
                                 setReminderSnoozeOpenId(null);
                               });
                             }}
-                            disabled={busy(`${key}-snooze`)}
+                            disabled={itemBusy || !nextIso}
                           >
                             Save
                           </button>
