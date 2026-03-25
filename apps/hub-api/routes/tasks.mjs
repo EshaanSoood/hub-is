@@ -218,7 +218,7 @@ export const createTaskRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for task creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_body', 'Invalid request body.')));
+      send(response, parseBody.errorResponse(error, { invalidCode: 'invalid_body', invalidMessage: 'Invalid request body.' }));
       return;
     }
 

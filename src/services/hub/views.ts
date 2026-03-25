@@ -1,6 +1,6 @@
-import { hubRequest, normalizeRecordSummary } from './transport';
+import { hubRequest, normalizeRecordSummary } from './transport.ts';
 
-import type { HubCollectionField, HubRecordSummary, HubView } from './types';
+import type { HubCollectionField, HubRecordSummary, HubView } from './types.ts';
 
 export const listViews = async (accessToken: string, projectId: string): Promise<HubView[]> => {
   const data = await hubRequest<{ views: HubView[] }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/views`, {

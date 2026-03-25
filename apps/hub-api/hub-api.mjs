@@ -17,6 +17,7 @@ import { createStatements } from './db/statements.mjs';
 import { withTransaction } from './db/transaction.mjs';
 import { createRequestLogger } from './lib/logger.mjs';
 import { applyRequestContext } from './lib/requestContext.mjs';
+import { fetchWithTimeout, isFetchTimeoutError } from './lib/fetch-utils.mjs';
 import { createAutomationRoutes } from './routes/automation.mjs';
 import { createChatRoutes } from './routes/chat.mjs';
 import { createCollectionRoutes } from './routes/collections.mjs';
@@ -41,9 +42,12 @@ const KEYCLOAK_JWKS_CACHE_MAX_AGE_MS = Number(process.env.KEYCLOAK_JWKS_CACHE_MA
 const NEXTCLOUD_BASE_URL = (process.env.NEXTCLOUD_BASE_URL || '').trim();
 const NEXTCLOUD_USER = (process.env.NEXTCLOUD_USER || '').trim();
 const NEXTCLOUD_APP_PASSWORD = (process.env.NEXTCLOUD_APP_PASSWORD || '').trim();
+const NEXTCLOUD_FETCH_TIMEOUT_MS_RAW = Number.parseInt(String(process.env.NEXTCLOUD_FETCH_TIMEOUT_MS || '30000'), 10);
 const TUWUNEL_INTERNAL_URL = (process.env.TUWUNEL_INTERNAL_URL || 'http://tuwunel:6167').trim() || 'http://tuwunel:6167';
 const TUWUNEL_REGISTRATION_SHARED_SECRET = (process.env.TUWUNEL_REGISTRATION_SHARED_SECRET || '').trim();
 const MATRIX_ACCOUNT_ENCRYPTION_KEY = (process.env.MATRIX_ACCOUNT_ENCRYPTION_KEY || '').trim();
+const HUB_API_MAX_BODY_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_MAX_BODY_BYTES || '1048576'), 10);
+const HUB_API_LARGE_BODY_MAX_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_LARGE_BODY_MAX_BYTES || '52428800'), 10);
 const HUB_COLLAB_TICKET_TTL_MS_RAW = Number.parseInt(String(process.env.HUB_COLLAB_TICKET_TTL_MS || '120000'), 10);
 const HUB_COLLAB_TICKET_TTL_MS = Number.isInteger(HUB_COLLAB_TICKET_TTL_MS_RAW)
   ? Math.min(900_000, Math.max(10_000, HUB_COLLAB_TICKET_TTL_MS_RAW))
@@ -146,6 +150,15 @@ const asBoolean = (value, fallback = false) => {
   }
   return fallback;
 };
+
+const NEXTCLOUD_FETCH_TIMEOUT_MS = asInteger(NEXTCLOUD_FETCH_TIMEOUT_MS_RAW, 30_000, 1_000, 300_000);
+const HUB_API_MAX_BODY_BYTES = asInteger(HUB_API_MAX_BODY_BYTES_RAW, 1_048_576, 1_024, 50 * 1024 * 1024);
+const HUB_API_LARGE_BODY_MAX_BYTES = asInteger(
+  HUB_API_LARGE_BODY_MAX_BYTES_RAW,
+  50 * 1024 * 1024,
+  HUB_API_MAX_BODY_BYTES,
+  100 * 1024 * 1024,
+);
 
 const parseJson = (value, fallback = null) => {
   if (value === null || value === undefined || value === '') {
@@ -311,21 +324,55 @@ const send = (response, output) => {
   response.end(output.body);
 };
 
-const readRequestBuffer = async (request) => {
+class BodyTooLargeError extends Error {
+  constructor(limitBytes) {
+    super(`Request body exceeds ${limitBytes} bytes.`);
+    this.name = 'BodyTooLargeError';
+    this.limit_bytes = limitBytes;
+  }
+}
+
+const isBodyTooLargeError = (error) => error instanceof BodyTooLargeError;
+
+const readRequestBuffer = async (request, { maxBytes = HUB_API_MAX_BODY_BYTES } = {}) => {
+  const normalizedMaxBytes = asInteger(maxBytes, HUB_API_MAX_BODY_BYTES, 1_024, HUB_API_LARGE_BODY_MAX_BYTES);
+  const contentLength = Number.parseInt(String(request.headers['content-length'] || ''), 10);
+  if (Number.isInteger(contentLength) && contentLength > normalizedMaxBytes) {
+    request.resume();
+    throw new BodyTooLargeError(normalizedMaxBytes);
+  }
+
   const chunks = [];
+  let totalBytes = 0;
   for await (const chunk of request) {
-    chunks.push(chunk);
+    const nextChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += nextChunk.byteLength;
+    if (totalBytes > normalizedMaxBytes) {
+      request.resume();
+      throw new BodyTooLargeError(normalizedMaxBytes);
+    }
+    chunks.push(nextChunk);
   }
   return Buffer.concat(chunks);
 };
 
-const parseBody = async (request) => {
-  const raw = (await readRequestBuffer(request)).toString('utf8').trim();
+const bodyParseErrorResponse = (error, { invalidCode = 'invalid_json', invalidMessage = 'Body must be valid JSON.' } = {}) => {
+  if (isBodyTooLargeError(error)) {
+    return jsonResponse(413, errorEnvelope('payload_too_large', `Request body exceeds ${error.limit_bytes} bytes.`));
+  }
+  return jsonResponse(400, errorEnvelope(invalidCode, invalidMessage));
+};
+
+const parseBody = async (request, options = {}) => {
+  const raw = (await readRequestBuffer(request, options)).toString('utf8').trim();
   if (!raw) {
     return {};
   }
   return JSON.parse(raw);
 };
+parseBody.errorResponse = bodyParseErrorResponse;
+parseBody.defaultMaxBytes = HUB_API_MAX_BODY_BYTES;
+parseBody.largeMaxBytes = HUB_API_LARGE_BODY_MAX_BYTES;
 
 const fromBase64Url = (value) => {
   const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
@@ -992,7 +1039,7 @@ const cleanupExpiredCollabTickets = () => {
 const collabTicketCleanupInterval = setInterval(cleanupExpiredCollabTickets, 60_000);
 collabTicketCleanupInterval.unref?.();
 
-const issueCollabTicket = ({ docId, paneId, projectId, userId, displayName, accessToken }) => {
+const issueCollabTicket = ({ docId, paneId, projectId, userId, displayName, accessToken, canEdit = false }) => {
   cleanupExpiredCollabTickets();
   const ticket = `wst_${randomUUID().replace(/-/g, '')}`;
   const issuedAtMs = Date.now();
@@ -1005,6 +1052,7 @@ const issueCollabTicket = ({ docId, paneId, projectId, userId, displayName, acce
     user_id: userId,
     display_name: displayName,
     access_token: accessToken,
+    can_edit: Boolean(canEdit),
     issued_at_ms: issuedAtMs,
     expires_at_ms: expiresAtMs,
   });
@@ -1022,6 +1070,7 @@ const consumeCollabTicket = ({ wsTicket, docId }) => {
   if (!entry) {
     return { error: { status: 401, code: 'unauthorized', message: 'Invalid or expired collaboration ticket.' } };
   }
+  collabTicketStore.delete(wsTicket);
 
   if (entry.expires_at_ms <= Date.now()) {
     return { error: { status: 401, code: 'unauthorized', message: 'Invalid or expired collaboration ticket.' } };
@@ -1038,6 +1087,7 @@ const consumeCollabTicket = ({ wsTicket, docId }) => {
       user_id: entry.user_id,
       display_name: entry.display_name,
       access_token: entry.access_token,
+      can_edit: Boolean(entry.can_edit),
       issued_at: new Date(entry.issued_at_ms).toISOString(),
       expires_at: new Date(entry.expires_at_ms).toISOString(),
     },
@@ -2151,12 +2201,25 @@ const uploadToNextcloud = async ({ rootPath, relativePath, mimeType, content }) 
   for (const segment of directorySegments) {
     currentDir = buildAssetRelativePath(currentDir, segment);
     const mkcolUrl = nextcloudUrl('/', currentDir);
-    const mkcolResponse = await fetch(mkcolUrl, {
-      method: 'MKCOL',
-      headers: {
-        Authorization: nextcloudAuthHeader(),
-      },
-    });
+    let mkcolResponse;
+    try {
+      mkcolResponse = await fetchWithTimeout(
+        mkcolUrl,
+        {
+          method: 'MKCOL',
+          headers: {
+            Authorization: nextcloudAuthHeader(),
+          },
+        },
+        { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
+      );
+      mkcolResponse.clearTimeout?.();
+    } catch (error) {
+      if (isFetchTimeoutError(error)) {
+        return { error: { status: 504, code: 'upstream_timeout', message: 'Nextcloud folder create timed out.' } };
+      }
+      throw error;
+    }
 
     if (![201, 301, 302, 405].includes(mkcolResponse.status)) {
       return {
@@ -2170,14 +2233,27 @@ const uploadToNextcloud = async ({ rootPath, relativePath, mimeType, content }) 
   }
 
   const targetUrl = nextcloudUrl(rootPath, normalized);
-  const upstream = await fetch(targetUrl, {
-    method: 'PUT',
-    headers: {
-      Authorization: nextcloudAuthHeader(),
-      'Content-Type': mimeType || 'application/octet-stream',
-    },
-    body: content,
-  });
+  let upstream;
+  try {
+    upstream = await fetchWithTimeout(
+      targetUrl,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: nextcloudAuthHeader(),
+          'Content-Type': mimeType || 'application/octet-stream',
+        },
+        body: content,
+      },
+      { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
+    );
+    upstream.clearTimeout?.();
+  } catch (error) {
+    if (isFetchTimeoutError(error)) {
+      return { error: { status: 504, code: 'upstream_timeout', message: 'Nextcloud upload timed out.' } };
+    }
+    throw error;
+  }
 
   if (![200, 201, 204].includes(upstream.status)) {
     return { error: { status: 502, code: 'upstream_error', message: `Nextcloud upload failed (${upstream.status}).` } };
@@ -2248,6 +2324,7 @@ const routeDeps = {
   errorEnvelope,
   eventStateByRecordStmt: stmts.calendar.findEventState,
   extractDocNodeKeyState,
+  fetchWithTimeout,
   fieldByIdStmt: stmts.collections.findFieldById,
   fieldTypeSet,
   fieldsByCollectionStmt: stmts.collections.listFields,
@@ -2290,6 +2367,7 @@ const routeDeps = {
   membershipRoleLabel,
   newId,
   nextFieldSortStmt: stmts.collections.nextFieldSort,
+  NEXTCLOUD_FETCH_TIMEOUT_MS,
   nextcloudAuthHeader,
   nextcloudUrl,
   normalizeAssetPathSegment,
@@ -2354,6 +2432,7 @@ const routeDeps = {
   safeNextcloudConfig,
   safeTuwunelConfig,
   send,
+  isFetchTimeoutError,
   eventParticipantByRecordAndUserStmt: stmts.calendar.findParticipantByRecordAndUser,
   homeEventsByProjectStmt: stmts.calendar.listEventsForProject,
   personalCapturesStmt: stmts.records.listPersonalCaptures,

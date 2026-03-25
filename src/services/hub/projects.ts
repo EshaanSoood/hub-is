@@ -1,4 +1,4 @@
-import { hubRequest } from './transport';
+import { hubRequest } from './transport.ts';
 import type {
   CreateProjectRequest,
   CreateProjectResponse,
@@ -7,7 +7,7 @@ import type {
   ProjectSummary,
 } from '../../shared/api-types';
 
-import type { HubProjectInvite, HubProjectMember } from './types';
+import type { HubProjectInvite, HubProjectMember } from './types.ts';
 
 export const listProjects = async (accessToken: string): Promise<ProjectSummary[]> => {
   const data = await hubRequest<ListProjectsResponse>(accessToken, '/api/hub/projects', {

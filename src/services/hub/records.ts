@@ -1,4 +1,4 @@
-import { hubRequest, normalizeRecordDetail, normalizeSourcePane } from './transport';
+import { hubRequest, normalizeRecordDetail, normalizeSourcePane } from './transport.ts';
 import type {
   CreateEventRequest,
   CreateEventResponse,
@@ -16,7 +16,7 @@ import type {
   HubRecordDetail,
   HubRelationSearchRecord,
   HubSourcePaneContext,
-} from './types';
+} from './types.ts';
 
 export const createRecord = async (
   accessToken: string,

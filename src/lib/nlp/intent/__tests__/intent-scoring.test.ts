@@ -16,6 +16,12 @@ describe('intent classifier scoring edge cases', () => {
     assert.equal(result.intent, 'task');
   });
 
+  test('classifies "call mom" as non-ambiguous task', () => {
+    const result = classifyIntent('call mom');
+    assert.equal(result.intent, 'task');
+    assert.equal(result.ambiguous, false);
+  });
+
   test('classifies "remind me to call mom" as reminder', () => {
     const result = classifyIntent('remind me to call mom');
     assert.equal(result.intent, 'reminder');

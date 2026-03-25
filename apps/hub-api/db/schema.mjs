@@ -99,6 +99,14 @@ const resetSchemaToContractV1 = (db) => {
   db.exec('PRAGMA foreign_keys = OFF;');
   db.exec('BEGIN IMMEDIATE;');
   try {
+    // Prevent startup races: if another process already installed the contract schema
+    // while this process waited for the write lock, do not drop/recreate it.
+    if (schemaReady(db)) {
+      db.exec('COMMIT;');
+      db.exec('PRAGMA foreign_keys = ON;');
+      return;
+    }
+
     const objects = db.prepare(`
       SELECT type, name
       FROM sqlite_master
@@ -140,12 +148,12 @@ const resetSchemaToContractV1 = (db) => {
         created_by TEXT NOT NULL,
         is_personal INTEGER NOT NULL DEFAULT 0 CHECK (is_personal IN (0, 1)),
         project_type TEXT NOT NULL DEFAULT 'team' CHECK (project_type IN ('team', 'personal')),
+        tasks_collection_id TEXT,
+        reminders_collection_id TEXT,
         CHECK (
           (is_personal = 0 AND project_type = 'team')
           OR (is_personal = 1 AND project_type = 'personal')
         ),
-        tasks_collection_id TEXT,
-        reminders_collection_id TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
@@ -719,8 +727,34 @@ const schemaReady = (db) => {
   return Number(versionRow?.version) === 1;
 };
 
+const userTableCount = (db) =>
+  Number(
+    db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").get()?.count || 0,
+  );
+
+const userTableCountWithWriteLock = (db) => {
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    const count = userTableCount(db);
+    db.exec('COMMIT;');
+    return count;
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch (rollbackError) {
+      schemaLog.warn('Schema empty-check rollback failed.', { error: rollbackError });
+    }
+    throw error;
+  }
+};
+
 export const initSchema = (db) => {
   if (schemaReady(db)) {
+    return;
+  }
+
+  if (userTableCountWithWriteLock(db) === 0) {
+    resetSchemaToContractV1(db);
     return;
   }
 

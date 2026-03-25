@@ -47,6 +47,11 @@ describe('reminder parser time extraction', () => {
     assert.equal(result.fields.remind_at, '2026-04-15T09:00:00');
   });
 
+  test('normalizes "Bday" title to "Birthday"', () => {
+    const result = parse('Bday');
+    assert.equal(result.fields.title, 'Birthday');
+  });
+
   test('interprets "call mom at 3" as 15:00 today via forward-date logic', () => {
     const result = parse('call mom at 3');
     assert.equal(result.fields.remind_at, '2026-03-22T15:00:00');

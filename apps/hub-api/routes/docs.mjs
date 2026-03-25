@@ -116,10 +116,10 @@ export const createDocRoutes = (deps) => {
 
     let body;
     try {
-      body = await parseBody(request);
+      body = await parseBody(request, { maxBytes: parseBody.largeMaxBytes });
     } catch (error) {
       request.log.warn('Failed to parse request body for doc update.', { error, docId });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -192,6 +192,11 @@ export const createDocRoutes = (deps) => {
         docId,
         error,
       });
+      const parseErrorResponse = parseBody.errorResponse(error);
+      if (parseErrorResponse.statusCode === 413) {
+        send(response, parseErrorResponse);
+        return;
+      }
       body = {};
     }
 
@@ -211,7 +216,7 @@ export const createDocRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for comment creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -374,7 +379,7 @@ export const createDocRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for doc anchor comment creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -517,7 +522,7 @@ export const createDocRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for comment status update.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -659,7 +664,7 @@ export const createDocRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for mention materialization.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -744,7 +749,7 @@ export const createDocRoutes = (deps) => {
       return;
     }
 
-    const docGate = withDocPolicyGate({ userId: auth.user.user_id, docId, requiredCapability: 'write' });
+    const docGate = withDocPolicyGate({ userId: auth.user.user_id, docId, requiredCapability: 'view' });
     if (docGate.error) {
       send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
       return;
@@ -757,6 +762,7 @@ export const createDocRoutes = (deps) => {
       userId: auth.user.user_id,
       displayName: auth.user.display_name,
       accessToken: auth.token,
+      canEdit: docGate.can_edit,
     });
 
     send(
@@ -770,7 +776,7 @@ export const createDocRoutes = (deps) => {
             project_id: docGate.project_id,
             user_id: auth.user.user_id,
             display_name: auth.user.display_name,
-            can_edit: true,
+            can_edit: docGate.can_edit,
             ws_ticket: ticket.ws_ticket,
             ticket_issued_at: ticket.issued_at,
             ticket_expires_at: ticket.expires_at,
@@ -787,7 +793,7 @@ export const createDocRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for collab ticket consume.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
