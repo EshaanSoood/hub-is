@@ -801,7 +801,7 @@ export const PersonalizedDashboardPanel = ({
   return (
     <section className="rounded-panel border border-subtle bg-elevated p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div role="heading" aria-level={1} aria-label="Hub OS" className="text-primary">
+        <div role="heading" aria-level={1} aria-label="Hub OS" className="text-text">
           <HubOsWordmark aria-label="Hub OS" className="block h-auto w-[116px]" width={116} />
         </div>
         {homeLoading ? <span className="text-xs text-muted">Refreshing…</span> : null}

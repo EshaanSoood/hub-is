@@ -11,6 +11,7 @@ import { HUB_TRIAGE_DRAG_MIME } from './types';
 const HOUR_MS = 60 * 60 * 1000;
 const ITEM_MIN_WIDTH_PX = 180;
 const ITEM_TITLE_MAX_CHARS = 30;
+const TIMELINE_SIDE_PADDING_PX = 96;
 
 const parseIso = (value: string): Date | null => {
   const parsed = new Date(value);
@@ -97,8 +98,10 @@ export const DayStrip = ({
   onDropFromTriage?: (payload: TriageDragPayload, assignedAt: Date) => void | Promise<void>;
 }) => {
   const [now, setNow] = useState(() => new Date());
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const autoScrollKeyRef = useRef<string>('');
   const hasNoScheduledItems = events.length === 0 && tasks.length === 0 && reminders.length === 0;
 
   useEffect(() => {
@@ -236,6 +239,41 @@ export const DayStrip = ({
 
   const percentForMs = (ms: number): number => clamp(((ms - range.startMs) / totalMs) * 100, 0, 100);
 
+  useEffect(() => {
+    if (hasNoScheduledItems) {
+      autoScrollKeyRef.current = '';
+      return;
+    }
+
+    const rangeKey = `${range.startMs}:${range.endMs}:${timelineItems.length}`;
+    if (autoScrollKeyRef.current === rangeKey) {
+      return;
+    }
+
+    let frameId = 0;
+    const alignNowNeedle = () => {
+      const viewport = scrollViewportRef.current;
+      if (!viewport) {
+        frameId = window.requestAnimationFrame(alignNowNeedle);
+        return;
+      }
+      if (viewport.scrollWidth <= 0 || viewport.clientWidth <= 0) {
+        frameId = window.requestAnimationFrame(alignNowNeedle);
+        return;
+      }
+      const nowPixel = TIMELINE_SIDE_PADDING_PX + (nowPercent / 100) * widthPx;
+      const targetScrollLeft = nowPixel - viewport.clientWidth * 0.25;
+      const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+      viewport.scrollLeft = clamp(targetScrollLeft, 0, maxScrollLeft);
+      autoScrollKeyRef.current = rangeKey;
+    };
+
+    frameId = window.requestAnimationFrame(alignNowNeedle);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [hasNoScheduledItems, nowPercent, range.endMs, range.startMs, timelineItems.length, widthPx]);
+
   const handleItemKeyDown = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
       return;
@@ -294,10 +332,13 @@ export const DayStrip = ({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          ref={scrollViewportRef}
+          className="overflow-x-auto px-[96px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           <div
             ref={timelineRef}
-            className="relative h-[146px] min-w-full select-none px-[96px]"
+            className="relative h-[146px] min-w-full select-none"
             style={{ width: `${widthPx}px` }}
             onDragOver={(event) => {
               if (!onDropFromTriage) {
@@ -389,7 +430,7 @@ export const DayStrip = ({
                       }}
                       type="button"
                       aria-label={`Task: ${item.title} at ${timeLabel}`}
-                      className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 ${
+                      className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 p-0 [border-radius:9999px] ${
                         overdue
                           ? 'border-danger bg-danger text-on-primary'
                           : 'border-[color:var(--color-primary-strong)] bg-[color:var(--color-primary-strong)] text-on-primary'
