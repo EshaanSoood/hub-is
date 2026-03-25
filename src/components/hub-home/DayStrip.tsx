@@ -276,7 +276,11 @@ export const DayStrip = ({
   };
 
   return (
-    <div role="region" aria-label="Day timeline" className={`rounded-panel border border-border-muted bg-surface p-2 ${className ?? ''}`}>
+    <div
+      role="region"
+      aria-label="Day timeline"
+      className={`rounded-panel border border-border-muted bg-[color:var(--color-surface)] p-2 [box-shadow:inset_0_0_12px_2px_rgb(38_48_64_/_0.5)] ${className ?? ''}`}
+    >
       {hasNoScheduledItems ? (
         <div className="flex h-20 items-center justify-center rounded-control border border-border-muted bg-surface-elevated px-4 text-center">
           <p className="text-[15px] italic text-text-secondary">
@@ -302,7 +306,7 @@ export const DayStrip = ({
             <div className="absolute bottom-7 left-0 right-0 border-t border-border-muted" />
             <div
               aria-hidden="true"
-              className="absolute bottom-7 top-4 w-0.5 rounded-full bg-accent shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-accent)_40%,transparent)]"
+              className="absolute bottom-7 top-4 w-[2px] rounded-full bg-text"
               style={{ left: `${nowPercent}%` }}
             />
 
@@ -316,7 +320,7 @@ export const DayStrip = ({
                   />
                   {tick.label ? <span className="text-[11px] text-text-secondary">{tick.label}</span> : null}
                   {tick.midnight ? (
-                    <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-text-secondary">{formatDateMarker(new Date(tick.ms))}</span>
+                    <span className="ml-1 text-[11px] text-text-secondary">{formatDateMarker(new Date(tick.ms))}</span>
                   ) : null}
                 </div>
               );
@@ -342,8 +346,8 @@ export const DayStrip = ({
                     aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
                     className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium ${
                       inPast
-                        ? 'border-primary/25 bg-primary/15 text-text-secondary'
-                        : 'border-primary/45 bg-primary/25 text-text'
+                        ? 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary opacity-40'
+                        : 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary'
                     }`}
                     style={{ left: `${left}%`, width: `${width}%` }}
                     onClick={() => onOpenRecord(item.recordId)}
@@ -377,11 +381,9 @@ export const DayStrip = ({
                       type="button"
                       aria-label={`Task: ${item.title} at ${timeLabel}`}
                       className={`absolute h-3.5 w-3.5 rounded-full border-2 ${
-                        complete
-                          ? 'border-success bg-success/15 text-success'
-                          : overdue
-                            ? 'border-danger bg-danger/15 text-danger'
-                            : 'border-primary bg-surface text-primary'
+                        overdue
+                          ? 'border-danger bg-danger text-on-primary'
+                          : 'border-[color:var(--color-primary-strong)] bg-[color:var(--color-primary-strong)] text-on-primary'
                       }`}
                       style={{ top: `${markerTop}px` }}
                       onClick={() => onOpenRecord(item.recordId)}
@@ -390,7 +392,7 @@ export const DayStrip = ({
                       {complete ? <span className="absolute inset-0 grid place-items-center text-[9px] leading-none">✓</span> : null}
                     </button>
                     <span
-                      className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-muted"
+                      className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-text"
                       style={{ left: '50%', top: `${labelTop}px` }}
                       title={item.title}
                     >
@@ -412,17 +414,17 @@ export const DayStrip = ({
                     aria-label={`Reminder: ${item.title} at ${timeLabel}`}
                     className={`absolute h-3.5 w-3.5 rotate-45 border-2 ${
                       settledDismissed
-                        ? 'border-border-strong bg-surface-elevated'
+                        ? 'border-[color:var(--color-capture-rail)] bg-[color:var(--color-capture-rail)] opacity-40'
                         : pastUndismissed
-                          ? 'border-danger bg-danger/15'
-                          : 'border-warning bg-warning/15'
+                          ? 'border-danger bg-[color:var(--color-capture-rail)]'
+                          : 'border-[color:var(--color-capture-rail)] bg-[color:var(--color-capture-rail)]'
                     }`}
                     style={{ top: `${markerTop}px` }}
                     onClick={() => onOpenRecord(item.recordId)}
                     onKeyDown={(event) => handleItemKeyDown(event, item.id)}
                   />
                   <span
-                    className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-muted"
+                    className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-text"
                     style={{ left: '50%', top: `${labelTop}px` }}
                     title={item.title}
                   >
