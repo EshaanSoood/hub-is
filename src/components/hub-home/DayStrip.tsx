@@ -203,27 +203,7 @@ export const DayStrip = ({
   const nowPercent = clamp(((now.getTime() - range.startMs) / totalMs) * 100, 0, 100);
   const spanHours = totalMs / HOUR_MS;
   const baseWidthPx = Math.max(720, Math.ceil(spanHours * 90));
-  const widthPx = useMemo(() => {
-    const percentForMs = (ms: number): number => clamp(((ms - range.startMs) / totalMs) * 100, 0, 100);
-    let maxRightPx = baseWidthPx;
-
-    for (const item of timelineItems) {
-      if (item.kind === 'event') {
-        const leftPercent = percentForMs(item.startMs);
-        const rightPercent = percentForMs(item.endMs);
-        const proportionalWidthPx = (Math.max(0.9, rightPercent - leftPercent) / 100) * baseWidthPx;
-        const eventWidthPx = Math.max(ITEM_MIN_WIDTH_PX, proportionalWidthPx);
-        const leftPx = (leftPercent / 100) * baseWidthPx;
-        maxRightPx = Math.max(maxRightPx, leftPx + eventWidthPx);
-        continue;
-      }
-
-      const centerPx = (percentForMs(item.timeMs) / 100) * baseWidthPx;
-      maxRightPx = Math.max(maxRightPx, centerPx + ITEM_MIN_WIDTH_PX / 2);
-    }
-
-    return Math.ceil(maxRightPx);
-  }, [baseWidthPx, range.startMs, timelineItems, totalMs]);
+  const widthPx = baseWidthPx;
 
   const ticks = useMemo(() => {
     const first = new Date(range.startMs);
@@ -374,7 +354,7 @@ export const DayStrip = ({
                     aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
                     className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium ${
                       inPast
-                        ? 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary opacity-40'
+                        ? 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary opacity-60'
                         : 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary'
                     }`}
                     style={{ left: `${left}%`, width: `${widthPxForEvent}px` }}
