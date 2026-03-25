@@ -291,7 +291,8 @@ const authorizeJwtConnection = async (token, docId) => {
 
   const isOwner = normalizeProjectRole(projectMembership.role) === 'owner';
   const paneEditor = paneEditorStmt.get(doc.pane_id, user.user_id);
-  if (!isOwner && !paneEditor?.ok) {
+  const canEdit = isOwner || Boolean(paneEditor?.ok);
+  if (!canEdit) {
     throw new Error('pane_write_required');
   }
 
@@ -304,6 +305,7 @@ const authorizeJwtConnection = async (token, docId) => {
     user_id: user.user_id,
     display_name: displayName,
     access_token: token,
+    can_edit: canEdit,
   };
 };
 const authorizeConnection = async (token, docId) => {
@@ -464,6 +466,12 @@ const sendInitialSync = (state, ws) => {
 };
 
 const handleSyncMessage = (state, ws, decoder, messageType) => {
+  void messageType;
+  const syncTypeHint = decoding.peekVarUint(decoder);
+  if (syncTypeHint === syncProtocol.messageYjsUpdate && ws.canEdit === false) {
+    return;
+  }
+
   const encoder = encoding.createEncoder();
   encoding.writeVarUint(encoder, messageSync);
 
@@ -490,10 +498,11 @@ const server = createServer((request, response) => {
 const wss = new WebSocketServer({ noServer: true, maxPayload: 50 * 1024 * 1024 });
 
 wss.on('connection', async (ws, request, context) => {
-  const { docId, token, projectId, paneId, userId, displayName } = context;
+  const { docId, token, projectId, paneId, userId, displayName, canEdit } = context;
 
   ws.docId = docId;
   ws.userId = userId;
+  ws.canEdit = canEdit === true;
 
   let state;
   try {
@@ -517,6 +526,7 @@ wss.on('connection', async (ws, request, context) => {
   state.clients.set(ws, {
     userId,
     displayName,
+    canEdit: ws.canEdit,
     connectedAt: nowIso(),
     awarenessClientIds: new Set(),
   });
@@ -600,6 +610,7 @@ server.on('upgrade', async (request, socket, head) => {
       userId: authorization.user_id,
       displayName: authorization.display_name || 'Collaborator',
       token: authorization.access_token || token,
+      canEdit: authorization.can_edit === true,
     };
 
     wss.handleUpgrade(request, socket, head, (ws) => {

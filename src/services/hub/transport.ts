@@ -1,6 +1,6 @@
 import { buildHubAuthHeaders } from '../hubAuthHeaders.ts';
 
-import type { HubEnvelope, HubLiveAuthorization, HubRecordDetail, HubRecordSummary, HubSourcePaneContext } from './types';
+import type { HubEnvelope, HubLiveAuthorization, HubRecordDetail, HubRecordSummary, HubSourcePaneContext } from './types.ts';
 
 const authHeaders = (accessToken: string, hasBody = false): Headers => buildHubAuthHeaders(accessToken, hasBody);
 

@@ -1,4 +1,4 @@
-import { hubRequest } from './transport';
+import { hubRequest } from './transport.ts';
 import type {
   CreateReminderRequest,
   CreateReminderResponse,

@@ -200,21 +200,21 @@ expectStatus(
 );
 
 const memberNextcloud = await requestJson(
-  `/api/hub/projects/${encodedProjectId}/nextcloud/files`,
+  `/api/hub/projects/${encodedProjectId}/files`,
   { token: memberToken },
 );
 expectStatus(
-  `GET /api/hub/projects/${memberProjectId}/nextcloud/files (member)`,
+  `GET /api/hub/projects/${memberProjectId}/files (member)`,
   memberNextcloud,
   [200, 409],
 );
 
 const nonMemberNextcloud = await requestJson(
-  `/api/hub/projects/${encodedProjectId}/nextcloud/files`,
+  `/api/hub/projects/${encodedProjectId}/files`,
   { token: nonMemberToken },
 );
 expectStatus(
-  `GET /api/hub/projects/${memberProjectId}/nextcloud/files (non-member)`,
+  `GET /api/hub/projects/${memberProjectId}/files (non-member)`,
   nonMemberNextcloud,
   403,
 );

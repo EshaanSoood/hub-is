@@ -1,6 +1,6 @@
-import { hubRequest } from './transport';
+import { hubRequest } from './transport.ts';
 
-import type { HubCollabAuthorization } from './types';
+import type { HubCollabAuthorization } from './types.ts';
 
 export const authorizeCollabDoc = async (accessToken: string, docId: string): Promise<HubCollabAuthorization> => {
   const data = await hubRequest<{ authorization: HubCollabAuthorization }>(

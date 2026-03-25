@@ -1,6 +1,6 @@
-import { hubRequest } from './transport';
+import { hubRequest } from './transport.ts';
 
-import type { HubPaneSummary } from './types';
+import type { HubPaneSummary } from './types.ts';
 
 export const listPanes = async (accessToken: string, projectId: string): Promise<HubPaneSummary[]> => {
   const data = await hubRequest<{ panes: HubPaneSummary[] }>(

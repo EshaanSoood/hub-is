@@ -68,7 +68,7 @@ export const createAutomationRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for automation rule creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -132,7 +132,7 @@ export const createAutomationRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for automation rule update.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 

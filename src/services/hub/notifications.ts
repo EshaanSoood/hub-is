@@ -1,6 +1,6 @@
-import { hubRequest } from './transport';
+import { hubRequest } from './transport.ts';
 
-import type { HubNotification } from './types';
+import type { HubNotification } from './types.ts';
 
 export const listNotifications = async (
   accessToken: string,

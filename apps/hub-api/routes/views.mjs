@@ -89,7 +89,7 @@ export const createViewRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for view creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -136,7 +136,7 @@ export const createViewRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for view query.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -213,7 +213,7 @@ export const createViewRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for NLP event creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 

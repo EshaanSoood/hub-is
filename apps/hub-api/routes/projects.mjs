@@ -64,7 +64,7 @@ export const createProjectRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for project creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -215,7 +215,7 @@ export const createProjectRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for project member add.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -307,7 +307,7 @@ export const createProjectRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for project invite creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -377,7 +377,7 @@ export const createProjectRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for invite review.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 

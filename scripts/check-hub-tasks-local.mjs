@@ -174,13 +174,23 @@ const readRequestBuffer = async (request) => {
 };
 
 const countByTypeForUser = (db, type, userId) =>
-  Number(db.prepare('SELECT COUNT(*) AS count FROM notifications WHERE type = ? AND user_id = ?').get(type, userId)?.count || 0);
+  Number(db.prepare('SELECT COUNT(*) AS count FROM notifications WHERE reason = ? AND user_id = ?').get(type, userId)?.count || 0);
 
 const listTimelineIds = (timelineRows) => timelineRows.map((entry) => entry.id);
 
+const normalizeTimelineEntry = (entry) => ({
+  ...entry,
+  id: entry.id || entry.timeline_event_id,
+  type: entry.type || entry.event_type,
+  entityType: entry.entityType || entry.primary_entity_type,
+  entityId: entry.entityId || entry.primary_entity_id,
+  createdAt: entry.createdAt || entry.created_at,
+});
+
 const extractTimelineRows = (response, label) => {
   expectStatus(label, response, 200);
-  return Array.isArray(response.payload?.timeline) ? response.payload.timeline : [];
+  const rows = Array.isArray(response.payload?.timeline) ? response.payload.timeline : [];
+  return rows.map(normalizeTimelineEntry);
 };
 
 const nextcloudPort = await reservePort();
@@ -605,8 +615,8 @@ try {
   expect('note id created', typeof noteId === 'string' && noteId.startsWith('note_'));
 
   const db = new DatabaseSync(dbPath, { readOnly: true });
-  const activityIdsBeforeNoteUpdate = new Set(
-    db.prepare('SELECT id FROM activity_log ORDER BY created_at ASC, id ASC').all().map((row) => row.id),
+  const timelineIdsBeforeNoteUpdate = new Set(
+    db.prepare('SELECT timeline_event_id FROM timeline_events ORDER BY created_at ASC, timeline_event_id ASC').all().map((row) => row.timeline_event_id),
   );
 
   const noteUpdate = await requestJson(baseUrl, `${projectPath}/notes/${encodeURIComponent(noteId)}`, {
@@ -618,13 +628,13 @@ try {
   });
   expectStatus('project note update', noteUpdate, 200);
 
-  const activityIdsAfterNoteUpdate = new Set(
-    db.prepare('SELECT id FROM activity_log ORDER BY created_at ASC, id ASC').all().map((row) => row.id),
+  const timelineIdsAfterNoteUpdate = new Set(
+    db.prepare('SELECT timeline_event_id FROM timeline_events ORDER BY created_at ASC, timeline_event_id ASC').all().map((row) => row.timeline_event_id),
   );
-  expect('activity log append-only count increases on new mutation', activityIdsAfterNoteUpdate.size > activityIdsBeforeNoteUpdate.size);
+  expect('timeline events append-only count increases on new mutation', timelineIdsAfterNoteUpdate.size > timelineIdsBeforeNoteUpdate.size);
   expect(
-    'activity log append-only preserves prior ids',
-    Array.from(activityIdsBeforeNoteUpdate).every((id) => activityIdsAfterNoteUpdate.has(id)),
+    'timeline events append-only preserves prior ids',
+    Array.from(timelineIdsBeforeNoteUpdate).every((id) => timelineIdsAfterNoteUpdate.has(id)),
   );
 
   const projectTimelineFull = await requestJson(baseUrl, `${projectPath}/timeline?limit=100`, { token: ownerToken });
@@ -724,9 +734,9 @@ try {
   expect('calendar series stores RRULE', typeof seriesRrule === 'string' && seriesRrule.startsWith('FREQ=WEEKLY'));
   expect('calendar series stores skip exception', seriesExceptionCount >= 1);
 
-  const activityDistinct = Number(db.prepare('SELECT COUNT(DISTINCT id) AS count FROM activity_log').get()?.count || 0);
-  const activityTotal = Number(db.prepare('SELECT COUNT(*) AS count FROM activity_log').get()?.count || 0);
-  expect('activity log ids remain unique', activityDistinct === activityTotal);
+  const timelineDistinct = Number(db.prepare('SELECT COUNT(DISTINCT timeline_event_id) AS count FROM timeline_events').get()?.count || 0);
+  const timelineTotal = Number(db.prepare('SELECT COUNT(*) AS count FROM timeline_events').get()?.count || 0);
+  expect('timeline event ids remain unique', timelineDistinct === timelineTotal);
 
   const requiredActivityTypes = [
     'task.created',
@@ -738,8 +748,8 @@ try {
     'note.updated',
   ];
   for (const activityType of requiredActivityTypes) {
-    const count = Number(db.prepare('SELECT COUNT(*) AS count FROM activity_log WHERE type = ?').get(activityType)?.count || 0);
-    expect(`activity_log contains ${activityType}`, count >= 1);
+    const count = Number(db.prepare('SELECT COUNT(*) AS count FROM timeline_events WHERE event_type = ?').get(activityType)?.count || 0);
+    expect(`timeline_events contains ${activityType}`, count >= 1);
   }
 
   const collabTaskAssignedCount = countByTypeForUser(db, 'task.assigned', collaboratorUserId);

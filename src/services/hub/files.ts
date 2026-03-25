@@ -1,6 +1,6 @@
-import { hubRequest } from './transport';
+import { hubRequest } from './transport.ts';
 
-import type { HubTrackedFile } from './types';
+import type { HubTrackedFile } from './types.ts';
 
 export const uploadFile = async (
   accessToken: string,

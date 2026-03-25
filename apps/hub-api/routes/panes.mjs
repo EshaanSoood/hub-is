@@ -81,7 +81,7 @@ export const createPaneRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for pane creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -179,7 +179,7 @@ export const createPaneRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for pane update.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -264,7 +264,7 @@ export const createPaneRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for pane member add.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 

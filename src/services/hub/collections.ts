@@ -1,6 +1,6 @@
-import { hubRequest } from './transport';
+import { hubRequest } from './transport.ts';
 
-import type { HubCollection, HubCollectionField } from './types';
+import type { HubCollection, HubCollectionField } from './types.ts';
 
 export const listCollections = async (accessToken: string, projectId: string): Promise<HubCollection[]> => {
   const data = await hubRequest<{ collections: HubCollection[] }>(

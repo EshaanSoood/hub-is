@@ -12,9 +12,12 @@ export const createFileRoutes = (deps) => {
     asInteger,
     parseJson,
     parseJsonObject,
+    fetchWithTimeout,
+    isFetchTimeoutError,
     normalizeAssetRelativePath,
     buildAssetRelativePath,
     normalizeAssetPathSegment,
+    NEXTCLOUD_FETCH_TIMEOUT_MS,
     nowIso,
     newId,
     toJson,
@@ -28,6 +31,7 @@ export const createFileRoutes = (deps) => {
     nextcloudAuthHeader,
     buildAssetProxyPath,
     trackedFileRecord,
+    withTransaction,
     ALLOWED_ORIGIN,
     NEXTCLOUD_USER,
     paneByIdStmt,
@@ -52,10 +56,10 @@ export const createFileRoutes = (deps) => {
     }
     let body;
     try {
-      body = await parseBody(request);
+      body = await parseBody(request, { maxBytes: parseBody.largeMaxBytes });
     } catch (error) {
       request.log.warn('Failed to parse request body for file upload.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -123,23 +127,56 @@ export const createFileRoutes = (deps) => {
 
     const fileId = newId('fil');
     const createdAt = nowIso();
-    insertFileStmt.run(fileId, projectId, root.asset_root_id, 'nextcloud', providerPath, name, mimeType, content.byteLength, null, toJson(metadata), auth.user.user_id, createdAt);
-    insertFileBlobStmt.run(fileId, toJson({ provider: 'nextcloud', asset_root_id: root.asset_root_id, provider_path: providerPath }), createdAt);
+    try {
+      withTransaction(() => {
+        insertFileStmt.run(
+          fileId,
+          projectId,
+          root.asset_root_id,
+          'nextcloud',
+          providerPath,
+          name,
+          mimeType,
+          content.byteLength,
+          null,
+          toJson(metadata),
+          auth.user.user_id,
+          createdAt,
+        );
+        insertFileBlobStmt.run(
+          fileId,
+          toJson({
+            provider: 'nextcloud',
+            asset_root_id: root.asset_root_id,
+            provider_path: providerPath,
+          }),
+          createdAt,
+        );
 
-    emitTimelineEvent({
-      projectId,
-      actorUserId: auth.user.user_id,
-      eventType: 'file.uploaded',
-      primaryEntityType: 'file',
-      primaryEntityId: fileId,
-      summary: {
-        name,
-        size_bytes: content.byteLength,
-        provider: 'nextcloud',
-        asset_root_id: root.asset_root_id,
-        asset_path: providerPath,
-      },
-    });
+        emitTimelineEvent({
+          projectId,
+          actorUserId: auth.user.user_id,
+          eventType: 'file.uploaded',
+          primaryEntityType: 'file',
+          primaryEntityId: fileId,
+          summary: {
+            name,
+            size_bytes: content.byteLength,
+            provider: 'nextcloud',
+            asset_root_id: root.asset_root_id,
+            asset_path: providerPath,
+          },
+        });
+      });
+    } catch (error) {
+      request.log.error('Failed to persist file metadata transaction.', {
+        error,
+        projectId,
+        fileId,
+      });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Failed to save uploaded file metadata.')));
+      return;
+    }
 
     send(response, jsonResponse(201, okEnvelope({
       file: {
@@ -169,7 +206,7 @@ export const createFileRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for attachment creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -333,7 +370,7 @@ export const createFileRoutes = (deps) => {
       body = await parseBody(request);
     } catch (error) {
       request.log.warn('Failed to parse request body for asset root creation.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -429,20 +466,28 @@ export const createFileRoutes = (deps) => {
     const propfindBody = '<?xml version="1.0" encoding="UTF-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:getlastmodified/><d:getcontentlength/><d:resourcetype/></d:prop></d:propfind>';
     let upstream;
     try {
-      upstream = await fetch(targetUrl, {
-        method: 'PROPFIND',
-        headers: {
-          Authorization: nextcloudAuthHeader(),
-          Depth: '1',
-          'Content-Type': 'application/xml; charset=utf-8',
+      upstream = await fetchWithTimeout(
+        targetUrl,
+        {
+          method: 'PROPFIND',
+          headers: {
+            Authorization: nextcloudAuthHeader(),
+            Depth: '1',
+            'Content-Type': 'application/xml; charset=utf-8',
+          },
+          body: propfindBody,
         },
-        body: propfindBody,
-      });
+        { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
+      );
       if (![200, 207].includes(upstream.status)) {
         send(response, jsonResponse(502, errorEnvelope('upstream_error', `Nextcloud list failed (${upstream.status}).`)));
         return;
       }
     } catch (error) {
+      if (isFetchTimeoutError(error)) {
+        send(response, jsonResponse(504, errorEnvelope('upstream_timeout', 'Nextcloud list request timed out.')));
+        return;
+      }
       request.log.error('Nextcloud asset list request failed.', { error, projectId });
       send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Upstream request failed.')));
       return;
@@ -478,10 +523,10 @@ export const createFileRoutes = (deps) => {
     const projectId = params.projectId;
     let body;
     try {
-      body = await parseBody(request);
+      body = await parseBody(request, { maxBytes: parseBody.largeMaxBytes });
     } catch (error) {
       request.log.warn('Failed to parse request body for asset upload.', { error });
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
+      send(response, parseBody.errorResponse(error));
       return;
     }
 
@@ -582,15 +627,23 @@ export const createFileRoutes = (deps) => {
     const targetUrl = nextcloudUrl(root.root_path, relativePath);
     let upstream;
     try {
-      upstream = await fetch(targetUrl, {
-        method: 'DELETE',
-        headers: { Authorization: nextcloudAuthHeader() },
-      });
+      upstream = await fetchWithTimeout(
+        targetUrl,
+        {
+          method: 'DELETE',
+          headers: { Authorization: nextcloudAuthHeader() },
+        },
+        { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
+      );
       if (![200, 204].includes(upstream.status)) {
         send(response, jsonResponse(502, errorEnvelope('upstream_error', `Nextcloud delete failed (${upstream.status}).`)));
         return;
       }
     } catch (error) {
+      if (isFetchTimeoutError(error)) {
+        send(response, jsonResponse(504, errorEnvelope('upstream_timeout', 'Nextcloud delete request timed out.')));
+        return;
+      }
       request.log.error('Nextcloud asset delete request failed.', { error, projectId });
       send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Upstream request failed.')));
       return;
@@ -637,15 +690,23 @@ export const createFileRoutes = (deps) => {
     const targetUrl = nextcloudUrl(root.root_path, relativePath);
     let upstream;
     try {
-      upstream = await fetch(targetUrl, {
-        method: 'GET',
-        headers: { Authorization: nextcloudAuthHeader() },
-      });
+      upstream = await fetchWithTimeout(
+        targetUrl,
+        {
+          method: 'GET',
+          headers: { Authorization: nextcloudAuthHeader() },
+        },
+        { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
+      );
       if (!upstream.ok) {
         send(response, jsonResponse(502, errorEnvelope('upstream_error', `Nextcloud proxy failed (${upstream.status}).`)));
         return;
       }
     } catch (error) {
+      if (isFetchTimeoutError(error)) {
+        send(response, jsonResponse(504, errorEnvelope('upstream_timeout', 'Nextcloud proxy request timed out.')));
+        return;
+      }
       request.log.error('Nextcloud asset proxy request failed.', { error, projectId });
       send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Upstream request failed.')));
       return;
