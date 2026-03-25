@@ -480,6 +480,7 @@ export const createFileRoutes = (deps) => {
         { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
       );
       if (![200, 207].includes(upstream.status)) {
+        upstream.clearTimeout?.();
         send(response, jsonResponse(502, errorEnvelope('upstream_error', `Nextcloud list failed (${upstream.status}).`)));
         return;
       }
@@ -493,7 +494,18 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    const xml = await upstream.text();
+    let xml;
+    try {
+      xml = await upstream.text();
+    } catch (error) {
+      if (isFetchTimeoutError(error)) {
+        send(response, jsonResponse(504, errorEnvelope('upstream_timeout', 'Nextcloud list response timed out.')));
+        return;
+      }
+      request.log.error('Nextcloud asset list response read failed.', { error, projectId });
+      send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Upstream response read failed.')));
+      return;
+    }
     const hrefs = [...xml.matchAll(/<d:href>(.*?)<\/d:href>/g)].map((match) => decodeURIComponent(match[1] || ''));
     const rootPrefix = `/remote.php/dav/files/${NEXTCLOUD_USER}/${asText(root.root_path).replace(/^\/+/, '').replace(/\/+$/, '')}`;
     const entries = hrefs
@@ -635,6 +647,7 @@ export const createFileRoutes = (deps) => {
         },
         { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
       );
+      upstream.clearTimeout?.();
       if (![200, 204].includes(upstream.status)) {
         send(response, jsonResponse(502, errorEnvelope('upstream_error', `Nextcloud delete failed (${upstream.status}).`)));
         return;
@@ -699,6 +712,7 @@ export const createFileRoutes = (deps) => {
         { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
       );
       if (!upstream.ok) {
+        upstream.clearTimeout?.();
         send(response, jsonResponse(502, errorEnvelope('upstream_error', `Nextcloud proxy failed (${upstream.status}).`)));
         return;
       }
@@ -712,7 +726,18 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    const payload = Buffer.from(await upstream.arrayBuffer());
+    let payload;
+    try {
+      payload = Buffer.from(await upstream.arrayBuffer());
+    } catch (error) {
+      if (isFetchTimeoutError(error)) {
+        send(response, jsonResponse(504, errorEnvelope('upstream_timeout', 'Nextcloud proxy response timed out.')));
+        return;
+      }
+      request.log.error('Nextcloud asset proxy response read failed.', { error, projectId });
+      send(response, jsonResponse(502, errorEnvelope('upstream_error', 'Upstream response read failed.')));
+      return;
+    }
     response.writeHead(200, {
       'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
       'Cache-Control': 'private, max-age=30',

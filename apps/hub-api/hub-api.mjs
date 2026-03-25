@@ -338,6 +338,7 @@ const readRequestBuffer = async (request, { maxBytes = HUB_API_MAX_BODY_BYTES } 
   const normalizedMaxBytes = asInteger(maxBytes, HUB_API_MAX_BODY_BYTES, 1_024, HUB_API_LARGE_BODY_MAX_BYTES);
   const contentLength = Number.parseInt(String(request.headers['content-length'] || ''), 10);
   if (Number.isInteger(contentLength) && contentLength > normalizedMaxBytes) {
+    request.resume();
     throw new BodyTooLargeError(normalizedMaxBytes);
   }
 
@@ -347,6 +348,7 @@ const readRequestBuffer = async (request, { maxBytes = HUB_API_MAX_BODY_BYTES } 
     const nextChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     totalBytes += nextChunk.byteLength;
     if (totalBytes > normalizedMaxBytes) {
+      request.resume();
       throw new BodyTooLargeError(normalizedMaxBytes);
     }
     chunks.push(nextChunk);
@@ -1068,6 +1070,7 @@ const consumeCollabTicket = ({ wsTicket, docId }) => {
   if (!entry) {
     return { error: { status: 401, code: 'unauthorized', message: 'Invalid or expired collaboration ticket.' } };
   }
+  collabTicketStore.delete(wsTicket);
 
   if (entry.expires_at_ms <= Date.now()) {
     return { error: { status: 401, code: 'unauthorized', message: 'Invalid or expired collaboration ticket.' } };
@@ -1075,7 +1078,6 @@ const consumeCollabTicket = ({ wsTicket, docId }) => {
   if (entry.doc_id !== docId) {
     return { error: { status: 403, code: 'forbidden', message: 'Collaboration ticket does not match requested doc.' } };
   }
-  collabTicketStore.delete(wsTicket);
 
   return {
     ticket: {
@@ -2211,6 +2213,7 @@ const uploadToNextcloud = async ({ rootPath, relativePath, mimeType, content }) 
         },
         { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
       );
+      mkcolResponse.clearTimeout?.();
     } catch (error) {
       if (isFetchTimeoutError(error)) {
         return { error: { status: 504, code: 'upstream_timeout', message: 'Nextcloud folder create timed out.' } };
@@ -2244,6 +2247,7 @@ const uploadToNextcloud = async ({ rootPath, relativePath, mimeType, content }) 
       },
       { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
     );
+    upstream.clearTimeout?.();
   } catch (error) {
     if (isFetchTimeoutError(error)) {
       return { error: { status: 504, code: 'upstream_timeout', message: 'Nextcloud upload timed out.' } };

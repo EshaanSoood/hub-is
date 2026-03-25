@@ -173,8 +173,23 @@ const readRequestBuffer = async (request) => {
   return Buffer.concat(chunks);
 };
 
+const notificationReasonByType = Object.freeze({
+  'task.assigned': 'assignment',
+  'task.completed': 'update',
+  'calendar.event.created': 'update',
+  'calendar.series.created': 'update',
+  'file.uploaded': 'update',
+  'note.updated': 'update',
+});
+
+const notificationReasonForType = (type) => notificationReasonByType[type] || type;
+
 const countByTypeForUser = (db, type, userId) =>
-  Number(db.prepare('SELECT COUNT(*) AS count FROM notifications WHERE reason = ? AND user_id = ?').get(type, userId)?.count || 0);
+  Number(
+    db
+      .prepare('SELECT COUNT(*) AS count FROM notifications WHERE reason = ? AND user_id = ?')
+      .get(notificationReasonForType(type), userId)?.count || 0,
+  );
 
 const listTimelineIds = (timelineRows) => timelineRows.map((entry) => entry.id);
 
@@ -189,7 +204,7 @@ const normalizeTimelineEntry = (entry) => ({
 
 const extractTimelineRows = (response, label) => {
   expectStatus(label, response, 200);
-  const rows = Array.isArray(response.payload?.timeline) ? response.payload.timeline : [];
+  const rows = Array.isArray(response.payload?.data?.timeline) ? response.payload.data.timeline : [];
   return rows.map(normalizeTimelineEntry);
 };
 

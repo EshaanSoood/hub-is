@@ -99,6 +99,14 @@ const resetSchemaToContractV1 = (db) => {
   db.exec('PRAGMA foreign_keys = OFF;');
   db.exec('BEGIN IMMEDIATE;');
   try {
+    // Prevent startup races: if another process already installed the contract schema
+    // while this process waited for the write lock, do not drop/recreate it.
+    if (schemaReady(db)) {
+      db.exec('COMMIT;');
+      db.exec('PRAGMA foreign_keys = ON;');
+      return;
+    }
+
     const objects = db.prepare(`
       SELECT type, name
       FROM sqlite_master
@@ -724,12 +732,28 @@ const userTableCount = (db) =>
     db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").get()?.count || 0,
   );
 
+const userTableCountWithWriteLock = (db) => {
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    const count = userTableCount(db);
+    db.exec('COMMIT;');
+    return count;
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch (rollbackError) {
+      schemaLog.warn('Schema empty-check rollback failed.', { error: rollbackError });
+    }
+    throw error;
+  }
+};
+
 export const initSchema = (db) => {
   if (schemaReady(db)) {
     return;
   }
 
-  if (userTableCount(db) === 0) {
+  if (userTableCountWithWriteLock(db) === 0) {
     resetSchemaToContractV1(db);
     return;
   }
