@@ -95,14 +95,14 @@ scripts/calendar-nlp/weekday-semantics.test.mjs — Regression tests for weekday
 ## src
 src/App.tsx — Renders app UI; uses useAuthz.
 src/main.tsx — Renders main UI.
-src/vite-env.d.ts — Declares ambient TypeScript module types for vite env.d integration.
+src/vite-env.d.ts — Declares ambient TypeScript module types for Vite environment modules.
 
 ## src/components/auth
 src/components/auth/AccessDeniedView.tsx — Renders access denied view UI.
-src/components/auth/ProfilePanel.tsx — Renders profile panel panel; uses state, refs, useAuthz.
+src/components/auth/ProfilePanel.tsx — Renders profile panel; uses state, refs, useAuthz.
 src/components/auth/ProjectRouteGuard.tsx — Renders project route guard route wrapper; uses useParams.
 src/components/auth/ProjectRouteRedirect.tsx — Renders project route redirect route wrapper; uses useParams.
-src/components/auth/ProtectedRoute.tsx — Renders protected route route wrapper; uses useAuthz.
+src/components/auth/ProtectedRoute.tsx — Renders protected route wrapper; uses useAuthz.
 
 ## src/components/layout
 src/components/layout/AppShell.tsx — Renders app shell UI; uses state, memoized data, effects, refs, useLocation.
@@ -111,7 +111,7 @@ src/components/layout/DataList.tsx — Renders data list UI.
 src/components/layout/DataTable.tsx — Renders data table tab.
 src/components/layout/Grid.tsx — Renders grid UI.
 src/components/layout/PageHeader.tsx — Renders page header UI.
-src/components/layout/Panel.tsx — Renders panel panel.
+src/components/layout/Panel.tsx — Renders panel.
 src/components/layout/ProjectShell.tsx — Renders project shell UI.
 src/components/layout/SectionHeader.tsx — Renders section header UI.
 src/components/layout/Stack.tsx — Renders stack UI.
@@ -124,7 +124,7 @@ src/components/primitives/Card.tsx — Renders card UI.
 src/components/primitives/Checkbox.tsx — Renders checkbox UI.
 src/components/primitives/Chip.tsx — Renders chip UI.
 src/components/primitives/CommandPalette.tsx — Renders command palette UI.
-src/components/primitives/Dialog.tsx — Renders dialog dialog.
+src/components/primitives/Dialog.tsx — Renders dialog.
 src/components/primitives/Divider.tsx — Renders divider UI.
 src/components/primitives/Icon.tsx — Renders checkmark icon UI; uses useId.
 src/components/primitives/IconButton.tsx — Renders icon button UI; uses effects.
@@ -133,7 +133,7 @@ src/components/primitives/InlineNotice.tsx — Renders inline notice UI; uses st
 src/components/primitives/LinkButton.tsx — Renders link button UI.
 src/components/primitives/LiveRegion.tsx — Renders live region UI.
 src/components/primitives/Menu.tsx — Renders dropdown menu UI.
-src/components/primitives/Popover.tsx — Renders popover popover.
+src/components/primitives/Popover.tsx — Renders popover.
 src/components/primitives/ScrollArea.tsx — Renders scroll area UI.
 src/components/primitives/SectionHeader.tsx — Renders section header UI.
 src/components/primitives/Select.tsx — Renders select UI.
@@ -144,20 +144,20 @@ src/components/primitives/Tooltip.tsx — Renders tooltip UI.
 
 ## src/components/project-space
 Project Space feature UI: tabs, module skins, overlays, comments, and workspace tooling.
-src/components/project-space/AddModuleDialog.tsx — Renders add module dialog dialog; uses state, useId.
+src/components/project-space/AddModuleDialog.tsx — Renders add module dialog; uses state, useId.
 src/components/project-space/AutomationBuilder.tsx — Renders automation builder UI; uses state, memoized data.
-src/components/project-space/BacklinksPanel.tsx — Renders backlinks panel panel.
+src/components/project-space/BacklinksPanel.tsx — Renders backlinks panel.
 src/components/project-space/CalendarModuleSkin.tsx — Renders calendar module skin module view; uses state, memoized data, effects, refs.
-src/components/project-space/CalendarTab.tsx — Renders calendar tab tab; uses memoized data.
+src/components/project-space/CalendarTab.tsx — Renders calendar tab; uses memoized data.
 src/components/project-space/CommentComposer.tsx — Renders comment composer UI; uses memoized data.
 src/components/project-space/CommentRail.tsx — Renders comment rail UI.
 src/components/project-space/designTokens.ts — Defines TypeScript types and interfaces for design tokens.
 src/components/project-space/FileInspectorActionBar.tsx — Renders file inspector action bar UI; uses state, effects, refs.
-src/components/project-space/FileMovePopover.tsx — Renders file move popover popover; uses state, effects, refs.
+src/components/project-space/FileMovePopover.tsx — Renders file move popover; uses state, effects, refs.
 src/components/project-space/FilesModuleSkin.tsx — Renders files module skin module view; uses state, memoized data, effects, refs, useThumbnail.
 src/components/project-space/FilterBar.tsx — Renders filter bar UI.
 src/components/project-space/FilterBarOverlay.tsx — Renders filter bar overlay UI; uses state, memoized data.
-src/components/project-space/FocusModeToolbar.tsx — Renders focus mode toolbar toolbar; uses memoized data, refs.
+src/components/project-space/FocusModeToolbar.tsx — Renders focus mode toolbar; uses memoized data, refs.
 src/components/project-space/InboxCaptureModuleSkin.tsx — Renders quick thoughts module skin module view; uses state, memoized data, effects, refs.
 src/components/project-space/KanbanModuleSkin.tsx — Renders kanban module skin module view; uses memoized data, useDroppable.
 src/components/project-space/MentionPicker.tsx — Renders mention picker UI; uses state, memoized data, effects, refs, useId.
@@ -166,7 +166,7 @@ src/components/project-space/moduleCatalog.ts — Exports MODULE_CATALOG, module
 src/components/project-space/ModuleFeedback.tsx — Renders module loading state module view.
 src/components/project-space/ModuleGrid.tsx — Renders module grid module view; uses state, refs.
 src/components/project-space/ModuleLensControl.tsx — Renders module lens control module view.
-src/components/project-space/ModuleSettingsPopover.tsx — Renders module settings popover popover.
+src/components/project-space/ModuleSettingsPopover.tsx — Renders module settings popover.
 src/components/project-space/OverviewHeader.tsx — Renders overview header UI; uses state, memoized data.
 src/components/project-space/OverviewView.tsx — Renders overview view UI; uses state, memoized data, refs.
 src/components/project-space/PaneHeaderControls.tsx — Renders pane header controls UI; uses state, memoized data.
@@ -180,11 +180,11 @@ src/components/project-space/RemindersModuleSkin.tsx — Renders reminders modul
 src/components/project-space/tabKeyboard.ts — Exports handleRovingTabKeyDown for tab keyboard; used by Tabs.
 src/components/project-space/TableModuleSkin.tsx — Renders table module skin tab; uses state, memoized data, refs, useReactTable.
 src/components/project-space/taskAdapter.ts — Exports formatDueLabel, adaptTaskSummary, adaptTaskSummaries for task adapter; used by OverviewView and TasksModuleSkin.
-src/components/project-space/TaskCreateDialog.tsx — Renders task create dialog dialog; uses state, effects, refs.
+src/components/project-space/TaskCreateDialog.tsx — Renders task create dialog; uses state, effects, refs.
 src/components/project-space/TasksModuleSkin.tsx — Renders tasks module skin module view; uses state, memoized data.
-src/components/project-space/TasksTab.tsx — Renders tasks tab tab; uses state, memoized data, effects, refs.
+src/components/project-space/TasksTab.tsx — Renders tasks tab; uses state, memoized data, effects, refs.
 src/components/project-space/TimelineFeed.tsx — Renders timeline feed UI; uses memoized data.
-src/components/project-space/TimelineTab.tsx — Renders timeline tab tab.
+src/components/project-space/TimelineTab.tsx — Renders timeline tab.
 src/components/project-space/ToolsView.tsx — Renders tools view UI.
 src/components/project-space/TopNavTabs.tsx — Renders top nav tabs tab.
 src/components/project-space/types.ts — Defines TypeScript types and interfaces for project space.
@@ -192,15 +192,15 @@ src/components/project-space/ViewEmbedBlock.tsx — Renders view embed block UI;
 src/components/project-space/WorkView.tsx — Renders work view UI; uses state, refs.
 
 ## src/components/project-space/modules
-src/components/project-space/modules/CalendarModule.tsx — Renders calendar module module view.
-src/components/project-space/modules/FilesModule.tsx — Renders files module module view.
+src/components/project-space/modules/CalendarModule.tsx — Renders calendar module view.
+src/components/project-space/modules/FilesModule.tsx — Renders files module view.
 src/components/project-space/modules/index.ts — Exports TableModule, KanbanModule, CalendarModule for modules; used by WorkView.
-src/components/project-space/modules/KanbanModule.tsx — Renders kanban module module view.
-src/components/project-space/modules/QuickThoughtsModule.tsx — Renders quick thoughts module module view.
-src/components/project-space/modules/RemindersModule.tsx — Renders reminders module module view.
+src/components/project-space/modules/KanbanModule.tsx — Renders kanban module view.
+src/components/project-space/modules/QuickThoughtsModule.tsx — Renders quick thoughts module view.
+src/components/project-space/modules/RemindersModule.tsx — Renders reminders module view.
 src/components/project-space/modules/TableModule.tsx — Renders table module tab.
-src/components/project-space/modules/TasksModule.tsx — Renders tasks module module view.
-src/components/project-space/modules/TimelineModule.tsx — Renders timeline module module view.
+src/components/project-space/modules/TasksModule.tsx — Renders tasks module view.
+src/components/project-space/modules/TimelineModule.tsx — Renders timeline module view.
 
 ## src/components/ui
 Styled wrapper components around UI primitives and accessibility-focused interaction patterns.
@@ -230,7 +230,7 @@ src/data/authzData.ts — Exports anonymousUser for authz data; used by AuthzCon
 src/data/mockData.ts — Exports nowIso, mockNotes, mockFiles for mock data; used by ActivityContext and githubService.
 
 ## src/features
-src/features/PersonalizedDashboardPanel.tsx — Renders personalized dashboard panel panel; uses state, memoized data, effects, refs, useId.
+src/features/PersonalizedDashboardPanel.tsx — Renders personalized dashboard panel; uses state, memoized data, effects, refs, useId.
 src/features/QuickCapture.tsx — Renders quick capture panel UI; uses state, memoized data, effects, refs, useNavigate.
 
 ## src/features/notes
@@ -317,10 +317,10 @@ src/lib/nlp/intent/passes/patternPass.ts — NLP pipeline pass applying pattern 
 src/lib/nlp/intent/passes/structurePass.ts — NLP pipeline pass applying structure pass rules to extraction context.
 
 ## src/lib/nlp/reminder-parser
-src/lib/nlp/reminder-parser/constants.ts — Defines constants/defaults used by reminder parser parser stages.
+src/lib/nlp/reminder-parser/constants.ts — Defines constants/defaults used by reminder parser stages.
 src/lib/nlp/reminder-parser/index.ts — Composes and exports the reminder parser parsing pipeline.
 src/lib/nlp/reminder-parser/types.ts — Defines parsing contracts and shared types for reminder parser.
-src/lib/nlp/reminder-parser/utils.ts — Utility helpers shared across reminder parser parser passes.
+src/lib/nlp/reminder-parser/utils.ts — Utility helpers shared across reminder parser passes.
 
 ## src/lib/nlp/reminder-parser/__tests__
 src/lib/nlp/reminder-parser/__tests__/recurrence.test.ts — Test suite validating reminder recurrence extraction behavior.
@@ -343,10 +343,10 @@ src/lib/nlp/shared/types.ts — Defines parsing contracts and shared types for s
 src/lib/nlp/shared/utils.ts — Utility helpers shared across shared parser passes.
 
 ## src/lib/nlp/task-parser
-src/lib/nlp/task-parser/constants.ts — Defines constants/defaults used by task parser parser stages.
+src/lib/nlp/task-parser/constants.ts — Defines constants/defaults used by task parser stages.
 src/lib/nlp/task-parser/index.ts — Composes and exports the task parser parsing pipeline.
 src/lib/nlp/task-parser/types.ts — Defines parsing contracts and shared types for task parser.
-src/lib/nlp/task-parser/utils.ts — Utility helpers shared across task parser parser passes.
+src/lib/nlp/task-parser/utils.ts — Utility helpers shared across task parser passes.
 
 ## src/lib/nlp/task-parser/__tests__
 src/lib/nlp/task-parser/__tests__/due-date-extraction.test.ts — Test suite validating due-date extraction behavior in task parsing.
@@ -362,10 +362,10 @@ src/lib/nlp/task-parser/passes/priorityPass.ts — NLP pipeline pass applying pr
 src/lib/nlp/task-parser/passes/titlePass.ts — NLP pipeline pass applying title pass rules to extraction context.
 
 ## src/pages
-src/pages/LoginPage.tsx — Renders login page page; uses effects, refs, useAuthz.
-src/pages/NotFoundPage.tsx — Renders not found page page.
-src/pages/ProjectSpacePage.tsx — Renders project space page page; uses state, memoized data, effects, refs, useLocation.
-src/pages/ProjectsPage.tsx — Renders projects page page; uses state, memoized data, effects, refs, useNavigate.
+src/pages/LoginPage.tsx — Renders login page; uses effects, refs, useAuthz.
+src/pages/NotFoundPage.tsx — Renders not found page.
+src/pages/ProjectSpacePage.tsx — Renders project space page; uses state, memoized data, effects, refs, useLocation.
+src/pages/ProjectsPage.tsx — Renders projects page; uses state, memoized data, effects, refs, useNavigate.
 
 ## src/server
 src/server/routes.ts — Exports serverRouteContracts for routes.
@@ -419,4 +419,4 @@ src/shared/api-types/validators.ts — Shared API type definitions for validator
 
 ## src/types
 src/types/domain.ts — Defines TypeScript types and interfaces for domain.
-src/types/hub-api-module.d.ts — Declares ambient TypeScript module types for hub api module.d integration.
+src/types/hub-api-module.d.ts — Declares ambient TypeScript module types for the hub-api module.

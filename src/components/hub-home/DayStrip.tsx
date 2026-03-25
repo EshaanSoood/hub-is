@@ -102,7 +102,6 @@ export const DayStrip = ({
   const nowNeedleRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const autoScrollKeyRef = useRef<string>('');
-  const hasNoScheduledItems = events.length === 0 && tasks.length === 0 && reminders.length === 0;
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -178,6 +177,7 @@ export const DayStrip = ({
       return left.id.localeCompare(right.id);
     });
   }, [events, reminders, tasks, typeFilter]);
+  const hasNoScheduledItems = timelineItems.length === 0;
 
   const range = useMemo(() => {
     const nowMs = now.getTime();

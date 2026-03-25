@@ -43,6 +43,8 @@ export const ContextBar = ({
 }) => {
   const totalCount = eventCount + taskCount + reminderCount;
   const adjective = adjectiveForCount(totalCount);
+  const triageNoun = nounForCount(triageCount, 'item', 'items');
+  const triageVerb = triageCount === 1 ? 'needs' : 'need';
   const triageButtonClassName = triageCount > 0
     ? 'border-warning/50 bg-warning/10 text-text'
     : 'border-border-muted bg-surface text-muted';
@@ -97,7 +99,7 @@ export const ContextBar = ({
                 className="text-primary underline decoration-dotted underline-offset-2"
                 onClick={onToggleTriagePanel}
               >
-                {triageCount} overdue or unassigned items
+                {triageCount} overdue or unassigned {triageNoun}
               </button>
               <span> that need your attention.</span>
             </>
@@ -108,7 +110,7 @@ export const ContextBar = ({
           type="button"
           className={`shrink-0 rounded-control border px-2.5 py-1 text-xs font-semibold ${triageButtonClassName}`}
           onClick={onToggleTriagePanel}
-          aria-label={`${triageCount} items need attention`}
+          aria-label={`${triageCount} ${triageNoun} ${triageVerb} attention`}
           aria-expanded={triageOpen}
         >
           {triageCount}

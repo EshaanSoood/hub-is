@@ -35,7 +35,7 @@
   --color-subtle: var(--color-muted-subtle);
   --color-accent: var(--color-primary);
   --color-border-subtle: var(--color-border-muted);
-  --color-focus-ring: var(--color-border-primary);
+  --color-focus-ring: var(--color-accent);
 
   --radius-panel: 0.75rem;
   --radius-control: 0.625rem;

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { notifyError } from '../primitives';
 import { HUB_TRIAGE_DRAG_MIME } from './types';
 import type { TriageReminderItem, TriageTaskItem } from './types';
 
@@ -80,13 +81,13 @@ const priorityClassName = (priority: TriageTaskItem['priority']): string => {
     return 'border-danger/40 bg-danger/10 text-danger';
   }
   if (priority === 'high') {
-    return 'border-warning/40 bg-warning/10 text-warning';
+    return 'border-warning-subtle bg-warning-subtle text-text';
   }
   if (priority === 'medium') {
-    return 'border-info/40 bg-info/10 text-info';
+    return 'border-info-subtle bg-info-subtle text-text';
   }
   if (priority === 'low') {
-    return 'border-success/40 bg-success/10 text-success';
+    return 'border-success-subtle bg-success-subtle text-text';
   }
   return 'border-border-muted bg-surface-elevated text-muted';
 };
@@ -131,6 +132,9 @@ export const TriagePanel = ({
     setBusyKeys((current) => ({ ...current, [key]: true }));
     try {
       await run();
+    } catch (error) {
+      console.error('Failed to run triage action:', error);
+      notifyError('Could not update this triage item.', error instanceof Error ? error.message : undefined);
     } finally {
       setBusyKeys((current) => ({ ...current, [key]: false }));
     }

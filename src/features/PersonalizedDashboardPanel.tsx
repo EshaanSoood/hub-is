@@ -452,6 +452,7 @@ export const PersonalizedDashboardPanel = ({
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [timelineTypeFilter, setTimelineTypeFilter] = useState<TimelineTypeFilter>('all');
   const [triageOpen, setTriageOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
   const viewListboxId = useId();
   const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -508,6 +509,15 @@ export const PersonalizedDashboardPanel = ({
       window.cancelAnimationFrame(frameId);
     };
   }, [viewMenuOpen]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const closeViewMenu = () => {
     setViewMenuOpen(false);
@@ -590,7 +600,6 @@ export const PersonalizedDashboardPanel = ({
     : 'all';
 
   const dailyData = useMemo(() => {
-    const now = new Date();
     const todayStart = startOfDay(now);
 
     const dayEvents: DayStripEventItem[] = homeData.events.flatMap((event) => {
@@ -617,7 +626,10 @@ export const PersonalizedDashboardPanel = ({
     for (const task of homeData.tasks) {
       const dueAt = parseIso(task.task_state.due_at);
       const complete = isTaskComplete(task.task_state.status);
-      if (dueAt && dueAt < todayStart && !complete) {
+      if (complete) {
+        continue;
+      }
+      if (dueAt && dueAt < todayStart) {
         overdueTasks.push({
           id: `triage-overdue:${task.record_id}`,
           recordId: task.record_id,
@@ -698,7 +710,7 @@ export const PersonalizedDashboardPanel = ({
       timedReminders,
       missedReminders,
     };
-  }, [homeData.events, homeData.tasks, projectNameById, remindersRuntime.reminders]);
+  }, [homeData.events, homeData.tasks, now, projectNameById, remindersRuntime.reminders]);
 
   const filteredDailyData = useMemo(() => {
     const matchesProject = (projectId: string | null): boolean => activeProjectFilter === 'all' || projectId === activeProjectFilter;
@@ -722,12 +734,14 @@ export const PersonalizedDashboardPanel = ({
   }, [filteredDailyData]);
 
   const totalPipCounts = useMemo(() => {
-    const now = new Date();
     const events = homeData.events.filter((event) => {
       const startAt = parseIso(event.event_state.start_dt);
       return startAt ? isSameCalendarDay(startAt, now) : false;
     }).length;
     const tasks = homeData.tasks.filter((task) => {
+      if (isTaskComplete(task.task_state.status)) {
+        return false;
+      }
       const dueAt = parseIso(task.task_state.due_at);
       return dueAt ? isSameCalendarDay(dueAt, now) : false;
     }).length;
@@ -736,7 +750,7 @@ export const PersonalizedDashboardPanel = ({
       return remindAt ? isSameCalendarDay(remindAt, now) : false;
     }).length;
     return { events, tasks, reminders };
-  }, [homeData.events, homeData.tasks, remindersRuntime.reminders]);
+  }, [homeData.events, homeData.tasks, now, remindersRuntime.reminders]);
 
   const refreshAfterMutation = useCallback(async () => {
     requestHubHomeRefresh();
