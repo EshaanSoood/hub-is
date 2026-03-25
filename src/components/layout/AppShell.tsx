@@ -743,7 +743,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         const payload = message.notification?.payload ?? {};
         const title = typeof payload.message === 'string' && payload.message.trim() ? payload.message : 'New notification';
         const browserNotification = new Notification(title, {
-          body: payload.source_project_id ? 'In project' : 'Eshaan OS',
+          body: payload.source_project_id ? 'In project' : 'Hub OS',
           tag: message.notification?.notification_id || undefined,
           icon: '/favicon.ico',
         });

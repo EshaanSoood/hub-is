@@ -1,4 +1,4 @@
-# Eshaan OS Hub
+# Hub OS Hub
 
 ## Repository Layout
 

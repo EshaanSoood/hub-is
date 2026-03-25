@@ -378,7 +378,7 @@ try {
   const mutableDb = new DatabaseSync(dbPath);
   const mappingResult = mutableDb
     .prepare('UPDATE projects SET nextcloud_folder = ?, updated_at = ? WHERE id = ?')
-    .run('/EshaanOS/backend-pilot/files', new Date().toISOString(), PROJECT_ID);
+    .run('/HubOS/backend-pilot/files', new Date().toISOString(), PROJECT_ID);
   expect('nextcloud mapping patched for project', Number(mappingResult?.changes || 0) === 1);
   mutableDb.close();
 
@@ -580,7 +580,7 @@ try {
   expect('uploaded path persisted in response', uploadedPath === uploadedFilename);
   expect(
     'mock nextcloud stored uploaded file',
-    nextcloudStore.has(`/EshaanOS/backend-pilot/files/${uploadedFilename}`),
+    nextcloudStore.has(`/HubOS/backend-pilot/files/${uploadedFilename}`),
   );
 
   const noteCreate = await requestJson(baseUrl, `${projectPath}/notes`, {

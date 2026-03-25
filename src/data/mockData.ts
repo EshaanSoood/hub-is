@@ -54,7 +54,7 @@ export const mockProjects: Project[] = [
     linkedExternalIds: {
       keycloakClientId: 'eshaan-os-web',
       openProjectProjectId: '42',
-      nextcloudFolder: '/EshaanOS/BackendPilot',
+      nextcloudFolder: '/HubOS/BackendPilot',
       invoiceClientId: 'C-1020',
     },
     notes: mockNotes,
@@ -74,7 +74,7 @@ export const mockProjects: Project[] = [
     linkedExternalIds: {
       keycloakClientId: 'eshaan-lessons',
       openProjectProjectId: '58',
-      nextcloudFolder: '/EshaanOS/Lessons',
+      nextcloudFolder: '/HubOS/Lessons',
       invoiceClientId: 'C-2040',
     },
     notes: mockNotes,

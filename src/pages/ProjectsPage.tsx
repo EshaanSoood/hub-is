@@ -2,7 +2,6 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useProjects } from '../context/ProjectsContext';
 import { useAuthz } from '../context/AuthzContext';
-import { PageHeader } from '../components/layout/PageHeader';
 import { Dialog, Select } from '../components/primitives';
 import { PersonalizedDashboardPanel } from '../features/PersonalizedDashboardPanel';
 import { createHubProject } from '../services/projectsService';
@@ -43,7 +42,7 @@ export const ProjectsPage = () => {
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [hubView, setHubView] = useState<'daily-brief' | 'project-lens' | 'stream'>('daily-brief');
+  const [hubView, setHubView] = useState<'project-lens' | 'stream'>('project-lens');
   const [homeLoading, setHomeLoading] = useState(false);
   const [homeError, setHomeError] = useState<string | null>(null);
   const [homeData, setHomeData] = useState<{
@@ -281,11 +280,6 @@ export const ProjectsPage = () => {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="Hub"
-        description="Your personal big picture across projects, with work opening in the Record Inspector without leaving the Hub."
-      />
-
       <PersonalizedDashboardPanel
         homeData={homeData}
         homeLoading={homeLoading}
@@ -393,7 +387,7 @@ export const ProjectsPage = () => {
                   onClick={() => {
                     void refreshCalendar();
                   }}
-                  className="mt-3 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="mt-3 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
                 >
                   Retry
                 </button>

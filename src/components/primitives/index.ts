@@ -7,6 +7,7 @@ export type { ButtonProps } from './Button';
 export { IconButton } from './IconButton';
 export { Icon } from './Icon';
 export type { IconName } from './Icon';
+export { HubOsMark, HubOsWordmark } from './Icon';
 export { ToggleButton, ToggleGroup, ToggleGroupItem } from './ToggleButton';
 export { LinkButton } from './LinkButton';
 export { Tabs, TabsContent, TabsList, TabButton, buildTabsKeyDownHandler } from './Tabs';
