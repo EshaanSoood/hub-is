@@ -9,6 +9,8 @@ import type {
 import { HUB_TRIAGE_DRAG_MIME } from './types';
 
 const HOUR_MS = 60 * 60 * 1000;
+const ITEM_MIN_WIDTH_PX = 180;
+const ITEM_TITLE_MAX_CHARS = 30;
 
 const parseIso = (value: string): Date | null => {
   const parsed = new Date(value);
@@ -29,6 +31,9 @@ const formatTimeLabel = (date: Date): string =>
 
 const formatDateMarker = (date: Date): string =>
   date.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+
+const truncateTimelineTitle = (title: string): string =>
+  title.length > ITEM_TITLE_MAX_CHARS ? `${title.slice(0, ITEM_TITLE_MAX_CHARS)}…` : title;
 
 type TimelineEvent = {
   id: string;
@@ -197,7 +202,28 @@ export const DayStrip = ({
   const totalMs = Math.max(HOUR_MS, range.endMs - range.startMs);
   const nowPercent = clamp(((now.getTime() - range.startMs) / totalMs) * 100, 0, 100);
   const spanHours = totalMs / HOUR_MS;
-  const widthPx = Math.max(720, Math.ceil(spanHours * 90));
+  const baseWidthPx = Math.max(720, Math.ceil(spanHours * 90));
+  const widthPx = useMemo(() => {
+    const percentForMs = (ms: number): number => clamp(((ms - range.startMs) / totalMs) * 100, 0, 100);
+    let maxRightPx = baseWidthPx;
+
+    for (const item of timelineItems) {
+      if (item.kind === 'event') {
+        const leftPercent = percentForMs(item.startMs);
+        const rightPercent = percentForMs(item.endMs);
+        const proportionalWidthPx = (Math.max(0.9, rightPercent - leftPercent) / 100) * baseWidthPx;
+        const eventWidthPx = Math.max(ITEM_MIN_WIDTH_PX, proportionalWidthPx);
+        const leftPx = (leftPercent / 100) * baseWidthPx;
+        maxRightPx = Math.max(maxRightPx, leftPx + eventWidthPx);
+        continue;
+      }
+
+      const centerPx = (percentForMs(item.timeMs) / 100) * baseWidthPx;
+      maxRightPx = Math.max(maxRightPx, centerPx + ITEM_MIN_WIDTH_PX / 2);
+    }
+
+    return Math.ceil(maxRightPx);
+  }, [baseWidthPx, range.startMs, timelineItems, totalMs]);
 
   const ticks = useMemo(() => {
     const first = new Date(range.startMs);
@@ -291,7 +317,7 @@ export const DayStrip = ({
         <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div
             ref={timelineRef}
-            className="relative h-[146px] min-w-full select-none px-6"
+            className="relative h-[146px] min-w-full select-none px-[96px]"
             style={{ width: `${widthPx}px` }}
             onDragOver={(event) => {
               if (!onDropFromTriage) {
@@ -331,10 +357,12 @@ export const DayStrip = ({
                 const left = percentForMs(item.startMs);
                 const right = percentForMs(item.endMs);
                 const width = Math.max(0.9, right - left);
+                const widthPxForEvent = Math.max(ITEM_MIN_WIDTH_PX, (width / 100) * widthPx);
                 const inPast = item.endMs < now.getTime();
                 const clippedRight = item.endMs > range.endMs;
                 const startText = formatTimeLabel(new Date(item.startMs));
                 const endText = formatTimeLabel(new Date(item.endMs));
+                const titleForDisplay = truncateTimelineTitle(item.title);
 
                 return (
                   <button
@@ -349,12 +377,12 @@ export const DayStrip = ({
                         ? 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary opacity-40'
                         : 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary'
                     }`}
-                    style={{ left: `${left}%`, width: `${width}%` }}
+                    style={{ left: `${left}%`, width: `${widthPxForEvent}px` }}
                     onClick={() => onOpenRecord(item.recordId)}
                     onKeyDown={(event) => handleItemKeyDown(event, item.id)}
                   >
                     <span className="block truncate">
-                      {item.title}
+                      {titleForDisplay}
                       {clippedRight ? ' →' : ''}
                     </span>
                   </button>
@@ -362,25 +390,26 @@ export const DayStrip = ({
               }
 
               const timeMs = item.timeMs;
-              const lane = markerLaneById.get(item.id) ?? 0;
-              const markerTop = lane === 0 ? 22 : 86;
-              const labelTop = lane === 0 ? 2 : 104;
-              const left = percentForMs(timeMs);
-              const timeLabel = formatTimeLabel(new Date(timeMs));
+                const lane = markerLaneById.get(item.id) ?? 0;
+                const markerTop = lane === 0 ? 22 : 86;
+                const labelTop = lane === 0 ? 2 : 104;
+                const left = percentForMs(timeMs);
+                const timeLabel = formatTimeLabel(new Date(timeMs));
+                const titleForDisplay = truncateTimelineTitle(item.title);
 
               if (item.kind === 'task') {
                 const complete = item.status === 'done' || item.status === 'cancelled';
                 const overdue = !complete && timeMs < now.getTime();
 
                 return (
-                  <div key={item.id} className="absolute -translate-x-1/2" style={{ left: `${left}%` }}>
+                  <div key={item.id} className="absolute w-[180px] -translate-x-1/2" style={{ left: `${left}%` }}>
                     <button
                       ref={(node) => {
                         itemRefs.current[item.id] = node;
                       }}
                       type="button"
                       aria-label={`Task: ${item.title} at ${timeLabel}`}
-                      className={`absolute h-3.5 w-3.5 rounded-full border-2 ${
+                      className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 ${
                         overdue
                           ? 'border-danger bg-danger text-on-primary'
                           : 'border-[color:var(--color-primary-strong)] bg-[color:var(--color-primary-strong)] text-on-primary'
@@ -392,11 +421,11 @@ export const DayStrip = ({
                       {complete ? <span className="absolute inset-0 grid place-items-center text-[9px] leading-none">✓</span> : null}
                     </button>
                     <span
-                      className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-text"
-                      style={{ left: '50%', top: `${labelTop}px` }}
+                      className="absolute top-0 block w-full truncate text-center text-[11px] text-text"
+                      style={{ top: `${labelTop}px` }}
                       title={item.title}
                     >
-                      {item.title}
+                      {titleForDisplay}
                     </span>
                   </div>
                 );
@@ -405,17 +434,17 @@ export const DayStrip = ({
               const pastUndismissed = !item.dismissed && timeMs < now.getTime();
               const settledDismissed = item.dismissed && timeMs < now.getTime();
               return (
-                <div key={item.id} className="absolute -translate-x-1/2" style={{ left: `${left}%` }}>
+                <div key={item.id} className="absolute w-[180px] -translate-x-1/2" style={{ left: `${left}%` }}>
                   <button
                     ref={(node) => {
                       itemRefs.current[item.id] = node;
                     }}
                     type="button"
                     aria-label={`Reminder: ${item.title} at ${timeLabel}`}
-                    className={`absolute h-3.5 w-3.5 rotate-45 border-2 ${
+                    className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rotate-45 border-2 ${
                       settledDismissed
                         ? 'border-[color:var(--color-capture-rail)] bg-[color:var(--color-capture-rail)] opacity-40'
-                        : pastUndismissed
+                      : pastUndismissed
                           ? 'border-danger bg-[color:var(--color-capture-rail)]'
                           : 'border-[color:var(--color-capture-rail)] bg-[color:var(--color-capture-rail)]'
                     }`}
@@ -424,11 +453,11 @@ export const DayStrip = ({
                     onKeyDown={(event) => handleItemKeyDown(event, item.id)}
                   />
                   <span
-                    className="absolute w-32 -translate-x-1/2 truncate text-center text-[11px] text-text"
-                    style={{ left: '50%', top: `${labelTop}px` }}
+                    className="absolute top-0 block w-full truncate text-center text-[11px] text-text"
+                    style={{ top: `${labelTop}px` }}
                     title={item.title}
                   >
-                    {item.title}
+                    {titleForDisplay}
                   </span>
                 </div>
               );
