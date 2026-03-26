@@ -36,6 +36,22 @@
   --color-accent: var(--color-primary);
   --color-border-subtle: var(--color-border-muted);
   --color-focus-ring: var(--color-accent);
+  --color-time-band-overlay: 180 194 210;
+  --time-band-night: rgba(var(--color-time-band-overlay), 0);
+  --time-band-dawn: rgba(var(--color-time-band-overlay), 0.04);
+  --time-band-midday: rgba(var(--color-time-band-overlay), 0.08);
+  --time-band-afternoon: rgba(var(--color-time-band-overlay), 0.04);
+  --time-band-evening: rgba(var(--color-time-band-overlay), 0);
+  --week-card-offset: 5%;
+  --week-card-active-scale: 1;
+  --week-card-inactive-scale: 0.92;
+  --week-card-hover-lift: 2px;
+  --color-week-card-active-shadow: rgba(0, 0, 0, 0.25);
+  --color-week-card-inactive-shadow: rgba(0, 0, 0, 0.1);
+  --color-day-ruler: var(--color-border-muted);
+  --color-day-ruler-tick: var(--color-text-secondary);
+  --day-ruler-width: 48px;
+  --day-hour-height: 64px;
 
   --radius-panel: 0.75rem;
   --radius-control: 0.625rem;
@@ -73,6 +89,22 @@
     --color-on-primary: rgb(255 255 255);
     --color-border-muted: rgb(203 213 225);
     --color-border-primary: var(--color-border-muted);
+    --color-time-band-overlay: 80 100 124;
+    --time-band-night: rgba(var(--color-time-band-overlay), 0);
+    --time-band-dawn: rgba(var(--color-time-band-overlay), 0.04);
+    --time-band-midday: rgba(var(--color-time-band-overlay), 0.08);
+    --time-band-afternoon: rgba(var(--color-time-band-overlay), 0.04);
+    --time-band-evening: rgba(var(--color-time-band-overlay), 0);
+    --week-card-offset: 5%;
+    --week-card-active-scale: 1;
+    --week-card-inactive-scale: 0.92;
+    --week-card-hover-lift: 2px;
+    --color-week-card-active-shadow: rgba(0, 0, 0, 0.25);
+    --color-week-card-inactive-shadow: rgba(0, 0, 0, 0.1);
+    --color-day-ruler: var(--color-border-muted);
+    --color-day-ruler-tick: var(--color-text-secondary);
+    --day-ruler-width: 48px;
+    --day-hour-height: 64px;
   }
 }
 
