@@ -13,424 +13,48 @@ import { createEventFromNlp, getHubHome } from '../../services/hub/records';
 import { createReminder, updateReminder } from '../../services/hub/reminders';
 import { listProjectMembers } from '../../services/hub/projects';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
-import type { HubNotification, HubProjectMember, HubTaskSummary } from '../../services/hub/types';
+import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
-import { buildNotificationDestinationHref, buildTaskDestinationHref } from '../../lib/hubRoutes';
+import { buildTaskDestinationHref } from '../../lib/hubRoutes';
 import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { subscribeQuickAddProjectRequest } from '../../lib/quickAddProjectRequest';
 import { parseReminderInput, type ReminderParseResult } from '../../lib/nlp/reminder-parser';
 import { createHubProject } from '../../services/projectsService';
-import { cn } from '../../lib/cn';
 import { CalendarModuleSkin, type CalendarScope } from '../project-space/CalendarModuleSkin';
 import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
-
-interface ToolbarNotification {
-  id: string;
-  summary: string;
-  body: string;
-  authorInitial: string;
-  avatarColor: string;
-  projectId: string;
-  createdAt: string;
-  read: boolean;
-  payload: Record<string, unknown>;
-  href: string;
-}
-
-type NotificationFilter = 'unread' | 'all';
-type QuickAddDialog = 'task' | 'event' | 'reminder' | 'project' | null;
-type ToolbarDialog = 'calendar' | 'tasks' | 'reminders' | null;
-type QuickAddOption = {
-  key: Exclude<QuickAddDialog, null>;
-  label: string;
-  iconName: 'tasks' | 'calendar' | 'reminders' | 'menu';
-};
-
-type QuickNavActionItem =
-  | {
-      id: string;
-      label: string;
-      iconName: 'calendar' | 'tasks' | 'reminders';
-      action: 'panel';
-      panel: Exclude<ToolbarDialog, null>;
-    }
-  | {
-      id: string;
-      label: string;
-      iconName?: 'menu';
-      action: 'navigate';
-      href: string;
-    };
-
-const QUICK_NAV_FIXED_ITEMS: QuickNavActionItem[] = [
-  { id: 'quick-nav-calendar', label: 'Calendar', iconName: 'calendar', action: 'panel', panel: 'calendar' },
-  { id: 'quick-nav-tasks', label: 'Tasks', iconName: 'tasks', action: 'panel', panel: 'tasks' },
-  { id: 'quick-nav-reminders', label: 'Reminders', iconName: 'reminders', action: 'panel', panel: 'reminders' },
-];
-
-const QUICK_ADD_OPTIONS: QuickAddOption[] = [
-  { key: 'task', label: 'Task', iconName: 'tasks' },
-  { key: 'event', label: 'Calendar Event', iconName: 'calendar' },
-  { key: 'reminder', label: 'Reminder', iconName: 'reminders' },
-  { key: 'project', label: 'Project', iconName: 'menu' },
-];
-
-const relativeTimeLabel = (iso: string): string => {
-  const timestamp = Number(new Date(iso));
-  if (!Number.isFinite(timestamp)) {
-    return 'just now';
-  }
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-  if (diffSeconds < 60) {
-    return `${diffSeconds}s ago`;
-  }
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
-  }
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
-};
-
-const parseIsoTimestamp = (value: string | null | undefined): number => {
-  if (!value) {
-    return Number.POSITIVE_INFINITY;
-  }
-  const timestamp = Number(new Date(value));
-  return Number.isFinite(timestamp) ? timestamp : Number.POSITIVE_INFINITY;
-};
-
-type DateBucketId =
-  | 'overdue'
-  | 'today'
-  | 'tomorrow'
-  | 'rest-of-week'
-  | 'later-this-month'
-  | 'later-this-year'
-  | 'beyond'
-  | 'no-date';
-
-const DATE_BUCKET_ORDER: DateBucketId[] = [
-  'overdue',
-  'today',
-  'tomorrow',
-  'rest-of-week',
-  'later-this-month',
-  'later-this-year',
-  'beyond',
-  'no-date',
-];
-
-const DATE_BUCKET_LABELS: Record<DateBucketId, string> = {
-  overdue: 'Overdue',
-  today: 'Today',
-  tomorrow: 'Tomorrow',
-  'rest-of-week': 'Rest of the Week',
-  'later-this-month': 'Later This Month',
-  'later-this-year': 'Later This Year',
-  beyond: 'Beyond',
-  'no-date': 'No Date',
-};
-
-const startOfDay = (date: Date): Date => {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-};
-
-const parseIsoDate = (value: string | null | undefined): Date | null => {
-  if (!value) {
-    return null;
-  }
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) ? parsed : null;
-};
-
-const isSameCalendarDay = (left: Date, right: Date): boolean =>
-  startOfDay(left).getTime() === startOfDay(right).getTime();
-
-const endOfWeek = (date: Date): Date => {
-  const next = startOfDay(date);
-  const dayOffset = 6 - next.getDay();
-  next.setDate(next.getDate() + dayOffset);
-  next.setHours(23, 59, 59, 999);
-  return next;
-};
-
-const endOfMonth = (date: Date): Date => {
-  const next = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  next.setHours(23, 59, 59, 999);
-  return next;
-};
-
-const endOfYear = (date: Date): Date => {
-  const next = new Date(date.getFullYear(), 11, 31);
-  next.setHours(23, 59, 59, 999);
-  return next;
-};
-
-const bucketForDate = (value: string | null | undefined, now: Date): DateBucketId => {
-  const parsed = parseIsoDate(value);
-  if (!parsed) {
-    return 'no-date';
-  }
-  const todayStart = startOfDay(now);
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(todayStart.getDate() + 1);
-  const dayAfterTomorrowStart = new Date(todayStart);
-  dayAfterTomorrowStart.setDate(todayStart.getDate() + 2);
-
-  if (parsed < todayStart) {
-    return 'overdue';
-  }
-  if (isSameCalendarDay(parsed, now)) {
-    return 'today';
-  }
-  if (isSameCalendarDay(parsed, tomorrowStart)) {
-    return 'tomorrow';
-  }
-  if (parsed >= dayAfterTomorrowStart && parsed <= endOfWeek(now)) {
-    return 'rest-of-week';
-  }
-  if (parsed <= endOfMonth(now)) {
-    return 'later-this-month';
-  }
-  if (parsed <= endOfYear(now)) {
-    return 'later-this-year';
-  }
-  return 'beyond';
-};
-
-const formatQuickNavTime = (value: string | null | undefined, fallback = 'No date'): string => {
-  const parsed = parseIsoDate(value);
-  if (!parsed) {
-    return fallback;
-  }
-  return parsed.toLocaleDateString([], {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-};
-
-const tomorrowAtNineIso = (): string => {
-  const next = new Date();
-  next.setDate(next.getDate() + 1);
-  next.setHours(9, 0, 0, 0);
-  return next.toISOString();
-};
-
-const projectDotClassNames = [
-  'bg-[color:var(--color-primary)]',
-  'bg-[color:var(--color-primary-strong)]',
-  'bg-[color:var(--color-capture-rail)]',
-  'bg-[color:var(--color-text-secondary)]',
-  'bg-[color:var(--color-muted)]',
-];
-
-const projectDotClassName = (projectId: string | null): string => {
-  if (!projectId) {
-    return projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
-  }
-  let hash = 0;
-  for (let index = 0; index < projectId.length; index += 1) {
-    hash = (hash << 5) - hash + projectId.charCodeAt(index);
-    hash |= 0;
-  }
-  return projectDotClassNames[Math.abs(hash) % projectDotClassNames.length] || projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
-};
-
-const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; name: string }>): string[] => {
-  const segments = pathname.split('/').filter(Boolean);
-  if (segments.length === 0 || pathname === '/projects' || pathname === '/') {
-    return ['Hub Home'];
-  }
-
-  if (segments[0] !== 'projects') {
-    return segments.map((segment) => segment.replace(/-/g, ' '));
-  }
-
-  const crumb: string[] = ['Projects'];
-  const projectId = segments[1];
-  if (projectId) {
-    const projectName = projects.find((project) => project.id === projectId)?.name || projectId;
-    crumb.push(projectName);
-  }
-  if (segments[2]) {
-    crumb.push(segments[2].charAt(0).toUpperCase() + segments[2].slice(1));
-  }
-
-  return crumb;
-};
-
-const NOTIFICATION_AVATAR_COLORS = [
-  'rgb(52 124 212)',
-  'rgb(46 185 166)',
-  'rgb(245 168 80)',
-  'rgb(220 80 100)',
-  'rgb(132 156 178)',
-];
-
-const hashString = (value: string): number => {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(index);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-};
-
-const notificationAvatarColor = (value: string): string => {
-  const index = hashString(value) % NOTIFICATION_AVATAR_COLORS.length;
-  return NOTIFICATION_AVATAR_COLORS[index];
-};
-
-const notificationAuthorInitial = (summary: string, fallback: string): string => {
-  const source = summary.trim() || fallback.trim();
-  const first = source.charAt(0);
-  return first ? first.toUpperCase() : '?';
-};
-
-const ACCOUNT_AVATAR_BACKGROUNDS = [
-  'rgb(40 92 170)',
-  'rgb(22 121 107)',
-  'rgb(181 103 18)',
-  'rgb(164 61 84)',
-  'rgb(86 105 125)',
-];
-
-const sessionInitials = (name: string, email: string, userId: string): string => {
-  const source = name.trim() || email.trim() || userId.trim();
-  if (!source) {
-    return '?';
-  }
-  const words = source.split(/\s+/).filter(Boolean);
-  if (words.length >= 2) {
-    return `${words[0]?.charAt(0) || ''}${words[1]?.charAt(0) || ''}`.toUpperCase();
-  }
-  return source.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase() || source.charAt(0).toUpperCase();
-};
-
-const buildAccountAvatarUrl = (initials: string, seed: string): string => {
-  const background = ACCOUNT_AVATAR_BACKGROUNDS[hashString(seed || initials) % ACCOUNT_AVATAR_BACKGROUNDS.length];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-hidden="true"><rect width="64" height="64" rx="32" fill="${background}"/><text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle" fill="rgb(255 255 255)" font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700">${initials}</text></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-};
-
-const isTextInputElement = (target: EventTarget | null): boolean => {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-  const tagName = target.tagName.toLowerCase();
-  return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target.isContentEditable;
-};
-
-const focusElementSoon = (element: HTMLElement | null | undefined) => {
-  window.setTimeout(() => {
-    if (element?.isConnected) {
-      element.focus();
-    }
-  }, 0);
-};
-
-const focusFirstDescendantSoon = (container: HTMLElement | null | undefined, selector: string) => {
-  window.setTimeout(() => {
-    const target = container?.querySelector<HTMLElement>(selector);
-    if (target?.isConnected) {
-      target.focus();
-    }
-  }, 0);
-};
-
-const toDateTimeLocalInput = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hour}:${minute}`;
-};
-
-const nowPlusHours = (hours: number): Date => new Date(Date.now() + hours * 60 * 60 * 1000);
-
-const hasMeaningfulReminderPreview = (preview: ReminderParseResult): boolean =>
-  Boolean(preview.fields.title.trim() || preview.fields.remind_at || preview.fields.recurrence || preview.fields.context_hint);
-
-const emptyReminderPreview = (): ReminderParseResult => ({
-  fields: {
-    title: '',
-    remind_at: null,
-    recurrence: null,
-    context_hint: null,
-  },
-  meta: {
-    confidence: {
-      title: 0,
-      remind_at: 0,
-      recurrence: 0,
-      context_hint: 0,
-    },
-    spans: {
-      title: [],
-      remind_at: [],
-      recurrence: [],
-      context_hint: [],
-    },
-    debugSteps: [],
-    maskedInput: '',
-  },
-  warnings: null,
-});
-
-const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
-  record: 'Record',
-  project: 'Project',
-  pane: 'Pane',
-};
-
-const buildSearchResultHref = (result: HubSearchResult): string | null => {
-  if (result.type === 'project') {
-    return `/projects/${encodeURIComponent(result.id)}/overview`;
-  }
-  if (result.type === 'pane' && result.project_id) {
-    return `/projects/${encodeURIComponent(result.project_id)}/work/${encodeURIComponent(result.id)}`;
-  }
-  if (result.type === 'record' && result.project_id) {
-    return `/projects/${encodeURIComponent(result.project_id)}/work?record_id=${encodeURIComponent(result.id)}`;
-  }
-  return null;
-};
-
-const toToolbarNotification = (entry: HubNotification): ToolbarNotification => {
-  const payloadMessage =
-    typeof entry.payload?.message === 'string'
-      ? entry.payload.message
-      : `Entity ${entry.entity_type}:${entry.entity_id}`;
-  return {
-    id: entry.notification_id,
-    summary: entry.reason,
-    body: payloadMessage,
-    authorInitial: notificationAuthorInitial(entry.reason, payloadMessage),
-    avatarColor: notificationAvatarColor(`${entry.notification_id}:${entry.reason}`),
-    projectId: entry.project_id,
-    createdAt: entry.created_at,
-    read: Boolean(entry.read_at),
-    payload: entry.payload || {},
-    href: buildNotificationDestinationHref({
-      projectId: entry.project_id,
-      entityType: entry.entity_type,
-      entityId: entry.entity_id,
-      payload: entry.payload || {},
-      fallbackHref: `/projects/${encodeURIComponent(entry.project_id)}/work`,
-    }),
-  };
-};
+import { NotificationsPanel } from './NotificationsPanel';
+import { ProfileMenu } from './ProfileMenu';
+import { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from './QuickAddDialogs';
+import { ToolbarRemindersDialogContent } from './ToolbarRemindersDialogContent';
+import { ToolbarTasksDialogContent } from './ToolbarTasksDialog';
+import {
+  buildAccountAvatarUrl,
+  buildBreadcrumb,
+  buildSearchResultHref,
+  bucketForDate,
+  DATE_BUCKET_LABELS,
+  DATE_BUCKET_ORDER,
+  emptyReminderPreview,
+  focusElementSoon,
+  focusFirstDescendantSoon,
+  isTextInputElement,
+  nowPlusHours,
+  parseIsoTimestamp,
+  QUICK_ADD_OPTIONS,
+  QUICK_NAV_FIXED_ITEMS,
+  SEARCH_RESULT_TYPE_LABELS,
+  sessionInitials,
+  toDateTimeLocalInput,
+  tomorrowAtNineIso,
+  toToolbarNotification,
+  type DateBucketId,
+  type NotificationFilter,
+  type QuickAddDialog,
+  type QuickAddOption,
+  type QuickNavActionItem,
+  type ToolbarDialog,
+  type ToolbarNotification,
+} from './appShellUtils';
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
@@ -519,7 +143,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const captureRestoreTargetRef = useRef<HTMLElement | null>(null);
   const taskTitleInputRef = useRef<HTMLInputElement | null>(null);
   const eventTitleInputRef = useRef<HTMLInputElement | null>(null);
-  const eventProjectSelectRef = useRef<HTMLSelectElement | null>(null);
   const reminderInputRef = useRef<HTMLInputElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
   const captureRequestVersionRef = useRef(0);
@@ -632,6 +255,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       return [{ id: bucketId, label: DATE_BUCKET_LABELS[bucketId], items }];
     });
   }, [activeReminders]);
+  const bucketedRemindersForDialog = useMemo(
+    () =>
+      bucketedReminders.map((bucket) => ({
+        ...bucket,
+        items: bucket.items.map((reminder) => ({
+          ...reminder,
+          project_name: projectNameById.get(reminder.project_id) || personalReminderProjectLabel,
+        })),
+      })),
+    [bucketedReminders, personalReminderProjectLabel, projectNameById],
+  );
 
   const refreshCaptureData = useCallback(async () => {
     if (!accessToken) {
@@ -1427,18 +1061,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     contextMenuWasOpenRef.current = contextMenuOpen;
   }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
 
-  const visibleNotifications = useMemo(() => {
-    return notifications.filter((notification) => {
-      if (notifFilter === 'unread' && notification.read) {
-        return false;
-      }
-      if (notifProjectFilter && notification.projectId !== notifProjectFilter) {
-        return false;
-      }
-      return true;
-    });
-  }, [notifFilter, notifProjectFilter, notifications]);
-
   const onMarkNotificationRead = async (notificationId: string) => {
     if (!accessToken) {
       return;
@@ -1465,6 +1087,18 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       await onMarkNotificationRead(notification.id);
     }
   };
+
+  const onNavigateProjectsFromProfileMenu = useCallback(() => {
+    skipProfileFocusRestoreRef.current = true;
+    navigate('/projects');
+    setProfileOpen(false);
+  }, [navigate]);
+
+  const onLogoutFromProfileMenu = useCallback(() => {
+    skipProfileFocusRestoreRef.current = true;
+    void signOut();
+    setProfileOpen(false);
+  }, [signOut]);
 
   const openCapturePanel = useCallback((intent: string | null, restoreTarget?: HTMLElement | null) => {
     captureRestoreTargetRef.current = restoreTarget ?? captureTriggerRef.current;
@@ -2076,93 +1710,19 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           description="All your tasks across projects."
           panelClassName="w-[min(92vw,48rem)] max-w-3xl sm:min-w-[540px]"
         >
-          <div className="space-y-3">
-            {quickNavTasksLoading ? <p className="text-sm text-muted">Loading tasks...</p> : null}
-            {quickNavTasksError ? (
-              <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
-                <p className="text-sm text-danger">{quickNavTasksError}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void refreshQuickNavTasks();
-                  }}
-                  className="mt-2 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : null}
-            {!quickNavTasksLoading && !quickNavTasksError ? (
-              bucketedTasks.length === 0 ? (
-                <div className="space-y-3 rounded-panel border border-border-muted bg-surface px-4 py-8 text-center">
-                  <p className="text-sm text-muted">No tasks yet.</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setToolbarDialog(null);
-                      void openQuickAddDialog('task');
-                    }}
-                    className="rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary"
-                  >
-                    New task
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {bucketedTasks.map((bucket) => (
-                    <section key={bucket.id} aria-labelledby={`toolbar-task-bucket-${bucket.id}`} className="space-y-2">
-                      <h3 id={`toolbar-task-bucket-${bucket.id}`} className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                        {bucket.label}
-                      </h3>
-                      <div className="space-y-2">
-                        {bucket.items.map((task) => {
-                          const priorityBorderColor = (priority: string | null | undefined): string => {
-                            switch (priority) {
-                              case 'high':
-                                return 'var(--color-danger)';
-                              case 'medium':
-                                return 'rgb(245 168 80)';
-                              case 'low':
-                                return 'rgb(132 156 178)';
-                              default:
-                                return 'var(--color-border-muted)';
-                            }
-                          };
-                          const projectLabel = task.project_name || 'Inbox & Unassigned';
-                          const dueLabel = formatQuickNavTime(task.task_state.due_at, 'No due date');
-                          return (
-                            <button
-                              key={task.record_id}
-                              type="button"
-                              onClick={() => onOpenTaskRecordFromDialog(task.record_id)}
-                              aria-label={`Open task ${task.title}, due ${dueLabel}`}
-                              className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                              style={{
-                                borderLeftWidth: '3px',
-                                borderLeftStyle: 'solid',
-                                borderLeftColor: priorityBorderColor(task.task_state.priority),
-                              }}
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="truncate text-sm font-medium text-text flex-1 min-w-0">{task.title}</span>
-                                <span className="flex items-center gap-2 shrink-0">
-                                  <span className="flex items-center gap-1 text-xs text-muted">
-                                    <span className={cn('inline-block h-2 w-2 rounded-full', projectDotClassName(task.project_id))} aria-hidden="true" />
-                                    <span className="truncate">{projectLabel}</span>
-                                  </span>
-                                  <span className="text-xs text-text-secondary whitespace-nowrap">{dueLabel}</span>
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              )
-            ) : null}
-          </div>
+          <ToolbarTasksDialogContent
+            bucketedTasks={bucketedTasks}
+            loading={quickNavTasksLoading}
+            error={quickNavTasksError}
+            onRetry={() => {
+              void refreshQuickNavTasks();
+            }}
+            onOpenTask={onOpenTaskRecordFromDialog}
+            onNewTask={() => {
+              setToolbarDialog(null);
+              void openQuickAddDialog('task');
+            }}
+          />
         </Dialog>
 
         <Dialog
@@ -2173,95 +1733,21 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           description="Your active reminders."
           panelClassName="w-[min(92vw,400px)] max-w-[400px] sm:min-w-[360px] !bg-surface-elevated"
         >
-          <div className="space-y-4 rounded-panel bg-surface-elevated p-4">
-            {remindersRuntime.loading ? <p className="text-sm text-muted">Loading reminders...</p> : null}
-            {remindersRuntime.error ? (
-              <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
-                <p className="text-sm text-danger">{remindersRuntime.error}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void remindersRuntime.refresh();
-                  }}
-                  className="mt-2 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : null}
-            {!remindersRuntime.loading && !remindersRuntime.error ? (
-              bucketedReminders.length === 0 ? (
-                <div className="space-y-3 rounded-panel border border-border-muted bg-surface px-4 py-8 text-center">
-                  <p className="text-sm text-muted">No active reminders.</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setToolbarDialog(null);
-                      void openQuickAddDialog('reminder');
-                    }}
-                    className="rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary"
-                  >
-                    New reminder
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {bucketedReminders.map((bucket) => (
-                    <section key={bucket.id} aria-labelledby={`toolbar-reminder-bucket-${bucket.id}`} className="space-y-2 pt-6 first:pt-0">
-                      <h3 id={`toolbar-reminder-bucket-${bucket.id}`} className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                        {bucket.label}
-                      </h3>
-                      <div className="space-y-2">
-                        {bucket.items.map((reminder) => {
-                          const projectLabel = projectNameById.get(reminder.project_id) || personalReminderProjectLabel;
-                          const dueLabel = formatQuickNavTime(reminder.remind_at, 'No time');
-                          return (
-                            <article key={reminder.reminder_id} className="rounded-panel border border-border-muted bg-surface-elevated px-4 py-3">
-                              <div className="flex items-center justify-between gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => onOpenReminderRecordFromDialog(reminder.record_id, reminder.project_id)}
-                                  aria-label={`Open reminder ${reminder.record_title}, ${dueLabel}`}
-                                  className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                                >
-                                  <p className="truncate text-sm font-semibold text-text">{reminder.record_title}</p>
-                                  <p className="mt-1 truncate text-[11px] uppercase tracking-[0.08em] text-muted">{projectLabel}</p>
-                                  <p className="whitespace-nowrap text-xs text-text-secondary">{dueLabel}</p>
-                                </button>
-
-                                <div className="flex shrink-0 items-center gap-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      void onDismissReminderFromDialog(reminder.reminder_id);
-                                    }}
-                                    className="rounded-control border border-border-muted px-3 py-2 text-xs font-medium text-text"
-                                    aria-label={`Dismiss reminder ${reminder.record_title}`}
-                                  >
-                                    Dismiss
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      void onSnoozeReminderFromDialog(reminder.reminder_id);
-                                    }}
-                                    className="rounded-control border border-border-muted px-3 py-2 text-xs font-medium text-primary"
-                                    aria-label={`Snooze reminder ${reminder.record_title} to tomorrow at 9 AM`}
-                                  >
-                                    Snooze
-                                  </button>
-                                </div>
-                              </div>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              )
-            ) : null}
-          </div>
+          <ToolbarRemindersDialogContent
+            bucketedReminders={bucketedRemindersForDialog}
+            loading={remindersRuntime.loading}
+            error={remindersRuntime.error}
+            onRetry={() => {
+              void remindersRuntime.refresh();
+            }}
+            onOpenReminder={onOpenReminderRecordFromDialog}
+            onDismiss={onDismissReminderFromDialog}
+            onSnooze={onSnoozeReminderFromDialog}
+            onNewReminder={() => {
+              setToolbarDialog(null);
+              void openQuickAddDialog('reminder');
+            }}
+          />
         </Dialog>
 
         <TaskCreateDialog
@@ -2288,200 +1774,51 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           }}
         />
 
-        <Dialog
+        <QuickAddEventDialog
           open={quickAddDialog === 'event'}
           onClose={closeQuickAddDialog}
           triggerRef={contextMenuTriggerRef}
-          title="New Calendar Event"
-          description="Create a calendar event."
-        >
-          <form className="space-y-4" onSubmit={onCreateQuickAddEvent}>
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-project">
-                Project
-              </label>
-              <select
-                id="quick-add-event-project"
-                ref={eventProjectSelectRef}
-                value={quickAddProjectId}
-                onChange={(event) => setQuickAddProjectId(event.target.value)}
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-              >
-                {quickAddProjectOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          projectOptions={quickAddProjectOptions}
+          selectedProjectId={quickAddProjectId}
+          onSelectedProjectIdChange={setQuickAddProjectId}
+          onSubmit={onCreateQuickAddEvent}
+          title={eventTitle}
+          onTitleChange={setEventTitle}
+          startAt={eventStartAt}
+          onStartAtChange={setEventStartAt}
+          endAt={eventEndAt}
+          onEndAtChange={setEventEndAt}
+          submitting={eventSubmitting}
+          error={eventError}
+          titleInputRef={eventTitleInputRef}
+        />
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-title">
-                Event title
-              </label>
-              <input
-                id="quick-add-event-title"
-                ref={eventTitleInputRef}
-                type="text"
-                value={eventTitle}
-                onChange={(event) => setEventTitle(event.target.value)}
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                placeholder="New event"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-start">
-                  Start
-                </label>
-                <input
-                  id="quick-add-event-start"
-                  type="datetime-local"
-                  value={eventStartAt}
-                  onChange={(event) => setEventStartAt(event.target.value)}
-                  className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-end">
-                  End
-                </label>
-                <input
-                  id="quick-add-event-end"
-                  type="datetime-local"
-                  value={eventEndAt}
-                  onChange={(event) => setEventEndAt(event.target.value)}
-                  className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                />
-              </div>
-            </div>
-
-            {eventError ? <p className="text-sm text-danger">{eventError}</p> : null}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeQuickAddDialog}
-                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={eventSubmitting}
-                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {eventSubmitting ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </form>
-        </Dialog>
-
-        <Dialog
+        <QuickAddReminderDialog
           open={quickAddDialog === 'reminder'}
           onClose={closeQuickAddDialog}
           triggerRef={contextMenuTriggerRef}
-          title="New Reminder"
-          description="Create a reminder from natural language."
-        >
-          <form className="space-y-4" onSubmit={onCreateQuickAddReminder}>
-            <p className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
-              Reminders are saved to your {personalReminderProjectLabel} project.
-            </p>
+          draft={reminderDraft}
+          onDraftChange={setReminderDraft}
+          preview={reminderPreview}
+          onSubmit={onCreateQuickAddReminder}
+          submitting={reminderSubmitting}
+          error={reminderError}
+          onClearError={() => setReminderError(null)}
+          inputRef={reminderInputRef}
+          personalProjectLabel={personalReminderProjectLabel}
+        />
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-reminder-input">
-                Reminder
-              </label>
-              <input
-                id="quick-add-reminder-input"
-                ref={reminderInputRef}
-                type="text"
-                value={reminderDraft}
-                onChange={(event) => {
-                  setReminderDraft(event.target.value);
-                  if (reminderError) {
-                    setReminderError(null);
-                  }
-                }}
-                placeholder="Add a reminder…"
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-              />
-            </div>
-
-            {hasMeaningfulReminderPreview(reminderPreview) ? (
-              <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
-                {reminderPreview.fields.title ? <p><span className="font-semibold text-text">Title:</span> {reminderPreview.fields.title}</p> : null}
-                {reminderPreview.fields.remind_at ? <p><span className="font-semibold text-text">When:</span> {reminderPreview.fields.context_hint || reminderPreview.fields.remind_at}</p> : null}
-                {reminderPreview.fields.recurrence ? <p><span className="font-semibold text-text">Recurs:</span> {reminderPreview.fields.recurrence.frequency}</p> : null}
-              </div>
-            ) : null}
-
-            {reminderError ? <p className="text-sm text-danger">{reminderError}</p> : null}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeQuickAddDialog}
-                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={reminderSubmitting}
-                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {reminderSubmitting ? 'Adding...' : 'Add'}
-              </button>
-            </div>
-          </form>
-        </Dialog>
-
-        <Dialog
+        <QuickAddProjectDialog
           open={quickAddDialog === 'project'}
           onClose={closeQuickAddDialog}
           triggerRef={contextMenuTriggerRef}
-          title="Create Project"
-          description="Create a new project."
-        >
-          <form className="space-y-4" onSubmit={onCreateQuickAddProject}>
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-project-name">
-                Project name
-              </label>
-              <input
-                id="quick-add-project-name"
-                ref={projectNameInputRef}
-                type="text"
-                value={projectDialogName}
-                onChange={(event) => setProjectDialogName(event.target.value)}
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                placeholder="New project"
-              />
-            </div>
-
-            {projectDialogError ? <p className="text-sm text-danger">{projectDialogError}</p> : null}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeQuickAddDialog}
-                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={projectDialogSubmitting}
-                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {projectDialogSubmitting ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </form>
-        </Dialog>
+          name={projectDialogName}
+          onNameChange={setProjectDialogName}
+          onSubmit={onCreateQuickAddProject}
+          submitting={projectDialogSubmitting}
+          error={projectDialogError}
+          nameInputRef={projectNameInputRef}
+        />
 
         <div className="relative" ref={notificationsRef}>
           <button
@@ -2513,104 +1850,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </button>
 
           {notificationsOpen ? (
-            <div
-              ref={notificationsPanelRef}
-              role="dialog"
-              aria-label="Notifications"
-              className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-[360px] rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
-            >
-              <div className="flex items-center gap-sm border-b border-border-muted px-md py-sm">
-                {(['unread', 'all'] as NotificationFilter[]).map((filter) => (
-                  <button
-                    key={filter}
-                    type="button"
-                    onClick={() => setNotifFilter(filter)}
-                    className="text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                    style={{
-                      fontWeight: notifFilter === filter ? 500 : 400,
-                      color: notifFilter === filter ? 'var(--color-text)' : 'var(--color-muted)',
-                      borderBottom: notifFilter === filter ? '2px solid var(--color-primary)' : '2px solid transparent',
-                    }}
-                  >
-                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </button>
-                ))}
-
-                <select
-                  value={notifProjectFilter ?? ''}
-                  onChange={(event) => setNotifProjectFilter(event.target.value || null)}
-                  aria-label="Filter by project"
-                  className="ml-auto rounded-control border border-border-muted bg-surface-elevated px-xs py-[2px] text-xs text-text outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                >
-                  <option value="">All projects</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <ul className="max-h-[420px] list-none overflow-y-auto p-0">
-                {visibleNotifications.length === 0 ? (
-                  <li className="px-xl py-xl text-center text-sm text-muted">
-                    {notifFilter === 'unread' ? "You're all caught up." : 'No notifications yet.'}
-                  </li>
-                ) : (
-                  visibleNotifications.map((notification) => (
-                    <li
-                      key={notification.id}
-                      className="group flex items-start gap-sm border-b border-border-muted px-md py-sm last:border-b-0"
-                      style={{
-                        background: notification.read
-                          ? 'transparent'
-                          : 'color-mix(in srgb, var(--color-primary) 8%, transparent)',
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => onNavigateNotification(notification)}
-                        className="min-w-0 flex flex-1 items-start gap-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                      >
-                        <div
-                          aria-hidden="true"
-                          className="mt-[2px] flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-on-primary"
-                          style={{ background: notification.avatarColor }}
-                        >
-                          {notification.authorInitial}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm text-text">{notification.summary}</p>
-                          <p className="mt-[2px] line-clamp-2 text-[13px] text-muted">{notification.body}</p>
-                        </div>
-                      </button>
-
-                      <div className="flex shrink-0 flex-col items-end gap-xs">
-                        <span className="text-xs text-muted" title={new Date(notification.createdAt).toLocaleString()}>
-                          {relativeTimeLabel(notification.createdAt)}
-                        </span>
-
-                        <div className="flex">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              event.preventDefault();
-                            }}
-                            aria-disabled="true"
-                            aria-label="Add to reminders. Coming soon."
-                            title="Coming soon."
-                            className="cursor-not-allowed rounded-control border border-border-muted px-2 py-1 text-xs text-muted opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                          >
-                            Add to reminders
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
+            <NotificationsPanel
+              notifications={notifications}
+              filter={notifFilter}
+              onFilterChange={setNotifFilter}
+              projectFilter={notifProjectFilter}
+              onProjectFilterChange={setNotifProjectFilter}
+              projects={projects}
+              onNavigate={onNavigateNotification}
+              panelRef={notificationsPanelRef}
+            />
           ) : null}
         </div>
 
@@ -2647,53 +1896,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </button>
 
           {profileOpen ? (
-            <div
-              ref={profileMenuRef}
-              role="menu"
-              className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-56 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
-            >
-              <div className="flex items-center gap-sm border-b border-border-muted px-md py-md">
-                {avatarBroken ? (
-                  <span
-                    aria-hidden="true"
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-text"
-                  >
-                    <Icon name="user" className="text-[18px]" />
-                  </span>
-                ) : (
-                  <img src={avatarUrl} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 rounded-full object-cover" />
-                )}
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-text">{sessionSummary.name}</p>
-                  <p className="truncate text-xs text-muted">{sessionSummary.email}</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                role="menuitem"
-                className="block w-full px-md py-sm text-left text-sm text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                onClick={() => {
-                  skipProfileFocusRestoreRef.current = true;
-                  navigate('/projects');
-                  setProfileOpen(false);
-                }}
-              >
-                Projects
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="block w-full px-md py-sm text-left text-sm text-danger hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                onClick={() => {
-                  skipProfileFocusRestoreRef.current = true;
-                  void signOut();
-                  setProfileOpen(false);
-                }}
-              >
-                Log out
-              </button>
-            </div>
+            <ProfileMenu
+              name={sessionSummary.name}
+              email={sessionSummary.email}
+              avatarUrl={avatarUrl}
+              avatarBroken={avatarBroken}
+              menuRef={profileMenuRef}
+              onNavigateProjects={onNavigateProjectsFromProfileMenu}
+              onLogout={onLogoutFromProfileMenu}
+            />
           ) : null}
         </div>
         </nav>
