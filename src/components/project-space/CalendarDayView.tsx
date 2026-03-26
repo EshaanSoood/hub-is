@@ -36,33 +36,33 @@ const DAY_BANDS: CalendarDayBand[] = [
     id: 'night',
     label: 'Night',
     startMinute: 0,
-    endMinute: 4 * 60,
+    endMinute: 6 * 60,
     bandClassName: 'time-band-night',
-    overlayPullClassName: '-mb-[calc(var(--day-hour-height)*4)]',
+    overlayPullClassName: '-mb-[calc(var(--day-hour-height)*6)]',
   },
   {
     id: 'dawn',
     label: 'Morning',
-    startMinute: 4 * 60,
-    endMinute: 8 * 60,
+    startMinute: 6 * 60,
+    endMinute: 12 * 60,
     bandClassName: 'time-band-dawn',
-    overlayPullClassName: '-mb-[calc(var(--day-hour-height)*4)]',
+    overlayPullClassName: '-mb-[calc(var(--day-hour-height)*6)]',
   },
   {
     id: 'midday',
     label: 'Midday',
-    startMinute: 8 * 60,
-    endMinute: 14 * 60,
+    startMinute: 12 * 60,
+    endMinute: 16 * 60,
     bandClassName: 'time-band-midday',
-    overlayPullClassName: '-mb-[calc(var(--day-hour-height)*6)]',
+    overlayPullClassName: '-mb-[calc(var(--day-hour-height)*4)]',
   },
   {
     id: 'afternoon',
     label: 'Afternoon',
-    startMinute: 14 * 60,
+    startMinute: 16 * 60,
     endMinute: 20 * 60,
     bandClassName: 'time-band-afternoon',
-    overlayPullClassName: '-mb-[calc(var(--day-hour-height)*6)]',
+    overlayPullClassName: '-mb-[calc(var(--day-hour-height)*4)]',
   },
   {
     id: 'evening',
@@ -314,6 +314,7 @@ const DraggableEventCard = ({
   const startLabel = formatTimeLabel(item.event.event_state.start_dt);
   const endLabel = formatTimeLabel(item.event.event_state.end_dt);
   const ariaLabel = `Event: ${item.event.title}, ${startLabel} to ${endLabel}`;
+  const durationLabel = formatDurationLabel(item.endMinute - item.startMinute);
 
   return (
     <button
@@ -322,7 +323,7 @@ const DraggableEventCard = ({
       data-calendar-event-card="true"
       aria-label={ariaLabel}
       className={cn(
-        'w-full rounded-panel border border-border-muted border-l-[3px] bg-surface px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+        'absolute inset-0 h-full w-full overflow-hidden rounded-panel border border-border-muted border-l-[3px] bg-surface px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
         eventAccentClassName(item.kind),
         isDragging && 'opacity-70',
       )}
@@ -333,16 +334,17 @@ const DraggableEventCard = ({
       {...listeners}
       {...attributes}
     >
-      <p className="text-sm font-semibold text-text">{item.event.title}</p>
-      <p className="text-xs text-text-secondary">
-        {startLabel} - {endLabel}
-        <span className="ml-1 text-muted">{formatDurationLabel(item.endMinute - item.startMinute)}</span>
-      </p>
-      <p className="mt-1 flex items-center gap-1.5 text-xs text-text-secondary">
+      <div className="flex items-start justify-between gap-2">
+        <p className="line-clamp-2 text-sm font-semibold text-text">{item.event.title}</p>
+        <div className="shrink-0 text-right">
+          <p className="text-[11px] font-medium text-text">{startLabel} - {endLabel}</p>
+          <p className="text-[11px] text-text-secondary">{durationLabel}</p>
+        </div>
+      </div>
+      <p className="mt-2 flex items-center gap-1.5 text-xs text-text">
         <span className={cn('inline-block h-2.5 w-2.5 rounded-full', projectDotClassName(item.projectKey))} aria-hidden="true" />
         <span className="truncate">{item.projectLabel}</span>
       </p>
-      {slotsFragment(item.durationSlots, `duration-${item.event.record_id}`)}
     </button>
   );
 };
@@ -391,18 +393,22 @@ const BandSection = ({
       );
     }
 
+    const durationSlots = minutesToSlots(endMinute - startMinute);
+
     eventRows.push(
-      <DraggableEventCard
-        key={`${entry.event.record_id}-${entry.event.event_state.start_dt}`}
-        item={{
-          ...entry,
-          startMinute,
-          endMinute,
-          durationSlots: minutesToSlots(endMinute - startMinute),
-          gapSlots,
-        }}
-        onOpenRecord={onOpenRecord}
-      />,
+      <div key={`${entry.event.record_id}-${entry.event.event_state.start_dt}`} className="relative">
+        {slotsFragment(durationSlots, `duration-${band.id}-${entry.event.record_id}-${startMinute}`)}
+        <DraggableEventCard
+          item={{
+            ...entry,
+            startMinute,
+            endMinute,
+            durationSlots,
+            gapSlots,
+          }}
+          onOpenRecord={onOpenRecord}
+        />
+      </div>,
     );
 
     cursorMinute = Math.max(cursorMinute, endMinute);
@@ -452,7 +458,7 @@ const BandSection = ({
       ref={setNodeRef}
       aria-labelledby={headingId}
       className={cn(
-        'border-b border-border-muted/50 px-3 pb-3 pt-2',
+        'relative border-b border-border-muted/50 pb-3 pl-0 pr-3 pt-0',
         band.bandClassName,
         isOver && 'ring-1 ring-[color:var(--color-primary)]',
       )}
@@ -484,7 +490,7 @@ const BandSection = ({
         onCreateFromMinute(roundToNearestHalfHour(minute));
       }}
     >
-      <div className="mb-2 flex items-center justify-end">
+      <div className="pointer-events-none absolute right-3 top-0 z-20 -translate-y-1/2">
         <h3 id={headingId} className="text-xs text-text-secondary [font-family:var(--font-heading)]">
           {band.label}
         </h3>

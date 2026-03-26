@@ -158,11 +158,11 @@ const EventPips = ({ events }: { events: CalendarDayEvent[] }) => {
   const hiddenCount = events.length - visible.length;
 
   return (
-    <div className="flex items-center gap-1" aria-hidden="true">
+    <div className="mt-1 flex items-center gap-1.5" aria-hidden="true">
       {visible.map((event) => (
         <span
           key={`${event.record_id}-${event.event_state.start_dt}`}
-          className={cn('inline-block h-1.5 w-1.5 rounded-full', eventPipColorClassName(event))}
+          className={cn('inline-block h-2 w-2 rounded-full', eventPipColorClassName(event))}
         />
       ))}
       {hiddenCount > 0 ? <span className="text-[10px] text-text-secondary">+{hiddenCount}</span> : null}
@@ -376,7 +376,6 @@ export const CalendarWeekView = ({
 
                 <div
                   id={dayPanelId}
-                  aria-labelledby={dayTriggerId}
                   hidden={!isActive}
                   className="mt-2 border-t border-border-muted pt-2"
                 >
@@ -457,7 +456,6 @@ export const CalendarWeekView = ({
 
                 <div
                   id={dayPanelId}
-                  aria-labelledby={dayTriggerId}
                   hidden={!isActive}
                   className="mt-2 border-t border-border-muted pt-2"
                 >

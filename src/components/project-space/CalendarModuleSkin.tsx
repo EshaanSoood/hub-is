@@ -385,7 +385,7 @@ export const CalendarModuleSkin = ({
               aria-pressed={scope === item}
               onClick={() => onScopeChange(item)}
               className={cn(
-                'rounded-control border px-2 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                'rounded-control border px-2.5 py-1.5 text-xs font-medium leading-[1.2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
                 scope === item ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted',
               )}
             >
@@ -403,7 +403,7 @@ export const CalendarModuleSkin = ({
             aria-pressed={view === item}
             onClick={() => setView(item)}
             className={cn(
-              'rounded-control border px-2 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+              'rounded-control border px-2.5 py-1.5 text-xs font-medium leading-[1.2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
               view === item ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted',
             )}
           >
@@ -418,7 +418,7 @@ export const CalendarModuleSkin = ({
               setView('month');
               openCreatePanel(todayKey);
             }}
-            className="ml-auto shrink-0 rounded-control border border-primary bg-primary px-2 py-1 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="ml-auto shrink-0 rounded-control border border-primary bg-primary px-2.5 py-1.5 text-xs font-medium leading-[1.2] text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             New Event
           </button>
@@ -427,7 +427,7 @@ export const CalendarModuleSkin = ({
             type="button"
             disabled
             aria-disabled="true"
-            className="ml-auto shrink-0 rounded-control border border-subtle bg-surface px-2 py-1 text-xs text-text-secondary"
+            className="ml-auto shrink-0 rounded-control border border-subtle bg-surface px-2.5 py-1.5 text-xs leading-[1.2] text-text-secondary"
             title="Timezone controls are coming soon."
           >
             {timezone}
