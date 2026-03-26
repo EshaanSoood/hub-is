@@ -2154,9 +2154,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Reminders"
           description="Your active reminders."
-          panelClassName="max-w-3xl"
+          panelClassName="w-[min(92vw,400px)] max-w-[400px] sm:min-w-[360px] !bg-surface-elevated"
         >
-          <div className="space-y-3">
+          <div className="space-y-4 rounded-panel bg-surface-elevated p-4">
             {remindersRuntime.loading ? <p className="text-sm text-muted">Loading reminders...</p> : null}
             {remindersRuntime.error ? (
               <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
@@ -2190,46 +2190,50 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               ) : (
                 <div className="space-y-3">
                   {bucketedReminders.map((bucket) => (
-                    <section key={bucket.id} aria-labelledby={`toolbar-reminder-bucket-${bucket.id}`} className="space-y-2">
-                      <h3 id={`toolbar-reminder-bucket-${bucket.id}`} className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    <section key={bucket.id} aria-labelledby={`toolbar-reminder-bucket-${bucket.id}`} className="space-y-2 pt-6 first:pt-0">
+                      <h3 id={`toolbar-reminder-bucket-${bucket.id}`} className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                         {bucket.label}
                       </h3>
                       <div className="space-y-2">
                         {bucket.items.map((reminder) => {
                           const projectLabel = projectNameById.get(reminder.project_id) || personalReminderProjectLabel;
+                          const dueLabel = formatQuickNavTime(reminder.remind_at, 'No time');
                           return (
-                            <article key={reminder.reminder_id} className="rounded-panel border border-border-muted bg-surface px-3 py-2">
-                              <button
-                                type="button"
-                                onClick={() => onOpenReminderRecordFromDialog(reminder.record_id, reminder.project_id)}
-                                aria-label={`Open reminder ${reminder.record_title}, ${formatQuickNavTime(reminder.remind_at, 'No time')}`}
-                                className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                              >
-                                <p className="truncate text-sm font-semibold text-text">{reminder.record_title}</p>
-                                <p className="text-xs text-text-secondary">{formatQuickNavTime(reminder.remind_at, 'No time')}</p>
-                                <p className="mt-1 text-xs text-muted">{projectLabel}</p>
-                              </button>
-                              <div className="mt-2 flex items-center gap-2">
+                            <article key={reminder.reminder_id} className="rounded-panel border border-border-muted bg-surface-elevated px-4 py-3">
+                              <div className="flex items-center justify-between gap-3">
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    void onDismissReminderFromDialog(reminder.reminder_id);
-                                  }}
-                                  className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-text"
-                                  aria-label={`Dismiss reminder ${reminder.record_title}`}
+                                  onClick={() => onOpenReminderRecordFromDialog(reminder.record_id, reminder.project_id)}
+                                  aria-label={`Open reminder ${reminder.record_title}, ${dueLabel}`}
+                                  className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                                 >
-                                  Dismiss
+                                  <p className="truncate text-sm font-semibold text-text">{reminder.record_title}</p>
+                                  <p className="mt-1 truncate text-[11px] uppercase tracking-[0.08em] text-muted">{projectLabel}</p>
+                                  <p className="whitespace-nowrap text-xs text-text-secondary">{dueLabel}</p>
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    void onSnoozeReminderFromDialog(reminder.reminder_id);
-                                  }}
-                                  className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary"
-                                  aria-label={`Snooze reminder ${reminder.record_title} to tomorrow at 9 AM`}
-                                >
-                                  Snooze
-                                </button>
+
+                                <div className="flex shrink-0 items-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      void onDismissReminderFromDialog(reminder.reminder_id);
+                                    }}
+                                    className="rounded-control border border-border-muted px-3 py-2 text-xs font-medium text-text"
+                                    aria-label={`Dismiss reminder ${reminder.record_title}`}
+                                  >
+                                    Dismiss
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      void onSnoozeReminderFromDialog(reminder.reminder_id);
+                                    }}
+                                    className="rounded-control border border-border-muted px-3 py-2 text-xs font-medium text-primary"
+                                    aria-label={`Snooze reminder ${reminder.record_title} to tomorrow at 9 AM`}
+                                  >
+                                    Snooze
+                                  </button>
+                                </div>
                               </div>
                             </article>
                           );
