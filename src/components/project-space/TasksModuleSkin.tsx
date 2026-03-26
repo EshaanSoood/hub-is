@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Icon } from '../primitives';
 import { cn } from '../../lib/cn';
 import { PRIORITY_DOT_COLORS, type PriorityLevel } from './designTokens';
-import { TasksTab, type SortChain, type TaskItem, type TaskPriorityValue, type TaskStatus } from './TasksTab';
+import { TasksTab, type SortChain, type SortDimension, type TaskItem, type TaskPriorityValue, type TaskStatus } from './TasksTab';
 import { formatDueLabel } from './taskAdapter';
 
 interface TasksModuleSkinProps {
@@ -23,7 +23,6 @@ interface TasksModuleSkinProps {
   readOnly?: boolean;
 }
 
-const FIXED_SORT_CHAIN: SortChain = ['date', 'priority', 'category'];
 const CREATE_PRIORITY_OPTIONS: Array<{ value: TaskPriorityValue; label: string }> = [
   { value: null, label: 'None' },
   { value: 'low', label: 'Low' },
@@ -118,6 +117,16 @@ const humanizeOption = (value: string, fallback: string) => {
     .filter(Boolean)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ');
+};
+
+const sortChainForGroupBy = (groupBy: SortDimension): SortChain => {
+  if (groupBy === 'priority') {
+    return ['priority', 'date', 'category'];
+  }
+  if (groupBy === 'category') {
+    return ['category', 'date', 'priority'];
+  }
+  return ['date', 'priority', 'category'];
 };
 
 interface TaskComposerProps {
@@ -377,6 +386,7 @@ const TasksModuleLarge = ({
 }: Omit<TasksModuleSkinProps, 'sizeTier'>) => {
   const [activeUserId, setActiveUserId] = useState('all');
   const [activeCategoryId, setActiveCategoryId] = useState('all');
+  const [groupBy, setGroupBy] = useState<SortDimension>('date');
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerParentTask, setComposerParentTask] = useState<TaskItem | null>(null);
 
@@ -455,11 +465,10 @@ const TasksModuleLarge = ({
         categories={categoryOptions}
         activeUserId={activeUserId}
         activeCategoryId={activeCategoryId}
-        sortChain={FIXED_SORT_CHAIN}
-        onSortChainChange={() => undefined}
+        sortChain={sortChainForGroupBy(groupBy)}
+        onSortChainChange={(chain) => setGroupBy(chain[0])}
         onUserChange={setActiveUserId}
         onCategoryChange={setActiveCategoryId}
-        showSortControls={false}
         onAddSubtask={
           readOnly
             ? undefined

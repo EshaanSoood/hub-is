@@ -12,6 +12,7 @@ export interface TaskSubtask {
   label: string;
   dueLabel: string;
   priority: PriorityLevel | null;
+  subtasks?: TaskSubtask[];
 }
 
 export interface TaskItem {
@@ -62,12 +63,11 @@ interface TasksTabProps {
 }
 
 const SORT_DIMENSIONS: SortDimension[] = ['date', 'priority', 'category'];
-const SORT_LABELS: Record<SortDimension, string> = {
-  date: 'Date',
+const GROUP_BY_LABELS: Record<SortDimension, string> = {
+  date: 'Chronological',
   priority: 'Priority',
   category: 'Category',
 };
-const POSITION_LABELS = ['primary', 'secondary', 'tertiary'] as const;
 const PRIORITY_ORDER: PriorityLevel[] = ['high', 'medium', 'low'];
 const PRIORITY_RANK: Record<PriorityLevel, number> = {
   high: 0,
@@ -123,6 +123,15 @@ const startOfDay = (date: Date) => {
   return next;
 };
 
+const endOfWeek = (date: Date) => {
+  const next = new Date(date);
+  const day = next.getDay();
+  const daysUntilWeekEnd = 6 - day;
+  next.setDate(next.getDate() + daysUntilWeekEnd);
+  next.setHours(23, 59, 59, 999);
+  return next;
+};
+
 const titleCaseCategory = (categoryId: string) =>
   categoryId
     .split(/[-_]/g)
@@ -136,16 +145,6 @@ const promoteDimension = (chain: SortChain, clicked: SortDimension): SortChain =
   }
   const rest = chain.filter((dimension) => dimension !== clicked) as [SortDimension, SortDimension];
   return [clicked, rest[0], rest[1]];
-};
-
-const moveDimension = (chain: SortChain, fromIndex: number, toIndex: number): SortChain => {
-  if (fromIndex === toIndex || fromIndex < 0 || fromIndex > 2 || toIndex < 0 || toIndex > 2) {
-    return chain;
-  }
-  const next = [...chain];
-  const [moved] = next.splice(fromIndex, 1);
-  next.splice(toIndex, 0, moved);
-  return next as SortChain;
 };
 
 const compareCategory = (left: string, right: string): number => {
@@ -196,7 +195,11 @@ const buildComparator = (dimensions: SortDimension[]): ((left: TaskItem, right: 
 };
 
 const buildDateClusters = (tasks: TaskItem[]): Cluster[] => {
-  const today = startOfDay(new Date());
+  const now = new Date();
+  const today = startOfDay(now);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const weekEnd = endOfWeek(now);
   const groups: Record<'overdue' | 'today' | 'thisWeek' | 'later', TaskItem[]> = {
     overdue: [],
     today: [],
@@ -211,28 +214,23 @@ const buildDateClusters = (tasks: TaskItem[]): Cluster[] => {
       continue;
     }
 
-    const dueDay = startOfDay(due);
-    const diff = Math.floor((dueDay.getTime() - today.getTime()) / 86_400_000);
-
-    if (diff < 0) {
+    if (due.getTime() < now.getTime()) {
       groups.overdue.push(task);
-    } else if (diff === 0) {
+    } else if (due.getTime() < tomorrow.getTime()) {
       groups.today.push(task);
-    } else if (diff <= 7) {
+    } else if (due.getTime() <= weekEnd.getTime()) {
       groups.thisWeek.push(task);
     } else {
       groups.later.push(task);
     }
   }
 
-  const clusters: Cluster[] = [
+  return [
     { id: 'overdue', label: 'Overdue', dimension: 'date', items: groups.overdue },
     { id: 'today', label: 'Today', dimension: 'date', items: groups.today },
     { id: 'thisWeek', label: 'This Week', dimension: 'date', items: groups.thisWeek },
     { id: 'later', label: 'Later', dimension: 'date', items: groups.later },
   ];
-
-  return clusters.filter((cluster) => cluster.items.length > 0);
 };
 
 const buildPriorityClusters = (tasks: TaskItem[]): Cluster[] =>
@@ -314,17 +312,51 @@ const getNextStatus = (status: TaskStatus): TaskStatus => {
   return 'todo';
 };
 
-const SubtaskRow = ({ subtask, parentPriority }: { subtask: TaskSubtask; parentPriority: PriorityLevel }) => {
+const getConnectorMetrics = (level: number): { width: number; opacity: number } => {
+  if (level <= 1) {
+    return { width: 2, opacity: 0.8 };
+  }
+  if (level === 2) {
+    return { width: 1.5, opacity: 0.5 };
+  }
+  return { width: 1, opacity: Math.max(0.25, 0.5 - (level - 2) * 0.1) };
+};
+
+const SubtaskTree = ({ subtask, parentPriority, level }: { subtask: TaskSubtask; parentPriority: PriorityLevel; level: number }) => {
   const resolvedPriority = subtask.priority ?? parentPriority;
+  const nested = subtask.subtasks ?? [];
+  const metrics = getConnectorMetrics(level);
+  const connectorLeft = (level - 1) * 20 + 8;
+  const contentPadding = level * 20;
   return (
-    <li className="flex items-center gap-2 pl-5 text-xs text-muted">
-      <span
-        className={cn('h-1.5 w-1.5 rounded-full', !subtask.priority && 'opacity-50')}
-        style={{ backgroundColor: PRIORITY_DOT_COLORS[resolvedPriority] }}
-        aria-hidden="true"
-      />
-      <span className="flex-1">{subtask.label}</span>
-      <span className="opacity-70">{subtask.dueLabel}</span>
+    <li className="space-y-1">
+      <div className="relative flex items-center gap-2 text-xs text-muted" style={{ paddingLeft: `${contentPadding}px` }}>
+        <span
+          className="absolute bottom-0 top-0 rounded-full"
+          style={{
+            left: `${connectorLeft}px`,
+            width: `${metrics.width}px`,
+            backgroundColor: 'var(--color-border-muted)',
+            opacity: metrics.opacity,
+          }}
+          aria-hidden="true"
+        />
+        <span
+          className={cn('h-1.5 w-1.5 rounded-full', !subtask.priority && 'opacity-50')}
+          style={{ backgroundColor: PRIORITY_DOT_COLORS[resolvedPriority] }}
+          aria-hidden="true"
+        />
+        <span className="min-w-0 flex-1 truncate">{subtask.label}</span>
+        <span className="shrink-0 opacity-70">{subtask.dueLabel}</span>
+      </div>
+
+      {nested.length > 0 ? (
+        <ul className="space-y-1">
+          {nested.map((child) => (
+            <SubtaskTree key={child.id} subtask={child} parentPriority={resolvedPriority} level={level + 1} />
+          ))}
+        </ul>
+      ) : null}
     </li>
   );
 };
@@ -484,8 +516,14 @@ const TaskRow = ({
   };
 
   return (
-    <div className="group rounded-control px-1 py-0.5 hover:bg-elevated focus-within:bg-elevated">
-      <div className="flex items-center gap-2">
+    <div className="group relative rounded-control border border-border-muted bg-surface px-2 py-1.5 hover:bg-surface-elevated focus-within:bg-surface-elevated">
+      <span
+        className="absolute bottom-0 left-0 top-0 rounded-l-control"
+        style={{ width: '3px', backgroundColor: priorityTone ? PRIORITY_DOT_COLORS[priorityTone] : 'var(--color-border-muted)' }}
+        aria-hidden="true"
+      />
+
+      <div className="flex items-center gap-2 pl-1">
         <button
           type="button"
           onClick={(event) => {
@@ -512,20 +550,15 @@ const TaskRow = ({
           disabled={!taskHasSubtasks}
           className="flex min-w-0 flex-1 items-center gap-2 text-left disabled:cursor-default"
         >
-          <span
-            className={cn('h-7 w-0.5 rounded-sm', priorityTone ? '' : 'opacity-60')}
-            style={{ backgroundColor: priorityTone ? PRIORITY_DOT_COLORS[priorityTone] : 'var(--color-border-muted)' }}
-            aria-hidden="true"
-          />
-          <span className={cn('min-w-0 flex-1 truncate text-sm text-text', status === 'cancelled' && 'line-through text-text-secondary')}>
-            {task.label}
+          <span className="min-w-0 flex-1 truncate text-sm text-text">
+            <span className={cn(status === 'cancelled' && 'line-through text-text-secondary')}>{task.label}</span>
           </span>
-          <span className="shrink-0 text-xs text-text-secondary">{task.dueLabel}</span>
           {visibleSubtaskCount > 0 ? (
             <span className="shrink-0 rounded-control border px-1.5 py-0.5 text-[10px] font-semibold" style={priorityChipStyles}>
               {visibleSubtaskCount}
             </span>
           ) : null}
+          <span className="shrink-0 text-xs text-text-secondary">{task.dueLabel}</span>
           {taskHasSubtasks ? <span className={cn('text-[10px] text-muted transition-transform', expanded && 'rotate-90')}>▶</span> : null}
         </button>
 
@@ -710,9 +743,9 @@ const TaskRow = ({
       </div>
 
       {expanded && taskHasSubtasks ? (
-        <ul className="mt-1 space-y-1">
+        <ul className="mt-2 space-y-1">
           {task.subtasks.map((subtask) => (
-            <SubtaskRow key={subtask.id} subtask={subtask} parentPriority={task.priority} />
+            <SubtaskTree key={subtask.id} subtask={subtask} parentPriority={task.priority} level={1} />
           ))}
         </ul>
       ) : null}
@@ -743,7 +776,6 @@ export const TasksTab = ({
     taskKey: '',
     entries: {},
   });
-  const dragIndexRef = useRef<number | null>(null);
   const taskKey = useMemo(
     () =>
       JSON.stringify(
@@ -810,63 +842,33 @@ export const TasksTab = ({
       <div className="flex flex-wrap items-center gap-2">
         {showSortControls ? (
           <>
-            <span className="text-xs text-muted">Sort by</span>
-            <div role="listbox" aria-label="Sort order" className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted">Group by</span>
+            <div role="listbox" aria-label="Group tasks by" className="flex flex-wrap items-center gap-2">
               {SORT_DIMENSIONS.map((dimension) => {
-                const position = sortChain.indexOf(dimension);
-                const positionLabel = POSITION_LABELS[position];
+                const active = sortChain[0] === dimension;
                 return (
                   <button
                     key={dimension}
                     type="button"
                     role="option"
-                    aria-selected={position === 0}
-                    aria-roledescription="sortable"
-                    aria-label={`${SORT_LABELS[dimension]} — ${positionLabel} sort`}
-                    draggable="true"
+                    aria-selected={active}
+                    aria-label={`Group by ${GROUP_BY_LABELS[dimension]}`}
                     onClick={() => {
                       onSortChainChange(promoteDimension(sortChain, dimension));
                     }}
-                    onDragStart={() => {
-                      dragIndexRef.current = position;
-                    }}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                    }}
-                    onDrop={() => {
-                      const fromIndex = dragIndexRef.current;
-                      dragIndexRef.current = null;
-                      if (fromIndex === null) {
-                        return;
-                      }
-                      onSortChainChange(moveDimension(sortChain, fromIndex, position));
-                    }}
-                    onDragEnd={() => {
-                      dragIndexRef.current = null;
-                    }}
                     onKeyDown={(event) => {
-                      if (event.key === 'ArrowLeft') {
-                        event.preventDefault();
-                        onSortChainChange(moveDimension(sortChain, position, position - 1));
-                        return;
-                      }
-                      if (event.key === 'ArrowRight') {
-                        event.preventDefault();
-                        onSortChainChange(moveDimension(sortChain, position, position + 1));
-                        return;
-                      }
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
                         onSortChainChange(promoteDimension(sortChain, dimension));
                       }
                     }}
                     className={cn(
-                      'rounded-control border px-2 py-1 text-xs transition-all duration-300 ease-in-out',
-                      position === 0 ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted hover:text-text',
+                      'rounded-control border px-2 py-1.5 text-xs transition-colors',
+                      active ? 'bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted hover:text-text',
                     )}
-                    style={{ order: position }}
+                    style={active ? { borderColor: 'var(--color-primary)' } : undefined}
                   >
-                    {SORT_LABELS[dimension]}
+                    {GROUP_BY_LABELS[dimension]}
                   </button>
                 );
               })}
@@ -883,7 +885,7 @@ export const TasksTab = ({
             aria-pressed={activeUserId === collaborator.id}
             onClick={() => onUserChange(collaborator.id)}
             className={cn(
-              'rounded-control border px-2 py-1 text-xs transition-colors',
+              'rounded-control border px-2 py-1.5 text-xs transition-colors',
               activeUserId === collaborator.id ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted hover:text-text',
             )}
           >
@@ -900,7 +902,7 @@ export const TasksTab = ({
             aria-pressed={activeCategoryId === category.id}
             onClick={() => onCategoryChange(category.id)}
             className={cn(
-              'rounded-control border px-2 py-1 text-xs transition-colors',
+              'rounded-control border px-2 py-1.5 text-xs transition-colors',
               activeCategoryId === category.id ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted hover:text-text',
             )}
           >
@@ -916,7 +918,7 @@ export const TasksTab = ({
             cluster.dimension === 'priority' && cluster.priorityKey
               ? PRIORITY_DOT_COLORS[cluster.priorityKey]
               : cluster.dimension === 'category'
-                ? 'var(--color-info)'
+                ? 'var(--color-primary)'
                 : 'var(--color-muted)';
 
           return (
@@ -935,14 +937,14 @@ export const TasksTab = ({
                     return next;
                   });
                 }}
-                className="flex w-full items-center gap-2 rounded-control px-1 py-1 text-left"
+                className="flex w-full items-center gap-2 rounded-control px-1.5 py-1.5 text-left"
               >
                 <span className="h-0.5 w-3 rounded-sm" style={{ backgroundColor: accent }} aria-hidden="true" />
                 <span className="flex-1 text-xs font-bold uppercase tracking-wide text-muted">{cluster.label}</span>
                 <span className="rounded-control border border-subtle bg-surface px-1.5 py-0.5 text-[10px] text-muted">
                   {cluster.items.length}
                 </span>
-                <span className={cn('text-[10px] text-muted transition-transform', collapsed && '-rotate-90')}>▶</span>
+                <span className={cn('text-[10px] text-muted transition-transform', collapsed && 'rotate-90')}>▶</span>
               </button>
 
               {!collapsed ? (
