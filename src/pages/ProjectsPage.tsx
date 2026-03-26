@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useProjects } from '../context/ProjectsContext';
 import { useAuthz } from '../context/AuthzContext';
 import { Dialog } from '../components/primitives';
-import { PersonalizedDashboardPanel } from '../features/PersonalizedDashboardPanel';
+import { PersonalizedDashboardPanel, type HubDashboardView } from '../features/PersonalizedDashboardPanel';
 import { getHubHome, getRecordDetail } from '../services/hub/records';
 import type { HubRecordDetail } from '../services/hub/types';
 import { subscribeHubLive } from '../services/hubLive';
@@ -29,6 +29,9 @@ const getActiveFocusTarget = (): HTMLElement | null => {
   }
   return resolveFocusRestoreTarget(null);
 };
+
+const parseDashboardView = (raw: string | null): HubDashboardView =>
+  raw === 'stream' || raw === 'project-lens' ? raw : 'project-lens';
 
 export const ProjectsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -62,6 +65,7 @@ export const ProjectsPage = () => {
   const selectedRecordRequestIdRef = useRef(0);
   const selectedHubRecordIdRef = useRef<string | null>(null);
   const selectedHubRecordTriggerRef = useRef<HTMLElement | null>(null);
+  const dashboardView = parseDashboardView(searchParams.get('view'));
 
   useEffect(() => {
     const taskId = searchParams.get('task_id');
@@ -72,9 +76,11 @@ export const ProjectsPage = () => {
     selectedHubRecordIdRef.current = taskId;
     setSelectedHubRecordId(taskId);
 
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('task_id');
-    setSearchParams(nextParams, { replace: true });
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('task_id');
+      return next;
+    }, { replace: true });
   }, [searchParams, setSearchParams]);
 
   const refreshHome = useCallback(async () => {
@@ -209,6 +215,14 @@ export const ProjectsPage = () => {
     setSelectedHubRecordLoading(false);
   }, []);
 
+  const onDashboardViewChange = useCallback((view: HubDashboardView) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('view', view);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   return (
     <div className="space-y-4">
       <PersonalizedDashboardPanel
@@ -217,6 +231,8 @@ export const ProjectsPage = () => {
         homeError={homeError}
         projects={projects}
         onOpenRecord={onOpenHubRecord}
+        initialView={dashboardView}
+        onViewChange={onDashboardViewChange}
       />
 
       <Dialog

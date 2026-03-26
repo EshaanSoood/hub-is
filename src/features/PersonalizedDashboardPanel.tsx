@@ -35,7 +35,7 @@ import type {
 type HubHomeData = HubHomeResponse;
 type HubTask = TaskSummary;
 type HubEvent = EventSummary;
-type HubDashboardView = 'project-lens' | 'stream';
+export type HubDashboardView = 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
 type StreamBucketId =
@@ -330,36 +330,23 @@ export const ItemRow = ({
 
   if (!canOpen || !item.recordId) {
     return (
-      <div className="flex flex-wrap items-start gap-2">
-        <article className={`min-w-0 flex-1 rounded-panel border p-3 ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface`}>
-          {content}
-        </article>
-        <a
-          href={item.explicitHref}
-          className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary"
-        >
-          Go to project
-        </a>
-      </div>
+      <a
+        href={item.explicitHref}
+        className={`block rounded-panel border p-3 ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface`}
+      >
+        {content}
+      </a>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-start gap-2">
-      <button
-        type="button"
-        onClick={() => onOpen(item.recordId)}
-        className={`min-w-0 flex-1 rounded-panel border p-3 text-left ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface`}
-      >
-        {content}
-      </button>
-      <a
-        href={item.explicitHref}
-        className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary"
-      >
-        Go to project
-      </a>
-    </div>
+    <button
+      type="button"
+      onClick={() => onOpen(item.recordId)}
+      className={`w-full rounded-panel border p-3 text-left ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface`}
+    >
+      {content}
+    </button>
   );
 };
 
@@ -655,6 +642,7 @@ export const PersonalizedDashboardPanel = ({
   homeError,
   projects,
   onOpenRecord,
+  initialView,
   onViewChange,
 }: {
   homeData: HubHomeData;
@@ -662,12 +650,13 @@ export const PersonalizedDashboardPanel = ({
   homeError: string | null;
   projects: ProjectRecord[];
   onOpenRecord: (recordId: string) => void;
+  initialView?: HubDashboardView;
   onViewChange?: (view: HubDashboardView) => void;
 }) => {
   const { accessToken, canGlobal, sessionSummary } = useAuthz();
   const remindersRuntime = useRemindersRuntime(accessToken ?? null);
 
-  const [activeView, setActiveView] = useState<HubDashboardView>('project-lens');
+  const [activeView, setActiveView] = useState<HubDashboardView>(initialView ?? 'project-lens');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [activeViewOptionIndex, setActiveViewOptionIndex] = useState(0);
   const [projectFilter, setProjectFilter] = useState<string>('all');
@@ -1057,22 +1046,22 @@ export const PersonalizedDashboardPanel = ({
               className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1"
               aria-label={formatCountLabel(totalPipCounts.events, 'event')}
             >
-              <Icon name="calendar" className="text-[13px]" />
-              <span>{totalPipCounts.events}</span>
+              <Icon name="calendar" className="text-[13px]" aria-hidden="true" />
+              <span aria-hidden="true">{totalPipCounts.events}</span>
             </span>
             <span
               className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1"
               aria-label={formatCountLabel(totalPipCounts.tasks, 'task')}
             >
-              <Icon name="tasks" className="text-[13px]" />
-              <span>{totalPipCounts.tasks}</span>
+              <Icon name="tasks" className="text-[13px]" aria-hidden="true" />
+              <span aria-hidden="true">{totalPipCounts.tasks}</span>
             </span>
             <span
               className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1"
               aria-label={formatCountLabel(totalPipCounts.reminders, 'reminder')}
             >
-              <Icon name="reminders" className="text-[13px]" />
-              <span>{totalPipCounts.reminders}</span>
+              <Icon name="reminders" className="text-[13px]" aria-hidden="true" />
+              <span aria-hidden="true">{totalPipCounts.reminders}</span>
             </span>
           </div>
         </div>

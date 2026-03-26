@@ -579,7 +579,7 @@ export const CalendarModuleSkin = ({
 
       {view === 'week' || view === 'day' ? (
         <div className="rounded-panel border border-subtle bg-surface p-4 text-sm text-muted">
-          {view[0].toUpperCase() + view.slice(1)} view coming soon.
+          <p>{view === 'day' ? 'Day view is coming soon.' : 'Week view is coming soon.'}</p>
         </div>
       ) : null}
     </div>

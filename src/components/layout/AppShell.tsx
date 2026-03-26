@@ -1509,7 +1509,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         <div className="mx-auto w-full max-w-7xl px-4 py-6">{children}</div>
       </main>
 
-      <footer>
+      <footer aria-label="App toolbar">
         <nav
           aria-label="App toolbar"
           className="relative flex h-12 shrink-0 items-center gap-sm border-t border-border-muted bg-surface-elevated px-md"
