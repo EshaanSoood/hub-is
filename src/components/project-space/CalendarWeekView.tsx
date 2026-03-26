@@ -329,8 +329,6 @@ export const CalendarWeekView = ({
           return (
             <article
               key={`desktop-${day.key}`}
-              role="region"
-              aria-label={cardLabel}
               ref={(node) => {
                 mobileCardRefs.current[day.key] = node;
               }}
@@ -362,7 +360,7 @@ export const CalendarWeekView = ({
                   type="button"
                   onClick={() => activateDay(day.key)}
                   className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                  aria-label={`${day.dayName} ${day.dateNumber}`}
+                  aria-label={cardLabel}
                 >
                   <p className="text-xs text-text-secondary [font-family:var(--font-heading)]">{day.dayName}</p>
                   <p className="text-base text-text [font-family:var(--font-heading)]">{day.dateNumber}</p>
@@ -408,8 +406,6 @@ export const CalendarWeekView = ({
           return (
             <article
               key={`mobile-${day.key}`}
-              role="region"
-              aria-label={cardLabel}
               ref={(node) => {
                 mobileCardRefs.current[day.key] = node;
               }}
@@ -434,7 +430,7 @@ export const CalendarWeekView = ({
                     'w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
                     isActive ? 'text-left' : 'flex items-center justify-between gap-2 text-left',
                   )}
-                  aria-label={`${day.dayName} ${day.dateNumber}`}
+                  aria-label={cardLabel}
                 >
                   <div>
                     <p className="text-xs text-text-secondary [font-family:var(--font-heading)]">{day.dayName}</p>
