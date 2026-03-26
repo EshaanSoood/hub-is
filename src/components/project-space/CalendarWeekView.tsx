@@ -210,10 +210,10 @@ export const CalendarWeekView = ({
   onCreateEvent,
   today = new Date(),
 }: CalendarWeekViewProps) => {
-  const [activeDayIndex, setActiveDayIndex] = useState(3);
-  const [hoveredDayIndex, setHoveredDayIndex] = useState<number | null>(null);
+  const [activeDayKey, setActiveDayKey] = useState<string | null>(null);
+  const [hoveredDayKey, setHoveredDayKey] = useState<string | null>(null);
   const mobileScrollViewportRef = useRef<HTMLDivElement | null>(null);
-  const mobileCardRefs = useRef<Record<number, HTMLElement | null>>({});
+  const mobileCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const didAutoScrollRef = useRef(false);
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
@@ -237,7 +237,7 @@ export const CalendarWeekView = ({
     return map;
   }, [events]);
 
-  const weekDays = useMemo<WeekDayEntry[]>(() => {
+  const chronologicalWeekDays = useMemo<WeekDayEntry[]>(() => {
     const offsets: WeekDayEntry['offsetFromToday'][] = [-3, -2, -1, 0, 1, 2, 3];
     return offsets.map((offset) => {
       const date = addDays(todayStart, offset);
@@ -254,9 +254,26 @@ export const CalendarWeekView = ({
     });
   }, [eventsByDate, todayStart]);
 
+  const weekDays = useMemo<WeekDayEntry[]>(() => {
+    const todayEntry = chronologicalWeekDays.find((day) => day.offsetFromToday === 0);
+    const futureDays = chronologicalWeekDays.filter((day) => day.offsetFromToday > 0);
+    const pastDays = chronologicalWeekDays.filter((day) => day.offsetFromToday < 0);
+    return [
+      ...(todayEntry ? [todayEntry] : []),
+      ...futureDays,
+      ...pastDays,
+    ];
+  }, [chronologicalWeekDays]);
+
   useEffect(() => {
-    setActiveDayIndex(3);
-  }, [todayStart]);
+    setActiveDayKey((current) => {
+      if (current && weekDays.some((day) => day.key === current)) {
+        return current;
+      }
+      const todayEntry = weekDays.find((day) => day.offsetFromToday === 0);
+      return todayEntry?.key ?? weekDays[0]?.key ?? null;
+    });
+  }, [weekDays]);
 
   useEffect(() => {
     if (didAutoScrollRef.current) {
@@ -270,7 +287,7 @@ export const CalendarWeekView = ({
         return;
       }
       const viewport = mobileScrollViewportRef.current;
-      const activeCard = mobileCardRefs.current[activeDayIndex];
+      const activeCard = activeDayKey ? mobileCardRefs.current[activeDayKey] : null;
       if (!viewport || !activeCard) {
         frameId = window.requestAnimationFrame(centerActiveCard);
         return;
@@ -290,23 +307,23 @@ export const CalendarWeekView = ({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [activeDayIndex]);
+  }, [activeDayKey]);
 
   const weekRangeLabel = useMemo(() => {
-    const start = weekDays[0]?.date ?? todayStart;
-    const end = weekDays[6]?.date ?? todayStart;
+    const start = chronologicalWeekDays[0]?.date ?? todayStart;
+    const end = chronologicalWeekDays[chronologicalWeekDays.length - 1]?.date ?? todayStart;
     return formatWeekRangeLabel(start, end);
-  }, [todayStart, weekDays]);
+  }, [chronologicalWeekDays, todayStart]);
 
-  const activateDay = (index: number) => {
-    setActiveDayIndex(index);
+  const activateDay = (dayKey: string) => {
+    setActiveDayKey(dayKey);
   };
 
   return (
     <div role="region" tabIndex={-1} aria-label={weekRangeLabel} className="space-y-3">
       <div className="hidden md:flex md:items-start md:overflow-x-auto md:pb-1">
-        {weekDays.map((day, index) => {
-          const isActive = index === activeDayIndex;
+        {weekDays.map((day) => {
+          const isActive = day.key === activeDayKey;
           const cardLabel = formatDayRegionLabel(day);
 
           return (
@@ -315,11 +332,11 @@ export const CalendarWeekView = ({
               role="region"
               aria-label={cardLabel}
               ref={(node) => {
-                mobileCardRefs.current[index] = node;
+                mobileCardRefs.current[day.key] = node;
               }}
               onFocusCapture={() => {
                 if (!isActive) {
-                  activateDay(index);
+                  activateDay(day.key);
                 }
               }}
               className={cn(
@@ -331,19 +348,19 @@ export const CalendarWeekView = ({
                 className={cn(
                   'rounded-panel border border-border-muted bg-surface-elevated px-3 py-2 transition-[transform,box-shadow] duration-150',
                   isActive ? 'week-card-active' : 'week-card-inactive',
-                  !isActive && hoveredDayIndex === index ? 'week-card-hover' : null,
+                  !isActive && hoveredDayKey === day.key ? 'week-card-hover' : null,
                   day.isToday ? 'border-b-2 border-b-[color:var(--color-primary)]' : null,
                 )}
                 onMouseEnter={() => {
-                  setHoveredDayIndex(index);
+                  setHoveredDayKey(day.key);
                 }}
                 onMouseLeave={() => {
-                  setHoveredDayIndex((current) => (current === index ? null : current));
+                  setHoveredDayKey((current) => (current === day.key ? null : current));
                 }}
               >
                 <button
                   type="button"
-                  onClick={() => activateDay(index)}
+                  onClick={() => activateDay(day.key)}
                   className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   aria-label={`${day.dayName} ${day.dateNumber}`}
                 >
@@ -384,8 +401,8 @@ export const CalendarWeekView = ({
       </div>
 
       <div ref={mobileScrollViewportRef} className="max-h-[70vh] space-y-2 overflow-y-auto md:hidden">
-        {weekDays.map((day, index) => {
-          const isActive = index === activeDayIndex;
+        {weekDays.map((day) => {
+          const isActive = day.key === activeDayKey;
           const cardLabel = formatDayRegionLabel(day);
 
           return (
@@ -394,11 +411,11 @@ export const CalendarWeekView = ({
               role="region"
               aria-label={cardLabel}
               ref={(node) => {
-                mobileCardRefs.current[index] = node;
+                mobileCardRefs.current[day.key] = node;
               }}
               onFocusCapture={() => {
                 if (!isActive) {
-                  activateDay(index);
+                  activateDay(day.key);
                 }
               }}
               className={cn('transition-all duration-150', mobileIndentClassName(day.offsetFromToday))}
@@ -412,7 +429,7 @@ export const CalendarWeekView = ({
               >
                 <button
                   type="button"
-                  onClick={() => activateDay(index)}
+                  onClick={() => activateDay(day.key)}
                   className={cn(
                     'w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
                     isActive ? 'text-left' : 'flex items-center justify-between gap-2 text-left',
