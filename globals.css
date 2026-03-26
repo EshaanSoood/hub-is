@@ -227,3 +227,47 @@ textarea:focus-visible {
 .week-card-inactive.week-card-hover {
   transform: translateY(calc(-1 * var(--week-card-hover-lift))) scale(var(--week-card-inactive-scale));
 }
+
+.week-pos-neg3 {
+  margin-left: calc(-3 * var(--week-card-offset));
+}
+
+.week-pos-neg2 {
+  margin-left: calc(-2 * var(--week-card-offset));
+}
+
+.week-pos-neg1 {
+  margin-left: calc(-1 * var(--week-card-offset));
+}
+
+.week-pos-center {
+  margin-left: 0;
+}
+
+.week-pos-pos1 {
+  margin-left: calc(1 * var(--week-card-offset));
+}
+
+.week-pos-pos2 {
+  margin-left: calc(2 * var(--week-card-offset));
+}
+
+.week-pos-pos3 {
+  margin-left: calc(3 * var(--week-card-offset));
+}
+
+.week-mobile-indent-0 {
+  margin-left: 0;
+}
+
+.week-mobile-indent-1 {
+  margin-left: calc(1 * var(--week-card-offset));
+}
+
+.week-mobile-indent-2 {
+  margin-left: calc(2 * var(--week-card-offset));
+}
+
+.week-mobile-indent-3 {
+  margin-left: calc(3 * var(--week-card-offset));
+}

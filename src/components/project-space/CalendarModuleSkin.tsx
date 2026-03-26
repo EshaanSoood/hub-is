@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ModuleEmptyState, ModuleLoadingState } from './ModuleFeedback';
 import { cn } from '../../lib/cn';
 import { CalendarDayView } from './CalendarDayView';
+import { CalendarWeekView } from './CalendarWeekView';
 
 export type CalendarScope = 'relevant' | 'all';
 type CalendarView = 'month' | 'year' | 'week' | 'day';
@@ -209,6 +210,7 @@ export const CalendarModuleSkin = ({
     return map;
   }, [events]);
   const dayViewDate = useMemo(() => new Date(), []);
+  const weekViewToday = useMemo(() => new Date(), []);
   const dayViewEvents = useMemo(() => {
     const dayKey = toLocalDateKey(dayViewDate);
     return eventsByDate.get(dayKey) ?? [];
@@ -638,9 +640,26 @@ export const CalendarModuleSkin = ({
       ) : null}
 
       {view === 'week' ? (
-        <div className="rounded-panel border border-subtle bg-surface p-4 text-sm text-muted">
-          <p>Week view is coming soon.</p>
-        </div>
+        <CalendarWeekView
+          events={events}
+          today={weekViewToday}
+          onOpenRecord={onOpenRecord}
+          onCreateEvent={
+            onCreateEvent
+              ? (payload) => {
+                  const startDate = new Date(payload.start_dt);
+                  const nextDayKey = Number.isNaN(startDate.getTime())
+                    ? todayKey
+                    : toLocalDateKey(startDate);
+                  openCreatePanel(nextDayKey, {
+                    title: payload.title,
+                    startTime: toTimeInputValue(payload.start_dt, '09:00'),
+                    endTime: toTimeInputValue(payload.end_dt, '10:00'),
+                  });
+                }
+              : undefined
+          }
+        />
       ) : null}
     </div>
   );
