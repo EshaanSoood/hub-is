@@ -2074,7 +2074,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Tasks"
           description="All your tasks across projects."
-          panelClassName="max-w-3xl"
+          panelClassName="w-[min(92vw,48rem)] max-w-3xl sm:min-w-[540px]"
         >
           <div className="space-y-3">
             {quickNavTasksLoading ? <p className="text-sm text-muted">Loading tasks...</p> : null}
@@ -2116,9 +2116,20 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                       </h3>
                       <div className="space-y-2">
                         {bucket.items.map((task) => {
+                          const priorityBorderColor = (priority: string | null | undefined): string => {
+                            switch (priority) {
+                              case 'high':
+                                return 'var(--color-danger)';
+                              case 'medium':
+                                return 'rgb(245 168 80)';
+                              case 'low':
+                                return 'rgb(132 156 178)';
+                              default:
+                                return 'var(--color-border-muted)';
+                            }
+                          };
                           const projectLabel = task.project_name || 'Inbox & Unassigned';
                           const dueLabel = formatQuickNavTime(task.task_state.due_at, 'No due date');
-                          const priorityLabel = task.task_state.priority || 'No priority';
                           return (
                             <button
                               key={task.record_id}
@@ -2126,16 +2137,22 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                               onClick={() => onOpenTaskRecordFromDialog(task.record_id)}
                               aria-label={`Open task ${task.title}, due ${dueLabel}`}
                               className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                              style={{
+                                borderLeftWidth: '3px',
+                                borderLeftStyle: 'solid',
+                                borderLeftColor: priorityBorderColor(task.task_state.priority),
+                              }}
                             >
-                              <p className="truncate text-sm font-semibold text-text">{task.title}</p>
-                              <p className="text-xs text-text-secondary">{dueLabel}</p>
-                              <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-                                <span className={cn('inline-block h-2 w-2 rounded-full', projectDotClassName(task.project_id))} aria-hidden="true" />
-                                <span className="truncate">{projectLabel}</span>
-                              </p>
-                              <p className="mt-1 text-xs text-muted">
-                                {task.task_state.status} · {priorityLabel}
-                              </p>
+                              <div className="flex items-center gap-3">
+                                <span className="truncate text-sm font-medium text-text flex-1 min-w-0">{task.title}</span>
+                                <span className="flex items-center gap-2 shrink-0">
+                                  <span className="flex items-center gap-1 text-xs text-muted">
+                                    <span className={cn('inline-block h-2 w-2 rounded-full', projectDotClassName(task.project_id))} aria-hidden="true" />
+                                    <span className="truncate">{projectLabel}</span>
+                                  </span>
+                                  <span className="text-xs text-text-secondary whitespace-nowrap">{dueLabel}</span>
+                                </span>
+                              </div>
                             </button>
                           );
                         })}
