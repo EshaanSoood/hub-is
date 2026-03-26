@@ -2029,9 +2029,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Calendar"
           description="Your personal calendar across all projects."
-          panelClassName="max-w-4xl"
+          panelClassName="!top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] !w-[min(96vw,96rem)] !max-w-[min(96vw,96rem)] flex flex-col overflow-hidden"
+          contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <div className="space-y-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
             {personalCalendarError ? (
               <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
                 <p className="text-sm text-danger">{personalCalendarError}</p>
@@ -2046,22 +2047,24 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 </button>
               </div>
             ) : null}
-            <CalendarModuleSkin
-              events={personalCalendarEvents}
-              loading={personalCalendarLoading}
-              scope={personalCalendarMode as CalendarScope}
-              onScopeChange={setPersonalCalendarMode}
-              onOpenRecord={onOpenCalendarRecordFromDialog}
-              onCreateEvent={
-                accessToken && toolbarCalendarCreateProjectId
-                  ? async (payload) => {
-                      await createEventFromNlp(accessToken, toolbarCalendarCreateProjectId, payload);
-                      requestHubHomeRefresh();
-                      await refreshPersonalCalendar();
-                    }
-                  : undefined
-              }
-            />
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <CalendarModuleSkin
+                events={personalCalendarEvents}
+                loading={personalCalendarLoading}
+                scope={personalCalendarMode as CalendarScope}
+                onScopeChange={setPersonalCalendarMode}
+                onOpenRecord={onOpenCalendarRecordFromDialog}
+                onCreateEvent={
+                  accessToken && toolbarCalendarCreateProjectId
+                    ? async (payload) => {
+                        await createEventFromNlp(accessToken, toolbarCalendarCreateProjectId, payload);
+                        requestHubHomeRefresh();
+                        await refreshPersonalCalendar();
+                      }
+                    : undefined
+                }
+              />
+            </div>
           </div>
         </Dialog>
 
