@@ -114,11 +114,12 @@ const formatWeekRangeLabel = (start: Date, end: Date): string => {
   return `Week view, ${left} to ${right}`;
 };
 
-const formatDayRegionLabel = (day: WeekDayEntry): string => {
+const formatDayCardLabel = (day: WeekDayEntry): string => {
   const fullDate = day.date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
   const count = day.events.length;
   const noun = count === 1 ? 'event' : 'events';
-  return `${fullDate}, ${count} ${noun}`;
+  const dayLabel = day.isToday ? `Today, ${fullDate}` : fullDate;
+  return `${dayLabel}, ${count} ${noun}`;
 };
 
 const formatEventAriaLabel = (event: CalendarDayEvent): string => {
@@ -324,18 +325,15 @@ export const CalendarWeekView = ({
       <div className="hidden md:flex md:items-start md:overflow-x-auto md:pb-1">
         {weekDays.map((day) => {
           const isActive = day.key === activeDayKey;
-          const cardLabel = formatDayRegionLabel(day);
+          const cardLabel = formatDayCardLabel(day);
+          const dayTriggerId = `calendar-week-desktop-day-trigger-${day.key}`;
+          const dayPanelId = `calendar-week-desktop-day-panel-${day.key}`;
 
           return (
             <article
               key={`desktop-${day.key}`}
               ref={(node) => {
                 mobileCardRefs.current[day.key] = node;
-              }}
-              onFocusCapture={() => {
-                if (!isActive) {
-                  activateDay(day.key);
-                }
               }}
               className={cn(
                 'first:md:ml-0 md:-ml-6 md:min-w-[13rem] md:max-w-[13rem] md:flex-1',
@@ -359,6 +357,15 @@ export const CalendarWeekView = ({
                 <button
                   type="button"
                   onClick={() => activateDay(day.key)}
+                  onFocus={() => {
+                    if (!isActive) {
+                      activateDay(day.key);
+                    }
+                  }}
+                  id={dayTriggerId}
+                  aria-expanded={isActive}
+                  aria-controls={dayPanelId}
+                  aria-current={day.isToday ? 'date' : undefined}
                   className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   aria-label={cardLabel}
                 >
@@ -367,8 +374,12 @@ export const CalendarWeekView = ({
                   <EventPips events={day.events} />
                 </button>
 
-                {isActive ? (
-                  <div className="mt-2 border-t border-border-muted pt-2">
+                <div
+                  id={dayPanelId}
+                  aria-labelledby={dayTriggerId}
+                  hidden={!isActive}
+                  className="mt-2 border-t border-border-muted pt-2"
+                >
                     {day.events.length === 0 ? (
                       <div className="flex items-center justify-between rounded-control border border-border-muted bg-surface px-2.5 py-2">
                         <p className="text-xs text-muted">No events</p>
@@ -390,8 +401,7 @@ export const CalendarWeekView = ({
                         <EventList events={day.events} onOpenRecord={onOpenRecord} />
                       </div>
                     )}
-                  </div>
-                ) : null}
+                </div>
               </div>
             </article>
           );
@@ -401,18 +411,15 @@ export const CalendarWeekView = ({
       <div ref={mobileScrollViewportRef} className="max-h-[70vh] space-y-2 overflow-y-auto md:hidden">
         {weekDays.map((day) => {
           const isActive = day.key === activeDayKey;
-          const cardLabel = formatDayRegionLabel(day);
+          const cardLabel = formatDayCardLabel(day);
+          const dayTriggerId = `calendar-week-mobile-day-trigger-${day.key}`;
+          const dayPanelId = `calendar-week-mobile-day-panel-${day.key}`;
 
           return (
             <article
               key={`mobile-${day.key}`}
               ref={(node) => {
                 mobileCardRefs.current[day.key] = node;
-              }}
-              onFocusCapture={() => {
-                if (!isActive) {
-                  activateDay(day.key);
-                }
               }}
               className={cn('transition-all duration-150', mobileIndentClassName(day.offsetFromToday))}
             >
@@ -426,6 +433,15 @@ export const CalendarWeekView = ({
                 <button
                   type="button"
                   onClick={() => activateDay(day.key)}
+                  onFocus={() => {
+                    if (!isActive) {
+                      activateDay(day.key);
+                    }
+                  }}
+                  id={dayTriggerId}
+                  aria-expanded={isActive}
+                  aria-controls={dayPanelId}
+                  aria-current={day.isToday ? 'date' : undefined}
                   className={cn(
                     'w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
                     isActive ? 'text-left' : 'flex items-center justify-between gap-2 text-left',
@@ -439,8 +455,12 @@ export const CalendarWeekView = ({
                   <EventPips events={day.events} />
                 </button>
 
-                {isActive ? (
-                  <div className="mt-2 border-t border-border-muted pt-2">
+                <div
+                  id={dayPanelId}
+                  aria-labelledby={dayTriggerId}
+                  hidden={!isActive}
+                  className="mt-2 border-t border-border-muted pt-2"
+                >
                     {day.events.length === 0 ? (
                       <div className="flex items-center justify-between rounded-control border border-border-muted bg-surface px-2.5 py-2">
                         <p className="text-xs text-muted">No events</p>
@@ -462,8 +482,7 @@ export const CalendarWeekView = ({
                         <EventList events={day.events} onOpenRecord={onOpenRecord} />
                       </div>
                     )}
-                  </div>
-                ) : null}
+                </div>
               </div>
             </article>
           );
