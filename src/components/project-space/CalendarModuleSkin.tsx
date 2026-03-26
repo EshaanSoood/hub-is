@@ -209,8 +209,30 @@ export const CalendarModuleSkin = ({
     }
     return map;
   }, [events]);
-  const dayViewDate = useMemo(() => new Date(), []);
-  const weekViewToday = useMemo(() => new Date(), []);
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+
+  useEffect(() => {
+    let timerId = 0;
+
+    const scheduleNextMidnightRefresh = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const delay = Math.max(60_000, nextMidnight.getTime() - now.getTime() + 1_000);
+      timerId = window.setTimeout(() => {
+        setCurrentDate(new Date());
+        scheduleNextMidnightRefresh();
+      }, delay);
+    };
+
+    scheduleNextMidnightRefresh();
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, []);
+
+  const dayViewDate = currentDate;
+  const weekViewToday = currentDate;
   const dayViewEvents = useMemo(() => {
     const dayKey = toLocalDateKey(dayViewDate);
     return eventsByDate.get(dayKey) ?? [];

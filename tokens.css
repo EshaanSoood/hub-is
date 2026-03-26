@@ -19,6 +19,8 @@
   /* Warnings (Keeping the reds, removing green) */
   --color-danger: rgb(220 53 69);
   --color-danger-subtle: rgb(220 53 69 / 0.15);
+  --color-priority-medium: rgb(245 168 80);
+  --color-priority-low: rgb(132 156 178);
   --color-warning-subtle: rgb(255 193 7 / 0.15);
   --color-info-subtle: var(--color-warning-subtle);
   --color-success-subtle: var(--color-muted-subtle);
@@ -88,6 +90,8 @@
     --color-primary-strong: rgb(148 16 78);
     --color-on-primary: rgb(255 255 255);
     --color-border-muted: rgb(203 213 225);
+    --color-priority-medium: rgb(245 168 80);
+    --color-priority-low: rgb(132 156 178);
     --color-border-primary: var(--color-border-muted);
     --color-time-band-overlay: 80 100 124;
     --time-band-night: rgba(var(--color-time-band-overlay), 0);
@@ -95,12 +99,6 @@
     --time-band-midday: rgba(var(--color-time-band-overlay), 0.08);
     --time-band-afternoon: rgba(var(--color-time-band-overlay), 0.04);
     --time-band-evening: rgba(var(--color-time-band-overlay), 0);
-    --week-card-offset: 5%;
-    --week-card-active-scale: 1;
-    --week-card-inactive-scale: 0.92;
-    --week-card-hover-lift: 2px;
-    --color-week-card-active-shadow: rgba(0, 0, 0, 0.25);
-    --color-week-card-inactive-shadow: rgba(0, 0, 0, 0.1);
     --color-day-ruler: var(--color-border-muted);
     --color-day-ruler-tick: var(--color-text-secondary);
     --day-ruler-width: 48px;

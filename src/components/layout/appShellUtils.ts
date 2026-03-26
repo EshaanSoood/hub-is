@@ -213,16 +213,21 @@ export const projectDotClassNames = [
   'bg-[color:var(--color-muted)]',
 ];
 
+export const hashString = (value: string): number => {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
 export const projectDotClassName = (projectId: string | null): string => {
   if (!projectId) {
     return projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
   }
-  let hash = 0;
-  for (let index = 0; index < projectId.length; index += 1) {
-    hash = (hash << 5) - hash + projectId.charCodeAt(index);
-    hash |= 0;
-  }
-  return projectDotClassNames[Math.abs(hash) % projectDotClassNames.length] || projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
+  const index = hashString(projectId) % projectDotClassNames.length;
+  return projectDotClassNames[index] || projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
 };
 
 export const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; name: string }>): string[] => {
@@ -248,6 +253,7 @@ export const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; 
   return crumb;
 };
 
+// Keep these static so notification/avatar identity colors remain stable across themes.
 export const NOTIFICATION_AVATAR_COLORS = [
   'rgb(52 124 212)',
   'rgb(46 185 166)',
@@ -255,15 +261,6 @@ export const NOTIFICATION_AVATAR_COLORS = [
   'rgb(220 80 100)',
   'rgb(132 156 178)',
 ];
-
-export const hashString = (value: string): number => {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(index);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-};
 
 export const notificationAvatarColor = (value: string): string => {
   const index = hashString(value) % NOTIFICATION_AVATAR_COLORS.length;
@@ -276,6 +273,7 @@ export const notificationAuthorInitial = (summary: string, fallback: string): st
   return first ? first.toUpperCase() : '?';
 };
 
+// Data URL avatars should not depend on page-level CSS variables.
 export const ACCOUNT_AVATAR_BACKGROUNDS = [
   'rgb(40 92 170)',
   'rgb(22 121 107)',
@@ -416,9 +414,9 @@ export const priorityBorderColor = (priority: string | null | undefined): string
     case 'high':
       return 'var(--color-danger)';
     case 'medium':
-      return 'rgb(245 168 80)';
+      return 'var(--color-priority-medium)';
     case 'low':
-      return 'rgb(132 156 178)';
+      return 'var(--color-priority-low)';
     default:
       return 'var(--color-border-muted)';
   }

@@ -743,6 +743,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const openQuickNavPanel = useCallback((panel: Exclude<ToolbarDialog, null>) => {
+    skipProfileFocusRestoreRef.current = true;
+    skipNotificationsFocusRestoreRef.current = true;
+    skipContextMenuFocusRestoreRef.current = true;
     setToolbarDialog(panel);
     closeQuickNav();
     closeSearch();
@@ -753,6 +756,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [closeCapturePanel, closeQuickNav, closeSearch]);
 
   useEffect(() => subscribeQuickAddProjectRequest(() => {
+    skipProfileFocusRestoreRef.current = true;
+    skipNotificationsFocusRestoreRef.current = true;
+    skipContextMenuFocusRestoreRef.current = true;
     closeQuickNavPanel();
     closeSearch();
     setProfileOpen(false);

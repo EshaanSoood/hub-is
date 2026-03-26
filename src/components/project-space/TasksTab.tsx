@@ -214,7 +214,7 @@ const buildDateClusters = (tasks: TaskItem[]): Cluster[] => {
       continue;
     }
 
-    if (due.getTime() < now.getTime()) {
+    if (due.getTime() < today.getTime()) {
       groups.overdue.push(task);
     } else if (due.getTime() < tomorrow.getTime()) {
       groups.today.push(task);
@@ -944,7 +944,7 @@ export const TasksTab = ({
                 <span className="rounded-control border border-subtle bg-surface px-1.5 py-0.5 text-[10px] text-muted">
                   {cluster.items.length}
                 </span>
-                <span className={cn('text-[10px] text-muted transition-transform', collapsed && 'rotate-90')}>▶</span>
+                <span className={cn('text-[10px] text-muted transition-transform', !collapsed && 'rotate-90')}>▶</span>
               </button>
 
               {!collapsed ? (

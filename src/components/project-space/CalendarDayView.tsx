@@ -532,8 +532,8 @@ export const CalendarDayView = ({
   }, []);
 
   useEffect(() => {
-    setLiveTimeAnnouncement(`Current time: ${formatTimeLabelFromDate(new Date())}`);
-  }, []);
+    setLiveTimeAnnouncement(`Current time: ${formatTimeLabelFromDate(now)}`);
+  }, [now]);
 
   const dayEvents = useMemo(() => {
     const next: DayEventLayout[] = [];
@@ -614,6 +614,7 @@ export const CalendarDayView = ({
 
   useEffect(() => {
     if (!nowIsCurrentDay) {
+      autoScrollDoneRef.current = false;
       return;
     }
 
@@ -644,7 +645,7 @@ export const CalendarDayView = ({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [nowIsCurrentDay]);
+  }, [dayStart, nowIsCurrentDay]);
 
   const createAtMinute = (rawMinute: number) => {
     if (!onCreateEvent) {

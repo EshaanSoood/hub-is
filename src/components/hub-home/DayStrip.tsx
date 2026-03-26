@@ -1,4 +1,4 @@
-import { type DragEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type DragEvent, type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type {
   DayStripEventItem,
   DayStripReminderItem,
@@ -102,6 +102,9 @@ export const DayStrip = ({
   const nowNeedleRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const autoScrollKeyRef = useRef<string>('');
+  const stripId = useId();
+  const earlierLabelId = `${stripId}-earlier`;
+  const upcomingLabelId = `${stripId}-upcoming`;
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -440,7 +443,7 @@ export const DayStrip = ({
 
   return (
     <div
-      role="group"
+      role="region"
       aria-label="Today's timeline"
       className={`rounded-panel border border-border-muted bg-[color:var(--color-surface)] p-2 [box-shadow:inset_0_0_12px_2px_rgb(38_48_64_/_0.5)] ${className ?? ''}`}
     >
@@ -493,10 +496,14 @@ export const DayStrip = ({
               );
             })}
 
-            <h3 className="sr-only">Earlier today</h3>
-            {earlierItems.map((item) => renderTimelineItem(item))}
-            <h3 className="sr-only">Upcoming</h3>
-            {upcomingItems.map((item) => renderTimelineItem(item))}
+            <h3 id={earlierLabelId} className="sr-only">Earlier today</h3>
+            <section aria-labelledby={earlierLabelId}>
+              {earlierItems.map((item) => renderTimelineItem(item))}
+            </section>
+            <h3 id={upcomingLabelId} className="sr-only">Upcoming</h3>
+            <section aria-labelledby={upcomingLabelId}>
+              {upcomingItems.map((item) => renderTimelineItem(item))}
+            </section>
           </div>
         </div>
       )}

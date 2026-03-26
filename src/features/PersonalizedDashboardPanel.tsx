@@ -395,9 +395,8 @@ const ProjectLensView = ({
           <PopoverTrigger asChild>
             <button
               type="button"
-              aria-haspopup="listbox"
+              aria-haspopup="menu"
               aria-expanded={filterOpen}
-              aria-controls={filterOpen ? filterListId : undefined}
               className="inline-flex items-center justify-center gap-2 rounded-control border border-border-muted bg-surface px-3 py-1.5 text-xs font-medium text-text"
             >
               <Icon name="menu" className="text-[12px]" />
@@ -405,7 +404,7 @@ const ProjectLensView = ({
             </button>
           </PopoverTrigger>
           <PopoverContent align="center" className="w-64 border border-border-muted bg-surface p-2">
-            <div id={filterListId} role="listbox" aria-label="Project Lens filters" className="space-y-1">
+            <div id={filterListId} role="group" aria-label="Project Lens filters" className="space-y-1">
               {sections.map((section) => {
                 const checked = !hiddenSections[section.id];
                 return (
@@ -493,10 +492,12 @@ const StreamView = ({
   items,
   projects,
   onOpenRecord,
+  now,
 }: {
   items: HubDashboardItem[];
   projects: ProjectRecord[];
   onOpenRecord: (recordId: string) => void;
+  now: Date;
 }) => {
   const [sortMode, setSortMode] = useState<StreamSort>('due');
   const [typeFilter, setTypeFilter] = useState<StreamTypeFilter>('all');
@@ -514,7 +515,6 @@ const StreamView = ({
   }, [items, projectFilter, sortMode, typeFilter]);
 
   const bucketedSections = useMemo(() => {
-    const now = new Date();
     const buckets = new Map<StreamBucketId, HubDashboardItem[]>(
       STREAM_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
     );
@@ -538,7 +538,7 @@ const StreamView = ({
         items: itemsForBucket,
       }];
     });
-  }, [filteredItems]);
+  }, [filteredItems, now]);
 
   const projectOptions = [
     { value: 'all', label: 'All projects' },
@@ -703,6 +703,15 @@ export const PersonalizedDashboardPanel = ({
   );
 
   const selectedView = availableViewIds.includes(activeView) ? activeView : availableViewIds[0];
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      setActiveView(initialView ?? 'project-lens');
+    }, 0);
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [initialView]);
 
   useEffect(() => {
     onViewChange?.(selectedView);
@@ -1186,7 +1195,7 @@ export const PersonalizedDashboardPanel = ({
       </Popover>
 
       {selectedView === 'project-lens' ? <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
-      {selectedView === 'stream' ? <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
+      {selectedView === 'stream' ? <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} now={now} /> : null}
     </section>
   );
 };

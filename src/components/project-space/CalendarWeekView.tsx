@@ -205,6 +205,40 @@ const EventList = ({
   </ul>
 );
 
+const DayPanelContent = ({
+  day,
+  onOpenRecord,
+  onCreateEvent,
+  timezone,
+}: {
+  day: WeekDayEntry;
+  onOpenRecord: (recordId: string) => void;
+  onCreateEvent?: (payload: CreateEventPrefillPayload) => void | Promise<void>;
+  timezone: string;
+}) => (
+  day.events.length === 0 ? (
+    <div className="flex items-center justify-between rounded-control border border-border-muted bg-surface px-2.5 py-2">
+      <p className="text-xs text-muted">No events</p>
+      {onCreateEvent ? (
+        <button
+          type="button"
+          onClick={() => {
+            void onCreateEvent(createAtNinePayload(day.date, timezone));
+          }}
+          className="h-6 w-6 rounded-control border border-primary bg-primary text-sm font-semibold leading-none text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          aria-label={`Create event for ${day.dayName} ${day.dateNumber}`}
+        >
+          +
+        </button>
+      ) : null}
+    </div>
+  ) : (
+    <div className="max-h-56 overflow-y-auto pr-1">
+      <EventList events={day.events} onOpenRecord={onOpenRecord} />
+    </div>
+  )
+);
+
 export const CalendarWeekView = ({
   events,
   onOpenRecord,
@@ -214,6 +248,7 @@ export const CalendarWeekView = ({
   const [activeDayKey, setActiveDayKey] = useState<string | null>(null);
   const [hoveredDayKey, setHoveredDayKey] = useState<string | null>(null);
   const mobileScrollViewportRef = useRef<HTMLDivElement | null>(null);
+  const desktopCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const mobileCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const didAutoScrollRef = useRef(false);
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
@@ -310,6 +345,29 @@ export const CalendarWeekView = ({
     };
   }, [activeDayKey]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    const onViewportChange = (event: MediaQueryListEvent) => {
+      if (!event.matches) {
+        didAutoScrollRef.current = false;
+      }
+    };
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', onViewportChange);
+    } else {
+      mediaQuery.addListener(onViewportChange);
+    }
+
+    return () => {
+      if (typeof mediaQuery.removeEventListener === 'function') {
+        mediaQuery.removeEventListener('change', onViewportChange);
+      } else {
+        mediaQuery.removeListener(onViewportChange);
+      }
+    };
+  }, []);
+
   const weekRangeLabel = useMemo(() => {
     const start = chronologicalWeekDays[0]?.date ?? todayStart;
     const end = chronologicalWeekDays[chronologicalWeekDays.length - 1]?.date ?? todayStart;
@@ -333,7 +391,7 @@ export const CalendarWeekView = ({
             <article
               key={`desktop-${day.key}`}
               ref={(node) => {
-                mobileCardRefs.current[day.key] = node;
+                desktopCardRefs.current[day.key] = node;
               }}
               className={cn(
                 'first:md:ml-0 md:-ml-6 md:min-w-[13rem] md:max-w-[13rem] md:flex-1',
@@ -379,27 +437,7 @@ export const CalendarWeekView = ({
                   hidden={!isActive}
                   className="mt-2 border-t border-border-muted pt-2"
                 >
-                    {day.events.length === 0 ? (
-                      <div className="flex items-center justify-between rounded-control border border-border-muted bg-surface px-2.5 py-2">
-                        <p className="text-xs text-muted">No events</p>
-                        {onCreateEvent ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void onCreateEvent(createAtNinePayload(day.date, timezone));
-                            }}
-                            className="h-6 w-6 rounded-control border border-primary bg-primary text-sm font-semibold leading-none text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                            aria-label={`Create event for ${day.dayName} ${day.dateNumber}`}
-                          >
-                            +
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div className="max-h-56 overflow-y-auto pr-1">
-                        <EventList events={day.events} onOpenRecord={onOpenRecord} />
-                      </div>
-                    )}
+                  <DayPanelContent day={day} onOpenRecord={onOpenRecord} onCreateEvent={onCreateEvent} timezone={timezone} />
                 </div>
               </div>
             </article>
@@ -459,27 +497,7 @@ export const CalendarWeekView = ({
                   hidden={!isActive}
                   className="mt-2 border-t border-border-muted pt-2"
                 >
-                    {day.events.length === 0 ? (
-                      <div className="flex items-center justify-between rounded-control border border-border-muted bg-surface px-2.5 py-2">
-                        <p className="text-xs text-muted">No events</p>
-                        {onCreateEvent ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void onCreateEvent(createAtNinePayload(day.date, timezone));
-                            }}
-                            className="h-6 w-6 rounded-control border border-primary bg-primary text-sm font-semibold leading-none text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                            aria-label={`Create event for ${day.dayName} ${day.dateNumber}`}
-                          >
-                            +
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div className="max-h-56 overflow-y-auto pr-1">
-                        <EventList events={day.events} onOpenRecord={onOpenRecord} />
-                      </div>
-                    )}
+                  <DayPanelContent day={day} onOpenRecord={onOpenRecord} onCreateEvent={onCreateEvent} timezone={timezone} />
                 </div>
               </div>
             </article>
