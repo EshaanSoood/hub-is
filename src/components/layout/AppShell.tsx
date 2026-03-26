@@ -4,10 +4,12 @@ import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
 import { useProjects } from '../../context/ProjectsContext';
 import { QuickCapturePanel } from '../../features/QuickCapture';
+import { ItemRow, buildTaskItems, type HubDashboardItem } from '../../features/PersonalizedDashboardPanel';
 import { TaskCreateDialog } from '../project-space/TaskCreateDialog';
 import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
+import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
-import { createEventFromNlp, getHubHome } from '../../services/hub/records';
+import { createEventFromNlp, getHubHome, queryCalendar, queryPersonalCalendar } from '../../services/hub/records';
 import { createReminder } from '../../services/hub/reminders';
 import { listProjectMembers } from '../../services/hub/projects';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
@@ -15,8 +17,10 @@ import type { HubNotification, HubProjectMember } from '../../services/hub/types
 import { subscribeHubLive } from '../../services/hubLive';
 import { buildNotificationDestinationHref } from '../../lib/hubRoutes';
 import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
+import { subscribeQuickAddProjectRequest } from '../../lib/quickAddProjectRequest';
 import { parseReminderInput, type ReminderParseResult } from '../../lib/nlp/reminder-parser';
 import { createHubProject } from '../../services/projectsService';
+import { CalendarModuleSkin, type CalendarScope } from '../project-space/CalendarModuleSkin';
 import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
 
 interface ToolbarNotification {
@@ -34,11 +38,48 @@ interface ToolbarNotification {
 
 type NotificationFilter = 'unread' | 'all';
 type QuickAddDialog = 'task' | 'event' | 'reminder' | 'project' | null;
+type QuickNavPanel = 'calendar' | 'tasks' | 'reminders' | null;
 type QuickAddOption = {
   key: Exclude<QuickAddDialog, null>;
   label: string;
   iconName: 'tasks' | 'calendar' | 'reminders' | 'menu';
 };
+
+type QuickNavActionItem =
+  | {
+      id: string;
+      label: string;
+      iconName: 'calendar' | 'tasks' | 'reminders';
+      action: 'panel';
+      panel: Exclude<QuickNavPanel, null>;
+    }
+  | {
+      id: string;
+      label: string;
+      iconName?: 'menu';
+      action: 'navigate';
+      href: string;
+    };
+
+type QuickNavCalendarEvent = {
+  record_id: string;
+  title: string;
+  project_id: string | null;
+  event_state: {
+    start_dt: string;
+    end_dt: string;
+    timezone: string;
+    location: string | null;
+    updated_at: string;
+  };
+  participants: Array<{ user_id: string; role: string | null }>;
+};
+
+const QUICK_NAV_FIXED_ITEMS: QuickNavActionItem[] = [
+  { id: 'quick-nav-calendar', label: 'Calendar', iconName: 'calendar', action: 'panel', panel: 'calendar' },
+  { id: 'quick-nav-tasks', label: 'Tasks', iconName: 'tasks', action: 'panel', panel: 'tasks' },
+  { id: 'quick-nav-reminders', label: 'Reminders', iconName: 'reminders', action: 'panel', panel: 'reminders' },
+];
 
 const QUICK_ADD_OPTIONS: QuickAddOption[] = [
   { key: 'task', label: 'Task', iconName: 'tasks' },
@@ -66,6 +107,28 @@ const relativeTimeLabel = (iso: string): string => {
   }
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
+};
+
+const parseIsoTimestamp = (value: string | null | undefined): number => {
+  if (!value) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const timestamp = Number(new Date(value));
+  return Number.isFinite(timestamp) ? timestamp : Number.POSITIVE_INFINITY;
+};
+
+const formatDateTime = (value: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString([], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 };
 
 const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; name: string }>): string[] => {
@@ -306,6 +369,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     captures: [],
   });
   const [captureLoading, setCaptureLoading] = useState(false);
+  const [quickNavPanel, setQuickNavPanel] = useState<QuickNavPanel>(null);
+  const [quickNavTaskItems, setQuickNavTaskItems] = useState<HubDashboardItem[]>([]);
+  const [quickNavTasksLoading, setQuickNavTasksLoading] = useState(false);
+  const [quickNavTasksError, setQuickNavTasksError] = useState<string | null>(null);
+  const [quickNavCalendarMode, setQuickNavCalendarMode] = useState<CalendarScope>('relevant');
+  const [quickNavCalendarEvents, setQuickNavCalendarEvents] = useState<QuickNavCalendarEvent[]>([]);
+  const [quickNavCalendarLoading, setQuickNavCalendarLoading] = useState(false);
+  const [quickNavCalendarError, setQuickNavCalendarError] = useState<string | null>(null);
+  const [quickNavCalendarSource, setQuickNavCalendarSource] = useState<'project' | 'personal'>('personal');
+  const remindersRuntime = useRemindersRuntime(accessToken ?? null);
+  const refreshReminders = remindersRuntime.refresh;
 
   const searchRef = useRef<HTMLDivElement | null>(null);
   const searchDismissedRef = useRef(false);
@@ -331,6 +405,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const reminderInputRef = useRef<HTMLInputElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
   const captureRequestVersionRef = useRef(0);
+  const quickNavTasksRequestVersionRef = useRef(0);
+  const quickNavCalendarRequestVersionRef = useRef(0);
   const quickNavWasOpenRef = useRef(false);
   const notificationsWereOpenRef = useRef(false);
   const profileWasOpenRef = useRef(false);
@@ -377,6 +453,23 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     () => taskProjectMembersById[quickAddProjectId] ?? [],
     [quickAddProjectId, taskProjectMembersById],
   );
+  const currentProject = useMemo(
+    () => (currentProjectId ? projects.find((project) => project.id === currentProjectId) || null : null),
+    [currentProjectId, projects],
+  );
+  const quickNavTaskItemsByRecordId = useMemo(() => {
+    const map = new Map<string, HubDashboardItem>();
+    for (const item of quickNavTaskItems) {
+      map.set(item.recordId, item);
+    }
+    return map;
+  }, [quickNavTaskItems]);
+  const sortedReminders = useMemo(
+    () => [...remindersRuntime.reminders]
+      .filter((reminder) => !reminder.fired_at)
+      .sort((left, right) => parseIsoTimestamp(left.remind_at) - parseIsoTimestamp(right.remind_at)),
+    [remindersRuntime.reminders],
+  );
 
   const refreshCaptureData = useCallback(async () => {
     if (!accessToken) {
@@ -413,6 +506,108 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       }
     }
   }, [accessToken]);
+
+  const refreshQuickNavTasks = useCallback(async () => {
+    if (!accessToken) {
+      quickNavTasksRequestVersionRef.current += 1;
+      setQuickNavTaskItems([]);
+      setQuickNavTasksLoading(false);
+      setQuickNavTasksError(null);
+      return;
+    }
+
+    const requestVersion = quickNavTasksRequestVersionRef.current + 1;
+    quickNavTasksRequestVersionRef.current = requestVersion;
+    setQuickNavTasksLoading(true);
+    setQuickNavTasksError(null);
+    try {
+      const home = await getHubHome(accessToken, {
+        tasks_limit: 200,
+        events_limit: 1,
+        captures_limit: 1,
+        notifications_limit: 1,
+      });
+      if (quickNavTasksRequestVersionRef.current !== requestVersion) {
+        return;
+      }
+      const nextItems = buildTaskItems(home.tasks).sort((left, right) => {
+        const leftDue = parseIsoTimestamp(left.dueAt);
+        const rightDue = parseIsoTimestamp(right.dueAt);
+        if (leftDue !== rightDue) {
+          return leftDue - rightDue;
+        }
+        return parseIsoTimestamp(right.updatedAt) - parseIsoTimestamp(left.updatedAt);
+      });
+      setQuickNavTaskItems(nextItems);
+    } catch (error) {
+      if (quickNavTasksRequestVersionRef.current !== requestVersion) {
+        return;
+      }
+      setQuickNavTaskItems([]);
+      setQuickNavTasksError(error instanceof Error ? error.message : 'Failed to load tasks.');
+    } finally {
+      if (quickNavTasksRequestVersionRef.current === requestVersion) {
+        setQuickNavTasksLoading(false);
+      }
+    }
+  }, [accessToken]);
+
+  const refreshQuickNavCalendar = useCallback(async () => {
+    if (!accessToken) {
+      quickNavCalendarRequestVersionRef.current += 1;
+      setQuickNavCalendarEvents([]);
+      setQuickNavCalendarLoading(false);
+      setQuickNavCalendarError(null);
+      return;
+    }
+
+    const requestVersion = quickNavCalendarRequestVersionRef.current + 1;
+    quickNavCalendarRequestVersionRef.current = requestVersion;
+    setQuickNavCalendarLoading(true);
+    setQuickNavCalendarError(null);
+    try {
+      if (currentProject?.id) {
+        try {
+          const projectCalendar = await queryCalendar(accessToken, currentProject.id, quickNavCalendarMode);
+          if (quickNavCalendarRequestVersionRef.current !== requestVersion) {
+            return;
+          }
+          setQuickNavCalendarSource('project');
+          setQuickNavCalendarEvents(
+            projectCalendar.events.map((event) => ({
+              ...event,
+              project_id: currentProject.id,
+            })),
+          );
+          return;
+        } catch {
+          // Fallback to personal calendar when project calendar is unavailable.
+        }
+      }
+
+      const personalCalendar = await queryPersonalCalendar(accessToken, quickNavCalendarMode);
+      if (quickNavCalendarRequestVersionRef.current !== requestVersion) {
+        return;
+      }
+      setQuickNavCalendarSource('personal');
+      setQuickNavCalendarEvents(
+        personalCalendar.events.map((event) => ({
+          ...event,
+          project_id: event.project_id ?? null,
+        })),
+      );
+    } catch (error) {
+      if (quickNavCalendarRequestVersionRef.current !== requestVersion) {
+        return;
+      }
+      setQuickNavCalendarEvents([]);
+      setQuickNavCalendarError(error instanceof Error ? error.message : 'Failed to load calendar.');
+    } finally {
+      if (quickNavCalendarRequestVersionRef.current === requestVersion) {
+        setQuickNavCalendarLoading(false);
+      }
+    }
+  }, [accessToken, currentProject?.id, quickNavCalendarMode]);
 
   const refreshNotifications = useCallback(async () => {
     if (!accessToken) {
@@ -471,6 +666,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setEventError(null);
     setReminderError(null);
     setProjectDialogError(null);
+  }, []);
+
+  const closeQuickNavPanel = useCallback(() => {
+    setQuickNavPanel(null);
   }, []);
 
   const openQuickAddDialog = useCallback(
@@ -695,6 +894,27 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [quickAddDialog]);
 
   useEffect(() => {
+    if (quickNavPanel !== 'tasks') {
+      return;
+    }
+    void refreshQuickNavTasks();
+  }, [quickNavPanel, refreshQuickNavTasks]);
+
+  useEffect(() => {
+    if (quickNavPanel !== 'calendar') {
+      return;
+    }
+    void refreshQuickNavCalendar();
+  }, [quickNavPanel, refreshQuickNavCalendar]);
+
+  useEffect(() => {
+    if (quickNavPanel !== 'reminders') {
+      return;
+    }
+    void refreshReminders();
+  }, [quickNavPanel, refreshReminders]);
+
+  useEffect(() => {
     let cancelled = false;
     const refreshAndStore = async () => {
       const next = await refreshNotifications();
@@ -783,6 +1003,26 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setSearchActiveIndex(-1);
   }, []);
 
+  const openQuickNavPanel = useCallback((panel: Exclude<QuickNavPanel, null>) => {
+    setQuickNavPanel(panel);
+    closeQuickNav();
+    closeSearch();
+    setProfileOpen(false);
+    setNotificationsOpen(false);
+    setContextMenuOpen(false);
+    closeCapturePanel({ restoreFocus: false });
+  }, [closeCapturePanel, closeQuickNav, closeSearch]);
+
+  useEffect(() => subscribeQuickAddProjectRequest(() => {
+    closeQuickNavPanel();
+    closeSearch();
+    setProfileOpen(false);
+    setNotificationsOpen(false);
+    setContextMenuOpen(false);
+    closeCapturePanel({ restoreFocus: false });
+    void openQuickAddDialog('project');
+  }), [closeCapturePanel, closeQuickNavPanel, closeSearch, openQuickAddDialog]);
+
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -809,6 +1049,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         closeCapturePanel();
         closeSearch();
         closeQuickNav();
+        closeQuickNavPanel();
         setProfileOpen(false);
         setNotificationsOpen(false);
         setContextMenuOpen(false);
@@ -821,15 +1062,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closeCapturePanel, closeQuickNav, closeSearch, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
 
   const unreadNotifications = notifications.filter((notification) => !notification.read).length;
 
-  const quickNavItems = useMemo(() => {
-    const tabItems = visibleTabs.map((tab) => ({ id: tab.to, label: tab.label, href: tab.to }));
+  const quickNavDestinationItems = useMemo(() => {
+    const tabItems: QuickNavActionItem[] = visibleTabs.map((tab) => ({ id: tab.to, label: tab.label, action: 'navigate', href: tab.to }));
     const projectItems = projects.map((project) => ({
       id: `project-${project.id}`,
       label: project.name,
+      iconName: 'menu' as const,
+      action: 'navigate' as const,
       href: `/projects/${project.id}/overview`,
     }));
     const allItems = [...tabItems, ...projectItems];
@@ -840,6 +1083,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
     return allItems.filter((item) => item.label.toLowerCase().includes(query));
   }, [projects, quickNavQuery, visibleTabs]);
+  const quickNavItems = useMemo(
+    () => [...QUICK_NAV_FIXED_ITEMS, ...quickNavDestinationItems],
+    [quickNavDestinationItems],
+  );
 
   const normalizedQuickNavActiveIndex =
     quickNavItems.length === 0 || quickNavActiveIndex < 0 || quickNavActiveIndex >= quickNavItems.length
@@ -948,8 +1195,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
       if (event.key === 'Enter' && normalizedQuickNavActiveIndex >= 0 && quickNavItems[normalizedQuickNavActiveIndex]) {
         event.preventDefault();
+        const selectedItem = quickNavItems[normalizedQuickNavActiveIndex];
+        if (!selectedItem) {
+          return;
+        }
         skipQuickNavFocusRestoreRef.current = true;
-        navigate(quickNavItems[normalizedQuickNavActiveIndex].href);
+        if (selectedItem.action === 'panel') {
+          openQuickNavPanel(selectedItem.panel);
+          return;
+        }
+        setQuickNavPanel(null);
+        navigate(selectedItem.href);
         closeQuickNav();
         return;
       }
@@ -964,7 +1220,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     return () => {
       document.removeEventListener('keydown', onQuickNavKeyDown);
     };
-  }, [closeQuickNav, navigate, normalizedQuickNavActiveIndex, quickNavItems, quickNavOpen]);
+  }, [closeQuickNav, navigate, normalizedQuickNavActiveIndex, openQuickNavPanel, quickNavItems, quickNavOpen]);
 
   useEffect(() => {
     if (quickNavOpen) {
@@ -1096,10 +1352,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setCaptureOpen(true);
     closeSearch();
     closeQuickNav();
+    closeQuickNavPanel();
     setProfileOpen(false);
     setNotificationsOpen(false);
     setContextMenuOpen(false);
-  }, [closeQuickNav, closeSearch]);
+  }, [closeQuickNav, closeQuickNavPanel, closeSearch]);
 
   const onQuickCapture = () => {
     if (captureOpen && !captureIntent) {
@@ -1132,7 +1389,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setProfileOpen(false);
     closeSearch();
     closeQuickNav();
-  }, [closeCapturePanel, closeQuickNav, closeSearch]);
+    closeQuickNavPanel();
+  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch]);
 
   const onSelectQuickAddOption = useCallback((option: QuickAddOption) => {
     skipContextMenuFocusRestoreRef.current = true;
@@ -1177,13 +1435,59 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       resetSearch();
       skipQuickNavFocusRestoreRef.current = true;
       closeQuickNav();
+      closeQuickNavPanel();
       setNotificationsOpen(false);
       setProfileOpen(false);
       setContextMenuOpen(false);
       closeCapturePanel({ restoreFocus: false });
     },
-    [closeCapturePanel, closeQuickNav, navigate, resetSearch],
+    [closeCapturePanel, closeQuickNav, closeQuickNavPanel, navigate, resetSearch],
   );
+
+  const onSelectQuickNavItem = useCallback((item: QuickNavActionItem) => {
+    skipQuickNavFocusRestoreRef.current = true;
+    if (item.action === 'panel') {
+      openQuickNavPanel(item.panel);
+      return;
+    }
+    setQuickNavPanel(null);
+    navigate(item.href);
+    closeQuickNav();
+  }, [closeQuickNav, navigate, openQuickNavPanel]);
+
+  const onOpenTaskRecordFromDialog = useCallback((recordId: string) => {
+    const item = quickNavTaskItemsByRecordId.get(recordId);
+    const targetProjectId = item?.projectId || captureHomeData.personalProjectId;
+    if (!targetProjectId) {
+      return;
+    }
+    setQuickNavPanel(null);
+    navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
+  }, [captureHomeData.personalProjectId, navigate, quickNavTaskItemsByRecordId]);
+
+  const onOpenReminderRecordFromDialog = useCallback((recordId: string, projectId: string | null) => {
+    const targetProjectId = projectId || captureHomeData.personalProjectId;
+    if (!targetProjectId) {
+      return;
+    }
+    setQuickNavPanel(null);
+    navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
+  }, [captureHomeData.personalProjectId, navigate]);
+
+  const onOpenCalendarRecordFromDialog = useCallback((recordId: string) => {
+    const event = quickNavCalendarEvents.find((entry) => entry.record_id === recordId);
+    const targetProjectId = event?.project_id || currentProjectId || captureHomeData.personalProjectId;
+    if (!targetProjectId) {
+      return;
+    }
+    setQuickNavPanel(null);
+    navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
+  }, [captureHomeData.personalProjectId, currentProjectId, navigate, quickNavCalendarEvents]);
+
+  const quickNavCalendarCreateProjectId =
+    quickNavCalendarSource === 'project' && currentProject?.id
+      ? currentProject.id
+      : captureHomeData.personalProjectId;
 
   const accountInitials = sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId);
   const avatarUrl = buildAccountAvatarUrl(accountInitials, sessionSummary.userId || sessionSummary.email || sessionSummary.name);
@@ -1246,6 +1550,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               setProfileOpen(false);
               setNotificationsOpen(false);
               setContextMenuOpen(false);
+              closeQuickNavPanel();
               closeCapturePanel({ restoreFocus: false });
             }}
             aria-label="Quick navigation"
@@ -1278,31 +1583,51 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 className="w-full border-b border-border-muted bg-transparent px-md py-sm text-sm text-text outline-none"
               />
               <ul className="max-h-72 overflow-y-auto py-1">
-                {quickNavItems.length === 0 ? (
+                {QUICK_NAV_FIXED_ITEMS.map((item, index) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-md py-sm text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      style={{
+                        background:
+                          normalizedQuickNavActiveIndex === index
+                            ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+                            : 'transparent',
+                      }}
+                      onMouseEnter={() => setQuickNavActiveIndex(index)}
+                      onClick={() => onSelectQuickNavItem(item)}
+                    >
+                      {item.iconName ? <Icon name={item.iconName} className="text-[13px] text-muted" /> : null}
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  </li>
+                ))}
+                <li aria-hidden="true" className="my-1 border-t border-border-muted" />
+                {quickNavDestinationItems.length === 0 ? (
                   <li className="px-md py-sm text-sm text-muted">No matching destinations</li>
                 ) : (
-                  quickNavItems.map((item, index) => (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        className="w-full px-md py-sm text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                        style={{
-                          background:
-                            normalizedQuickNavActiveIndex === index
-                              ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
-                              : 'transparent',
-                        }}
-                        onMouseEnter={() => setQuickNavActiveIndex(index)}
-                        onClick={() => {
-                          skipQuickNavFocusRestoreRef.current = true;
-                          navigate(item.href);
-                          closeQuickNav();
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    </li>
-                  ))
+                  quickNavDestinationItems.map((item, index) => {
+                    const absoluteIndex = QUICK_NAV_FIXED_ITEMS.length + index;
+                    return (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 px-md py-sm text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          style={{
+                            background:
+                              normalizedQuickNavActiveIndex === absoluteIndex
+                                ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+                                : 'transparent',
+                          }}
+                          onMouseEnter={() => setQuickNavActiveIndex(absoluteIndex)}
+                          onClick={() => onSelectQuickNavItem(item)}
+                        >
+                          {item.iconName ? <Icon name={item.iconName} className="text-[13px] text-muted" /> : null}
+                          <span className="truncate">{item.label}</span>
+                        </button>
+                      </li>
+                    );
+                  })
                 )}
               </ul>
             </div>
@@ -1325,6 +1650,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                   setSearchOpen(true);
                 }
                 closeQuickNav();
+                closeQuickNavPanel();
                 setProfileOpen(false);
                 setNotificationsOpen(false);
                 setContextMenuOpen(false);
@@ -1565,6 +1891,138 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           ) : null}
         </Popover>
 
+        <Dialog
+          open={quickNavPanel === 'calendar'}
+          onClose={closeQuickNavPanel}
+          triggerRef={quickNavTriggerRef}
+          title={quickNavCalendarSource === 'project' && currentProject?.name ? `${currentProject.name} Calendar` : 'Calendar'}
+          description="Browse calendar events."
+          panelClassName="max-w-4xl"
+        >
+          <div className="space-y-3">
+            {quickNavCalendarError ? (
+              <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
+                <p className="text-sm text-danger">{quickNavCalendarError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refreshQuickNavCalendar();
+                  }}
+                  className="mt-2 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+            <CalendarModuleSkin
+              events={quickNavCalendarEvents}
+              loading={quickNavCalendarLoading}
+              scope={quickNavCalendarMode}
+              onScopeChange={setQuickNavCalendarMode}
+              onOpenRecord={onOpenCalendarRecordFromDialog}
+              onCreateEvent={
+                accessToken && quickNavCalendarCreateProjectId
+                  ? async (payload) => {
+                      await createEventFromNlp(accessToken, quickNavCalendarCreateProjectId, payload);
+                      requestHubHomeRefresh();
+                      await refreshQuickNavCalendar();
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        </Dialog>
+
+        <Dialog
+          open={quickNavPanel === 'tasks'}
+          onClose={closeQuickNavPanel}
+          triggerRef={quickNavTriggerRef}
+          title="Tasks"
+          description="Tasks across projects."
+          panelClassName="max-w-4xl"
+        >
+          <div className="space-y-3">
+            {quickNavTasksLoading ? <p className="text-sm text-muted">Loading tasks...</p> : null}
+            {quickNavTasksError ? (
+              <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
+                <p className="text-sm text-danger">{quickNavTasksError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refreshQuickNavTasks();
+                  }}
+                  className="mt-2 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+            {!quickNavTasksLoading && !quickNavTasksError ? (
+              quickNavTaskItems.length === 0 ? (
+                <p className="rounded-panel border border-border-muted bg-surface px-4 py-8 text-center text-sm text-muted">No tasks right now.</p>
+              ) : (
+                <div className="space-y-2">
+                  {quickNavTaskItems.map((item) => (
+                    <ItemRow key={item.id} item={item} onOpen={onOpenTaskRecordFromDialog} />
+                  ))}
+                </div>
+              )
+            ) : null}
+          </div>
+        </Dialog>
+
+        <Dialog
+          open={quickNavPanel === 'reminders'}
+          onClose={closeQuickNavPanel}
+          triggerRef={quickNavTriggerRef}
+          title="Reminders"
+          description="Active reminders."
+          panelClassName="max-w-4xl"
+        >
+          <div className="space-y-3">
+            {remindersRuntime.loading ? <p className="text-sm text-muted">Loading reminders...</p> : null}
+            {remindersRuntime.error ? (
+              <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
+                <p className="text-sm text-danger">{remindersRuntime.error}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void remindersRuntime.refresh();
+                  }}
+                  className="mt-2 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+            {!remindersRuntime.loading && !remindersRuntime.error ? (
+              sortedReminders.length === 0 ? (
+                <p className="rounded-panel border border-border-muted bg-surface px-4 py-8 text-center text-sm text-muted">No active reminders.</p>
+              ) : (
+                <div className="space-y-2">
+                  {sortedReminders.map((reminder) => (
+                    <article key={reminder.reminder_id} className="rounded-panel border border-border-muted bg-surface px-4 py-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-text">{reminder.record_title}</p>
+                          <p className="mt-1 text-xs text-muted">{formatDateTime(reminder.remind_at)}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpenReminderRecordFromDialog(reminder.record_id, reminder.project_id)}
+                          className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary"
+                        >
+                          Open record
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )
+            ) : null}
+          </div>
+        </Dialog>
+
         <TaskCreateDialog
           open={quickAddDialog === 'task'}
           onClose={closeQuickAddDialog}
@@ -1793,6 +2251,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               setProfileOpen(false);
               closeSearch();
               closeQuickNav();
+              closeQuickNavPanel();
               setContextMenuOpen(false);
               closeCapturePanel({ restoreFocus: false });
             }}
@@ -1923,6 +2382,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               setNotificationsOpen(false);
               closeSearch();
               closeQuickNav();
+              closeQuickNavPanel();
               setContextMenuOpen(false);
               closeCapturePanel({ restoreFocus: false });
             }}

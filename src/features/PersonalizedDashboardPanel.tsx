@@ -4,6 +4,7 @@ import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { dashboardCardRegistry } from '../lib/dashboardCards';
 import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
+import { requestQuickAddProject } from '../lib/quickAddProjectRequest';
 import type { ProjectRecord } from '../types/domain';
 import { updateRecord } from '../services/hub/records';
 import { dismissReminder, updateReminder } from '../services/hub/reminders';
@@ -37,8 +38,17 @@ type HubEvent = EventSummary;
 type HubDashboardView = 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
+type StreamBucketId =
+  | 'overdue'
+  | 'today'
+  | 'tomorrow'
+  | 'rest-of-week'
+  | 'later-this-month'
+  | 'later-this-year'
+  | 'beyond'
+  | 'no-date';
 
-type HubDashboardItem =
+export type HubDashboardItem =
   | {
       id: string;
       kind: 'task';
@@ -70,6 +80,16 @@ type HubDashboardItem =
 
 const VIEW_ORDER: HubDashboardView[] = ['project-lens', 'stream'];
 const STREAM_FILTERS: StreamTypeFilter[] = ['all', 'tasks', 'events'];
+const STREAM_BUCKET_ORDER: StreamBucketId[] = [
+  'overdue',
+  'today',
+  'tomorrow',
+  'rest-of-week',
+  'later-this-month',
+  'later-this-year',
+  'beyond',
+  'no-date',
+];
 
 const viewLabels: Record<HubDashboardView, string> = {
   'project-lens': 'Project Lens',
@@ -80,6 +100,28 @@ const streamFilterLabels: Record<StreamTypeFilter, string> = {
   all: 'All',
   tasks: 'Tasks',
   events: 'Events',
+};
+
+const streamBucketLabels: Record<StreamBucketId, string> = {
+  overdue: 'Overdue',
+  today: 'Today',
+  tomorrow: 'Tomorrow',
+  'rest-of-week': 'Rest of the Week',
+  'later-this-month': 'Later This Month',
+  'later-this-year': 'Later This Year',
+  beyond: 'Beyond',
+  'no-date': 'No Date',
+};
+
+const streamBucketOverlayOpacity: Record<StreamBucketId, number> = {
+  overdue: 0.14,
+  today: 0.12,
+  tomorrow: 0.09,
+  'rest-of-week': 0.07,
+  'later-this-month': 0.04,
+  'later-this-year': 0.02,
+  beyond: 0,
+  'no-date': 0,
 };
 
 const startOfDay = (date: Date): Date => {
@@ -131,6 +173,62 @@ const formatRelativeDateTime = (value: string | null): string => {
   return parsed.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 };
 
+const formatCountLabel = (count: number, singular: string): string =>
+  `${count} ${count === 1 ? singular : `${singular}s`}`;
+
+const endOfWeek = (date: Date): Date => {
+  const next = startOfDay(date);
+  const dayOffset = 6 - next.getDay();
+  next.setDate(next.getDate() + dayOffset);
+  next.setHours(23, 59, 59, 999);
+  return next;
+};
+
+const endOfMonth = (date: Date): Date => {
+  const next = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  next.setHours(23, 59, 59, 999);
+  return next;
+};
+
+const endOfYear = (date: Date): Date => {
+  const next = new Date(date.getFullYear(), 11, 31);
+  next.setHours(23, 59, 59, 999);
+  return next;
+};
+
+const streamBucketForDate = (dueAt: string | null, now: Date): StreamBucketId => {
+  const parsed = parseIso(dueAt);
+  if (!parsed) {
+    return 'no-date';
+  }
+
+  const todayStart = startOfDay(now);
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(todayStart.getDate() + 1);
+  const dayAfterTomorrowStart = new Date(todayStart);
+  dayAfterTomorrowStart.setDate(todayStart.getDate() + 2);
+
+  if (parsed < todayStart) {
+    return 'overdue';
+  }
+  if (isSameCalendarDay(parsed, now)) {
+    return 'today';
+  }
+  if (isSameCalendarDay(parsed, tomorrowStart)) {
+    return 'tomorrow';
+  }
+  if (parsed >= dayAfterTomorrowStart && parsed <= endOfWeek(now)) {
+    return 'rest-of-week';
+  }
+  if (parsed <= endOfMonth(now)) {
+    return 'later-this-month';
+  }
+  if (parsed <= endOfYear(now)) {
+    return 'later-this-year';
+  }
+  return 'beyond';
+};
+
 const sortByDueThenUpdated = (items: HubDashboardItem[]): HubDashboardItem[] =>
   [...items].sort((left, right) => {
     const leftDue = parseIso(left.dueAt)?.getTime() ?? Number.POSITIVE_INFINITY;
@@ -150,7 +248,7 @@ const sortByUpdated = (items: HubDashboardItem[]): HubDashboardItem[] =>
     return rightUpdated - leftUpdated;
   });
 
-const buildTaskItems = (tasks: HubTask[]): HubDashboardItem[] =>
+export const buildTaskItems = (tasks: HubTask[]): HubDashboardItem[] =>
   tasks.map((task) => ({
     id: `task:${task.record_id}`,
     kind: 'task',
@@ -201,7 +299,7 @@ const projectDotClassName = (projectId: string | null): string => {
   return projectDotClassNames[Math.abs(hash) % projectDotClassNames.length] || projectDotClassNames[0];
 };
 
-const ItemRow = ({
+export const ItemRow = ({
   item,
   onOpen,
 }: {
@@ -274,7 +372,10 @@ const ProjectLensView = ({
   projects: ProjectRecord[];
   onOpenRecord: (recordId: string) => void;
 }) => {
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [hiddenSections, setHiddenSections] = useState<Record<string, boolean>>({});
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterListId = useId();
   const groupedItems = useMemo(() => {
     const map = new Map<string, HubDashboardItem[]>();
     map.set('__inbox__', items.filter((item) => !item.projectId));
@@ -292,16 +393,79 @@ const ProjectLensView = ({
       items: groupedItems.get(project.id) || [],
     })),
   ];
+  const visibleSections = sections.filter((section) => !hiddenSections[section.id]);
+  const filterLabel = visibleSections.length === sections.length
+    ? 'All projects'
+    : `${visibleSections.length} of ${sections.length} projects`;
 
   return (
     <div className="space-y-4">
-      {sections.map((section) => {
-        const isCollapsed = collapsed[section.id] === true;
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+        <h2 className="text-base font-semibold text-text" style={{ fontFamily: 'Outfit, sans-serif' }}>
+          Project Lens
+        </h2>
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={filterOpen}
+              aria-controls={filterOpen ? filterListId : undefined}
+              className="inline-flex items-center justify-center gap-2 rounded-control border border-border-muted bg-surface px-3 py-1.5 text-xs font-medium text-text"
+            >
+              <Icon name="menu" className="text-[12px]" />
+              <span>{filterLabel}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="center" className="w-64 border border-border-muted bg-surface p-2">
+            <div id={filterListId} role="listbox" aria-label="Project Lens filters" className="space-y-1">
+              {sections.map((section) => {
+                const checked = !hiddenSections[section.id];
+                return (
+                  <label key={section.id} className="flex cursor-pointer items-center gap-2 rounded-control px-2 py-1.5 text-sm text-text hover:bg-surface-elevated">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setHiddenSections((current) => {
+                          const next = { ...current };
+                          if (checked) {
+                            next[section.id] = true;
+                          } else {
+                            delete next[section.id];
+                          }
+                          return next;
+                        });
+                      }}
+                    />
+                    <span className="truncate">{section.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+        <div className="sm:justify-self-end">
+          <button
+            type="button"
+            onClick={() => {
+              requestQuickAddProject();
+            }}
+            className="inline-flex items-center gap-2 rounded-control border border-border-muted bg-surface px-3 py-1.5 text-xs font-medium text-text"
+          >
+            <Icon name="plus" className="text-[12px]" />
+            <span>New Project</span>
+          </button>
+        </div>
+      </div>
+
+      {visibleSections.map((section) => {
+        const isExpanded = expandedSections[section.id] ?? section.items.length > 0;
         return (
           <section key={section.id} className="rounded-panel border border-border-muted bg-surface">
             <button
               type="button"
-              onClick={() => setCollapsed((current) => ({ ...current, [section.id]: !current[section.id] }))}
+              onClick={() => setExpandedSections((current) => ({ ...current, [section.id]: !isExpanded }))}
               className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
             >
               <div className="flex min-w-0 items-center gap-2">
@@ -310,7 +474,7 @@ const ProjectLensView = ({
               </div>
               <span className="text-xs text-muted">{section.items.length} item{section.items.length === 1 ? '' : 's'}</span>
             </button>
-            {!isCollapsed ? (
+            {isExpanded ? (
               <div className="border-t border-border-muted px-4 py-3">
                 {section.items.length === 0 ? (
                   <p className="text-sm text-muted">
@@ -328,6 +492,11 @@ const ProjectLensView = ({
           </section>
         );
       })}
+      {visibleSections.length === 0 ? (
+        <p className="rounded-panel border border-border-muted bg-surface px-4 py-8 text-center text-sm text-muted">
+          No sections selected.
+        </p>
+      ) : null}
       {projects.length === 0 ? <p className="rounded-panel border border-border-muted bg-surface px-4 py-8 text-center text-sm text-muted">No projects yet.</p> : null}
     </div>
   );
@@ -357,6 +526,33 @@ const StreamView = ({
     return sortMode === 'updated' ? sortByUpdated(next) : sortByDueThenUpdated(next);
   }, [items, projectFilter, sortMode, typeFilter]);
 
+  const bucketedSections = useMemo(() => {
+    const now = new Date();
+    const buckets = new Map<StreamBucketId, HubDashboardItem[]>(
+      STREAM_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
+    );
+
+    for (const item of filteredItems) {
+      const bucketId = streamBucketForDate(item.dueAt, now);
+      const bucketItems = buckets.get(bucketId);
+      if (bucketItems) {
+        bucketItems.push(item);
+      }
+    }
+
+    return STREAM_BUCKET_ORDER.flatMap((bucketId) => {
+      const itemsForBucket = buckets.get(bucketId) || [];
+      if (itemsForBucket.length === 0) {
+        return [];
+      }
+      return [{
+        id: bucketId,
+        label: streamBucketLabels[bucketId],
+        items: itemsForBucket,
+      }];
+    });
+  }, [filteredItems]);
+
   const projectOptions = [
     { value: 'all', label: 'All projects' },
     ...projects.map((project) => ({ value: project.id, label: project.name })),
@@ -364,6 +560,7 @@ const StreamView = ({
 
   return (
     <div className="space-y-4">
+      <h2 className="sr-only">Stream</h2>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           {STREAM_FILTERS.map((filter) => (
@@ -403,13 +600,37 @@ const StreamView = ({
         </div>
       </div>
 
-      {filteredItems.length === 0 ? (
+      {bucketedSections.length === 0 ? (
         <p className="rounded-panel border border-border-muted bg-surface px-4 py-10 text-center text-sm text-muted">Nothing here.</p>
       ) : (
         <div className="space-y-2">
-          {filteredItems.map((item) => (
-            <ItemRow key={item.id} item={item} onOpen={onOpenRecord} />
-          ))}
+          {bucketedSections.map((section) => {
+            const overlayOpacity = streamBucketOverlayOpacity[section.id];
+            const background = overlayOpacity > 0
+              ? `linear-gradient(rgba(180, 194, 210, ${overlayOpacity}), rgba(180, 194, 210, ${overlayOpacity})), var(--color-surface-elevated)`
+              : 'var(--color-surface-elevated)';
+            return (
+              <section
+                key={section.id}
+                aria-labelledby={`stream-section-${section.id}`}
+                className="rounded-panel border border-border-muted p-3"
+                style={{ background }}
+              >
+                <h3
+                  id={`stream-section-${section.id}`}
+                  className="mb-2 text-right text-xs font-medium text-text-secondary"
+                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                >
+                  {section.label}
+                </h3>
+                <div className="space-y-2">
+                  {section.items.map((item) => (
+                    <ItemRow key={item.id} item={item} onOpen={onOpenRecord} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
     </div>
@@ -828,18 +1049,28 @@ export const PersonalizedDashboardPanel = ({
       ) : null}
 
       <section className={`${homeError ? 'mt-3' : 'mt-4'} rounded-panel border border-border-muted bg-surface px-3 py-2`}>
+        <h2 className="sr-only">Today&apos;s overview</h2>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-semibold text-text">{greeting}</p>
-          <div className="flex items-center gap-2 text-xs text-muted" aria-label="Today counts">
-            <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span
+              className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1"
+              aria-label={formatCountLabel(totalPipCounts.events, 'event')}
+            >
               <Icon name="calendar" className="text-[13px]" />
               <span>{totalPipCounts.events}</span>
             </span>
-            <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
+            <span
+              className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1"
+              aria-label={formatCountLabel(totalPipCounts.tasks, 'task')}
+            >
               <Icon name="tasks" className="text-[13px]" />
               <span>{totalPipCounts.tasks}</span>
             </span>
-            <span className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1">
+            <span
+              className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1"
+              aria-label={formatCountLabel(totalPipCounts.reminders, 'reminder')}
+            >
               <Icon name="reminders" className="text-[13px]" />
               <span>{totalPipCounts.reminders}</span>
             </span>
@@ -847,6 +1078,7 @@ export const PersonalizedDashboardPanel = ({
         </div>
       </section>
 
+      <h2 className="sr-only">Timeline</h2>
       <DayStrip
         className="mt-3"
         events={filteredDailyData.dayEvents}
@@ -874,6 +1106,7 @@ export const PersonalizedDashboardPanel = ({
         triageOpen={triageOpen}
       />
 
+      {triageOpen ? <h2 className="sr-only">Triage</h2> : null}
       <TriagePanel
         className="mt-3"
         open={triageOpen}
@@ -888,6 +1121,7 @@ export const PersonalizedDashboardPanel = ({
         onSnoozeReminder={onSnoozeReminder}
       />
 
+      <h2 className="sr-only">Views</h2>
       <Popover open={viewMenuOpen} onOpenChange={handleViewMenuOpenChange}>
         <PopoverTrigger asChild>
           <button
