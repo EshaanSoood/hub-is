@@ -488,7 +488,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [quickNavTasks, setQuickNavTasks] = useState<HubTaskSummary[]>([]);
   const [quickNavTasksLoading, setQuickNavTasksLoading] = useState(false);
   const [quickNavTasksError, setQuickNavTasksError] = useState<string | null>(null);
-  const personalCalendarRuntime = usePersonalCalendarRuntime(accessToken ?? null);
+  const {
+    calendarEvents: personalCalendarEvents,
+    calendarLoading: personalCalendarLoading,
+    calendarError: personalCalendarError,
+    calendarMode: personalCalendarMode,
+    setCalendarMode: setPersonalCalendarMode,
+    refreshCalendar: refreshPersonalCalendar,
+  } = usePersonalCalendarRuntime(accessToken ?? null);
   const remindersRuntime = useRemindersRuntime(accessToken ?? null);
   const refreshReminders = remindersRuntime.refresh;
 
@@ -1002,8 +1009,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     if (toolbarDialog !== 'calendar') {
       return;
     }
-    void personalCalendarRuntime.refreshCalendar();
-  }, [toolbarDialog, personalCalendarRuntime]);
+    void refreshPersonalCalendar();
+  }, [toolbarDialog, refreshPersonalCalendar]);
 
   useEffect(() => {
     if (toolbarDialog !== 'reminders') {
@@ -1590,14 +1597,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [captureHomeData.personalProjectId, navigate]);
 
   const onOpenCalendarRecordFromDialog = useCallback((recordId: string) => {
-    const event = personalCalendarRuntime.calendarEvents.find((entry) => entry.record_id === recordId);
+    const event = personalCalendarEvents.find((entry) => entry.record_id === recordId);
     const targetProjectId = event?.project_id || currentProjectId || captureHomeData.personalProjectId;
     if (!targetProjectId) {
       return;
     }
     setToolbarDialog(null);
     navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
-  }, [captureHomeData.personalProjectId, currentProjectId, navigate, personalCalendarRuntime.calendarEvents]);
+  }, [captureHomeData.personalProjectId, currentProjectId, navigate, personalCalendarEvents]);
 
   const toolbarCalendarCreateProjectId = captureHomeData.personalProjectId || projects[0]?.id || null;
 
@@ -2025,13 +2032,13 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           panelClassName="max-w-4xl"
         >
           <div className="space-y-3">
-            {personalCalendarRuntime.calendarError ? (
+            {personalCalendarError ? (
               <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
-                <p className="text-sm text-danger">{personalCalendarRuntime.calendarError}</p>
+                <p className="text-sm text-danger">{personalCalendarError}</p>
                 <button
                   type="button"
                   onClick={() => {
-                    void personalCalendarRuntime.refreshCalendar();
+                    void refreshPersonalCalendar();
                   }}
                   className="mt-2 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
                 >
@@ -2040,17 +2047,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               </div>
             ) : null}
             <CalendarModuleSkin
-              events={personalCalendarRuntime.calendarEvents}
-              loading={personalCalendarRuntime.calendarLoading}
-              scope={personalCalendarRuntime.calendarMode as CalendarScope}
-              onScopeChange={personalCalendarRuntime.setCalendarMode}
+              events={personalCalendarEvents}
+              loading={personalCalendarLoading}
+              scope={personalCalendarMode as CalendarScope}
+              onScopeChange={setPersonalCalendarMode}
               onOpenRecord={onOpenCalendarRecordFromDialog}
               onCreateEvent={
                 accessToken && toolbarCalendarCreateProjectId
                   ? async (payload) => {
                       await createEventFromNlp(accessToken, toolbarCalendarCreateProjectId, payload);
                       requestHubHomeRefresh();
-                      await personalCalendarRuntime.refreshCalendar();
+                      await refreshPersonalCalendar();
                     }
                   : undefined
               }
