@@ -117,7 +117,7 @@ export const ToolbarRemindersDialogContent: FC<ToolbarRemindersDialogContentProp
                               onClick={() => {
                                 void handleDismiss(reminder.reminder_id);
                               }}
-                              className="rounded-control border border-border-muted px-3 py-2 text-xs font-medium text-text"
+                              className="rounded-control border border-border-muted px-3 py-2 text-xs font-medium text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                               aria-label={`Dismiss reminder ${reminder.record_title}`}
                             >
                               Dismiss
@@ -127,7 +127,7 @@ export const ToolbarRemindersDialogContent: FC<ToolbarRemindersDialogContentProp
                               onClick={() => {
                                 void handleSnooze(reminder.reminder_id);
                               }}
-                              className="rounded-control border border-border-muted px-3 py-2 text-xs font-medium text-primary"
+                              className="rounded-control border border-border-muted px-3 py-2 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                               aria-label={`Snooze reminder ${reminder.record_title} to tomorrow at 9 AM`}
                             >
                               Snooze

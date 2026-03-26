@@ -730,6 +730,22 @@ const ProjectSpaceWorkspace = ({
                 await refreshCalendar();
               }
             : undefined,
+        onRescheduleEvent:
+          activePaneCanEdit && canWriteProject
+            ? async (payload) => {
+                if (!accessToken) {
+                  return;
+                }
+                await updateRecord(accessToken, payload.record_id, {
+                  event_state: {
+                    start_dt: payload.start_dt,
+                    end_dt: payload.end_dt,
+                    timezone: payload.timezone,
+                  },
+                });
+                await refreshCalendar();
+              }
+            : undefined,
       },
       files: {
         paneFiles,

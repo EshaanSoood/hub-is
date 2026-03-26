@@ -124,11 +124,14 @@ type DayEventLayout = {
   event: CalendarDayEvent;
   startMinute: number;
   endMinute: number;
-  durationSlots: number;
-  gapSlots: number;
   kind: EventTypeKind;
   projectLabel: string;
   projectKey: string;
+};
+
+type BandDayEventLayout = DayEventLayout & {
+  durationSlots: number;
+  startOffsetSlots: number;
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
@@ -359,7 +362,7 @@ const BandSection = ({
   dragPreview,
 }: {
   band: CalendarDayBand;
-  entries: DayEventLayout[];
+  entries: BandDayEventLayout[];
   onOpenRecord: (recordId: string) => void;
   onCreateFromMinute: (minute: number) => void;
   hoverPreview: BandPreview | null;
@@ -373,55 +376,18 @@ const BandSection = ({
   });
 
   const bandSlots = minutesToSlots(band.endMinute - band.startMinute);
-
-  let cursorMinute = band.startMinute;
-  const eventRows: ReactElement[] = [];
-
-  for (const entry of entries) {
-    const startMinute = clamp(entry.startMinute, band.startMinute, band.endMinute);
-    const endMinute = clamp(entry.endMinute, band.startMinute, band.endMinute);
-    if (endMinute <= startMinute) {
-      continue;
-    }
-
-    const gapSlots = minutesToSlots(startMinute - cursorMinute);
-    if (gapSlots > 0) {
-      eventRows.push(
-        <div key={`gap-${entry.event.record_id}-${startMinute}`} aria-hidden="true" className="pointer-events-none">
-          {slotsFragment(gapSlots, `gap-${band.id}-${entry.event.record_id}-${startMinute}`)}
-        </div>,
-      );
-    }
-
-    const durationSlots = minutesToSlots(endMinute - startMinute);
-
-    eventRows.push(
-      <div key={`${entry.event.record_id}-${entry.event.event_state.start_dt}`} className="relative">
-        {slotsFragment(durationSlots, `duration-${band.id}-${entry.event.record_id}-${startMinute}`)}
-        <DraggableEventCard
-          item={{
-            ...entry,
-            startMinute,
-            endMinute,
-            durationSlots,
-            gapSlots,
-          }}
-          onOpenRecord={onOpenRecord}
-        />
-      </div>,
-    );
-
-    cursorMinute = Math.max(cursorMinute, endMinute);
-  }
-
-  const trailingSlots = minutesToSlots(band.endMinute - cursorMinute);
-  if (trailingSlots > 0) {
-    eventRows.push(
-      <div key={`trail-${band.id}`} aria-hidden="true" className="pointer-events-none">
-        {slotsFragment(trailingSlots, `trail-${band.id}`)}
-      </div>,
-    );
-  }
+  const eventRows = entries.map((entry) => (
+    <div
+      key={`${entry.event.record_id}-${entry.event.event_state.start_dt}-${entry.startMinute}-${entry.endMinute}`}
+      className="absolute inset-x-0"
+      style={{
+        top: `calc(${entry.startOffsetSlots} * (var(--day-hour-height) / 12))`,
+        height: `calc(${entry.durationSlots} * (var(--day-hour-height) / 12))`,
+      }}
+    >
+      <DraggableEventCard item={entry} onOpenRecord={onOpenRecord} />
+    </div>
+  ));
 
   const hoverPreviewForBand = hoverPreview?.bandId === band.id ? hoverPreview : null;
   const dragPreviewForBand = dragPreview?.bandId === band.id ? dragPreview : null;
@@ -497,7 +463,10 @@ const BandSection = ({
       </div>
       {renderPreviewLayer(hoverPreviewForBand, 'hover-preview', 'rounded-panel border border-dashed border-border-muted/50 bg-surface/20')}
       {renderPreviewLayer(dragPreviewForBand, 'drag-preview', 'rounded-panel border border-dashed border-primary/70 bg-primary/10')}
-      <div className="relative z-10">{eventRows}</div>
+      <div className="relative z-10">
+        {slotsFragment(bandSlots, `band-${band.id}`)}
+        <div className="absolute inset-0">{eventRows}</div>
+      </div>
     </section>
   );
 };
@@ -556,8 +525,6 @@ export const CalendarDayView = ({
         event,
         startMinute,
         endMinute,
-        durationSlots: minutesToSlots(endMinute - startMinute),
-        gapSlots: 0,
         kind: event.item_kind ?? 'event',
         projectLabel,
         projectKey,
@@ -573,21 +540,34 @@ export const CalendarDayView = ({
   }, [dayStart, events]);
 
   const dayEventsByBand = useMemo(() => {
-    const next = new Map<DayBandId, DayEventLayout[]>();
+    const next = new Map<DayBandId, BandDayEventLayout[]>();
     for (const band of DAY_BANDS) {
       next.set(band.id, []);
     }
 
     for (const entry of dayEvents) {
-      const band = DAY_BANDS.find((candidate) => entry.startMinute >= candidate.startMinute && entry.startMinute < candidate.endMinute);
-      if (!band) {
-        continue;
+      for (const band of DAY_BANDS) {
+        const intersectsBand = entry.startMinute < band.endMinute && entry.endMinute > band.startMinute;
+        if (!intersectsBand) {
+          continue;
+        }
+        const segmentStart = Math.max(entry.startMinute, band.startMinute);
+        const segmentEnd = Math.min(entry.endMinute, band.endMinute);
+        if (segmentEnd <= segmentStart) {
+          continue;
+        }
+        const rows = next.get(band.id);
+        if (!rows) {
+          continue;
+        }
+        rows.push({
+          ...entry,
+          startMinute: segmentStart,
+          endMinute: segmentEnd,
+          durationSlots: minutesToSlots(segmentEnd - segmentStart),
+          startOffsetSlots: minutesToSlots(segmentStart - band.startMinute),
+        });
       }
-      const rows = next.get(band.id);
-      if (!rows) {
-        continue;
-      }
-      rows.push(entry);
     }
 
     for (const band of DAY_BANDS) {
@@ -613,6 +593,11 @@ export const CalendarDayView = ({
   const trailingNowSlots = Math.max(0, SLOT_COUNT_PER_DAY - nowSlots);
 
   useEffect(() => {
+    if (dayEvents.length === 0) {
+      autoScrollDoneRef.current = false;
+      return;
+    }
+
     if (!nowIsCurrentDay) {
       autoScrollDoneRef.current = false;
       return;
@@ -645,7 +630,7 @@ export const CalendarDayView = ({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [dayStart, nowIsCurrentDay]);
+  }, [dayEvents.length, dayStart, nowIsCurrentDay]);
 
   const createAtMinute = (rawMinute: number) => {
     if (!onCreateEvent) {

@@ -995,6 +995,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       && !profileOpen
       && !contextMenuOpen
       && !captureOpen
+      && !toolbarDialog
+      && !quickAddDialog
     ) {
       focusElementSoon(quickNavTriggerRef.current);
     }
@@ -1002,7 +1004,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       skipQuickNavFocusRestoreRef.current = false;
     }
     quickNavWasOpenRef.current = quickNavOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
 
   useEffect(() => {
     if (notificationsOpen) {
@@ -1018,6 +1020,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       && !profileOpen
       && !contextMenuOpen
       && !captureOpen
+      && !toolbarDialog
+      && !quickAddDialog
     ) {
       focusElementSoon(notificationsTriggerRef.current);
     }
@@ -1025,7 +1029,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       skipNotificationsFocusRestoreRef.current = false;
     }
     notificationsWereOpenRef.current = notificationsOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
 
   useEffect(() => {
     if (profileOpen) {
@@ -1038,6 +1042,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       && !notificationsOpen
       && !contextMenuOpen
       && !captureOpen
+      && !toolbarDialog
+      && !quickAddDialog
     ) {
       focusElementSoon(profileTriggerRef.current);
     }
@@ -1045,7 +1051,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       skipProfileFocusRestoreRef.current = false;
     }
     profileWasOpenRef.current = profileOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
 
   useEffect(() => {
     if (contextMenuOpen) {
@@ -1058,6 +1064,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       && !notificationsOpen
       && !profileOpen
       && !captureOpen
+      && !toolbarDialog
+      && !quickAddDialog
     ) {
       focusElementSoon(contextMenuTriggerRef.current);
     }
@@ -1065,7 +1073,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       skipContextMenuFocusRestoreRef.current = false;
     }
     contextMenuWasOpenRef.current = contextMenuOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
 
   const onMarkNotificationRead = async (notificationId: string) => {
     if (!accessToken) {

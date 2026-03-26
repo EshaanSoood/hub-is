@@ -123,10 +123,13 @@ const startOfDay = (date: Date) => {
   return next;
 };
 
-const endOfWeek = (date: Date) => {
+const normalizeWeekday = (value: number): number => (Number.isInteger(value) && value >= 0 && value <= 6 ? value : 6);
+
+const endOfWeek = (date: Date, weekEndDay = 6) => {
   const next = new Date(date);
   const day = next.getDay();
-  const daysUntilWeekEnd = 6 - day;
+  const resolvedWeekEndDay = normalizeWeekday(weekEndDay);
+  const daysUntilWeekEnd = (resolvedWeekEndDay - day + 7) % 7;
   next.setDate(next.getDate() + daysUntilWeekEnd);
   next.setHours(23, 59, 59, 999);
   return next;
@@ -322,12 +325,29 @@ const getConnectorMetrics = (level: number): { width: number; opacity: number } 
   return { width: 1, opacity: Math.max(0.25, 0.5 - (level - 2) * 0.1) };
 };
 
-const SubtaskTree = ({ subtask, parentPriority, level }: { subtask: TaskSubtask; parentPriority: PriorityLevel; level: number }) => {
+const MAX_SUBTASK_DEPTH = 10;
+
+const SubtaskTree = ({
+  subtask,
+  parentPriority,
+  level,
+  visitedIds,
+}: {
+  subtask: TaskSubtask;
+  parentPriority: PriorityLevel;
+  level: number;
+  visitedIds: Set<string>;
+}) => {
   const resolvedPriority = subtask.priority ?? parentPriority;
   const nested = subtask.subtasks ?? [];
   const metrics = getConnectorMetrics(level);
   const connectorLeft = (level - 1) * 20 + 8;
   const contentPadding = level * 20;
+  const reachedMaxDepth = level >= MAX_SUBTASK_DEPTH;
+  const hasCycle = visitedIds.has(subtask.id);
+  const canRenderNested = !reachedMaxDepth && !hasCycle;
+  const nextVisitedIds = new Set(visitedIds);
+  nextVisitedIds.add(subtask.id);
   return (
     <li className="space-y-1">
       <div className="relative flex items-center gap-2 text-xs text-muted" style={{ paddingLeft: `${contentPadding}px` }}>
@@ -350,10 +370,16 @@ const SubtaskTree = ({ subtask, parentPriority, level }: { subtask: TaskSubtask;
         <span className="shrink-0 opacity-70">{subtask.dueLabel}</span>
       </div>
 
-      {nested.length > 0 ? (
+      {nested.length > 0 && canRenderNested ? (
         <ul className="space-y-1">
           {nested.map((child) => (
-            <SubtaskTree key={child.id} subtask={child} parentPriority={resolvedPriority} level={level + 1} />
+            <SubtaskTree
+              key={child.id}
+              subtask={child}
+              parentPriority={resolvedPriority}
+              level={level + 1}
+              visitedIds={nextVisitedIds}
+            />
           ))}
         </ul>
       ) : null}
@@ -745,7 +771,7 @@ const TaskRow = ({
       {expanded && taskHasSubtasks ? (
         <ul className="mt-2 space-y-1">
           {task.subtasks.map((subtask) => (
-            <SubtaskTree key={subtask.id} subtask={subtask} parentPriority={task.priority} level={1} />
+            <SubtaskTree key={subtask.id} subtask={subtask} parentPriority={task.priority} level={1} visitedIds={new Set<string>()} />
           ))}
         </ul>
       ) : null}

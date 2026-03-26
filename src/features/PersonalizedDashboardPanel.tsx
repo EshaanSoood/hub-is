@@ -328,25 +328,31 @@ export const ItemRow = ({
     </>
   );
 
-  if (!canOpen || !item.recordId) {
-    return (
-      <a
-        href={item.explicitHref}
-        className={`block rounded-panel border p-3 ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface`}
-      >
-        {content}
-      </a>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(item.recordId)}
-      className={`w-full rounded-panel border p-3 text-left ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface`}
+    <a
+      href={item.explicitHref}
+      onClick={
+        canOpen && item.recordId
+          ? (event) => {
+              if (
+                event.defaultPrevented
+                || event.button !== 0
+                || event.metaKey
+                || event.ctrlKey
+                || event.shiftKey
+                || event.altKey
+              ) {
+                return;
+              }
+              event.preventDefault();
+              onOpen(item.recordId);
+            }
+          : undefined
+      }
+      className={`block rounded-panel border p-3 ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface`}
     >
       {content}
-    </button>
+    </a>
   );
 };
 
@@ -382,8 +388,8 @@ const ProjectLensView = ({
   ];
   const visibleSections = sections.filter((section) => !hiddenSections[section.id]);
   const filterLabel = visibleSections.length === sections.length
-    ? 'All projects'
-    : `${visibleSections.length} of ${sections.length} projects`;
+    ? 'All sections'
+    : `${visibleSections.length} of ${sections.length} sections`;
 
   return (
     <div className="space-y-4">
@@ -447,11 +453,14 @@ const ProjectLensView = ({
 
       {visibleSections.map((section) => {
         const isExpanded = expandedSections[section.id] ?? section.items.length > 0;
+        const sectionPanelId = `project-lens-section-panel-${section.id}`;
         return (
           <section key={section.id} className="rounded-panel border border-border-muted bg-surface">
             <button
               type="button"
               onClick={() => setExpandedSections((current) => ({ ...current, [section.id]: !isExpanded }))}
+              aria-expanded={isExpanded}
+              aria-controls={isExpanded ? sectionPanelId : undefined}
               className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
             >
               <div className="flex min-w-0 items-center gap-2">
@@ -461,7 +470,7 @@ const ProjectLensView = ({
               <span className="text-xs text-muted">{section.items.length} item{section.items.length === 1 ? '' : 's'}</span>
             </button>
             {isExpanded ? (
-              <div className="border-t border-border-muted px-4 py-3">
+              <div id={sectionPanelId} className="border-t border-border-muted px-4 py-3">
                 {section.items.length === 0 ? (
                   <p className="text-sm text-muted">
                     {section.id === '__inbox__' ? 'A Penny For Your Thoughts?' : 'Nothing assigned to you here.'}

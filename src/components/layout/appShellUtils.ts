@@ -162,6 +162,8 @@ export const bucketForDate = (value: string | null | undefined, now: Date): Date
   tomorrowStart.setDate(todayStart.getDate() + 1);
   const dayAfterTomorrowStart = new Date(todayStart);
   dayAfterTomorrowStart.setDate(todayStart.getDate() + 2);
+  const weekEnd = endOfWeek(now);
+  const hasRestOfWeekWindow = dayAfterTomorrowStart <= weekEnd;
 
   if (parsed < todayStart) {
     return 'overdue';
@@ -172,7 +174,7 @@ export const bucketForDate = (value: string | null | undefined, now: Date): Date
   if (isSameCalendarDay(parsed, tomorrowStart)) {
     return 'tomorrow';
   }
-  if (parsed >= dayAfterTomorrowStart && parsed <= endOfWeek(now)) {
+  if (hasRestOfWeekWindow && parsed >= dayAfterTomorrowStart && parsed <= weekEnd) {
     return 'rest-of-week';
   }
   if (parsed <= endOfMonth(now)) {
@@ -282,9 +284,17 @@ export const ACCOUNT_AVATAR_BACKGROUNDS = [
   'rgb(86 105 125)',
 ];
 
+const escapeXml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 export const buildAccountAvatarUrl = (initials: string, seed: string): string => {
   const background = ACCOUNT_AVATAR_BACKGROUNDS[hashString(seed || initials) % ACCOUNT_AVATAR_BACKGROUNDS.length];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-hidden="true"><rect width="64" height="64" rx="32" fill="${background}"/><text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle" fill="rgb(255 255 255)" font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700">${initials}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-hidden="true"><rect width="64" height="64" rx="32" fill="${background}"/><text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle" fill="rgb(255 255 255)" font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700">${escapeXml(initials)}</text></svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 };
 

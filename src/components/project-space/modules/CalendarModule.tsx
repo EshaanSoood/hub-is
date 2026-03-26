@@ -20,6 +20,7 @@ export const CalendarModule = ({ runtime, onOpenRecord }: Props) => (
       scope={runtime.scope}
       onScopeChange={runtime.onScopeChange}
       onCreateEvent={runtime.onCreateEvent}
+      onRescheduleEvent={runtime.onRescheduleEvent}
       onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
     />
   </Suspense>

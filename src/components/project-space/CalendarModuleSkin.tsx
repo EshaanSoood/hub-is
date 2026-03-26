@@ -218,7 +218,7 @@ export const CalendarModuleSkin = ({
       const now = new Date();
       const nextMidnight = new Date(now);
       nextMidnight.setHours(24, 0, 0, 0);
-      const delay = Math.max(60_000, nextMidnight.getTime() - now.getTime() + 1_000);
+      const delay = Math.max(1_000, nextMidnight.getTime() - now.getTime() + 1_000);
       timerId = window.setTimeout(() => {
         setCurrentDate(new Date());
         scheduleNextMidnightRefresh();
