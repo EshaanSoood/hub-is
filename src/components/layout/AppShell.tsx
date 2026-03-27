@@ -1217,6 +1217,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       throw new Error('An authenticated session is required.');
     }
     await updateReminder(accessToken, reminderId, { remind_at: tomorrowAtNineIso() });
+    requestHubHomeRefresh();
     await remindersRuntime.refresh();
   }, [accessToken, remindersRuntime]);
 
