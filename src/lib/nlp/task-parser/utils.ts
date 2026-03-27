@@ -369,7 +369,7 @@ export const extractAssignees = (
 
   for (const match of input.matchAll(/(?<![a-z0-9_.+-])@[a-z0-9_.+-]+/gi)) {
     const text = match[0] || '';
-    if (!text) {
+    if (!text || !isAssigneeLike(text, knownAssignees)) {
       continue;
     }
     assignees.push(text);
@@ -868,7 +868,7 @@ const stripResidualTemporalTokens = (input: string): string => {
     .replace(/\bevery\s+\d+\s+(?:days|weeks|months)\b/gi, ' ')
     .replace(/\b(?:next|this)\s+(?:month|week)\b/gi, ' ')
     .replace(
-      /\b(?:today|tomorrow|tonight|next|month|week|daily|weekly|monthly|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/gi,
+      /\b(?:today|tomorrow|tonight|yesterday|daily|weekly|monthly)\b/gi,
       ' ',
     );
   return normalizeWhitespace(output);
@@ -916,7 +916,7 @@ const normalizeTitleText = (input: string): string => {
     output = output.replace(pattern, '');
   }
 
-  output = stripLeadingTitleFiller(stripTrailingDanglingPreposition(stripResidualTemporalTokens(output)));
+  output = stripLeadingTitleFiller(stripTrailingDanglingPreposition(stripResidualTemporalTokens(output), true));
 
   return output
     .replace(/\bboth\b$/i, '')

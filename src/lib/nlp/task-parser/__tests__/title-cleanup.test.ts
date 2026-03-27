@@ -46,6 +46,11 @@ describe('task parser title cleanup', () => {
     assert.equal(title, 'Finish the Report');
   });
 
+  test('preserves standalone "next" when it is part of normal title text', () => {
+    const title = parseTitle('plan next steps');
+    assert.equal(title, 'Plan Next Steps');
+  });
+
   test('normalizes excess whitespace', () => {
     const title = parseTitle('   buy   groceries   ');
     assert.equal(title, 'Buy Groceries');

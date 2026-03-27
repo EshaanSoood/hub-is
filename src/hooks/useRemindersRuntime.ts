@@ -81,12 +81,13 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
   }, [refresh]);
 
   useEffect(() => {
+    if (reminderRefreshTimerRef.current !== null) {
+      clearTimeout(reminderRefreshTimerRef.current);
+      reminderRefreshTimerRef.current = null;
+    }
+    refreshSequenceRef.current += 1;
+
     if (!accessToken) {
-      if (reminderRefreshTimerRef.current !== null) {
-        clearTimeout(reminderRefreshTimerRef.current);
-        reminderRefreshTimerRef.current = null;
-      }
-      refreshSequenceRef.current += 1;
       setReminders([]);
       setLoading(false);
       setError(null);

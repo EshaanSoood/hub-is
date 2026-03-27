@@ -34,6 +34,11 @@ describe('calendar parser accuracy regressions', () => {
     assert.equal(result.fields.date, '2026-03-28');
   });
 
+  test('keeps standalone "next" when it is part of the title', () => {
+    const result = parse('plan next steps');
+    assert.equal(result.fields.title, 'Plan Next Steps');
+  });
+
   test('parses end-of-day and strips priority noise while preserving PR acronym', () => {
     const result = parse('high priority review PR by end of day');
     assert.equal(result.fields.date, '2026-03-27');

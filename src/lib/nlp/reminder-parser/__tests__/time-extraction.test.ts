@@ -39,6 +39,20 @@ describe('reminder parser time extraction', () => {
     assert.equal(result.fields.title, 'Finish the Report');
   });
 
+  test('does not infer recurrence from adjective use in "read daily digest tomorrow"', () => {
+    const result = parse('read daily digest tomorrow');
+    assert.equal(result.fields.recurrence, null);
+    assert.equal(result.fields.remind_at, '2026-03-23T09:00:00');
+    assert.equal(result.fields.title, 'Read Daily Digest');
+  });
+
+  test('does not infer recurrence from adjective use in "buy monthly bus pass end of month"', () => {
+    const result = parse('buy monthly bus pass end of month');
+    assert.equal(result.fields.recurrence, null);
+    assert.equal(result.fields.remind_at, '2026-03-31T09:00:00');
+    assert.equal(result.fields.title, 'Buy Monthly Bus Pass');
+  });
+
   test('parses recurring monday reminder with explicit 8am time', () => {
     const result = parse('water plants every monday at 8am');
     assert.equal(result.fields.remind_at, '2026-03-23T08:00:00');
@@ -82,6 +96,17 @@ describe('reminder parser time extraction', () => {
     const result = parse('urgent fix the login bug by friday for @mark');
     assert.equal(result.fields.remind_at, '2026-03-27T09:00:00');
     assert.equal(result.fields.title, 'Fix the Login Bug');
+  });
+
+  test('preserves phrasal verb title after temporal token cleanup', () => {
+    const result = parse('check in tomorrow');
+    assert.equal(result.fields.remind_at, '2026-03-23T09:00:00');
+    assert.equal(result.fields.title, 'Check In');
+  });
+
+  test('strips reminder lead prefixes with smart apostrophes', () => {
+    const result = parse('don\u2019t forget to call dentist');
+    assert.equal(result.fields.title, 'Call Dentist');
   });
 
   test('parses ordinal date with default 09:00 time', () => {

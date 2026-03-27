@@ -7,7 +7,7 @@ export const stripReminderLeadPrefix = (input: string): string => {
     previous = output;
     output = normalizeWhitespace(
       output.replace(
-        /^(?:remind\s+me\s+to|remind\s+me|don'?t\s+forget\s+to|don'?t\s+let\s+me\s+forget\s+to|dont\s+forget\s+to|dont\s+let\s+me\s+forget\s+to)\b[\s,:-]*/i,
+        /^(?:remind\s+me\s+to|remind\s+me|don['\u2019]?t\s+forget\s+to|don['\u2019]?t\s+let\s+me\s+forget\s+to)\b[\s,:-]*/i,
         ' ',
       ),
     );
@@ -15,7 +15,11 @@ export const stripReminderLeadPrefix = (input: string): string => {
   return output;
 };
 
-export const stripTrailingDanglingPreposition = (input: string): string => {
+export const stripTrailingDanglingPreposition = (input: string, enabled = false): string => {
+  if (!enabled) {
+    return normalizeWhitespace(input);
+  }
+
   let output = normalizeWhitespace(input);
   let previous = '';
   while (output !== previous) {

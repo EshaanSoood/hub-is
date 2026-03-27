@@ -48,7 +48,7 @@ const stripTemporalNoise = (input: string): string =>
     .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
     .replace(/\b(?:next|this)\s+(?:week|month)\b/gi, ' ')
     .replace(
-      /\b(?:today|tomorrow|tonight|tmr|yesterday|next|this|month|week|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|starting|start|weekly|daily|monthly|yearly|annually)\b/gi,
+      /\b(?:today|tomorrow|tonight|tmr|yesterday|starting|start|weekly|daily|monthly|yearly|annually)\b/gi,
       ' ',
     )
     .replace(/\b(?:morning|afternoon|evening|night|noon)\b/gi, ' ')
@@ -116,6 +116,7 @@ export const titlePass = (ctx: ParseContext): void => {
             trimEdgePrepositions(stripTemporalNoise(stripMentionNoise(stripPriorityNoise(stripReminderLeadPrefix(base))))),
           ),
         ),
+        true,
       ),
     ),
   );

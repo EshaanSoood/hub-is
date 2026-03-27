@@ -321,9 +321,11 @@ export const extractRecurrence = (input: string): {
     { regex: /\bevery\s+(mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i, frequency: 'weekly', interval: 1 },
     { regex: /\bevery\s+day\b/i, frequency: 'daily', interval: 1 },
     { regex: /\bevery\s+month\b/i, frequency: 'monthly', interval: 1 },
-    { regex: /\bdaily\b/i, frequency: 'daily', interval: 1 },
+    { regex: /^\s*daily\b/i, frequency: 'daily', interval: 1 },
+    { regex: /\bdaily\b(?=\s*(?:$|at\b|on\b|before\b|after\b|by\b))/i, frequency: 'daily', interval: 1 },
     { regex: /^\s*weekly\b/i, frequency: 'weekly', interval: 1 },
-    { regex: /\bmonthly\b/i, frequency: 'monthly', interval: 1 },
+    { regex: /^\s*monthly\b/i, frequency: 'monthly', interval: 1 },
+    { regex: /\bmonthly\b(?=\s*(?:$|on\b|at\b|before\b|after\b|by\b))/i, frequency: 'monthly', interval: 1 },
     { regex: /^\s*yearly\b/i, frequency: 'yearly', interval: 1 },
     { regex: /\bevry\s+(mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i, frequency: 'weekly', interval: 1 },
   ];
@@ -1091,7 +1093,7 @@ const stripResidualTemporalTokens = (input: string): string => {
     .replace(/\bend of (?:the )?week\b/gi, ' ')
     .replace(/\bend of (?:the )?day\b/gi, ' ')
     .replace(
-      /\b(?:today|tomorrow|tonight|daily|weekly|monthly)\b/gi,
+      /\b(?:today|tomorrow|tonight)\b/gi,
       ' ',
     );
 
@@ -1099,9 +1101,11 @@ const stripResidualTemporalTokens = (input: string): string => {
 };
 
 const smartTitleCase = (input: string): string => {
-  let output = input
+  const words = input
     .split(/\s+/)
-    .filter(Boolean)
+    .filter(Boolean);
+
+  let output = words
     .map((word, index) => {
       const cleaned = cleanTitleWord(word);
       if (/^[A-Z]{2,4}$/.test(cleaned)) {
@@ -1114,7 +1118,7 @@ const smartTitleCase = (input: string): string => {
         const [base] = cleaned.split(/['’]/);
         return `${base.charAt(0).toUpperCase()}${base.slice(1)}'s`;
       }
-      if (index > 0 && TITLE_SMALL_WORDS.has(cleaned.toLowerCase())) {
+      if (index > 0 && index < words.length - 1 && TITLE_SMALL_WORDS.has(cleaned.toLowerCase())) {
         return cleaned.toLowerCase();
       }
       return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
@@ -1169,7 +1173,6 @@ export const extractTitle = (input: string): string => {
     .replace(/\bbday\b/gi, 'birthday')
     .replace(/\bcehck\b/gi, 'check')
     .replace(/^(?:to(?:\s+the)?|that(?:\s+i)?|about)\b[\s,:-]*/i, '')
-    .replace(/\b(?:for|to|by|with|at|on|in|from)\b$/i, '')
     .replace(/\s+/g, ' ')
     .trim();
 
