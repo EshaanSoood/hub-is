@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ModuleEmptyState, ModuleLoadingState } from './ModuleFeedback';
 import { cn } from '../../lib/cn';
+import { CalendarDayView } from './CalendarDayView';
+import { CalendarWeekView } from './CalendarWeekView';
 
 export type CalendarScope = 'relevant' | 'all';
 type CalendarView = 'month' | 'year' | 'week' | 'day';
@@ -8,6 +10,9 @@ type CalendarView = 'month' | 'year' | 'week' | 'day';
 interface CalendarEventSummary {
   record_id: string;
   title: string;
+  project_id?: string | null;
+  project_name?: string | null;
+  source_pane?: { pane_id: string | null; pane_name: string | null; doc_id: string | null } | null;
   event_state: {
     start_dt: string;
     end_dt: string;
@@ -16,6 +21,7 @@ interface CalendarEventSummary {
     updated_at: string;
   };
   participants: Array<{ user_id: string; role: string | null }>;
+  item_kind?: 'event' | 'task' | 'reminder';
 }
 
 interface CalendarModuleSkinProps {
@@ -29,6 +35,12 @@ interface CalendarModuleSkinProps {
     end_dt: string;
     timezone: string;
     location?: string;
+  }) => Promise<void>;
+  onRescheduleEvent?: (payload: {
+    record_id: string;
+    start_dt: string;
+    end_dt: string;
+    timezone: string;
   }) => Promise<void>;
   onOpenRecord: (recordId: string) => void;
 }
@@ -84,6 +96,16 @@ const formatEventTime = (value: string): string => {
   });
 };
 
+const toTimeInputValue = (value: string, fallback: string): string => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+  const hour = String(parsed.getHours()).padStart(2, '0');
+  const minute = String(parsed.getMinutes()).padStart(2, '0');
+  return `${hour}:${minute}`;
+};
+
 const buildMonthCells = (monthCursor: Date): DayCell[] => {
   const year = monthCursor.getFullYear();
   const month = monthCursor.getMonth();
@@ -119,6 +141,7 @@ export const CalendarModuleSkin = ({
   scope,
   onScopeChange,
   onCreateEvent,
+  onRescheduleEvent,
   onOpenRecord,
 }: CalendarModuleSkinProps) => {
   const [view, setView] = useState<CalendarView>('month');
@@ -141,8 +164,18 @@ export const CalendarModuleSkin = ({
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const monthLabel = monthCursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   const todayKey = toLocalDateKey(new Date());
-  const openCreatePanel = (day: string) => {
+  const openCreatePanel = (
+    day: string,
+    prefill?: {
+      title?: string;
+      startTime?: string;
+      endTime?: string;
+    },
+  ) => {
     setDraftDay(day);
+    setDraftTitle(prefill?.title ?? '');
+    setDraftStartTime(prefill?.startTime ?? '09:00');
+    setDraftEndTime(prefill?.endTime ?? '10:00');
     setOverflowDay(null);
     setCreateError(null);
   };
@@ -176,6 +209,34 @@ export const CalendarModuleSkin = ({
     }
     return map;
   }, [events]);
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+
+  useEffect(() => {
+    let timerId = 0;
+
+    const scheduleNextMidnightRefresh = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const delay = Math.max(1_000, nextMidnight.getTime() - now.getTime() + 1_000);
+      timerId = window.setTimeout(() => {
+        setCurrentDate(new Date());
+        scheduleNextMidnightRefresh();
+      }, delay);
+    };
+
+    scheduleNextMidnightRefresh();
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, []);
+
+  const dayViewDate = currentDate;
+  const weekViewToday = currentDate;
+  const dayViewEvents = useMemo(() => {
+    const dayKey = toLocalDateKey(dayViewDate);
+    return eventsByDate.get(dayKey) ?? [];
+  }, [dayViewDate, eventsByDate]);
 
   const monthCells = useMemo(() => buildMonthCells(monthCursor), [monthCursor]);
 
@@ -346,7 +407,7 @@ export const CalendarModuleSkin = ({
               aria-pressed={scope === item}
               onClick={() => onScopeChange(item)}
               className={cn(
-                'rounded-control border px-2 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                'rounded-control border px-2.5 py-1.5 text-xs font-medium leading-[1.2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
                 scope === item ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted',
               )}
             >
@@ -364,7 +425,7 @@ export const CalendarModuleSkin = ({
             aria-pressed={view === item}
             onClick={() => setView(item)}
             className={cn(
-              'rounded-control border px-2 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+              'rounded-control border px-2.5 py-1.5 text-xs font-medium leading-[1.2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
               view === item ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted',
             )}
           >
@@ -379,7 +440,7 @@ export const CalendarModuleSkin = ({
               setView('month');
               openCreatePanel(todayKey);
             }}
-            className="ml-auto shrink-0 rounded-control border border-primary bg-primary px-2 py-1 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="ml-auto shrink-0 rounded-control border border-primary bg-primary px-2.5 py-1.5 text-xs font-medium leading-[1.2] text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             New Event
           </button>
@@ -388,7 +449,7 @@ export const CalendarModuleSkin = ({
             type="button"
             disabled
             aria-disabled="true"
-            className="ml-auto shrink-0 rounded-control border border-subtle bg-surface px-2 py-1 text-xs text-text-secondary"
+            className="ml-auto shrink-0 rounded-control border border-subtle bg-surface px-2.5 py-1.5 text-xs leading-[1.2] text-text-secondary"
             title="Timezone controls are coming soon."
           >
             {timezone}
@@ -538,7 +599,7 @@ export const CalendarModuleSkin = ({
         </section>
       ) : null}
 
-      {view === 'month' ? createEventPanel : null}
+      {createEventPanel}
 
       {view === 'year' ? (
         <section className="grid grid-cols-2 gap-2 md:grid-cols-4">
@@ -561,8 +622,7 @@ export const CalendarModuleSkin = ({
                 className="rounded-control border border-subtle bg-surface px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               >
                 <div
-                  className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted"
-                  style={{ fontFamily: 'var(--font-heading)' }}
+                  className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted [font-family:var(--font-heading)]"
                 >
                   {label}
                 </div>
@@ -577,10 +637,51 @@ export const CalendarModuleSkin = ({
         </section>
       ) : null}
 
-      {view === 'week' || view === 'day' ? (
-        <div className="rounded-panel border border-subtle bg-surface p-4 text-sm text-muted">
-          {view[0].toUpperCase() + view.slice(1)} view coming soon.
-        </div>
+      {view === 'day' ? (
+        <CalendarDayView
+          events={dayViewEvents}
+          date={dayViewDate}
+          onOpenRecord={onOpenRecord}
+          onRescheduleEvent={onRescheduleEvent}
+          onCreateEvent={
+            onCreateEvent
+              ? (payload) => {
+                  const startDate = new Date(payload.start_dt);
+                  const nextDayKey = Number.isNaN(startDate.getTime())
+                    ? todayKey
+                    : toLocalDateKey(startDate);
+                  openCreatePanel(nextDayKey, {
+                    title: payload.title,
+                    startTime: toTimeInputValue(payload.start_dt, '09:00'),
+                    endTime: toTimeInputValue(payload.end_dt, '10:00'),
+                  });
+                }
+              : undefined
+          }
+        />
+      ) : null}
+
+      {view === 'week' ? (
+        <CalendarWeekView
+          events={events}
+          today={weekViewToday}
+          onOpenRecord={onOpenRecord}
+          onCreateEvent={
+            onCreateEvent
+              ? (payload) => {
+                  const startDate = new Date(payload.start_dt);
+                  const nextDayKey = Number.isNaN(startDate.getTime())
+                    ? todayKey
+                    : toLocalDateKey(startDate);
+                  openCreatePanel(nextDayKey, {
+                    title: payload.title,
+                    startTime: toTimeInputValue(payload.start_dt, '09:00'),
+                    endTime: toTimeInputValue(payload.end_dt, '10:00'),
+                  });
+                }
+              : undefined
+          }
+        />
       ) : null}
     </div>
   );

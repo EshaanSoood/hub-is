@@ -1,16 +1,13 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useProjects } from '../context/ProjectsContext';
 import { useAuthz } from '../context/AuthzContext';
-import { Dialog, Select } from '../components/primitives';
-import { PersonalizedDashboardPanel } from '../features/PersonalizedDashboardPanel';
-import { createHubProject } from '../services/projectsService';
-import { createEventFromNlp, getHubHome, getRecordDetail } from '../services/hub/records';
+import { Dialog } from '../components/primitives';
+import { PersonalizedDashboardPanel, type HubDashboardView } from '../features/PersonalizedDashboardPanel';
+import { getHubHome, getRecordDetail } from '../services/hub/records';
 import type { HubRecordDetail } from '../services/hub/types';
 import { subscribeHubLive } from '../services/hubLive';
 import { subscribeHubHomeRefresh } from '../lib/hubHomeRefresh';
-import { CalendarModuleSkin } from '../components/project-space/CalendarModuleSkin';
-import { usePersonalCalendarRuntime } from '../hooks/usePersonalCalendarRuntime';
 
 const resolveFocusRestoreTarget = (candidate: HTMLElement | null): HTMLElement | null => {
   if (candidate && candidate.isConnected) {
@@ -33,16 +30,14 @@ const getActiveFocusTarget = (): HTMLElement | null => {
   return resolveFocusRestoreTarget(null);
 };
 
-export const ProjectsPage = () => {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { projects, loading, error, refreshProjects } = useProjects();
-  const { accessToken, refreshSession } = useAuthz();
+const parseDashboardView = (raw: string | null): HubDashboardView =>
+  raw === 'stream' || raw === 'project-lens' ? raw : 'project-lens';
 
-  const [name, setName] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [hubView, setHubView] = useState<'project-lens' | 'stream'>('project-lens');
+export const ProjectsPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { projects } = useProjects();
+  const { accessToken } = useAuthz();
+
   const [homeLoading, setHomeLoading] = useState(false);
   const [homeError, setHomeError] = useState<string | null>(null);
   const [homeData, setHomeData] = useState<{
@@ -60,41 +55,18 @@ export const ProjectsPage = () => {
     events: [],
     notifications: [],
   });
+
   const [selectedHubRecordId, setSelectedHubRecordId] = useState<string | null>(null);
   const [selectedHubRecord, setSelectedHubRecord] = useState<HubRecordDetail | null>(null);
   const [selectedHubRecordLoading, setSelectedHubRecordLoading] = useState(false);
   const [selectedHubRecordError, setSelectedHubRecordError] = useState<string | null>(null);
-  const {
-    calendarEvents,
-    calendarError,
-    calendarLoading,
-    calendarMode,
-    refreshCalendar,
-    setCalendarMode,
-  } = usePersonalCalendarRuntime(accessToken ?? null);
-  const [calendarCreateProjectId, setCalendarCreateProjectId] = useState(() => projects[0]?.id || '');
+
   const selectedRecordAbortControllerRef = useRef<AbortController | null>(null);
   const selectedRecordRequestIdRef = useRef(0);
   const selectedHubRecordIdRef = useRef<string | null>(null);
   const selectedHubRecordTriggerRef = useRef<HTMLElement | null>(null);
+  const dashboardView = parseDashboardView(searchParams.get('view'));
 
-  const visibleProjects = useMemo(
-    () => projects.filter((project) => !project.isPersonal),
-    [projects],
-  );
-  const calendarProjectOptions = useMemo(
-    () => projects.map((project) => ({ value: project.id, label: project.name })),
-    [projects],
-  );
-  const selectedCalendarCreateProjectId = useMemo(() => {
-    if (projects.length === 0) {
-      return '';
-    }
-    if (projects.some((project) => project.id === calendarCreateProjectId)) {
-      return calendarCreateProjectId;
-    }
-    return projects[0]?.id || '';
-  }, [calendarCreateProjectId, projects]);
   useEffect(() => {
     const taskId = searchParams.get('task_id');
     if (!taskId) {
@@ -104,9 +76,11 @@ export const ProjectsPage = () => {
     selectedHubRecordIdRef.current = taskId;
     setSelectedHubRecordId(taskId);
 
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('task_id');
-    setSearchParams(nextParams, { replace: true });
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('task_id');
+      return next;
+    }, { replace: true });
   }, [searchParams, setSearchParams]);
 
   const refreshHome = useCallback(async () => {
@@ -223,43 +197,6 @@ export const ProjectsPage = () => {
     });
   }, [accessToken, refreshHome, refreshSelectedRecord]);
 
-  const onCreateProject = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!accessToken) {
-      setCreateError('An authenticated session is required.');
-      return;
-    }
-
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setCreateError('Project name is required.');
-      return;
-    }
-
-    setCreateError(null);
-    setCreating(true);
-    try {
-      const created = await createHubProject(accessToken, {
-        name: trimmed,
-        summary: '',
-      });
-
-      if (created.error || !created.data) {
-        setCreateError(created.error || 'Project creation failed.');
-        return;
-      }
-
-      setName('');
-      navigate(`/projects/${created.data.id}/overview`);
-      void Promise.allSettled([refreshProjects(), refreshSession()]);
-    } catch (error) {
-      setCreateError(error instanceof Error ? error.message : 'Project creation failed.');
-    } finally {
-      setCreating(false);
-    }
-  };
-
   const onOpenHubRecord = useCallback((recordId: string) => {
     selectedHubRecordTriggerRef.current = getActiveFocusTarget();
     selectedHubRecordIdRef.current = recordId;
@@ -278,6 +215,14 @@ export const ProjectsPage = () => {
     setSelectedHubRecordLoading(false);
   }, []);
 
+  const onDashboardViewChange = useCallback((view: HubDashboardView) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('view', view);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   return (
     <div className="space-y-4">
       <PersonalizedDashboardPanel
@@ -286,134 +231,9 @@ export const ProjectsPage = () => {
         homeError={homeError}
         projects={projects}
         onOpenRecord={onOpenHubRecord}
-        onViewChange={setHubView}
+        initialView={dashboardView}
+        onViewChange={onDashboardViewChange}
       />
-
-      {hubView === 'project-lens' ? (
-        <>
-          <section className="rounded-panel border border-subtle bg-elevated p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="heading-3 text-primary">Projects</h2>
-              {loading ? <span className="text-xs text-muted">Loading...</span> : null}
-            </div>
-
-            {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
-
-            {!loading && visibleProjects.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">No projects yet. Create one to begin.</p>
-            ) : (
-              <ul className="mt-3 grid gap-3 md:grid-cols-2" aria-label="Project list">
-                {visibleProjects.map((project) => (
-                  <li key={project.id} className="rounded-panel border border-border-muted bg-surface p-3">
-                    <p className="text-sm font-bold text-text">{project.name}</p>
-                    <p className="mt-1 text-xs text-text-secondary">Role: {project.membershipRole}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link
-                        to={`/projects/${project.id}/overview`}
-                        className="rounded-control border border-border-muted px-3 py-1.5 text-sm font-medium text-primary"
-                      >
-                        Overview
-                      </Link>
-                      <Link
-                        to={`/projects/${project.id}/work`}
-                        className="rounded-control border border-border-muted px-3 py-1.5 text-sm font-medium text-primary"
-                      >
-                        Work
-                      </Link>
-                      <Link
-                        to={`/projects/${project.id}/tools`}
-                        className="rounded-control border border-border-muted px-3 py-1.5 text-sm font-medium text-primary"
-                      >
-                        Tools
-                      </Link>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section id="quick-create" className="rounded-panel border border-subtle bg-elevated p-4">
-            <h2 className="heading-3 text-primary">Create Project</h2>
-            <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={onCreateProject}>
-              <label className="flex min-w-64 flex-1 flex-col gap-1 text-sm text-muted" htmlFor="create-project-name">
-                Project name
-                <input
-                  id="create-project-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                  placeholder="New project"
-                  disabled={creating}
-                  autoComplete="off"
-                />
-              </label>
-              <button
-                type="submit"
-                disabled={creating}
-                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {creating ? 'Creating...' : 'Create'}
-              </button>
-            </form>
-
-            {createError ? (
-              <p className="mt-2 text-sm text-danger" role="alert" aria-live="polite">
-                {createError}
-              </p>
-            ) : null}
-          </section>
-
-          <section className="rounded-panel border border-subtle bg-elevated p-4" aria-labelledby="personal-dashboard-calendar-heading">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 id="personal-dashboard-calendar-heading" className="heading-3 text-primary">
-                Calendar
-              </h2>
-              {calendarProjectOptions.length > 0 ? (
-                <Select
-                  value={selectedCalendarCreateProjectId}
-                  onValueChange={setCalendarCreateProjectId}
-                  options={calendarProjectOptions}
-                  ariaLabel="Select project for new personal calendar events"
-                  triggerClassName="min-w-44"
-                />
-              ) : null}
-            </div>
-            {calendarError ? (
-              <div className="mt-3 rounded-panel border border-danger/30 bg-danger/5 p-4" role="alert">
-                <p className="text-sm text-danger">{calendarError}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void refreshCalendar();
-                  }}
-                  className="mt-3 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : (
-              <div className="mt-3">
-                <CalendarModuleSkin
-                  events={calendarEvents}
-                  loading={calendarLoading}
-                  scope={calendarMode}
-                  onScopeChange={setCalendarMode}
-                  onOpenRecord={onOpenHubRecord}
-                  onCreateEvent={
-                    accessToken && selectedCalendarCreateProjectId
-                      ? async (payload) => {
-                          await createEventFromNlp(accessToken, selectedCalendarCreateProjectId, payload);
-                          await refreshCalendar();
-                        }
-                      : undefined
-                  }
-                />
-              </div>
-            )}
-          </section>
-        </>
-      ) : null}
 
       <Dialog
         open={Boolean(selectedHubRecordId)}

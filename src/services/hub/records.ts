@@ -53,6 +53,7 @@ export const updateRecord = async (
   payload: {
     title?: string;
     archived?: boolean;
+    event_state?: Record<string, unknown>;
     task_state?: {
       status?: string;
       priority?: string | null;

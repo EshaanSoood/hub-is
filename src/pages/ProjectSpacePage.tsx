@@ -730,6 +730,28 @@ const ProjectSpaceWorkspace = ({
                 await refreshCalendar();
               }
             : undefined,
+        onRescheduleEvent:
+          activePaneCanEdit && canWriteProject
+            ? async (payload) => {
+                if (!accessToken) {
+                  return;
+                }
+                try {
+                  await updateRecord(accessToken, payload.record_id, {
+                    event_state: {
+                      start_dt: payload.start_dt,
+                      end_dt: payload.end_dt,
+                      timezone: payload.timezone,
+                    },
+                  });
+                  await refreshCalendar();
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : 'Failed to reschedule event.';
+                  console.error('onRescheduleEvent: failed to update record', error);
+                  setRecordsError(message);
+                }
+              }
+            : undefined,
       },
       files: {
         paneFiles,
@@ -870,6 +892,7 @@ const ProjectSpaceWorkspace = ({
       remindersRuntime.error,
       remindersRuntime.loading,
       remindersRuntime.reminders,
+      setRecordsError,
     ],
   );
 

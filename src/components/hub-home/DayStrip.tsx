@@ -1,4 +1,4 @@
-import { type DragEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type DragEvent, type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type {
   DayStripEventItem,
   DayStripReminderItem,
@@ -102,6 +102,9 @@ export const DayStrip = ({
   const nowNeedleRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const autoScrollKeyRef = useRef<string>('');
+  const stripId = useId();
+  const earlierLabelId = `${stripId}-earlier`;
+  const upcomingLabelId = `${stripId}-upcoming`;
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -323,10 +326,125 @@ export const DayStrip = ({
     void onDropFromTriage(payloadParsed, assignedAt);
   };
 
+  const nowMs = now.getTime();
+  const earlierItems = timelineItems.filter((item) => (item.kind === 'event' ? item.startMs < nowMs : item.timeMs < nowMs));
+  const upcomingItems = timelineItems.filter((item) => (item.kind === 'event' ? item.startMs >= nowMs : item.timeMs >= nowMs));
+
+  const renderTimelineItem = (item: TimelineItem) => {
+    if (item.kind === 'event') {
+      const left = percentForMs(item.startMs);
+      const right = percentForMs(item.endMs);
+      const width = Math.max(0.9, right - left);
+      const widthPxForEvent = Math.max(ITEM_MIN_WIDTH_PX, (width / 100) * widthPx);
+      const inPast = item.endMs < nowMs;
+      const clippedRight = item.endMs > range.endMs;
+      const startText = formatTimeLabel(new Date(item.startMs));
+      const endText = formatTimeLabel(new Date(item.endMs));
+      const titleForDisplay = truncateTimelineTitle(item.title);
+
+      return (
+        <button
+          key={item.id}
+          ref={(node) => {
+            itemRefs.current[item.id] = node;
+          }}
+          type="button"
+          aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
+          className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium ${
+            inPast
+              ? 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary opacity-60'
+              : 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary'
+          }`}
+          style={{ left: `${left}%`, width: `${widthPxForEvent}px` }}
+          onClick={() => onOpenRecord(item.recordId)}
+          onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+        >
+          <span className="block truncate">
+            {titleForDisplay}
+            {clippedRight ? ' →' : ''}
+          </span>
+        </button>
+      );
+    }
+
+    const timeMs = item.timeMs;
+    const lane = markerLaneById.get(item.id) ?? 0;
+    const markerTop = lane === 0 ? 22 : 86;
+    const labelTop = lane === 0 ? 2 : 104;
+    const left = percentForMs(timeMs);
+    const timeLabel = formatTimeLabel(new Date(timeMs));
+    const titleForDisplay = truncateTimelineTitle(item.title);
+
+    if (item.kind === 'task') {
+      const complete = item.status === 'done' || item.status === 'cancelled';
+      const overdue = !complete && timeMs < nowMs;
+
+      return (
+        <div key={item.id} className="absolute w-[180px] -translate-x-1/2" style={{ left: `${left}%` }}>
+          <button
+            ref={(node) => {
+              itemRefs.current[item.id] = node;
+            }}
+            type="button"
+            aria-label={`Task: ${item.title} at ${timeLabel}`}
+            className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 p-0 [border-radius:9999px] ${
+              overdue
+                ? 'border-danger bg-danger text-on-primary'
+                : 'border-[color:var(--color-primary-strong)] bg-[color:var(--color-primary-strong)] text-on-primary'
+            }`}
+            style={{ top: `${markerTop}px` }}
+            onClick={() => onOpenRecord(item.recordId)}
+            onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+          >
+            {complete ? <span className="absolute inset-0 grid place-items-center text-[9px] leading-none">✓</span> : null}
+          </button>
+          <span
+            className="absolute top-0 block w-full truncate text-center text-[11px] text-text"
+            style={{ top: `${labelTop}px` }}
+            title={item.title}
+          >
+            {titleForDisplay}
+          </span>
+        </div>
+      );
+    }
+
+    const pastUndismissed = !item.dismissed && timeMs < nowMs;
+    const settledDismissed = item.dismissed && timeMs < nowMs;
+    return (
+      <div key={item.id} className="absolute w-[180px] -translate-x-1/2" style={{ left: `${left}%` }}>
+        <button
+          ref={(node) => {
+            itemRefs.current[item.id] = node;
+          }}
+          type="button"
+          aria-label={`Reminder: ${item.title} at ${timeLabel}`}
+          className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rotate-45 border-2 ${
+            settledDismissed
+              ? 'border-[color:var(--color-capture-rail)] bg-[color:var(--color-capture-rail)] opacity-40'
+              : pastUndismissed
+                  ? 'border-danger bg-[color:var(--color-capture-rail)]'
+                  : 'border-[color:var(--color-capture-rail)] bg-[color:var(--color-capture-rail)]'
+          }`}
+          style={{ top: `${markerTop}px` }}
+          onClick={() => onOpenRecord(item.recordId)}
+          onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+        />
+        <span
+          className="absolute top-0 block w-full truncate text-center text-[11px] text-text"
+          style={{ top: `${labelTop}px` }}
+          title={item.title}
+        >
+          {titleForDisplay}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div
       role="region"
-      aria-label="Day timeline"
+      aria-label="Today's timeline"
       className={`rounded-panel border border-border-muted bg-[color:var(--color-surface)] p-2 [box-shadow:inset_0_0_12px_2px_rgb(38_48_64_/_0.5)] ${className ?? ''}`}
     >
       {hasNoScheduledItems ? (
@@ -378,116 +496,14 @@ export const DayStrip = ({
               );
             })}
 
-            {timelineItems.map((item) => {
-              if (item.kind === 'event') {
-                const left = percentForMs(item.startMs);
-                const right = percentForMs(item.endMs);
-                const width = Math.max(0.9, right - left);
-                const widthPxForEvent = Math.max(ITEM_MIN_WIDTH_PX, (width / 100) * widthPx);
-                const inPast = item.endMs < now.getTime();
-                const clippedRight = item.endMs > range.endMs;
-                const startText = formatTimeLabel(new Date(item.startMs));
-                const endText = formatTimeLabel(new Date(item.endMs));
-                const titleForDisplay = truncateTimelineTitle(item.title);
-
-                return (
-                  <button
-                    key={item.id}
-                    ref={(node) => {
-                      itemRefs.current[item.id] = node;
-                    }}
-                    type="button"
-                    aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
-                    className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium ${
-                      inPast
-                        ? 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary opacity-60'
-                        : 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary'
-                    }`}
-                    style={{ left: `${left}%`, width: `${widthPxForEvent}px` }}
-                    onClick={() => onOpenRecord(item.recordId)}
-                    onKeyDown={(event) => handleItemKeyDown(event, item.id)}
-                  >
-                    <span className="block truncate">
-                      {titleForDisplay}
-                      {clippedRight ? ' →' : ''}
-                    </span>
-                  </button>
-                );
-              }
-
-              const timeMs = item.timeMs;
-                const lane = markerLaneById.get(item.id) ?? 0;
-                const markerTop = lane === 0 ? 22 : 86;
-                const labelTop = lane === 0 ? 2 : 104;
-                const left = percentForMs(timeMs);
-                const timeLabel = formatTimeLabel(new Date(timeMs));
-                const titleForDisplay = truncateTimelineTitle(item.title);
-
-              if (item.kind === 'task') {
-                const complete = item.status === 'done' || item.status === 'cancelled';
-                const overdue = !complete && timeMs < now.getTime();
-
-                return (
-                  <div key={item.id} className="absolute w-[180px] -translate-x-1/2" style={{ left: `${left}%` }}>
-                    <button
-                      ref={(node) => {
-                        itemRefs.current[item.id] = node;
-                      }}
-                      type="button"
-                      aria-label={`Task: ${item.title} at ${timeLabel}`}
-                      className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 p-0 [border-radius:9999px] ${
-                        overdue
-                          ? 'border-danger bg-danger text-on-primary'
-                          : 'border-[color:var(--color-primary-strong)] bg-[color:var(--color-primary-strong)] text-on-primary'
-                      }`}
-                      style={{ top: `${markerTop}px` }}
-                      onClick={() => onOpenRecord(item.recordId)}
-                      onKeyDown={(event) => handleItemKeyDown(event, item.id)}
-                    >
-                      {complete ? <span className="absolute inset-0 grid place-items-center text-[9px] leading-none">✓</span> : null}
-                    </button>
-                    <span
-                      className="absolute top-0 block w-full truncate text-center text-[11px] text-text"
-                      style={{ top: `${labelTop}px` }}
-                      title={item.title}
-                    >
-                      {titleForDisplay}
-                    </span>
-                  </div>
-                );
-              }
-
-              const pastUndismissed = !item.dismissed && timeMs < now.getTime();
-              const settledDismissed = item.dismissed && timeMs < now.getTime();
-              return (
-                <div key={item.id} className="absolute w-[180px] -translate-x-1/2" style={{ left: `${left}%` }}>
-                  <button
-                    ref={(node) => {
-                      itemRefs.current[item.id] = node;
-                    }}
-                    type="button"
-                    aria-label={`Reminder: ${item.title} at ${timeLabel}`}
-                    className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rotate-45 border-2 ${
-                      settledDismissed
-                        ? 'border-[color:var(--color-capture-rail)] bg-[color:var(--color-capture-rail)] opacity-40'
-                      : pastUndismissed
-                          ? 'border-danger bg-[color:var(--color-capture-rail)]'
-                          : 'border-[color:var(--color-capture-rail)] bg-[color:var(--color-capture-rail)]'
-                    }`}
-                    style={{ top: `${markerTop}px` }}
-                    onClick={() => onOpenRecord(item.recordId)}
-                    onKeyDown={(event) => handleItemKeyDown(event, item.id)}
-                  />
-                  <span
-                    className="absolute top-0 block w-full truncate text-center text-[11px] text-text"
-                    style={{ top: `${labelTop}px` }}
-                    title={item.title}
-                  >
-                    {titleForDisplay}
-                  </span>
-                </div>
-              );
-            })}
+            <h3 id={earlierLabelId} className="sr-only">Earlier today</h3>
+            <section aria-labelledby={earlierLabelId}>
+              {earlierItems.map((item) => renderTimelineItem(item))}
+            </section>
+            <h3 id={upcomingLabelId} className="sr-only">Upcoming</h3>
+            <section aria-labelledby={upcomingLabelId}>
+              {upcomingItems.map((item) => renderTimelineItem(item))}
+            </section>
           </div>
         </div>
       )}

@@ -6,253 +6,55 @@ import { useProjects } from '../../context/ProjectsContext';
 import { QuickCapturePanel } from '../../features/QuickCapture';
 import { TaskCreateDialog } from '../project-space/TaskCreateDialog';
 import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
+import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
+import { usePersonalCalendarRuntime } from '../../hooks/usePersonalCalendarRuntime';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
-import { createEventFromNlp, getHubHome } from '../../services/hub/records';
-import { createReminder } from '../../services/hub/reminders';
+import { createEventFromNlp, getHubHome, queryTasks } from '../../services/hub/records';
+import { createReminder, updateReminder } from '../../services/hub/reminders';
 import { listProjectMembers } from '../../services/hub/projects';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
-import type { HubNotification, HubProjectMember } from '../../services/hub/types';
+import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
-import { buildNotificationDestinationHref } from '../../lib/hubRoutes';
+import { buildTaskDestinationHref } from '../../lib/hubRoutes';
 import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
+import { subscribeQuickAddProjectRequest } from '../../lib/quickAddProjectRequest';
 import { parseReminderInput, type ReminderParseResult } from '../../lib/nlp/reminder-parser';
 import { createHubProject } from '../../services/projectsService';
+import { CalendarModuleSkin, type CalendarScope } from '../project-space/CalendarModuleSkin';
 import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
-
-interface ToolbarNotification {
-  id: string;
-  summary: string;
-  body: string;
-  authorInitial: string;
-  avatarColor: string;
-  projectId: string;
-  createdAt: string;
-  read: boolean;
-  payload: Record<string, unknown>;
-  href: string;
-}
-
-type NotificationFilter = 'unread' | 'all';
-type QuickAddDialog = 'task' | 'event' | 'reminder' | 'project' | null;
-type QuickAddOption = {
-  key: Exclude<QuickAddDialog, null>;
-  label: string;
-  iconName: 'tasks' | 'calendar' | 'reminders' | 'menu';
-};
-
-const QUICK_ADD_OPTIONS: QuickAddOption[] = [
-  { key: 'task', label: 'Task', iconName: 'tasks' },
-  { key: 'event', label: 'Calendar Event', iconName: 'calendar' },
-  { key: 'reminder', label: 'Reminder', iconName: 'reminders' },
-  { key: 'project', label: 'Project', iconName: 'menu' },
-];
-
-const relativeTimeLabel = (iso: string): string => {
-  const timestamp = Number(new Date(iso));
-  if (!Number.isFinite(timestamp)) {
-    return 'just now';
-  }
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-  if (diffSeconds < 60) {
-    return `${diffSeconds}s ago`;
-  }
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
-  }
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
-};
-
-const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; name: string }>): string[] => {
-  const segments = pathname.split('/').filter(Boolean);
-  if (segments.length === 0 || pathname === '/projects' || pathname === '/') {
-    return ['Hub Home'];
-  }
-
-  if (segments[0] !== 'projects') {
-    return segments.map((segment) => segment.replace(/-/g, ' '));
-  }
-
-  const crumb: string[] = ['Projects'];
-  const projectId = segments[1];
-  if (projectId) {
-    const projectName = projects.find((project) => project.id === projectId)?.name || projectId;
-    crumb.push(projectName);
-  }
-  if (segments[2]) {
-    crumb.push(segments[2].charAt(0).toUpperCase() + segments[2].slice(1));
-  }
-
-  return crumb;
-};
-
-const NOTIFICATION_AVATAR_COLORS = [
-  'rgb(52 124 212)',
-  'rgb(46 185 166)',
-  'rgb(245 168 80)',
-  'rgb(220 80 100)',
-  'rgb(132 156 178)',
-];
-
-const hashString = (value: string): number => {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(index);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-};
-
-const notificationAvatarColor = (value: string): string => {
-  const index = hashString(value) % NOTIFICATION_AVATAR_COLORS.length;
-  return NOTIFICATION_AVATAR_COLORS[index];
-};
-
-const notificationAuthorInitial = (summary: string, fallback: string): string => {
-  const source = summary.trim() || fallback.trim();
-  const first = source.charAt(0);
-  return first ? first.toUpperCase() : '?';
-};
-
-const ACCOUNT_AVATAR_BACKGROUNDS = [
-  'rgb(40 92 170)',
-  'rgb(22 121 107)',
-  'rgb(181 103 18)',
-  'rgb(164 61 84)',
-  'rgb(86 105 125)',
-];
-
-const sessionInitials = (name: string, email: string, userId: string): string => {
-  const source = name.trim() || email.trim() || userId.trim();
-  if (!source) {
-    return '?';
-  }
-  const words = source.split(/\s+/).filter(Boolean);
-  if (words.length >= 2) {
-    return `${words[0]?.charAt(0) || ''}${words[1]?.charAt(0) || ''}`.toUpperCase();
-  }
-  return source.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase() || source.charAt(0).toUpperCase();
-};
-
-const buildAccountAvatarUrl = (initials: string, seed: string): string => {
-  const background = ACCOUNT_AVATAR_BACKGROUNDS[hashString(seed || initials) % ACCOUNT_AVATAR_BACKGROUNDS.length];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-hidden="true"><rect width="64" height="64" rx="32" fill="${background}"/><text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle" fill="rgb(255 255 255)" font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700">${initials}</text></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-};
-
-const isTextInputElement = (target: EventTarget | null): boolean => {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-  const tagName = target.tagName.toLowerCase();
-  return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target.isContentEditable;
-};
-
-const focusElementSoon = (element: HTMLElement | null | undefined) => {
-  window.setTimeout(() => {
-    if (element?.isConnected) {
-      element.focus();
-    }
-  }, 0);
-};
-
-const focusFirstDescendantSoon = (container: HTMLElement | null | undefined, selector: string) => {
-  window.setTimeout(() => {
-    const target = container?.querySelector<HTMLElement>(selector);
-    if (target?.isConnected) {
-      target.focus();
-    }
-  }, 0);
-};
-
-const toDateTimeLocalInput = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hour}:${minute}`;
-};
-
-const nowPlusHours = (hours: number): Date => new Date(Date.now() + hours * 60 * 60 * 1000);
-
-const hasMeaningfulReminderPreview = (preview: ReminderParseResult): boolean =>
-  Boolean(preview.fields.title.trim() || preview.fields.remind_at || preview.fields.recurrence || preview.fields.context_hint);
-
-const emptyReminderPreview = (): ReminderParseResult => ({
-  fields: {
-    title: '',
-    remind_at: null,
-    recurrence: null,
-    context_hint: null,
-  },
-  meta: {
-    confidence: {
-      title: 0,
-      remind_at: 0,
-      recurrence: 0,
-      context_hint: 0,
-    },
-    spans: {
-      title: [],
-      remind_at: [],
-      recurrence: [],
-      context_hint: [],
-    },
-    debugSteps: [],
-    maskedInput: '',
-  },
-  warnings: null,
-});
-
-const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
-  record: 'Record',
-  project: 'Project',
-  pane: 'Pane',
-};
-
-const buildSearchResultHref = (result: HubSearchResult): string | null => {
-  if (result.type === 'project') {
-    return `/projects/${encodeURIComponent(result.id)}/overview`;
-  }
-  if (result.type === 'pane' && result.project_id) {
-    return `/projects/${encodeURIComponent(result.project_id)}/work/${encodeURIComponent(result.id)}`;
-  }
-  if (result.type === 'record' && result.project_id) {
-    return `/projects/${encodeURIComponent(result.project_id)}/work?record_id=${encodeURIComponent(result.id)}`;
-  }
-  return null;
-};
-
-const toToolbarNotification = (entry: HubNotification): ToolbarNotification => {
-  const payloadMessage =
-    typeof entry.payload?.message === 'string'
-      ? entry.payload.message
-      : `Entity ${entry.entity_type}:${entry.entity_id}`;
-  return {
-    id: entry.notification_id,
-    summary: entry.reason,
-    body: payloadMessage,
-    authorInitial: notificationAuthorInitial(entry.reason, payloadMessage),
-    avatarColor: notificationAvatarColor(`${entry.notification_id}:${entry.reason}`),
-    projectId: entry.project_id,
-    createdAt: entry.created_at,
-    read: Boolean(entry.read_at),
-    payload: entry.payload || {},
-    href: buildNotificationDestinationHref({
-      projectId: entry.project_id,
-      entityType: entry.entity_type,
-      entityId: entry.entity_id,
-      payload: entry.payload || {},
-      fallbackHref: `/projects/${encodeURIComponent(entry.project_id)}/work`,
-    }),
-  };
-};
+import { NotificationsPanel } from './NotificationsPanel';
+import { ProfileMenu } from './ProfileMenu';
+import { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from './QuickAddDialogs';
+import { ToolbarRemindersDialogContent } from './ToolbarRemindersDialogContent';
+import { ToolbarTasksDialogContent } from './ToolbarTasksDialog';
+import {
+  buildAccountAvatarUrl,
+  buildBreadcrumb,
+  buildSearchResultHref,
+  bucketForDate,
+  DATE_BUCKET_LABELS,
+  DATE_BUCKET_ORDER,
+  emptyReminderPreview,
+  focusElementSoon,
+  focusFirstDescendantSoon,
+  isTextInputElement,
+  nowPlusHours,
+  parseIsoTimestamp,
+  QUICK_ADD_OPTIONS,
+  QUICK_NAV_FIXED_ITEMS,
+  SEARCH_RESULT_TYPE_LABELS,
+  sessionInitials,
+  toDateTimeLocalInput,
+  tomorrowAtNineIso,
+  toToolbarNotification,
+  type DateBucketId,
+  type NotificationFilter,
+  type QuickAddDialog,
+  type QuickAddOption,
+  type QuickNavActionItem,
+  type ToolbarDialog,
+  type ToolbarNotification,
+} from './appShellUtils';
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
@@ -306,6 +108,26 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     captures: [],
   });
   const [captureLoading, setCaptureLoading] = useState(false);
+  const [toolbarDialog, setToolbarDialog] = useState<ToolbarDialog>(null);
+  const [quickNavTasks, setQuickNavTasks] = useState<HubTaskSummary[]>([]);
+  const [quickNavTasksLoading, setQuickNavTasksLoading] = useState(false);
+  const [quickNavTasksError, setQuickNavTasksError] = useState<string | null>(null);
+  const [bucketNow, setBucketNow] = useState(() => new Date());
+  const remindersDialogOpen = toolbarDialog === 'reminders';
+  const calendarDialogOpen = toolbarDialog === 'calendar';
+  const {
+    calendarEvents: personalCalendarEvents,
+    calendarLoading: personalCalendarLoading,
+    calendarError: personalCalendarError,
+    calendarMode: personalCalendarMode,
+    setCalendarMode: setPersonalCalendarMode,
+    refreshCalendar: refreshPersonalCalendar,
+  } = usePersonalCalendarRuntime(accessToken ?? null, { autoload: calendarDialogOpen });
+  const remindersRuntime = useRemindersRuntime(accessToken ?? null, {
+    autoload: remindersDialogOpen,
+    subscribeToHomeRefresh: remindersDialogOpen,
+    subscribeToLive: remindersDialogOpen,
+  });
 
   const searchRef = useRef<HTMLDivElement | null>(null);
   const searchDismissedRef = useRef(false);
@@ -327,10 +149,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const captureRestoreTargetRef = useRef<HTMLElement | null>(null);
   const taskTitleInputRef = useRef<HTMLInputElement | null>(null);
   const eventTitleInputRef = useRef<HTMLInputElement | null>(null);
-  const eventProjectSelectRef = useRef<HTMLSelectElement | null>(null);
   const reminderInputRef = useRef<HTMLInputElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
   const captureRequestVersionRef = useRef(0);
+  const quickNavTasksRequestVersionRef = useRef(0);
   const quickNavWasOpenRef = useRef(false);
   const notificationsWereOpenRef = useRef(false);
   const profileWasOpenRef = useRef(false);
@@ -377,6 +199,77 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     () => taskProjectMembersById[quickAddProjectId] ?? [],
     [quickAddProjectId, taskProjectMembersById],
   );
+  const quickNavTasksByRecordId = useMemo(() => {
+    const map = new Map<string, HubTaskSummary>();
+    for (const item of quickNavTasks) {
+      map.set(item.record_id, item);
+    }
+    return map;
+  }, [quickNavTasks]);
+  const activeReminders = useMemo(() =>
+    [...remindersRuntime.reminders]
+      .filter((reminder) => !reminder.fired_at)
+      .sort((left, right) => parseIsoTimestamp(left.remind_at) - parseIsoTimestamp(right.remind_at)), [remindersRuntime.reminders]);
+  const projectNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const project of projects) {
+      map.set(project.id, project.name);
+    }
+    return map;
+  }, [projects]);
+  const bucketedTasks = useMemo(() => {
+    const buckets = new Map<DateBucketId, HubTaskSummary[]>(
+      DATE_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
+    );
+
+    for (const task of quickNavTasks) {
+      const bucket = bucketForDate(task.task_state.due_at, bucketNow);
+      const bucketItems = buckets.get(bucket);
+      if (bucketItems) {
+        bucketItems.push(task);
+      }
+    }
+
+    return DATE_BUCKET_ORDER.flatMap((bucketId) => {
+      const items = buckets.get(bucketId) ?? [];
+      if (items.length === 0) {
+        return [];
+      }
+      return [{ id: bucketId, label: DATE_BUCKET_LABELS[bucketId], items }];
+    });
+  }, [bucketNow, quickNavTasks]);
+  const bucketedReminders = useMemo(() => {
+    const buckets = new Map<DateBucketId, typeof activeReminders>(
+      DATE_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
+    );
+
+    for (const reminder of activeReminders) {
+      const bucket = bucketForDate(reminder.remind_at, bucketNow);
+      const bucketItems = buckets.get(bucket);
+      if (bucketItems) {
+        bucketItems.push(reminder);
+      }
+    }
+
+    return DATE_BUCKET_ORDER.flatMap((bucketId) => {
+      const items = buckets.get(bucketId) ?? [];
+      if (items.length === 0) {
+        return [];
+      }
+      return [{ id: bucketId, label: DATE_BUCKET_LABELS[bucketId], items }];
+    });
+  }, [activeReminders, bucketNow]);
+  const bucketedRemindersForDialog = useMemo(
+    () =>
+      bucketedReminders.map((bucket) => ({
+        ...bucket,
+        items: bucket.items.map((reminder) => ({
+          ...reminder,
+          project_name: projectNameById.get(reminder.project_id) || personalReminderProjectLabel,
+        })),
+      })),
+    [bucketedReminders, personalReminderProjectLabel, projectNameById],
+  );
 
   const refreshCaptureData = useCallback(async () => {
     if (!accessToken) {
@@ -410,6 +303,76 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     } finally {
       if (captureRequestVersionRef.current === requestVersion) {
         setCaptureLoading(false);
+      }
+    }
+  }, [accessToken]);
+
+  const refreshQuickNavTasks = useCallback(async () => {
+    if (!accessToken) {
+      quickNavTasksRequestVersionRef.current += 1;
+      setQuickNavTasks([]);
+      setQuickNavTasksLoading(false);
+      setQuickNavTasksError(null);
+      return;
+    }
+
+    const requestVersion = quickNavTasksRequestVersionRef.current + 1;
+    quickNavTasksRequestVersionRef.current = requestVersion;
+    setQuickNavTasksLoading(true);
+    setQuickNavTasksError(null);
+    try {
+      const nextTasks: HubTaskSummary[] = [];
+      let nextCursor: string | undefined;
+      const seenCursors = new Set<string>();
+
+      for (let page = 0; page < 100; page += 1) {
+        if (quickNavTasksRequestVersionRef.current !== requestVersion) {
+          return;
+        }
+        const taskPage = await queryTasks(
+          accessToken,
+          nextCursor
+            ? {
+                lens: 'assigned',
+                limit: 200,
+                cursor: nextCursor,
+              }
+            : {
+                lens: 'assigned',
+                limit: 200,
+              },
+        );
+        nextTasks.push(...taskPage.tasks);
+
+        if (!taskPage.next_cursor || seenCursors.has(taskPage.next_cursor)) {
+          break;
+        }
+        seenCursors.add(taskPage.next_cursor);
+        nextCursor = taskPage.next_cursor;
+      }
+
+      if (quickNavTasksRequestVersionRef.current !== requestVersion) {
+        return;
+      }
+
+      const nextItems = [...nextTasks].sort((left, right) => {
+        const leftDue = parseIsoTimestamp(left.task_state.due_at);
+        const rightDue = parseIsoTimestamp(right.task_state.due_at);
+        if (leftDue !== rightDue) {
+          return leftDue - rightDue;
+        }
+        return parseIsoTimestamp(right.updated_at) - parseIsoTimestamp(left.updated_at);
+      });
+      setQuickNavTasks(nextItems);
+    } catch (error) {
+      if (quickNavTasksRequestVersionRef.current !== requestVersion) {
+        return;
+      }
+      setQuickNavTasks([]);
+      setQuickNavTasksError(error instanceof Error ? error.message : 'Failed to load tasks.');
+    } finally {
+      if (quickNavTasksRequestVersionRef.current === requestVersion) {
+        setQuickNavTasksLoading(false);
       }
     }
   }, [accessToken]);
@@ -471,6 +434,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setEventError(null);
     setReminderError(null);
     setProjectDialogError(null);
+  }, []);
+
+  const closeQuickNavPanel = useCallback(() => {
+    setToolbarDialog(null);
   }, []);
 
   const openQuickAddDialog = useCallback(
@@ -626,10 +593,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [accessToken, navigate, projectDialogName, refreshProjects]);
 
   useEffect(() => {
-    void refreshCaptureData();
-  }, [refreshCaptureData]);
-
-  useEffect(() => {
     if (!captureOpen) {
       return;
     }
@@ -693,6 +656,26 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       focusElementSoon(projectNameInputRef.current);
     }
   }, [quickAddDialog]);
+
+  useEffect(() => {
+    if (toolbarDialog !== 'tasks' && toolbarDialog !== 'reminders') {
+      return;
+    }
+    setBucketNow(new Date());
+    const timerId = window.setInterval(() => {
+      setBucketNow(new Date());
+    }, 60_000);
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [toolbarDialog]);
+
+  useEffect(() => {
+    if (toolbarDialog !== 'tasks') {
+      return;
+    }
+    void refreshQuickNavTasks();
+  }, [toolbarDialog, refreshQuickNavTasks]);
 
   useEffect(() => {
     let cancelled = false;
@@ -783,6 +766,34 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setSearchActiveIndex(-1);
   }, []);
 
+  const openQuickNavPanel = useCallback((panel: Exclude<ToolbarDialog, null>) => {
+    skipProfileFocusRestoreRef.current = true;
+    skipNotificationsFocusRestoreRef.current = true;
+    skipContextMenuFocusRestoreRef.current = true;
+    setToolbarDialog(panel);
+    closeQuickNav();
+    closeSearch();
+    setProfileOpen(false);
+    setNotificationsOpen(false);
+    setContextMenuOpen(false);
+    closeCapturePanel({ restoreFocus: false });
+  }, [closeCapturePanel, closeQuickNav, closeSearch]);
+
+  useEffect(() => subscribeQuickAddProjectRequest(() => {
+    skipQuickNavFocusRestoreRef.current = true;
+    closeQuickNav();
+    skipProfileFocusRestoreRef.current = true;
+    skipNotificationsFocusRestoreRef.current = true;
+    skipContextMenuFocusRestoreRef.current = true;
+    closeQuickNavPanel();
+    closeSearch();
+    setProfileOpen(false);
+    setNotificationsOpen(false);
+    setContextMenuOpen(false);
+    closeCapturePanel({ restoreFocus: false });
+    void openQuickAddDialog('project');
+  }), [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, openQuickAddDialog]);
+
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -805,10 +816,28 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (!quickAddDialog && !isTextInputElement(event.target) && event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        if (event.key.toLowerCase() === 'c') {
+          event.preventDefault();
+          openQuickNavPanel('calendar');
+          return;
+        }
+        if (event.key.toLowerCase() === 't') {
+          event.preventDefault();
+          openQuickNavPanel('tasks');
+          return;
+        }
+        if (event.key.toLowerCase() === 'r') {
+          event.preventDefault();
+          openQuickNavPanel('reminders');
+          return;
+        }
+      }
       if (event.key === 'Escape') {
         closeCapturePanel();
         closeSearch();
         closeQuickNav();
+        closeQuickNavPanel();
         setProfileOpen(false);
         setNotificationsOpen(false);
         setContextMenuOpen(false);
@@ -821,15 +850,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closeCapturePanel, closeQuickNav, closeSearch, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, notificationsOpen, openQuickNavPanel, profileOpen, quickAddDialog, quickNavOpen, searchOpen]);
 
   const unreadNotifications = notifications.filter((notification) => !notification.read).length;
 
-  const quickNavItems = useMemo(() => {
-    const tabItems = visibleTabs.map((tab) => ({ id: tab.to, label: tab.label, href: tab.to }));
+  const quickNavDestinationItems = useMemo(() => {
+    const tabItems: QuickNavActionItem[] = visibleTabs.map((tab) => ({ id: tab.to, label: tab.label, action: 'navigate', href: tab.to }));
     const projectItems = projects.map((project) => ({
       id: `project-${project.id}`,
       label: project.name,
+      iconName: 'menu' as const,
+      action: 'navigate' as const,
       href: `/projects/${project.id}/overview`,
     }));
     const allItems = [...tabItems, ...projectItems];
@@ -840,6 +871,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
     return allItems.filter((item) => item.label.toLowerCase().includes(query));
   }, [projects, quickNavQuery, visibleTabs]);
+  const quickNavItems = useMemo(
+    () => [...QUICK_NAV_FIXED_ITEMS, ...quickNavDestinationItems],
+    [quickNavDestinationItems],
+  );
 
   const normalizedQuickNavActiveIndex =
     quickNavItems.length === 0 || quickNavActiveIndex < 0 || quickNavActiveIndex >= quickNavItems.length
@@ -948,8 +983,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
       if (event.key === 'Enter' && normalizedQuickNavActiveIndex >= 0 && quickNavItems[normalizedQuickNavActiveIndex]) {
         event.preventDefault();
+        const selectedItem = quickNavItems[normalizedQuickNavActiveIndex];
+        if (!selectedItem) {
+          return;
+        }
         skipQuickNavFocusRestoreRef.current = true;
-        navigate(quickNavItems[normalizedQuickNavActiveIndex].href);
+        if (selectedItem.action === 'panel') {
+          openQuickNavPanel(selectedItem.panel);
+          return;
+        }
+        setToolbarDialog(null);
+        navigate(selectedItem.href);
         closeQuickNav();
         return;
       }
@@ -964,7 +1008,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     return () => {
       document.removeEventListener('keydown', onQuickNavKeyDown);
     };
-  }, [closeQuickNav, navigate, normalizedQuickNavActiveIndex, quickNavItems, quickNavOpen]);
+  }, [closeQuickNav, navigate, normalizedQuickNavActiveIndex, openQuickNavPanel, quickNavItems, quickNavOpen]);
 
   useEffect(() => {
     if (quickNavOpen) {
@@ -977,6 +1021,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       && !profileOpen
       && !contextMenuOpen
       && !captureOpen
+      && !toolbarDialog
+      && !quickAddDialog
     ) {
       focusElementSoon(quickNavTriggerRef.current);
     }
@@ -984,7 +1030,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       skipQuickNavFocusRestoreRef.current = false;
     }
     quickNavWasOpenRef.current = quickNavOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
 
   useEffect(() => {
     if (notificationsOpen) {
@@ -1000,6 +1046,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       && !profileOpen
       && !contextMenuOpen
       && !captureOpen
+      && !toolbarDialog
+      && !quickAddDialog
     ) {
       focusElementSoon(notificationsTriggerRef.current);
     }
@@ -1007,7 +1055,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       skipNotificationsFocusRestoreRef.current = false;
     }
     notificationsWereOpenRef.current = notificationsOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
 
   useEffect(() => {
     if (profileOpen) {
@@ -1020,6 +1068,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       && !notificationsOpen
       && !contextMenuOpen
       && !captureOpen
+      && !toolbarDialog
+      && !quickAddDialog
     ) {
       focusElementSoon(profileTriggerRef.current);
     }
@@ -1027,7 +1077,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       skipProfileFocusRestoreRef.current = false;
     }
     profileWasOpenRef.current = profileOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
 
   useEffect(() => {
     if (contextMenuOpen) {
@@ -1040,6 +1090,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       && !notificationsOpen
       && !profileOpen
       && !captureOpen
+      && !toolbarDialog
+      && !quickAddDialog
     ) {
       focusElementSoon(contextMenuTriggerRef.current);
     }
@@ -1047,19 +1099,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       skipContextMenuFocusRestoreRef.current = false;
     }
     contextMenuWasOpenRef.current = contextMenuOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickNavOpen, searchOpen]);
-
-  const visibleNotifications = useMemo(() => {
-    return notifications.filter((notification) => {
-      if (notifFilter === 'unread' && notification.read) {
-        return false;
-      }
-      if (notifProjectFilter && notification.projectId !== notifProjectFilter) {
-        return false;
-      }
-      return true;
-    });
-  }, [notifFilter, notifProjectFilter, notifications]);
+  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
 
   const onMarkNotificationRead = async (notificationId: string) => {
     if (!accessToken) {
@@ -1088,6 +1128,18 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const onNavigateProjectsFromProfileMenu = useCallback(() => {
+    skipProfileFocusRestoreRef.current = true;
+    navigate('/projects');
+    setProfileOpen(false);
+  }, [navigate]);
+
+  const onLogoutFromProfileMenu = useCallback(() => {
+    skipProfileFocusRestoreRef.current = true;
+    void signOut();
+    setProfileOpen(false);
+  }, [signOut]);
+
   const openCapturePanel = useCallback((intent: string | null, restoreTarget?: HTMLElement | null) => {
     captureRestoreTargetRef.current = restoreTarget ?? captureTriggerRef.current;
     skipCaptureFocusRestoreRef.current = false;
@@ -1096,10 +1148,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setCaptureOpen(true);
     closeSearch();
     closeQuickNav();
+    closeQuickNavPanel();
     setProfileOpen(false);
     setNotificationsOpen(false);
     setContextMenuOpen(false);
-  }, [closeQuickNav, closeSearch]);
+  }, [closeQuickNav, closeQuickNavPanel, closeSearch]);
 
   const onQuickCapture = () => {
     if (captureOpen && !captureIntent) {
@@ -1132,7 +1185,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setProfileOpen(false);
     closeSearch();
     closeQuickNav();
-  }, [closeCapturePanel, closeQuickNav, closeSearch]);
+    closeQuickNavPanel();
+  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch]);
 
   const onSelectQuickAddOption = useCallback((option: QuickAddOption) => {
     skipContextMenuFocusRestoreRef.current = true;
@@ -1177,13 +1231,71 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       resetSearch();
       skipQuickNavFocusRestoreRef.current = true;
       closeQuickNav();
+      closeQuickNavPanel();
       setNotificationsOpen(false);
       setProfileOpen(false);
       setContextMenuOpen(false);
       closeCapturePanel({ restoreFocus: false });
     },
-    [closeCapturePanel, closeQuickNav, navigate, resetSearch],
+    [closeCapturePanel, closeQuickNav, closeQuickNavPanel, navigate, resetSearch],
   );
+
+  const onSelectQuickNavItem = useCallback((item: QuickNavActionItem) => {
+    skipQuickNavFocusRestoreRef.current = true;
+    if (item.action === 'panel') {
+      openQuickNavPanel(item.panel);
+      return;
+    }
+    setToolbarDialog(null);
+    navigate(item.href);
+    closeQuickNav();
+  }, [closeQuickNav, navigate, openQuickNavPanel]);
+
+  const onOpenTaskRecordFromDialog = useCallback((recordId: string) => {
+    const task = quickNavTasksByRecordId.get(recordId);
+    if (!task) {
+      return;
+    }
+    const href = buildTaskDestinationHref(task);
+    setToolbarDialog(null);
+    navigate(href);
+  }, [navigate, quickNavTasksByRecordId]);
+
+  const onOpenReminderRecordFromDialog = useCallback((recordId: string, projectId: string | null) => {
+    const targetProjectId = projectId || captureHomeData.personalProjectId;
+    if (!targetProjectId) {
+      return;
+    }
+    setToolbarDialog(null);
+    navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
+  }, [captureHomeData.personalProjectId, navigate]);
+
+  const onOpenCalendarRecordFromDialog = useCallback((recordId: string) => {
+    const event = personalCalendarEvents.find((entry) => entry.record_id === recordId);
+    const targetProjectId = event?.project_id || currentProjectId || captureHomeData.personalProjectId;
+    if (!targetProjectId) {
+      return;
+    }
+    setToolbarDialog(null);
+    navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
+  }, [captureHomeData.personalProjectId, currentProjectId, navigate, personalCalendarEvents]);
+
+  const toolbarCalendarCreateProjectId =
+    captureHomeData.personalProjectId
+    || projects.find((project) => project.isPersonal)?.id
+    || null;
+
+  const onDismissReminderFromDialog = useCallback(async (reminderId: string) => {
+    await remindersRuntime.dismiss(reminderId);
+  }, [remindersRuntime]);
+
+  const onSnoozeReminderFromDialog = useCallback(async (reminderId: string) => {
+    if (!accessToken) {
+      return;
+    }
+    await updateReminder(accessToken, reminderId, { remind_at: tomorrowAtNineIso() });
+    await remindersRuntime.refresh();
+  }, [accessToken, remindersRuntime]);
 
   const accountInitials = sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId);
   const avatarUrl = buildAccountAvatarUrl(accountInitials, sessionSummary.userId || sessionSummary.email || sessionSummary.name);
@@ -1205,7 +1317,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         <div className="mx-auto w-full max-w-7xl px-4 py-6">{children}</div>
       </main>
 
-      <footer>
+      <footer aria-label="App toolbar">
         <nav
           aria-label="App toolbar"
           className="relative flex h-12 shrink-0 items-center gap-sm border-t border-border-muted bg-surface-elevated px-md"
@@ -1246,6 +1358,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               setProfileOpen(false);
               setNotificationsOpen(false);
               setContextMenuOpen(false);
+              closeQuickNavPanel();
               closeCapturePanel({ restoreFocus: false });
             }}
             aria-label="Quick navigation"
@@ -1278,31 +1391,52 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 className="w-full border-b border-border-muted bg-transparent px-md py-sm text-sm text-text outline-none"
               />
               <ul className="max-h-72 overflow-y-auto py-1">
-                {quickNavItems.length === 0 ? (
+                {QUICK_NAV_FIXED_ITEMS.map((item, index) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      aria-label={`Open ${item.label.toLowerCase()}`}
+                      className="flex w-full items-center gap-2 px-md py-sm text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      style={{
+                        background:
+                          normalizedQuickNavActiveIndex === index
+                            ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+                            : 'transparent',
+                      }}
+                      onMouseEnter={() => setQuickNavActiveIndex(index)}
+                      onClick={() => onSelectQuickNavItem(item)}
+                    >
+                      {item.iconName ? <Icon name={item.iconName} className="text-[13px] text-muted" /> : null}
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  </li>
+                ))}
+                <li aria-hidden="true" className="my-1 border-t border-border-muted" />
+                {quickNavDestinationItems.length === 0 ? (
                   <li className="px-md py-sm text-sm text-muted">No matching destinations</li>
                 ) : (
-                  quickNavItems.map((item, index) => (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        className="w-full px-md py-sm text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                        style={{
-                          background:
-                            normalizedQuickNavActiveIndex === index
-                              ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
-                              : 'transparent',
-                        }}
-                        onMouseEnter={() => setQuickNavActiveIndex(index)}
-                        onClick={() => {
-                          skipQuickNavFocusRestoreRef.current = true;
-                          navigate(item.href);
-                          closeQuickNav();
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    </li>
-                  ))
+                  quickNavDestinationItems.map((item, index) => {
+                    const absoluteIndex = QUICK_NAV_FIXED_ITEMS.length + index;
+                    return (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 px-md py-sm text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          style={{
+                            background:
+                              normalizedQuickNavActiveIndex === absoluteIndex
+                                ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+                                : 'transparent',
+                          }}
+                          onMouseEnter={() => setQuickNavActiveIndex(absoluteIndex)}
+                          onClick={() => onSelectQuickNavItem(item)}
+                        >
+                          {item.iconName ? <Icon name={item.iconName} className="text-[13px] text-muted" /> : null}
+                          <span className="truncate">{item.label}</span>
+                        </button>
+                      </li>
+                    );
+                  })
                 )}
               </ul>
             </div>
@@ -1325,6 +1459,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                   setSearchOpen(true);
                 }
                 closeQuickNav();
+                closeQuickNavPanel();
                 setProfileOpen(false);
                 setNotificationsOpen(false);
                 setContextMenuOpen(false);
@@ -1565,6 +1700,99 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           ) : null}
         </Popover>
 
+        <Dialog
+          open={toolbarDialog === 'calendar'}
+          onClose={closeQuickNavPanel}
+          triggerRef={quickNavTriggerRef}
+          title="Calendar"
+          description="Your personal calendar across all projects."
+          panelClassName="!top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] !w-[min(96vw,96rem)] !max-w-[min(96vw,96rem)] flex flex-col overflow-hidden"
+          contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            {personalCalendarError ? (
+              <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
+                <p className="text-sm text-danger">{personalCalendarError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refreshPersonalCalendar();
+                  }}
+                  className="mt-2 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <CalendarModuleSkin
+                events={personalCalendarEvents}
+                loading={personalCalendarLoading}
+                scope={personalCalendarMode as CalendarScope}
+                onScopeChange={setPersonalCalendarMode}
+                onOpenRecord={onOpenCalendarRecordFromDialog}
+                onCreateEvent={
+                  accessToken && toolbarCalendarCreateProjectId
+                    ? async (payload) => {
+                        await createEventFromNlp(accessToken, toolbarCalendarCreateProjectId, payload);
+                        requestHubHomeRefresh();
+                        await refreshPersonalCalendar();
+                      }
+                    : undefined
+                }
+              />
+            </div>
+          </div>
+        </Dialog>
+
+        <Dialog
+          open={toolbarDialog === 'tasks'}
+          onClose={closeQuickNavPanel}
+          triggerRef={quickNavTriggerRef}
+          title="Tasks"
+          description="All your tasks across projects."
+          panelClassName="w-[min(92vw,48rem)] max-w-3xl sm:min-w-[540px]"
+        >
+          <ToolbarTasksDialogContent
+            bucketedTasks={bucketedTasks}
+            loading={quickNavTasksLoading}
+            error={quickNavTasksError}
+            onRetry={() => {
+              void refreshQuickNavTasks();
+            }}
+            onOpenTask={onOpenTaskRecordFromDialog}
+            onNewTask={() => {
+              setToolbarDialog(null);
+              void openQuickAddDialog('task');
+            }}
+          />
+        </Dialog>
+
+        <Dialog
+          open={toolbarDialog === 'reminders'}
+          onClose={closeQuickNavPanel}
+          triggerRef={quickNavTriggerRef}
+          title="Reminders"
+          description="Your active reminders."
+          panelClassName="w-[min(92vw,400px)] max-w-[400px] sm:min-w-[360px] !bg-surface-elevated"
+        >
+          <ToolbarRemindersDialogContent
+            bucketedReminders={bucketedRemindersForDialog}
+            loading={remindersRuntime.loading}
+            error={remindersRuntime.error}
+            onRetry={() => {
+              void remindersRuntime.refresh();
+            }}
+            onOpenReminder={onOpenReminderRecordFromDialog}
+            onDismiss={onDismissReminderFromDialog}
+            onSnooze={onSnoozeReminderFromDialog}
+            onNewReminder={() => {
+              setToolbarDialog(null);
+              void openQuickAddDialog('reminder');
+            }}
+          />
+        </Dialog>
+
         <TaskCreateDialog
           open={quickAddDialog === 'task'}
           onClose={closeQuickAddDialog}
@@ -1589,200 +1817,51 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           }}
         />
 
-        <Dialog
+        <QuickAddEventDialog
           open={quickAddDialog === 'event'}
           onClose={closeQuickAddDialog}
           triggerRef={contextMenuTriggerRef}
-          title="New Calendar Event"
-          description="Create a calendar event."
-        >
-          <form className="space-y-4" onSubmit={onCreateQuickAddEvent}>
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-project">
-                Project
-              </label>
-              <select
-                id="quick-add-event-project"
-                ref={eventProjectSelectRef}
-                value={quickAddProjectId}
-                onChange={(event) => setQuickAddProjectId(event.target.value)}
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-              >
-                {quickAddProjectOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          projectOptions={quickAddProjectOptions}
+          selectedProjectId={quickAddProjectId}
+          onSelectedProjectIdChange={setQuickAddProjectId}
+          onSubmit={onCreateQuickAddEvent}
+          title={eventTitle}
+          onTitleChange={setEventTitle}
+          startAt={eventStartAt}
+          onStartAtChange={setEventStartAt}
+          endAt={eventEndAt}
+          onEndAtChange={setEventEndAt}
+          submitting={eventSubmitting}
+          error={eventError}
+          titleInputRef={eventTitleInputRef}
+        />
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-title">
-                Event title
-              </label>
-              <input
-                id="quick-add-event-title"
-                ref={eventTitleInputRef}
-                type="text"
-                value={eventTitle}
-                onChange={(event) => setEventTitle(event.target.value)}
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                placeholder="New event"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-start">
-                  Start
-                </label>
-                <input
-                  id="quick-add-event-start"
-                  type="datetime-local"
-                  value={eventStartAt}
-                  onChange={(event) => setEventStartAt(event.target.value)}
-                  className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-end">
-                  End
-                </label>
-                <input
-                  id="quick-add-event-end"
-                  type="datetime-local"
-                  value={eventEndAt}
-                  onChange={(event) => setEventEndAt(event.target.value)}
-                  className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                />
-              </div>
-            </div>
-
-            {eventError ? <p className="text-sm text-danger">{eventError}</p> : null}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeQuickAddDialog}
-                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={eventSubmitting}
-                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {eventSubmitting ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </form>
-        </Dialog>
-
-        <Dialog
+        <QuickAddReminderDialog
           open={quickAddDialog === 'reminder'}
           onClose={closeQuickAddDialog}
           triggerRef={contextMenuTriggerRef}
-          title="New Reminder"
-          description="Create a reminder from natural language."
-        >
-          <form className="space-y-4" onSubmit={onCreateQuickAddReminder}>
-            <p className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
-              Reminders are saved to your {personalReminderProjectLabel} project.
-            </p>
+          draft={reminderDraft}
+          onDraftChange={setReminderDraft}
+          preview={reminderPreview}
+          onSubmit={onCreateQuickAddReminder}
+          submitting={reminderSubmitting}
+          error={reminderError}
+          onClearError={() => setReminderError(null)}
+          inputRef={reminderInputRef}
+          personalProjectLabel={personalReminderProjectLabel}
+        />
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-reminder-input">
-                Reminder
-              </label>
-              <input
-                id="quick-add-reminder-input"
-                ref={reminderInputRef}
-                type="text"
-                value={reminderDraft}
-                onChange={(event) => {
-                  setReminderDraft(event.target.value);
-                  if (reminderError) {
-                    setReminderError(null);
-                  }
-                }}
-                placeholder="Add a reminder…"
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-              />
-            </div>
-
-            {hasMeaningfulReminderPreview(reminderPreview) ? (
-              <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
-                {reminderPreview.fields.title ? <p><span className="font-semibold text-text">Title:</span> {reminderPreview.fields.title}</p> : null}
-                {reminderPreview.fields.remind_at ? <p><span className="font-semibold text-text">When:</span> {reminderPreview.fields.context_hint || reminderPreview.fields.remind_at}</p> : null}
-                {reminderPreview.fields.recurrence ? <p><span className="font-semibold text-text">Recurs:</span> {reminderPreview.fields.recurrence.frequency}</p> : null}
-              </div>
-            ) : null}
-
-            {reminderError ? <p className="text-sm text-danger">{reminderError}</p> : null}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeQuickAddDialog}
-                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={reminderSubmitting}
-                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {reminderSubmitting ? 'Adding...' : 'Add'}
-              </button>
-            </div>
-          </form>
-        </Dialog>
-
-        <Dialog
+        <QuickAddProjectDialog
           open={quickAddDialog === 'project'}
           onClose={closeQuickAddDialog}
           triggerRef={contextMenuTriggerRef}
-          title="Create Project"
-          description="Create a new project."
-        >
-          <form className="space-y-4" onSubmit={onCreateQuickAddProject}>
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-project-name">
-                Project name
-              </label>
-              <input
-                id="quick-add-project-name"
-                ref={projectNameInputRef}
-                type="text"
-                value={projectDialogName}
-                onChange={(event) => setProjectDialogName(event.target.value)}
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                placeholder="New project"
-              />
-            </div>
-
-            {projectDialogError ? <p className="text-sm text-danger">{projectDialogError}</p> : null}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeQuickAddDialog}
-                className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={projectDialogSubmitting}
-                className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {projectDialogSubmitting ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </form>
-        </Dialog>
+          name={projectDialogName}
+          onNameChange={setProjectDialogName}
+          onSubmit={onCreateQuickAddProject}
+          submitting={projectDialogSubmitting}
+          error={projectDialogError}
+          nameInputRef={projectNameInputRef}
+        />
 
         <div className="relative" ref={notificationsRef}>
           <button
@@ -1793,6 +1872,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               setProfileOpen(false);
               closeSearch();
               closeQuickNav();
+              closeQuickNavPanel();
               setContextMenuOpen(false);
               closeCapturePanel({ restoreFocus: false });
             }}
@@ -1813,104 +1893,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </button>
 
           {notificationsOpen ? (
-            <div
-              ref={notificationsPanelRef}
-              role="dialog"
-              aria-label="Notifications"
-              className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-[360px] rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
-            >
-              <div className="flex items-center gap-sm border-b border-border-muted px-md py-sm">
-                {(['unread', 'all'] as NotificationFilter[]).map((filter) => (
-                  <button
-                    key={filter}
-                    type="button"
-                    onClick={() => setNotifFilter(filter)}
-                    className="text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                    style={{
-                      fontWeight: notifFilter === filter ? 500 : 400,
-                      color: notifFilter === filter ? 'var(--color-text)' : 'var(--color-muted)',
-                      borderBottom: notifFilter === filter ? '2px solid var(--color-primary)' : '2px solid transparent',
-                    }}
-                  >
-                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </button>
-                ))}
-
-                <select
-                  value={notifProjectFilter ?? ''}
-                  onChange={(event) => setNotifProjectFilter(event.target.value || null)}
-                  aria-label="Filter by project"
-                  className="ml-auto rounded-control border border-border-muted bg-surface-elevated px-xs py-[2px] text-xs text-text outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                >
-                  <option value="">All projects</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <ul className="max-h-[420px] list-none overflow-y-auto p-0">
-                {visibleNotifications.length === 0 ? (
-                  <li className="px-xl py-xl text-center text-sm text-muted">
-                    {notifFilter === 'unread' ? "You're all caught up." : 'No notifications yet.'}
-                  </li>
-                ) : (
-                  visibleNotifications.map((notification) => (
-                    <li
-                      key={notification.id}
-                      className="group flex items-start gap-sm border-b border-border-muted px-md py-sm last:border-b-0"
-                      style={{
-                        background: notification.read
-                          ? 'transparent'
-                          : 'color-mix(in srgb, var(--color-primary) 8%, transparent)',
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => onNavigateNotification(notification)}
-                        className="min-w-0 flex flex-1 items-start gap-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                      >
-                        <div
-                          aria-hidden="true"
-                          className="mt-[2px] flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-on-primary"
-                          style={{ background: notification.avatarColor }}
-                        >
-                          {notification.authorInitial}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm text-text">{notification.summary}</p>
-                          <p className="mt-[2px] line-clamp-2 text-[13px] text-muted">{notification.body}</p>
-                        </div>
-                      </button>
-
-                      <div className="flex shrink-0 flex-col items-end gap-xs">
-                        <span className="text-xs text-muted" title={new Date(notification.createdAt).toLocaleString()}>
-                          {relativeTimeLabel(notification.createdAt)}
-                        </span>
-
-                        <div className="flex">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              event.preventDefault();
-                            }}
-                            aria-disabled="true"
-                            aria-label="Add to reminders. Coming soon."
-                            title="Coming soon."
-                            className="cursor-not-allowed rounded-control border border-border-muted px-2 py-1 text-xs text-muted opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                          >
-                            Add to reminders
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
+            <NotificationsPanel
+              notifications={notifications}
+              filter={notifFilter}
+              onFilterChange={setNotifFilter}
+              projectFilter={notifProjectFilter}
+              onProjectFilterChange={setNotifProjectFilter}
+              projects={projects}
+              onNavigate={onNavigateNotification}
+              panelRef={notificationsPanelRef}
+            />
           ) : null}
         </div>
 
@@ -1923,6 +1915,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               setNotificationsOpen(false);
               closeSearch();
               closeQuickNav();
+              closeQuickNavPanel();
               setContextMenuOpen(false);
               closeCapturePanel({ restoreFocus: false });
             }}
@@ -1946,53 +1939,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </button>
 
           {profileOpen ? (
-            <div
-              ref={profileMenuRef}
-              role="menu"
-              className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-56 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
-            >
-              <div className="flex items-center gap-sm border-b border-border-muted px-md py-md">
-                {avatarBroken ? (
-                  <span
-                    aria-hidden="true"
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-text"
-                  >
-                    <Icon name="user" className="text-[18px]" />
-                  </span>
-                ) : (
-                  <img src={avatarUrl} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 rounded-full object-cover" />
-                )}
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-text">{sessionSummary.name}</p>
-                  <p className="truncate text-xs text-muted">{sessionSummary.email}</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                role="menuitem"
-                className="block w-full px-md py-sm text-left text-sm text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                onClick={() => {
-                  skipProfileFocusRestoreRef.current = true;
-                  navigate('/projects');
-                  setProfileOpen(false);
-                }}
-              >
-                Projects
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="block w-full px-md py-sm text-left text-sm text-danger hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                onClick={() => {
-                  skipProfileFocusRestoreRef.current = true;
-                  void signOut();
-                  setProfileOpen(false);
-                }}
-              >
-                Log out
-              </button>
-            </div>
+            <ProfileMenu
+              name={sessionSummary.name}
+              email={sessionSummary.email}
+              avatarUrl={avatarUrl}
+              avatarBroken={avatarBroken}
+              menuRef={profileMenuRef}
+              onNavigateProjects={onNavigateProjectsFromProfileMenu}
+              onLogout={onLogoutFromProfileMenu}
+            />
           ) : null}
         </div>
         </nav>

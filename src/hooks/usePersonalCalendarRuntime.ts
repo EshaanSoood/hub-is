@@ -17,7 +17,12 @@ interface PersonalCalendarEventSummary {
   source_pane: { pane_id: string | null; pane_name: string | null; doc_id: string | null } | null;
 }
 
-export const usePersonalCalendarRuntime = (accessToken: string | null) => {
+interface PersonalCalendarRuntimeOptions {
+  autoload?: boolean;
+}
+
+export const usePersonalCalendarRuntime = (accessToken: string | null, options?: PersonalCalendarRuntimeOptions) => {
+  const autoload = options?.autoload ?? true;
   const [calendarMode, setCalendarMode] = useState<'relevant' | 'all'>('relevant');
   const [calendarEvents, setCalendarEvents] = useState<PersonalCalendarEventSummary[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
@@ -55,8 +60,20 @@ export const usePersonalCalendarRuntime = (accessToken: string | null) => {
   }, [accessToken, calendarMode]);
 
   useEffect(() => {
+    if (!accessToken) {
+      latestRequestRef.current += 1;
+      setCalendarEvents([]);
+      setCalendarLoading(false);
+      setCalendarError(null);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!autoload) {
+      return;
+    }
     void refreshCalendar();
-  }, [refreshCalendar]);
+  }, [autoload, refreshCalendar]);
 
   return {
     calendarEvents,

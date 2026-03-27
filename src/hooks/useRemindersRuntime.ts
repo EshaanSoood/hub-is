@@ -13,7 +13,16 @@ export interface RemindersRuntime {
   create: (payload: CreateReminderPayload) => Promise<void>;
 }
 
-export const useRemindersRuntime = (accessToken: string | null): RemindersRuntime => {
+interface UseRemindersRuntimeOptions {
+  autoload?: boolean;
+  subscribeToHomeRefresh?: boolean;
+  subscribeToLive?: boolean;
+}
+
+export const useRemindersRuntime = (accessToken: string | null, options?: UseRemindersRuntimeOptions): RemindersRuntime => {
+  const autoload = options?.autoload ?? true;
+  const subscribeToHomeRefresh = options?.subscribeToHomeRefresh ?? true;
+  const subscribeToLive = options?.subscribeToLive ?? true;
   const [reminders, setReminders] = useState<HubReminderSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,15 +66,32 @@ export const useRemindersRuntime = (accessToken: string | null): RemindersRuntim
   }, [accessToken]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  useEffect(() => subscribeHubHomeRefresh(() => {
-    void refresh();
-  }), [refresh]);
+    if (!accessToken) {
+      refreshSequenceRef.current += 1;
+      setReminders([]);
+      setLoading(false);
+      setError(null);
+    }
+  }, [accessToken]);
 
   useEffect(() => {
-    if (!accessToken) {
+    if (!autoload) {
+      return;
+    }
+    void refresh();
+  }, [autoload, refresh]);
+
+  useEffect(() => {
+    if (!subscribeToHomeRefresh) {
+      return;
+    }
+    return subscribeHubHomeRefresh(() => {
+      void refresh();
+    });
+  }, [refresh, subscribeToHomeRefresh]);
+
+  useEffect(() => {
+    if (!accessToken || !subscribeToLive) {
       return;
     }
     return subscribeHubLive(accessToken, (message) => {
@@ -74,7 +100,7 @@ export const useRemindersRuntime = (accessToken: string | null): RemindersRuntim
       }
       void refresh();
     });
-  }, [accessToken, refresh]);
+  }, [accessToken, refresh, subscribeToLive]);
 
   const dismiss = useCallback(async (reminderId: string) => {
     if (!accessToken) {

@@ -99,6 +99,12 @@ export interface WorkViewCalendarRuntime {
     timezone: string;
     location?: string;
   }) => Promise<void>;
+  onRescheduleEvent?: (payload: {
+    record_id: string;
+    start_dt: string;
+    end_dt: string;
+    timezone: string;
+  }) => Promise<void>;
 }
 
 export interface WorkViewFilesRuntime {
@@ -255,6 +261,7 @@ const EMPTY_RUNTIME: WorkViewModuleRuntime = {
     scope: 'relevant',
     onScopeChange: () => undefined,
     onCreateEvent: undefined,
+    onRescheduleEvent: undefined,
   },
   files: {
     paneFiles: [],
