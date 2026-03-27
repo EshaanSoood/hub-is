@@ -25,9 +25,9 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
     if (!signedIn || !accessToken) {
       setProjects([]);
       setError(undefined);
-      hasInitializedRef.current = true;
+      hasInitializedRef.current = false;
       setLoading(false);
-      setInitialized(true);
+      setInitialized(false);
       return;
     }
 

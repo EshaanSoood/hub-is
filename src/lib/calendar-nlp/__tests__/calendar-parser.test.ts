@@ -5,7 +5,7 @@ import { describe, test } from 'node:test';
 
 import { parseEventInput } from '../index.ts';
 
-const now = new Date('2026-03-27T10:00:00');
+const now = new Date('2026-03-27T10:00:00-04:00');
 const timezone = 'America/New_York';
 
 const parse = (input: string) => parseEventInput(input, { now, timezone });

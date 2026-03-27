@@ -9,6 +9,12 @@ import {
   parseReferenceDate,
   toIsoDate,
 } from '../shared/utils.ts';
+import { TITLE_SMALL_WORDS } from '../shared/constants.ts';
+import {
+  stripLeadingTitleFiller,
+  stripReminderLeadPrefix,
+  stripTrailingDanglingPreposition,
+} from '../shared/title-utils.ts';
 import {
   ACRONYM_MAP,
   DEFAULT_TIMEZONE,
@@ -441,7 +447,14 @@ const upcomingWeekend = (now: Date, timezone: string): string => {
 
 const endOfMonthReminderAt = (now: Date, timezone: string): string => {
   const parts = getZonedParts(now, timezone);
-  return `${toIsoDate(parts.year, parts.month, daysInMonth(parts.year, parts.month))}T09:00:00`;
+  const nowIso = formatDateTimeInTimezone(now, timezone);
+  const thisMonthCandidate = `${toIsoDate(parts.year, parts.month, daysInMonth(parts.year, parts.month))}T09:00:00`;
+  if (thisMonthCandidate > nowIso) {
+    return thisMonthCandidate;
+  }
+  const nextMonth = parts.month === 12 ? 1 : parts.month + 1;
+  const nextYear = parts.month === 12 ? parts.year + 1 : parts.year;
+  return `${toIsoDate(nextYear, nextMonth, daysInMonth(nextYear, nextMonth))}T09:00:00`;
 };
 
 const endOfWeekReminderAt = (now: Date, timezone: string): string => {
@@ -1071,58 +1084,21 @@ const stripResidualTemporalTokens = (input: string): string => {
   output = output
     .replace(/\bin\s+\d+\s+(?:day|days|week|weeks|month|months)\b/gi, ' ')
     .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
-    .replace(/\b(?:next|this)\s+(?:month|week)\b/gi, ' ')
+    .replace(/\bevery\s+\d+\s+(?:days|weeks|months)\b/gi, ' ')
+    .replace(/\b(?:next|this|last)\s+(?:month|week)\b/gi, ' ')
+    .replace(/\b(?:next|this|last)\s+(?:mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/gi, ' ')
+    .replace(/\bend of (?:the )?month\b/gi, ' ')
+    .replace(/\bend of (?:the )?week\b/gi, ' ')
+    .replace(/\bend of (?:the )?day\b/gi, ' ')
     .replace(
-      /\b(?:today|tomorrow|tonight|next|month|week|daily|weekly|monthly|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/gi,
+      /\b(?:today|tomorrow|tonight|daily|weekly|monthly)\b/gi,
       ' ',
     );
 
   return normalizeWhitespace(output);
 };
 
-const stripTrailingDanglingPreposition = (input: string): string => {
-  let output = normalizeWhitespace(input);
-  let previous = '';
-  while (output !== previous) {
-    previous = output;
-    output = normalizeWhitespace(output.replace(/\b(?:for|to|by|with|at|on|in|from)\b[.,;:!?-]*$/i, ' '));
-  }
-  return output;
-};
-
-const stripLeadingTitleFiller = (input: string): string => {
-  let output = normalizeWhitespace(input);
-  let previous = '';
-  while (output !== previous) {
-    previous = output;
-    output = normalizeWhitespace(output.replace(/^(?:to(?:\s+the)?|that(?:\s+i)?|about)\b[\s,:-]*/i, ' '));
-  }
-  return output;
-};
-
 const smartTitleCase = (input: string): string => {
-  const smallWords = new Set([
-    'a',
-    'an',
-    'and',
-    'as',
-    'at',
-    'but',
-    'by',
-    'for',
-    'from',
-    'in',
-    'is',
-    'it',
-    'nor',
-    'of',
-    'on',
-    'or',
-    'the',
-    'to',
-    'up',
-    'with',
-  ]);
   let output = input
     .split(/\s+/)
     .filter(Boolean)
@@ -1138,7 +1114,7 @@ const smartTitleCase = (input: string): string => {
         const [base] = cleaned.split(/['’]/);
         return `${base.charAt(0).toUpperCase()}${base.slice(1)}'s`;
       }
-      if (index > 0 && smallWords.has(cleaned.toLowerCase())) {
+      if (index > 0 && TITLE_SMALL_WORDS.has(cleaned.toLowerCase())) {
         return cleaned.toLowerCase();
       }
       return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
@@ -1174,6 +1150,7 @@ export const extractTitle = (input: string): string => {
     .replace(/\b(?:to|about|that)\b(?=\s*$)/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+  working = stripReminderLeadPrefix(working);
   working = stripLeadingTitleFiller(stripTrailingDanglingPreposition(stripResidualTemporalTokens(working)));
 
   const uniqueWords = working.split(/\s+/).filter(Boolean);

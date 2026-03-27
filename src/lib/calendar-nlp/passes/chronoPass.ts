@@ -102,7 +102,10 @@ const endOfMonthIso = (now: Date, timezone: string): string => {
 
 const fridayOfCurrentWeekIso = (now: Date, timezone: string): string => {
   const parts = getZonedDateTimeParts(now, timezone);
-  const delta = parts.weekday <= 5 ? 5 - parts.weekday : 12 - parts.weekday;
+  let delta = parts.weekday <= 5 ? 5 - parts.weekday : 12 - parts.weekday;
+  if (parts.weekday === 5 && parts.hour >= 17) {
+    delta = 7;
+  }
   const todayISO = toIsoDate(parts.year, parts.month, parts.day);
   return addDaysToIsoDate(todayISO, delta);
 };
@@ -193,10 +196,10 @@ const hasDateSignal = (text: string): boolean => DATE_SIGNAL_REGEX.test(text) ||
 
 const preprocessForChrono = (ctx: ParseContext): string => {
   let output = ctx.maskedInput;
-  output = replaceWithSameLength(output, /\bEOD\b/gi, '5pm');
   output = replaceWithSameLength(output, /\bfirst\s+thing\b/gi, '9am');
   output = replaceWithSameLength(output, /\btmr\b/gi, 'tom');
   output = replaceWithSameLength(output, /\b(?:end of day|eod)\b/gi, 'today 5pm');
+  output = replaceWithSameLength(output, /\bEOD\b/gi, 'today 5pm');
   output = replaceWithSameLength(output, /\b(?:end of (?:the )?week|eow)\b/gi, fridayOfCurrentWeekIso(ctx.now, ctx.options.timezone));
   output = replaceWithSameLength(output, /\bend\s+of\s+(?:the\s+)?month\b/gi, endOfMonthIso(ctx.now, ctx.options.timezone));
 

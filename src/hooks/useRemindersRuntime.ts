@@ -28,11 +28,15 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const refreshSequenceRef = useRef(0);
-  const lastRefreshAtRef = useRef(0);
+  const reminderRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
+      if (reminderRefreshTimerRef.current !== null) {
+        clearTimeout(reminderRefreshTimerRef.current);
+        reminderRefreshTimerRef.current = null;
+      }
       mountedRef.current = false;
     };
   }, []);
@@ -66,17 +70,22 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
     }
   }, [accessToken]);
 
-  const refreshWithDedup = useCallback(() => {
-    const now = Date.now();
-    if (now - lastRefreshAtRef.current < 300) {
-      return;
+  const refreshWithDebounce = useCallback(() => {
+    if (reminderRefreshTimerRef.current !== null) {
+      clearTimeout(reminderRefreshTimerRef.current);
     }
-    lastRefreshAtRef.current = now;
-    void refresh();
+    reminderRefreshTimerRef.current = setTimeout(() => {
+      reminderRefreshTimerRef.current = null;
+      void refresh();
+    }, 500);
   }, [refresh]);
 
   useEffect(() => {
     if (!accessToken) {
+      if (reminderRefreshTimerRef.current !== null) {
+        clearTimeout(reminderRefreshTimerRef.current);
+        reminderRefreshTimerRef.current = null;
+      }
       refreshSequenceRef.current += 1;
       setReminders([]);
       setLoading(false);
@@ -96,9 +105,9 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       return;
     }
     return subscribeHubHomeRefresh(() => {
-      refreshWithDedup();
+      refreshWithDebounce();
     });
-  }, [refreshWithDedup, subscribeToHomeRefresh]);
+  }, [refreshWithDebounce, subscribeToHomeRefresh]);
 
   useEffect(() => {
     if (!accessToken || !subscribeToLive) {
@@ -108,9 +117,9 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       if (message.type !== 'reminder.changed') {
         return;
       }
-      refreshWithDedup();
+      refreshWithDebounce();
     });
-  }, [accessToken, refreshWithDedup, subscribeToLive]);
+  }, [accessToken, refreshWithDebounce, subscribeToLive]);
 
   const dismiss = useCallback(async (reminderId: string) => {
     if (!accessToken) {

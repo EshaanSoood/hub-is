@@ -6,9 +6,13 @@ import { AccessDeniedView } from './AccessDeniedView';
 
 export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
   const { projectId = '' } = useParams();
-  const { canProject } = useAuthz();
+  const { signedIn, canProject } = useAuthz();
   const { projects, loading, initialized } = useProjects();
   const project = projects.find((entry) => entry.id === projectId) || null;
+
+  if (!signedIn) {
+    return <Navigate to="/" replace />;
+  }
 
   if (loading || !initialized) {
     return (

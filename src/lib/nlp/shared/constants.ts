@@ -39,3 +39,26 @@ export const SHARED_ACRONYM_MAP: Record<string, string> = {
   aws: 'AWS',
   readme: 'README',
 };
+
+export const TITLE_SMALL_WORDS = new Set([
+  'a',
+  'an',
+  'the',
+  'and',
+  'but',
+  'or',
+  'nor',
+  'for',
+  'to',
+  'in',
+  'on',
+  'at',
+  'by',
+  'of',
+  'with',
+  'from',
+  'up',
+  'as',
+  'is',
+  'it',
+]);

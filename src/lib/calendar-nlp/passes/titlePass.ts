@@ -1,5 +1,11 @@
 import type { ParseContext } from '../types.ts';
 import { hasStructuredFields, setFieldConfidence, stripEdgeGlueWords } from '../utils.ts';
+import { TITLE_SMALL_WORDS } from '../../nlp/shared/constants.ts';
+import {
+  stripLeadingTitleFiller,
+  stripReminderLeadPrefix,
+  stripTrailingDanglingPreposition,
+} from '../../nlp/shared/title-utils.ts';
 
 const cleanTitleNoise = (input: string): string =>
   input
@@ -22,19 +28,6 @@ const stripTrailingTemporalGlue = (input: string): string =>
     .replace(/[.]+$/g, '')
     .trim();
 
-const stripReminderLeadPrefix = (input: string): string => {
-  let output = input;
-  let previous = '';
-  while (output !== previous) {
-    previous = output;
-    output = output.replace(
-      /^\s*(?:remind\s+me\s+to|remind\s+me|don'?t\s+forget\s+to|don'?t\s+let\s+me\s+forget\s+to|dont\s+forget\s+to|dont\s+let\s+me\s+forget\s+to)\b[\s,:-]*/i,
-      '',
-    );
-  }
-  return output.trim();
-};
-
 const stripPriorityNoise = (input: string): string =>
   input
     .replace(/\b(?:high|medium|low)\s+priority\b/gi, ' ')
@@ -48,26 +41,6 @@ const stripMentionNoise = (input: string): string =>
     .replace(/@[a-z0-9_.+-]+\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-
-const stripLeadingTitleFiller = (input: string): string => {
-  let output = input.trim();
-  let previous = '';
-  while (output !== previous) {
-    previous = output;
-    output = output.replace(/^(?:to(?:\s+the)?|that(?:\s+i)?|about)\b[\s,:-]*/i, '').trim();
-  }
-  return output;
-};
-
-const stripTrailingDanglingPreposition = (input: string): string => {
-  let output = input.trim();
-  let previous = '';
-  while (output !== previous) {
-    previous = output;
-    output = output.replace(/\s+(?:for|to|by|with|at|on|in|from)\b[.,;:!?-]*\s*$/i, '').trim();
-  }
-  return output;
-};
 
 const stripTemporalNoise = (input: string): string =>
   input
@@ -87,29 +60,6 @@ const stripTemporalNoise = (input: string): string =>
     .replace(/\bfrom\s+now\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-
-const TITLE_SMALL_WORDS = new Set([
-  'a',
-  'an',
-  'the',
-  'and',
-  'but',
-  'or',
-  'nor',
-  'for',
-  'to',
-  'in',
-  'on',
-  'at',
-  'by',
-  'of',
-  'with',
-  'from',
-  'up',
-  'as',
-  'is',
-  'it',
-]);
 
 const smartCalendarTitleCase = (input: string): string =>
   input

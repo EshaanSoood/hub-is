@@ -65,6 +65,13 @@ describe('reminder parser time extraction', () => {
     assert.equal(result.fields.title, 'Submit Expenses');
   });
 
+  test('maps "end of month" to next month when current month target time has passed', () => {
+    const rolloverNow = new Date('2026-03-31T10:00:00-04:00');
+    const result = parseReminderInput('submit expenses end of month', { now: rolloverNow, timezone });
+    assert.equal(result.fields.remind_at, '2026-04-30T09:00:00');
+    assert.equal(result.fields.title, 'Submit Expenses');
+  });
+
   test('strips priority words and preserves uppercase acronyms in reminder titles', () => {
     const result = parse('high priority review PR by end of day');
     assert.equal(result.fields.remind_at, '2026-03-22T17:00:00');

@@ -12,6 +12,11 @@ import {
   toIsoDate,
 } from '../shared/utils.ts';
 import {
+  stripLeadingTitleFiller,
+  stripReminderLeadPrefix,
+  stripTrailingDanglingPreposition,
+} from '../shared/title-utils.ts';
+import {
   DATE_TYPO_CORRECTIONS,
   DEFAULT_KNOWN_ASSIGNEES,
   HIGH_PRIORITY_PATTERNS,
@@ -293,12 +298,20 @@ const splitAssigneeGroup = (value: string): string[] =>
     .filter(Boolean);
 
 const isAssigneeLike = (value: string, knownAssignees: Set<string>): boolean => {
-  void knownAssignees;
   const cleaned = value.replace(/[,:]+$/g, '').trim();
   if (!cleaned) {
     return false;
   }
-  return /^@[a-z0-9_.+-]+$/i.test(cleaned);
+  const isMention = /^@[a-z0-9_.+-]+$/i.test(cleaned);
+  if (!isMention) {
+    return false;
+  }
+  if (knownAssignees.size === 0) {
+    return true;
+  }
+  const mentionWithoutPrefix = cleaned.slice(1).toLowerCase();
+  const normalizedMention = cleaned.toLowerCase();
+  return knownAssignees.has(mentionWithoutPrefix) || knownAssignees.has(normalizedMention);
 };
 
 const normalizeAssigneeCapture = (value: string, knownAssignees: Set<string>): string[] =>
@@ -847,19 +860,6 @@ const fixTitleWord = (word: string): string => {
   return `${prefix}${corrected}${suffix}`;
 };
 
-const stripReminderLeadPrefix = (input: string): string => {
-  let output = input;
-  let previous = '';
-  while (output !== previous) {
-    previous = output;
-    output = output.replace(
-      /^\s*(?:remind\s+me\s+to|remind\s+me|don'?t\s+forget\s+to|don'?t\s+let\s+me\s+forget\s+to|dont\s+forget\s+to|dont\s+let\s+me\s+forget\s+to)\b[\s,:-]*/i,
-      '',
-    );
-  }
-  return output;
-};
-
 const stripResidualTemporalTokens = (input: string): string => {
   let output = input;
   output = output
@@ -872,26 +872,6 @@ const stripResidualTemporalTokens = (input: string): string => {
       ' ',
     );
   return normalizeWhitespace(output);
-};
-
-const stripTrailingDanglingPreposition = (input: string): string => {
-  let output = normalizeWhitespace(input);
-  let previous = '';
-  while (output !== previous) {
-    previous = output;
-    output = normalizeWhitespace(output.replace(/\b(?:for|to|by|with|at|on|in|from)\b[.,;:!?-]*$/i, ' '));
-  }
-  return output;
-};
-
-const stripLeadingTitleFiller = (input: string): string => {
-  let output = normalizeWhitespace(input);
-  let previous = '';
-  while (output !== previous) {
-    previous = output;
-    output = normalizeWhitespace(output.replace(/^(?:to(?:\s+the)?|that(?:\s+i)?|about)\b[\s,:-]*/i, ' '));
-  }
-  return output;
 };
 
 const normalizeTitleText = (input: string): string => {

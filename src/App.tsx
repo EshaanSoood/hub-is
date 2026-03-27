@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -29,9 +29,11 @@ const RouteLoadingState = ({ label = 'Loading route...' }: { label?: string }) =
 
 const App = () => {
   const { signedIn, authReady, signIn } = useAuthz();
+  const signInCalledRef = useRef(false);
 
   useEffect(() => {
-    if (authReady && !signedIn) {
+    if (authReady && !signedIn && !signInCalledRef.current) {
+      signInCalledRef.current = true;
       signIn();
     }
   }, [authReady, signedIn, signIn]);

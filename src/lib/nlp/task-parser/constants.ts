@@ -1,4 +1,5 @@
 import type { TaskPriority } from './types.ts';
+import { TITLE_SMALL_WORDS } from '../shared/constants.ts';
 
 export const PRIORITY_ORDER: Record<Exclude<TaskPriority, null>, number> = {
   high: 3,
@@ -162,25 +163,4 @@ export const TRAILING_FILLER_PATTERNS: RegExp[] = [
   /[\s,.-]+\bbut\b\.?$/i,
 ];
 
-export const SMALL_WORDS = new Set([
-  'a',
-  'an',
-  'and',
-  'as',
-  'at',
-  'but',
-  'by',
-  'for',
-  'from',
-  'in',
-  'is',
-  'it',
-  'nor',
-  'of',
-  'on',
-  'or',
-  'the',
-  'to',
-  'up',
-  'with',
-]);
+export const SMALL_WORDS = TITLE_SMALL_WORDS;
