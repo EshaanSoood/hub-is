@@ -509,7 +509,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       setQuickAddDialog(null);
       setProjectDialogName('');
       await refreshProjects();
-      navigate(`/projects/${created.data.id}/overview`);
+      navigate(`/projects/${encodeURIComponent(created.data.id)}/overview`);
     } catch (error) {
       setProjectDialogError(error instanceof Error ? error.message : 'Project creation failed.');
     } finally {
@@ -773,7 +773,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       label: project.name,
       iconName: 'menu' as const,
       action: 'navigate' as const,
-      href: `/projects/${project.id}/overview`,
+      href: `/projects/${encodeURIComponent(project.id)}/overview`,
     }));
     const allItems = [...tabItems, ...projectItems];
 
@@ -1207,14 +1207,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     if (!accessToken) {
       throw new Error('An authenticated session is required.');
     }
-    const personalProjectId = captureHomeData.personalProjectId || projects.find((project) => project.isPersonal)?.id || null;
-    if (!personalProjectId) {
-      throw new Error('A personal project is required to create reminders.');
-    }
     await createReminder(accessToken, payload);
     requestHubHomeRefresh();
     await remindersRuntime.refresh();
-  }, [accessToken, captureHomeData.personalProjectId, projects, remindersRuntime]);
+  }, [accessToken, remindersRuntime]);
 
   const onSnoozeReminderFromModule = useCallback(async (reminderId: string) => {
     if (!accessToken) {

@@ -191,7 +191,9 @@ export const usePaneMutations = ({
         setPanes(() => remaining);
         if (activePaneId === pane.pane_id) {
           const fallback = remaining[0];
-          return fallback ? `/projects/${projectId}/work/${fallback.pane_id}` : `/projects/${projectId}/overview`;
+          return fallback
+            ? `/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(fallback.pane_id)}`
+            : `/projects/${encodeURIComponent(projectId)}/overview`;
         }
         return null;
       } catch (error) {

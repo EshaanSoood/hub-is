@@ -1,4 +1,5 @@
 import { KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthz } from '../context/AuthzContext';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { dashboardCardRegistry } from '../lib/dashboardCards';
@@ -461,14 +462,14 @@ const ProjectLensView = ({
                 <span className={`inline-block h-2.5 w-2.5 rounded-full ${projectDotClassName(section.id === '__inbox__' ? null : section.id)}`} />
                 <h3 className="truncate text-sm font-semibold text-text">{section.name}</h3>
                 {section.id !== '__inbox__' ? (
-                  <a
-                    href={`/projects/${encodeURIComponent(section.id)}`}
+                  <Link
+                    to={`/projects/${encodeURIComponent(section.id)}/overview`}
                     aria-label={`Go To Project ${section.name}`}
                     className="inline-flex items-baseline gap-1 rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary"
                   >
                     <span>Go To Project</span>
                     <Icon name="back" className="rotate-180 text-[10px]" />
-                  </a>
+                  </Link>
                 ) : null}
               </div>
               <button

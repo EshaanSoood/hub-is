@@ -878,7 +878,7 @@ export const TasksTab = ({
                   <label
                     key={dimension}
                     className={cn(
-                      'inline-flex cursor-pointer items-center rounded-control border px-2 py-1.5 text-xs transition-colors',
+                      'inline-flex cursor-pointer items-center rounded-control border px-2 py-1.5 text-xs transition-colors focus-within:ring-2 focus-within:ring-focus-ring',
                       active ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted hover:text-text',
                     )}
                   >
@@ -934,12 +934,13 @@ export const TasksTab = ({
       </div>
 
       <div className="space-y-4">
-        {clusters.map((cluster) => {
+        {clusters.map((cluster, clusterIndex) => {
           const collapsed = collapsedClusterIds.has(cluster.id);
           const itemCount = cluster.items.length;
           const clusterLabel = `${cluster.label}, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
-          const clusterHeadingId = `task-cluster-heading-${cluster.id}`;
-          const clusterListId = `task-cluster-list-${cluster.id}`;
+          const clusterDomId = `task-cluster-${cluster.dimension}-${clusterIndex}`;
+          const clusterHeadingId = `${clusterDomId}-heading`;
+          const clusterListId = `${clusterDomId}-list`;
           const accent =
             cluster.dimension === 'priority' && cluster.priorityKey
               ? PRIORITY_DOT_COLORS[cluster.priorityKey]

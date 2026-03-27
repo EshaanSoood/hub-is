@@ -323,6 +323,7 @@ const ProjectSpaceWorkspace = ({
     [activePane, sessionUserId],
   );
   const canWriteProject = typeof project.membership_role === 'string' && project.membership_role.toLowerCase() !== 'viewer';
+  const encodedProjectId = encodeURIComponent(project.project_id);
 
   const pinnedPanes = useMemo(() => panes.filter((pane) => pane.pinned), [panes]);
   const openedFromPinned = searchParams.get('pinned') === '1';
@@ -489,11 +490,11 @@ const ProjectSpaceWorkspace = ({
       return;
     }
     if (activePane && ((!paneId) || (activePane.pane_id !== paneId && hasRequestedPane))) {
-      const nextPath = `/projects/${project.project_id}/work/${activePane.pane_id}`;
+      const nextPath = `/projects/${encodedProjectId}/work/${encodeURIComponent(activePane.pane_id)}`;
       const query = searchParams.toString();
       navigate(query ? `${nextPath}?${query}` : nextPath, { replace: true });
     }
-  }, [activePane, activeTab, hasRequestedPane, navigate, paneId, project.project_id, searchParams]);
+  }, [activePane, activeTab, encodedProjectId, hasRequestedPane, navigate, paneId, searchParams]);
 
   useEffect(() => {
     const recordId = searchParams.get('record_id');
@@ -582,7 +583,7 @@ const ProjectSpaceWorkspace = ({
     if (!backlink.source.pane_id) {
       return;
     }
-    navigate(`/projects/${project.project_id}/work/${backlink.source.pane_id}`, {
+    navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(backlink.source.pane_id)}`, {
       state: backlink.source.node_key ? { focusNodeKey: backlink.source.node_key } : null,
     });
   };
@@ -595,7 +596,7 @@ const ProjectSpaceWorkspace = ({
     }
 
     setCreatingPaneName('');
-    navigate(`/projects/${project.project_id}/work/${nextPane.pane_id}`);
+    navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(nextPane.pane_id)}`);
   };
 
   const onDeletePaneWithNavigation = async (pane: HubPaneSummary) => {
@@ -935,7 +936,7 @@ const ProjectSpaceWorkspace = ({
       <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Project space tabs">
         <button
           type="button"
-          onClick={() => navigate(`/projects/${project.project_id}/overview`)}
+          onClick={() => navigate(`/projects/${encodedProjectId}/overview`)}
           className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             activeTab === 'overview' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
           }`}
@@ -947,7 +948,7 @@ const ProjectSpaceWorkspace = ({
         </button>
         <button
           type="button"
-          onClick={() => navigate(`/projects/${project.project_id}/work/${activePane?.pane_id || ''}`)}
+          onClick={() => navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(activePane?.pane_id || '')}`)}
           className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             activeTab === 'work' && !openedFromPinned ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
           }`}
@@ -964,7 +965,7 @@ const ProjectSpaceWorkspace = ({
             <button
               key={pane.pane_id}
               type="button"
-              onClick={() => navigate(`/projects/${project.project_id}/work/${pane.pane_id}?pinned=1`)}
+              onClick={() => navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(pane.pane_id)}?pinned=1`)}
               className={`rounded-panel px-3 py-1.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
                 selected ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
               }`}
@@ -983,7 +984,7 @@ const ProjectSpaceWorkspace = ({
 
         <button
           type="button"
-          onClick={() => navigate(`/projects/${project.project_id}/tools`)}
+          onClick={() => navigate(`/projects/${encodedProjectId}/tools`)}
           className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             activeTab === 'tools' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
           }`}
@@ -1059,7 +1060,7 @@ const ProjectSpaceWorkspace = ({
                   }))}
                   activePaneId={activePane?.pane_id ?? null}
                   onPaneChange={(nextPaneId) => {
-                    navigate(`/projects/${project.project_id}/work/${nextPaneId}`);
+                    navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(nextPaneId)}`);
                   }}
                   onMovePane={(paneIdToMove, direction) => {
                     const pane = panes.find((entry) => entry.pane_id === paneIdToMove);
@@ -1089,7 +1090,7 @@ const ProjectSpaceWorkspace = ({
                           <button
                             key={pane.pane_id}
                             type="button"
-                            onClick={() => navigate(`/projects/${project.project_id}/work/${pane.pane_id}`)}
+                            onClick={() => navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(pane.pane_id)}`)}
                             className="flex w-full items-center justify-between rounded-panel border border-border-muted px-3 py-2 text-left"
                           >
                             <span className="text-sm font-medium text-text">{pane.name}</span>
@@ -1110,7 +1111,7 @@ const ProjectSpaceWorkspace = ({
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <button
                               type="button"
-                              onClick={() => navigate(`/projects/${project.project_id}/work/${pane.pane_id}`)}
+                              onClick={() => navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(pane.pane_id)}`)}
                               className="font-semibold text-primary underline"
                             >
                               {pane.name}
@@ -1295,7 +1296,7 @@ const ProjectSpaceWorkspace = ({
                 workspaceEnabled={workspaceEnabled}
                 showWorkspaceDocPlaceholder={false}
                 onSelectPane={(nextPaneId) => {
-                  navigate(`/projects/${project.project_id}/work/${nextPaneId}`);
+                  navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(nextPaneId)}`);
                 }}
                 onUpdatePane={onUpdatePaneFromWorkView}
                 onOpenRecord={(recordId) => {
@@ -1352,22 +1353,22 @@ const ProjectSpaceWorkspace = ({
                           onOpenView: (viewId) => {
                             const targetView = views.find((view) => view.view_id === viewId);
                             if (!targetView) {
-                              navigate(`/projects/${project.project_id}/work/${activePane.pane_id}`);
+                              navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(activePane.pane_id)}`);
                               return;
                             }
                             if (targetView.type === 'kanban') {
-                              navigate(`/projects/${project.project_id}/overview?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`);
+                              navigate(`/projects/${encodedProjectId}/overview?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`);
                               return;
                             }
                             if (targetView.type === 'calendar') {
-                              navigate(`/projects/${project.project_id}/overview?view=calendar`);
+                              navigate(`/projects/${encodedProjectId}/overview?view=calendar`);
                               return;
                             }
                             if (targetView.type === 'timeline') {
-                              navigate(`/projects/${project.project_id}/overview?view=timeline`);
+                              navigate(`/projects/${encodedProjectId}/overview?view=timeline`);
                               return;
                             }
-                            navigate(`/projects/${project.project_id}/work/${activePane.pane_id}?view_id=${encodeURIComponent(viewId)}`);
+                            navigate(`/projects/${encodedProjectId}/work/${encodeURIComponent(activePane.pane_id)}?view_id=${encodeURIComponent(viewId)}`);
                           },
                         }}
                       />

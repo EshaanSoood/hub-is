@@ -7,5 +7,5 @@ export const ProjectRouteRedirect = () => {
     return <Navigate to="/projects" replace />;
   }
 
-  return <Navigate to={`/projects/${projectId}/overview`} replace />;
+  return <Navigate to={`/projects/${encodeURIComponent(projectId)}/overview`} replace />;
 };
