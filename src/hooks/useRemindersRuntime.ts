@@ -28,6 +28,7 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const refreshSequenceRef = useRef(0);
+  const lastRefreshAtRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -65,6 +66,15 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
     }
   }, [accessToken]);
 
+  const refreshWithDedup = useCallback(() => {
+    const now = Date.now();
+    if (now - lastRefreshAtRef.current < 300) {
+      return;
+    }
+    lastRefreshAtRef.current = now;
+    void refresh();
+  }, [refresh]);
+
   useEffect(() => {
     if (!accessToken) {
       refreshSequenceRef.current += 1;
@@ -86,9 +96,9 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       return;
     }
     return subscribeHubHomeRefresh(() => {
-      void refresh();
+      refreshWithDedup();
     });
-  }, [refresh, subscribeToHomeRefresh]);
+  }, [refreshWithDedup, subscribeToHomeRefresh]);
 
   useEffect(() => {
     if (!accessToken || !subscribeToLive) {
@@ -98,9 +108,9 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       if (message.type !== 'reminder.changed') {
         return;
       }
-      void refresh();
+      refreshWithDedup();
     });
-  }, [accessToken, refresh, subscribeToLive]);
+  }, [accessToken, refreshWithDedup, subscribeToLive]);
 
   const dismiss = useCallback(async (reminderId: string) => {
     if (!accessToken) {
