@@ -18,12 +18,32 @@ describe('task parser title cleanup', () => {
 
   test('extracts title after date/priority/assignee removal', () => {
     const title = parseTitle('urgent fix the login bug by friday for @mark');
-    assert.equal(title, 'Fix the Login Bug for');
+    assert.equal(title, 'Fix the Login Bug');
+  });
+
+  test('keeps contextual "with <name>" text in title and does not treat bare names as assignees', () => {
+    const title = parseTitle('meeting with sarah next monday at noon');
+    assert.equal(title, 'Meeting with Sarah');
+  });
+
+  test('strips reminder-style lead prefixes from task titles', () => {
+    const title = parseTitle('remind me to call mom next month');
+    assert.equal(title, 'Call Mom');
+  });
+
+  test('strips orphaned leading "to" after reminder and recurrence phrase cleanup', () => {
+    const title = parseTitle('remind me every other day to stretch');
+    assert.equal(title, 'Stretch');
   });
 
   test('strips recurring/date tokens in recurring sentence', () => {
     const title = parseTitle('send emails every tuesday at 7 pm');
     assert.equal(title, 'Send Emails');
+  });
+
+  test('strips residual temporal words when earlier passes leave them behind', () => {
+    const title = parseTitle('finish the report next month');
+    assert.equal(title, 'Finish the Report');
   });
 
   test('normalizes excess whitespace', () => {

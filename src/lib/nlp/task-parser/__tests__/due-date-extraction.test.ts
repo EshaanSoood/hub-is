@@ -41,6 +41,16 @@ describe('task parser due date extraction', () => {
     assert.equal(result.fields.due_at, '2026-03-22T23:59:00');
   });
 
+  test('resolves "in 3 days finish the report" with relative date handling before chrono fallback', () => {
+    const result = parse('in 3 days finish the report');
+    assert.equal(result.fields.due_at, '2026-03-25T12:00:00');
+  });
+
+  test('resolves "finish roadmap next month" using explicit next-month rule', () => {
+    const result = parse('finish roadmap next month');
+    assert.equal(result.fields.due_at, '2026-04-22T12:00:00');
+  });
+
   test('parses "call dentist at 3pm on tuesday" to next Tuesday afternoon', () => {
     const result = parse('call dentist at 3pm on tuesday');
     assert.equal(result.fields.due_at, '2026-03-24T15:00:00');

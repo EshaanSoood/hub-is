@@ -12,8 +12,8 @@ const cleanTitleNoise = (input: string): string =>
 
 const trimEdgePrepositions = (input: string): string =>
   input
-    .replace(/^(?:on|at|with|from|to|for|and)\s+/i, '')
-    .replace(/\s+(?:on|at|with|from|to|for|and)$/i, '')
+    .replace(/^(?:on|at|with|from|to|for|and|by|in)\s+/i, '')
+    .replace(/\s+(?:on|at|with|from|to|for|and|by|in)$/i, '')
     .trim();
 
 const stripTrailingTemporalGlue = (input: string): string =>
@@ -22,12 +22,64 @@ const stripTrailingTemporalGlue = (input: string): string =>
     .replace(/[.]+$/g, '')
     .trim();
 
+const stripReminderLeadPrefix = (input: string): string => {
+  let output = input;
+  let previous = '';
+  while (output !== previous) {
+    previous = output;
+    output = output.replace(
+      /^\s*(?:remind\s+me\s+to|remind\s+me|don'?t\s+forget\s+to|don'?t\s+let\s+me\s+forget\s+to|dont\s+forget\s+to|dont\s+let\s+me\s+forget\s+to)\b[\s,:-]*/i,
+      '',
+    );
+  }
+  return output.trim();
+};
+
+const stripPriorityNoise = (input: string): string =>
+  input
+    .replace(/\b(?:high|medium|low)\s+priority\b/gi, ' ')
+    .replace(/\b(?:urgent|critical|important)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const stripMentionNoise = (input: string): string =>
+  input
+    .replace(/\b(?:for|to|with|from)\s+@[a-z0-9_.+-]+\b/gi, ' ')
+    .replace(/@[a-z0-9_.+-]+\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const stripLeadingTitleFiller = (input: string): string => {
+  let output = input.trim();
+  let previous = '';
+  while (output !== previous) {
+    previous = output;
+    output = output.replace(/^(?:to(?:\s+the)?|that(?:\s+i)?|about)\b[\s,:-]*/i, '').trim();
+  }
+  return output;
+};
+
+const stripTrailingDanglingPreposition = (input: string): string => {
+  let output = input.trim();
+  let previous = '';
+  while (output !== previous) {
+    previous = output;
+    output = output.replace(/\s+(?:for|to|by|with|at|on|in|from)\b[.,;:!?-]*\s*$/i, '').trim();
+  }
+  return output;
+};
+
 const stripTemporalNoise = (input: string): string =>
   input
+    .replace(/\bin\s+\d+\s+(?:day|days|week|weeks|month|months)\b/gi, ' ')
+    .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
+    .replace(/\b(?:next|this)\s+(?:week|month)\b/gi, ' ')
     .replace(
-      /\b(?:today|tomorrow|tonight|tmr|yesterday|next\s+week|this\s+week|next|this|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|starting|start|weekly|daily|monthly|yearly|annually)\b/gi,
+      /\b(?:today|tomorrow|tonight|tmr|yesterday|next|this|month|week|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|starting|start|weekly|daily|monthly|yearly|annually)\b/gi,
       ' ',
     )
+    .replace(/\b(?:morning|afternoon|evening|night|noon)\b/gi, ' ')
+    .replace(/\b(?:end of (?:the )?day|end of (?:the )?week|end of (?:the )?month|eod|eow)\b/gi, ' ')
     .replace(/\b(?:am|pm)\b/gi, ' ')
     .replace(/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi, ' ')
     .replace(/\b\d{4}\b/g, ' ')
@@ -35,6 +87,45 @@ const stripTemporalNoise = (input: string): string =>
     .replace(/\bfrom\s+now\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+const TITLE_SMALL_WORDS = new Set([
+  'a',
+  'an',
+  'the',
+  'and',
+  'but',
+  'or',
+  'nor',
+  'for',
+  'to',
+  'in',
+  'on',
+  'at',
+  'by',
+  'of',
+  'with',
+  'from',
+  'up',
+  'as',
+  'is',
+  'it',
+]);
+
+const smartCalendarTitleCase = (input: string): string =>
+  input
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token, index) => {
+      if (/^[A-Z]{2,4}$/.test(token)) {
+        return token;
+      }
+      const lower = token.toLowerCase();
+      if (index > 0 && TITLE_SMALL_WORDS.has(lower)) {
+        return lower;
+      }
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(' ');
 
 const titleSpansFromMaskedInput = (ctx: ParseContext): Array<{ start: number; end: number; text: string }> => {
   const spans: Array<{ start: number; end: number; text: string }> = [];
@@ -67,7 +158,17 @@ const titleSpansFromMaskedInput = (ctx: ParseContext): Array<{ start: number; en
 
 export const titlePass = (ctx: ParseContext): void => {
   const base = cleanTitleNoise(ctx.maskedInput);
-  const title = stripEdgeGlueWords(stripTrailingTemporalGlue(trimEdgePrepositions(stripTemporalNoise(base))));
+  const title = stripEdgeGlueWords(
+    smartCalendarTitleCase(
+      stripTrailingDanglingPreposition(
+        stripTrailingTemporalGlue(
+          stripLeadingTitleFiller(
+            trimEdgePrepositions(stripTemporalNoise(stripMentionNoise(stripPriorityNoise(stripReminderLeadPrefix(base))))),
+          ),
+        ),
+      ),
+    ),
+  );
 
   if (!title) {
     ctx.result.fields.title = null;
