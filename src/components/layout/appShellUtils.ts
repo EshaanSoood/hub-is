@@ -245,7 +245,7 @@ export const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; 
   const crumb: string[] = ['Projects'];
   const projectId = segments[1];
   if (projectId) {
-    const projectName = projects.find((project) => project.id === projectId)?.name || projectId;
+    const projectName = projects.find((project) => project.id === projectId)?.name || 'Unknown project';
     crumb.push(projectName);
   }
   if (segments[2]) {

@@ -49,6 +49,7 @@ const MEDIUM_PRIORITY_RANK: Record<Exclude<TaskPriorityValue, null>, number> = {
   medium: 2,
   low: 3,
 };
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const toIsoDate = (value: string): string | null => {
   if (!value) {
@@ -119,6 +120,8 @@ const humanizeOption = (value: string, fallback: string) => {
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ');
 };
+
+const isOpaqueIdLabel = (value: string): boolean => UUID_PATTERN.test(value) || /^[0-9a-f]{24,}$/i.test(value);
 
 const sortChainForGroupBy = (groupBy: SortDimension): SortChain => {
   if (groupBy === 'priority') {
@@ -393,21 +396,33 @@ const TasksModuleLarge = ({
   const [composerParentTask, setComposerParentTask] = useState<TaskItem | null>(null);
 
   const collaboratorOptions = useMemo(
-    () => [
-      { id: 'all', label: 'All' },
-      ...Array.from(
-        tasks.reduce((map, task) => {
-          if (!map.has(task.assigneeId)) {
-            map.set(task.assigneeId, task.assigneeLabel);
-          }
-          return map;
-        }, new Map<string, string>()),
-        ([assigneeId, assigneeLabel]) => ({
+    () => {
+      const labelsById = new Map<string, string>();
+      let collaboratorFallbackIndex = 1;
+      for (const task of tasks) {
+        if (!task.assigneeId || labelsById.has(task.assigneeId)) {
+          continue;
+        }
+        if (task.assigneeId === 'unassigned') {
+          labelsById.set(task.assigneeId, 'Unassigned');
+          continue;
+        }
+        const trimmedLabel = task.assigneeLabel.trim();
+        if (trimmedLabel && trimmedLabel.toLowerCase() !== 'collaborator' && !isOpaqueIdLabel(trimmedLabel)) {
+          labelsById.set(task.assigneeId, trimmedLabel);
+          continue;
+        }
+        labelsById.set(task.assigneeId, `Collaborator ${collaboratorFallbackIndex}`);
+        collaboratorFallbackIndex += 1;
+      }
+      return [
+        { id: 'all', label: 'All' },
+        ...Array.from(labelsById, ([assigneeId, assigneeLabel]) => ({
           id: assigneeId,
           label: assigneeLabel,
-        }),
-      ),
-    ],
+        })),
+      ];
+    },
     [tasks],
   );
   const categoryOptions = useMemo(
