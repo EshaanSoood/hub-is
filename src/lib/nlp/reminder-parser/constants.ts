@@ -64,22 +64,12 @@ export const TITLE_CORRECTIONS: Record<string, string> = {
 };
 
 export const ACRONYM_MAP: Record<string, string> = {
-  api: 'API',
-  aws: 'AWS',
-  css: 'CSS',
   eod: 'EOD',
   fcp: 'FCP',
-  html: 'HTML',
   hr: 'HR',
   os: 'OS',
-  pr: 'PR',
-  readme: 'README',
-  sql: 'SQL',
-  ssl: 'SSL',
   svg: 'SVG',
   usb: 'USB',
-  ui: 'UI',
-  ux: 'UX',
 };
 
 export const PHRASE_CORRECTIONS: Array<[RegExp, string]> = [

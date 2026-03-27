@@ -42,7 +42,7 @@ const BARE_DAY_REGEX = new RegExp(`\\b${WEEKDAY_TOKEN}\\b`, 'i');
 const WEEKDAY_SIGNAL_REGEX = new RegExp(`\\b${WEEKDAY_TOKEN}\\b`, 'i');
 
 const DATE_SIGNAL_REGEX =
-  /\b(today|tomorrow|tmr|tonight|yesterday|next|this|end of day|eod|end of week|eow|end of month|in\s+\d+\s+(?:day|days|week|weeks|month|months|year|years)|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2})\b/i;
+  /\b(today|tomorrow|tmr|tonight|yesterday|next|this|in\s+\d+\s+(?:day|days|week|weeks|month|months|year|years)|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2})\b/i;
 
 const DATE_FRAGMENT_PATTERNS: RegExp[] = [
   new RegExp(`\\bnext\\s+week(?:\\s+on)?\\s+${WEEKDAY_TOKEN}\\b`, 'i'),
@@ -93,22 +93,6 @@ const RECURRENCE_START_REGEX =
   /\b(?:starting|from)\s+(.+?)(?=(?:\s+\b(?:until|till|through|ending|except|remind|alert|with|every|for|at|on|from|to)\b|[,.;]|$))/i;
 const EXPLICIT_DATE_TOKEN_REGEX =
   /\b(?:\d{4}-\d{2}-\d{2}|(?<!:)\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?(?!:)|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s*\d{4})?)\b/i;
-
-const endOfMonthIso = (now: Date, timezone: string): string => {
-  const parts = getZonedDateTimeParts(now, timezone);
-  const lastDay = new Date(Date.UTC(parts.year, parts.month, 0)).getUTCDate();
-  return toIsoDate(parts.year, parts.month, lastDay);
-};
-
-const fridayOfCurrentWeekIso = (now: Date, timezone: string): string => {
-  const parts = getZonedDateTimeParts(now, timezone);
-  let delta = parts.weekday <= 5 ? 5 - parts.weekday : 12 - parts.weekday;
-  if (parts.weekday === 5 && parts.hour >= 17) {
-    delta = 7;
-  }
-  const todayISO = toIsoDate(parts.year, parts.month, parts.day);
-  return addDaysToIsoDate(todayISO, delta);
-};
 
 const weekdayIndexByToken = (token: string): number | null => {
   const normalized = token.trim().toLowerCase();
@@ -196,12 +180,16 @@ const hasDateSignal = (text: string): boolean => DATE_SIGNAL_REGEX.test(text) ||
 
 const preprocessForChrono = (ctx: ParseContext): string => {
   let output = ctx.maskedInput;
+  output = replaceWithSameLength(output, /\bEOD\b/gi, '5pm');
   output = replaceWithSameLength(output, /\bfirst\s+thing\b/gi, '9am');
   output = replaceWithSameLength(output, /\btmr\b/gi, 'tom');
-  output = replaceWithSameLength(output, /\b(?:end of day|eod)\b/gi, 'today 5pm');
-  output = replaceWithSameLength(output, /\bEOD\b/gi, 'today 5pm');
-  output = replaceWithSameLength(output, /\b(?:end of (?:the )?week|eow)\b/gi, fridayOfCurrentWeekIso(ctx.now, ctx.options.timezone));
-  output = replaceWithSameLength(output, /\bend\s+of\s+(?:the\s+)?month\b/gi, endOfMonthIso(ctx.now, ctx.options.timezone));
+
+  if (/\bend\s+of\s+the\s+month\b/i.test(output)) {
+    const nowParts = getZonedDateTimeParts(ctx.now, ctx.options.timezone);
+    const lastDay = new Date(Date.UTC(nowParts.year, nowParts.month, 0)).getUTCDate();
+    const isoDate = toIsoDate(nowParts.year, nowParts.month, lastDay);
+    output = replaceWithSameLength(output, /\bend\s+of\s+the\s+month\b/gi, isoDate);
+  }
 
   return output;
 };
@@ -1038,114 +1026,9 @@ const applyRecurrenceStartDateFallback = (ctx: ParseContext): void => {
   });
 };
 
-const applyDateSpecialFallback = (
-  ctx: ParseContext,
-  regex: RegExp,
-  dateISO: string,
-  confidence: number,
-  ruleId: string,
-  note: string,
-): void => {
-  const match = regex.exec(ctx.rawInput);
-  if (!match || match.index === undefined) {
-    return;
-  }
-
-  const start = match.index;
-  const end = start + match[0].length;
-  const text = match[0];
-  ctx.result.fields.date = dateISO;
-  addFieldSpan(ctx, 'date', {
-    start,
-    end,
-    text,
-    ruleId,
-    confidence,
-  });
-  setFieldConfidence(ctx, 'date', confidence);
-  addDebugStep(ctx, {
-    pass: 'datetime',
-    ruleId,
-    start,
-    end,
-    text,
-    confidence,
-    note,
-  });
-  maskMatch(ctx, {
-    start,
-    end,
-    text,
-    ruleId: `${ruleId}.mask`,
-    confidence,
-  });
-};
-
-const applyTimeSpecialFallback = (
-  ctx: ParseContext,
-  regex: RegExp,
-  timeISO: string,
-  confidence: number,
-  ruleId: string,
-  note: string,
-): void => {
-  const match = regex.exec(ctx.rawInput);
-  if (!match || match.index === undefined) {
-    return;
-  }
-
-  const start = match.index;
-  const end = start + match[0].length;
-  const text = match[0];
-  applyTimeValue(ctx, {
-    time: timeISO,
-    endTime: null,
-    durationMinutes: null,
-    start,
-    end,
-    text,
-    ruleId,
-    confidence,
-    note,
-  });
-};
-
 const applySimpleDateFallbacks = (ctx: ParseContext): void => {
   const localNow = getZonedDateTimeParts(ctx.now, ctx.options.timezone);
   const todayISO = toIsoDate(localNow.year, localNow.month, localNow.day);
-
-  if (ctx.result.fields.date === null && /\b(?:by|before|at)\s+(?:end of day|eod)\b/i.test(ctx.rawInput)) {
-    applyDateSpecialFallback(
-      ctx,
-      /\b(?:by|before|at)\s+(?:end of day|eod)\b/i,
-      todayISO,
-      0.82,
-      'datetime.special.end_of_day_date',
-      'date inferred from end-of-day expression',
-    );
-  }
-
-  if (ctx.result.fields.date === null && /\b(?:by|before|at)?\s*(?:end of (?:the )?month)\b/i.test(ctx.rawInput)) {
-    applyDateSpecialFallback(
-      ctx,
-      /\b(?:by|before|at)?\s*(?:end of (?:the )?month)\b/i,
-      endOfMonthIso(ctx.now, ctx.options.timezone),
-      0.84,
-      'datetime.special.end_of_month',
-      'date inferred from end-of-month expression',
-    );
-  }
-
-  if (ctx.result.fields.date === null && /\b(?:by|before|at)?\s*(?:end of (?:the )?week|eow)\b/i.test(ctx.rawInput)) {
-    applyDateSpecialFallback(
-      ctx,
-      /\b(?:by|before|at)?\s*(?:end of (?:the )?week|eow)\b/i,
-      fridayOfCurrentWeekIso(ctx.now, ctx.options.timezone),
-      0.83,
-      'datetime.special.end_of_week',
-      'date inferred from end-of-week expression',
-    );
-  }
 
   if (ctx.result.fields.date === null && /\btoday\b/i.test(ctx.rawInput)) {
     ctx.result.fields.date = todayISO;
@@ -1159,60 +1042,14 @@ const applySimpleDateFallbacks = (ctx: ParseContext): void => {
 };
 
 const applySimpleTimeFallbacks = (ctx: ParseContext): void => {
-  if (ctx.result.fields.time === null && /\b(?:end of day|eod)\b/i.test(ctx.rawInput)) {
-    applyTimeSpecialFallback(
-      ctx,
-      /\b(?:by|before|at)?\s*(?:end of day|eod)\b/i,
-      '17:00',
-      0.8,
-      'datetime.special.end_of_day_time',
-      'time inferred from end-of-day expression',
-    );
-  }
-
-  if (ctx.result.fields.time === null && /\b(?:end of (?:the )?week|eow)\b/i.test(ctx.rawInput)) {
-    applyTimeSpecialFallback(
-      ctx,
-      /\b(?:by|before|at)?\s*(?:end of (?:the )?week|eow)\b/i,
-      '17:00',
-      0.78,
-      'datetime.special.end_of_week_time',
-      'time inferred from end-of-week expression',
-    );
+  if (ctx.result.fields.time === null && /\bEOD\b/i.test(ctx.rawInput)) {
+    ctx.result.fields.time = '17:00';
+    setFieldConfidence(ctx, 'time', 0.78);
   }
 
   if (ctx.result.fields.time === null && /\bfirst\s+thing\b/i.test(ctx.rawInput)) {
     ctx.result.fields.time = '09:00';
     setFieldConfidence(ctx, 'time', 0.68);
-  }
-};
-
-const applySpecialTemporalMasking = (ctx: ParseContext): void => {
-  const patterns = [
-    /\b(?:by|before|at)?\s*(?:end of day|eod)\b/gi,
-    /\b(?:by|before|at)?\s*(?:end of (?:the )?week|eow)\b/gi,
-    /\b(?:by|before|at)?\s*(?:end of (?:the )?month)\b/gi,
-    /\b(?:today|tomorrow|tonight)\s+(?:morning|afternoon|evening|night)\b/gi,
-  ];
-
-  for (const pattern of patterns) {
-    for (const match of ctx.rawInput.matchAll(pattern)) {
-      const text = match[0] || '';
-      const start = match.index ?? -1;
-      if (start < 0 || !text) {
-        continue;
-      }
-      const end = start + text.length;
-      if (/\S/.test(ctx.maskedInput.slice(start, end))) {
-        maskMatch(ctx, {
-          start,
-          end,
-          text,
-          ruleId: 'datetime.special.mask_cleanup',
-          confidence: 0.7,
-        });
-      }
-    }
   }
 };
 
@@ -1244,7 +1081,6 @@ export const chronoPass = (ctx: ParseContext): void => {
 
   applySimpleDateFallbacks(ctx);
   applySimpleTimeFallbacks(ctx);
-  applySpecialTemporalMasking(ctx);
 
   if (ctx.result.fields.date && /\b(?:this|next|week|mon|tue|wed|thu|fri|sat|sun)\b/i.test(ctx.rawInput)) {
     const nowParts = getZonedDateTimeParts(ctx.now, ctx.options.timezone);
