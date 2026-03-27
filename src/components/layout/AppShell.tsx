@@ -113,6 +113,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [quickNavTasksLoading, setQuickNavTasksLoading] = useState(false);
   const [quickNavTasksError, setQuickNavTasksError] = useState<string | null>(null);
   const [bucketNow, setBucketNow] = useState(() => new Date());
+  const remindersDialogOpen = toolbarDialog === 'reminders';
+  const calendarDialogOpen = toolbarDialog === 'calendar';
   const {
     calendarEvents: personalCalendarEvents,
     calendarLoading: personalCalendarLoading,
@@ -120,9 +122,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     calendarMode: personalCalendarMode,
     setCalendarMode: setPersonalCalendarMode,
     refreshCalendar: refreshPersonalCalendar,
-  } = usePersonalCalendarRuntime(accessToken ?? null);
-  const remindersRuntime = useRemindersRuntime(accessToken ?? null);
-  const refreshReminders = remindersRuntime.refresh;
+  } = usePersonalCalendarRuntime(accessToken ?? null, { autoload: calendarDialogOpen });
+  const remindersRuntime = useRemindersRuntime(accessToken ?? null, {
+    autoload: remindersDialogOpen,
+    subscribeToHomeRefresh: remindersDialogOpen,
+    subscribeToLive: remindersDialogOpen,
+  });
 
   const searchRef = useRef<HTMLDivElement | null>(null);
   const searchDismissedRef = useRef(false);
@@ -588,10 +593,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [accessToken, navigate, projectDialogName, refreshProjects]);
 
   useEffect(() => {
-    void refreshCaptureData();
-  }, [refreshCaptureData]);
-
-  useEffect(() => {
     if (!captureOpen) {
       return;
     }
@@ -675,20 +676,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
     void refreshQuickNavTasks();
   }, [toolbarDialog, refreshQuickNavTasks]);
-
-  useEffect(() => {
-    if (toolbarDialog !== 'calendar') {
-      return;
-    }
-    void refreshPersonalCalendar();
-  }, [toolbarDialog, refreshPersonalCalendar]);
-
-  useEffect(() => {
-    if (toolbarDialog !== 'reminders') {
-      return;
-    }
-    void refreshReminders();
-  }, [toolbarDialog, refreshReminders]);
 
   useEffect(() => {
     let cancelled = false;
