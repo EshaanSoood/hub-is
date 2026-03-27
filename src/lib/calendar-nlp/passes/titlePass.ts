@@ -18,8 +18,8 @@ const cleanTitleNoise = (input: string): string =>
 
 const trimEdgePrepositions = (input: string): string =>
   input
-    .replace(/^(?:on|at|with|from|to|for|and|by|in)\s+/i, '')
-    .replace(/\s+(?:on|at|with|from|to|for|and|by|in)$/i, '')
+    .replace(/^(?:on|at|with|from|to|for|and)\s+/i, '')
+    .replace(/\s+(?:on|at|with|from|to|for|and)$/i, '')
     .trim();
 
 const stripTrailingTemporalGlue = (input: string): string =>
@@ -31,7 +31,6 @@ const stripTrailingTemporalGlue = (input: string): string =>
 const stripPriorityNoise = (input: string): string =>
   input
     .replace(/\b(?:high|medium|low)\s+priority\b/gi, ' ')
-    .replace(/\b(?:urgent|critical|important)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -55,27 +54,30 @@ const stripTemporalNoise = (input: string): string =>
     .replace(/\b(?:end of (?:the )?day|end of (?:the )?week|end of (?:the )?month|eod|eow)\b/gi, ' ')
     .replace(/\b(?:am|pm)\b/gi, ' ')
     .replace(/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi, ' ')
-    .replace(/\b\d{4}\b/g, ' ')
     .replace(/\b\d{4}-\d{2}-\d{2}\b/g, ' ')
+    .replace(/\b\d{4}\b/g, ' ')
     .replace(/\bfrom\s+now\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-const smartCalendarTitleCase = (input: string): string =>
-  input
+const smartCalendarTitleCase = (input: string): string => {
+  const tokens = input
     .split(/\s+/)
-    .filter(Boolean)
+    .filter(Boolean);
+
+  return tokens
     .map((token, index) => {
       if (/^[A-Z]{2,4}$/.test(token)) {
         return token;
       }
       const lower = token.toLowerCase();
-      if (index > 0 && TITLE_SMALL_WORDS.has(lower)) {
+      if (index > 0 && index < tokens.length - 1 && TITLE_SMALL_WORDS.has(lower)) {
         return lower;
       }
       return lower.charAt(0).toUpperCase() + lower.slice(1);
     })
     .join(' ');
+};
 
 const titleSpansFromMaskedInput = (ctx: ParseContext): Array<{ start: number; end: number; text: string }> => {
   const spans: Array<{ start: number; end: number; text: string }> = [];
@@ -108,12 +110,14 @@ const titleSpansFromMaskedInput = (ctx: ParseContext): Array<{ start: number; en
 
 export const titlePass = (ctx: ParseContext): void => {
   const base = cleanTitleNoise(ctx.maskedInput);
+  const shouldStripReminderLeadPrefix = /^\s*(?:remind\s+me|don['\u2019]?t\s+forget)\b/i.test(ctx.maskedInput);
+  const titleBase = shouldStripReminderLeadPrefix ? stripReminderLeadPrefix(base) : base;
   const title = stripEdgeGlueWords(
     smartCalendarTitleCase(
       stripTrailingDanglingPreposition(
         stripTrailingTemporalGlue(
           stripLeadingTitleFiller(
-            trimEdgePrepositions(stripTemporalNoise(stripMentionNoise(stripPriorityNoise(stripReminderLeadPrefix(base))))),
+            trimEdgePrepositions(stripTemporalNoise(stripMentionNoise(stripPriorityNoise(titleBase)))),
           ),
         ),
         true,

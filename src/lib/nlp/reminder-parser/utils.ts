@@ -462,10 +462,13 @@ const endOfMonthReminderAt = (now: Date, timezone: string): string => {
 const endOfWeekReminderAt = (now: Date, timezone: string): string => {
   const parts = getZonedParts(now, timezone);
   let delta = (5 - parts.weekday + 7) % 7;
-  if (delta === 0 && (parts.hour > 17 || (parts.hour === 17 && parts.minute > 0))) {
-    delta = 7;
+  const nowIso = formatDateTimeInTimezone(now, timezone);
+  let candidate = withTime(addDays(now, delta), timezone, 17, 0);
+  if (candidate <= nowIso) {
+    delta += 7;
+    candidate = withTime(addDays(now, delta), timezone, 17, 0);
   }
-  return withTime(addDays(now, delta), timezone, 17, 0);
+  return candidate;
 };
 
 export const applyRelativeTimeRules = (
@@ -521,11 +524,15 @@ export const applyRelativeTimeRules = (
       return null;
     }
     let removeStart = match.index ?? 0;
-    const removeEnd = (match.index ?? 0) + match[0].length;
+    let removeEnd = (match.index ?? 0) + match[0].length;
     const before = working.slice(0, removeStart);
     const leadingTemporalMarker = before.match(/\b(?:by|before|after|until|on|at)\b\s*$/i);
     if (leadingTemporalMarker) {
       removeStart -= leadingTemporalMarker[0].length;
+    }
+    const trailingPunctuationMatch = working.slice(removeEnd).match(/^\s*[.,;:!?]+/);
+    if (trailingPunctuationMatch) {
+      removeEnd += trailingPunctuationMatch[0].length;
     }
     span = {
       start: removeStart,
@@ -884,7 +891,7 @@ const stripDateSpanWithTemporalMarker = (
   }
 
   const after = working.slice(end);
-  const trailingPunctuationMatch = after.match(/^\s*[.,;:]+/);
+  const trailingPunctuationMatch = after.match(/^\s*[.,;:!?]+/);
   if (trailingPunctuationMatch) {
     removeEnd = end + trailingPunctuationMatch[0].length;
   }
@@ -1144,10 +1151,10 @@ export const extractTitle = (input: string): string => {
   working = working
     .replace(/(?:\p{Emoji}|\p{Emoji_Modifier}|\p{Emoji_Component}|\uFE0F|\u200D)+/gu, ' ')
     .replace(/[!?.,]{2,}/g, ' ')
-    .replace(/\b(?:high|medium|low)\s+priority\b/gi, ' ')
-    .replace(/\b(?:urgent|critical|important)\b/gi, ' ')
-    .replace(/\b(?:for|to|with|from)\s+@[a-z0-9_.+-]+\b/gi, ' ')
-    .replace(/@[a-z0-9_.+-]+\b/gi, ' ')
+    .replace(/(?:^|\s)(?:high|medium|low)\s+priority\b/gi, ' ')
+    .replace(/(?:^|\s)(?:urgent|critical|important)\b/gi, ' ')
+    .replace(/(?:^|\s)(?:for|to|with|from)\s+@[a-z0-9_.+-]+\b/gi, ' ')
+    .replace(/(?:^|\s)@[a-z0-9_.+-]+\b/gi, ' ')
     .replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm|a|p)\b/gi, ' ')
     .replace(/\b(?:at\s+)?(?:noon|midnight)\b/gi, ' ')
     .replace(/\b(?:am|pm|a|p)\b/gi, ' ')

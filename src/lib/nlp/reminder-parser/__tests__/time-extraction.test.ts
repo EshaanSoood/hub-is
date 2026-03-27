@@ -53,6 +53,12 @@ describe('reminder parser time extraction', () => {
     assert.equal(result.fields.title, 'Buy Monthly Bus Pass');
   });
 
+  test('preserves email addresses when stripping temporal mentions', () => {
+    const result = parse('email john@example.com tomorrow');
+    assert.equal(result.fields.remind_at, '2026-03-23T09:00:00');
+    assert.equal(result.fields.title, 'Email John@example.com');
+  });
+
   test('parses recurring monday reminder with explicit 8am time', () => {
     const result = parse('water plants every monday at 8am');
     assert.equal(result.fields.remind_at, '2026-03-23T08:00:00');
@@ -77,6 +83,12 @@ describe('reminder parser time extraction', () => {
     const result = parse('submit expenses end of month');
     assert.equal(result.fields.remind_at, '2026-03-31T09:00:00');
     assert.equal(result.fields.title, 'Submit Expenses');
+  });
+
+  test('consumes trailing punctuation after temporal phrase removal', () => {
+    const result = parse('end of month, file taxes');
+    assert.equal(result.fields.remind_at, '2026-03-31T09:00:00');
+    assert.equal(result.fields.title, 'File Taxes');
   });
 
   test('maps "end of month" to next month when current month target time has passed', () => {

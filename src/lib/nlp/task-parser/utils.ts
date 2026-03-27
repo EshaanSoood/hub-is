@@ -927,7 +927,7 @@ const normalizeTitleText = (input: string): string => {
     .trim();
 };
 
-const titleCaseWord = (word: string, index: number): string => {
+const titleCaseWord = (word: string, index: number, totalWords: number): string => {
   if (/^[A-Z]{2,4}$/.test(word)) {
     return word;
   }
@@ -938,35 +938,38 @@ const titleCaseWord = (word: string, index: number): string => {
   if (/^#/.test(word)) {
     return word;
   }
-  if (index > 0 && SMALL_WORDS.has(lower)) {
+  if (index > 0 && index < totalWords - 1 && SMALL_WORDS.has(lower)) {
     return lower;
   }
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 };
 
-const smartTitleCase = (input: string): string =>
-  input
+const smartTitleCase = (input: string): string => {
+  const words = input
     .split(/\s+/)
-    .filter(Boolean)
+    .filter(Boolean);
+
+  return words
     .map((word, index) => {
       if (/^[a-z]+['’]s$/i.test(word)) {
         const [base] = word.split(/['’]/);
-        return `${titleCaseWord(base, index)}'s`;
+        return `${titleCaseWord(base, index, words.length)}'s`;
       }
       if (/['’]/.test(word)) {
         const apostropheMatch = word.match(/['’]/);
         const apostropheChar = apostropheMatch ? apostropheMatch[0] : "'";
         return word
           .split(/['’]/)
-          .map((part, partIndex) => (part === 's' ? 's' : titleCaseWord(part, index + partIndex)))
+          .map((part, partIndex) => (part === 's' ? 's' : titleCaseWord(part, index + partIndex, words.length)))
           .join(apostropheChar);
       }
-      return titleCaseWord(word, index);
+      return titleCaseWord(word, index, words.length);
     })
     .join(' ')
     .replace(/\bDont\b/g, "Don't")
     .replace(/\bDon'T\b/g, "Don't")
     .replace(/\bIs on\b/g, 'Is On');
+};
 
 export const buildTaskTitle = (input: string): { title: string; confidence: number } => {
   const cleaned = normalizeTitleText(input);

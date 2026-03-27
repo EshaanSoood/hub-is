@@ -39,6 +39,22 @@ describe('calendar parser accuracy regressions', () => {
     assert.equal(result.fields.title, 'Plan Next Steps');
   });
 
+  test('preserves meaningful leading "in" title phrase', () => {
+    const result = parse('in review');
+    assert.equal(result.fields.title, 'In Review');
+  });
+
+  test('keeps standalone critical adjective in title', () => {
+    const result = parse('critical design review next monday');
+    assert.equal(result.fields.title, 'Critical Design Review');
+    assert.equal(result.fields.date, '2026-03-30');
+  });
+
+  test('keeps trailing small words capitalized at title end', () => {
+    const result = parse('what it is');
+    assert.equal(result.fields.title, 'What It Is');
+  });
+
   test('parses end-of-day and strips priority noise while preserving PR acronym', () => {
     const result = parse('high priority review PR by end of day');
     assert.equal(result.fields.date, '2026-03-27');
@@ -52,9 +68,9 @@ describe('calendar parser accuracy regressions', () => {
     assert.equal(result.fields.title, 'Submit Expenses');
   });
 
-  test('keeps small words lowercase in title-case output after stripping noise', () => {
+  test('keeps critical adjectives like "urgent" in event titles', () => {
     const result = parse('urgent fix the login bug by friday for @mark');
-    assert.equal(result.fields.title, 'Fix the Login Bug');
+    assert.equal(result.fields.title, 'Urgent Fix the Login Bug');
     assert.equal(result.fields.date, '2026-03-27');
   });
 });

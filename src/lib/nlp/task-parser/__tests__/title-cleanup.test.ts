@@ -51,6 +51,11 @@ describe('task parser title cleanup', () => {
     assert.equal(title, 'Plan Next Steps');
   });
 
+  test('keeps trailing small words capitalized at title end', () => {
+    const title = parseTitle('what it is');
+    assert.equal(title, 'What It Is');
+  });
+
   test('normalizes excess whitespace', () => {
     const title = parseTitle('   buy   groceries   ');
     assert.equal(title, 'Buy Groceries');

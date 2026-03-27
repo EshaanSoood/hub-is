@@ -60,5 +60,4 @@ export const TITLE_SMALL_WORDS = new Set([
   'up',
   'as',
   'is',
-  'it',
 ]);
