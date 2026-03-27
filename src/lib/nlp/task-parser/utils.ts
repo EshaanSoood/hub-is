@@ -464,10 +464,15 @@ export const extractAssignees = (
     },
     {
       regex: /^\s*email\s+([a-z0-9.+-]+@[a-z0-9.-]+\.[a-z]{2,})\s+(.+)$/i,
-      build: (email, rest) => ({
-        assignees: [email],
-        replacement: `email ${email.split('@')[0]} ${rest}`,
-      }),
+      build: (email) => {
+        if (!isAssigneeLike(email, knownAssignees)) {
+          return null;
+        }
+        return {
+          assignees: [email],
+          replacement: input,
+        };
+      },
     },
     {
       regex: /^\s*assign\s+the\s+(.+?)\s+to\s+([a-z0-9@.+-]+)$/i,
@@ -513,7 +518,13 @@ export const extractAssignees = (
     },
     {
       regex: /\bto\s+([a-z0-9@.+-]+@[a-z0-9.-]+\.[a-z]{2,})\b/i,
-      build: (group) => ({ assignees: normalizeAssigneeCapture(group, knownAssignees), replacement: '' }),
+      build: (group) => {
+        if (!isAssigneeLike(group, knownAssignees)) {
+          return null;
+        }
+        const normalized = normalizeAssigneeCapture(group, knownAssignees);
+        return normalized.length ? { assignees: normalized, replacement: '' } : null;
+      },
     },
     {
       regex: /\bto\s+([A-Z][a-z]+)\b/,

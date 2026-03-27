@@ -47,15 +47,14 @@ const stripTemporalNoise = (input: string): string =>
     .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
     .replace(/\b(?:next|this)\s+(?:week|month)\b/gi, ' ')
     .replace(
-      /\b(?:today|tomorrow|tonight|tmr|yesterday|starting|start|weekly|daily|monthly|yearly|annually)\b/gi,
+      /\b(?:today|tomorrow|tonight|tmr|yesterday|starting|weekly|daily|monthly|yearly|annually)\b/gi,
       ' ',
     )
-    .replace(/\b(?:morning|afternoon|evening|night|noon)\b/gi, ' ')
+    .replace(/\b(?:morning|afternoon|evening|noon)\b/gi, ' ')
     .replace(/\b(?:end of (?:the )?day|end of (?:the )?week|end of (?:the )?month|eod|eow)\b/gi, ' ')
     .replace(/\b(?:am|pm)\b/gi, ' ')
     .replace(/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi, ' ')
     .replace(/\b\d{4}-\d{2}-\d{2}\b/g, ' ')
-    .replace(/\b\d{4}\b/g, ' ')
     .replace(/\bfrom\s+now\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -110,17 +109,20 @@ const titleSpansFromMaskedInput = (ctx: ParseContext): Array<{ start: number; en
 
 export const titlePass = (ctx: ParseContext): void => {
   const base = cleanTitleNoise(ctx.maskedInput);
-  const shouldStripReminderLeadPrefix = /^\s*(?:remind\s+me|don['\u2019]?t\s+forget)\b/i.test(ctx.maskedInput);
+  const shouldStripReminderLeadPrefix = /^\s*(?:remind\s+me|don['\u2019]?t\s+forget)\b/i.test(ctx.rawInput);
   const titleBase = shouldStripReminderLeadPrefix ? stripReminderLeadPrefix(base) : base;
+  const mentionAndPriorityStripped = stripMentionNoise(stripPriorityNoise(titleBase));
+  const temporalStripped = stripTemporalNoise(mentionAndPriorityStripped);
+  const temporalContentRemoved = temporalStripped !== mentionAndPriorityStripped || ctx.maskedInput !== ctx.rawInput;
   const title = stripEdgeGlueWords(
     smartCalendarTitleCase(
       stripTrailingDanglingPreposition(
         stripTrailingTemporalGlue(
           stripLeadingTitleFiller(
-            trimEdgePrepositions(stripTemporalNoise(stripMentionNoise(stripPriorityNoise(titleBase)))),
+            trimEdgePrepositions(temporalStripped),
           ),
         ),
-        true,
+        temporalContentRemoved,
       ),
     ),
   );

@@ -28,6 +28,15 @@ describe('calendar parser accuracy regressions', () => {
     assert.equal(result.fields.date, '2026-04-27');
   });
 
+  test('does not strip reminder prefix unless original input starts with it', () => {
+    const stripped = parse('remind me to call mom tomorrow');
+    assert.equal(stripped.fields.title, 'Call Mom');
+
+    const preserved = parse('tomorrow remind me to call mom');
+    assert.equal(preserved.fields.title, 'Remind Me to Call Mom');
+    assert.equal(preserved.fields.date, '2026-03-28');
+  });
+
   test('strips temporal context words like "morning" from final title', () => {
     const result = parse('buy groceries tomorrow morning');
     assert.equal(result.fields.title, 'Buy Groceries');
@@ -37,6 +46,27 @@ describe('calendar parser accuracy regressions', () => {
   test('keeps standalone "next" when it is part of the title', () => {
     const result = parse('plan next steps');
     assert.equal(result.fields.title, 'Plan Next Steps');
+  });
+
+  test('preserves standalone "start" in titles', () => {
+    const result = parse('project start');
+    assert.equal(result.fields.title, 'Project Start');
+  });
+
+  test('preserves standalone "night" while still parsing weekday dates', () => {
+    const result = parse('game night friday');
+    assert.equal(result.fields.title, 'Game Night');
+    assert.equal(result.fields.date, '2026-03-27');
+  });
+
+  test('preserves standalone year tokens in titles', () => {
+    const result = parse('budget 2026 review');
+    assert.equal(result.fields.title, 'Budget 2026 Review');
+  });
+
+  test('preserves trailing phrasal prepositions when no temporal stripping occurred', () => {
+    const result = parse('stand by');
+    assert.equal(result.fields.title, 'Stand By');
   });
 
   test('preserves meaningful leading "in" title phrase', () => {
