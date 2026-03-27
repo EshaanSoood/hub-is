@@ -657,13 +657,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [quickAddDialog]);
 
   useEffect(() => {
+    if (toolbarDialog !== 'tasks' && toolbarDialog !== 'reminders') {
+      return;
+    }
+    setBucketNow(new Date());
     const timerId = window.setInterval(() => {
       setBucketNow(new Date());
     }, 60_000);
     return () => {
       window.clearInterval(timerId);
     };
-  }, []);
+  }, [toolbarDialog]);
 
   useEffect(() => {
     if (toolbarDialog !== 'tasks') {
@@ -789,6 +793,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [closeCapturePanel, closeQuickNav, closeSearch]);
 
   useEffect(() => subscribeQuickAddProjectRequest(() => {
+    skipQuickNavFocusRestoreRef.current = true;
+    closeQuickNav();
     skipProfileFocusRestoreRef.current = true;
     skipNotificationsFocusRestoreRef.current = true;
     skipContextMenuFocusRestoreRef.current = true;
@@ -799,7 +805,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setContextMenuOpen(false);
     closeCapturePanel({ restoreFocus: false });
     void openQuickAddDialog('project');
-  }), [closeCapturePanel, closeQuickNavPanel, closeSearch, openQuickAddDialog]);
+  }), [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, openQuickAddDialog]);
 
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
@@ -1287,7 +1293,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
   }, [captureHomeData.personalProjectId, currentProjectId, navigate, personalCalendarEvents]);
 
-  const toolbarCalendarCreateProjectId = captureHomeData.personalProjectId || projects[0]?.id || null;
+  const toolbarCalendarCreateProjectId =
+    captureHomeData.personalProjectId
+    || projects.find((project) => project.isPersonal)?.id
+    || null;
 
   const onDismissReminderFromDialog = useCallback(async (reminderId: string) => {
     await remindersRuntime.dismiss(reminderId);
