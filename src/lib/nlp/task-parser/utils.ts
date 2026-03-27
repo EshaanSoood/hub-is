@@ -6,16 +6,9 @@ import {
   formatDateInTimezone,
   formatDateTimeInTimezone,
   getZonedDateParts,
-  getZonedParts,
   normalizeWhitespace,
   parseReferenceDate,
-  toIsoDate,
 } from '../shared/utils.ts';
-import {
-  stripLeadingTitleFiller,
-  stripReminderLeadPrefix,
-  stripTrailingDanglingPreposition,
-} from '../shared/title-utils.ts';
 import {
   DATE_TYPO_CORRECTIONS,
   DEFAULT_KNOWN_ASSIGNEES,
@@ -192,18 +185,6 @@ const sundayOfCurrentWeekendIso = (now: Date, timezone: string): string => {
 const nextDayIso = (now: Date, timezone: string): string => formatDateInTimezone(addDays(now, 1), timezone);
 const nextWeekIso = (now: Date, timezone: string): string => formatDateInTimezone(addDays(now, 7), timezone);
 
-const relativeMonthDateTimeIso = (now: Date, timezone: string, monthDelta: number): string => {
-  const nowParts = getZonedParts(now, timezone);
-  const monthIndex = nowParts.month - 1 + monthDelta;
-  const yearOffset = Math.floor(monthIndex / 12);
-  const safeMonthIndex = ((monthIndex % 12) + 12) % 12;
-  const targetYear = nowParts.year + yearOffset;
-  const targetMonth = safeMonthIndex + 1;
-  const lastDay = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
-  const targetDay = Math.min(nowParts.day, lastDay);
-  return `${toIsoDate(targetYear, targetMonth, targetDay)}T${String(nowParts.hour).padStart(2, '0')}:${String(nowParts.minute).padStart(2, '0')}:00`;
-};
-
 const nextMondayIso = (now: Date, timezone: string): string => {
   const parts = getZonedDateParts(now, timezone);
   const delta = parts.weekday === 1 ? 7 : (8 - parts.weekday) % 7 || 7;
@@ -302,16 +283,16 @@ const isAssigneeLike = (value: string, knownAssignees: Set<string>): boolean => 
   if (!cleaned) {
     return false;
   }
-  const isMention = /^@[a-z0-9_.+-]+$/i.test(cleaned);
-  if (!isMention) {
-    return false;
-  }
-  if (knownAssignees.size === 0) {
+  if (/@/.test(cleaned)) {
     return true;
   }
-  const mentionWithoutPrefix = cleaned.slice(1).toLowerCase();
-  const normalizedMention = cleaned.toLowerCase();
-  return knownAssignees.has(mentionWithoutPrefix) || knownAssignees.has(normalizedMention);
+  if (/^(?:the\s+)?[a-z]+\s+(?:team|group)$/i.test(cleaned)) {
+    return true;
+  }
+  if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$/.test(cleaned)) {
+    return true;
+  }
+  return knownAssignees.has(cleaned.toLowerCase());
 };
 
 const normalizeAssigneeCapture = (value: string, knownAssignees: Set<string>): string[] =>
@@ -367,9 +348,9 @@ export const extractAssignees = (
   let directed = false;
   const knownAssignees = new Set((knownAssigneesInput || DEFAULT_KNOWN_ASSIGNEES).map((name) => name.toLowerCase()));
 
-  for (const match of input.matchAll(/(?<![a-z0-9_.+-])@[a-z0-9_.+-]+/gi)) {
+  for (const match of input.matchAll(/\B@[a-z0-9_.+-]+/gi)) {
     const text = match[0] || '';
-    if (!text || !isAssigneeLike(text, knownAssignees)) {
+    if (!text) {
       continue;
     }
     assignees.push(text);
@@ -714,55 +695,6 @@ const scoreDueDateConfidence = (sourceText: string, bestResult: chrono.ParsedRes
   return 0.55;
 };
 
-const findRelativeDateMatch = (
-  working: string,
-  now: Date,
-  timezone: string,
-): { dueAt: string; start: number; end: number; text: string; confidence: number; note: string } | null => {
-  if (hasExplicitTimeExpression(working)) {
-    return null;
-  }
-
-  const nextMonthMatch = working.match(/\bnext\s+month\b/i);
-  if (nextMonthMatch && nextMonthMatch.index != null) {
-    return {
-      dueAt: relativeMonthDateTimeIso(now, timezone, 1),
-      start: nextMonthMatch.index,
-      end: nextMonthMatch.index + nextMonthMatch[0].length,
-      text: nextMonthMatch[0],
-      confidence: 0.84,
-      note: 'resolved due date using relative next-month rule',
-    };
-  }
-
-  const relativeMatch = working.match(/\bin\s+(\d+)\s+(days|day|weeks|week|months|month)\b/i);
-  if (!relativeMatch || relativeMatch.index == null) {
-    return null;
-  }
-
-  const amount = Number(relativeMatch[1]);
-  const safeAmount = Number.isInteger(amount) && amount > 0 ? amount : 1;
-  const unit = relativeMatch[2].toLowerCase();
-  let dueAt: string;
-
-  if (unit.startsWith('month')) {
-    dueAt = relativeMonthDateTimeIso(now, timezone, safeAmount);
-  } else if (unit.startsWith('week')) {
-    dueAt = formatDateTimeInTimezone(addDays(now, safeAmount * 7), timezone);
-  } else {
-    dueAt = formatDateTimeInTimezone(addDays(now, safeAmount), timezone);
-  }
-
-  return {
-    dueAt,
-    start: relativeMatch.index,
-    end: relativeMatch.index + relativeMatch[0].length,
-    text: relativeMatch[0],
-    confidence: 0.84,
-    note: 'resolved due date using relative in-N-units rule',
-  };
-};
-
 export const extractDueDate = (
   input: string,
   now: Date,
@@ -786,45 +718,32 @@ export const extractDueDate = (
     working = normalizeWhitespace(working.replace(/\b(?:now|immediately)\b/gi, ' '));
   }
 
-  const relativeMatch = findRelativeDateMatch(working, now, timezone);
-  if (relativeMatch) {
-    dueAt = relativeMatch.dueAt;
-    confidence = relativeMatch.confidence;
+  const specialMatch = findSpecialDateMatch(working, now, timezone, preferNextWeekStart);
+  if (specialMatch) {
+    dueAt = specialMatch.dueAt;
+    confidence = scoreDueDateConfidence(specialMatch.text, null);
     span = {
-      start: relativeMatch.start,
-      end: relativeMatch.end,
-      text: relativeMatch.text,
+      start: specialMatch.start,
+      end: specialMatch.end,
+      text: specialMatch.text,
     };
-    note = relativeMatch.note;
-    working = stripDueDateSpan(working, relativeMatch.start, relativeMatch.end);
+    note = 'resolved due date from special-date rule';
+    working = stripDueDateSpan(working, specialMatch.start, specialMatch.end);
   } else {
-    const specialMatch = findSpecialDateMatch(working, now, timezone, preferNextWeekStart);
-    if (specialMatch) {
-      dueAt = specialMatch.dueAt;
-      confidence = scoreDueDateConfidence(specialMatch.text, null);
-      span = {
-        start: specialMatch.start,
-        end: specialMatch.end,
-        text: specialMatch.text,
-      };
-      note = 'resolved due date from special-date rule';
-      working = stripDueDateSpan(working, specialMatch.start, specialMatch.end);
-    } else {
-      const bestResult = chrono.parse(working, now, { forwardDate: true })[0] || null;
-      if (bestResult) {
-        const parsedStart = bestResult.index ?? 0;
-        const parsedEnd = parsedStart + bestResult.text.length;
+    const bestResult = chrono.parse(working, now, { forwardDate: true })[0] || null;
+    if (bestResult) {
+      const parsedStart = bestResult.index ?? 0;
+      const parsedEnd = parsedStart + bestResult.text.length;
 
-        dueAt = formatDateTimeInTimezone(bestResult.start.date(), timezone);
-        confidence = scoreDueDateConfidence(working, bestResult);
-        span = {
-          start: parsedStart,
-          end: parsedEnd,
-          text: bestResult.text,
-        };
-        note = `resolved due date using chrono match "${bestResult.text}"`;
-        working = stripDueDateSpan(working, parsedStart, parsedEnd);
-      }
+      dueAt = formatDateTimeInTimezone(bestResult.start.date(), timezone);
+      confidence = scoreDueDateConfidence(working, bestResult);
+      span = {
+        start: parsedStart,
+        end: parsedEnd,
+        text: bestResult.text,
+      };
+      note = `resolved due date using chrono match "${bestResult.text}"`;
+      working = stripDueDateSpan(working, parsedStart, parsedEnd);
     }
   }
 
@@ -852,26 +771,9 @@ const fixTitleWord = (word: string): string => {
     return word;
   }
   const [, prefix, core, suffix] = match;
-  if (/^[A-Z]{2,4}$/.test(core)) {
-    return `${prefix}${core}${suffix}`;
-  }
   const lowerCore = core.toLowerCase();
   const corrected = TITLE_WORD_CORRECTIONS[lowerCore] ?? lowerCore;
   return `${prefix}${corrected}${suffix}`;
-};
-
-const stripResidualTemporalTokens = (input: string): string => {
-  let output = input;
-  output = output
-    .replace(/\bin\s+\d+\s+(?:day|days|week|weeks|month|months)\b/gi, ' ')
-    .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
-    .replace(/\bevery\s+\d+\s+(?:days|weeks|months)\b/gi, ' ')
-    .replace(/\b(?:next|this)\s+(?:month|week)\b/gi, ' ')
-    .replace(
-      /\b(?:today|tomorrow|tonight|yesterday|daily|weekly|monthly)\b/gi,
-      ' ',
-    );
-  return normalizeWhitespace(output);
 };
 
 const normalizeTitleText = (input: string): string => {
@@ -894,7 +796,6 @@ const normalizeTitleText = (input: string): string => {
   output = output.replace(/\bend of day\b/gi, ' ');
   output = output.replace(/\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|tonight)\b$/i, ' ');
   output = output.replace(/\bfor the client\b/gi, 'to the client');
-  output = stripReminderLeadPrefix(output);
   for (const [pattern, replacement] of PHRASE_CORRECTIONS) {
     output = output.replace(pattern, replacement);
   }
@@ -916,8 +817,6 @@ const normalizeTitleText = (input: string): string => {
     output = output.replace(pattern, '');
   }
 
-  output = stripLeadingTitleFiller(stripTrailingDanglingPreposition(stripResidualTemporalTokens(output), true));
-
   return output
     .replace(/\bboth\b$/i, '')
     .replace(/\bbut\b$/i, '')
@@ -927,10 +826,7 @@ const normalizeTitleText = (input: string): string => {
     .trim();
 };
 
-const titleCaseWord = (word: string, index: number, totalWords: number): string => {
-  if (/^[A-Z]{2,4}$/.test(word)) {
-    return word;
-  }
+const titleCaseWord = (word: string, index: number): string => {
   const lower = word.toLowerCase();
   if (TITLE_ACRONYM_MAP[lower]) {
     return TITLE_ACRONYM_MAP[lower];
@@ -938,38 +834,35 @@ const titleCaseWord = (word: string, index: number, totalWords: number): string 
   if (/^#/.test(word)) {
     return word;
   }
-  if (index > 0 && index < totalWords - 1 && SMALL_WORDS.has(lower)) {
+  if (index > 0 && SMALL_WORDS.has(lower)) {
     return lower;
   }
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 };
 
-const smartTitleCase = (input: string): string => {
-  const words = input
+const smartTitleCase = (input: string): string =>
+  input
     .split(/\s+/)
-    .filter(Boolean);
-
-  return words
+    .filter(Boolean)
     .map((word, index) => {
       if (/^[a-z]+['’]s$/i.test(word)) {
         const [base] = word.split(/['’]/);
-        return `${titleCaseWord(base, index, words.length)}'s`;
+        return `${titleCaseWord(base, index)}'s`;
       }
       if (/['’]/.test(word)) {
         const apostropheMatch = word.match(/['’]/);
         const apostropheChar = apostropheMatch ? apostropheMatch[0] : "'";
         return word
           .split(/['’]/)
-          .map((part, partIndex) => (part === 's' ? 's' : titleCaseWord(part, index + partIndex, words.length)))
+          .map((part, partIndex) => (part === 's' ? 's' : titleCaseWord(part, index + partIndex)))
           .join(apostropheChar);
       }
-      return titleCaseWord(word, index, words.length);
+      return titleCaseWord(word, index);
     })
     .join(' ')
     .replace(/\bDont\b/g, "Don't")
     .replace(/\bDon'T\b/g, "Don't")
     .replace(/\bIs on\b/g, 'Is On');
-};
 
 export const buildTaskTitle = (input: string): { title: string; confidence: number } => {
   const cleaned = normalizeTitleText(input);

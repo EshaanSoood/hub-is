@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
@@ -269,7 +269,6 @@ export const useProjectViewsRuntime = ({
   const [focusedWorkViewData, setFocusedWorkViewData] = useState<Awaited<ReturnType<typeof queryView>> | null>(null);
   const [focusedWorkViewLoading, setFocusedWorkViewLoading] = useState(false);
   const [focusedWorkViewError, setFocusedWorkViewError] = useState<string | null>(null);
-  const liveRefreshViewsTimeoutRef = useRef<number | null>(null);
 
   const focusedWorkViewId = activeTab === 'work' ? searchParams.get('view_id') || '' : '';
   const focusedWorkView = useMemo(
@@ -375,33 +374,14 @@ export const useProjectViewsRuntime = ({
 
   useEffect(() => {
     if (!accessToken) {
-      if (liveRefreshViewsTimeoutRef.current !== null) {
-        window.clearTimeout(liveRefreshViewsTimeoutRef.current);
-        liveRefreshViewsTimeoutRef.current = null;
-      }
       return;
     }
-
-    const unsubscribe = subscribeHubLive(accessToken, (message) => {
+    return subscribeHubLive(accessToken, (message) => {
       if (message.type !== 'task.changed' || message.task.project_id !== projectId) {
         return;
       }
-      if (liveRefreshViewsTimeoutRef.current !== null) {
-        window.clearTimeout(liveRefreshViewsTimeoutRef.current);
-      }
-      liveRefreshViewsTimeoutRef.current = window.setTimeout(() => {
-        liveRefreshViewsTimeoutRef.current = null;
-        void refreshViewsAndRecords();
-      }, 500);
+      void refreshViewsAndRecords();
     });
-
-    return () => {
-      if (liveRefreshViewsTimeoutRef.current !== null) {
-        window.clearTimeout(liveRefreshViewsTimeoutRef.current);
-        liveRefreshViewsTimeoutRef.current = null;
-      }
-      unsubscribe();
-    };
   }, [accessToken, projectId, refreshViewsAndRecords]);
 
   useEffect(() => {
