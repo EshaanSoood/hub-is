@@ -1,5 +1,11 @@
 import type { ParseContext } from '../types.ts';
 import { hasStructuredFields, setFieldConfidence, stripEdgeGlueWords } from '../utils.ts';
+import { TITLE_SMALL_WORDS } from '../../nlp/shared/constants.ts';
+import {
+  stripLeadingTitleFiller,
+  stripReminderLeadPrefix,
+  stripTrailingDanglingPreposition,
+} from '../../nlp/shared/title-utils.ts';
 
 const cleanTitleNoise = (input: string): string =>
   input
@@ -22,19 +28,56 @@ const stripTrailingTemporalGlue = (input: string): string =>
     .replace(/[.]+$/g, '')
     .trim();
 
+const stripPriorityNoise = (input: string): string =>
+  input
+    .replace(/\b(?:high|medium|low)\s+priority\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const stripMentionNoise = (input: string): string =>
+  input
+    .replace(/\b(?:for|to|with|from)\s+@[a-z0-9_.+-]+\b/gi, ' ')
+    .replace(/@[a-z0-9_.+-]+\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 const stripTemporalNoise = (input: string): string =>
   input
+    .replace(/\bin\s+\d+\s+(?:day|days|week|weeks|month|months)\b/gi, ' ')
+    .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
+    .replace(/\b(?:next|this)\s+(?:week|month)\b/gi, ' ')
     .replace(
-      /\b(?:today|tomorrow|tonight|tmr|yesterday|next\s+week|this\s+week|next|this|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|starting|start|weekly|daily|monthly|yearly|annually)\b/gi,
+      /\b(?:today|tomorrow|tonight|tmr|yesterday|starting|start|weekly|daily|monthly|yearly|annually)\b/gi,
       ' ',
     )
+    .replace(/\b(?:morning|afternoon|evening|night|noon)\b/gi, ' ')
+    .replace(/\b(?:end of (?:the )?day|end of (?:the )?week|end of (?:the )?month|eod|eow)\b/gi, ' ')
     .replace(/\b(?:am|pm)\b/gi, ' ')
     .replace(/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi, ' ')
-    .replace(/\b\d{4}\b/g, ' ')
     .replace(/\b\d{4}-\d{2}-\d{2}\b/g, ' ')
+    .replace(/\b\d{4}\b/g, ' ')
     .replace(/\bfrom\s+now\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+const smartCalendarTitleCase = (input: string): string => {
+  const tokens = input
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return tokens
+    .map((token, index) => {
+      if (/^[A-Z]{2,4}$/.test(token)) {
+        return token;
+      }
+      const lower = token.toLowerCase();
+      if (index > 0 && index < tokens.length - 1 && TITLE_SMALL_WORDS.has(lower)) {
+        return lower;
+      }
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(' ');
+};
 
 const titleSpansFromMaskedInput = (ctx: ParseContext): Array<{ start: number; end: number; text: string }> => {
   const spans: Array<{ start: number; end: number; text: string }> = [];
@@ -67,7 +110,20 @@ const titleSpansFromMaskedInput = (ctx: ParseContext): Array<{ start: number; en
 
 export const titlePass = (ctx: ParseContext): void => {
   const base = cleanTitleNoise(ctx.maskedInput);
-  const title = stripEdgeGlueWords(stripTrailingTemporalGlue(trimEdgePrepositions(stripTemporalNoise(base))));
+  const shouldStripReminderLeadPrefix = /^\s*(?:remind\s+me|don['\u2019]?t\s+forget)\b/i.test(ctx.maskedInput);
+  const titleBase = shouldStripReminderLeadPrefix ? stripReminderLeadPrefix(base) : base;
+  const title = stripEdgeGlueWords(
+    smartCalendarTitleCase(
+      stripTrailingDanglingPreposition(
+        stripTrailingTemporalGlue(
+          stripLeadingTitleFiller(
+            trimEdgePrepositions(stripTemporalNoise(stripMentionNoise(stripPriorityNoise(titleBase)))),
+          ),
+        ),
+        true,
+      ),
+    ),
+  );
 
   if (!title) {
     ctx.result.fields.title = null;

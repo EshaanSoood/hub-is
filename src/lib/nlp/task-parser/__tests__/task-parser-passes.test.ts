@@ -48,3 +48,13 @@ test('task parser removes trailing punctuation after due date extraction', () =>
   assert.equal(result.fields.title, 'Go for Meeting with Greg');
   assert.equal(result.meta.maskedInput, 'go for meeting with greg');
 });
+
+test('task parser only extracts @mentions as assignees and keeps bare names in title context', () => {
+  const result = parseTaskInput('meeting with sarah next monday at noon', {
+    now: '2026-03-27T10:00:00',
+    timezone: 'America/New_York',
+  });
+
+  assert.deepEqual(result.fields.assignee_hints, []);
+  assert.equal(result.fields.title, 'Meeting with Sarah');
+});

@@ -131,8 +131,9 @@ export const FileInspectorActionBar = ({
   }, [closeRename, renameOpen]);
 
   useEffect(() => {
+    let focusTimer: number | null = null;
     if (!moveOpen && moveWasOpenRef.current && moveRestoreFocusRef.current) {
-      window.setTimeout(() => {
+      focusTimer = window.setTimeout(() => {
         if (moveTriggerRef.current?.isConnected) {
           moveTriggerRef.current.focus();
         }
@@ -142,11 +143,18 @@ export const FileInspectorActionBar = ({
       moveRestoreFocusRef.current = false;
     }
     moveWasOpenRef.current = moveOpen;
+
+    return () => {
+      if (focusTimer !== null) {
+        window.clearTimeout(focusTimer);
+      }
+    };
   }, [moveOpen]);
 
   useEffect(() => {
+    let focusTimer: number | null = null;
     if (!renameOpen && renameWasOpenRef.current && renameRestoreFocusRef.current) {
-      window.setTimeout(() => {
+      focusTimer = window.setTimeout(() => {
         if (renameTriggerRef.current?.isConnected) {
           renameTriggerRef.current.focus();
         }
@@ -156,6 +164,12 @@ export const FileInspectorActionBar = ({
       renameRestoreFocusRef.current = false;
     }
     renameWasOpenRef.current = renameOpen;
+
+    return () => {
+      if (focusTimer !== null) {
+        window.clearTimeout(focusTimer);
+      }
+    };
   }, [renameOpen]);
 
   const onCopyLink = async () => {

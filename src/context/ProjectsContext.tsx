@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthz } from './AuthzContext';
 import { listHubProjects } from '../services/projectsService';
 import type { ProjectRecord } from '../types/domain';
@@ -19,16 +19,21 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  const hasInitializedRef = useRef(false);
 
   const refreshProjects = useCallback(async () => {
     if (!signedIn || !accessToken) {
       setProjects([]);
       setError(undefined);
-      setInitialized(true);
+      hasInitializedRef.current = false;
+      setLoading(false);
+      setInitialized(false);
       return;
     }
 
-    setInitialized(false);
+    if (!hasInitializedRef.current) {
+      setInitialized(false);
+    }
     setLoading(true);
     try {
       const result = await listHubProjects(accessToken);
@@ -42,6 +47,7 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
       setError(undefined);
     } finally {
       setLoading(false);
+      hasInitializedRef.current = true;
       setInitialized(true);
     }
   }, [accessToken, signedIn]);
