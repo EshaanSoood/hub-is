@@ -64,6 +64,11 @@ export const formatDueLabel = (isoString: string | null): string => {
 };
 
 export const adaptTaskSummary = (task: HubTaskSummary): TaskItem => ({
+  // TODO: resolve assignee display names from user service when task assignments expose only user IDs.
+  assigneeLabel:
+    (task.assignments?.[0] as (HubTaskSummary['assignments'][number] & { display_name?: string }) | undefined)?.display_name
+    ?? task.assignments?.[0]?.user_id
+    ?? 'Unassigned',
   id: task.record_id,
   label: task.title,
   dueAt: task.task_state.due_at,

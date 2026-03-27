@@ -20,6 +20,7 @@ interface TasksModuleSkinProps {
   onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
   onDeleteTask?: (taskId: string) => void | Promise<void>;
   onAddSubtask?: (task: TaskItem) => void;
+  hideHeader?: boolean;
   readOnly?: boolean;
 }
 
@@ -382,6 +383,7 @@ const TasksModuleLarge = ({
   onUpdateTaskDueDate,
   onDeleteTask,
   onAddSubtask,
+  hideHeader = false,
   readOnly = false,
 }: Omit<TasksModuleSkinProps, 'sizeTier'>) => {
   const [activeUserId, setActiveUserId] = useState('all');
@@ -393,12 +395,18 @@ const TasksModuleLarge = ({
   const collaboratorOptions = useMemo(
     () => [
       { id: 'all', label: 'All' },
-      ...[...new Set(tasks.map((task) => task.assigneeId))]
-        .filter(Boolean)
-        .map((assigneeId) => ({
+      ...Array.from(
+        tasks.reduce((map, task) => {
+          if (!map.has(task.assigneeId)) {
+            map.set(task.assigneeId, task.assigneeLabel);
+          }
+          return map;
+        }, new Map<string, string>()),
+        ([assigneeId, assigneeLabel]) => ({
           id: assigneeId,
-          label: humanizeOption(assigneeId, 'unassigned'),
-        })),
+          label: assigneeLabel,
+        }),
+      ),
     ],
     [tasks],
   );
@@ -422,13 +430,15 @@ const TasksModuleLarge = ({
 
   return (
     <section className="space-y-3" aria-label="Tasks module">
-      <div className="flex items-center justify-between gap-2">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
-          <Icon name="tasks" className="text-[16px]" />
-          Tasks
-        </p>
-        <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
-      </div>
+      {!hideHeader ? (
+        <div className="flex items-center justify-between gap-2">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
+            <Icon name="tasks" className="text-[16px]" />
+            Tasks
+          </p>
+          <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
+        </div>
+      ) : null}
       {!readOnly ? (
         <div className="flex items-center justify-between gap-2">
           <button
@@ -490,11 +500,12 @@ const TasksModuleLarge = ({
 };
 
 export const TasksModuleSkin = ({ sizeTier, ...props }: TasksModuleSkinProps) => {
+  const { hideHeader, ...rest } = props;
   if (sizeTier === 'S') {
-    return <TasksModuleSmall {...props} />;
+    return <TasksModuleSmall {...rest} />;
   }
   if (sizeTier === 'M') {
-    return <TasksModuleMedium {...props} />;
+    return <TasksModuleMedium {...rest} />;
   }
-  return <TasksModuleLarge {...props} />;
+  return <TasksModuleLarge {...rest} hideHeader={hideHeader} />;
 };

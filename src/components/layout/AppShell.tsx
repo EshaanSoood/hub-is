@@ -1693,6 +1693,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 tasks={adaptedTasks}
                 tasksLoading={quickNavTasksLoading}
                 onCreateTask={onCreateTaskFromModule}
+                hideHeader
               />
             </div>
           </div>
