@@ -23,6 +23,7 @@ export interface TaskItem {
   categoryId: string;
   categoryValue: string | null;
   assigneeId: string;
+  assigneeLabel: string;
   priority: PriorityLevel;
   priorityValue: TaskPriorityValue;
   status: TaskStatus;
@@ -869,37 +870,31 @@ export const TasksTab = ({
       <div className="flex flex-wrap items-center gap-2">
         {showSortControls ? (
           <>
-            <span className="text-xs text-muted">Group by</span>
-            <div role="listbox" aria-label="Group tasks by" className="flex flex-wrap items-center gap-2">
+            <fieldset className="flex flex-wrap items-center gap-2">
+              <legend className="text-xs text-muted">Group by</legend>
               {SORT_DIMENSIONS.map((dimension) => {
                 const active = sortChain[0] === dimension;
                 return (
-                  <button
+                  <label
                     key={dimension}
-                    type="button"
-                    role="option"
-                    aria-selected={active}
-                    aria-label={`Group by ${GROUP_BY_LABELS[dimension]}`}
-                    onClick={() => {
-                      onSortChainChange(promoteDimension(sortChain, dimension));
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        onSortChainChange(promoteDimension(sortChain, dimension));
-                      }
-                    }}
                     className={cn(
-                      'rounded-control border px-2 py-1.5 text-xs transition-colors',
-                      active ? 'bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted hover:text-text',
+                      'inline-flex cursor-pointer items-center rounded-control border px-2 py-1.5 text-xs transition-colors focus-within:ring-2 focus-within:ring-focus-ring',
+                      active ? 'border-primary bg-primary/10 text-primary' : 'border-subtle bg-surface text-muted hover:text-text',
                     )}
-                    style={active ? { borderColor: 'var(--color-primary)' } : undefined}
                   >
+                    <input
+                      type="radio"
+                      name="tasks-group-by"
+                      value={dimension}
+                      checked={active}
+                      onChange={() => onSortChainChange(promoteDimension(sortChain, dimension))}
+                      className="sr-only"
+                    />
                     {GROUP_BY_LABELS[dimension]}
-                  </button>
+                  </label>
                 );
               })}
-            </div>
+            </fieldset>
 
             <span className="mx-1 h-4 w-px bg-border-subtle" aria-hidden="true" />
           </>
@@ -939,8 +934,13 @@ export const TasksTab = ({
       </div>
 
       <div className="space-y-4">
-        {clusters.map((cluster) => {
+        {clusters.map((cluster, clusterIndex) => {
           const collapsed = collapsedClusterIds.has(cluster.id);
+          const itemCount = cluster.items.length;
+          const clusterLabel = `${cluster.label}, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
+          const clusterDomId = `task-cluster-${cluster.dimension}-${clusterIndex}`;
+          const clusterHeadingId = `${clusterDomId}-heading`;
+          const clusterListId = `${clusterDomId}-list`;
           const accent =
             cluster.dimension === 'priority' && cluster.priorityKey
               ? PRIORITY_DOT_COLORS[cluster.priorityKey]
@@ -949,36 +949,38 @@ export const TasksTab = ({
                 : 'var(--color-muted)';
 
           return (
-            <section key={cluster.id}>
-              <button
-                type="button"
-                aria-expanded={!collapsed}
-                onClick={() => {
-                  setCollapsedClusterIds((current) => {
-                    const next = new Set(current);
-                    if (next.has(cluster.id)) {
-                      next.delete(cluster.id);
-                    } else {
-                      next.add(cluster.id);
-                    }
-                    return next;
-                  });
-                }}
-                className="flex w-full items-center gap-2 rounded-control px-1.5 py-1.5 text-left"
-              >
-                <span className="h-0.5 w-3 rounded-sm" style={{ backgroundColor: accent }} aria-hidden="true" />
-                <span className="flex-1 text-xs font-bold uppercase tracking-wide text-muted">{cluster.label}</span>
-                <span className="rounded-control border border-subtle bg-surface px-1.5 py-0.5 text-[10px] text-muted">
-                  {cluster.items.length}
-                </span>
-                <span className={cn('text-[10px] text-muted transition-transform', !collapsed && 'rotate-90')}>▶</span>
-              </button>
+            <section key={cluster.id} aria-label={clusterLabel}>
+              <h3 id={clusterHeadingId}>
+                <button
+                  type="button"
+                  aria-expanded={!collapsed}
+                  aria-controls={clusterListId}
+                  onClick={() => {
+                    setCollapsedClusterIds((current) => {
+                      const next = new Set(current);
+                      if (next.has(cluster.id)) {
+                        next.delete(cluster.id);
+                      } else {
+                        next.add(cluster.id);
+                      }
+                      return next;
+                    });
+                  }}
+                  className="flex w-full items-center gap-2 rounded-control px-1.5 py-1.5 text-left"
+                >
+                  <span className="h-0.5 w-3 rounded-sm" style={{ backgroundColor: accent }} aria-hidden="true" />
+                  <span className="flex-1 text-xs font-bold uppercase tracking-wide text-muted">{cluster.label}</span>
+                  <span className="rounded-control border border-subtle bg-surface px-1.5 py-0.5 text-[10px] text-muted">
+                    {itemCount}
+                  </span>
+                  <span className={cn('text-[10px] text-muted transition-transform', !collapsed && 'rotate-90')}>▶</span>
+                </button>
+              </h3>
 
-              {!collapsed ? (
-                <div className="mt-1 space-y-1">
-                  {cluster.items.map((task) => (
+              <ul id={clusterListId} aria-labelledby={clusterHeadingId} hidden={collapsed} className="mt-1 space-y-1">
+                {cluster.items.map((task) => (
+                  <li key={task.id}>
                     <TaskRow
-                      key={task.id}
                       task={task}
                       status={(optimisticStatus.taskKey === taskKey ? optimisticStatus.entries[task.id] : undefined) ?? task.status}
                       onAddSubtask={onAddSubtask}
@@ -989,9 +991,9 @@ export const TasksTab = ({
                       onUpdateTaskCategory={onUpdateTaskCategory}
                       onDeleteTask={onDeleteTask}
                     />
-                  ))}
-                </div>
-              ) : null}
+                  </li>
+                ))}
+              </ul>
             </section>
           );
         })}

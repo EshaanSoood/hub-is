@@ -7,7 +7,12 @@ import {
   type HubProjectMember,
 } from '../services/hub/types';
 import { useAuthz } from '../context/AuthzContext';
-import { buildPaneContextHref } from '../lib/hubRoutes';
+import {
+  buildPaneContextHref,
+  buildProjectOverviewHref,
+  buildProjectToolsHref,
+  buildProjectWorkHref,
+} from '../lib/hubRoutes';
 import { useAutomationRuntime } from '../hooks/useAutomationRuntime';
 import { useCalendarRuntime } from '../hooks/useCalendarRuntime';
 import { usePaneMutations } from '../hooks/usePaneMutations';
@@ -489,7 +494,7 @@ const ProjectSpaceWorkspace = ({
       return;
     }
     if (activePane && ((!paneId) || (activePane.pane_id !== paneId && hasRequestedPane))) {
-      const nextPath = `/projects/${project.project_id}/work/${activePane.pane_id}`;
+      const nextPath = buildProjectWorkHref(project.project_id, activePane.pane_id);
       const query = searchParams.toString();
       navigate(query ? `${nextPath}?${query}` : nextPath, { replace: true });
     }
@@ -582,7 +587,7 @@ const ProjectSpaceWorkspace = ({
     if (!backlink.source.pane_id) {
       return;
     }
-    navigate(`/projects/${project.project_id}/work/${backlink.source.pane_id}`, {
+    navigate(buildProjectWorkHref(project.project_id, backlink.source.pane_id), {
       state: backlink.source.node_key ? { focusNodeKey: backlink.source.node_key } : null,
     });
   };
@@ -595,7 +600,7 @@ const ProjectSpaceWorkspace = ({
     }
 
     setCreatingPaneName('');
-    navigate(`/projects/${project.project_id}/work/${nextPane.pane_id}`);
+    navigate(buildProjectWorkHref(project.project_id, nextPane.pane_id));
   };
 
   const onDeletePaneWithNavigation = async (pane: HubPaneSummary) => {
@@ -935,7 +940,7 @@ const ProjectSpaceWorkspace = ({
       <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Project space tabs">
         <button
           type="button"
-          onClick={() => navigate(`/projects/${project.project_id}/overview`)}
+          onClick={() => navigate(buildProjectOverviewHref(project.project_id))}
           className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             activeTab === 'overview' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
           }`}
@@ -947,7 +952,7 @@ const ProjectSpaceWorkspace = ({
         </button>
         <button
           type="button"
-          onClick={() => navigate(`/projects/${project.project_id}/work/${activePane?.pane_id || ''}`)}
+          onClick={() => navigate(buildProjectWorkHref(project.project_id, activePane?.pane_id))}
           className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             activeTab === 'work' && !openedFromPinned ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
           }`}
@@ -964,7 +969,7 @@ const ProjectSpaceWorkspace = ({
             <button
               key={pane.pane_id}
               type="button"
-              onClick={() => navigate(`/projects/${project.project_id}/work/${pane.pane_id}?pinned=1`)}
+              onClick={() => navigate(`${buildProjectWorkHref(project.project_id, pane.pane_id)}?pinned=1`)}
               className={`rounded-panel px-3 py-1.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
                 selected ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
               }`}
@@ -983,7 +988,7 @@ const ProjectSpaceWorkspace = ({
 
         <button
           type="button"
-          onClick={() => navigate(`/projects/${project.project_id}/tools`)}
+          onClick={() => navigate(buildProjectToolsHref(project.project_id))}
           className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             activeTab === 'tools' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
           }`}
@@ -1059,7 +1064,7 @@ const ProjectSpaceWorkspace = ({
                   }))}
                   activePaneId={activePane?.pane_id ?? null}
                   onPaneChange={(nextPaneId) => {
-                    navigate(`/projects/${project.project_id}/work/${nextPaneId}`);
+                    navigate(buildProjectWorkHref(project.project_id, nextPaneId));
                   }}
                   onMovePane={(paneIdToMove, direction) => {
                     const pane = panes.find((entry) => entry.pane_id === paneIdToMove);
@@ -1089,7 +1094,7 @@ const ProjectSpaceWorkspace = ({
                           <button
                             key={pane.pane_id}
                             type="button"
-                            onClick={() => navigate(`/projects/${project.project_id}/work/${pane.pane_id}`)}
+                            onClick={() => navigate(buildProjectWorkHref(project.project_id, pane.pane_id))}
                             className="flex w-full items-center justify-between rounded-panel border border-border-muted px-3 py-2 text-left"
                           >
                             <span className="text-sm font-medium text-text">{pane.name}</span>
@@ -1110,7 +1115,7 @@ const ProjectSpaceWorkspace = ({
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <button
                               type="button"
-                              onClick={() => navigate(`/projects/${project.project_id}/work/${pane.pane_id}`)}
+                              onClick={() => navigate(buildProjectWorkHref(project.project_id, pane.pane_id))}
                               className="font-semibold text-primary underline"
                             >
                               {pane.name}
@@ -1295,7 +1300,7 @@ const ProjectSpaceWorkspace = ({
                 workspaceEnabled={workspaceEnabled}
                 showWorkspaceDocPlaceholder={false}
                 onSelectPane={(nextPaneId) => {
-                  navigate(`/projects/${project.project_id}/work/${nextPaneId}`);
+                  navigate(buildProjectWorkHref(project.project_id, nextPaneId));
                 }}
                 onUpdatePane={onUpdatePaneFromWorkView}
                 onOpenRecord={(recordId) => {
@@ -1352,22 +1357,22 @@ const ProjectSpaceWorkspace = ({
                           onOpenView: (viewId) => {
                             const targetView = views.find((view) => view.view_id === viewId);
                             if (!targetView) {
-                              navigate(`/projects/${project.project_id}/work/${activePane.pane_id}`);
+                              navigate(buildProjectWorkHref(project.project_id, activePane.pane_id));
                               return;
                             }
                             if (targetView.type === 'kanban') {
-                              navigate(`/projects/${project.project_id}/overview?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`);
+                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`);
                               return;
                             }
                             if (targetView.type === 'calendar') {
-                              navigate(`/projects/${project.project_id}/overview?view=calendar`);
+                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=calendar`);
                               return;
                             }
                             if (targetView.type === 'timeline') {
-                              navigate(`/projects/${project.project_id}/overview?view=timeline`);
+                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=timeline`);
                               return;
                             }
-                            navigate(`/projects/${project.project_id}/work/${activePane.pane_id}?view_id=${encodeURIComponent(viewId)}`);
+                            navigate(`${buildProjectWorkHref(project.project_id, activePane.pane_id)}?view_id=${encodeURIComponent(viewId)}`);
                           },
                         }}
                       />
@@ -1604,7 +1609,7 @@ const ProjectSpaceWorkspace = ({
                           buildPaneContextHref({
                             projectId: project.project_id,
                             sourcePane: inspectorRecord.source_pane,
-                            fallbackHref: `/projects/${encodeURIComponent(project.project_id)}/work`,
+                            fallbackHref: buildProjectWorkHref(project.project_id),
                           }),
                         );
                       }}

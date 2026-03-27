@@ -54,6 +54,21 @@ export const buildPaneContextHref = ({
   return `/projects/${encodePathSegment(projectId)}/work/${encodePathSegment(sourcePane.pane_id)}${query ? `?${query}` : ''}`;
 };
 
+export const buildProjectOverviewHref = (projectId: string): string =>
+  `/projects/${encodePathSegment(projectId)}/overview`;
+
+export const buildProjectToolsHref = (projectId: string): string =>
+  `/projects/${encodePathSegment(projectId)}/tools`;
+
+export const buildProjectWorkHref = (projectId: string, paneId?: string | null): string => {
+  const baseHref = `/projects/${encodePathSegment(projectId)}/work`;
+  const resolvedPaneId = asText(paneId);
+  if (!resolvedPaneId) {
+    return baseHref;
+  }
+  return `${baseHref}/${encodePathSegment(resolvedPaneId)}`;
+};
+
 const buildPersonalTaskHref = (recordId: string): string =>
   `/projects?intent=open&task_id=${encodePathSegment(recordId)}`;
 

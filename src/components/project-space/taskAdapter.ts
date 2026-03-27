@@ -33,6 +33,8 @@ const mapPriority = (priority: HubTaskSummary['task_state']['priority']): Priori
   return 'low';
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export const formatDueLabel = (isoString: string | null): string => {
   if (!isoString) {
     return 'No date';
@@ -64,6 +66,19 @@ export const formatDueLabel = (isoString: string | null): string => {
 };
 
 export const adaptTaskSummary = (task: HubTaskSummary): TaskItem => ({
+  // TODO: resolve assignee display names from user service when task assignments expose only user IDs.
+  assigneeLabel:
+    (() => {
+      const displayName = (task.assignments?.[0] as (HubTaskSummary['assignments'][number] & { display_name?: string }) | undefined)?.display_name?.trim();
+      if (displayName) {
+        return displayName;
+      }
+      const fallbackUserId = task.assignments?.[0]?.user_id?.trim() ?? '';
+      if (!fallbackUserId) {
+        return 'Unassigned';
+      }
+      return UUID_PATTERN.test(fallbackUserId) ? 'Collaborator' : fallbackUserId;
+    })(),
   id: task.record_id,
   label: task.title,
   dueAt: task.task_state.due_at,

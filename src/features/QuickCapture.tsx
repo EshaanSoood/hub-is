@@ -424,7 +424,7 @@ export const QuickCapturePanel = ({
         setCaptureText('');
         setCaptureError(null);
         onRequestClose({ restoreFocus: false });
-        navigate(`/projects/${captureTargetProjectId}/work?capture=1&intent=${encodeURIComponent(intent)}`);
+        navigate(`/projects/${encodeURIComponent(captureTargetProjectId)}/work?capture=1&intent=${encodeURIComponent(intent)}`);
       } catch (error) {
         setCaptureError(error instanceof Error ? error.message : 'Failed to save capture.');
         focusCaptureInput();

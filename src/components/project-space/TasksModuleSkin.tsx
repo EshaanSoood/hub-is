@@ -20,6 +20,7 @@ interface TasksModuleSkinProps {
   onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
   onDeleteTask?: (taskId: string) => void | Promise<void>;
   onAddSubtask?: (task: TaskItem) => void;
+  hideHeader?: boolean;
   readOnly?: boolean;
 }
 
@@ -48,6 +49,7 @@ const MEDIUM_PRIORITY_RANK: Record<Exclude<TaskPriorityValue, null>, number> = {
   medium: 2,
   low: 3,
 };
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const toIsoDate = (value: string): string | null => {
   if (!value) {
@@ -118,6 +120,8 @@ const humanizeOption = (value: string, fallback: string) => {
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ');
 };
+
+const isOpaqueIdLabel = (value: string): boolean => UUID_PATTERN.test(value) || /^[0-9a-f]{24,}$/i.test(value);
 
 const sortChainForGroupBy = (groupBy: SortDimension): SortChain => {
   if (groupBy === 'priority') {
@@ -382,6 +386,7 @@ const TasksModuleLarge = ({
   onUpdateTaskDueDate,
   onDeleteTask,
   onAddSubtask,
+  hideHeader = false,
   readOnly = false,
 }: Omit<TasksModuleSkinProps, 'sizeTier'>) => {
   const [activeUserId, setActiveUserId] = useState('all');
@@ -391,15 +396,33 @@ const TasksModuleLarge = ({
   const [composerParentTask, setComposerParentTask] = useState<TaskItem | null>(null);
 
   const collaboratorOptions = useMemo(
-    () => [
-      { id: 'all', label: 'All' },
-      ...[...new Set(tasks.map((task) => task.assigneeId))]
-        .filter(Boolean)
-        .map((assigneeId) => ({
+    () => {
+      const labelsById = new Map<string, string>();
+      let collaboratorFallbackIndex = 1;
+      for (const task of tasks) {
+        if (!task.assigneeId || labelsById.has(task.assigneeId)) {
+          continue;
+        }
+        if (task.assigneeId === 'unassigned') {
+          labelsById.set(task.assigneeId, 'Unassigned');
+          continue;
+        }
+        const trimmedLabel = task.assigneeLabel.trim();
+        if (trimmedLabel && trimmedLabel.toLowerCase() !== 'collaborator' && !isOpaqueIdLabel(trimmedLabel)) {
+          labelsById.set(task.assigneeId, trimmedLabel);
+          continue;
+        }
+        labelsById.set(task.assigneeId, `Collaborator ${collaboratorFallbackIndex}`);
+        collaboratorFallbackIndex += 1;
+      }
+      return [
+        { id: 'all', label: 'All' },
+        ...Array.from(labelsById, ([assigneeId, assigneeLabel]) => ({
           id: assigneeId,
-          label: humanizeOption(assigneeId, 'unassigned'),
+          label: assigneeLabel,
         })),
-    ],
+      ];
+    },
     [tasks],
   );
   const categoryOptions = useMemo(
@@ -422,13 +445,15 @@ const TasksModuleLarge = ({
 
   return (
     <section className="space-y-3" aria-label="Tasks module">
-      <div className="flex items-center justify-between gap-2">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
-          <Icon name="tasks" className="text-[16px]" />
-          Tasks
-        </p>
-        <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
-      </div>
+      {!hideHeader ? (
+        <div className="flex items-center justify-between gap-2">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
+            <Icon name="tasks" className="text-[16px]" />
+            Tasks
+          </p>
+          <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
+        </div>
+      ) : null}
       {!readOnly ? (
         <div className="flex items-center justify-between gap-2">
           <button
@@ -490,11 +515,12 @@ const TasksModuleLarge = ({
 };
 
 export const TasksModuleSkin = ({ sizeTier, ...props }: TasksModuleSkinProps) => {
+  const { hideHeader, ...rest } = props;
   if (sizeTier === 'S') {
-    return <TasksModuleSmall {...props} />;
+    return <TasksModuleSmall {...rest} />;
   }
   if (sizeTier === 'M') {
-    return <TasksModuleMedium {...props} />;
+    return <TasksModuleMedium {...rest} />;
   }
-  return <TasksModuleLarge {...props} />;
+  return <TasksModuleLarge {...rest} hideHeader={hideHeader} />;
 };

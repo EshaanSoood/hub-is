@@ -9,31 +9,28 @@ import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
 import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { usePersonalCalendarRuntime } from '../../hooks/usePersonalCalendarRuntime';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
-import { createEventFromNlp, getHubHome, queryTasks } from '../../services/hub/records';
-import { createReminder, updateReminder } from '../../services/hub/reminders';
+import { createEventFromNlp, createTask, getHubHome, queryTasks } from '../../services/hub/records';
+import { createReminder, updateReminder, type CreateReminderPayload } from '../../services/hub/reminders';
 import { listProjectMembers } from '../../services/hub/projects';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
 import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
-import { buildTaskDestinationHref } from '../../lib/hubRoutes';
 import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { subscribeQuickAddProjectRequest } from '../../lib/quickAddProjectRequest';
 import { parseReminderInput, type ReminderParseResult } from '../../lib/nlp/reminder-parser';
 import { createHubProject } from '../../services/projectsService';
 import { CalendarModuleSkin, type CalendarScope } from '../project-space/CalendarModuleSkin';
+import { RemindersModuleSkin } from '../project-space/RemindersModuleSkin';
+import { TasksModuleSkin } from '../project-space/TasksModuleSkin';
+import { adaptTaskSummaries } from '../project-space/taskAdapter';
 import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
 import { NotificationsPanel } from './NotificationsPanel';
 import { ProfileMenu } from './ProfileMenu';
 import { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from './QuickAddDialogs';
-import { ToolbarRemindersDialogContent } from './ToolbarRemindersDialogContent';
-import { ToolbarTasksDialogContent } from './ToolbarTasksDialog';
 import {
   buildAccountAvatarUrl,
   buildBreadcrumb,
   buildSearchResultHref,
-  bucketForDate,
-  DATE_BUCKET_LABELS,
-  DATE_BUCKET_ORDER,
   emptyReminderPreview,
   focusElementSoon,
   focusFirstDescendantSoon,
@@ -47,7 +44,6 @@ import {
   toDateTimeLocalInput,
   tomorrowAtNineIso,
   toToolbarNotification,
-  type DateBucketId,
   type NotificationFilter,
   type QuickAddDialog,
   type QuickAddOption,
@@ -112,7 +108,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [quickNavTasks, setQuickNavTasks] = useState<HubTaskSummary[]>([]);
   const [quickNavTasksLoading, setQuickNavTasksLoading] = useState(false);
   const [quickNavTasksError, setQuickNavTasksError] = useState<string | null>(null);
-  const [bucketNow, setBucketNow] = useState(() => new Date());
   const remindersDialogOpen = toolbarDialog === 'reminders';
   const calendarDialogOpen = toolbarDialog === 'calendar';
   const {
@@ -199,77 +194,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     () => taskProjectMembersById[quickAddProjectId] ?? [],
     [quickAddProjectId, taskProjectMembersById],
   );
-  const quickNavTasksByRecordId = useMemo(() => {
-    const map = new Map<string, HubTaskSummary>();
-    for (const item of quickNavTasks) {
-      map.set(item.record_id, item);
-    }
-    return map;
-  }, [quickNavTasks]);
-  const activeReminders = useMemo(() =>
-    [...remindersRuntime.reminders]
-      .filter((reminder) => !reminder.fired_at)
-      .sort((left, right) => parseIsoTimestamp(left.remind_at) - parseIsoTimestamp(right.remind_at)), [remindersRuntime.reminders]);
-  const projectNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const project of projects) {
-      map.set(project.id, project.name);
-    }
-    return map;
-  }, [projects]);
-  const bucketedTasks = useMemo(() => {
-    const buckets = new Map<DateBucketId, HubTaskSummary[]>(
-      DATE_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
-    );
-
-    for (const task of quickNavTasks) {
-      const bucket = bucketForDate(task.task_state.due_at, bucketNow);
-      const bucketItems = buckets.get(bucket);
-      if (bucketItems) {
-        bucketItems.push(task);
-      }
-    }
-
-    return DATE_BUCKET_ORDER.flatMap((bucketId) => {
-      const items = buckets.get(bucketId) ?? [];
-      if (items.length === 0) {
-        return [];
-      }
-      return [{ id: bucketId, label: DATE_BUCKET_LABELS[bucketId], items }];
-    });
-  }, [bucketNow, quickNavTasks]);
-  const bucketedReminders = useMemo(() => {
-    const buckets = new Map<DateBucketId, typeof activeReminders>(
-      DATE_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
-    );
-
-    for (const reminder of activeReminders) {
-      const bucket = bucketForDate(reminder.remind_at, bucketNow);
-      const bucketItems = buckets.get(bucket);
-      if (bucketItems) {
-        bucketItems.push(reminder);
-      }
-    }
-
-    return DATE_BUCKET_ORDER.flatMap((bucketId) => {
-      const items = buckets.get(bucketId) ?? [];
-      if (items.length === 0) {
-        return [];
-      }
-      return [{ id: bucketId, label: DATE_BUCKET_LABELS[bucketId], items }];
-    });
-  }, [activeReminders, bucketNow]);
-  const bucketedRemindersForDialog = useMemo(
-    () =>
-      bucketedReminders.map((bucket) => ({
-        ...bucket,
-        items: bucket.items.map((reminder) => ({
-          ...reminder,
-          project_name: projectNameById.get(reminder.project_id) || personalReminderProjectLabel,
-        })),
-      })),
-    [bucketedReminders, personalReminderProjectLabel, projectNameById],
-  );
+  const adaptedTasks = useMemo(() => adaptTaskSummaries(quickNavTasks), [quickNavTasks]);
 
   const refreshCaptureData = useCallback(async () => {
     if (!accessToken) {
@@ -584,7 +509,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       setQuickAddDialog(null);
       setProjectDialogName('');
       await refreshProjects();
-      navigate(`/projects/${created.data.id}/overview`);
+      navigate(`/projects/${encodeURIComponent(created.data.id)}/overview`);
     } catch (error) {
       setProjectDialogError(error instanceof Error ? error.message : 'Project creation failed.');
     } finally {
@@ -656,19 +581,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       focusElementSoon(projectNameInputRef.current);
     }
   }, [quickAddDialog]);
-
-  useEffect(() => {
-    if (toolbarDialog !== 'tasks' && toolbarDialog !== 'reminders') {
-      return;
-    }
-    setBucketNow(new Date());
-    const timerId = window.setInterval(() => {
-      setBucketNow(new Date());
-    }, 60_000);
-    return () => {
-      window.clearInterval(timerId);
-    };
-  }, [toolbarDialog]);
 
   useEffect(() => {
     if (toolbarDialog !== 'tasks') {
@@ -861,7 +773,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       label: project.name,
       iconName: 'menu' as const,
       action: 'navigate' as const,
-      href: `/projects/${project.id}/overview`,
+      href: `/projects/${encodeURIComponent(project.id)}/overview`,
     }));
     const allItems = [...tabItems, ...projectItems];
 
@@ -1251,25 +1163,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     closeQuickNav();
   }, [closeQuickNav, navigate, openQuickNavPanel]);
 
-  const onOpenTaskRecordFromDialog = useCallback((recordId: string) => {
-    const task = quickNavTasksByRecordId.get(recordId);
-    if (!task) {
-      return;
-    }
-    const href = buildTaskDestinationHref(task);
-    setToolbarDialog(null);
-    navigate(href);
-  }, [navigate, quickNavTasksByRecordId]);
-
-  const onOpenReminderRecordFromDialog = useCallback((recordId: string, projectId: string | null) => {
-    const targetProjectId = projectId || captureHomeData.personalProjectId;
-    if (!targetProjectId) {
-      return;
-    }
-    setToolbarDialog(null);
-    navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
-  }, [captureHomeData.personalProjectId, navigate]);
-
   const onOpenCalendarRecordFromDialog = useCallback((recordId: string) => {
     const event = personalCalendarEvents.find((entry) => entry.record_id === recordId);
     const targetProjectId = event?.project_id || currentProjectId || captureHomeData.personalProjectId;
@@ -1285,15 +1178,46 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     || projects.find((project) => project.isPersonal)?.id
     || null;
 
-  const onDismissReminderFromDialog = useCallback(async (reminderId: string) => {
-    await remindersRuntime.dismiss(reminderId);
-  }, [remindersRuntime]);
-
-  const onSnoozeReminderFromDialog = useCallback(async (reminderId: string) => {
+  const onCreateTaskFromModule = useCallback(async (task: {
+    title: string;
+    priority: string | null;
+    due_at: string | null;
+    parent_record_id?: string | null;
+  }) => {
     if (!accessToken) {
-      return;
+      throw new Error('An authenticated session is required.');
+    }
+    const projectId = resolveDefaultQuickAddProjectId();
+    const priority = task.priority === 'low' || task.priority === 'medium' || task.priority === 'high' || task.priority === 'urgent'
+      ? task.priority
+      : null;
+    await createTask(accessToken, {
+      project_id: projectId || undefined,
+      parent_record_id: task.parent_record_id ?? null,
+      title: task.title,
+      status: 'todo',
+      priority,
+      due_at: task.due_at ?? null,
+    });
+    requestHubHomeRefresh();
+    await refreshQuickNavTasks();
+  }, [accessToken, refreshQuickNavTasks, resolveDefaultQuickAddProjectId]);
+
+  const onCreateReminderFromModule = useCallback(async (payload: CreateReminderPayload) => {
+    if (!accessToken) {
+      throw new Error('An authenticated session is required.');
+    }
+    await createReminder(accessToken, payload);
+    requestHubHomeRefresh();
+    await remindersRuntime.refresh();
+  }, [accessToken, remindersRuntime]);
+
+  const onSnoozeReminderFromModule = useCallback(async (reminderId: string) => {
+    if (!accessToken) {
+      throw new Error('An authenticated session is required.');
     }
     await updateReminder(accessToken, reminderId, { remind_at: tomorrowAtNineIso() });
+    requestHubHomeRefresh();
     await remindersRuntime.refresh();
   }, [accessToken, remindersRuntime]);
 
@@ -1751,21 +1675,34 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Tasks"
           description="All your tasks across projects."
-          panelClassName="w-[min(92vw,48rem)] max-w-3xl sm:min-w-[540px]"
+          panelClassName="!top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] !w-[min(96vw,64rem)] !max-w-[min(96vw,64rem)] flex flex-col overflow-hidden"
+          contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <ToolbarTasksDialogContent
-            bucketedTasks={bucketedTasks}
-            loading={quickNavTasksLoading}
-            error={quickNavTasksError}
-            onRetry={() => {
-              void refreshQuickNavTasks();
-            }}
-            onOpenTask={onOpenTaskRecordFromDialog}
-            onNewTask={() => {
-              setToolbarDialog(null);
-              void openQuickAddDialog('task');
-            }}
-          />
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            {quickNavTasksError ? (
+              <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
+                <p className="text-sm text-danger">{quickNavTasksError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refreshQuickNavTasks();
+                  }}
+                  className="mt-2 rounded-control border border-border-muted px-3 py-1.5 text-sm text-text"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <TasksModuleSkin
+                sizeTier="L"
+                tasks={adaptedTasks}
+                tasksLoading={quickNavTasksLoading}
+                onCreateTask={onCreateTaskFromModule}
+                hideHeader
+              />
+            </div>
+          </div>
         </Dialog>
 
         <Dialog
@@ -1774,22 +1711,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Reminders"
           description="Your active reminders."
-          panelClassName="w-[min(92vw,400px)] max-w-[400px] sm:min-w-[360px] !bg-surface-elevated"
+          panelClassName="w-[min(92vw,400px)] max-w-[400px] sm:min-w-[360px]"
         >
-          <ToolbarRemindersDialogContent
-            bucketedReminders={bucketedRemindersForDialog}
+          <RemindersModuleSkin
+            sizeTier="L"
+            reminders={remindersRuntime.reminders}
             loading={remindersRuntime.loading}
             error={remindersRuntime.error}
-            onRetry={() => {
-              void remindersRuntime.refresh();
-            }}
-            onOpenReminder={onOpenReminderRecordFromDialog}
-            onDismiss={onDismissReminderFromDialog}
-            onSnooze={onSnoozeReminderFromDialog}
-            onNewReminder={() => {
-              setToolbarDialog(null);
-              void openQuickAddDialog('reminder');
-            }}
+            onDismiss={remindersRuntime.dismiss}
+            onSnooze={onSnoozeReminderFromModule}
+            onCreate={onCreateReminderFromModule}
           />
         </Dialog>
 
