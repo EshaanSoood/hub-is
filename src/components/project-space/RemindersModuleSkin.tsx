@@ -11,6 +11,7 @@ export interface RemindersModuleSkinProps {
   loading: boolean;
   error?: string | null;
   onDismiss: (reminderId: string) => Promise<void>;
+  onSnooze?: (reminderId: string) => Promise<void>;
   onCreate: (payload: CreateReminderPayload) => Promise<void>;
   sizeTier: RemindersSizeTier;
   readOnly?: boolean;
@@ -210,6 +211,7 @@ export const RemindersModuleSkin = ({
   loading,
   error = null,
   onDismiss,
+  onSnooze,
   onCreate,
   sizeTier,
   readOnly = false,
@@ -330,6 +332,19 @@ export const RemindersModuleSkin = ({
       await onDismiss(reminder.reminder_id);
     } catch (error) {
       console.error('Failed to dismiss reminder ribbon:', error);
+    }
+  };
+
+  const handleSnooze = async (reminder: HubReminderSummary) => {
+    if (!onSnooze || readOnly || animations[reminder.reminder_id]) {
+      return;
+    }
+    setInputError(null);
+    try {
+      await onSnooze(reminder.reminder_id);
+    } catch (error) {
+      setInputError(error instanceof Error ? error.message : 'Failed to snooze reminder.');
+      console.error('Failed to snooze reminder ribbon:', error);
     }
   };
 
@@ -488,6 +503,19 @@ export const RemindersModuleSkin = ({
                     {formatReminderChip(reminder.remind_at)}
                   </p>
                 </div>
+                {onSnooze ? (
+                  <button
+                    type="button"
+                    aria-label={`Snooze reminder ${reminder.record_title || 'Untitled reminder'} to tomorrow at 9 AM`}
+                    disabled={readOnly}
+                    onClick={() => {
+                      void handleSnooze(reminder);
+                    }}
+                    className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Later
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   aria-label="Mark complete"

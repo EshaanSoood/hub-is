@@ -456,19 +456,31 @@ const ProjectLensView = ({
         const sectionPanelId = `project-lens-section-panel-${section.id}`;
         return (
           <section key={section.id} className="rounded-panel border border-border-muted bg-surface">
-            <button
-              type="button"
-              onClick={() => setExpandedSections((current) => ({ ...current, [section.id]: !isExpanded }))}
-              aria-expanded={isExpanded}
-              aria-controls={isExpanded ? sectionPanelId : undefined}
-              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-            >
-              <div className="flex min-w-0 items-center gap-2">
+            <div className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+              <div className="flex min-w-0 items-baseline gap-2">
                 <span className={`inline-block h-2.5 w-2.5 rounded-full ${projectDotClassName(section.id === '__inbox__' ? null : section.id)}`} />
-                <span className="truncate text-sm font-semibold text-text">{section.name}</span>
+                <h3 className="truncate text-sm font-semibold text-text">{section.name}</h3>
+                {section.id !== '__inbox__' ? (
+                  <a
+                    href={`/projects/${encodeURIComponent(section.id)}`}
+                    aria-label={`Go To Project ${section.name}`}
+                    className="inline-flex items-baseline gap-1 rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary"
+                  >
+                    <span>Go To Project</span>
+                    <Icon name="back" className="rotate-180 text-[10px]" />
+                  </a>
+                ) : null}
               </div>
-              <span className="text-xs text-muted">{section.items.length} item{section.items.length === 1 ? '' : 's'}</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setExpandedSections((current) => ({ ...current, [section.id]: !isExpanded }))}
+                aria-expanded={isExpanded}
+                aria-controls={isExpanded ? sectionPanelId : undefined}
+                className="text-xs text-muted"
+              >
+                {section.items.length} item{section.items.length === 1 ? '' : 's'}
+              </button>
+            </div>
             {isExpanded ? (
               <div id={sectionPanelId} className="border-t border-border-muted px-4 py-3">
                 {section.items.length === 0 ? (

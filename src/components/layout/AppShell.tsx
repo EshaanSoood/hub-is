@@ -10,7 +10,7 @@ import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { usePersonalCalendarRuntime } from '../../hooks/usePersonalCalendarRuntime';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
 import { createEventFromNlp, createTask, getHubHome, queryTasks } from '../../services/hub/records';
-import { createReminder, type CreateReminderPayload } from '../../services/hub/reminders';
+import { createReminder, updateReminder, type CreateReminderPayload } from '../../services/hub/reminders';
 import { listProjectMembers } from '../../services/hub/projects';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
 import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
@@ -42,6 +42,7 @@ import {
   SEARCH_RESULT_TYPE_LABELS,
   sessionInitials,
   toDateTimeLocalInput,
+  tomorrowAtNineIso,
   toToolbarNotification,
   type NotificationFilter,
   type QuickAddDialog,
@@ -1215,6 +1216,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     await remindersRuntime.refresh();
   }, [accessToken, captureHomeData.personalProjectId, projects, remindersRuntime]);
 
+  const onSnoozeReminderFromModule = useCallback(async (reminderId: string) => {
+    if (!accessToken) {
+      throw new Error('An authenticated session is required.');
+    }
+    await updateReminder(accessToken, reminderId, { remind_at: tomorrowAtNineIso() });
+    await remindersRuntime.refresh();
+  }, [accessToken, remindersRuntime]);
+
   const accountInitials = sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId);
   const avatarUrl = buildAccountAvatarUrl(accountInitials, sessionSummary.userId || sessionSummary.email || sessionSummary.name);
 
@@ -1713,6 +1722,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             loading={remindersRuntime.loading}
             error={remindersRuntime.error}
             onDismiss={remindersRuntime.dismiss}
+            onSnooze={onSnoozeReminderFromModule}
             onCreate={onCreateReminderFromModule}
           />
         </Dialog>
