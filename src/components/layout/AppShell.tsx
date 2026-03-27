@@ -9,7 +9,7 @@ import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
 import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { usePersonalCalendarRuntime } from '../../hooks/usePersonalCalendarRuntime';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
-import { createEventFromNlp, getHubHome } from '../../services/hub/records';
+import { createEventFromNlp, getHubHome, queryTasks } from '../../services/hub/records';
 import { createReminder, updateReminder } from '../../services/hub/reminders';
 import { listProjectMembers } from '../../services/hub/projects';
 import { searchHub, type HubSearchResult } from '../../services/hub/search';
@@ -112,6 +112,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [quickNavTasks, setQuickNavTasks] = useState<HubTaskSummary[]>([]);
   const [quickNavTasksLoading, setQuickNavTasksLoading] = useState(false);
   const [quickNavTasksError, setQuickNavTasksError] = useState<string | null>(null);
+  const [bucketNow, setBucketNow] = useState(() => new Date());
   const {
     calendarEvents: personalCalendarEvents,
     calendarLoading: personalCalendarLoading,
@@ -212,13 +213,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     return map;
   }, [projects]);
   const bucketedTasks = useMemo(() => {
-    const now = new Date();
     const buckets = new Map<DateBucketId, HubTaskSummary[]>(
       DATE_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
     );
 
     for (const task of quickNavTasks) {
-      const bucket = bucketForDate(task.task_state.due_at, now);
+      const bucket = bucketForDate(task.task_state.due_at, bucketNow);
       const bucketItems = buckets.get(bucket);
       if (bucketItems) {
         bucketItems.push(task);
@@ -232,15 +232,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       }
       return [{ id: bucketId, label: DATE_BUCKET_LABELS[bucketId], items }];
     });
-  }, [quickNavTasks]);
+  }, [bucketNow, quickNavTasks]);
   const bucketedReminders = useMemo(() => {
-    const now = new Date();
     const buckets = new Map<DateBucketId, typeof activeReminders>(
       DATE_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
     );
 
     for (const reminder of activeReminders) {
-      const bucket = bucketForDate(reminder.remind_at, now);
+      const bucket = bucketForDate(reminder.remind_at, bucketNow);
       const bucketItems = buckets.get(bucket);
       if (bucketItems) {
         bucketItems.push(reminder);
@@ -254,7 +253,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       }
       return [{ id: bucketId, label: DATE_BUCKET_LABELS[bucketId], items }];
     });
-  }, [activeReminders]);
+  }, [activeReminders, bucketNow]);
   const bucketedRemindersForDialog = useMemo(
     () =>
       bucketedReminders.map((bucket) => ({
@@ -317,16 +316,41 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setQuickNavTasksLoading(true);
     setQuickNavTasksError(null);
     try {
-      const home = await getHubHome(accessToken, {
-        tasks_limit: 200,
-        events_limit: 1,
-        captures_limit: 1,
-        notifications_limit: 1,
-      });
+      const nextTasks: HubTaskSummary[] = [];
+      let nextCursor: string | undefined;
+      const seenCursors = new Set<string>();
+
+      for (let page = 0; page < 100; page += 1) {
+        if (quickNavTasksRequestVersionRef.current !== requestVersion) {
+          return;
+        }
+        const taskPage = await queryTasks(
+          accessToken,
+          nextCursor
+            ? {
+                lens: 'assigned',
+                limit: 200,
+                cursor: nextCursor,
+              }
+            : {
+                lens: 'assigned',
+                limit: 200,
+              },
+        );
+        nextTasks.push(...taskPage.tasks);
+
+        if (!taskPage.next_cursor || seenCursors.has(taskPage.next_cursor)) {
+          break;
+        }
+        seenCursors.add(taskPage.next_cursor);
+        nextCursor = taskPage.next_cursor;
+      }
+
       if (quickNavTasksRequestVersionRef.current !== requestVersion) {
         return;
       }
-      const nextItems = [...home.tasks].sort((left, right) => {
+
+      const nextItems = [...nextTasks].sort((left, right) => {
         const leftDue = parseIsoTimestamp(left.task_state.due_at);
         const rightDue = parseIsoTimestamp(right.task_state.due_at);
         if (leftDue !== rightDue) {
@@ -633,6 +657,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [quickAddDialog]);
 
   useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setBucketNow(new Date());
+    }, 60_000);
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, []);
+
+  useEffect(() => {
     if (toolbarDialog !== 'tasks') {
       return;
     }
@@ -790,7 +823,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!isTextInputElement(event.target) && event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (!quickAddDialog && !isTextInputElement(event.target) && event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
         if (event.key.toLowerCase() === 'c') {
           event.preventDefault();
           openQuickNavPanel('calendar');
@@ -824,7 +857,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, notificationsOpen, openQuickNavPanel, profileOpen, quickNavOpen, searchOpen]);
+  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, notificationsOpen, openQuickNavPanel, profileOpen, quickAddDialog, quickNavOpen, searchOpen]);
 
   const unreadNotifications = notifications.filter((notification) => !notification.read).length;
 

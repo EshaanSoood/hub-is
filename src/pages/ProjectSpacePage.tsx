@@ -736,14 +736,20 @@ const ProjectSpaceWorkspace = ({
                 if (!accessToken) {
                   return;
                 }
-                await updateRecord(accessToken, payload.record_id, {
-                  event_state: {
-                    start_dt: payload.start_dt,
-                    end_dt: payload.end_dt,
-                    timezone: payload.timezone,
-                  },
-                });
-                await refreshCalendar();
+                try {
+                  await updateRecord(accessToken, payload.record_id, {
+                    event_state: {
+                      start_dt: payload.start_dt,
+                      end_dt: payload.end_dt,
+                      timezone: payload.timezone,
+                    },
+                  });
+                  await refreshCalendar();
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : 'Failed to reschedule event.';
+                  console.error('onRescheduleEvent: failed to update record', error);
+                  setRecordsError(message);
+                }
               }
             : undefined,
       },
@@ -886,6 +892,7 @@ const ProjectSpaceWorkspace = ({
       remindersRuntime.error,
       remindersRuntime.loading,
       remindersRuntime.reminders,
+      setRecordsError,
     ],
   );
 

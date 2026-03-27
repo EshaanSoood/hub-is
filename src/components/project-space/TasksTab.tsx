@@ -93,6 +93,7 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   done: 'Done',
   cancelled: 'Cancelled',
 };
+const EMPTY_VISITED_IDS = new Set<string>();
 
 const parseDueAt = (dueAt: string | null): Date | null => {
   if (!dueAt) {
@@ -771,7 +772,7 @@ const TaskRow = ({
       {expanded && taskHasSubtasks ? (
         <ul className="mt-2 space-y-1">
           {task.subtasks.map((subtask) => (
-            <SubtaskTree key={subtask.id} subtask={subtask} parentPriority={task.priority} level={1} visitedIds={new Set<string>()} />
+            <SubtaskTree key={subtask.id} subtask={subtask} parentPriority={task.priority} level={1} visitedIds={EMPTY_VISITED_IDS} />
           ))}
         </ul>
       ) : null}
