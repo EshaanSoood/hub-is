@@ -65,6 +65,7 @@ export const ProjectsPage = () => {
   const selectedRecordRequestIdRef = useRef(0);
   const selectedHubRecordIdRef = useRef<string | null>(null);
   const selectedHubRecordTriggerRef = useRef<HTMLElement | null>(null);
+  const liveRefreshHomeTimeoutRef = useRef<number | null>(null);
   const dashboardView = parseDashboardView(searchParams.get('view'));
 
   useEffect(() => {
@@ -184,17 +185,36 @@ export const ProjectsPage = () => {
 
   useEffect(() => {
     if (!accessToken) {
+      if (liveRefreshHomeTimeoutRef.current !== null) {
+        window.clearTimeout(liveRefreshHomeTimeoutRef.current);
+        liveRefreshHomeTimeoutRef.current = null;
+      }
       return;
     }
-    return subscribeHubLive(accessToken, (message) => {
+
+    const unsubscribe = subscribeHubLive(accessToken, (message) => {
       if (message.type !== 'task.changed') {
         return;
       }
-      void refreshHome();
+      if (liveRefreshHomeTimeoutRef.current !== null) {
+        window.clearTimeout(liveRefreshHomeTimeoutRef.current);
+      }
+      liveRefreshHomeTimeoutRef.current = window.setTimeout(() => {
+        liveRefreshHomeTimeoutRef.current = null;
+        void refreshHome();
+      }, 500);
       if (message.task.record_id === selectedHubRecordIdRef.current) {
         void refreshSelectedRecord(selectedHubRecordIdRef.current);
       }
     });
+
+    return () => {
+      if (liveRefreshHomeTimeoutRef.current !== null) {
+        window.clearTimeout(liveRefreshHomeTimeoutRef.current);
+        liveRefreshHomeTimeoutRef.current = null;
+      }
+      unsubscribe();
+    };
   }, [accessToken, refreshHome, refreshSelectedRecord]);
 
   const onOpenHubRecord = useCallback((recordId: string) => {

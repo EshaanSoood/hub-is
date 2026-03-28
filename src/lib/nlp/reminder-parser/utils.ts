@@ -9,6 +9,12 @@ import {
   parseReferenceDate,
   toIsoDate,
 } from '../shared/utils.ts';
+import { TITLE_SMALL_WORDS } from '../shared/constants.ts';
+import {
+  stripLeadingTitleFiller,
+  stripReminderLeadPrefix,
+  stripTrailingDanglingPreposition,
+} from '../shared/title-utils.ts';
 import {
   ACRONYM_MAP,
   DEFAULT_TIMEZONE,
@@ -154,6 +160,17 @@ const monthlyOccurrence = (now: Date, timezone: string, dayOfMonth: number, hour
   return `${toIsoDate(nextYear, nextMonth, safeDayNextMonth)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 };
 
+const shiftedMonthOccurrence = (now: Date, timezone: string, monthDelta: number, hour: number, minute: number): string => {
+  const nowParts = getZonedParts(now, timezone);
+  const monthIndex = nowParts.month - 1 + monthDelta;
+  const yearOffset = Math.floor(monthIndex / 12);
+  const safeMonthIndex = ((monthIndex % 12) + 12) % 12;
+  const targetYear = nowParts.year + yearOffset;
+  const targetMonth = safeMonthIndex + 1;
+  const targetDay = Math.min(nowParts.day, daysInMonth(targetYear, targetMonth));
+  return `${toIsoDate(targetYear, targetMonth, targetDay)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+};
+
 const yearlyOccurrence = (
   now: Date,
   timezone: string,
@@ -295,6 +312,7 @@ export const extractRecurrence = (input: string): {
   const weekdayPatterns: Array<{ regex: RegExp; frequency: ReminderRecurrenceFrequency; interval: number | null }> = [
     { regex: /\bevery\s+weekday\b/i, frequency: 'weekly', interval: 1 },
     { regex: /\bevery\s+other\s+day\b/i, frequency: 'daily', interval: 2 },
+    { regex: /\bevery\s+other\s+week\b/i, frequency: 'weekly', interval: 2 },
     { regex: /\bevery\s+other\s+(mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i, frequency: 'weekly', interval: 2 },
     { regex: /\bevery\s+(\d+)\s+days\b/i, frequency: 'daily', interval: null },
     { regex: /\bevery\s+(\d+)\s+weeks\b/i, frequency: 'weekly', interval: null },
@@ -304,8 +322,10 @@ export const extractRecurrence = (input: string): {
     { regex: /\bevery\s+day\b/i, frequency: 'daily', interval: 1 },
     { regex: /\bevery\s+month\b/i, frequency: 'monthly', interval: 1 },
     { regex: /^\s*daily\b/i, frequency: 'daily', interval: 1 },
+    { regex: /\bdaily\b(?=\s*(?:$|at\b|on\b|before\b|after\b|by\b))/i, frequency: 'daily', interval: 1 },
     { regex: /^\s*weekly\b/i, frequency: 'weekly', interval: 1 },
     { regex: /^\s*monthly\b/i, frequency: 'monthly', interval: 1 },
+    { regex: /\bmonthly\b(?=\s*(?:$|on\b|at\b|before\b|after\b|by\b))/i, frequency: 'monthly', interval: 1 },
     { regex: /^\s*yearly\b/i, frequency: 'yearly', interval: 1 },
     { regex: /\bevry\s+(mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i, frequency: 'weekly', interval: 1 },
   ];
@@ -427,6 +447,30 @@ const upcomingWeekend = (now: Date, timezone: string): string => {
   return withTime(addDays(now, daysUntilSaturday), timezone, 10, 0);
 };
 
+const endOfMonthReminderAt = (now: Date, timezone: string): string => {
+  const parts = getZonedParts(now, timezone);
+  const nowIso = formatDateTimeInTimezone(now, timezone);
+  const thisMonthCandidate = `${toIsoDate(parts.year, parts.month, daysInMonth(parts.year, parts.month))}T09:00:00`;
+  if (thisMonthCandidate > nowIso) {
+    return thisMonthCandidate;
+  }
+  const nextMonth = parts.month === 12 ? 1 : parts.month + 1;
+  const nextYear = parts.month === 12 ? parts.year + 1 : parts.year;
+  return `${toIsoDate(nextYear, nextMonth, daysInMonth(nextYear, nextMonth))}T09:00:00`;
+};
+
+const endOfWeekReminderAt = (now: Date, timezone: string): string => {
+  const parts = getZonedParts(now, timezone);
+  let delta = (5 - parts.weekday + 7) % 7;
+  const nowIso = formatDateTimeInTimezone(now, timezone);
+  let candidate = withTime(addDays(now, delta), timezone, 17, 0);
+  if (candidate <= nowIso) {
+    delta += 7;
+    candidate = withTime(addDays(now, delta), timezone, 17, 0);
+  }
+  return candidate;
+};
+
 export const applyRelativeTimeRules = (
   workingInput: string,
   now: Date,
@@ -479,12 +523,23 @@ export const applyRelativeTimeRules = (
     if (!match) {
       return null;
     }
+    let removeStart = match.index ?? 0;
+    let removeEnd = (match.index ?? 0) + match[0].length;
+    const before = working.slice(0, removeStart);
+    const leadingTemporalMarker = before.match(/\b(?:by|before|after|until|on|at)\b\s*$/i);
+    if (leadingTemporalMarker) {
+      removeStart -= leadingTemporalMarker[0].length;
+    }
+    const trailingPunctuationMatch = working.slice(removeEnd).match(/^\s*[.,;:!?]+/);
+    if (trailingPunctuationMatch) {
+      removeEnd += trailingPunctuationMatch[0].length;
+    }
     span = {
-      start: match.index ?? 0,
-      end: (match.index ?? 0) + match[0].length,
-      text: match[0],
+      start: removeStart,
+      end: removeEnd,
+      text: working.slice(removeStart, removeEnd),
     };
-    working = normalizeWhitespace(working.replace(match[0], ' '));
+    working = normalizeWhitespace(`${working.slice(0, removeStart)} ${working.slice(removeEnd)}`);
     return match;
   };
 
@@ -519,6 +574,28 @@ export const applyRelativeTimeRules = (
       explicitHour = 15;
       explicitMinute = 0;
       confidence = 0.78;
+    }
+  }
+
+  if (!remindAt && !hasExplicitClockTime) {
+    const endOfMonth = consume(/\bend of (?:the )?month\b/i);
+    if (endOfMonth) {
+      remindAt = endOfMonthReminderAt(now, timezone);
+      contextHint = 'end of month';
+      explicitHour = 9;
+      explicitMinute = 0;
+      confidence = 0.84;
+    }
+  }
+
+  if (!remindAt && !hasExplicitClockTime) {
+    const endOfWeek = consume(/\b(?:end of (?:the )?week|eow)\b/i);
+    if (endOfWeek) {
+      remindAt = endOfWeekReminderAt(now, timezone);
+      contextHint = 'end of week';
+      explicitHour = 17;
+      explicitMinute = 0;
+      confidence = 0.84;
     }
   }
 
@@ -578,6 +655,39 @@ export const applyRelativeTimeRules = (
       const parts = getZonedParts(new Date(remindAt), timezone);
       explicitHour = parts.hour;
       explicitMinute = parts.minute;
+    }
+  }
+
+  if (!remindAt && !hasExplicitClockTime) {
+    const relativeDate = consume(/\bin (\d+)\s+(days|day|weeks|week|months|month)\b/i);
+    if (relativeDate) {
+      const amount = Number(relativeDate[1]);
+      const safeAmount = Number.isInteger(amount) && amount > 0 ? amount : 1;
+      const unit = relativeDate[2].toLowerCase();
+
+      if (unit.startsWith('month')) {
+        remindAt = shiftedMonthOccurrence(now, timezone, safeAmount, 9, 0);
+      } else if (unit.startsWith('week')) {
+        remindAt = withTime(addDays(now, safeAmount * 7), timezone, 9, 0);
+      } else {
+        remindAt = withTime(addDays(now, safeAmount), timezone, 9, 0);
+      }
+
+      contextHint = normalizeWhitespace(relativeDate[0]).toLowerCase();
+      explicitHour = 9;
+      explicitMinute = 0;
+      confidence = 0.84;
+    }
+  }
+
+  if (!remindAt && !hasExplicitClockTime) {
+    const nextMonth = consume(/\bnext\s+month\b/i);
+    if (nextMonth) {
+      remindAt = shiftedMonthOccurrence(now, timezone, 1, 9, 0);
+      contextHint = 'next month';
+      explicitHour = 9;
+      explicitMinute = 0;
+      confidence = 0.84;
     }
   }
 
@@ -766,6 +876,34 @@ export const applyAbsoluteTimeRules = (
 
 const mergeDateIntoReminderAt = (existingReminderAt: string, dateISO: string): string => `${dateISO}${existingReminderAt.slice(10)}`;
 
+const stripDateSpanWithTemporalMarker = (
+  working: string,
+  start: number,
+  end: number,
+): { working: string; start: number; end: number; text: string } => {
+  let removeStart = start;
+  let removeEnd = end;
+
+  const before = working.slice(0, start);
+  const leadingTemporalMarker = before.match(/\b(?:by|before|after|until|on|at)\b\s*$/i);
+  if (leadingTemporalMarker) {
+    removeStart = start - leadingTemporalMarker[0].length;
+  }
+
+  const after = working.slice(end);
+  const trailingPunctuationMatch = after.match(/^\s*[.,;:!?]+/);
+  if (trailingPunctuationMatch) {
+    removeEnd = end + trailingPunctuationMatch[0].length;
+  }
+
+  return {
+    working: normalizeWhitespace(`${working.slice(0, removeStart)} ${working.slice(removeEnd)}`),
+    start: removeStart,
+    end: removeEnd,
+    text: working.slice(removeStart, removeEnd),
+  };
+};
+
 export const applyNamedDateRules = (
   workingInput: string,
   now: Date,
@@ -830,13 +968,18 @@ export const applyNamedDateRules = (
     end: (best.index ?? 0) + best.text.length,
     text: best.text,
   };
-  working = normalizeWhitespace(`${working.slice(0, best.index ?? 0)} ${working.slice((best.index ?? 0) + best.text.length)}`);
+  const stripped = stripDateSpanWithTemporalMarker(working, span.start, span.end);
+  working = stripped.working;
 
   return {
     working,
     remindAt,
-    contextHint: best.text,
-    span,
+    contextHint: stripped.text,
+    span: {
+      start: stripped.start,
+      end: stripped.end,
+      text: stripped.text,
+    },
     confidence: best.start.isCertain('day') ? 0.85 : 0.72,
   };
 };
@@ -873,15 +1016,16 @@ export const chronoFallback = (
   const hour = hasHour ? parts.hour : 9;
   const minute = hasHour ? parts.minute : 0;
   const remindAt = withTime(date, timezone, hour, minute);
-  const nextWorking = normalizeWhitespace(`${working.slice(0, best.index ?? 0)} ${working.slice((best.index ?? 0) + best.text.length)}`);
+  const stripped = stripDateSpanWithTemporalMarker(working, best.index ?? 0, (best.index ?? 0) + best.text.length);
+  const nextWorking = stripped.working;
 
   return {
     working: nextWorking,
     remindAt,
     span: {
-      start: best.index ?? 0,
-      end: (best.index ?? 0) + best.text.length,
-      text: best.text,
+      start: stripped.start,
+      end: stripped.end,
+      text: stripped.text,
     },
     confidence: hasHour ? 0.86 : 0.68,
     explicitHour: hour,
@@ -936,18 +1080,44 @@ export const resolveRecurringReminderAt = (
 };
 
 const cleanTitleWord = (word: string): string => {
+  if (/^[A-Z]{2,4}$/.test(word)) {
+    return word;
+  }
   const lower = word.toLowerCase();
   const corrected = TITLE_CORRECTIONS[lower] ?? lower;
   return corrected;
 };
 
+const stripResidualTemporalTokens = (input: string): string => {
+  let output = input;
+  output = output
+    .replace(/\bin\s+\d+\s+(?:day|days|week|weeks|month|months)\b/gi, ' ')
+    .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
+    .replace(/\bevery\s+\d+\s+(?:days|weeks|months)\b/gi, ' ')
+    .replace(/\b(?:next|this|last)\s+(?:month|week)\b/gi, ' ')
+    .replace(/\b(?:next|this|last)\s+(?:mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/gi, ' ')
+    .replace(/\bend of (?:the )?month\b/gi, ' ')
+    .replace(/\bend of (?:the )?week\b/gi, ' ')
+    .replace(/\bend of (?:the )?day\b/gi, ' ')
+    .replace(
+      /\b(?:today|tomorrow|tonight)\b/gi,
+      ' ',
+    );
+
+  return normalizeWhitespace(output);
+};
+
 const smartTitleCase = (input: string): string => {
-  const smallWords = new Set(['a', 'an', 'and', 'at', 'for', 'from', 'in', 'of', 'on', 'the', 'to']);
-  let output = input
+  const words = input
     .split(/\s+/)
-    .filter(Boolean)
+    .filter(Boolean);
+
+  let output = words
     .map((word, index) => {
       const cleaned = cleanTitleWord(word);
+      if (/^[A-Z]{2,4}$/.test(cleaned)) {
+        return cleaned;
+      }
       if (ACRONYM_MAP[cleaned.toLowerCase()]) {
         return ACRONYM_MAP[cleaned.toLowerCase()];
       }
@@ -955,7 +1125,7 @@ const smartTitleCase = (input: string): string => {
         const [base] = cleaned.split(/['’]/);
         return `${base.charAt(0).toUpperCase()}${base.slice(1)}'s`;
       }
-      if (index > 0 && smallWords.has(cleaned.toLowerCase())) {
+      if (index > 0 && index < words.length - 1 && TITLE_SMALL_WORDS.has(cleaned.toLowerCase())) {
         return cleaned.toLowerCase();
       }
       return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
@@ -981,12 +1151,18 @@ export const extractTitle = (input: string): string => {
   working = working
     .replace(/(?:\p{Emoji}|\p{Emoji_Modifier}|\p{Emoji_Component}|\uFE0F|\u200D)+/gu, ' ')
     .replace(/[!?.,]{2,}/g, ' ')
+    .replace(/(?:^|\s)(?:high|medium|low)\s+priority\b/gi, ' ')
+    .replace(/(?:^|\s)(?:urgent|critical|important)\b/gi, ' ')
+    .replace(/(?:^|\s)(?:for|to|with|from)\s+@[a-z0-9_.+-]+\b/gi, ' ')
+    .replace(/(?:^|\s)@[a-z0-9_.+-]+\b/gi, ' ')
     .replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm|a|p)\b/gi, ' ')
     .replace(/\b(?:at\s+)?(?:noon|midnight)\b/gi, ' ')
     .replace(/\b(?:am|pm|a|p)\b/gi, ' ')
     .replace(/\b(?:to|about|that)\b(?=\s*$)/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+  working = stripReminderLeadPrefix(working);
+  working = stripLeadingTitleFiller(stripTrailingDanglingPreposition(stripResidualTemporalTokens(working)));
 
   const uniqueWords = working.split(/\s+/).filter(Boolean);
   const deduped: string[] = [];
@@ -1003,7 +1179,7 @@ export const extractTitle = (input: string): string => {
     .replace(/\bmums\b/gi, "mum's")
     .replace(/\bbday\b/gi, 'birthday')
     .replace(/\bcehck\b/gi, 'check')
-    .replace(/\b(on|at|by)\b$/i, '')
+    .replace(/^(?:to(?:\s+the)?|that(?:\s+i)?|about)\b[\s,:-]*/i, '')
     .replace(/\s+/g, ' ')
     .trim();
 

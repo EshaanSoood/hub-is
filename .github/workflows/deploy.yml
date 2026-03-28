@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - toolbar-module-skins
 
 jobs:
   deploy:

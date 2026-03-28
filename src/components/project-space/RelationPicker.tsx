@@ -104,9 +104,13 @@ export const RelationPicker = ({
       return;
     }
 
-    window.setTimeout(() => {
+    const focusTimer = window.setTimeout(() => {
       searchInputRef.current?.focus();
     }, 0);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+    };
   }, [open]);
 
   const closePicker = () => {

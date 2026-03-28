@@ -28,10 +28,15 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const refreshSequenceRef = useRef(0);
+  const reminderRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
+      if (reminderRefreshTimerRef.current !== null) {
+        clearTimeout(reminderRefreshTimerRef.current);
+        reminderRefreshTimerRef.current = null;
+      }
       mountedRef.current = false;
     };
   }, []);
@@ -65,9 +70,24 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
     }
   }, [accessToken]);
 
+  const refreshWithDebounce = useCallback(() => {
+    if (reminderRefreshTimerRef.current !== null) {
+      clearTimeout(reminderRefreshTimerRef.current);
+    }
+    reminderRefreshTimerRef.current = setTimeout(() => {
+      reminderRefreshTimerRef.current = null;
+      void refresh();
+    }, 500);
+  }, [refresh]);
+
   useEffect(() => {
+    if (reminderRefreshTimerRef.current !== null) {
+      clearTimeout(reminderRefreshTimerRef.current);
+      reminderRefreshTimerRef.current = null;
+    }
+    refreshSequenceRef.current += 1;
+
     if (!accessToken) {
-      refreshSequenceRef.current += 1;
       setReminders([]);
       setLoading(false);
       setError(null);
@@ -86,9 +106,9 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       return;
     }
     return subscribeHubHomeRefresh(() => {
-      void refresh();
+      refreshWithDebounce();
     });
-  }, [refresh, subscribeToHomeRefresh]);
+  }, [refreshWithDebounce, subscribeToHomeRefresh]);
 
   useEffect(() => {
     if (!accessToken || !subscribeToLive) {
@@ -98,9 +118,9 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       if (message.type !== 'reminder.changed') {
         return;
       }
-      void refresh();
+      refreshWithDebounce();
     });
-  }, [accessToken, refresh, subscribeToLive]);
+  }, [accessToken, refreshWithDebounce, subscribeToLive]);
 
   const dismiss = useCallback(async (reminderId: string) => {
     if (!accessToken) {

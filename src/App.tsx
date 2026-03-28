@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -16,11 +16,6 @@ const ProjectSpacePage = lazy(async () => {
   return { default: module.ProjectSpacePage };
 });
 
-const LoginPage = lazy(async () => {
-  const module = await import('./pages/LoginPage');
-  return { default: module.LoginPage };
-});
-
 const NotFoundPage = lazy(async () => {
   const module = await import('./pages/NotFoundPage');
   return { default: module.NotFoundPage };
@@ -33,7 +28,15 @@ const RouteLoadingState = ({ label = 'Loading route...' }: { label?: string }) =
 );
 
 const App = () => {
-  const { signedIn, authReady } = useAuthz();
+  const { signedIn, authReady, signIn } = useAuthz();
+  const signInCalledRef = useRef(false);
+
+  useEffect(() => {
+    if (authReady && !signedIn && !signInCalledRef.current) {
+      signInCalledRef.current = true;
+      signIn();
+    }
+  }, [authReady, signedIn, signIn]);
 
   if (!authReady) {
     return (
@@ -45,11 +48,9 @@ const App = () => {
 
   if (!signedIn) {
     return (
-      <Suspense fallback={<RouteLoadingState label="Loading sign-in..." />}>
-        <Routes>
-          <Route path="*" element={<LoginPage />} />
-        </Routes>
-      </Suspense>
+      <div className="flex min-h-screen items-center justify-center bg-surface px-4 text-text" role="status" aria-live="polite">
+        <p className="text-sm font-semibold text-primary">Redirecting to login...</p>
+      </div>
     );
   }
 
