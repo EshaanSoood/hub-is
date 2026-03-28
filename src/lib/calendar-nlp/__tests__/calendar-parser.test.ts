@@ -48,8 +48,8 @@ describe('calendar parser accuracy regressions', () => {
     assert.equal(result.fields.title, 'Plan Next Steps');
   });
 
-  test('preserves standalone "start" in titles', () => {
-    const result = parse('project start');
+  test('preserves standalone "start" in titles while parsing relative dates', () => {
+    const result = parse('project start next week');
     assert.equal(result.fields.title, 'Project Start');
   });
 

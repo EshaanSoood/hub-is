@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -16,11 +16,6 @@ const ProjectSpacePage = lazy(async () => {
   return { default: module.ProjectSpacePage };
 });
 
-const LoginPage = lazy(async () => {
-  const module = await import('./pages/LoginPage');
-  return { default: module.LoginPage };
-});
-
 const NotFoundPage = lazy(async () => {
   const module = await import('./pages/NotFoundPage');
   return { default: module.NotFoundPage };
@@ -33,7 +28,46 @@ const RouteLoadingState = ({ label = 'Loading route...' }: { label?: string }) =
 );
 
 const App = () => {
-  const { signedIn, authReady } = useAuthz();
+  const { signedIn, authReady, signIn } = useAuthz();
+  const signInCalledRef = useRef(false);
+  const previousSignedInRef = useRef(signedIn);
+  const signInTimeoutRef = useRef<number | null>(null);
+  const [signInError, setSignInError] = useState(false);
+
+  useEffect(() => {
+    if (previousSignedInRef.current && !signedIn) {
+      signInCalledRef.current = false;
+    }
+    previousSignedInRef.current = signedIn;
+  }, [signedIn]);
+
+  useEffect(() => {
+    if (!authReady || signedIn || signInCalledRef.current || signInError) {
+      return;
+    }
+
+    if (signInTimeoutRef.current !== null) {
+      window.clearTimeout(signInTimeoutRef.current);
+      signInTimeoutRef.current = null;
+    }
+
+    signInTimeoutRef.current = window.setTimeout(() => {
+      signInTimeoutRef.current = null;
+      setSignInError(true);
+    }, 10_000);
+
+    signInCalledRef.current = true;
+    void signIn().catch(() => {
+      setSignInError(true);
+    });
+
+    return () => {
+      if (signInTimeoutRef.current !== null) {
+        window.clearTimeout(signInTimeoutRef.current);
+        signInTimeoutRef.current = null;
+      }
+    };
+  }, [authReady, signedIn, signIn, signInError]);
 
   if (!authReady) {
     return (
@@ -45,11 +79,31 @@ const App = () => {
 
   if (!signedIn) {
     return (
-      <Suspense fallback={<RouteLoadingState label="Loading sign-in..." />}>
-        <Routes>
-          <Route path="*" element={<LoginPage />} />
-        </Routes>
-      </Suspense>
+      <div className="flex min-h-screen items-center justify-center bg-surface px-4 text-text">
+        {signInError ? (
+          <div className="flex flex-col items-center gap-sm text-center" role="alert" aria-live="assertive">
+            <p className="text-sm font-semibold text-danger">Unable to reach the sign-in provider.</p>
+            <button
+              type="button"
+              className="rounded-control border border-border-muted px-sm py-xs text-xs font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              onClick={() => {
+                if (signInTimeoutRef.current !== null) {
+                  window.clearTimeout(signInTimeoutRef.current);
+                  signInTimeoutRef.current = null;
+                }
+                signInCalledRef.current = false;
+                setSignInError(false);
+              }}
+            >
+              Retry sign-in
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm font-semibold text-primary" role="status" aria-live="polite">
+            Redirecting to login...
+          </p>
+        )}
+      </div>
     );
   }
 

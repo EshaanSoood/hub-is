@@ -94,6 +94,7 @@ export const useProjectFilesRuntime = ({
   const [trackedProjectFiles, setTrackedProjectFiles] = useState<FilesModuleItem[]>([]);
   const [pendingPaneFilesByPaneId, setPendingPaneFilesByPaneId] = useState<Record<string, FilesModuleItem[]>>({});
   const [trackedPaneFilesByPaneId, setTrackedPaneFilesByPaneId] = useState<Record<string, FilesModuleItem[]>>({});
+  const activePaneId = activePane?.pane_id ?? null;
 
   const fileUploadTimersRef = useRef<Record<string, number>>({});
   const fileRemovalTimersRef = useRef<Record<string, number>>({});
@@ -165,11 +166,11 @@ export const useProjectFilesRuntime = ({
   }, [refreshTrackedProjectFiles]);
 
   useEffect(() => {
-    if (!activePane) {
+    if (!activePaneId) {
       return;
     }
-    void refreshTrackedPaneFiles(activePane.pane_id);
-  }, [activePane, refreshTrackedPaneFiles]);
+    void refreshTrackedPaneFiles(activePaneId);
+  }, [activePaneId, refreshTrackedPaneFiles]);
 
   useEffect(() => {
     return () => {

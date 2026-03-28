@@ -67,6 +67,7 @@ export const FileInspectorActionBar = ({
   const renameWasOpenRef = useRef(false);
   const moveRestoreFocusRef = useRef(false);
   const renameRestoreFocusRef = useRef(false);
+  const copyLabelTimerRef = useRef<number | null>(null);
 
   const closeMove = useCallback((options?: { restoreFocus?: boolean }) => {
     moveRestoreFocusRef.current = options?.restoreFocus ?? false;
@@ -131,8 +132,9 @@ export const FileInspectorActionBar = ({
   }, [closeRename, renameOpen]);
 
   useEffect(() => {
+    let focusTimer: number | null = null;
     if (!moveOpen && moveWasOpenRef.current && moveRestoreFocusRef.current) {
-      window.setTimeout(() => {
+      focusTimer = window.setTimeout(() => {
         if (moveTriggerRef.current?.isConnected) {
           moveTriggerRef.current.focus();
         }
@@ -142,11 +144,18 @@ export const FileInspectorActionBar = ({
       moveRestoreFocusRef.current = false;
     }
     moveWasOpenRef.current = moveOpen;
+
+    return () => {
+      if (focusTimer !== null) {
+        window.clearTimeout(focusTimer);
+      }
+    };
   }, [moveOpen]);
 
   useEffect(() => {
+    let focusTimer: number | null = null;
     if (!renameOpen && renameWasOpenRef.current && renameRestoreFocusRef.current) {
-      window.setTimeout(() => {
+      focusTimer = window.setTimeout(() => {
         if (renameTriggerRef.current?.isConnected) {
           renameTriggerRef.current.focus();
         }
@@ -156,16 +165,42 @@ export const FileInspectorActionBar = ({
       renameRestoreFocusRef.current = false;
     }
     renameWasOpenRef.current = renameOpen;
+
+    return () => {
+      if (focusTimer !== null) {
+        window.clearTimeout(focusTimer);
+      }
+    };
   }, [renameOpen]);
 
+  useEffect(
+    () => () => {
+      if (copyLabelTimerRef.current !== null) {
+        window.clearTimeout(copyLabelTimerRef.current);
+        copyLabelTimerRef.current = null;
+      }
+    },
+    [],
+  );
+
   const onCopyLink = async () => {
+    const scheduleCopyLabelReset = () => {
+      if (copyLabelTimerRef.current !== null) {
+        window.clearTimeout(copyLabelTimerRef.current);
+      }
+      copyLabelTimerRef.current = window.setTimeout(() => {
+        setCopyLabel('Copy link');
+        copyLabelTimerRef.current = null;
+      }, 2000);
+    };
+
     try {
       await navigator.clipboard.writeText(shareableLink);
       setCopyLabel('Copied');
-      window.setTimeout(() => setCopyLabel('Copy link'), 2000);
+      scheduleCopyLabelReset();
     } catch {
       setCopyLabel('Copy failed');
-      window.setTimeout(() => setCopyLabel('Copy link'), 2000);
+      scheduleCopyLabelReset();
     }
   };
 

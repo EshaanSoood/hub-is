@@ -6,9 +6,21 @@ import { AccessDeniedView } from './AccessDeniedView';
 
 export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
   const { projectId = '' } = useParams();
-  const { canProject } = useAuthz();
+  const { authReady, signedIn, canProject } = useAuthz();
   const { projects, loading, initialized } = useProjects();
   const project = projects.find((entry) => entry.id === projectId) || null;
+
+  if (!authReady) {
+    return (
+      <div className="p-4" role="status" aria-live="polite">
+        <p className="text-sm text-muted">Initializing session...</p>
+      </div>
+    );
+  }
+
+  if (!signedIn) {
+    return <Navigate to="/" replace />;
+  }
 
   if (loading || !initialized) {
     return (

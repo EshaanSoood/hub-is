@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: self-hosted
     permissions:
-      contents: read
+      contents: write
     env:
       DEPLOY_REMOTE_ROOT: /home/eshaan/deployments/eshaan-os-root
       DEPLOY_REMOTE_HUB_API_DIR: /home/eshaan/deployments/eshaan-os-hub-api
@@ -41,6 +41,19 @@ jobs:
           rsync -a --delete dist/ "$DEPLOY_REMOTE_ROOT/dist/"
           docker compose -f "$DEPLOY_REMOTE_ROOT/docker-compose.yml" up -d --force-recreate web
 
+      - name: Verify root health
+        run: |
+          for attempt in {1..10}; do
+            if curl -fsS https://eshaansood.org >/dev/null; then
+              echo "Root health check passed."
+              exit 0
+            fi
+            echo "Root health check attempt $attempt/10 failed; retrying..."
+            sleep 3
+          done
+          echo "Root health check failed after 30 seconds."
+          exit 1
+
       - name: Deploy hub API
         run: |
           mkdir -p "$DEPLOY_REMOTE_HUB_API_DIR/shared"
@@ -65,3 +78,9 @@ jobs:
           mkdir -p "$DEPLOY_REMOTE_TUWUNEL_DIR"
           cp -a apps/tuwunel/. "$DEPLOY_REMOTE_TUWUNEL_DIR/"
           docker compose -f "$DEPLOY_REMOTE_TUWUNEL_DIR/docker-compose.yml" up -d --build
+
+      - name: Tag deployment
+        run: |
+          tag="deploy-$(date +%Y%m%d-%H%M%S)"
+          git tag "$tag"
+          git push origin "$tag"

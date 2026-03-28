@@ -697,6 +697,11 @@ const ProjectSpaceWorkspace = ({
 
   useEffect(() => {
     if (activeTab === 'overview') {
+      const currentView = searchParams.get('view');
+      const hasKanbanViewId = searchParams.has('kanban_view_id');
+      if (currentView === overviewView && !hasKanbanViewId) {
+        return;
+      }
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
         next.set('view', overviewView);
@@ -704,7 +709,7 @@ const ProjectSpaceWorkspace = ({
         return next;
       }, { replace: true });
     }
-  }, [activeTab, overviewView, setSearchParams]);
+  }, [activeTab, overviewView, searchParams, setSearchParams]);
   const workViewModuleRuntime = useMemo<WorkViewModuleRuntime>(
     () => ({
       table: {
