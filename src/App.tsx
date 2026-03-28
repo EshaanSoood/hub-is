@@ -28,7 +28,7 @@ const RouteLoadingState = ({ label = 'Loading route...' }: { label?: string }) =
 );
 
 const App = () => {
-  const { signedIn, authReady, authError, signIn } = useAuthz();
+  const { signedIn, authReady, signIn } = useAuthz();
   const signInCalledRef = useRef(false);
   const previousSignedInRef = useRef(signedIn);
   const signInTimeoutRef = useRef<number | null>(null);
@@ -43,15 +43,6 @@ const App = () => {
 
   useEffect(() => {
     if (!authReady || signedIn || signInCalledRef.current || signInError) {
-      return;
-    }
-
-    if (authError) {
-      if (!signInError) {
-        queueMicrotask(() => {
-          setSignInError(true);
-        });
-      }
       return;
     }
 
@@ -76,7 +67,7 @@ const App = () => {
         signInTimeoutRef.current = null;
       }
     };
-  }, [authReady, signedIn, authError, signIn, signInError]);
+  }, [authReady, signedIn, signIn, signInError]);
 
   if (!authReady) {
     return (
