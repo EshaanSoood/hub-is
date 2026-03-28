@@ -576,24 +576,28 @@ export const applyRelativeTimeRules = (
     }
   }
 
-  if (!remindAt && !hasExplicitClockTime) {
+  if (!remindAt) {
     const endOfMonth = consume(/\bend of (?:the )?month\b/i);
     if (endOfMonth) {
       remindAt = endOfMonthReminderAt(now, timezone);
       contextHint = 'end of month';
-      explicitHour = 9;
-      explicitMinute = 0;
+      if (!hasExplicitClockTime) {
+        explicitHour = 9;
+        explicitMinute = 0;
+      }
       confidence = 0.84;
     }
   }
 
-  if (!remindAt && !hasExplicitClockTime) {
+  if (!remindAt) {
     const endOfWeek = consume(/\b(?:end of (?:the )?week|eow)\b/i);
     if (endOfWeek) {
       remindAt = endOfWeekReminderAt(now, timezone);
       contextHint = 'end of week';
-      explicitHour = 17;
-      explicitMinute = 0;
+      if (!hasExplicitClockTime) {
+        explicitHour = 17;
+        explicitMinute = 0;
+      }
       confidence = 0.84;
     }
   }
@@ -657,7 +661,7 @@ export const applyRelativeTimeRules = (
     }
   }
 
-  if (!remindAt && !hasExplicitClockTime) {
+  if (!remindAt) {
     const relativeDate = consume(/\bin (\d+)\s+(days|day|weeks|week|months|month)\b/i);
     if (relativeDate) {
       const amount = Number(relativeDate[1]);
@@ -673,19 +677,23 @@ export const applyRelativeTimeRules = (
       }
 
       contextHint = normalizeWhitespace(relativeDate[0]).toLowerCase();
-      explicitHour = 9;
-      explicitMinute = 0;
+      if (!hasExplicitClockTime) {
+        explicitHour = 9;
+        explicitMinute = 0;
+      }
       confidence = 0.84;
     }
   }
 
-  if (!remindAt && !hasExplicitClockTime) {
+  if (!remindAt) {
     const nextMonth = consume(/\bnext\s+month\b/i);
     if (nextMonth) {
       remindAt = shiftedMonthOccurrence(now, timezone, 1, 9, 0);
       contextHint = 'next month';
-      explicitHour = 9;
-      explicitMinute = 0;
+      if (!hasExplicitClockTime) {
+        explicitHour = 9;
+        explicitMinute = 0;
+      }
       confidence = 0.84;
     }
   }

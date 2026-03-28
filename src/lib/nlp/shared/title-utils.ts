@@ -41,6 +41,7 @@ export const stripLeadingTitleFiller = (input: string): string => {
 
 export const stripResidualTemporalTokens = (input: string): string => {
   const output = input
+    .replace(/\b(?:eod|eow|tmr)\b/gi, ' ')
     .replace(/\bin\s+\d+\s+(?:day|days|week|weeks|month|months)\b/gi, ' ')
     .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
     .replace(/\bevery\s+\d+\s+(?:days|weeks|months)\b/gi, ' ')

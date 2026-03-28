@@ -110,6 +110,25 @@ const fridayOfCurrentWeekIso = (now: Date, timezone: string): string => {
   return addDaysToIsoDate(todayISO, delta);
 };
 
+const endOfDayReference = (
+  now: Date,
+  timezone: string,
+): {
+  chronoText: string;
+  dateISO: string;
+  timeISO: string;
+} => {
+  const parts = getZonedDateTimeParts(now, timezone);
+  const todayISO = toIsoDate(parts.year, parts.month, parts.day);
+  const useTomorrow = parts.hour >= 17;
+
+  return {
+    chronoText: useTomorrow ? 'tomorrow 5pm' : 'today 5pm',
+    dateISO: useTomorrow ? addDaysToIsoDate(todayISO, 1) : todayISO,
+    timeISO: '17:00',
+  };
+};
+
 const weekdayIndexByToken = (token: string): number | null => {
   const normalized = token.trim().toLowerCase();
   if (/^mon/.test(normalized)) return 1;
@@ -195,10 +214,11 @@ export const resolveRelativeWeekday = (
 const hasDateSignal = (text: string): boolean => DATE_SIGNAL_REGEX.test(text) || WEEKDAY_SIGNAL_REGEX.test(text);
 
 const preprocessForChrono = (ctx: ParseContext): string => {
+  const endOfDay = endOfDayReference(ctx.now, ctx.options.timezone);
   let output = ctx.maskedInput;
   output = replaceWithSameLength(output, /\bfirst\s+thing\b/gi, '9am');
   output = replaceWithSameLength(output, /\btmr\b/gi, 'tom');
-  output = replaceWithSameLength(output, /\b(?:end of day|eod)\b/gi, 'today 5pm');
+  output = replaceWithSameLength(output, /\b(?:end of day|eod)\b/gi, endOfDay.chronoText);
   output = replaceWithSameLength(output, /\b(?:end of (?:the )?week|eow)\b/gi, fridayOfCurrentWeekIso(ctx.now, ctx.options.timezone));
   output = replaceWithSameLength(output, /\bend\s+of\s+(?:the\s+)?month\b/gi, endOfMonthIso(ctx.now, ctx.options.timezone));
 
@@ -1112,12 +1132,13 @@ const applyTimeSpecialFallback = (
 const applySimpleDateFallbacks = (ctx: ParseContext): void => {
   const localNow = getZonedDateTimeParts(ctx.now, ctx.options.timezone);
   const todayISO = toIsoDate(localNow.year, localNow.month, localNow.day);
+  const endOfDay = endOfDayReference(ctx.now, ctx.options.timezone);
 
   if (ctx.result.fields.date === null && /\b(?:by|before|at)\s+(?:end of day|eod)\b/i.test(ctx.rawInput)) {
     applyDateSpecialFallback(
       ctx,
       /\b(?:by|before|at)\s+(?:end of day|eod)\b/i,
-      todayISO,
+      endOfDay.dateISO,
       0.82,
       'datetime.special.end_of_day_date',
       'date inferred from end-of-day expression',
@@ -1158,11 +1179,12 @@ const applySimpleDateFallbacks = (ctx: ParseContext): void => {
 };
 
 const applySimpleTimeFallbacks = (ctx: ParseContext): void => {
+  const endOfDay = endOfDayReference(ctx.now, ctx.options.timezone);
   if (ctx.result.fields.time === null && /\b(?:end of day|eod)\b/i.test(ctx.rawInput)) {
     applyTimeSpecialFallback(
       ctx,
       /\b(?:by|before|at)?\s*(?:end of day|eod)\b/i,
-      '17:00',
+      endOfDay.timeISO,
       0.8,
       'datetime.special.end_of_day_time',
       'time inferred from end-of-day expression',

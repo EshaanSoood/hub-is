@@ -66,12 +66,10 @@ const App = () => {
       setSignInError(true);
     }, 10_000);
 
-    if (!signInCalledRef.current) {
-      signInCalledRef.current = true;
-      void signIn().catch(() => {
-        setSignInError(true);
-      });
-    }
+    signInCalledRef.current = true;
+    void signIn().catch(() => {
+      setSignInError(true);
+    });
 
     return () => {
       if (signInTimeoutRef.current !== null) {
