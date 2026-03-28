@@ -1134,10 +1134,10 @@ const applySimpleDateFallbacks = (ctx: ParseContext): void => {
   const todayISO = toIsoDate(localNow.year, localNow.month, localNow.day);
   const endOfDay = endOfDayReference(ctx.now, ctx.options.timezone);
 
-  if (ctx.result.fields.date === null && /\b(?:by|before|at)\s+(?:end of day|eod)\b/i.test(ctx.rawInput)) {
+  if (ctx.result.fields.date === null && /\b(?:by|before|at)?\s*(?:end of day|eod)\b/i.test(ctx.rawInput)) {
     applyDateSpecialFallback(
       ctx,
-      /\b(?:by|before|at)\s+(?:end of day|eod)\b/i,
+      /\b(?:by|before|at)?\s*(?:end of day|eod)\b/i,
       endOfDay.dateISO,
       0.82,
       'datetime.special.end_of_day_date',

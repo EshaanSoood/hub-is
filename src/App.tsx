@@ -28,7 +28,7 @@ const RouteLoadingState = ({ label = 'Loading route...' }: { label?: string }) =
 );
 
 const App = () => {
-  const { signedIn, authReady, signIn } = useAuthz();
+  const { signedIn, authReady, authError, signIn } = useAuthz();
   const signInCalledRef = useRef(false);
   const previousSignedInRef = useRef(signedIn);
   const signInTimeoutRef = useRef<number | null>(null);
@@ -41,18 +41,17 @@ const App = () => {
     previousSignedInRef.current = signedIn;
   }, [signedIn]);
 
-  useEffect(
-    () => () => {
-      if (signInTimeoutRef.current !== null) {
-        window.clearTimeout(signInTimeoutRef.current);
-        signInTimeoutRef.current = null;
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
     if (!authReady || signedIn || signInCalledRef.current || signInError) {
+      return;
+    }
+
+    if (authError) {
+      if (!signInError) {
+        queueMicrotask(() => {
+          setSignInError(true);
+        });
+      }
       return;
     }
 
@@ -77,7 +76,7 @@ const App = () => {
         signInTimeoutRef.current = null;
       }
     };
-  }, [authReady, signedIn, signIn, signInError]);
+  }, [authReady, signedIn, authError, signIn, signInError]);
 
   if (!authReady) {
     return (
@@ -89,7 +88,7 @@ const App = () => {
 
   if (!signedIn) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface px-4 text-text" role="status" aria-live="polite">
+      <div className="flex min-h-screen items-center justify-center bg-surface px-4 text-text">
         {signInError ? (
           <div className="flex flex-col items-center gap-sm text-center" role="alert" aria-live="assertive">
             <p className="text-sm font-semibold text-danger">Unable to reach the sign-in provider.</p>
@@ -109,7 +108,9 @@ const App = () => {
             </button>
           </div>
         ) : (
-          <p className="text-sm font-semibold text-primary">Redirecting to login...</p>
+          <p className="text-sm font-semibold text-primary" role="status" aria-live="polite">
+            Redirecting to login...
+          </p>
         )}
       </div>
     );
