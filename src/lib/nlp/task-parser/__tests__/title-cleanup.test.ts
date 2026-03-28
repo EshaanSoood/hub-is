@@ -56,6 +56,16 @@ describe('task parser title cleanup', () => {
     assert.equal(title, 'What It Is');
   });
 
+  test('preserves phrasal verb title after temporal cleanup', () => {
+    const title = parseTitle('check in tomorrow');
+    assert.equal(title, 'Check In');
+  });
+
+  test('strips reminder lead prefixes with smart apostrophes', () => {
+    const title = parseTitle('don\u2019t forget to call dentist');
+    assert.equal(title, 'Call Dentist');
+  });
+
   test('normalizes excess whitespace', () => {
     const title = parseTitle('   buy   groceries   ');
     assert.equal(title, 'Buy Groceries');

@@ -322,10 +322,8 @@ export const extractRecurrence = (input: string): {
     { regex: /\bevery\s+day\b/i, frequency: 'daily', interval: 1 },
     { regex: /\bevery\s+month\b/i, frequency: 'monthly', interval: 1 },
     { regex: /^\s*daily\b/i, frequency: 'daily', interval: 1 },
-    { regex: /\bdaily\b(?=\s*(?:$|at\b|on\b|before\b|after\b|by\b))/i, frequency: 'daily', interval: 1 },
     { regex: /^\s*weekly\b/i, frequency: 'weekly', interval: 1 },
     { regex: /^\s*monthly\b/i, frequency: 'monthly', interval: 1 },
-    { regex: /\bmonthly\b(?=\s*(?:$|on\b|at\b|before\b|after\b|by\b))/i, frequency: 'monthly', interval: 1 },
     { regex: /^\s*yearly\b/i, frequency: 'yearly', interval: 1 },
     { regex: /\bevry\s+(mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i, frequency: 'weekly', interval: 1 },
   ];

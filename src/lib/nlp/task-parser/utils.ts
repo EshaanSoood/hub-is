@@ -330,7 +330,7 @@ const applyAssigneeTransform = (
     const captures = args.slice(1, -2).map((value) => String(value || ''));
     const offset = Number(args[args.length - 2]);
     const transformed = buildReplacement(...captures);
-    if (!transformed) {
+    if (!transformed || transformed.assignees.length === 0) {
       return full;
     }
     matched = true;
@@ -365,7 +365,7 @@ export const extractAssignees = (
   const assignees: string[] = [];
   const spans: Array<{ start: number; end: number; text: string }> = [];
   let directed = false;
-  const knownAssignees = new Set((knownAssigneesInput || DEFAULT_KNOWN_ASSIGNEES).map((name) => name.toLowerCase()));
+  const knownAssignees = new Set((knownAssigneesInput ?? []).map((name) => name.toLowerCase()));
 
   for (const match of input.matchAll(/(?<![a-z0-9_.+-])@[a-z0-9_.+-]+/gi)) {
     const text = match[0] || '';
@@ -464,10 +464,10 @@ export const extractAssignees = (
     },
     {
       regex: /^\s*email\s+([a-z0-9.+-]+@[a-z0-9.-]+\.[a-z]{2,})\s+(.+)$/i,
-      build: (email, rest) => ({
-        assignees: [email],
-        replacement: `email ${email.split('@')[0]} ${rest}`,
-      }),
+      build: (email, rest) => {
+        const normalized = normalizeAssigneeCapture(email, knownAssignees);
+        return normalized.length ? { assignees: normalized, replacement: `email ${email.split('@')[0]} ${rest}` } : null;
+      },
     },
     {
       regex: /^\s*assign\s+the\s+(.+?)\s+to\s+([a-z0-9@.+-]+)$/i,
@@ -513,7 +513,10 @@ export const extractAssignees = (
     },
     {
       regex: /\bto\s+([a-z0-9@.+-]+@[a-z0-9.-]+\.[a-z]{2,})\b/i,
-      build: (group) => ({ assignees: normalizeAssigneeCapture(group, knownAssignees), replacement: '' }),
+      build: (group) => {
+        const normalized = normalizeAssigneeCapture(group, knownAssignees);
+        return normalized.length ? { assignees: normalized, replacement: '' } : null;
+      },
     },
     {
       regex: /\bto\s+([A-Z][a-z]+)\b/,
@@ -916,11 +919,14 @@ const normalizeTitleText = (input: string): string => {
     output = output.replace(pattern, '');
   }
 
-  output = stripLeadingTitleFiller(stripTrailingDanglingPreposition(stripResidualTemporalTokens(output), true));
+  const temporalStripped = stripResidualTemporalTokens(output);
+  const temporalContentRemoved = temporalStripped !== output;
+  output = stripLeadingTitleFiller(stripTrailingDanglingPreposition(temporalStripped, temporalContentRemoved));
 
   return output
     .replace(/\bboth\b$/i, '')
     .replace(/\bbut\b$/i, '')
+    .replace(/\b(?:for|to)\b$/i, '')
     .replace(/^[,.-]+\s*/g, '')
     .replace(/\s+[,-]\s*$/g, '')
     .replace(/\s+/g, ' ')

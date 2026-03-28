@@ -58,3 +58,15 @@ test('task parser only extracts @mentions as assignees and keeps bare names in t
   assert.deepEqual(result.fields.assignee_hints, []);
   assert.equal(result.fields.title, 'Meeting with Sarah');
 });
+
+test('task parser only accepts @mentions from knownAssignees when allowlist is provided', () => {
+  const result = parseTaskInput('follow up with @sam and @zoe tomorrow', {
+    now: '2026-03-27T10:00:00',
+    timezone: 'America/New_York',
+    knownAssignees: ['sam'],
+  });
+
+  assert.deepEqual(result.fields.assignee_hints, ['@sam']);
+  assert.equal(result.fields.title.includes('@sam'), false);
+  assert.equal(result.fields.title.includes('@zoe'), true);
+});

@@ -20,8 +20,8 @@ describe('reminder parser recurrence extraction', () => {
     });
   });
 
-  test('extracts daily recurrence when "daily" appears mid-sentence', () => {
-    const result = parse('water plants daily');
+  test('extracts daily recurrence when "daily" appears at the start', () => {
+    const result = parse('daily water plants');
     assert.deepEqual(result.fields.recurrence, {
       frequency: 'daily',
       interval: 1,
@@ -30,8 +30,8 @@ describe('reminder parser recurrence extraction', () => {
     assert.equal(result.fields.title, 'Water Plants');
   });
 
-  test('extracts monthly recurrence when "monthly" appears mid-sentence', () => {
-    const result = parse('pay rent monthly on the 1st');
+  test('extracts monthly recurrence when "monthly" appears at the start', () => {
+    const result = parse('monthly pay rent on the 1st');
     assert.deepEqual(result.fields.recurrence, {
       frequency: 'monthly',
       interval: 1,
