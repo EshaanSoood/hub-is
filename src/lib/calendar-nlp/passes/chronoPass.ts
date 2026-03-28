@@ -218,7 +218,7 @@ const preprocessForChrono = (ctx: ParseContext): string => {
   let output = ctx.maskedInput;
   output = replaceWithSameLength(output, /\bfirst\s+thing\b/gi, '9am');
   output = replaceWithSameLength(output, /\btmr\b/gi, 'tom');
-  output = replaceWithSameLength(output, /\b(?:end of day|eod)\b/gi, endOfDay.chronoText);
+  output = replaceWithSameLength(output, /\b(?:end of (?:the )?day|eod)\b/gi, endOfDay.chronoText);
   output = replaceWithSameLength(output, /\b(?:end of (?:the )?week|eow)\b/gi, fridayOfCurrentWeekIso(ctx.now, ctx.options.timezone));
   output = replaceWithSameLength(output, /\bend\s+of\s+(?:the\s+)?month\b/gi, endOfMonthIso(ctx.now, ctx.options.timezone));
 
@@ -1210,7 +1210,7 @@ const applySimpleTimeFallbacks = (ctx: ParseContext): void => {
 
 const applySpecialTemporalMasking = (ctx: ParseContext): void => {
   const patterns = [
-    /\b(?:by|before|at)?\s*(?:end of day|eod)\b/gi,
+    /\b(?:by|before|at)?\s*(?:end of (?:the )?day|eod)\b/gi,
     /\b(?:by|before|at)?\s*(?:end of (?:the )?week|eow)\b/gi,
     /\b(?:by|before|at)?\s*(?:end of (?:the )?month)\b/gi,
     /\b(?:today|tomorrow|tonight)\s+(?:morning|afternoon|evening|night)\b/gi,
