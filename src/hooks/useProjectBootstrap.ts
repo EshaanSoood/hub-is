@@ -32,8 +32,10 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
   const latestAccessTokenRef = useRef(accessToken);
   const latestProjectIdRef = useRef(projectId);
   const latestRefreshRequestRef = useRef(0);
+  const refreshProjectsRef = useRef(refreshProjects);
   latestAccessTokenRef.current = accessToken;
   latestProjectIdRef.current = projectId;
+  refreshProjectsRef.current = refreshProjects;
 
   const refreshProjectData = useCallback(async () => {
     if (!accessToken || !projectId) {
@@ -93,7 +95,7 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
         if (!cancelled) {
           window.localStorage.setItem(LAST_PROJECT_KEY, projectId);
           try {
-            await refreshProjects();
+            await refreshProjectsRef.current();
           } catch (refreshError) {
             console.warn('Projects refresh failed after project bootstrap:', refreshError);
           }
@@ -113,7 +115,7 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
     return () => {
       cancelled = true;
     };
-  }, [accessToken, projectId, refreshProjectData, refreshProjects]);
+  }, [accessToken, projectId, refreshProjectData]);
 
   return {
     error,
