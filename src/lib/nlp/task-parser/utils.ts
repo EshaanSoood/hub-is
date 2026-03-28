@@ -14,6 +14,7 @@ import {
 import {
   stripLeadingTitleFiller,
   stripReminderLeadPrefix,
+  stripResidualTemporalTokens,
   stripTrailingDanglingPreposition,
 } from '../shared/title-utils.ts';
 import {
@@ -298,24 +299,30 @@ const splitAssigneeGroup = (value: string): string[] =>
     .filter(Boolean);
 
 const isAssigneeLike = (value: string, knownAssignees: Set<string>): boolean => {
-  const cleaned = value.replace(/[,:]+$/g, '').trim();
+  const cleaned = value.replace(/[.,;:!?]+$/g, '').trim();
   if (!cleaned) {
     return false;
   }
   const isMention = /^@[a-z0-9_.+-]+$/i.test(cleaned);
-  if (!isMention) {
+  const isEmail = /^[a-z0-9.+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(cleaned);
+  if (!isMention && !isEmail) {
     return false;
   }
   if (knownAssignees.size === 0) {
     return true;
   }
-  const mentionWithoutPrefix = cleaned.slice(1).toLowerCase();
-  const normalizedMention = cleaned.toLowerCase();
-  return knownAssignees.has(mentionWithoutPrefix) || knownAssignees.has(normalizedMention);
+  const normalized = cleaned.toLowerCase();
+  if (knownAssignees.has(normalized)) {
+    return true;
+  }
+  if (isMention) {
+    return knownAssignees.has(normalized.slice(1));
+  }
+  return false;
 };
 
 const normalizeAssigneeCapture = (value: string, knownAssignees: Set<string>): string[] =>
-  splitAssigneeGroup(value.replace(/[,:]+$/g, '').trim()).filter((part) => isAssigneeLike(part, knownAssignees));
+  splitAssigneeGroup(value.replace(/[.,;:!?]+$/g, '').trim()).filter((part) => isAssigneeLike(part, knownAssignees));
 
 const applyAssigneeTransform = (
   working: string,
@@ -861,20 +868,6 @@ const fixTitleWord = (word: string): string => {
   const lowerCore = core.toLowerCase();
   const corrected = TITLE_WORD_CORRECTIONS[lowerCore] ?? lowerCore;
   return `${prefix}${corrected}${suffix}`;
-};
-
-const stripResidualTemporalTokens = (input: string): string => {
-  let output = input;
-  output = output
-    .replace(/\bin\s+\d+\s+(?:day|days|week|weeks|month|months)\b/gi, ' ')
-    .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
-    .replace(/\bevery\s+\d+\s+(?:days|weeks|months)\b/gi, ' ')
-    .replace(/\b(?:next|this)\s+(?:month|week)\b/gi, ' ')
-    .replace(
-      /\b(?:today|tomorrow|tonight|yesterday|daily|weekly|monthly)\b/gi,
-      ' ',
-    );
-  return normalizeWhitespace(output);
 };
 
 const normalizeTitleText = (input: string): string => {

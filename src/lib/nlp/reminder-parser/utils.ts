@@ -13,6 +13,7 @@ import { TITLE_SMALL_WORDS } from '../shared/constants.ts';
 import {
   stripLeadingTitleFiller,
   stripReminderLeadPrefix,
+  stripResidualTemporalTokens,
   stripTrailingDanglingPreposition,
 } from '../shared/title-utils.ts';
 import {
@@ -449,7 +450,7 @@ const endOfMonthReminderAt = (now: Date, timezone: string): string => {
   const parts = getZonedParts(now, timezone);
   const nowIso = formatDateTimeInTimezone(now, timezone);
   const thisMonthCandidate = `${toIsoDate(parts.year, parts.month, daysInMonth(parts.year, parts.month))}T09:00:00`;
-  if (thisMonthCandidate > nowIso) {
+  if (thisMonthCandidate >= nowIso) {
     return thisMonthCandidate;
   }
   const nextMonth = parts.month === 12 ? 1 : parts.month + 1;
@@ -462,7 +463,7 @@ const endOfWeekReminderAt = (now: Date, timezone: string): string => {
   let delta = (5 - parts.weekday + 7) % 7;
   const nowIso = formatDateTimeInTimezone(now, timezone);
   let candidate = withTime(addDays(now, delta), timezone, 17, 0);
-  if (candidate <= nowIso) {
+  if (candidate < nowIso) {
     delta += 7;
     candidate = withTime(addDays(now, delta), timezone, 17, 0);
   }
@@ -1084,25 +1085,6 @@ const cleanTitleWord = (word: string): string => {
   const lower = word.toLowerCase();
   const corrected = TITLE_CORRECTIONS[lower] ?? lower;
   return corrected;
-};
-
-const stripResidualTemporalTokens = (input: string): string => {
-  let output = input;
-  output = output
-    .replace(/\bin\s+\d+\s+(?:day|days|week|weeks|month|months)\b/gi, ' ')
-    .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
-    .replace(/\bevery\s+\d+\s+(?:days|weeks|months)\b/gi, ' ')
-    .replace(/\b(?:next|this|last)\s+(?:month|week)\b/gi, ' ')
-    .replace(/\b(?:next|this|last)\s+(?:mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/gi, ' ')
-    .replace(/\bend of (?:the )?month\b/gi, ' ')
-    .replace(/\bend of (?:the )?week\b/gi, ' ')
-    .replace(/\bend of (?:the )?day\b/gi, ' ')
-    .replace(
-      /\b(?:today|tomorrow|tonight)\b/gi,
-      ' ',
-    );
-
-  return normalizeWhitespace(output);
 };
 
 const smartTitleCase = (input: string): string => {

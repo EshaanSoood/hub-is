@@ -38,3 +38,21 @@ export const stripLeadingTitleFiller = (input: string): string => {
   }
   return output;
 };
+
+export const stripResidualTemporalTokens = (input: string): string => {
+  const output = input
+    .replace(/\bin\s+\d+\s+(?:day|days|week|weeks|month|months)\b/gi, ' ')
+    .replace(/\bevery\s+other\s+(?:day|week)\b/gi, ' ')
+    .replace(/\bevery\s+\d+\s+(?:days|weeks|months)\b/gi, ' ')
+    .replace(/\b(?:next|this|last)\s+(?:month|week)\b/gi, ' ')
+    .replace(
+      /\b(?:next|this|last)\s+(?:mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|ursday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/gi,
+      ' ',
+    )
+    .replace(/\bend of (?:the )?month\b/gi, ' ')
+    .replace(/\bend of (?:the )?week\b/gi, ' ')
+    .replace(/\bend of (?:the )?day\b/gi, ' ')
+    .replace(/\b(?:today|tomorrow|tonight|yesterday)\b/gi, ' ');
+
+  return normalizeWhitespace(output);
+};

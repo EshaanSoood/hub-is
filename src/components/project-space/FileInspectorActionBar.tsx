@@ -67,6 +67,7 @@ export const FileInspectorActionBar = ({
   const renameWasOpenRef = useRef(false);
   const moveRestoreFocusRef = useRef(false);
   const renameRestoreFocusRef = useRef(false);
+  const copyLabelTimerRef = useRef<number | null>(null);
 
   const closeMove = useCallback((options?: { restoreFocus?: boolean }) => {
     moveRestoreFocusRef.current = options?.restoreFocus ?? false;
@@ -172,14 +173,34 @@ export const FileInspectorActionBar = ({
     };
   }, [renameOpen]);
 
+  useEffect(
+    () => () => {
+      if (copyLabelTimerRef.current !== null) {
+        window.clearTimeout(copyLabelTimerRef.current);
+        copyLabelTimerRef.current = null;
+      }
+    },
+    [],
+  );
+
   const onCopyLink = async () => {
+    const scheduleCopyLabelReset = () => {
+      if (copyLabelTimerRef.current !== null) {
+        window.clearTimeout(copyLabelTimerRef.current);
+      }
+      copyLabelTimerRef.current = window.setTimeout(() => {
+        setCopyLabel('Copy link');
+        copyLabelTimerRef.current = null;
+      }, 2000);
+    };
+
     try {
       await navigator.clipboard.writeText(shareableLink);
       setCopyLabel('Copied');
-      window.setTimeout(() => setCopyLabel('Copy link'), 2000);
+      scheduleCopyLabelReset();
     } catch {
       setCopyLabel('Copy failed');
-      window.setTimeout(() => setCopyLabel('Copy link'), 2000);
+      scheduleCopyLabelReset();
     }
   };
 

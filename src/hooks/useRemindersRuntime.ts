@@ -28,13 +28,13 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const refreshSequenceRef = useRef(0);
-  const reminderRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reminderRefreshTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       if (reminderRefreshTimerRef.current !== null) {
-        clearTimeout(reminderRefreshTimerRef.current);
+        window.clearTimeout(reminderRefreshTimerRef.current);
         reminderRefreshTimerRef.current = null;
       }
       mountedRef.current = false;
@@ -72,9 +72,9 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
 
   const refreshWithDebounce = useCallback(() => {
     if (reminderRefreshTimerRef.current !== null) {
-      clearTimeout(reminderRefreshTimerRef.current);
+      window.clearTimeout(reminderRefreshTimerRef.current);
     }
-    reminderRefreshTimerRef.current = setTimeout(() => {
+    reminderRefreshTimerRef.current = window.setTimeout(() => {
       reminderRefreshTimerRef.current = null;
       void refresh();
     }, 500);
@@ -82,7 +82,7 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
 
   useEffect(() => {
     if (reminderRefreshTimerRef.current !== null) {
-      clearTimeout(reminderRefreshTimerRef.current);
+      window.clearTimeout(reminderRefreshTimerRef.current);
       reminderRefreshTimerRef.current = null;
     }
     refreshSequenceRef.current += 1;

@@ -199,7 +199,6 @@ const preprocessForChrono = (ctx: ParseContext): string => {
   output = replaceWithSameLength(output, /\bfirst\s+thing\b/gi, '9am');
   output = replaceWithSameLength(output, /\btmr\b/gi, 'tom');
   output = replaceWithSameLength(output, /\b(?:end of day|eod)\b/gi, 'today 5pm');
-  output = replaceWithSameLength(output, /\bEOD\b/gi, 'today 5pm');
   output = replaceWithSameLength(output, /\b(?:end of (?:the )?week|eow)\b/gi, fridayOfCurrentWeekIso(ctx.now, ctx.options.timezone));
   output = replaceWithSameLength(output, /\bend\s+of\s+(?:the\s+)?month\b/gi, endOfMonthIso(ctx.now, ctx.options.timezone));
 
