@@ -326,7 +326,7 @@ const TasksModuleMedium = ({
   const displayedTasks = visibleTasks.slice(0, 8);
 
   return (
-    <section className="rounded-panel border border-border-muted bg-surface-elevated p-4" aria-label="Tasks module">
+    <section className="h-full rounded-panel border border-border-muted bg-surface-elevated p-4" aria-label="Tasks module">
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
           <Icon name="tasks" className="text-[16px]" />
@@ -444,7 +444,7 @@ const TasksModuleLarge = ({
   };
 
   return (
-    <section className="space-y-3" aria-label="Tasks module">
+    <section className="h-full space-y-3" aria-label="Tasks module">
       {!hideHeader ? (
         <div className="flex items-center justify-between gap-2">
           <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
@@ -516,11 +516,11 @@ const TasksModuleLarge = ({
 
 export const TasksModuleSkin = ({ sizeTier, ...props }: TasksModuleSkinProps) => {
   const { hideHeader, ...rest } = props;
-  if (sizeTier === 'S') {
-    return <TasksModuleSmall {...rest} />;
-  }
-  if (sizeTier === 'M') {
-    return <TasksModuleMedium {...rest} />;
-  }
-  return <TasksModuleLarge {...rest} hideHeader={hideHeader} />;
+  return (
+    <div className="h-full">
+      {sizeTier === 'S' ? <TasksModuleSmall {...rest} /> : null}
+      {sizeTier === 'M' ? <TasksModuleMedium {...rest} /> : null}
+      {sizeTier === 'L' ? <TasksModuleLarge {...rest} hideHeader={hideHeader} /> : null}
+    </div>
+  );
 };

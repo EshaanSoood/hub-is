@@ -311,7 +311,7 @@ export const KanbanModuleSkin = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="h-full space-y-3">
       <div className="flex items-center justify-between gap-2 px-1">
         <p className="text-xs text-muted">{canMove ? 'Drag to move.' : readOnly ? 'Read-only.' : 'Ungrouped.'}</p>
       </div>

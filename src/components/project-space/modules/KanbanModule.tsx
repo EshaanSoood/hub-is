@@ -39,7 +39,7 @@ export const KanbanModule = ({
   const viewData = selectedViewId ? runtime.dataByViewId[selectedViewId] : undefined;
 
   return (
-    <div className="space-y-3">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       {runtime.views.length > 0 ? (
         <label className="block text-xs text-muted">
           Source view
@@ -58,23 +58,25 @@ export const KanbanModule = ({
         </label>
       ) : null}
       {viewData?.error ? <p className="text-xs text-danger">{viewData.error}</p> : null}
-      <Suspense fallback={<ModuleLoadingState label="Loading kanban module" rows={5} />}>
-        <KanbanModuleSkin
-          groups={viewData?.groups || []}
-          groupOptions={viewData?.groupOptions || []}
-          loading={viewData?.loading ?? false}
-          groupingConfigured={viewData?.groupingConfigured ?? false}
-          groupingMessage={viewData?.groupingMessage}
-          metadataFieldIds={viewData?.metadataFieldIds}
-          onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
-          onMoveRecord={(recordId, nextGroup) => {
-            if (canEditPane && selectedViewId) {
-              runtime.onMoveRecord(selectedViewId, recordId, nextGroup);
-            }
-          }}
-          readOnly={!canEditPane}
-        />
-      </Suspense>
+      <div className="min-h-0 flex-1">
+        <Suspense fallback={<ModuleLoadingState label="Loading kanban module" rows={5} />}>
+          <KanbanModuleSkin
+            groups={viewData?.groups || []}
+            groupOptions={viewData?.groupOptions || []}
+            loading={viewData?.loading ?? false}
+            groupingConfigured={viewData?.groupingConfigured ?? false}
+            groupingMessage={viewData?.groupingMessage}
+            metadataFieldIds={viewData?.metadataFieldIds}
+            onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
+            onMoveRecord={(recordId, nextGroup) => {
+              if (canEditPane && selectedViewId) {
+                runtime.onMoveRecord(selectedViewId, recordId, nextGroup);
+              }
+            }}
+            readOnly={!canEditPane}
+          />
+        </Suspense>
+      </div>
     </div>
   );
 };

@@ -35,6 +35,12 @@ const sizeClass: Record<ContractModuleConfig['size_tier'], string> = {
   L: 'md:col-span-12',
 };
 
+const sizeHeightClass: Record<ContractModuleConfig['size_tier'], string> = {
+  S: 'module-card-s',
+  M: 'module-card-m',
+  L: 'module-card-l',
+};
+
 export const ModuleGrid = ({
   modules,
   onAddModule,
@@ -118,9 +124,13 @@ export const ModuleGrid = ({
           <article
             key={module.module_instance_id}
             data-testid="module-card"
-            className={`rounded-panel border border-subtle bg-elevated p-3 ${sizeClass[module.size_tier]}`}
+            className={cn(
+              'rounded-panel border border-subtle bg-elevated p-3 flex flex-col',
+              sizeClass[module.size_tier],
+              sizeHeightClass[module.size_tier],
+            )}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
               <p className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                 {moduleIconName(module.module_type) ? (
                   <Icon name={moduleIconName(module.module_type)!} className="text-[16px]" />
@@ -209,7 +219,7 @@ export const ModuleGrid = ({
                 </button>
               </div>
             </div>
-            <div className="mt-3">
+            <div className="mt-3 min-h-0 flex-1 overflow-y-auto" data-module-card-body="true">
               {renderModuleBody ? renderModuleBody(module) : `Module: ${module.module_type}`}
             </div>
           </article>

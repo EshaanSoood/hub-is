@@ -349,7 +349,7 @@ export const RemindersModuleSkin = ({
   };
 
   return (
-    <section className="space-y-3" aria-label="Reminders module">
+    <section className="h-full space-y-3" aria-label="Reminders module">
       <div className="flex items-center justify-between gap-2">
         <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
           <Icon name="reminders" className="text-[16px]" />
@@ -421,7 +421,7 @@ export const RemindersModuleSkin = ({
             {import.meta.env.DEV ? (
               <details className="mt-2">
                 <summary className="cursor-pointer select-none">Reminder Parser Debug</summary>
-                <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-[11px]">
+                <pre className="mt-1 whitespace-pre-wrap text-[11px]">
                   {preview.meta.debugSteps.map((step) => `${step.pass} | ${step.ruleId} | ${step.note}`).join('\n') || 'No steps'}
                 </pre>
               </details>

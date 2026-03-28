@@ -507,7 +507,7 @@ export const FilesModuleSkin = ({ sizeTier, files, onUpload, onOpenFile, readOnl
   }, [files]);
 
   return (
-    <section className="space-y-2" aria-label="Files module">
+    <section className="h-full space-y-2" aria-label="Files module">
       <p className="sr-only" aria-live="polite">
         {liveMessage}
       </p>

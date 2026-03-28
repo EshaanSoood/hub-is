@@ -373,7 +373,7 @@ export const CalendarModuleSkin = ({
 
   if (events.length === 0) {
     return (
-      <div className="space-y-3">
+      <div className="h-full space-y-3">
         <ModuleEmptyState
           title={scope === 'relevant' ? 'No relevant events yet.' : 'No project events yet.'}
           description={
@@ -397,7 +397,7 @@ export const CalendarModuleSkin = ({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="h-full space-y-3">
       <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
         <div role="group" aria-label="Calendar scope" className="flex items-center gap-0.5">
           {(['relevant', 'all'] as CalendarScope[]).map((item) => (

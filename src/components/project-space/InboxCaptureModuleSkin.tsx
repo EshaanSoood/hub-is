@@ -392,7 +392,7 @@ export const QuickThoughtsModuleSkin = ({
   const showArchivedSection = sizeTier === 'L' && archivedEntries.length > 0;
 
   return (
-    <div className="rounded-panel border border-border-muted bg-surface-elevated p-sm">
+    <div className="h-full rounded-panel border border-border-muted bg-surface-elevated p-sm">
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>

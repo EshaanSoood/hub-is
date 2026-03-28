@@ -54,6 +54,13 @@
   --color-day-ruler-tick: var(--color-text-secondary);
   --day-ruler-width: 48px;
   --day-hour-height: 64px;
+  /* Module cards */
+  --module-card-min-h-s: 12rem;
+  --module-card-max-h-s: 16rem;
+  --module-card-min-h-m: 18rem;
+  --module-card-max-h-m: 28rem;
+  --module-card-min-h-l: 24rem;
+  --module-card-max-h-l: 40rem;
 
   --radius-panel: 0.75rem;
   --radius-control: 0.625rem;
@@ -155,6 +162,21 @@
   font-size: var(--text-heading-1);
   line-height: 1.2;
   font-weight: 700;
+}
+
+@utility module-card-s {
+  min-height: var(--module-card-min-h-s);
+  max-height: var(--module-card-max-h-s);
+}
+
+@utility module-card-m {
+  min-height: var(--module-card-min-h-m);
+  max-height: var(--module-card-max-h-m);
+}
+
+@utility module-card-l {
+  min-height: var(--module-card-min-h-l);
+  max-height: var(--module-card-max-h-l);
 }
 
 @utility heading-2 {

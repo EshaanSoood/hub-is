@@ -127,10 +127,17 @@ export const TableModuleSkin = ({ schema, records, loading, onOpenRecord }: Tabl
   });
 
   const modelRows = table.getRowModel().rows;
+  const getScrollElement = useCallback(() => {
+    const node = scrollRef.current;
+    if (!node) {
+      return null;
+    }
+    return (node.closest('[data-module-card-body="true"]') as HTMLDivElement | null) ?? node;
+  }, []);
 
   const virtualizer = useVirtualizer({
     count: modelRows.length,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement,
     estimateSize: () => 44,
     overscan: 8,
   });
@@ -166,7 +173,7 @@ export const TableModuleSkin = ({ schema, records, loading, onOpenRecord }: Tabl
   }
 
   return (
-    <section className="rounded-panel border border-border-muted bg-surface-elevated" aria-label="Table module">
+    <section className="h-full rounded-panel border border-border-muted bg-surface-elevated" aria-label="Table module">
       <div role="rowgroup" className="sticky top-0 z-10 border-b border-border-muted bg-surface">
         {table.getHeaderGroups().map((group) => (
           <div key={group.id} role="row" className="grid" style={{ gridTemplateColumns: templateColumns }}>
@@ -218,7 +225,7 @@ export const TableModuleSkin = ({ schema, records, loading, onOpenRecord }: Tabl
         role="grid"
         aria-rowcount={modelRows.length}
         aria-colcount={(schema?.fields.length ?? 0) + 1}
-        className="relative max-h-[26rem] overflow-auto"
+        className="relative"
       >
         <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
           {virtualizer.getVirtualItems().map((item) => {
