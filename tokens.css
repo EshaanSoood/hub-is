@@ -11,7 +11,7 @@
 
   /* Text & Accents */
   --color-text: rgb(240 244 248);
-  --color-text-secondary: rgb(180 194 210);
+  --color-text-secondary: rgb(192 204 218);
   --color-primary: rgb(255 163 205);
   --color-primary-strong: rgb(255 122 181);
   --color-on-primary: rgb(28 36 48);
@@ -32,7 +32,7 @@
   --color-success-subtle: var(--color-muted-subtle);
 
   /* UI Elements */
-  --color-muted: rgb(100 116 139);
+  --color-muted: rgb(141 155 176);
   --color-capture-rail: hsl(174 60% 45%);
   --color-capture-rail-actioned: var(--color-primary);
   --color-muted-subtle: var(--color-surface-elevated);
@@ -62,7 +62,7 @@
   --day-hour-height: 64px;
   /* Module cards */
   --module-card-min-h-s: 12rem;
-  --module-card-max-h-s: 16rem;
+  --module-card-max-h-s: 20rem;
   --module-card-min-h-m: 18rem;
   --module-card-max-h-m: 28rem;
   --module-card-min-h-l: 24rem;
@@ -98,7 +98,8 @@
     --color-surface: rgb(244 247 250);
     --color-surface-elevated: rgb(255 255 255);
     --color-text: rgb(28 36 48);
-    --color-text-secondary: rgb(80 100 124);
+    --color-text-secondary: rgb(70 88 115);
+    --color-muted: rgb(86 106 127);
     --color-primary: rgb(184 24 99);
     --color-primary-strong: rgb(148 16 78);
     --color-on-primary: rgb(255 255 255);

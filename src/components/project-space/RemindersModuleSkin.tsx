@@ -3,6 +3,7 @@ import { Icon } from '../primitives';
 import { parseReminderInput } from '../../lib/nlp/reminder-parser/index';
 import type { ReminderParseResult } from '../../lib/nlp/reminder-parser/types';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
+import { ModuleEmptyState } from './ModuleFeedback';
 
 export type RemindersSizeTier = 'S' | 'M' | 'L';
 
@@ -222,6 +223,7 @@ export const RemindersModuleSkin = ({
   const [inputError, setInputError] = useState<string | null>(null);
   const [animations, setAnimations] = useState<Record<string, ReminderAnimationState>>({});
   const phraseIndexRef = useRef(0);
+  const reminderInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     installReminderAnimations();
@@ -350,13 +352,6 @@ export const RemindersModuleSkin = ({
 
   return (
     <section className="h-full space-y-3" aria-label="Reminders module">
-      <div className="flex items-center justify-between gap-2">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
-          <Icon name="reminders" className="text-[16px]" />
-          Reminders
-        </p>
-        <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{reminders.length}</span>
-      </div>
       <form
         className="space-y-2"
         onSubmit={(event) => {
@@ -366,6 +361,7 @@ export const RemindersModuleSkin = ({
       >
         <div className="flex items-start gap-2">
           <input
+            ref={reminderInputRef}
             type="text"
             value={draft}
             disabled={readOnly || submitting}
@@ -446,9 +442,12 @@ export const RemindersModuleSkin = ({
         ) : null}
 
         {!error && !loading && renderedReminders.length === 0 ? (
-          <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-text-secondary">
-            No reminders yet.
-          </p>
+          <ModuleEmptyState
+            title="No reminders yet."
+            iconName="reminders"
+            ctaLabel="Add reminder"
+            onCta={readOnly ? undefined : () => reminderInputRef.current?.focus()}
+          />
         ) : null}
 
         {renderedReminders.map((reminder) => {

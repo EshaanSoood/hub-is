@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Icon } from '../primitives';
+import { Icon, IconButton } from '../primitives';
+import { ModuleEmptyState } from './ModuleFeedback';
 
 interface QuickThoughtEntry {
   id: string;
@@ -270,6 +271,7 @@ export const QuickThoughtsModuleSkin = ({
   const [announcement, setAnnouncement] = useState('');
   const [draftText, setDraftText] = useState('');
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const composerContainerRef = useRef<HTMLDivElement | null>(null);
   const isInteractive = !readOnly;
 
   useEffect(() => {
@@ -390,35 +392,34 @@ export const QuickThoughtsModuleSkin = ({
   const visibleEntries = sizeTier === 'M' ? liveEntries.slice(0, 5) : liveEntries;
   const showComposer = sizeTier !== 'S';
   const showArchivedSection = sizeTier === 'L' && archivedEntries.length > 0;
+  const onEmptyStateCta =
+    showComposer && !readOnly
+      ? () => {
+          composerContainerRef.current?.querySelector('textarea')?.focus();
+        }
+      : undefined;
 
   return (
-    <div className="h-full rounded-panel border border-border-muted bg-surface-elevated p-sm">
+    <div className="relative h-full rounded-panel border border-border-muted bg-surface-elevated p-sm">
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
 
-      <div className="mb-xs flex items-start justify-between gap-xs">
-        <div>
-          <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted">
-            <Icon name="thought-pile" className="text-[16px]" />
-            Quick Thoughts
-          </p>
-          <p className="mt-1 text-[11px] text-text-secondary">Pane-local capture. These notes stay in this workspace only.</p>
-        </div>
-        <button
-          type="button"
-          disabled={!isInteractive}
-          onClick={() => {
-            setEditingEntryId(null);
-            setDraftText('');
-            setAnnouncement('Ready for a new Quick Thought.');
-          }}
-          className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          aria-label="New Quick Thought"
-        >
-          <Icon name="plus" className="text-[14px]" />
-        </button>
-      </div>
+      <IconButton
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={!isInteractive}
+        onClick={() => {
+          setEditingEntryId(null);
+          setDraftText('');
+          setAnnouncement('Ready for a new Quick Thought.');
+        }}
+        className="absolute right-2 top-2 z-10 opacity-40 hover:opacity-100"
+        aria-label="New Quick Thought"
+      >
+        <Icon name="plus" className="text-[14px]" />
+      </IconButton>
 
       {showComposer ? (
         readOnly ? (
@@ -426,21 +427,28 @@ export const QuickThoughtsModuleSkin = ({
             Quick Thoughts are read-only for you in this pane.
           </div>
         ) : (
-          <QuickThoughtEditor
-            value={editingEntryId ? '' : draftText}
-            rows={sizeTier === 'L' ? 6 : 4}
-            placeholder="Capture a thought for this pane..."
-            saveLabel="Save Thought"
-            readOnly={!isInteractive}
-            onChange={setDraftText}
-            onSave={addEntry}
-          />
+          <div ref={composerContainerRef}>
+            <QuickThoughtEditor
+              value={editingEntryId ? '' : draftText}
+              rows={sizeTier === 'L' ? 6 : 4}
+              placeholder="Capture a thought for this pane..."
+              saveLabel="Save Thought"
+              readOnly={!isInteractive}
+              onChange={setDraftText}
+              onSave={addEntry}
+            />
+          </div>
         )
       ) : null}
 
       <div className={showComposer ? 'mt-sm' : ''}>
         {visibleEntries.length === 0 ? (
-          <p className="m-0 py-sm text-center font-heading text-sm text-muted">Nothing captured for this pane yet.</p>
+          <ModuleEmptyState
+            title="Nothing captured for this pane yet."
+            iconName="thought-pile"
+            ctaLabel="Capture thought"
+            onCta={onEmptyStateCta}
+          />
         ) : (
           <div className="space-y-1">
             {visibleEntries.map((entry) => (

@@ -380,7 +380,7 @@ export const CalendarWeekView = ({
 
   return (
     <div role="region" tabIndex={-1} aria-label={weekRangeLabel} className="space-y-3">
-      <div className="hidden md:flex md:items-start md:overflow-x-auto md:pb-1">
+      <div className="hidden md:flex md:items-start md:gap-2 md:pb-1">
         {weekDays.map((day) => {
           const isActive = day.key === activeDayKey;
           const cardLabel = formatDayCardLabel(day);
@@ -394,7 +394,7 @@ export const CalendarWeekView = ({
                 desktopCardRefs.current[day.key] = node;
               }}
               className={cn(
-                'first:md:ml-0 md:-ml-6 md:min-w-[13rem] md:max-w-[13rem] md:flex-1',
+                'min-w-0 flex-1',
                 desktopPositionClassName(day.offsetFromToday),
               )}
             >

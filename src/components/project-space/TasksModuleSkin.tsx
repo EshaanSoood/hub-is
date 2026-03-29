@@ -5,6 +5,7 @@ import type { PriorityLevel } from './designTokens';
 import { getPriorityClasses } from '../../lib/priorityStyles';
 import { TasksTab, type SortChain, type SortDimension, type TaskItem, type TaskPriorityValue, type TaskStatus } from './TasksTab';
 import { formatDueLabel } from './taskAdapter';
+import { ModuleEmptyState } from './ModuleFeedback';
 
 interface TasksModuleSkinProps {
   sizeTier: 'S' | 'M' | 'L';
@@ -133,6 +134,47 @@ const sortChainForGroupBy = (groupBy: SortDimension): SortChain => {
   }
   return ['date', 'priority', 'category'];
 };
+
+const TaskSummaryRows = ({
+  tasks,
+  readOnly = false,
+  onUpdateTaskStatus,
+}: {
+  tasks: TaskItem[];
+  readOnly?: boolean;
+  onUpdateTaskStatus?: TasksModuleSkinProps['onUpdateTaskStatus'];
+}) => (
+  <ul className="space-y-2">
+    {tasks.map((task) => {
+      const nextStatus = getNextStatus(task.status);
+      return (
+        <li key={task.id} className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
+            onClick={() => {
+              void Promise.resolve(onUpdateTaskStatus?.(task.id, nextStatus)).catch((error) => {
+                console.error('Failed to update task status:', error);
+              });
+            }}
+            aria-label={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span aria-hidden="true">{STATUS_SYMBOLS[task.status]}</span>
+          </button>
+          <span
+            className={cn('h-2 w-2 shrink-0 rounded-full', getPriorityClasses(priorityTone(task)).dot)}
+            aria-hidden="true"
+          />
+          <span className={cn('min-w-0 flex-1 truncate text-sm text-text', task.status === 'cancelled' && 'line-through text-text-secondary')}>
+            {task.label}
+          </span>
+          <span className="shrink-0 text-xs text-muted">{formatDueLabel(task.dueAt)}</span>
+        </li>
+      );
+    })}
+  </ul>
+);
 
 interface TaskComposerProps {
   tasks: TaskItem[];
@@ -307,68 +349,61 @@ const TaskComposer = ({
 
 const TasksModuleSmall = ({
   tasks,
+  tasksLoading,
   onCreateTask,
+  onUpdateTaskStatus,
   readOnly = false,
-}: Pick<TasksModuleSkinProps, 'tasks' | 'onCreateTask' | 'readOnly'>) => {
-  if (readOnly) {
-    return <p className="rounded-panel border border-border-muted bg-surface-elevated p-3 text-sm text-muted">Tasks (read-only)</p>;
-  }
+}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'>) => {
+  const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks).slice(0, 3), [tasks]);
 
-  return <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />;
+  return (
+    <div className="space-y-3">
+      {readOnly ? (
+        <p className="rounded-panel border border-border-muted bg-surface-elevated p-3 text-sm text-muted">Tasks (read-only)</p>
+      ) : (
+        <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />
+      )}
+      {tasksLoading ? <p className="text-sm text-muted">Loading...</p> : null}
+      {!tasksLoading && visibleTasks.length > 0 ? (
+        <TaskSummaryRows tasks={visibleTasks} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
+      ) : null}
+    </div>
+  );
 };
 
 const TasksModuleMedium = ({
   tasks,
   tasksLoading,
+  onCreateTask,
   onUpdateTaskStatus,
   readOnly = false,
-}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onUpdateTaskStatus' | 'readOnly'>) => {
+}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'>) => {
+  const [composerOpen, setComposerOpen] = useState(false);
   const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks), [tasks]);
   const displayedTasks = visibleTasks.slice(0, 8);
+  const canCreateTask = !readOnly && typeof onCreateTask === 'function';
 
   return (
     <section className="h-full rounded-panel border border-border-muted bg-surface-elevated p-4" aria-label="Tasks module">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
-          <Icon name="tasks" className="text-[16px]" />
-          Tasks
-        </p>
-        <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
-      </div>
-
+      {!readOnly && composerOpen ? (
+        <TaskComposer
+          tasks={tasks}
+          onCreateTask={onCreateTask}
+          submitLabel="Create task"
+          onCancel={() => setComposerOpen(false)}
+        />
+      ) : null}
       {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}
-      {!tasksLoading && displayedTasks.length === 0 ? <p className="text-sm text-muted">No tasks in this pane.</p> : null}
+      {!tasksLoading && displayedTasks.length === 0 ? (
+        <ModuleEmptyState
+          title="No tasks in this pane."
+          iconName="tasks"
+          ctaLabel={canCreateTask ? 'New Task' : undefined}
+          onCta={canCreateTask ? () => setComposerOpen(true) : undefined}
+        />
+      ) : null}
       {!tasksLoading && displayedTasks.length > 0 ? (
-        <ul className="space-y-2">
-          {displayedTasks.map((task) => {
-            const nextStatus = getNextStatus(task.status);
-            return (
-              <li key={task.id} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
-                  onClick={() => {
-                    void Promise.resolve(onUpdateTaskStatus?.(task.id, nextStatus)).catch((error) => {
-                      console.error('Failed to update task status:', error);
-                    });
-                  }}
-                  aria-label={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span aria-hidden="true">{STATUS_SYMBOLS[task.status]}</span>
-                </button>
-                <span
-                  className={cn('h-2 w-2 shrink-0 rounded-full', getPriorityClasses(priorityTone(task)).dot)}
-                  aria-hidden="true"
-                />
-                <span className={cn('min-w-0 flex-1 truncate text-sm text-text', task.status === 'cancelled' && 'line-through text-text-secondary')}>
-                  {task.label}
-                </span>
-                <span className="shrink-0 text-xs text-muted">{formatDueLabel(task.dueAt)}</span>
-              </li>
-            );
-          })}
-        </ul>
+        <TaskSummaryRows tasks={displayedTasks} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
       ) : null}
       {!tasksLoading && tasks.length > displayedTasks.length ? (
         <p className="mt-3 text-xs text-muted">+{tasks.length - displayedTasks.length} more</p>
@@ -386,7 +421,6 @@ const TasksModuleLarge = ({
   onUpdateTaskDueDate,
   onDeleteTask,
   onAddSubtask,
-  hideHeader = false,
   readOnly = false,
 }: Omit<TasksModuleSkinProps, 'sizeTier'>) => {
   const [activeUserId, setActiveUserId] = useState('all');
@@ -445,15 +479,6 @@ const TasksModuleLarge = ({
 
   return (
     <section className="h-full space-y-3" aria-label="Tasks module">
-      {!hideHeader ? (
-        <div className="flex items-center justify-between gap-2">
-          <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
-            <Icon name="tasks" className="text-[16px]" />
-            Tasks
-          </p>
-          <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
-        </div>
-      ) : null}
       {!readOnly ? (
         <div className="flex items-center justify-between gap-2">
           <button
@@ -515,12 +540,11 @@ const TasksModuleLarge = ({
 };
 
 export const TasksModuleSkin = ({ sizeTier, ...props }: TasksModuleSkinProps) => {
-  const { hideHeader, ...rest } = props;
   return (
     <div className="h-full">
-      {sizeTier === 'S' ? <TasksModuleSmall {...rest} /> : null}
-      {sizeTier === 'M' ? <TasksModuleMedium {...rest} /> : null}
-      {sizeTier === 'L' ? <TasksModuleLarge {...rest} hideHeader={hideHeader} /> : null}
+      {sizeTier === 'S' ? <TasksModuleSmall {...props} /> : null}
+      {sizeTier === 'M' ? <TasksModuleMedium {...props} /> : null}
+      {sizeTier === 'L' ? <TasksModuleLarge {...props} /> : null}
     </div>
   );
 };

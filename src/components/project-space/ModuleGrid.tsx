@@ -2,8 +2,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 import { Icon, IconButton } from '../primitives';
 import { AddModuleDialog } from './AddModuleDialog';
-import { isLensConfigurable, moduleIconName, moduleLabel } from './moduleCatalog';
-import { ModuleSettingsPopover } from './ModuleSettingsPopover';
+import { moduleLabel } from './moduleCatalog';
 
 export type ContractModuleLens = 'project' | 'pane' | 'pane_scratch';
 
@@ -45,8 +44,6 @@ export const ModuleGrid = ({
   modules,
   onAddModule,
   onRemoveModule,
-  onSetModuleLens,
-  onResizeModule,
   showAddControls = true,
   disableAdd = false,
   disableMutations = false,
@@ -54,7 +51,6 @@ export const ModuleGrid = ({
 }: ModuleGridProps) => {
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [openSettingsModuleId, setOpenSettingsModuleId] = useState<string | null>(null);
 
   const openAddDialog = () => {
     if (disableAdd) {
@@ -125,101 +121,22 @@ export const ModuleGrid = ({
             key={module.module_instance_id}
             data-testid="module-card"
             className={cn(
-              'rounded-panel border border-subtle bg-elevated p-3 flex flex-col',
+              'relative rounded-panel border border-subtle bg-elevated p-3 flex flex-col',
               sizeClass[module.size_tier],
               sizeHeightClass[module.size_tier],
             )}
           >
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-              <p className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                {moduleIconName(module.module_type) ? (
-                  <Icon name={moduleIconName(module.module_type)!} className="text-[16px]" />
-                ) : null}
-                {moduleLabel(module.module_type)}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs font-semibold text-muted">
-                  {module.size_tier}
-                </span>
-                {isLensConfigurable(module.module_type) ? (
-                  <>
-                    <label className="text-xs text-muted" htmlFor={`module-lens-${module.module_instance_id}`}>
-                      Lens
-                    </label>
-                    <select
-                      id={`module-lens-${module.module_instance_id}`}
-                      value={module.lens}
-                      disabled={disableMutations}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        if (value === 'project' || value === 'pane_scratch') {
-                          onSetModuleLens(module.module_instance_id, value);
-                        }
-                      }}
-                      className="rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs text-text"
-                    >
-                      <option value="project">project</option>
-                      <option value="pane_scratch">pane_scratch</option>
-                    </select>
-                  </>
-                ) : (
-                  <span className="rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs text-muted">
-                    local only
-                  </span>
-                )}
-                <ModuleSettingsPopover
-                  open={openSettingsModuleId === module.module_instance_id}
-                  onOpenChange={(open) => setOpenSettingsModuleId(open ? module.module_instance_id : null)}
-                  title={`${moduleLabel(module.module_type)} settings`}
-                  trigger={(
-                    <IconButton
-                      size="sm"
-                      variant="ghost"
-                      aria-label={`Open settings for ${moduleLabel(module.module_type)}`}
-                      disabled={disableMutations}
-                    >
-                      <Icon name="settings" className="text-[14px]" />
-                    </IconButton>
-                  )}
-                >
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted">Size</p>
-                    <div className="grid grid-cols-3 gap-2" role="group" aria-label="Module size">
-                      {(['S', 'M', 'L'] as const).map((sizeTier) => (
-                        <button
-                          key={sizeTier}
-                          type="button"
-                          disabled={disableMutations}
-                          aria-pressed={module.size_tier === sizeTier}
-                          onClick={() => {
-                            onResizeModule(module.module_instance_id, sizeTier);
-                            setOpenSettingsModuleId(null);
-                          }}
-                          className={cn(
-                            'rounded-control border px-2 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50',
-                            module.size_tier === sizeTier
-                              ? 'border-primary bg-primary text-on-primary'
-                              : 'border-border-muted bg-surface text-primary',
-                          )}
-                        >
-                          {sizeTier}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </ModuleSettingsPopover>
-                <button
-                  type="button"
-                  disabled={disableMutations}
-                  onClick={() => onRemoveModule(module.module_instance_id)}
-                  className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Icon name="trash" className="text-[12px]" />
-                  Remove
-                </button>
-              </div>
-            </div>
-            <div className="mt-3 min-h-0 flex-1 overflow-y-auto" data-module-card-body="true">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              aria-label={`Remove ${moduleLabel(module.module_type)} module`}
+              disabled={disableMutations}
+              onClick={() => onRemoveModule(module.module_instance_id)}
+              className="absolute right-2 top-2 z-10 opacity-40 hover:opacity-100"
+            >
+              <Icon name="close" className="text-[14px]" />
+            </IconButton>
+            <div className="min-h-0 flex flex-1 flex-col overflow-y-auto" data-module-card-body="true">
               {renderModuleBody ? renderModuleBody(module) : `Module: ${module.module_type}`}
             </div>
           </article>
