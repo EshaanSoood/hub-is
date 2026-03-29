@@ -305,6 +305,46 @@ export const TasksIcon = ({ className }: IconGraphicProps) => {
   );
 };
 
+export const KanbanIcon = ({ className }: IconGraphicProps) => {
+  const maskId = useId();
+
+  return (
+    <SvgIcon className={className} viewBox="0 0 100 100">
+      <defs>
+        <mask id={maskId}>
+          <rect width="100" height="100" fill="black" />
+          <rect x="15" y="15" width="32" height="70" rx="4" fill="white" />
+          <rect x="53" y="15" width="32" height="70" rx="4" fill="white" />
+          <line x1="15" y1="50" x2="47" y2="50" stroke="black" strokeWidth="5.5" strokeLinecap="butt" />
+          <g stroke="black" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M 60 45 Q 69 38 78 45" />
+          </g>
+        </mask>
+      </defs>
+      <rect width="100" height="100" fill="currentColor" mask={`url(#${maskId})`} />
+    </SvgIcon>
+  );
+};
+
+export const TableIcon = ({ className }: IconGraphicProps) => {
+  const maskId = useId();
+
+  return (
+    <SvgIcon className={className} viewBox="0 0 100 100">
+      <defs>
+        <mask id={maskId}>
+          <rect width="100" height="100" fill="black" />
+          <rect x="15" y="15" width="70" height="70" rx="6" fill="white" />
+          <line x1="15" y1="38" x2="85" y2="38" stroke="black" strokeWidth="5.5" />
+          <line x1="38.5" y1="38" x2="38.5" y2="85" stroke="black" strokeWidth="5.5" />
+          <line x1="61.5" y1="38" x2="61.5" y2="85" stroke="black" strokeWidth="5.5" />
+        </mask>
+      </defs>
+      <rect width="100" height="100" fill="currentColor" mask={`url(#${maskId})`} />
+    </SvgIcon>
+  );
+};
+
 export const UserIcon = ({ className }: IconGraphicProps) => (
   <SvgIcon className={className} viewBox="0 0 24 24">
     <path d="M12,2 C15,2 18,4 18,7 C18,10 15,12 12,12 C9,12 6,10 6,7 C6,4 9,2 12,2 Z" fill="currentColor" />
@@ -477,6 +517,8 @@ export type IconName =
   | 'bell-read'
   | 'reminders'
   | 'tasks'
+  | 'kanban'
+  | 'table'
   | 'user'
   | 'menu'
   | 'settings'
@@ -497,6 +539,8 @@ export const ICON_MAP: Record<IconName, IconComponent> = {
   'bell-read': BellReadIcon,
   reminders: RemindersIcon,
   tasks: TasksIcon,
+  kanban: KanbanIcon,
+  table: TableIcon,
   user: UserIcon,
   menu: MenuIcon,
   settings: SettingsIcon,

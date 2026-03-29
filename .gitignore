@@ -35,3 +35,4 @@ e2e/.auth/
 e2e/E2E_FULL_REPORT.md
 ed.hup
 playwright-results/
+.playwright/

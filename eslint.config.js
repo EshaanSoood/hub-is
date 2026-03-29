@@ -75,4 +75,16 @@ export default tseslint.config(
       },
     },
   },
+  {
+    files: ['e2e/project-verification/**/verify-project-space.spec.{js,mjs}'],
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly',
+        console: 'readonly',
+        document: 'readonly',
+        process: 'readonly',
+        window: 'readonly',
+      },
+    },
+  },
 );
