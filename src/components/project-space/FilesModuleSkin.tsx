@@ -269,10 +269,7 @@ const FileRow = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: Files
         }
       }}
       disabled={uploading}
-      className="group relative flex w-full items-center gap-xs overflow-visible rounded-control px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
-      style={{
-        background: 'transparent',
-      }}
+      className="group relative flex w-full items-center gap-xs overflow-visible rounded-control bg-transparent px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
       aria-label={`Open ${file.name}`}
     >
       <span className="shrink-0 text-base" aria-hidden="true">

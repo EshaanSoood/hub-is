@@ -19,8 +19,14 @@
   /* Warnings (Keeping the reds, removing green) */
   --color-danger: rgb(220 53 69);
   --color-danger-subtle: rgb(220 53 69 / 0.15);
+  --color-priority-high: var(--color-danger);
+  --color-priority-high-tint: var(--color-danger-subtle);
   --color-priority-medium: rgb(245 168 80);
+  --color-priority-medium-tint: rgb(245 168 80 / 0.15);
   --color-priority-low: rgb(132 156 178);
+  --color-priority-low-tint: rgb(132 156 178 / 0.15);
+  --color-priority-none: var(--color-muted);
+  --color-priority-none-tint: var(--color-muted-subtle);
   --color-warning-subtle: rgb(255 193 7 / 0.15);
   --color-info-subtle: var(--color-warning-subtle);
   --color-success-subtle: var(--color-muted-subtle);
@@ -122,6 +128,14 @@
   --color-primary-strong: var(--color-primary-strong);
   --color-on-primary: var(--color-on-primary);
   --color-danger: var(--color-danger);
+  --color-priority-high: var(--color-priority-high);
+  --color-priority-high-tint: var(--color-priority-high-tint);
+  --color-priority-medium: var(--color-priority-medium);
+  --color-priority-medium-tint: var(--color-priority-medium-tint);
+  --color-priority-low: var(--color-priority-low);
+  --color-priority-low-tint: var(--color-priority-low-tint);
+  --color-priority-none: var(--color-priority-none);
+  --color-priority-none-tint: var(--color-priority-none-tint);
   --color-muted: var(--color-muted);
   --color-info-subtle: var(--color-info-subtle);
   --color-success-subtle: var(--color-success-subtle);

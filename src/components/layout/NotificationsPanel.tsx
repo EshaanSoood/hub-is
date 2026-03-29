@@ -1,5 +1,6 @@
 import { type FC, type RefObject, useMemo } from 'react';
 import { relativeTimeLabel, type NotificationFilter, type ToolbarNotification } from './appShellUtils';
+import { cn } from '../../lib/cn';
 
 interface NotificationsPanelProps {
   notifications: ToolbarNotification[];
@@ -47,9 +48,8 @@ export const NotificationsPanel: FC<NotificationsPanelProps> = ({
             key={nextFilter}
             type="button"
             onClick={() => onFilterChange(nextFilter)}
-            className="text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className={cn('text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring', filter === nextFilter ? 'font-medium' : 'font-normal')}
             style={{
-              fontWeight: filter === nextFilter ? 500 : 400,
               color: filter === nextFilter ? 'var(--color-text)' : 'var(--color-muted)',
               borderBottom: filter === nextFilter ? '2px solid var(--color-primary)' : '2px solid transparent',
             }}

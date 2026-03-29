@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Chip } from '../primitives';
-import { CATEGORY_TONES, COLLABORATOR_TONES, PRIORITY_DOT_COLORS, type PriorityLevel } from './designTokens';
+import { CATEGORY_TONES, COLLABORATOR_TONES, type PriorityLevel } from './designTokens';
 import { cn } from '../../lib/cn';
+import { getPriorityClasses } from '../../lib/priorityStyles';
 
 export type CalendarTimeView = 'day' | 'week' | 'month' | 'year';
 
@@ -178,7 +179,7 @@ export const CalendarTab = ({
                 <div className="mt-1 space-y-1">
                   {visible.map((event) => (
                     <div key={event.id} className="inline-flex w-full items-center gap-1 overflow-hidden rounded-sm border border-subtle bg-elevated px-1 py-0.5 text-[10px] text-text" title={event.label}>
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: PRIORITY_DOT_COLORS[event.priority] }} aria-hidden="true" />
+                      <span className={cn('h-1.5 w-1.5 rounded-full', getPriorityClasses(event.priority).dot)} aria-hidden="true" />
                       <span className="truncate">{event.label}</span>
                     </div>
                   ))}

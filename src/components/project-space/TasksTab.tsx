@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { cn } from '../../lib/cn';
-import { PRIORITY_COLORS, PRIORITY_DOT_COLORS, PRIORITY_TINT_COLORS, type PriorityLevel } from './designTokens';
+import type { PriorityLevel } from './designTokens';
+import { getPriorityClasses } from '../../lib/priorityStyles';
 
 export type SortDimension = 'date' | 'priority' | 'category';
 export type SortChain = [SortDimension, SortDimension, SortDimension];
@@ -291,22 +292,6 @@ const getPriorityTone = (priorityValue: TaskPriorityValue, fallbackPriority: Pri
   return priorityValue ?? fallbackPriority;
 };
 
-const getPriorityChipStyles = (priorityValue: TaskPriorityValue, fallbackPriority: PriorityLevel) => {
-  const tone = getPriorityTone(priorityValue, fallbackPriority);
-  if (!tone) {
-    return {
-      color: 'var(--color-text-secondary)',
-      borderColor: 'var(--color-border-muted)',
-      backgroundColor: 'var(--color-surface)',
-    };
-  }
-  return {
-    color: PRIORITY_COLORS[tone],
-    borderColor: PRIORITY_COLORS[tone],
-    backgroundColor: PRIORITY_TINT_COLORS[tone],
-  };
-};
-
 const getNextStatus = (status: TaskStatus): TaskStatus => {
   if (status === 'todo') {
     return 'in_progress';
@@ -364,8 +349,7 @@ const SubtaskTree = ({
           aria-hidden="true"
         />
         <span
-          className={cn('h-1.5 w-1.5 rounded-full', !subtask.priority && 'opacity-50')}
-          style={{ backgroundColor: PRIORITY_DOT_COLORS[resolvedPriority] }}
+          className={cn('h-1.5 w-1.5 rounded-full', getPriorityClasses(resolvedPriority).dot, !subtask.priority && 'opacity-50')}
           aria-hidden="true"
         />
         <span className="min-w-0 flex-1 truncate">{subtask.label}</span>
@@ -423,7 +407,7 @@ const TaskRow = ({
   const taskHasSubtasks = task.subtasks.length > 0;
   const hasMenuActions = Boolean(onUpdateTaskPriority || onUpdateTaskDueDate || onUpdateTaskCategory || onUpdateTaskStatus || onDeleteTask);
   const priorityTone = getPriorityTone(task.priorityValue, task.priority);
-  const priorityChipStyles = getPriorityChipStyles(task.priorityValue, task.priority);
+  const priorityClasses = getPriorityClasses(priorityTone);
 
   const closeMenu = (options?: { restoreFocus?: boolean }) => {
     setMenuOpen(false);
@@ -546,8 +530,7 @@ const TaskRow = ({
   return (
     <div className="group relative rounded-control border border-border-muted bg-surface px-2 py-1.5 hover:bg-surface-elevated focus-within:bg-surface-elevated">
       <span
-        className="absolute bottom-0 left-0 top-0 rounded-l-control"
-        style={{ width: '3px', backgroundColor: priorityTone ? PRIORITY_DOT_COLORS[priorityTone] : 'var(--color-border-muted)' }}
+        className={cn('absolute bottom-0 left-0 top-0 w-[3px] rounded-l-control', priorityTone ? priorityClasses.dot : 'bg-border-muted')}
         aria-hidden="true"
       />
 
@@ -582,7 +565,7 @@ const TaskRow = ({
             <span className={cn(status === 'cancelled' && 'line-through text-text-secondary')}>{task.label}</span>
           </span>
           {visibleSubtaskCount > 0 ? (
-            <span className="shrink-0 rounded-control border px-1.5 py-0.5 text-[10px] font-semibold" style={priorityChipStyles}>
+            <span className={cn('shrink-0 rounded-control border px-1.5 py-0.5 text-[10px] font-semibold', priorityClasses.text, priorityClasses.border, priorityClasses.tint)}>
               {visibleSubtaskCount}
             </span>
           ) : null}
@@ -652,17 +635,7 @@ const TaskRow = ({
                         <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Priority</p>
                         <div className="flex flex-wrap gap-1.5">
                           {PRIORITY_MENU_OPTIONS.map((option) => {
-                            const optionStyles = option.tone
-                              ? {
-                                  color: PRIORITY_COLORS[option.tone],
-                                  borderColor: PRIORITY_COLORS[option.tone],
-                                  backgroundColor: PRIORITY_TINT_COLORS[option.tone],
-                                }
-                              : {
-                                  color: 'var(--color-text-secondary)',
-                                  borderColor: 'var(--color-border-muted)',
-                                  backgroundColor: 'var(--color-surface-elevated)',
-                                };
+                            const optionPriorityClasses = getPriorityClasses(option.tone);
                             const active = task.priorityValue === option.value;
                             return (
                               <button
@@ -673,9 +646,11 @@ const TaskRow = ({
                                 onClick={() => runMenuAction(() => onUpdateTaskPriority(task.id, option.value))}
                                 className={cn(
                                   'rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                                  optionPriorityClasses.text,
+                                  optionPriorityClasses.border,
+                                  optionPriorityClasses.tint,
                                   active && 'font-semibold',
                                 )}
-                                style={optionStyles}
                               >
                                 {option.label}
                               </button>
@@ -941,12 +916,12 @@ export const TasksTab = ({
           const clusterDomId = `task-cluster-${cluster.dimension}-${clusterIndex}`;
           const clusterHeadingId = `${clusterDomId}-heading`;
           const clusterListId = `${clusterDomId}-list`;
-          const accent =
+          const accentClass =
             cluster.dimension === 'priority' && cluster.priorityKey
-              ? PRIORITY_DOT_COLORS[cluster.priorityKey]
+              ? getPriorityClasses(cluster.priorityKey).dot
               : cluster.dimension === 'category'
-                ? 'var(--color-primary)'
-                : 'var(--color-muted)';
+                ? 'bg-primary'
+                : 'bg-muted';
 
           return (
             <section key={cluster.id} aria-label={clusterLabel}>
@@ -968,7 +943,7 @@ export const TasksTab = ({
                   }}
                   className="flex w-full items-center gap-2 rounded-control px-1.5 py-1.5 text-left"
                 >
-                  <span className="h-0.5 w-3 rounded-sm" style={{ backgroundColor: accent }} aria-hidden="true" />
+                  <span className={cn('h-0.5 w-3 rounded-sm', accentClass)} aria-hidden="true" />
                   <span className="flex-1 text-xs font-bold uppercase tracking-wide text-muted">{cluster.label}</span>
                   <span className="rounded-control border border-subtle bg-surface px-1.5 py-0.5 text-[10px] text-muted">
                     {itemCount}

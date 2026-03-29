@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../primitives';
 import { cn } from '../../lib/cn';
-import { PRIORITY_DOT_COLORS, type PriorityLevel } from './designTokens';
+import type { PriorityLevel } from './designTokens';
+import { getPriorityClasses } from '../../lib/priorityStyles';
 import { TasksTab, type SortChain, type SortDimension, type TaskItem, type TaskPriorityValue, type TaskStatus } from './TasksTab';
 import { formatDueLabel } from './taskAdapter';
 
@@ -357,8 +358,7 @@ const TasksModuleMedium = ({
                   <span aria-hidden="true">{STATUS_SYMBOLS[task.status]}</span>
                 </button>
                 <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: PRIORITY_DOT_COLORS[priorityTone(task)] }}
+                  className={cn('h-2 w-2 shrink-0 rounded-full', getPriorityClasses(priorityTone(task)).dot)}
                   aria-hidden="true"
                 />
                 <span className={cn('min-w-0 flex-1 truncate text-sm text-text', task.status === 'cancelled' && 'line-through text-text-secondary')}>

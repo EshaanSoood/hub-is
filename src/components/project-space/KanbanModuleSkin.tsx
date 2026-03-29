@@ -17,8 +17,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { HubRecordSummary } from '../../services/hub/types';
-import { PRIORITY_COLORS, type PriorityLevel } from './designTokens';
+import type { PriorityLevel } from './designTokens';
 import { ModuleEmptyState, ModuleLoadingState } from './ModuleFeedback';
+import { cn } from '../../lib/cn';
+import { getPriorityClasses } from '../../lib/priorityStyles';
 
 const UNASSIGNED_ID = '__unassigned__';
 
@@ -130,8 +132,7 @@ const SortableCard = ({
             <span className="mt-2 flex items-center gap-2">
               {priority ? (
                 <span
-                  className="inline-block h-2 w-2 rounded-full"
-                  style={{ backgroundColor: PRIORITY_COLORS[priority] }}
+                  className={cn('inline-block h-2 w-2 rounded-full', getPriorityClasses(priority).dot)}
                   aria-label={`Priority: ${priority}`}
                 />
               ) : null}
