@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
+import { Icon, IconButton } from '../primitives';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import type { HubCollectionField, HubPaneSummary, HubRecordSummary } from '../../services/hub/types';
 import type { CalendarScope } from './CalendarModuleSkin';
@@ -300,6 +301,33 @@ const EMPTY_RUNTIME: WorkViewModuleRuntime = {
   },
 };
 
+const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
+  const [overlayOpen, setOverlayOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOverlayOpen(true)}
+        className="sticky top-0 z-20 w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-center text-sm font-semibold text-text md:hidden"
+      >
+        Modules
+      </button>
+
+      <div className="hidden md:block">{moduleGrid}</div>
+
+      {overlayOpen ? (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-surface p-4 md:hidden">
+          <IconButton aria-label="Close modules" className="absolute right-3 top-3" onClick={() => setOverlayOpen(false)}>
+            <Icon name="close" className="h-4 w-4" />
+          </IconButton>
+          <div className="pt-10">{moduleGrid}</div>
+        </div>
+      ) : null}
+    </>
+  );
+};
+
 export const WorkView = ({
   pane,
   accessDenied = false,
@@ -467,6 +495,79 @@ export const WorkView = ({
     });
   };
 
+  const renderModuleBody = (module: ContractModuleConfig) => {
+    if (module.module_type === 'table') {
+      return (
+        <TableModule
+          module={module}
+          runtime={mergedRuntime.table}
+          canEditPane={canEditPane}
+          onOpenRecord={onOpenRecord}
+          onSetModuleBinding={handleSetModuleBinding}
+        />
+      );
+    }
+
+    if (module.module_type === 'kanban') {
+      return (
+        <KanbanModule
+          module={module}
+          runtime={mergedRuntime.kanban}
+          canEditPane={canEditPane}
+          onOpenRecord={onOpenRecord}
+          onSetModuleBinding={handleSetModuleBinding}
+        />
+      );
+    }
+
+    if (module.module_type === 'calendar') {
+      return <CalendarModule runtime={mergedRuntime.calendar} onOpenRecord={onOpenRecord} />;
+    }
+
+    if (module.module_type === 'tasks') {
+      return <TasksModule module={module} runtime={mergedRuntime.tasks} canEditPane={canEditPane} />;
+    }
+
+    if (module.module_type === 'files') {
+      return <FilesModule module={module} runtime={mergedRuntime.files} canEditPane={canEditPane} />;
+    }
+
+    if (module.module_type === 'reminders') {
+      return <RemindersModule module={module} runtime={mergedRuntime.reminders} />;
+    }
+
+    if (module.module_type === 'quick_thoughts') {
+      return (
+        <QuickThoughtsModule
+          module={module}
+          runtime={mergedRuntime.quickThoughts}
+          pane={pane}
+          canEditPane={canEditPane}
+        />
+      );
+    }
+
+    if (module.module_type === 'timeline') {
+      return <TimelineModule runtime={mergedRuntime.timeline} />;
+    }
+
+    return <p className="text-xs text-muted">{module.module_type}</p>;
+  };
+
+  const moduleGrid = (
+    <ModuleGrid
+      modules={modules}
+      onAddModule={handleAddModule}
+      onRemoveModule={handleRemoveModule}
+      onSetModuleLens={handleSetModuleLens}
+      onResizeModule={handleResizeModule}
+      showAddControls={canEditPane}
+      disableAdd={!canEditPane || isSavingModules}
+      disableMutations={!canEditPane || isSavingModules}
+      renderModuleBody={renderModuleBody}
+    />
+  );
+
   return (
     <section className="space-y-4">
       <header className="rounded-panel border border-subtle bg-elevated p-4">
@@ -535,74 +636,9 @@ export const WorkView = ({
       </header>
 
       {modulesEnabled ? (
-        <ModuleGrid
-          modules={modules}
-          onAddModule={handleAddModule}
-          onRemoveModule={handleRemoveModule}
-          onSetModuleLens={handleSetModuleLens}
-          onResizeModule={handleResizeModule}
-          showAddControls={canEditPane}
-          disableAdd={!canEditPane || isSavingModules}
-          disableMutations={!canEditPane || isSavingModules}
-          renderModuleBody={(module) => {
-            if (module.module_type === 'table') {
-              return (
-                <TableModule
-                  module={module}
-                  runtime={mergedRuntime.table}
-                  canEditPane={canEditPane}
-                  onOpenRecord={onOpenRecord}
-                  onSetModuleBinding={handleSetModuleBinding}
-                />
-              );
-            }
-
-            if (module.module_type === 'kanban') {
-              return (
-                <KanbanModule
-                  module={module}
-                  runtime={mergedRuntime.kanban}
-                  canEditPane={canEditPane}
-                  onOpenRecord={onOpenRecord}
-                  onSetModuleBinding={handleSetModuleBinding}
-                />
-              );
-            }
-
-            if (module.module_type === 'calendar') {
-              return <CalendarModule runtime={mergedRuntime.calendar} onOpenRecord={onOpenRecord} />;
-            }
-
-            if (module.module_type === 'tasks') {
-              return <TasksModule module={module} runtime={mergedRuntime.tasks} canEditPane={canEditPane} />;
-            }
-
-            if (module.module_type === 'files') {
-              return <FilesModule module={module} runtime={mergedRuntime.files} canEditPane={canEditPane} />;
-            }
-
-            if (module.module_type === 'reminders') {
-              return <RemindersModule module={module} runtime={mergedRuntime.reminders} />;
-            }
-
-            if (module.module_type === 'quick_thoughts') {
-              return (
-                <QuickThoughtsModule
-                  module={module}
-                  runtime={mergedRuntime.quickThoughts}
-                  pane={pane}
-                  canEditPane={canEditPane}
-                />
-              );
-            }
-
-            if (module.module_type === 'timeline') {
-              return <TimelineModule runtime={mergedRuntime.timeline} />;
-            }
-
-            return <p className="text-xs text-muted">{module.module_type}</p>;
-          }}
-        />
+        <>
+          <MobileModulesOverlay key={pane.pane_id} moduleGrid={moduleGrid} />
+        </>
       ) : (
         <section className="rounded-panel border border-subtle bg-elevated p-4">
           <h3 className="heading-4 text-primary">Structured Modules Off</h3>

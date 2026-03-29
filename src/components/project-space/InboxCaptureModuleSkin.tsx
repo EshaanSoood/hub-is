@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useModuleInsertContext } from '../../context/ModuleInsertContext';
+import { useLongPress } from '../../hooks/useLongPress';
 import { Icon, IconButton } from '../primitives';
 import { ModuleEmptyState } from './ModuleFeedback';
 
@@ -171,11 +173,19 @@ const ThoughtRow = ({
   readOnly?: boolean;
 }) => {
   const preview = clipPreview(entry.text);
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    if (!isEditing) {
+      setActiveItem(entry.id, 'quick-thought', preview);
+    }
+  });
+  const showInsertAction = activeItemId === entry.id && activeItemType === 'quick-thought';
 
   return (
     <div
       className="relative rounded-control bg-surface-elevated px-sm py-xs"
       style={{ paddingLeft: 'calc(var(--space-sm) + 6px)', opacity: entry.archived ? 0.6 : 1 }}
+      {...(!isEditing ? longPressHandlers : {})}
     >
       <div
         aria-hidden="true"
@@ -252,6 +262,19 @@ const ThoughtRow = ({
               </button>
             ) : null}
           </div>
+          {showInsertAction ? (
+            <button
+              type="button"
+              data-module-insert-ignore="true"
+              onClick={() => {
+                onInsertToEditor?.({ id: entry.id, type: 'quick-thought', title: preview });
+                clearActiveItem();
+              }}
+              className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+            >
+              Insert
+            </button>
+          ) : null}
         </>
       )}
     </div>

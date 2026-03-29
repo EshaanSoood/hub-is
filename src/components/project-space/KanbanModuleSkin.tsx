@@ -18,6 +18,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { HubRecordSummary } from '../../services/hub/types';
 import { cn } from '../../lib/cn';
+import { useModuleInsertContext } from '../../context/ModuleInsertContext';
+import { useLongPress } from '../../hooks/useLongPress';
 import { getPriorityClasses } from '../../lib/priorityStyles';
 import { Icon, IconButton } from '../primitives';
 import type { PriorityLevel } from './designTokens';
@@ -259,6 +261,7 @@ const SortableCard = ({
 }) => {
   const editable = !readOnly && typeof onUpdateRecord === 'function';
   const deletable = !readOnly && typeof onDeleteRecord === 'function';
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const wasEditingRef = useRef(false);
@@ -270,6 +273,12 @@ const SortableCard = ({
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [draft, setDraft] = useState<EditableCardFields>(() => readEditableFields(record, metadataFieldIds));
   const [baseline, setBaseline] = useState<EditableCardFields>(() => readEditableFields(record, metadataFieldIds));
+  const longPressHandlers = useLongPress(() => {
+    if (!isEditing) {
+      setActiveItem(record.record_id, 'record', record.title);
+    }
+  });
+  const showInsertAction = activeItemId === record.record_id && activeItemType === 'record';
   const priority = isPriorityLevel(draft.priority) ? draft.priority : null;
   const dueDateLabel = draft.dueDate ? formatShortDate(draft.dueDate) ?? draft.dueDate : '';
 
@@ -486,7 +495,10 @@ const SortableCard = ({
         opacity: isDragging ? 0.65 : 1,
       }}
     >
-      <div className="group/card rounded-control border border-border-muted bg-surface-elevated p-3 transition-colors hover:border-primary/50 motion-reduce:transition-none">
+      <div
+        className="group/card relative rounded-control border border-border-muted bg-surface-elevated p-3 transition-colors hover:border-primary/50 motion-reduce:transition-none"
+        {...(!isEditing ? longPressHandlers : {})}
+      >
         {isEditing ? (
           <div ref={editorRef} className="space-y-3">
             <div className="space-y-2">
@@ -719,6 +731,19 @@ const SortableCard = ({
               </button>
             </div>
           </div>
+        ) : null}
+        {showInsertAction ? (
+          <button
+            type="button"
+            data-module-insert-ignore="true"
+            onClick={() => {
+              onInsertToEditor?.({ id: record.record_id, type: 'record', title: record.title });
+              clearActiveItem();
+            }}
+            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+          >
+            Insert
+          </button>
         ) : null}
       </div>
 

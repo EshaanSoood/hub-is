@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useModuleInsertContext } from '../../context/ModuleInsertContext';
+import { useLongPress } from '../../hooks/useLongPress';
 import { Icon } from '../primitives';
 
 export interface FilesModuleItem {
@@ -259,33 +261,118 @@ const DropZone = ({ compact, onFiles, readOnly = false }: { compact?: boolean; o
 
 const FileRow = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: FilesModuleItem) => void }) => {
   const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    if (!uploading) {
+      setActiveItem(file.id, 'file', file.name);
+    }
+  });
+  const showInsertAction = activeItemId === file.id && activeItemType === 'file';
 
   return (
-    <button
-      type="button"
-      onClick={() => {
-        if (!uploading) {
-          onOpen(file);
-        }
-      }}
-      disabled={uploading}
-      className="group relative flex w-full items-center gap-xs overflow-visible rounded-control bg-transparent px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
-      aria-label={`Open ${file.name}`}
-    >
-      <span className="shrink-0 text-base" aria-hidden="true">
-        {iconForExt(file.ext)}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-medium text-text">{file.name}</span>
-        <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
-      </span>
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 rounded-control opacity-0 transition-opacity group-hover:opacity-100"
-        style={{ background: 'color-mix(in srgb, var(--color-primary) 6%, transparent)' }}
-      />
-      {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
-    </button>
+    <div className="relative" {...longPressHandlers}>
+      <button
+        type="button"
+        onClick={() => {
+          if (!uploading) {
+            onOpen(file);
+          }
+        }}
+        disabled={uploading}
+        className="group relative flex w-full items-center gap-xs overflow-visible rounded-control bg-transparent px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+        aria-label={`Open ${file.name}`}
+      >
+        <span className="shrink-0 text-base" aria-hidden="true">
+          {iconForExt(file.ext)}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-medium text-text">{file.name}</span>
+          <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-control opacity-0 transition-opacity group-hover:opacity-100"
+          style={{ background: 'color-mix(in srgb, var(--color-primary) 6%, transparent)' }}
+        />
+        {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
+      </button>
+      {showInsertAction ? (
+        <button
+          type="button"
+          data-module-insert-ignore="true"
+          onClick={() => {
+            onInsertToEditor?.({ id: file.id, type: 'file', title: file.name });
+            clearActiveItem();
+          }}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+        >
+          Insert
+        </button>
+      ) : null}
+    </div>
+  );
+};
+
+const FileTile = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: FilesModuleItem) => void }) => {
+  const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
+  const useThumbnail = IMAGE_EXTS.has(file.ext.toLowerCase()) && Boolean(file.thumbnailUrl);
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    if (!uploading) {
+      setActiveItem(file.id, 'file', file.name);
+    }
+  });
+  const showInsertAction = activeItemId === file.id && activeItemType === 'file';
+
+  return (
+    <div role="listitem" className="relative" {...longPressHandlers}>
+      <button
+        type="button"
+        onClick={() => {
+          if (!uploading) {
+            onOpen(file);
+          }
+        }}
+        disabled={uploading}
+        aria-label={`Open ${file.name}`}
+        className="relative w-full overflow-visible rounded-panel border border-border-muted bg-surface text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        <div
+          className="flex h-24 items-center justify-center overflow-hidden"
+          style={{
+            background: useThumbnail ? undefined : 'var(--color-surface-elevated)',
+            borderTopLeftRadius: 'var(--radius-panel)',
+            borderTopRightRadius: 'var(--radius-panel)',
+          }}
+        >
+          {useThumbnail ? (
+            <img src={file.thumbnailUrl} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-[32px]" aria-hidden="true">
+              {iconForExt(file.ext)}
+            </span>
+          )}
+        </div>
+        <div className="p-xs">
+          <span className="block truncate text-xs font-medium text-text">{file.name}</span>
+          <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
+        </div>
+        {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
+      </button>
+      {showInsertAction ? (
+        <button
+          type="button"
+          data-module-insert-ignore="true"
+          onClick={() => {
+            onInsertToEditor?.({ id: file.id, type: 'file', title: file.name });
+            clearActiveItem();
+          }}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+        >
+          Insert
+        </button>
+      ) : null}
+    </div>
   );
 };
 
@@ -447,47 +534,9 @@ const FilesModuleLarge = ({
         </p>
       ) : (
         <div role="list" aria-label="Files" className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-sm">
-          {visible.map((file) => {
-            const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
-            const useThumbnail = IMAGE_EXTS.has(file.ext.toLowerCase()) && Boolean(file.thumbnailUrl);
-            return (
-              <div role="listitem" key={file.id} className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!uploading) {
-                      onOpenFile(file);
-                    }
-                  }}
-                  disabled={uploading}
-                  aria-label={`Open ${file.name}`}
-                  className="relative w-full overflow-visible rounded-panel border border-border-muted bg-surface text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <div
-                    className="flex h-24 items-center justify-center overflow-hidden"
-                    style={{
-                      background: useThumbnail ? undefined : 'var(--color-surface-elevated)',
-                      borderTopLeftRadius: 'var(--radius-panel)',
-                      borderTopRightRadius: 'var(--radius-panel)',
-                    }}
-                  >
-                    {useThumbnail ? (
-                      <img src={file.thumbnailUrl} alt="" aria-hidden="true" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-[32px]" aria-hidden="true">
-                        {iconForExt(file.ext)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-xs">
-                    <span className="block truncate text-xs font-medium text-text">{file.name}</span>
-                    <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
-                  </div>
-                  {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
-                </button>
-              </div>
-            );
-          })}
+          {visible.map((file) => (
+            <FileTile key={file.id} file={file} onOpen={onOpenFile} />
+          ))}
         </div>
       )}
     </div>

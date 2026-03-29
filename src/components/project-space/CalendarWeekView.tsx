@@ -69,42 +69,6 @@ const eventPipColorClassName = (event: CalendarDayEvent): string => {
   return 'bg-[color:var(--color-primary)]';
 };
 
-const desktopPositionClassName = (offset: WeekDayEntry['offsetFromToday']): string => {
-  if (offset === -3) {
-    return 'week-pos-neg3';
-  }
-  if (offset === -2) {
-    return 'week-pos-neg2';
-  }
-  if (offset === -1) {
-    return 'week-pos-neg1';
-  }
-  if (offset === 0) {
-    return 'week-pos-center';
-  }
-  if (offset === 1) {
-    return 'week-pos-pos1';
-  }
-  if (offset === 2) {
-    return 'week-pos-pos2';
-  }
-  return 'week-pos-pos3';
-};
-
-const mobileIndentClassName = (offset: WeekDayEntry['offsetFromToday']): string => {
-  const distance = Math.abs(offset);
-  if (distance === 3) {
-    return 'week-mobile-indent-3';
-  }
-  if (distance === 2) {
-    return 'week-mobile-indent-2';
-  }
-  if (distance === 1) {
-    return 'week-mobile-indent-1';
-  }
-  return 'week-mobile-indent-0';
-};
-
 const extractProjectLabel = (event: CalendarDayEvent): string =>
   event.project_name || event.source_pane?.pane_name || 'Calendar';
 
@@ -393,14 +357,11 @@ export const CalendarWeekView = ({
               ref={(node) => {
                 desktopCardRefs.current[day.key] = node;
               }}
-              className={cn(
-                'min-w-0 flex-1',
-                desktopPositionClassName(day.offsetFromToday),
-              )}
+              className="min-w-0 flex-1"
             >
               <div
                 className={cn(
-                  'rounded-panel border border-border-muted bg-surface-elevated px-3 py-2 transition-[transform,box-shadow] duration-150',
+                  'max-h-[20rem] overflow-hidden rounded-panel border border-border-muted bg-surface-elevated px-3 py-2 transition-[transform,box-shadow] duration-150',
                   isActive ? 'week-card-active' : 'week-card-inactive',
                   !isActive && hoveredDayKey === day.key ? 'week-card-hover' : null,
                   day.isToday ? 'border-b-2 border-b-[color:var(--color-primary)]' : null,
@@ -435,7 +396,7 @@ export const CalendarWeekView = ({
                 <div
                   id={dayPanelId}
                   hidden={!isActive}
-                  className="mt-2 border-t border-border-muted pt-2"
+                  className="mt-2 overflow-y-auto border-t border-border-muted pt-2"
                 >
                   <DayPanelContent day={day} onOpenRecord={onOpenRecord} onCreateEvent={onCreateEvent} timezone={timezone} />
                 </div>
@@ -458,11 +419,11 @@ export const CalendarWeekView = ({
               ref={(node) => {
                 mobileCardRefs.current[day.key] = node;
               }}
-              className={cn('transition-all duration-150', mobileIndentClassName(day.offsetFromToday))}
+              className="transition-all duration-150"
             >
               <div
                 className={cn(
-                  'rounded-panel border border-border-muted bg-surface-elevated px-3 py-2',
+                  'max-h-[20rem] overflow-hidden rounded-panel border border-border-muted bg-surface-elevated px-3 py-2',
                   isActive ? 'week-card-active' : 'week-card-inactive',
                   day.isToday ? 'border-b-2 border-b-[color:var(--color-primary)]' : null,
                 )}
@@ -495,7 +456,7 @@ export const CalendarWeekView = ({
                 <div
                   id={dayPanelId}
                   hidden={!isActive}
-                  className="mt-2 border-t border-border-muted pt-2"
+                  className="mt-2 overflow-y-auto border-t border-border-muted pt-2"
                 >
                   <DayPanelContent day={day} onOpenRecord={onOpenRecord} onCreateEvent={onCreateEvent} timezone={timezone} />
                 </div>

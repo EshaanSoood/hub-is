@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useModuleInsertContext } from '../../context/ModuleInsertContext';
+import { useLongPress } from '../../hooks/useLongPress';
 import { Icon } from '../primitives';
 import { parseReminderInput } from '../../lib/nlp/reminder-parser/index';
 import type { ReminderParseResult } from '../../lib/nlp/reminder-parser/types';
@@ -206,6 +208,87 @@ const createSparkles = (): SparkleParticle[] =>
     duration: 700 + Math.round(Math.random() * 350),
     delay: Math.round(Math.random() * 140),
   }));
+
+const ReminderRibbonRow = ({
+  reminder,
+  animationPhase,
+  isOverdue,
+  readOnly,
+  onSnooze,
+  onDismiss,
+}: {
+  reminder: HubReminderSummary;
+  animationPhase: ReminderAnimationState['phase'] | null;
+  isOverdue: boolean;
+  readOnly: boolean;
+  onSnooze?: (reminder: HubReminderSummary) => void;
+  onDismiss: (reminder: HubReminderSummary) => void;
+}) => {
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
+  });
+  const showInsertAction = activeItemId === reminder.reminder_id && activeItemType === 'reminder';
+
+  return (
+    <div
+      className={`relative flex min-h-16 items-stretch overflow-hidden border-l-2 ${
+        animationPhase === 'pull' ? 'reminders-ribbon--pull' : ''
+      } ${isOverdue ? 'bg-danger-subtle border-danger' : 'bg-surface-elevated border-border-muted'}`}
+      style={{
+        clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)',
+        borderLeftColor: isOverdue ? 'var(--color-danger)' : 'var(--color-capture-rail)',
+      }}
+      {...longPressHandlers}
+    >
+      <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3 pr-8">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-text">{reminder.record_title || 'Untitled reminder'}</p>
+          <p className={`mt-1 text-xs ${isOverdue ? 'text-danger underline' : 'text-text-secondary'}`}>
+            {formatReminderChip(reminder.remind_at)}
+          </p>
+        </div>
+        {onSnooze ? (
+          <button
+            type="button"
+            aria-label={`Snooze reminder ${reminder.record_title || 'Untitled reminder'} to tomorrow at 9 AM`}
+            disabled={readOnly}
+            onClick={() => onSnooze(reminder)}
+            className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Later
+          </button>
+        ) : null}
+        <button
+          type="button"
+          aria-label="Mark complete"
+          disabled={readOnly}
+          onClick={() => onDismiss(reminder)}
+          className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1 text-primary outline-none transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Icon name="checkmark" className="text-[14px]" />
+        </button>
+        {showInsertAction ? (
+          <button
+            type="button"
+            data-module-insert-ignore="true"
+            onClick={() => {
+              onInsertToEditor?.({
+                id: reminder.reminder_id,
+                type: 'reminder',
+                title: reminder.record_title || 'Untitled reminder',
+              });
+              clearActiveItem();
+            }}
+            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+          >
+            Insert
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+};
 
 export const RemindersModuleSkin = ({
   reminders,
@@ -485,49 +568,17 @@ export const RemindersModuleSkin = ({
           }
 
           return (
-            <div
+            <ReminderRibbonRow
               key={reminder.reminder_id}
-              className={`relative flex min-h-16 items-stretch overflow-hidden border-l-2 ${
-                animation?.phase === 'pull' ? 'reminders-ribbon--pull' : ''
-              } ${isOverdue ? 'bg-danger-subtle border-danger' : 'bg-surface-elevated border-border-muted'}`}
-              style={{
-                clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)',
-                borderLeftColor: isOverdue ? 'var(--color-danger)' : 'var(--color-capture-rail)',
+              reminder={reminder}
+              animationPhase={animation?.phase ?? null}
+              isOverdue={isOverdue}
+              readOnly={readOnly}
+              onSnooze={onSnooze ? (nextReminder) => void handleSnooze(nextReminder) : undefined}
+              onDismiss={(nextReminder) => {
+                void handleDismiss(nextReminder);
               }}
-            >
-              <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3 pr-8">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-text">{reminder.record_title || 'Untitled reminder'}</p>
-                  <p className={`mt-1 text-xs ${isOverdue ? 'text-danger underline' : 'text-text-secondary'}`}>
-                    {formatReminderChip(reminder.remind_at)}
-                  </p>
-                </div>
-                {onSnooze ? (
-                  <button
-                    type="button"
-                    aria-label={`Snooze reminder ${reminder.record_title || 'Untitled reminder'} to tomorrow at 9 AM`}
-                    disabled={readOnly}
-                    onClick={() => {
-                      void handleSnooze(reminder);
-                    }}
-                    className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Later
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  aria-label="Mark complete"
-                  disabled={readOnly}
-                  onClick={() => {
-                    void handleDismiss(reminder);
-                  }}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1 text-primary outline-none transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Icon name="checkmark" className="text-[14px]" />
-                </button>
-              </div>
-            </div>
+            />
           );
         })}
       </div>

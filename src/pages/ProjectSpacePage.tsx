@@ -7,6 +7,7 @@ import {
   type HubProjectMember,
 } from '../services/hub/types';
 import { useAuthz } from '../context/AuthzContext';
+import { ModuleInsertProvider } from '../context/ModuleInsertContext';
 import {
   buildPaneContextHref,
   buildProjectOverviewHref,
@@ -1576,7 +1577,7 @@ const ProjectSpaceWorkspace = ({
 
       <Dialog open={Boolean(inspectorRecordId)} onOpenChange={(open) => (!open ? closeInspectorWithFocusRestore() : undefined)}>
         <DialogContent
-          className="left-0 top-0 h-screen max-w-[min(42rem,92vw)] translate-x-0 translate-y-0 overflow-y-auto rounded-none border-r border-border-muted"
+          className="!left-0 !top-0 h-screen w-full max-w-[min(42rem,92vw)] !translate-x-0 !translate-y-0 overflow-y-auto rounded-none sm:!rounded-none border-r border-border-muted"
           onCloseAutoFocus={(event) => {
             if (inspectorTriggerRef.current) {
               event.preventDefault();
@@ -1664,12 +1665,11 @@ const ProjectSpaceWorkspace = ({
                             type="button"
                             onClick={() => setSelectedAttachmentId(attachment.attachment_id)}
                             aria-pressed={selected}
-                            className="rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                            style={{
-                              borderColor: selected ? 'var(--color-primary)' : 'var(--color-border-muted)',
-                              color: selected ? 'var(--color-text)' : 'var(--color-muted)',
-                              background: selected ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)' : 'transparent',
-                            }}
+                            className={`rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                              selected
+                                ? 'border-primary text-text bg-primary/10'
+                                : 'border-border-muted text-muted bg-transparent'
+                            }`}
                           >
                             {attachment.name}
                           </button>
@@ -1858,17 +1858,19 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps) => {
   }
 
   return (
-    <ProjectSpaceWorkspace
-      activeTab={activeTab}
-      project={project}
-      panes={panes}
-      setPanes={setPanes}
-      projectMembers={projectMembers}
-      accessToken={accessToken}
-      sessionUserId={sessionSummary.userId}
-      refreshProjectData={refreshProjectData}
-      timeline={timeline}
-      setTimeline={setTimeline}
-    />
+    <ModuleInsertProvider>
+      <ProjectSpaceWorkspace
+        activeTab={activeTab}
+        project={project}
+        panes={panes}
+        setPanes={setPanes}
+        projectMembers={projectMembers}
+        accessToken={accessToken}
+        sessionUserId={sessionSummary.userId}
+        refreshProjectData={refreshProjectData}
+        timeline={timeline}
+        setTimeline={setTimeline}
+      />
+    </ModuleInsertProvider>
   );
 };

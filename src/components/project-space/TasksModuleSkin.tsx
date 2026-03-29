@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useModuleInsertContext } from '../../context/ModuleInsertContext';
+import { useLongPress } from '../../hooks/useLongPress';
 import { Icon } from '../primitives';
 import { cn } from '../../lib/cn';
 import type { PriorityLevel } from './designTokens';
@@ -145,36 +147,67 @@ const TaskSummaryRows = ({
   onUpdateTaskStatus?: TasksModuleSkinProps['onUpdateTaskStatus'];
 }) => (
   <ul className="space-y-2">
-    {tasks.map((task) => {
-      const nextStatus = getNextStatus(task.status);
-      return (
-        <li key={task.id} className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
-            onClick={() => {
-              void Promise.resolve(onUpdateTaskStatus?.(task.id, nextStatus)).catch((error) => {
-                console.error('Failed to update task status:', error);
-              });
-            }}
-            aria-label={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <span aria-hidden="true">{STATUS_SYMBOLS[task.status]}</span>
-          </button>
-          <span
-            className={cn('h-2 w-2 shrink-0 rounded-full', getPriorityClasses(priorityTone(task)).dot)}
-            aria-hidden="true"
-          />
-          <span className={cn('min-w-0 flex-1 truncate text-sm text-text', task.status === 'cancelled' && 'line-through text-text-secondary')}>
-            {task.label}
-          </span>
-          <span className="shrink-0 text-xs text-muted">{formatDueLabel(task.dueAt)}</span>
-        </li>
-      );
-    })}
+    {tasks.map((task) => (
+      <TaskSummaryRow key={task.id} task={task} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
+    ))}
   </ul>
 );
+
+const TaskSummaryRow = ({
+  task,
+  readOnly = false,
+  onUpdateTaskStatus,
+}: {
+  task: TaskItem;
+  readOnly?: boolean;
+  onUpdateTaskStatus?: TasksModuleSkinProps['onUpdateTaskStatus'];
+}) => {
+  const nextStatus = getNextStatus(task.status);
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    setActiveItem(task.id, 'task', task.label);
+  });
+  const showInsertAction = activeItemId === task.id && activeItemType === 'task';
+
+  return (
+    <li className="relative flex items-center gap-2" {...longPressHandlers}>
+      <button
+        type="button"
+        disabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
+        onClick={() => {
+          void Promise.resolve(onUpdateTaskStatus?.(task.id, nextStatus)).catch((error) => {
+            console.error('Failed to update task status:', error);
+          });
+        }}
+        aria-label={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span aria-hidden="true">{STATUS_SYMBOLS[task.status]}</span>
+      </button>
+      <span
+        className={cn('h-2 w-2 shrink-0 rounded-full', getPriorityClasses(priorityTone(task)).dot)}
+        aria-hidden="true"
+      />
+      <span className={cn('min-w-0 flex-1 truncate pr-16 text-sm text-text', task.status === 'cancelled' && 'line-through text-text-secondary')}>
+        {task.label}
+      </span>
+      <span className="shrink-0 text-xs text-muted">{formatDueLabel(task.dueAt)}</span>
+      {showInsertAction ? (
+        <button
+          type="button"
+          data-module-insert-ignore="true"
+          onClick={() => {
+            onInsertToEditor?.({ id: task.id, type: 'task', title: task.label });
+            clearActiveItem();
+          }}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+        >
+          Insert
+        </button>
+      ) : null}
+    </li>
+  );
+};
 
 interface TaskComposerProps {
   tasks: TaskItem[];

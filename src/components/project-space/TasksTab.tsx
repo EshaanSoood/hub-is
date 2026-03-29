@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { cn } from '../../lib/cn';
+import { useModuleInsertContext } from '../../context/ModuleInsertContext';
+import { useLongPress } from '../../hooks/useLongPress';
 import type { PriorityLevel } from './designTokens';
 import { getPriorityClasses } from '../../lib/priorityStyles';
 
@@ -408,6 +410,11 @@ const TaskRow = ({
   const hasMenuActions = Boolean(onUpdateTaskPriority || onUpdateTaskDueDate || onUpdateTaskCategory || onUpdateTaskStatus || onDeleteTask);
   const priorityTone = getPriorityTone(task.priorityValue, task.priority);
   const priorityClasses = getPriorityClasses(priorityTone);
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    setActiveItem(task.id, 'task', task.label);
+  });
+  const showInsertAction = activeItemId === task.id && activeItemType === 'task';
 
   const closeMenu = (options?: { restoreFocus?: boolean }) => {
     setMenuOpen(false);
@@ -528,7 +535,10 @@ const TaskRow = ({
   };
 
   return (
-    <div className="group relative rounded-control border border-border-muted bg-surface px-2 py-1.5 hover:bg-surface-elevated focus-within:bg-surface-elevated">
+    <div
+      className="group relative rounded-control border border-border-muted bg-surface px-2 py-1.5 hover:bg-surface-elevated focus-within:bg-surface-elevated"
+      {...longPressHandlers}
+    >
       <span
         className={cn('absolute bottom-0 left-0 top-0 w-[3px] rounded-l-control', priorityTone ? priorityClasses.dot : 'bg-border-muted')}
         aria-hidden="true"
@@ -751,6 +761,19 @@ const TaskRow = ({
             <SubtaskTree key={subtask.id} subtask={subtask} parentPriority={task.priority} level={1} visitedIds={EMPTY_VISITED_IDS} />
           ))}
         </ul>
+      ) : null}
+      {showInsertAction ? (
+        <button
+          type="button"
+          data-module-insert-ignore="true"
+          onClick={() => {
+            onInsertToEditor?.({ id: task.id, type: 'task', title: task.label });
+            clearActiveItem();
+          }}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+        >
+          Insert
+        </button>
       ) : null}
     </div>
   );
