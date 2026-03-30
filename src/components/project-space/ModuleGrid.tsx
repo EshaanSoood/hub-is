@@ -1,8 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { cn } from '../../lib/cn';
-import { Icon, IconButton } from '../primitives';
+import { Icon } from '../primitives';
 import { AddModuleDialog } from './AddModuleDialog';
-import { moduleLabel } from './moduleCatalog';
+import { ModuleShell } from './ModuleShell';
 
 export type ContractModuleLens = 'project' | 'pane' | 'pane_scratch';
 
@@ -25,20 +24,9 @@ interface ModuleGridProps {
   showAddControls?: boolean;
   disableAdd?: boolean;
   disableMutations?: boolean;
+  readOnlyState?: boolean;
   renderModuleBody?: (module: ContractModuleConfig) => ReactNode;
 }
-
-const sizeClass: Record<ContractModuleConfig['size_tier'], string> = {
-  S: 'md:col-span-3',
-  M: 'md:col-span-6',
-  L: 'md:col-span-12',
-};
-
-const sizeHeightClass: Record<ContractModuleConfig['size_tier'], string> = {
-  S: 'module-card-s',
-  M: 'module-card-m',
-  L: 'module-card-l',
-};
 
 export const ModuleGrid = ({
   modules,
@@ -47,6 +35,7 @@ export const ModuleGrid = ({
   showAddControls = true,
   disableAdd = false,
   disableMutations = false,
+  readOnlyState = false,
   renderModuleBody,
 }: ModuleGridProps) => {
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -117,29 +106,16 @@ export const ModuleGrid = ({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
         {modules.map((module) => (
-          <article
+          <ModuleShell
             key={module.module_instance_id}
-            data-testid="module-card"
-            className={cn(
-              'relative rounded-panel border border-subtle bg-elevated p-3 flex flex-col',
-              sizeClass[module.size_tier],
-              sizeHeightClass[module.size_tier],
-            )}
+            moduleType={module.module_type}
+            sizeTier={module.size_tier}
+            readOnlyState={readOnlyState}
+            removeDisabled={disableMutations}
+            onRemove={() => onRemoveModule(module.module_instance_id)}
           >
-            <IconButton
-              size="sm"
-              variant="ghost"
-              aria-label={`Remove ${moduleLabel(module.module_type)} module`}
-              disabled={disableMutations}
-              onClick={() => onRemoveModule(module.module_instance_id)}
-              className="absolute right-2 top-2 z-10 opacity-40 hover:opacity-100"
-            >
-              <Icon name="close" className="text-[14px]" />
-            </IconButton>
-            <div className="min-h-0 flex flex-1 flex-col overflow-y-auto" data-module-card-body="true">
-              {renderModuleBody ? renderModuleBody(module) : `Module: ${module.module_type}`}
-            </div>
-          </article>
+            {renderModuleBody ? renderModuleBody(module) : `Module: ${module.module_type}`}
+          </ModuleShell>
         ))}
       </div>
       <AddModuleDialog

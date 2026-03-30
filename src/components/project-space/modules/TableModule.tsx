@@ -39,7 +39,7 @@ export const TableModule = ({
   const viewData = selectedViewId ? runtime.dataByViewId[selectedViewId] : undefined;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
       {runtime.views.length > 0 ? (
         <label className="block text-xs text-muted">
           Source view
@@ -58,9 +58,10 @@ export const TableModule = ({
         </label>
       ) : null}
       {viewData?.error ? <p className="text-xs text-danger">{viewData.error}</p> : null}
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <Suspense fallback={<ModuleLoadingState label="Loading table module" rows={6} />}>
           <TableModuleSkin
+            sizeTier={module.size_tier}
             schema={viewData?.schema || null}
             records={viewData?.records || []}
             loading={viewData?.loading ?? false}

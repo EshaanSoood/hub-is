@@ -6,6 +6,7 @@ import type { CreateReminderPayload, HubReminderSummary } from '../../services/h
 import type { HubCollectionField, HubPaneSummary, HubRecordSummary } from '../../services/hub/types';
 import type { CalendarScope } from './CalendarModuleSkin';
 import type { FilesModuleItem } from './FilesModuleSkin';
+import { clampModuleSizeTier } from './moduleCatalog';
 import type { TaskItem } from './TasksTab';
 import type { TimelineCluster, TimelineEventType } from './TimelineFeed';
 import {
@@ -226,13 +227,15 @@ const parseModules = (layoutConfig: Record<string, unknown> | null | undefined):
           }
         : undefined;
 
+    const normalizedSizeTier = sizeTier === 'S' || sizeTier === 'M' || sizeTier === 'L' ? sizeTier : 'M';
+
     modules.push({
       module_instance_id:
         typeof value.module_instance_id === 'string' && value.module_instance_id
           ? value.module_instance_id
           : `module-${index + 1}`,
       module_type: moduleType,
-      size_tier: sizeTier === 'S' || sizeTier === 'M' || sizeTier === 'L' ? sizeTier : 'M',
+      size_tier: clampModuleSizeTier(moduleType, normalizedSizeTier),
       lens: normalizeModuleLens(moduleType, lens),
       binding,
     });
@@ -431,13 +434,14 @@ export const WorkView = ({
   };
 
   const handleAddModule = (moduleType: string, sizeTier: ContractModuleConfig['size_tier']) => {
+    const normalizedModuleType = normalizeModuleType(moduleType);
     const nextModules: ContractModuleConfig[] = [
       ...modules,
       {
         module_instance_id: `${moduleType}-${Date.now()}`,
-        module_type: normalizeModuleType(moduleType),
-        size_tier: sizeTier,
-        lens: defaultModuleLens(normalizeModuleType(moduleType)),
+        module_type: normalizedModuleType,
+        size_tier: clampModuleSizeTier(normalizedModuleType, sizeTier),
+        lens: defaultModuleLens(normalizedModuleType),
       },
     ];
     void saveModules(nextModules);
@@ -465,7 +469,7 @@ export const WorkView = ({
       module.module_instance_id === moduleInstanceId
         ? {
             ...module,
-            size_tier: sizeTier,
+            size_tier: clampModuleSizeTier(module.module_type, sizeTier),
           }
         : module,
     );
@@ -527,7 +531,7 @@ export const WorkView = ({
     }
 
     if (module.module_type === 'calendar') {
-      return <CalendarModule runtime={mergedRuntime.calendar} onOpenRecord={onOpenRecord} />;
+      return <CalendarModule module={module} runtime={mergedRuntime.calendar} onOpenRecord={onOpenRecord} />;
     }
 
     if (module.module_type === 'tasks') {
@@ -570,6 +574,7 @@ export const WorkView = ({
       showAddControls={canEditPane}
       disableAdd={!canEditPane || isSavingModules}
       disableMutations={!canEditPane || isSavingModules}
+      readOnlyState={!canEditPane}
       renderModuleBody={renderModuleBody}
     />
   );
