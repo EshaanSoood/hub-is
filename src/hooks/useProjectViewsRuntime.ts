@@ -602,7 +602,7 @@ export const useProjectViewsRuntime = ({
         if (typeof title === 'string') {
           updateOperations.push({
             label: 'title',
-            promise: updateRecord(accessToken, recordId, { title }),
+            promise: updateRecord(accessToken, recordId, { title }, { mutation_context_pane_id: mutationPane.pane_id }),
           });
         }
 

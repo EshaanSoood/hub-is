@@ -164,15 +164,17 @@ const normalizeDateInputValue = (value: unknown): string => {
   if (!raw) {
     return '';
   }
-  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
-    return raw.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return raw;
   }
 
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) {
     return '';
   }
-  return parsed.toISOString().slice(0, 10);
+
+  const localDate = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
 };
 
 const normalizeDateTimeInputValue = (value: unknown): string => {
@@ -180,8 +182,8 @@ const normalizeDateTimeInputValue = (value: unknown): string => {
   if (!raw) {
     return '';
   }
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw)) {
-    return raw.slice(0, 16);
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) {
+    return raw;
   }
 
   const parsed = new Date(raw);
@@ -501,6 +503,11 @@ export const TableModuleSkin = ({
       const kept = current.filter((fieldId) => nextFieldIds.includes(fieldId));
       const missing = nextFieldIds.filter((fieldId) => !kept.includes(fieldId));
       return [...kept, ...missing];
+    });
+    setActiveFilters((current) => {
+      const allowed = new Set(nextFieldIds);
+      const next = Object.fromEntries(Object.entries(current).filter(([fieldId]) => allowed.has(fieldId)));
+      return Object.keys(next).length === Object.keys(current).length ? current : next;
     });
   }, [schema?.fields]);
 

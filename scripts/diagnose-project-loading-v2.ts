@@ -295,6 +295,7 @@ const main = async (): Promise<void> => {
   let finalVisibleText = '';
   let movedPastLoading = false;
   let fatalError: string | null = null;
+  let lastKnownUrl = 'N/A';
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
@@ -492,6 +493,7 @@ const main = async (): Promise<void> => {
       clearTimeout(timer);
     }
 
+    lastKnownUrl = page.url();
     await context.close().catch(() => undefined);
     await browser.close().catch(() => undefined);
   }
@@ -546,7 +548,7 @@ const main = async (): Promise<void> => {
     ...transitionLines,
     '',
     '## Final state',
-    `- Current URL: ${formatUrlForReport(stateTransitions[stateTransitions.length - 1]?.url || page.url())}`,
+    `- Current URL: ${formatUrlForReport(stateTransitions[stateTransitions.length - 1]?.url || lastKnownUrl)}`,
     `- Moved past "Loading project space...": ${movedPastLoading ? 'Yes' : 'No'}`,
     '- Visible text at end:',
     '```text',

@@ -407,7 +407,7 @@ export const CalendarModuleSkin = ({
   }, []);
 
   const dayViewDate = selectedDate;
-  const weekViewToday = selectedDate;
+  const weekViewToday = todayDate;
   const dayViewEvents = useMemo(() => {
     const dayKey = toLocalDateKey(dayViewDate);
     return eventsByDate.get(dayKey) ?? [];

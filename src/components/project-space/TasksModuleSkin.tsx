@@ -617,7 +617,7 @@ const TasksModuleLarge = ({
         <ModuleEmptyState
           title="No tasks in this pane."
           iconName="tasks"
-          description="Its Procrastinators vs ProTaskinators out here."
+          description="It's Procrastinators vs ProTaskinators out here."
           sizeTier="L"
         />
       ) : null}
