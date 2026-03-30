@@ -419,7 +419,7 @@ const TasksModuleSmall = ({
   const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks).slice(0, 3), [tasks]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {!readOnly ? (
         <div className="shrink-0">
           <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />
@@ -630,7 +630,7 @@ const TasksModuleLarge = ({
 
 export const TasksModuleSkin = ({ sizeTier, ...props }: TasksModuleSkinProps) => {
   return (
-    <div className="h-full min-h-0">
+    <div className="flex h-full min-h-0 flex-col">
       {sizeTier === 'S' ? <TasksModuleSmall {...props} /> : null}
       {sizeTier === 'M' ? <TasksModuleMedium {...props} /> : null}
       {sizeTier === 'L' ? <TasksModuleLarge {...props} /> : null}
