@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
+import { cn } from '../../lib/cn';
 import { Icon } from '../primitives';
 
 export interface FilesModuleItem {
@@ -196,9 +197,41 @@ const UploadProgressBar = ({ progress }: { progress: number }) => {
   );
 };
 
-const DropZone = ({ compact, onFiles, readOnly = false }: { compact?: boolean; onFiles: (files: File[]) => void; readOnly?: boolean }) => {
+const DropZone = ({
+  sizeTier,
+  hasFiles,
+  onFiles,
+  readOnly = false,
+}: {
+  sizeTier: 'S' | 'M' | 'L';
+  hasFiles: boolean;
+  onFiles: (files: File[]) => void;
+  readOnly?: boolean;
+}) => {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const useStackedLayout = sizeTier === 'L' && !hasFiles;
+  const containerClassName = cn(
+    'relative rounded-control border border-dashed',
+    useStackedLayout ? 'flex flex-col items-center justify-center gap-3 px-md py-6 text-center' : 'flex items-center justify-between',
+    sizeTier === 'S' ? 'gap-xs px-sm py-1.5' : null,
+    sizeTier === 'M' ? (hasFiles ? 'gap-xs px-sm py-1.5' : 'gap-sm px-sm py-2.5') : null,
+    sizeTier === 'L' && hasFiles ? 'gap-sm px-sm py-3.5' : null,
+  );
+  const contentClassName = cn('min-w-0', useStackedLayout ? 'flex flex-col items-center text-center' : 'flex items-center gap-2 text-left');
+  const iconClassName = cn(
+    'shrink-0 text-muted',
+    useStackedLayout ? 'rounded-full border border-border-muted bg-surface px-3 py-3' : 'text-[14px]',
+  );
+  const label = readOnly ? 'Files are read-only' : sizeTier === 'L' && hasFiles ? 'Drop more files' : 'Drop files';
+  const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this pane.' : 'Drag files here or use upload.') : null;
+  const buttonClassName = cn(
+    'flex items-center justify-center rounded-control border border-border-muted bg-surface text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+    useStackedLayout ? 'h-8 min-w-[5.5rem] px-3 text-xs font-medium' : 'h-7 w-7 text-lg',
+  );
+  const baseBackground = useStackedLayout
+    ? 'color-mix(in srgb, var(--color-primary) 4%, transparent)'
+    : 'color-mix(in srgb, var(--color-surface-elevated) 65%, transparent)';
 
   const readFiles = (files: FileList | null) => {
     const nextFiles = Array.from(files ?? []);
@@ -225,23 +258,29 @@ const DropZone = ({ compact, onFiles, readOnly = false }: { compact?: boolean; o
         setDragOver(false);
         readFiles(event.dataTransfer.files);
       }}
-      className="relative flex items-center justify-between gap-xs rounded-control border border-dashed px-sm"
+      className={containerClassName}
       style={{
-        paddingTop: compact ? 'var(--space-xs)' : 'var(--space-sm)',
-        paddingBottom: compact ? 'var(--space-xs)' : 'var(--space-sm)',
         borderColor: dragOver ? 'var(--color-primary)' : 'var(--color-border-muted)',
-        background: dragOver ? 'color-mix(in srgb, var(--color-primary) 5%, transparent)' : 'transparent',
+        background: dragOver ? 'color-mix(in srgb, var(--color-primary) 5%, transparent)' : baseBackground,
       }}
     >
-      <span className="text-xs text-muted">{readOnly ? 'Read-only' : compact ? 'Drop files' : 'Drop files or use +'}</span>
+      <div className={contentClassName}>
+        <span className={iconClassName} aria-hidden="true">
+          <Icon name="upload" className={useStackedLayout ? 'text-base' : 'text-[14px]'} />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-xs font-medium text-text">{label}</span>
+          {helperText ? <span className="mt-1 block text-xs text-muted">{helperText}</span> : null}
+        </span>
+      </div>
       <button
         type="button"
         disabled={readOnly}
-        className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted bg-surface text-lg text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className={buttonClassName}
         onClick={() => inputRef.current?.click()}
         aria-label="Upload files"
       >
-        <Icon name="upload" className="text-[14px]" />
+        {useStackedLayout ? 'Upload' : <Icon name="plus" className="text-[14px]" />}
       </button>
       <input
         ref={inputRef}
@@ -421,18 +460,20 @@ const FilesModuleSmall = ({
   }, [files, query]);
 
   return (
-    <div className="flex flex-col gap-xs rounded-panel border border-border-muted bg-surface-elevated p-sm">
-      <DropZone compact onFiles={onUpload} readOnly={readOnly} />
+    <div className="flex h-full min-h-0 flex-col gap-xs rounded-panel border border-border-muted bg-surface-elevated p-sm">
+      <DropZone sizeTier="S" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
 
-      <div className="flex flex-col gap-[2px]">
-        {visible.length === 0 ? (
-          <p className="m-0 py-sm text-center text-xs text-muted">
-            {query ? 'No files match' : readOnly ? 'No files in this pane (read-only)' : 'Add files to this pane'}
-          </p>
-        ) : null}
-        {visible.map((file) => (
-          <FileRow key={file.id} file={file} onOpen={onOpenFile} />
-        ))}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-[2px] pr-1">
+          {visible.length === 0 ? (
+            <p className="m-0 py-sm text-center text-xs text-muted">
+              {query ? 'No files match' : files.length === 0 ? 'No files in this pane.' : 'Add files to this pane'}
+            </p>
+          ) : null}
+          {visible.map((file) => (
+            <FileRow key={file.id} file={file} onOpen={onOpenFile} />
+          ))}
+        </div>
       </div>
 
       <input
@@ -462,8 +503,8 @@ const FilesModuleMedium = ({
   const sorted = useMemo(() => sortFiles(files, sortKey), [files, sortKey]);
 
   return (
-    <div className="flex flex-col gap-sm rounded-panel border border-border-muted bg-surface-elevated p-md">
-      <DropZone onFiles={onUpload} readOnly={readOnly} />
+    <div className="flex h-full min-h-0 flex-col gap-sm rounded-panel border border-border-muted bg-surface-elevated p-md">
+      <DropZone sizeTier="M" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
 
       <div role="toolbar" aria-label="Sort files" className="flex items-center gap-1">
         <span className="mr-1 text-xs text-muted">Sort:</span>
@@ -505,8 +546,8 @@ const FilesModuleLarge = ({
   const visible = useMemo(() => sortFiles(filterFiles(files, filterKey), sortKey), [files, filterKey, sortKey]);
 
   return (
-    <div className="flex flex-col gap-md rounded-panel border border-border-muted bg-surface-elevated p-md">
-      <DropZone onFiles={onUpload} readOnly={readOnly} />
+    <div className="flex h-full min-h-0 flex-col gap-md rounded-panel border border-border-muted bg-surface-elevated p-md">
+      <DropZone sizeTier="L" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
 
       <div className="flex flex-wrap items-center justify-between gap-sm">
         <div role="toolbar" aria-label="Filter by file type" className="flex flex-wrap gap-1">

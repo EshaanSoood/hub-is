@@ -528,8 +528,7 @@ export const RemindersModuleSkin = ({
           <ModuleEmptyState
             title="No reminders yet."
             iconName="reminders"
-            ctaLabel="Add reminder"
-            onCta={readOnly ? undefined : () => reminderInputRef.current?.focus()}
+            sizeTier={sizeTier}
           />
         ) : null}
 

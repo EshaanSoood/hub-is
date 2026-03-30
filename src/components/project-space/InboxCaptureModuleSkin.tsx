@@ -415,13 +415,6 @@ export const QuickThoughtsModuleSkin = ({
   const visibleEntries = sizeTier === 'M' ? liveEntries.slice(0, 5) : liveEntries;
   const showComposer = sizeTier !== 'S';
   const showArchivedSection = sizeTier === 'L' && archivedEntries.length > 0;
-  const onEmptyStateCta =
-    showComposer && !readOnly
-      ? () => {
-          composerContainerRef.current?.querySelector('textarea')?.focus();
-        }
-      : undefined;
-
   return (
     <div className="relative h-full rounded-panel border border-border-muted bg-surface-elevated p-sm">
       <p className="sr-only" aria-live="polite">
@@ -469,8 +462,7 @@ export const QuickThoughtsModuleSkin = ({
           <ModuleEmptyState
             title="Nothing captured for this pane yet."
             iconName="thought-pile"
-            ctaLabel="Capture thought"
-            onCta={onEmptyStateCta}
+            sizeTier={sizeTier}
           />
         ) : (
           <div className="space-y-1">
