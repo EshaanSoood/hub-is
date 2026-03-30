@@ -456,6 +456,17 @@ const TasksModuleMedium = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col rounded-panel border border-border-muted bg-surface-elevated p-4" aria-label="Tasks module">
+      {canCreateTask && displayedTasks.length > 0 && !composerOpen ? (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setComposerOpen(true)}
+            className="rounded-control border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          >
+            New Task
+          </button>
+        </div>
+      ) : null}
       {!readOnly && composerOpen ? (
         <TaskComposer
           tasks={tasks}

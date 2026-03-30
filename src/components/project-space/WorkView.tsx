@@ -1,7 +1,7 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
-import { Icon, IconButton } from '../primitives';
+import { AccessibleDialog, Icon, IconButton } from '../primitives';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import type { HubCollectionField, HubPaneSummary, HubRecordSummary } from '../../services/hub/types';
 import type { CalendarScope } from './CalendarModuleSkin';
@@ -310,12 +310,45 @@ const EMPTY_RUNTIME: WorkViewModuleRuntime = {
   },
 };
 
+const DESKTOP_MEDIA_QUERY = '(min-width: 768px)';
+
 const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
   const [overlayOpen, setOverlayOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches : false,
+  );
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY);
+    const updateMatches = (matches: boolean) => {
+      setIsDesktop(matches);
+      if (matches) {
+        setOverlayOpen(false);
+      }
+    };
+    updateMatches(mediaQuery.matches);
+
+    const handleChange = (event: MediaQueryListEvent) => updateMatches(event.matches);
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  if (isDesktop) {
+    return <div>{moduleGrid}</div>;
+  }
 
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOverlayOpen(true)}
         className="sticky top-0 z-20 w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-center text-sm font-semibold text-text md:hidden"
@@ -323,15 +356,24 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
         Modules
       </button>
 
-      <div className="hidden md:block">{moduleGrid}</div>
-
       {overlayOpen ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-surface p-4 md:hidden">
-          <IconButton aria-label="Close modules" className="absolute right-3 top-3" onClick={() => setOverlayOpen(false)}>
-            <Icon name="close" className="h-4 w-4" />
-          </IconButton>
-          <div className="pt-10">{moduleGrid}</div>
-        </div>
+        <AccessibleDialog
+          open={overlayOpen}
+          onClose={() => setOverlayOpen(false)}
+          triggerRef={triggerRef}
+          title="Modules"
+          description="Manage and browse pane modules"
+          hideHeader
+          panelClassName="left-1/2 top-1/2 h-[100dvh] w-screen max-w-none -translate-x-1/2 -translate-y-1/2 rounded-none border-none bg-surface p-0 md:hidden"
+          contentClassName="mt-0 h-full overflow-y-auto p-4"
+        >
+          <div className="relative pt-10">
+            <IconButton aria-label="Close modules" className="absolute right-0 top-0" onClick={() => setOverlayOpen(false)}>
+              <Icon name="close" className="h-4 w-4" />
+            </IconButton>
+            {moduleGrid}
+          </div>
+        </AccessibleDialog>
       ) : null}
     </>
   );

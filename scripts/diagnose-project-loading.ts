@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium, type ConsoleMessage, type Page, type Request, type Response } from 'playwright';
 
@@ -44,8 +44,11 @@ type NetworkResponseEntry = {
 
 const APP_URL = 'https://eshaansood.org';
 const AUTH_HOST = 'auth.eshaansood.org';
-const REPORT_PATH = resolve(process.cwd(), 'project-loading-diagnostic.md');
-const SCREENSHOT_PATH = resolve(process.cwd(), 'project-loading-screenshot.png');
+const ARTIFACTS_DIR = resolve(process.cwd(), '.artifacts', 'project-loading');
+const REPORT_PATH = resolve(ARTIFACTS_DIR, 'project-loading-diagnostic.md');
+const SCREENSHOT_PATH = resolve(ARTIFACTS_DIR, 'project-loading-screenshot.png');
+const INCLUDE_SENSITIVE_OUTPUT = process.env.HUB_DIAGNOSTIC_INCLUDE_SENSITIVE === '1';
+const INCLUDE_SCREENSHOT = process.env.HUB_DIAGNOSTIC_INCLUDE_SCREENSHOT === '1';
 
 const nowIso = (): string => new Date().toISOString();
 
@@ -59,6 +62,42 @@ const truncate = (value: string, maxChars: number): string => {
 };
 
 const escapeCodeBlock = (value: string): string => value.replace(/```/g, '\\`\\`\\`');
+
+const ensureArtifactsDir = (): void => {
+  mkdirSync(ARTIFACTS_DIR, { recursive: true });
+};
+
+const formatUrlForReport = (value: string): string => {
+  if (!value || value === 'N/A') {
+    return value || 'N/A';
+  }
+  if (INCLUDE_SENSITIVE_OUTPUT) {
+    return value;
+  }
+  try {
+    const url = new URL(value);
+    return `${url.origin}/[redacted]`;
+  } catch {
+    return '[redacted-url]';
+  }
+};
+
+const formatSensitiveText = (value: string, label: string): string => {
+  if (!value) {
+    return '(none captured)';
+  }
+  if (INCLUDE_SENSITIVE_OUTPUT) {
+    return value;
+  }
+  return `[redacted ${label}; set HUB_DIAGNOSTIC_INCLUDE_SENSITIVE=1 to include]`;
+};
+
+const formatProjectLabel = (project: ProjectCandidate, index: number): string => {
+  if (INCLUDE_SENSITIVE_OUTPUT) {
+    return project.name || project.id;
+  }
+  return `Project ${index + 1}`;
+};
 
 const normalizeProjectUrl = (origin: string, projectId: string): string => {
   return new URL(`/projects/${encodeURIComponent(projectId)}/overview`, origin).toString();
@@ -206,6 +245,8 @@ const formatMarkdownList = (items: string[]): string => {
 };
 
 const main = async (): Promise<void> => {
+  ensureArtifactsDir();
+
   const username = (process.env.HUB_TEST_USER || '').trim();
   const password = (process.env.HUB_TEST_PASSWORD || '').trim();
 
@@ -227,6 +268,7 @@ const main = async (): Promise<void> => {
   let movedPastLoading = false;
   let finalVisibleText = '';
   let projectCandidates: ProjectCandidate[] = [];
+  let fatalError: string | null = null;
 
   const browser = await chromium.launch({
     headless: true,
@@ -301,7 +343,7 @@ const main = async (): Promise<void> => {
     await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
 
     postLoginUrl = page.url();
-    authSummary = `Keycloak login form submitted successfully. Redirect completed to ${postLoginUrl}.`;
+    authSummary = 'Keycloak login form submitted successfully.';
 
     await page.goto(`${APP_URL}/projects`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await waitForHubShell(page);
@@ -451,35 +493,37 @@ const main = async (): Promise<void> => {
 
     finalVisibleText = truncate(collapseWhitespace(await page.locator('body').innerText().catch(() => '')), 8_000);
 
-    await page.screenshot({ path: SCREENSHOT_PATH, fullPage: true });
+    if (INCLUDE_SCREENSHOT) {
+      await page.screenshot({ path: SCREENSHOT_PATH, fullPage: true });
+    }
   } catch (error) {
-    const message = error instanceof Error ? `${error.message}\n${error.stack || ''}` : String(error);
+    fatalError = error instanceof Error ? `${error.message}\n${error.stack || ''}` : String(error);
     exceptionEntries.push({
       timestamp: nowIso(),
       message: 'Diagnostic script failed before completion.',
-      stack: message,
+      stack: fatalError,
     });
   } finally {
     await context.close().catch(() => undefined);
     await browser.close().catch(() => undefined);
   }
 
-  const projectsFound = projectCandidates.map((project) => {
+  const projectsFound = projectCandidates.map((project, index) => {
     const personalFlag = project.isPersonal === true ? ' (personal)' : project.isPersonal === false ? '' : ' (personal status unknown)';
-    return `${project.name}${personalFlag} — ${project.url}`;
+    return `${formatProjectLabel(project, index)}${personalFlag} — ${formatUrlForReport(project.url)}`;
   });
 
   const consoleLines = consoleEntries.map(
-    (entry) => `[${entry.timestamp}] (${entry.type}) ${entry.text || '(empty message)'}`,
+    (entry) => `[${entry.timestamp}] (${entry.type}) ${formatSensitiveText(entry.text || '(empty message)', 'console output')}`,
   );
 
   const networkLines = networkErrorEntries.map((entry) => {
     return [
-      `- [${entry.timestamp}] ${entry.method} ${entry.url}`,
+      `- [${entry.timestamp}] ${entry.method} ${formatUrlForReport(entry.url)}`,
       `  - Status: ${entry.status}`,
       `  - Response body:`,
       '```text',
-      escapeCodeBlock(entry.body || '(empty body)'),
+      escapeCodeBlock(formatSensitiveText(entry.body || '(empty body)', 'response body')),
       '```',
     ].join('\n');
   });
@@ -489,7 +533,7 @@ const main = async (): Promise<void> => {
     return [
       `- [${entry.timestamp}]`,
       '```text',
-      escapeCodeBlock(detail),
+      escapeCodeBlock(formatSensitiveText(detail, 'exception details')),
       '```',
     ].join('\n');
   });
@@ -499,13 +543,13 @@ const main = async (): Promise<void> => {
     '',
     '## Auth flow',
     `- ${authSummary}`,
-    `- Final URL after login: ${postLoginUrl}`,
+    `- Final URL after login: ${formatUrlForReport(postLoginUrl)}`,
     '',
     '## Projects found',
     formatMarkdownList(projectsFound),
     '',
     '## Project navigation',
-    `- Navigated to: ${selectedProjectUrl}`,
+    `- Navigated to: ${formatUrlForReport(selectedProjectUrl)}`,
     '',
     '## Console output',
     formatMarkdownList(consoleLines),
@@ -522,18 +566,28 @@ const main = async (): Promise<void> => {
     `- Responses captured during project loading: ${networkResponseEntries.length}`,
     '- Visible page text at end:',
     '```text',
-    escapeCodeBlock(finalVisibleText || '(no visible text captured)'),
+    escapeCodeBlock(formatSensitiveText(finalVisibleText || '(no visible text captured)', 'page text')),
     '```',
     '',
     '## Screenshot',
-    '- Saved `project-loading-screenshot.png` in the repository root.',
+    INCLUDE_SCREENSHOT
+      ? `- Saved \`${SCREENSHOT_PATH}\`.`
+      : '- Screenshot capture skipped by default. Set `HUB_DIAGNOSTIC_INCLUDE_SCREENSHOT=1` to include it.',
     '',
   ].join('\n');
 
   writeFileSync(REPORT_PATH, report, 'utf8');
 
   console.log(`Diagnostic report written to ${REPORT_PATH}`);
-  console.log(`Screenshot written to ${SCREENSHOT_PATH}`);
+  console.log(
+    INCLUDE_SCREENSHOT
+      ? `Screenshot written to ${SCREENSHOT_PATH}`
+      : 'Screenshot skipped. Set HUB_DIAGNOSTIC_INCLUDE_SCREENSHOT=1 to capture it.',
+  );
+
+  if (fatalError) {
+    process.exitCode = 1;
+  }
 };
 
 await main();

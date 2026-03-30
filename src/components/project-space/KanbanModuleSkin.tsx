@@ -200,6 +200,7 @@ const CreateCardComposer = ({
     >
       <input
         ref={inputRef}
+        aria-label="Card title"
         value={title}
         onChange={(event) => onTitleChange(event.target.value)}
         placeholder="Card title"
@@ -282,6 +283,10 @@ const SortableCard = ({
   const showInsertAction = activeItemId === record.record_id && activeItemType === 'record';
   const priority = isPriorityLevel(draft.priority) ? draft.priority : null;
   const dueDateLabel = draft.dueDate ? formatShortDate(draft.dueDate) ?? draft.dueDate : '';
+  const hasDirtyChanges = draft.title.trim() !== baseline.title
+    || draft.priority !== baseline.priority
+    || draft.assignee.trim() !== baseline.assignee
+    || draft.dueDate !== baseline.dueDate;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `record:${record.record_id}`,
@@ -292,13 +297,16 @@ const SortableCard = ({
     const nextState = readEditableFields(record, metadataFieldIds);
 
     if (!isEditing) {
+      if (wasEditingRef.current && hasDirtyChanges) {
+        return;
+      }
       setDraft(nextState);
       setBaseline(nextState);
       setUpdateError(null);
       setShowDeleteConfirm(false);
       wasEditingRef.current = false;
     }
-  }, [isEditing, metadataFieldIds, record]);
+  }, [hasDirtyChanges, isEditing, metadataFieldIds, record]);
 
   useEffect(() => {
     if (isEditing && !wasEditingRef.current) {
@@ -666,7 +674,7 @@ const SortableCard = ({
                   aria-label={`Edit ${record.title}`}
                   variant="ghost"
                   size="sm"
-                  className="opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-within/card:opacity-100"
+                  className="opacity-100 transition-opacity md:opacity-0 md:group-hover/card:opacity-100 md:group-focus-within/card:opacity-100"
                   onClick={() => {
                     setMoveExpanded(false);
                     onStartEditing(record.record_id);
@@ -681,7 +689,7 @@ const SortableCard = ({
                   aria-label={`Delete ${record.title}`}
                   variant="ghost"
                   size="sm"
-                  className="opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-within/card:opacity-100"
+                  className="opacity-100 transition-opacity md:opacity-0 md:group-hover/card:opacity-100 md:group-focus-within/card:opacity-100"
                   onClick={() => {
                     setShowDeleteConfirm(true);
                     setDeleteError(null);
@@ -1073,6 +1081,10 @@ export const KanbanModuleSkin = ({
 
   const handleToggleCollapse = (group: KanbanModuleGroup) => {
     setCollapsedGroupIds((current) => {
+      if (group.records.some((record) => record.record_id === editingRecordId)) {
+        return current;
+      }
+
       const next = new Set(current);
       if (next.has(group.id)) {
         next.delete(group.id);
@@ -1088,10 +1100,6 @@ export const KanbanModuleSkin = ({
           error: null,
           isSubmitting: false,
         });
-      }
-
-      if (group.records.some((record) => record.record_id === editingRecordId)) {
-        setEditingRecordId(null);
       }
 
       return next;

@@ -317,6 +317,16 @@ const FileRow = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: Files
             onOpen(file);
           }
         }}
+        onFocus={() => {
+          if (!uploading) {
+            setActiveItem(file.id, 'file', file.name);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            clearActiveItem();
+          }
+        }}
         disabled={uploading}
         className="group relative flex w-full items-center gap-xs overflow-visible rounded-control bg-transparent px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
         aria-label={`Open ${file.name}`}
@@ -370,6 +380,16 @@ const FileTile = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: File
         onClick={() => {
           if (!uploading) {
             onOpen(file);
+          }
+        }}
+        onFocus={() => {
+          if (!uploading) {
+            setActiveItem(file.id, 'file', file.name);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            clearActiveItem();
           }
         }}
         disabled={uploading}

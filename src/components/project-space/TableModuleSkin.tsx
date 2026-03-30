@@ -175,6 +175,24 @@ const normalizeDateInputValue = (value: unknown): string => {
   return parsed.toISOString().slice(0, 10);
 };
 
+const normalizeDateTimeInputValue = (value: unknown): string => {
+  const raw = readRecordValue(value);
+  if (!raw) {
+    return '';
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw)) {
+    return raw.slice(0, 16);
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  const localDate = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 16);
+};
+
 const toComparable = (value: unknown, type: string): number | string => {
   if (value === null || value === undefined) {
     return '';
@@ -243,8 +261,11 @@ const getEditableFieldValue = (field: TableField | null, value: unknown): string
   if (!field) {
     return readRecordValue(value);
   }
-  if (field.type === 'date' || field.type === 'datetime') {
+  if (field.type === 'date') {
     return normalizeDateInputValue(value);
+  }
+  if (field.type === 'datetime') {
+    return normalizeDateTimeInputValue(value);
   }
   return readRecordValue(value);
 };
@@ -254,11 +275,40 @@ const buildFieldUpdateValue = (field: TableField | null, value: string): unknown
     return value;
   }
 
-  if (field.type === 'date' || field.type === 'datetime' || field.type === 'select') {
+  if (field.type === 'date' || field.type === 'select') {
     return value || null;
   }
 
+  if (field.type === 'datetime') {
+    if (!value) {
+      return null;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
+  }
+
+  if (field.type === 'number') {
+    if (!value.trim()) {
+      return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : value;
+  }
+
   return value;
+};
+
+const getEditableInputType = (field: TableField | null): 'date' | 'datetime-local' | 'number' | 'text' => {
+  if (field?.type === 'date') {
+    return 'date';
+  }
+  if (field?.type === 'datetime') {
+    return 'datetime-local';
+  }
+  if (field?.type === 'number') {
+    return 'number';
+  }
+  return 'text';
 };
 
 const toDayKey = (date: Date): string => {
@@ -570,6 +620,7 @@ export const TableModuleSkin = ({
                   error: null,
                 })
               }
+              onDoubleClick={() => onOpenRecord(row.recordId)}
               aria-label={`Edit title for ${row.title}`}
               data-testid={`open-record-button-${row.recordId}`}
             >
@@ -1207,6 +1258,9 @@ export const TableModuleSkin = ({
                   aria-rowindex={item.index + 1}
                   tabIndex={0}
                   onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) {
+                      return;
+                    }
                     if (event.key === 'ArrowDown') {
                       event.preventDefault();
                       focusRowByIndex(item.index + 1);
@@ -1227,7 +1281,7 @@ export const TableModuleSkin = ({
                       focusRowByIndex(modelRows.length - 1);
                       return;
                     }
-                    if ((event.key === 'Enter' || event.key === ' ') && !canEditCells) {
+                    if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
                       onOpenRecord(row.original.recordId);
                     }
@@ -1281,7 +1335,8 @@ export const TableModuleSkin = ({
                             ) : (
                               <input
                                 autoFocus
-                                type={field?.type === 'date' || field?.type === 'datetime' ? 'date' : 'text'}
+                                type={getEditableInputType(field)}
+                                step={field?.type === 'datetime' ? 60 : field?.type === 'number' ? 'any' : undefined}
                                 value={editableCell.value}
                                 onChange={(event) =>
                                   setEditableCell((current) => (current ? { ...current, value: event.target.value, error: null } : current))
@@ -1384,7 +1439,8 @@ export const TableModuleSkin = ({
                     </select>
                   ) : (
                     <input
-                      type={field?.type === 'date' || field?.type === 'datetime' ? 'date' : 'text'}
+                      type={getEditableInputType(field)}
+                      step={field?.type === 'datetime' ? 60 : field?.type === 'number' ? 'any' : undefined}
                       value={fieldValue}
                       onChange={(event) =>
                         setCreateRow((current) => ({

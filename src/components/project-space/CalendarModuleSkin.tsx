@@ -249,7 +249,7 @@ const CalendarMediumWeekStrip = ({
                   {selectedDay.events.length} {selectedDay.events.length === 1 ? 'event' : 'events'}
                 </p>
               </div>
-              {selectedDay.events.length === 0 && onCreateEvent ? (
+              {onCreateEvent ? (
                 <button
                   type="button"
                   onClick={() => onCreateEvent(selectedDay.key)}
@@ -328,6 +328,7 @@ export const CalendarModuleSkin = ({
   const monthLabel = monthCursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   const [todayDate, setTodayDate] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [mediumWeekAnchorDate, setMediumWeekAnchorDate] = useState(() => new Date());
   const todayKey = toLocalDateKey(todayDate);
   const isSmallTier = sizeTier === 'S';
   const isMediumTier = sizeTier === 'M';
@@ -414,11 +415,11 @@ export const CalendarModuleSkin = ({
   const selectedDateKey = toLocalDateKey(selectedDate);
   const compactDayEvents = eventsByDate.get(selectedDateKey) ?? [];
   const compactDateLabel = formatCompactDateLabel(selectedDate);
-  const weekRangeLabel = formatWeekRangeLabel(selectedDate);
+  const weekRangeLabel = formatWeekRangeLabel(mediumWeekAnchorDate);
   const mediumWeekDays = useMemo<MediumWeekDay[]>(
     () =>
       Array.from({ length: 7 }, (_, index) => {
-        const date = addDays(selectedDate, index - 3);
+        const date = addDays(mediumWeekAnchorDate, index - 3);
         const key = toLocalDateKey(date);
         return {
           key,
@@ -429,7 +430,7 @@ export const CalendarModuleSkin = ({
           events: eventsByDate.get(key) ?? [],
         };
       }),
-    [eventsByDate, selectedDate, todayKey],
+    [eventsByDate, mediumWeekAnchorDate, todayKey],
   );
 
   const monthCells = useMemo(() => buildMonthCells(monthCursor), [monthCursor]);
@@ -576,8 +577,14 @@ export const CalendarModuleSkin = ({
               ? 'Relevant is showing only your events right now. Switch to All to see the wider project calendar.'
               : 'Create an event to populate this calendar.'
           }
-          ctaLabel={onCreateEvent ? 'New Event' : undefined}
-          onCta={onCreateEvent ? () => openCreatePanel(todayKey) : undefined}
+          ctaLabel={scope === 'relevant' ? 'Show All' : onCreateEvent ? 'New Event' : undefined}
+          onCta={
+            scope === 'relevant'
+              ? () => onScopeChange('all')
+              : onCreateEvent
+                ? () => openCreatePanel(todayKey)
+                : undefined
+          }
           sizeTier={sizeTier}
         />
         {createEventPanel}
@@ -675,7 +682,10 @@ export const CalendarModuleSkin = ({
           <button
             type="button"
             className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            onClick={() => setSelectedDate((current) => addDays(current, -7))}
+            onClick={() => {
+              setMediumWeekAnchorDate((current) => addDays(current, -7));
+              setSelectedDate((current) => addDays(current, -7));
+            }}
             aria-label="Previous week"
           >
             ←
@@ -684,7 +694,10 @@ export const CalendarModuleSkin = ({
           <button
             type="button"
             className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            onClick={() => setSelectedDate((current) => addDays(current, 7))}
+            onClick={() => {
+              setMediumWeekAnchorDate((current) => addDays(current, 7));
+              setSelectedDate((current) => addDays(current, 7));
+            }}
             aria-label="Next week"
           >
             →

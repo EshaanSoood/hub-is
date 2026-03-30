@@ -597,19 +597,54 @@ export const useProjectViewsRuntime = ({
       const { title, ...valueFields } = fields;
 
       try {
-        if (typeof title === 'string') {
-          await updateRecord(accessToken, recordId, { title });
-        }
+        const updateOperations: Array<{ label: string; promise: Promise<unknown> }> = [];
 
-        if (Object.keys(valueFields).length > 0) {
-          await setRecordValues(accessToken, recordId, valueFields, {
-            mutation_context_pane_id: mutationPane.pane_id,
+        if (typeof title === 'string') {
+          updateOperations.push({
+            label: 'title',
+            promise: updateRecord(accessToken, recordId, { title }),
           });
         }
 
-        await refreshViewsAndRecords();
-        const nextTimeline = await listTimeline(accessToken, projectId);
-        setTimeline(nextTimeline);
+        if (Object.keys(valueFields).length > 0) {
+          updateOperations.push({
+            label: 'fields',
+            promise: setRecordValues(accessToken, recordId, valueFields, {
+              mutation_context_pane_id: mutationPane.pane_id,
+            }),
+          });
+        }
+
+        const results = updateOperations.length > 0
+          ? await Promise.allSettled(updateOperations.map((operation) => operation.promise))
+          : [];
+
+        const failures = results.flatMap((result, index) => {
+          if (result.status === 'fulfilled') {
+            return [];
+          }
+          const reason = result.reason instanceof Error ? result.reason.message : `Failed to update ${updateOperations[index]?.label ?? 'card'}.`;
+          return [reason];
+        });
+
+        let refreshError: string | null = null;
+        try {
+          await refreshViewsAndRecords();
+          const nextTimeline = await listTimeline(accessToken, projectId);
+          setTimeline(nextTimeline);
+        } catch (error) {
+          refreshError = error instanceof Error ? error.message : 'Failed to refresh kanban data.';
+        }
+
+        if (refreshError) {
+          failures.push(refreshError);
+        }
+
+        if (failures.length > 0) {
+          const message = failures.length === 1 ? failures[0] : `Card update partially completed: ${failures.join(' ')}`;
+          setRecordsError(message);
+          throw new Error(message);
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to update kanban card.';
         setRecordsError(message);

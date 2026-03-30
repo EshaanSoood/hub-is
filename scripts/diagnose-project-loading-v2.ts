@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium, type Page, type Request, type Response } from 'playwright';
 
@@ -32,10 +32,13 @@ type StateTransition = {
 
 const APP_URL = 'https://eshaansood.org';
 const AUTH_HOST = 'auth.eshaansood.org';
-const REPORT_PATH = resolve(process.cwd(), 'project-loading-diagnostic-v2.md');
-const SCREENSHOT_PATH = resolve(process.cwd(), 'project-loading-screenshot-v2.png');
+const ARTIFACTS_DIR = resolve(process.cwd(), '.artifacts', 'project-loading');
+const REPORT_PATH = resolve(ARTIFACTS_DIR, 'project-loading-diagnostic-v2.md');
+const SCREENSHOT_PATH = resolve(ARTIFACTS_DIR, 'project-loading-screenshot-v2.png');
 const MAX_TRANSITION_TEXT = 500;
 const MAX_BODY_TEXT = 4000;
+const INCLUDE_SENSITIVE_OUTPUT = process.env.HUB_DIAGNOSTIC_INCLUDE_SENSITIVE === '1';
+const INCLUDE_SCREENSHOT = process.env.HUB_DIAGNOSTIC_INCLUDE_SCREENSHOT === '1';
 
 const nowIso = (): string => new Date().toISOString();
 
@@ -49,6 +52,42 @@ const truncate = (value: string, maxChars: number): string => {
 };
 
 const escapeCodeBlock = (value: string): string => value.replace(/```/g, '\\`\\`\\`');
+
+const ensureArtifactsDir = (): void => {
+  mkdirSync(ARTIFACTS_DIR, { recursive: true });
+};
+
+const formatUrlForReport = (value: string): string => {
+  if (!value || value === 'N/A') {
+    return value || 'N/A';
+  }
+  if (INCLUDE_SENSITIVE_OUTPUT) {
+    return value;
+  }
+  try {
+    const url = new URL(value);
+    return `${url.origin}/[redacted]`;
+  } catch {
+    return '[redacted-url]';
+  }
+};
+
+const formatSensitiveText = (value: string, label: string): string => {
+  if (!value) {
+    return '(none captured)';
+  }
+  if (INCLUDE_SENSITIVE_OUTPUT) {
+    return value;
+  }
+  return `[redacted ${label}; set HUB_DIAGNOSTIC_INCLUDE_SENSITIVE=1 to include]`;
+};
+
+const formatProjectLabel = (project: ProjectLink, index: number): string => {
+  if (INCLUDE_SENSITIVE_OUTPUT) {
+    return project.text || project.projectId;
+  }
+  return `Project ${index + 1}`;
+};
 
 const isPlaceholderOnly = (text: string): boolean => {
   const lower = text.toLowerCase();
@@ -207,7 +246,7 @@ const buildNetworkLogLines = (traces: RequestTrace[]): string[] => {
 
   const lines: string[] = [];
   for (const trace of traces) {
-    lines.push(`- [${trace.startedAtIso}] #${trace.id} REQUEST ${trace.method} ${trace.url}`);
+    lines.push(`- [${trace.startedAtIso}] #${trace.id} REQUEST ${trace.method} ${formatUrlForReport(trace.url)}`);
 
     if (trace.responseStatus !== null) {
       lines.push(`  - RESPONSE [${trace.responseAtIso}] status=${trace.responseStatus}`);
@@ -224,7 +263,7 @@ const buildNetworkLogLines = (traces: RequestTrace[]): string[] => {
     if (trace.responseStatus !== null && trace.responseStatus >= 400) {
       lines.push('  - 4xx/5xx response body:');
       lines.push('```text');
-      lines.push(escapeCodeBlock(trace.errorBody || '(empty body)'));
+      lines.push(escapeCodeBlock(formatSensitiveText(trace.errorBody || '(empty body)', 'response body')));
       lines.push('```');
     }
   }
@@ -233,6 +272,8 @@ const buildNetworkLogLines = (traces: RequestTrace[]): string[] => {
 };
 
 const main = async (): Promise<void> => {
+  ensureArtifactsDir();
+
   const username = (process.env.HUB_TEST_USER || '').trim();
   const password = (process.env.HUB_TEST_PASSWORD || '').trim();
 
@@ -353,7 +394,20 @@ const main = async (): Promise<void> => {
     await page.goto(APP_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 });
 
     if (!page.url().includes(AUTH_HOST)) {
-      await page.waitForURL((url) => url.hostname === AUTH_HOST, { timeout: 30_000 }).catch(() => undefined);
+      const reachedAuth = await page
+        .waitForURL((url) => url.hostname === AUTH_HOST, { timeout: 10_000 })
+        .then(() => true)
+        .catch(() => false);
+
+      if (!reachedAuth) {
+        const loginButton = page.getByRole('button', { name: /continue with keycloak|sign in with keycloak/i }).first();
+        if (await loginButton.isVisible({ timeout: 8_000 }).catch(() => false)) {
+          await Promise.all([
+            page.waitForURL((url) => url.hostname === AUTH_HOST, { timeout: 60_000 }),
+            loginButton.click(),
+          ]);
+        }
+      }
     }
 
     const usernameInput = page.locator('input[name="username"], input#username').first();
@@ -420,12 +474,16 @@ const main = async (): Promise<void> => {
     const loadingVisible = await page.getByText('Loading project space...', { exact: false }).first().isVisible().catch(() => false);
     movedPastLoading = !loadingVisible;
 
-    await page.screenshot({ path: SCREENSHOT_PATH, fullPage: true });
+    if (INCLUDE_SCREENSHOT) {
+      await page.screenshot({ path: SCREENSHOT_PATH, fullPage: true });
+    }
   } catch (error) {
     fatalError = error instanceof Error ? `${error.message}\n${error.stack || ''}` : String(error);
 
     try {
+      if (INCLUDE_SCREENSHOT) {
       await page.screenshot({ path: SCREENSHOT_PATH, fullPage: true });
+      }
     } catch {
       // Ignore screenshot fallback errors.
     }
@@ -448,14 +506,14 @@ const main = async (): Promise<void> => {
   }
 
   const projectLinkLines = projectLinks.length > 0
-    ? projectLinks.map((link) => `- ${link.text}${link.isPersonal ? ' (personal)' : ''} — ${link.href}`)
+    ? projectLinks.map((link, index) => `- ${formatProjectLabel(link, index)}${link.isPersonal ? ' (personal)' : ''} — ${formatUrlForReport(link.href)}`)
     : ['- None'];
 
   const transitionLines = stateTransitions.length > 0
     ? stateTransitions.map((entry) => [
-      `- t+${entry.offsetSeconds}s | URL: ${entry.url}`,
+      `- t+${entry.offsetSeconds}s | URL: ${formatUrlForReport(entry.url)}`,
       '```text',
-      escapeCodeBlock(entry.text || '(no text)'),
+      escapeCodeBlock(formatSensitiveText(entry.text || '(no text)', 'page text')),
       '```',
     ].join('\n'))
     : ['- None'];
@@ -471,14 +529,14 @@ const main = async (): Promise<void> => {
     '## Home page content',
     '- Visible text when home page became ready:',
     '```text',
-    escapeCodeBlock(homeVisibleText || '(none captured)'),
+    escapeCodeBlock(formatSensitiveText(homeVisibleText || '(none captured)', 'page text')),
     '```',
     '- Project links found:',
     ...projectLinkLines,
     '',
     '## Project clicked',
     clickedProject
-      ? `- Clicked: ${clickedProject.text}${clickedProject.isPersonal ? ' (personal)' : ''} — ${clickedProject.href}`
+      ? `- Clicked: ${formatProjectLabel(clickedProject, 0)}${clickedProject.isPersonal ? ' (personal)' : ''} — ${formatUrlForReport(clickedProject.href)}`
       : '- No link clicked.',
     '',
     '## Network log',
@@ -488,11 +546,11 @@ const main = async (): Promise<void> => {
     ...transitionLines,
     '',
     '## Final state',
-    `- Current URL: ${stateTransitions[stateTransitions.length - 1]?.url || page.url()}`,
+    `- Current URL: ${formatUrlForReport(stateTransitions[stateTransitions.length - 1]?.url || page.url())}`,
     `- Moved past "Loading project space...": ${movedPastLoading ? 'Yes' : 'No'}`,
     '- Visible text at end:',
     '```text',
-    escapeCodeBlock(finalVisibleText || '(none captured)'),
+    escapeCodeBlock(formatSensitiveText(finalVisibleText || '(none captured)', 'page text')),
     '```',
     fatalError
       ? '- Script error detail:'
@@ -501,21 +559,27 @@ const main = async (): Promise<void> => {
       ? '```text'
       : '',
     fatalError
-      ? escapeCodeBlock(fatalError)
+      ? escapeCodeBlock(formatSensitiveText(fatalError, 'error details'))
       : '',
     fatalError
       ? '```'
       : '',
     '',
     '## Screenshot',
-    '- Saved `project-loading-screenshot-v2.png` in the repository root.',
+    INCLUDE_SCREENSHOT
+      ? `- Saved \`${SCREENSHOT_PATH}\`.`
+      : '- Screenshot capture skipped by default. Set `HUB_DIAGNOSTIC_INCLUDE_SCREENSHOT=1` to include it.',
     '',
   ].filter(Boolean).join('\n');
 
   writeFileSync(REPORT_PATH, report, 'utf8');
 
   console.log(`Diagnostic report written to ${REPORT_PATH}`);
-  console.log(`Screenshot written to ${SCREENSHOT_PATH}`);
+  console.log(
+    INCLUDE_SCREENSHOT
+      ? `Screenshot written to ${SCREENSHOT_PATH}`
+      : 'Screenshot skipped. Set HUB_DIAGNOSTIC_INCLUDE_SCREENSHOT=1 to capture it.',
+  );
 
   if (fatalError) {
     process.exitCode = 1;

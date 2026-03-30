@@ -242,7 +242,25 @@ const ReminderRibbonRow = ({
       {...longPressHandlers}
     >
       <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3 pr-8">
-        <div className="min-w-0">
+        <div
+          className="min-w-0 rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          role="button"
+          tabIndex={0}
+          aria-label={`Insert reminder ${reminder.record_title || 'Untitled reminder'}`}
+          onFocus={() => {
+            setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
+              return;
+            }
+            if (event.key === 'Escape') {
+              clearActiveItem();
+            }
+          }}
+        >
           <p className="truncate text-sm font-medium text-text">{reminder.record_title || 'Untitled reminder'}</p>
           <p className={`mt-1 text-xs ${isOverdue ? 'text-text underline' : 'text-text-secondary'}`}>
             {formatReminderChip(reminder.remind_at)}
