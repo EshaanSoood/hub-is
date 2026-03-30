@@ -421,9 +421,11 @@ const TasksModuleSmall = ({
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       {!readOnly ? (
-        <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />
+        <div className="shrink-0">
+          <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />
+        </div>
       ) : null}
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
         {tasksLoading ? <p className="text-sm text-muted">Loading...</p> : null}
         {!tasksLoading && visibleTasks.length === 0 ? (
           <ModuleEmptyState
@@ -504,7 +506,6 @@ const TasksModuleLarge = ({
   );
   const visibleLargeTaskCount = useMemo(() => countLargeTaskSections(filteredTasks), [filteredTasks]);
   const hasDefaultLargeFilters = activeUserId === 'all' && activeCategoryId === 'all';
-  const canCreateTask = !readOnly && typeof onCreateTask === 'function';
 
   const collaboratorOptions = useMemo(
     () => {
@@ -591,8 +592,6 @@ const TasksModuleLarge = ({
           title="No tasks in this pane."
           iconName="tasks"
           description="Its Procrastinators vs ProTaskinators out here."
-          ctaLabel={canCreateTask ? 'New Task' : undefined}
-          onCta={canCreateTask ? () => handleOpenComposer(null) : undefined}
           sizeTier="L"
         />
       ) : null}
