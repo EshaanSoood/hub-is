@@ -244,7 +244,7 @@ const ReminderRibbonRow = ({
       <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3 pr-8">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-text">{reminder.record_title || 'Untitled reminder'}</p>
-          <p className={`mt-1 text-xs ${isOverdue ? 'text-danger underline' : 'text-text-secondary'}`}>
+          <p className={`mt-1 text-xs ${isOverdue ? 'text-text underline' : 'text-text-secondary'}`}>
             {formatReminderChip(reminder.remind_at)}
           </p>
         </div>
@@ -434,9 +434,9 @@ export const RemindersModuleSkin = ({
   };
 
   return (
-    <section className="h-full space-y-3" aria-label="Reminders module">
+    <section className="flex h-full min-h-0 flex-col gap-3" aria-label="Reminders module">
       <form
-        className="space-y-2"
+        className="shrink-0 space-y-2"
         onSubmit={(event) => {
           event.preventDefault();
           void submitReminder();
@@ -462,7 +462,7 @@ export const RemindersModuleSkin = ({
             }}
             placeholder="Add a reminder…"
             aria-label="Add a reminder"
-            className="min-h-11 flex-1 rounded-panel border border-border-muted bg-surface-elevated px-3 py-2 text-sm text-text outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 flex-1 rounded-panel border border-border-muted bg-surface-elevated px-3 py-2 text-sm text-text outline-none placeholder:text-text-secondary focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
           />
           <button
             type="submit"
@@ -511,7 +511,7 @@ export const RemindersModuleSkin = ({
         {inputError ? <p className="text-xs text-danger">{inputError}</p> : null}
       </form>
 
-      <div className="space-y-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
         {error ? (
           <p className="rounded-panel border border-danger bg-danger-subtle px-3 py-4 text-sm text-danger">
             {error}
@@ -582,7 +582,7 @@ export const RemindersModuleSkin = ({
         })}
       </div>
 
-      {hiddenCount > 0 ? <p className="text-xs text-text-secondary">+{hiddenCount} more</p> : null}
+      {hiddenCount > 0 ? <p className="shrink-0 text-xs text-text-secondary">+{hiddenCount} more</p> : null}
     </section>
   );
 };

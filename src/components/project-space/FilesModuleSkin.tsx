@@ -449,15 +449,7 @@ const FilesModuleSmall = ({
   onOpenFile: (file: FilesModuleItem) => void;
   readOnly?: boolean;
 }) => {
-  const [query, setQuery] = useState('');
-
-  const visible = useMemo(() => {
-    if (!query.trim()) {
-      return files.slice(0, 4);
-    }
-    const lowered = query.toLowerCase();
-    return files.filter((file) => file.name.toLowerCase().includes(lowered)).slice(0, 4);
-  }, [files, query]);
+  const visible = useMemo(() => files.slice(0, 4), [files]);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-xs rounded-panel border border-border-muted bg-surface-elevated p-sm">
@@ -467,7 +459,7 @@ const FilesModuleSmall = ({
         <div className="flex flex-col gap-[2px] pr-1">
           {visible.length === 0 ? (
             <p className="m-0 py-sm text-center text-xs text-muted">
-              {query ? 'No files match' : files.length === 0 ? 'No files in this pane.' : 'Add files to this pane'}
+              {files.length === 0 ? 'No files in this pane.' : 'Add files to this pane'}
             </p>
           ) : null}
           {visible.map((file) => (
@@ -475,15 +467,6 @@ const FilesModuleSmall = ({
           ))}
         </div>
       </div>
-
-      <input
-        type="search"
-        placeholder="Search files..."
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        className="w-full rounded-control border border-border-muted bg-surface px-xs py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-        aria-label="Search files"
-      />
     </div>
   );
 };
@@ -513,10 +496,10 @@ const FilesModuleMedium = ({
         ))}
       </div>
 
-      <div role="list" aria-label="Files" className="flex flex-col gap-[2px]">
+      <div role="list" aria-label="Files" className="min-h-0 flex-1 overflow-y-auto pr-1">
         {sorted.length === 0 ? (
           <p className="m-0 py-lg text-center text-sm text-muted">
-            {readOnly ? 'No files in this pane (read-only)' : 'Add files to this pane'}
+            {files.length === 0 ? 'No files in this pane.' : 'Add files to this pane'}
           </p>
         ) : null}
         {sorted.map((file) => (
@@ -571,13 +554,15 @@ const FilesModuleLarge = ({
 
       {visible.length === 0 ? (
         <p className="m-0 py-xl text-center text-sm text-muted">
-          {filterKey === 'all' ? (readOnly ? 'No files in this pane (read-only)' : 'Add files to this pane') : `No ${filterKey} files`}
+          {filterKey === 'all' ? (files.length === 0 ? 'No files in this pane.' : 'Add files to this pane') : `No ${filterKey} files`}
         </p>
       ) : (
-        <div role="list" aria-label="Files" className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-sm">
-          {visible.map((file) => (
-            <FileTile key={file.id} file={file} onOpen={onOpenFile} />
-          ))}
+        <div role="list" aria-label="Files" className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-sm">
+            {visible.map((file) => (
+              <FileTile key={file.id} file={file} onOpen={onOpenFile} />
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -594,7 +579,7 @@ export const FilesModuleSkin = ({ sizeTier, files, onUpload, onOpenFile, readOnl
   }, [files]);
 
   return (
-    <section className="h-full space-y-2" aria-label="Files module">
+    <section className="flex h-full min-h-0 flex-col gap-2" aria-label="Files module">
       <p className="sr-only" aria-live="polite">
         {liveMessage}
       </p>

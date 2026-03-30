@@ -114,6 +114,35 @@ const compareMediumTasks = (left: TaskItem, right: TaskItem) => {
   return left.label.localeCompare(right.label) || left.id.localeCompare(right.id);
 };
 
+const countLargeTaskSections = (tasks: TaskItem[]): number => {
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const weekEnd = new Date(now);
+  const daysUntilWeekEnd = (6 - weekEnd.getDay() + 7) % 7;
+  weekEnd.setDate(weekEnd.getDate() + daysUntilWeekEnd);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  return tasks.reduce((count, task) => {
+    const due = parseDueAt(task.dueAt);
+    if (!due) {
+      return count + 1;
+    }
+    if (due.getTime() < today.getTime()) {
+      return count + 1;
+    }
+    if (due.getTime() < tomorrow.getTime()) {
+      return count + 1;
+    }
+    if (due.getTime() <= weekEnd.getTime()) {
+      return count + 1;
+    }
+    return count + 1;
+  }, 0);
+};
+
 const humanizeOption = (value: string, fallback: string) => {
   if (!value || value === fallback) {
     return fallback.charAt(0).toUpperCase() + fallback.slice(1);
@@ -281,7 +310,7 @@ const TaskComposer = ({
         placeholder="New task..."
         aria-label="New task title"
         className={cn(
-          'w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+          'w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
           compact ? 'text-sm' : 'text-sm',
         )}
       />
@@ -390,16 +419,23 @@ const TasksModuleSmall = ({
   const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks).slice(0, 3), [tasks]);
 
   return (
-    <div className="space-y-3">
-      {readOnly ? (
-        <p className="rounded-panel border border-border-muted bg-surface-elevated p-3 text-sm text-muted">Tasks (read-only)</p>
-      ) : (
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      {!readOnly ? (
         <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />
-      )}
-      {tasksLoading ? <p className="text-sm text-muted">Loading...</p> : null}
-      {!tasksLoading && visibleTasks.length > 0 ? (
-        <TaskSummaryRows tasks={visibleTasks} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
       ) : null}
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {tasksLoading ? <p className="text-sm text-muted">Loading...</p> : null}
+        {!tasksLoading && visibleTasks.length === 0 ? (
+          <ModuleEmptyState
+            title="No tasks in this pane."
+            iconName="tasks"
+            sizeTier="S"
+          />
+        ) : null}
+        {!tasksLoading && visibleTasks.length > 0 ? (
+          <TaskSummaryRows tasks={visibleTasks} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
+        ) : null}
+      </div>
     </div>
   );
 };
@@ -417,7 +453,7 @@ const TasksModuleMedium = ({
   const canCreateTask = !readOnly && typeof onCreateTask === 'function';
 
   return (
-    <section className="h-full rounded-panel border border-border-muted bg-surface-elevated p-4" aria-label="Tasks module">
+    <section className="flex h-full min-h-0 flex-col rounded-panel border border-border-muted bg-surface-elevated p-4" aria-label="Tasks module">
       {!readOnly && composerOpen ? (
         <TaskComposer
           tasks={tasks}
@@ -433,6 +469,7 @@ const TasksModuleMedium = ({
           iconName="tasks"
           ctaLabel={canCreateTask ? 'New Task' : undefined}
           onCta={canCreateTask ? () => setComposerOpen(true) : undefined}
+          sizeTier="M"
         />
       ) : null}
       {!tasksLoading && displayedTasks.length > 0 ? (
@@ -461,6 +498,13 @@ const TasksModuleLarge = ({
   const [groupBy, setGroupBy] = useState<SortDimension>('date');
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerParentTask, setComposerParentTask] = useState<TaskItem | null>(null);
+  const filteredTasks = useMemo(
+    () => tasks.filter((task) => (activeUserId === 'all' || task.assigneeId === activeUserId) && (activeCategoryId === 'all' || task.categoryId === activeCategoryId)),
+    [activeCategoryId, activeUserId, tasks],
+  );
+  const visibleLargeTaskCount = useMemo(() => countLargeTaskSections(filteredTasks), [filteredTasks]);
+  const hasDefaultLargeFilters = activeUserId === 'all' && activeCategoryId === 'all';
+  const canCreateTask = !readOnly && typeof onCreateTask === 'function';
 
   const collaboratorOptions = useMemo(
     () => {
@@ -511,7 +555,7 @@ const TasksModuleLarge = ({
   };
 
   return (
-    <section className="h-full space-y-3" aria-label="Tasks module">
+    <section className="flex h-full min-h-0 flex-col gap-3" aria-label="Tasks module">
       {!readOnly ? (
         <div className="flex items-center justify-between gap-2">
           <button
@@ -542,39 +586,52 @@ const TasksModuleLarge = ({
         />
       ) : null}
 
-      <TasksTab
-        tasks={tasks}
-        collaborators={collaboratorOptions}
-        categories={categoryOptions}
-        activeUserId={activeUserId}
-        activeCategoryId={activeCategoryId}
-        sortChain={sortChainForGroupBy(groupBy)}
-        onSortChainChange={(chain) => setGroupBy(chain[0])}
-        onUserChange={setActiveUserId}
-        onCategoryChange={setActiveCategoryId}
-        onAddSubtask={
-          readOnly
-            ? undefined
-            : (task) => {
-                if (onAddSubtask) {
-                  onAddSubtask(task);
-                  return;
+      {!tasksLoading && hasDefaultLargeFilters && visibleLargeTaskCount === 0 ? (
+        <ModuleEmptyState
+          title="No tasks in this pane."
+          iconName="tasks"
+          description="Its Procrastinators vs ProTaskinators out here."
+          ctaLabel={canCreateTask ? 'New Task' : undefined}
+          onCta={canCreateTask ? () => handleOpenComposer(null) : undefined}
+          sizeTier="L"
+        />
+      ) : null}
+
+      {(!tasksLoading || tasks.length > 0) && !(hasDefaultLargeFilters && visibleLargeTaskCount === 0) ? (
+        <TasksTab
+          tasks={tasks}
+          collaborators={collaboratorOptions}
+          categories={categoryOptions}
+          activeUserId={activeUserId}
+          activeCategoryId={activeCategoryId}
+          sortChain={sortChainForGroupBy(groupBy)}
+          onSortChainChange={(chain) => setGroupBy(chain[0])}
+          onUserChange={setActiveUserId}
+          onCategoryChange={setActiveCategoryId}
+          onAddSubtask={
+            readOnly
+              ? undefined
+              : (task) => {
+                  if (onAddSubtask) {
+                    onAddSubtask(task);
+                    return;
+                  }
+                  handleOpenComposer(task);
                 }
-                handleOpenComposer(task);
-              }
-        }
-        onUpdateTaskStatus={readOnly ? undefined : onUpdateTaskStatus}
-        onUpdateTaskPriority={readOnly ? undefined : onUpdateTaskPriority}
-        onUpdateTaskDueDate={readOnly ? undefined : onUpdateTaskDueDate}
-        onDeleteTask={readOnly ? undefined : onDeleteTask}
-      />
+          }
+          onUpdateTaskStatus={readOnly ? undefined : onUpdateTaskStatus}
+          onUpdateTaskPriority={readOnly ? undefined : onUpdateTaskPriority}
+          onUpdateTaskDueDate={readOnly ? undefined : onUpdateTaskDueDate}
+          onDeleteTask={readOnly ? undefined : onDeleteTask}
+        />
+      ) : null}
     </section>
   );
 };
 
 export const TasksModuleSkin = ({ sizeTier, ...props }: TasksModuleSkinProps) => {
   return (
-    <div className="h-full">
+    <div className="h-full min-h-0">
       {sizeTier === 'S' ? <TasksModuleSmall {...props} /> : null}
       {sizeTier === 'M' ? <TasksModuleMedium {...props} /> : null}
       {sizeTier === 'L' ? <TasksModuleLarge {...props} /> : null}

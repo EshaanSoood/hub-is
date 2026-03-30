@@ -51,6 +51,7 @@ interface KanbanMetadataFieldIds {
 }
 
 interface KanbanModuleSkinProps {
+  sizeTier?: 'S' | 'M' | 'L';
   groups: KanbanModuleGroup[];
   groupOptions: KanbanGroupOption[];
   loading: boolean;
@@ -202,7 +203,7 @@ const CreateCardComposer = ({
         value={title}
         onChange={(event) => onTitleChange(event.target.value)}
         placeholder="Card title"
-        className="w-full rounded-control border border-border-muted bg-surface px-2 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="w-full rounded-control border border-border-muted bg-surface px-2 py-1.5 text-sm text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       />
       {error ? (
         <p className="text-[11px] text-danger" role="alert" aria-live="polite">
@@ -527,7 +528,7 @@ const SortableCard = ({
                   }
                   await saveTitle();
                 }}
-                className="w-full rounded-control border border-border-muted bg-surface px-2 py-1.5 text-sm font-bold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                className="w-full rounded-control border border-border-muted bg-surface px-2 py-1.5 text-sm font-bold text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 aria-label={`Edit title for ${record.title}`}
               />
               {updateError ? (
@@ -546,7 +547,7 @@ const SortableCard = ({
                     setUpdateError(null);
                     await savePriority(event.target.value);
                   }}
-                  className="mt-1 w-full rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="mt-1 w-full rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
                   {PRIORITY_OPTIONS.map((option) => (
                     <option key={option.value || 'none'} value={option.value}>
@@ -578,7 +579,7 @@ const SortableCard = ({
                     }
                     await saveAssignee();
                   }}
-                  className="mt-1 w-full rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="mt-1 w-full rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 />
               </label>
             ) : null}
@@ -916,6 +917,7 @@ const KanbanColumn = ({
 };
 
 export const KanbanModuleSkin = ({
+  sizeTier = 'M',
   groups,
   groupOptions,
   loading,
@@ -998,17 +1000,18 @@ export const KanbanModuleSkin = ({
 
   if (groups.length === 0) {
     if (!groupableFields?.length) {
-      return <ModuleEmptyState title="No kanban grouping configured yet." iconName="kanban" description="Can You Kanban?" />;
+      return <ModuleEmptyState title="No kanban grouping configured yet." iconName="kanban" description="Can You Kanban?" sizeTier={sizeTier} />;
     }
 
     return (
       <div className="space-y-3">
-        <ModuleEmptyState title="No kanban grouping configured yet." iconName="kanban" description="Can You Kanban?" />
+        <ModuleEmptyState title="No kanban grouping configured yet." iconName="kanban" description="Can You Kanban?" sizeTier={sizeTier} />
         <div className="mx-auto max-w-sm">
           <label className="block text-sm text-text">
             Group by field
             <select
               value={groupingFieldSelection}
+              disabled={readOnly}
               onChange={(event) => {
                 const fieldId = event.target.value;
                 setGroupingFieldSelection(fieldId);
@@ -1143,16 +1146,18 @@ export const KanbanModuleSkin = ({
   };
 
   return (
-    <div className="h-full space-y-3">
-      <div className="flex items-center justify-between gap-2 px-1">
-        <p className="text-xs text-muted">{canMove ? 'Drag to move.' : readOnly ? 'This board is read-only.' : 'Ungrouped.'}</p>
-      </div>
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      {canMove || !groupingConfigured ? (
+        <div className="flex items-center gap-2 px-1">
+          <p className="text-xs text-muted">{canMove ? 'Drag to move.' : 'Ungrouped.'}</p>
+        </div>
+      ) : null}
       {!groupingConfigured ? (
         <p className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-muted">{groupingMessage ?? 'No grouping.'}</p>
       ) : null}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
-        <div className="relative">
-          <div ref={scrollContainerRef} className="overflow-x-auto pb-1">
+        <div className="relative min-h-0 flex-1">
+          <div ref={scrollContainerRef} className="h-full overflow-x-auto pb-1">
             <div ref={scrollContentRef} className="flex gap-3">
               {groups.map((group) => (
                 <KanbanColumn

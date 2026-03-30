@@ -350,7 +350,7 @@ export const CalendarModuleSkin = ({
             value={draftTitle}
             onChange={(event) => setDraftTitle(event.target.value)}
             disabled={isCreatingEvent}
-            className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             placeholder="New event"
           />
         </label>
@@ -362,7 +362,7 @@ export const CalendarModuleSkin = ({
               value={draftStartTime}
               onChange={(event) => setDraftStartTime(event.target.value)}
               disabled={isCreatingEvent}
-              className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs text-muted">
@@ -372,7 +372,7 @@ export const CalendarModuleSkin = ({
               value={draftEndTime}
               onChange={(event) => setDraftEndTime(event.target.value)}
               disabled={isCreatingEvent}
-              className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             />
           </label>
         </div>
@@ -433,7 +433,7 @@ export const CalendarModuleSkin = ({
 
   if (!isSmallTier && !isMediumTier && events.length === 0) {
     return (
-      <div className="h-full space-y-3">
+      <div className="flex h-full min-h-0 flex-col gap-3">
         <ModuleEmptyState
           iconName="calendar"
           title={scope === 'relevant' ? 'No relevant events yet.' : 'No project events yet.'}
@@ -442,16 +442,10 @@ export const CalendarModuleSkin = ({
               ? 'Relevant is showing only your events right now. Switch to All to see the wider project calendar.'
               : 'Create an event to populate this calendar.'
           }
+          ctaLabel={onCreateEvent ? 'New Event' : undefined}
+          onCta={onCreateEvent ? () => openCreatePanel(todayKey) : undefined}
+          sizeTier={sizeTier}
         />
-        {onCreateEvent ? (
-          <button
-            type="button"
-            onClick={() => openCreatePanel(todayKey)}
-            className="rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          >
-            New Event
-          </button>
-        ) : null}
         {createEventPanel}
       </div>
     );
@@ -459,7 +453,7 @@ export const CalendarModuleSkin = ({
 
   if (isSmallTier) {
     return (
-      <div className="h-full space-y-3">
+      <div className="flex h-full min-h-0 flex-col gap-3">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -494,6 +488,7 @@ export const CalendarModuleSkin = ({
             iconName="calendar"
             title="No events today."
             description="The Times They Are A-Changin'"
+            sizeTier={sizeTier}
           />
         ) : (
           <ul className="space-y-2">
@@ -521,7 +516,7 @@ export const CalendarModuleSkin = ({
   }
 
   return (
-    <div className="h-full space-y-3">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
         <div role="group" aria-label="Calendar scope" className="flex items-center gap-0.5">
           {(['relevant', 'all'] as CalendarScope[]).map((item) => (

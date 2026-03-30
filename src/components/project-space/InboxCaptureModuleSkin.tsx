@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
-import { Icon, IconButton } from '../primitives';
+import { Icon } from '../primitives';
 import { ModuleEmptyState } from './ModuleFeedback';
 
 interface QuickThoughtEntry {
@@ -116,7 +116,7 @@ const QuickThoughtEditor = ({
       onChange={(event) => onChange(event.target.value)}
       rows={rows}
       readOnly={readOnly}
-      className="w-full resize-y border-0 bg-transparent px-sm py-sm text-sm text-text outline-none"
+      className="w-full resize-y border-0 bg-transparent px-sm py-sm text-sm text-text outline-none placeholder:text-text-secondary"
       placeholder={placeholder}
       aria-label="Quick Thought editor"
     />
@@ -416,33 +416,13 @@ export const QuickThoughtsModuleSkin = ({
   const showComposer = sizeTier !== 'S';
   const showArchivedSection = sizeTier === 'L' && archivedEntries.length > 0;
   return (
-    <div className="relative h-full rounded-panel border border-border-muted bg-surface-elevated p-sm">
+    <div className="flex h-full min-h-0 flex-col rounded-panel border border-border-muted bg-surface-elevated p-sm">
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
 
-      <IconButton
-        type="button"
-        variant="ghost"
-        size="sm"
-        disabled={!isInteractive}
-        onClick={() => {
-          setEditingEntryId(null);
-          setDraftText('');
-          setAnnouncement('Ready for a new Quick Thought.');
-        }}
-        className="absolute right-2 top-2 z-10 opacity-40 hover:opacity-100"
-        aria-label="New Quick Thought"
-      >
-        <Icon name="plus" className="text-[14px]" />
-      </IconButton>
-
       {showComposer ? (
-        readOnly ? (
-          <div className="rounded-control border border-border-muted bg-surface px-sm py-sm text-sm text-muted">
-            Quick Thoughts are read-only for you in this pane.
-          </div>
-        ) : (
+        !readOnly ? (
           <div ref={composerContainerRef}>
             <QuickThoughtEditor
               value={editingEntryId ? '' : draftText}
@@ -454,10 +434,10 @@ export const QuickThoughtsModuleSkin = ({
               onSave={addEntry}
             />
           </div>
-        )
+        ) : null
       ) : null}
 
-      <div className={showComposer ? 'mt-sm' : ''}>
+      <div className={showComposer ? 'mt-sm min-h-0 flex-1 overflow-y-auto pr-1' : 'min-h-0 flex-1 overflow-y-auto pr-1'}>
         {visibleEntries.length === 0 ? (
           <ModuleEmptyState
             title="Nothing captured for this pane yet."

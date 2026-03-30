@@ -54,6 +54,7 @@ interface TableViewOption {
 }
 
 interface TableModuleSkinProps {
+  sizeTier?: 'S' | 'M' | 'L';
   schema: TableSchema | null;
   records: HubRecordSummary[];
   loading: boolean;
@@ -211,6 +212,31 @@ const formatDisplayValue = (field: TableField | null, value: unknown): string =>
   }
 
   return rawValue;
+};
+
+const isFreeformTextField = (field: TableField | null): boolean => field?.type === 'text' || field?.type === 'longText';
+
+const isNotesField = (field: TableField): boolean => {
+  const normalized = `${field.field_id} ${field.name}`.toLocaleLowerCase();
+  return normalized.includes('notes');
+};
+
+const getFieldColumnSizing = (
+  field: TableField,
+  sizeTier: 'S' | 'M' | 'L',
+): Pick<ColumnDef<TableRowData>, 'size' | 'minSize' | 'maxSize'> => {
+  if (sizeTier === 'L' && isNotesField(field)) {
+    return {
+      size: 200,
+      minSize: 160,
+      maxSize: 220,
+    };
+  }
+
+  return {
+    size: 160,
+    minSize: 120,
+  };
 };
 
 const getEditableFieldValue = (field: TableField | null, value: unknown): string => {
@@ -372,6 +398,7 @@ const SortableHeaderCell = ({
 };
 
 export const TableModuleSkin = ({
+  sizeTier = 'M',
   schema,
   records,
   loading,
@@ -565,12 +592,18 @@ export const TableModuleSkin = ({
       }
 
       const displayValue = formatDisplayValue(field, row.fields[field.field_id]);
+      const displayLabel = displayValue || '—';
+      const textTitle = displayValue || undefined;
+      const textClassName = cn(
+        'block max-w-full truncate text-[13px] font-normal text-text-secondary',
+        sizeTier === 'L' && isNotesField(field) && 'max-w-[200px]',
+      );
 
       if (canEditCells) {
         return (
           <button
             type="button"
-            className="w-full truncate text-left text-[13px] font-normal text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="w-full min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             onClick={() =>
                 setEditableCell({
                   recordId: row.recordId,
@@ -582,14 +615,23 @@ export const TableModuleSkin = ({
               }
             aria-label={`Edit ${field.name} for ${row.title}`}
           >
-            {displayValue || '—'}
+            <span className={isFreeformTextField(field) ? textClassName : 'block max-w-full truncate text-[13px] font-normal text-text-secondary'} title={textTitle}>
+              {displayLabel}
+            </span>
           </button>
         );
       }
 
-      return <span className="truncate text-[13px] font-normal text-text-secondary">{displayValue || '—'}</span>;
+      return (
+        <span
+          className={isFreeformTextField(field) ? textClassName : 'block max-w-full truncate text-[13px] font-normal text-text-secondary'}
+          title={textTitle}
+        >
+          {displayLabel}
+        </span>
+      );
     },
-    [canEditCells, onOpenRecord],
+    [canEditCells, onOpenRecord, sizeTier],
   );
 
   const columns = useMemo<ColumnDef<TableRowData>[]>(() => {
@@ -598,8 +640,7 @@ export const TableModuleSkin = ({
         id: field.field_id,
         accessorFn: (row) => row.fields[field.field_id],
         header: field.name,
-        size: 160,
-        minSize: 120,
+        ...getFieldColumnSizing(field, sizeTier),
         sortingFn: (rowA, rowB, columnId) => {
           const left = toComparable(rowA.getValue(columnId), field.type);
           const right = toComparable(rowB.getValue(columnId), field.type);
@@ -657,7 +698,7 @@ export const TableModuleSkin = ({
       },
       ...fieldColumns,
     ];
-  }, [allVisibleSelected, filteredRows, renderDisplayCell, schema?.fields, selectedRecordIds, showBulkSelection, toggleSelectedRecord]);
+  }, [allVisibleSelected, filteredRows, renderDisplayCell, schema?.fields, selectedRecordIds, showBulkSelection, sizeTier, toggleSelectedRecord]);
 
   const table = useReactTable<TableRowData>({
     data: filteredRows,
@@ -907,7 +948,7 @@ export const TableModuleSkin = ({
     const canSelectView = Boolean(availableViews?.length && onSelectView);
 
     if (!canSelectView) {
-      return <ModuleEmptyState title="No table view found yet." iconName="table" description="Table For Two?" />;
+      return <ModuleEmptyState title="No table view found yet." iconName="table" description="Table For Two?" sizeTier={sizeTier} />;
     }
 
     return (
@@ -918,6 +959,7 @@ export const TableModuleSkin = ({
           description="Table For Two?"
           ctaLabel="Select table view"
           onCta={() => viewSelectRef.current?.focus()}
+          sizeTier={sizeTier}
         />
         <div className="mx-auto max-w-sm space-y-2">
           <label className="block text-sm text-text">
@@ -960,7 +1002,7 @@ export const TableModuleSkin = ({
   const isEmpty = modelRows.length === 0;
 
   return (
-    <section className="flex h-full flex-col rounded-panel border border-border-muted bg-surface-elevated" aria-label="Table module">
+    <section className="flex h-full min-h-0 flex-col rounded-panel border border-border-muted bg-surface-elevated" aria-label="Table module">
       <div className="sticky top-0 z-10 border-b border-border-muted bg-surface">
         {selectedRecordIds.size > 0 ? (
           <div className="border-b border-border-muted px-3 py-2">
@@ -1138,7 +1180,7 @@ export const TableModuleSkin = ({
         role="grid"
         aria-rowcount={modelRows.length}
         aria-colcount={table.getVisibleLeafColumns().length}
-        className="relative flex-1"
+        className="relative min-h-0 flex-1"
       >
         {isEmpty ? (
           <div className="p-3">
@@ -1148,6 +1190,7 @@ export const TableModuleSkin = ({
               description="Table For Two?"
               ctaLabel={canCreate ? 'Create record' : undefined}
               onCta={canCreate ? () => createTitleInputRef.current?.focus() : undefined}
+              sizeTier={sizeTier}
             />
           </div>
         ) : (
@@ -1252,7 +1295,7 @@ export const TableModuleSkin = ({
                                 }}
                                 onKeyDown={handleEditableCellKeyDown}
                                 className={cn(
-                                  'w-full rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none',
+                                  'w-full rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text placeholder:text-text-secondary focus-visible:outline-none',
                                   cell.column.id === 'title' && 'font-semibold',
                                 )}
                               />
@@ -1295,7 +1338,7 @@ export const TableModuleSkin = ({
                           }
                         }}
                         placeholder="New record..."
-                        className="min-w-0 flex-1 rounded-control border border-border-muted bg-surface px-2 py-1 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        className="min-w-0 flex-1 rounded-control border border-border-muted bg-surface px-2 py-1 text-sm text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                       />
                       <button
                         type="button"
@@ -1330,7 +1373,7 @@ export const TableModuleSkin = ({
                           error: null,
                         }))
                       }
-                      className="w-full rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      className="w-full rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                     >
                       <option value="">Select</option>
                       {readFieldOptions(field?.config).map((option) => (
