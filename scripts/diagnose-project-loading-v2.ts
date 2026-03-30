@@ -482,7 +482,7 @@ const main = async (): Promise<void> => {
 
     try {
       if (INCLUDE_SCREENSHOT) {
-      await page.screenshot({ path: SCREENSHOT_PATH, fullPage: true });
+        await page.screenshot({ path: SCREENSHOT_PATH, fullPage: true });
       }
     } catch {
       // Ignore screenshot fallback errors.

@@ -217,9 +217,24 @@ const TaskSummaryRow = ({
         className={cn('h-2 w-2 shrink-0 rounded-full', getPriorityClasses(priorityTone(task)).dot)}
         aria-hidden="true"
       />
-      <span className={cn('min-w-0 flex-1 truncate pr-16 text-sm text-text', task.status === 'cancelled' && 'line-through text-text-secondary')}>
+      <button
+        type="button"
+        onClick={() => setActiveItem(task.id, 'task', task.label)}
+        onFocus={() => setActiveItem(task.id, 'task', task.label)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            clearActiveItem();
+          }
+        }}
+        aria-label={`Insert task ${task.label}`}
+        aria-pressed={showInsertAction}
+        className={cn(
+          'min-w-0 flex-1 truncate pr-16 text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+          task.status === 'cancelled' && 'line-through text-text-secondary',
+        )}
+      >
         {task.label}
-      </span>
+      </button>
       <span className="shrink-0 text-xs text-muted">{formatDueLabel(task.dueAt)}</span>
       {showInsertAction ? (
         <button

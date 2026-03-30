@@ -433,6 +433,17 @@ export const CalendarModuleSkin = ({
     [eventsByDate, mediumWeekAnchorDate, todayKey],
   );
 
+  useEffect(() => {
+    if (!isMediumTier) {
+      return;
+    }
+
+    const selectedIsVisible = mediumWeekDays.some((day) => day.key === selectedDateKey);
+    if (!selectedIsVisible) {
+      setMediumWeekAnchorDate(selectedDate);
+    }
+  }, [isMediumTier, mediumWeekDays, selectedDate, selectedDateKey]);
+
   const monthCells = useMemo(() => buildMonthCells(monthCursor), [monthCursor]);
 
   useEffect(() => {
@@ -627,8 +638,8 @@ export const CalendarModuleSkin = ({
         {compactDayEvents.length === 0 ? (
           <ModuleEmptyState
             iconName="calendar"
-            title="No events today."
-            description="The Times They Are A-Changin'"
+            title={`No events for ${compactDateLabel}.`}
+            description="Try another day or create an event for this date."
             sizeTier={sizeTier}
           />
         ) : (

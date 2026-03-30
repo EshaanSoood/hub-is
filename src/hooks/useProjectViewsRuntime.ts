@@ -557,7 +557,7 @@ export const useProjectViewsRuntime = ({
           source_view_id: viewId,
           values: runtime.groupFieldId
             ? {
-                [runtime.groupFieldId]: payload.groupFieldValue || null,
+                [runtime.groupFieldId]: payload.groupFieldValue === KANBAN_UNASSIGNED_ID ? null : payload.groupFieldValue || null,
               }
             : undefined,
         });

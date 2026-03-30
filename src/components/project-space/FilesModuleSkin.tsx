@@ -226,7 +226,7 @@ const DropZone = ({
   const label = readOnly ? 'Files are read-only' : sizeTier === 'L' && hasFiles ? 'Drop more files' : 'Drop files';
   const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this pane.' : 'Drag files here or use upload.') : null;
   const buttonClassName = cn(
-    'flex items-center justify-center rounded-control border border-border-muted bg-surface text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+    'flex items-center justify-center rounded-control border border-border-muted bg-surface text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60',
     useStackedLayout ? 'h-8 min-w-[5.5rem] px-3 text-xs font-medium' : 'h-7 w-7 text-lg',
   );
   const baseBackground = useStackedLayout
@@ -286,8 +286,13 @@ const DropZone = ({
         ref={inputRef}
         type="file"
         multiple
+        disabled={readOnly}
         className="hidden"
         onChange={(event) => {
+          if (readOnly) {
+            event.target.value = '';
+            return;
+          }
           readFiles(event.target.files);
           event.target.value = '';
         }}

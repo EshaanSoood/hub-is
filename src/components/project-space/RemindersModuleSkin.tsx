@@ -277,15 +277,17 @@ const ReminderRibbonRow = ({
             Later
           </button>
         ) : null}
-        <button
-          type="button"
-          aria-label="Mark complete"
-          disabled={readOnly}
-          onClick={() => onDismiss(reminder)}
-          className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1 text-primary outline-none transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Icon name="checkmark" className="text-[14px]" />
-        </button>
+        {!showInsertAction ? (
+          <button
+            type="button"
+            aria-label="Mark complete"
+            disabled={readOnly}
+            onClick={() => onDismiss(reminder)}
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1 text-primary outline-none transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Icon name="checkmark" className="text-[14px]" />
+          </button>
+        ) : null}
         {showInsertAction ? (
           <button
             type="button"

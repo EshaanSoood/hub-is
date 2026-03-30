@@ -348,7 +348,8 @@ const matchesDatePreset = (value: unknown, preset: string): boolean => {
   if (preset === 'this-week') {
     const endOfWeek = new Date(today);
     endOfWeek.setHours(0, 0, 0, 0);
-    endOfWeek.setDate(endOfWeek.getDate() + (7 - endOfWeek.getDay()) % 7);
+    const daysUntilSaturday = (6 - endOfWeek.getDay() + 7) % 7;
+    endOfWeek.setDate(endOfWeek.getDate() + daysUntilSaturday);
     const endKey = toDayKey(endOfWeek);
     return dateKey >= todayKey && dateKey <= endKey;
   }
@@ -1105,9 +1106,12 @@ export const TableModuleSkin = ({
                   <span>Set status</span>
                   <select
                     defaultValue=""
-                    onChange={async (event) => {
-                      await runBulkStatusUpdate(event.target.value);
-                      event.currentTarget.value = '';
+                    onChange={(event) => {
+                      const selectEl = event.currentTarget;
+                      const value = selectEl.value;
+                      void runBulkStatusUpdate(value).finally(() => {
+                        selectEl.value = '';
+                      });
                     }}
                     disabled={bulkActionPending}
                     className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
