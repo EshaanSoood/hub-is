@@ -629,10 +629,13 @@ const SortableCard = ({
             </div>
           </div>
         ) : (
-          <div className="flex items-start gap-2">
+          <div className="relative">
             <button
               type="button"
-              className="flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className={cn(
+                'w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                (editable || deletable || canMove) && 'pr-20',
+              )}
               onClick={() => onOpenRecord(record.record_id)}
               aria-label={`Open record: ${record.title}`}
             >
@@ -657,10 +660,11 @@ const SortableCard = ({
               </span>
             </button>
 
-            <div className="flex items-start gap-1">
+            <div className="absolute right-0 top-0 flex items-start gap-1">
               {editable ? (
                 <IconButton
                   aria-label={`Edit ${record.title}`}
+                  variant="ghost"
                   size="sm"
                   className="opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-within/card:opacity-100"
                   onClick={() => {
@@ -675,6 +679,7 @@ const SortableCard = ({
               {deletable ? (
                 <IconButton
                   aria-label={`Delete ${record.title}`}
+                  variant="ghost"
                   size="sm"
                   className="opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-within/card:opacity-100"
                   onClick={() => {
@@ -856,6 +861,7 @@ const KanbanColumn = ({
           </span>
           <IconButton
             aria-label={isCollapsed ? `Expand ${group.label}` : `Collapse ${group.label}`}
+            variant="ghost"
             size="sm"
             onClick={onToggleCollapse}
           >

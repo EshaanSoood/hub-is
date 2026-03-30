@@ -66,15 +66,21 @@ export interface WorkViewKanbanRuntime {
       groupingConfigured: boolean;
       groupingMessage?: string;
       groupFieldId: string | null;
+      groupableFields?: Array<{ field_id: string; name: string }>;
       metadataFieldIds?: {
         priority?: string | null;
         assignee?: string | null;
         dueDate?: string | null;
       };
+      wipLimits?: Record<string, number>;
       error?: string;
     }
   >;
   onMoveRecord: (viewId: string, recordId: string, nextGroup: string) => void;
+  onCreateRecord?: (viewId: string, payload: { title: string; groupFieldValue: string }) => Promise<void>;
+  onConfigureGrouping?: (viewId: string, fieldId: string) => void;
+  onUpdateRecord?: (viewId: string, recordId: string, fields: Record<string, unknown>) => Promise<void>;
+  onDeleteRecord?: (viewId: string, recordId: string) => Promise<void>;
 }
 
 export interface WorkViewCalendarRuntime {

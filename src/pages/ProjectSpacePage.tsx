@@ -371,7 +371,10 @@ const ProjectSpaceWorkspace = ({
     focusedWorkViewError,
     focusedWorkViewId,
     focusedWorkViewLoading,
+    onCreateKanbanRecord,
+    onDeleteKanbanRecord,
     onMoveKanbanRecord,
+    onUpdateKanbanRecord,
     recordsError,
     refreshViewsAndRecords,
     selectedEmbedViewId,
@@ -722,8 +725,17 @@ const ProjectSpaceWorkspace = ({
         views: kanbanViews,
         defaultViewId: kanbanViews[0]?.view_id || null,
         dataByViewId: kanbanRuntimeDataByViewId,
+        onCreateRecord: async (viewId, payload) => {
+          await onCreateKanbanRecord(viewId, payload, activePane?.pane_id ?? null);
+        },
+        onDeleteRecord: async (_viewId, recordId) => {
+          await onDeleteKanbanRecord(recordId, activePane?.pane_id ?? null);
+        },
         onMoveRecord: (viewId, recordId, nextGroup) => {
           void onMoveKanbanRecord(viewId, recordId, nextGroup, activePane?.pane_id ?? null);
+        },
+        onUpdateRecord: async (viewId, recordId, fields) => {
+          await onUpdateKanbanRecord(viewId, recordId, fields, activePane?.pane_id ?? null);
         },
       },
       calendar: {
@@ -880,10 +892,13 @@ const ProjectSpaceWorkspace = ({
       activePane?.pane_id,
       accessToken,
       canWriteProject,
+      onCreateKanbanRecord,
+      onDeleteKanbanRecord,
       onMoveKanbanRecord,
       onOpenPaneFile,
       onUploadPaneFiles,
       onUploadProjectFiles,
+      onUpdateKanbanRecord,
       loadProjectTaskPage,
       paneFiles,
       paneTaskItems,
@@ -1269,15 +1284,38 @@ const ProjectSpaceWorkspace = ({
                           groupingConfigured={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupingConfigured ?? false}
                           readOnly={!activePaneCanEdit}
                           groupingMessage={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupingMessage}
+                          groupableFields={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupableFields}
                           metadataFieldIds={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.metadataFieldIds}
+                          wipLimits={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.wipLimits}
                           onOpenRecord={(recordId) => {
                             void openInspectorWithFocusRestore(recordId);
                           }}
+                          onCreateRecord={
+                            activePaneCanEdit
+                              ? async (payload) => {
+                                  await onCreateKanbanRecord(focusedWorkView.view_id, payload, activePane?.pane_id ?? null);
+                                }
+                              : undefined
+                          }
+                          onDeleteRecord={
+                            activePaneCanEdit
+                              ? async (recordId) => {
+                                  await onDeleteKanbanRecord(recordId, activePane?.pane_id ?? null);
+                                }
+                              : undefined
+                          }
                           onMoveRecord={(recordId, nextGroup) => {
                             if (activePaneCanEdit) {
                               void onMoveKanbanRecord(focusedWorkView.view_id, recordId, nextGroup, activePane?.pane_id ?? null);
                             }
                           }}
+                          onUpdateRecord={
+                            activePaneCanEdit
+                              ? async (recordId, fields) => {
+                                  await onUpdateKanbanRecord(focusedWorkView.view_id, recordId, fields, activePane?.pane_id ?? null);
+                                }
+                              : undefined
+                          }
                         />
                       </Suspense>
                     </div>

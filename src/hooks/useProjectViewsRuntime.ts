@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
+  archiveRecord,
+  createRecord,
   listTimeline,
   setRecordValues,
+  updateRecord,
 } from '../services/hub/records';
 import { listCollectionFields, listCollections } from '../services/hub/collections';
 import { listViews, queryView } from '../services/hub/views';
@@ -27,16 +30,19 @@ interface TableViewRuntimeState {
 }
 
 interface KanbanRuntimeState {
+  collectionId: string | null;
   groups: Array<{ id: string; label: string; records: HubRecordSummary[] }>;
   groupOptions: Array<{ id: string; label: string }>;
   groupingConfigured: boolean;
   groupingMessage: string;
   groupFieldId: string | null;
+  groupableFields?: Array<{ field_id: string; name: string }>;
   metadataFieldIds?: {
     priority?: string | null;
     assignee?: string | null;
     dueDate?: string | null;
   };
+  wipLimits?: Record<string, number>;
   loading?: boolean;
   error?: string;
 }
@@ -61,11 +67,13 @@ interface UseProjectViewsRuntimeParams {
 }
 
 const EMPTY_KANBAN_RUNTIME: KanbanRuntimeState = {
+  collectionId: null,
   groups: [],
   groupOptions: [],
   groupingConfigured: false,
   groupingMessage: 'No kanban view found yet.',
   groupFieldId: null,
+  groupableFields: [],
   metadataFieldIds: {},
 };
 
@@ -137,17 +145,49 @@ const readOptionValues = (fieldConfig: Record<string, unknown> | undefined): Arr
   });
 };
 
+const readGroupableFields = (
+  schema: { fields: HubCollectionField[] } | null | undefined,
+): Array<{ field_id: string; name: string }> =>
+  (schema?.fields ?? [])
+    .map((field) => ({ field_id: field.field_id, name: field.name.trim() }))
+    .filter((field) => field.name.length > 0);
+
+const readWipLimits = (config: Record<string, unknown>): Record<string, number> | undefined => {
+  const raw = config.wip_limits;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const parsedEntries = Object.entries(raw).flatMap(([groupId, value]) => {
+    const normalized =
+      typeof value === 'number'
+        ? value
+        : typeof value === 'string' && value.trim()
+          ? Number(value)
+          : Number.NaN;
+    if (!Number.isFinite(normalized) || normalized < 0) {
+      return [];
+    }
+    return [[groupId, Math.floor(normalized)] as const];
+  });
+
+  return parsedEntries.length > 0 ? Object.fromEntries(parsedEntries) : undefined;
+};
+
 const buildKanbanRuntime = (query: Awaited<ReturnType<typeof queryView>>): KanbanRuntimeState => {
   const config = query.view.config;
+  const groupableFields = readGroupableFields(query.schema);
   const groupFieldId = readConfigString(config, 'group_by_field_id');
   const metadataFieldIds = {
     priority: readConfigString(config, 'priority_field_id'),
     assignee: readConfigString(config, 'assignee_field_id'),
     dueDate: readConfigString(config, 'due_date_field_id'),
   };
+  const wipLimits = readWipLimits(config);
 
   if (!groupFieldId) {
     return {
+      collectionId: query.view.collection_id ?? query.schema?.collection_id ?? null,
       groups: [
         {
           id: KANBAN_UNASSIGNED_ID,
@@ -159,7 +199,9 @@ const buildKanbanRuntime = (query: Awaited<ReturnType<typeof queryView>>): Kanba
       groupingConfigured: false,
       groupingMessage: 'No grouping field configured. Rendering all cards in a single ungrouped column.',
       groupFieldId: null,
+      groupableFields,
       metadataFieldIds,
+      wipLimits,
     };
   }
 
@@ -204,12 +246,15 @@ const buildKanbanRuntime = (query: Awaited<ReturnType<typeof queryView>>): Kanba
   });
 
   return {
+    collectionId: query.view.collection_id ?? query.schema?.collection_id ?? null,
     groups,
     groupOptions,
     groupingConfigured: true,
     groupingMessage: '',
     groupFieldId,
+    groupableFields,
     metadataFieldIds,
+    wipLimits,
   };
 };
 
@@ -484,6 +529,119 @@ export const useProjectViewsRuntime = ({
     [accessToken, kanbanRuntimeByViewId, paneCanEditForUser, panes, projectId, refreshViewsAndRecords, sessionUserId, setTimeline],
   );
 
+  const onCreateKanbanRecord = useCallback(
+    async (
+      viewId: string,
+      payload: { title: string; groupFieldValue: string },
+      mutationPaneId: string | null,
+    ) => {
+      const mutationPane = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId) || null : null;
+      if (!mutationPane || !paneCanEditForUser(mutationPane, sessionUserId)) {
+        const message = 'Open an editable pane before creating cards.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      const runtime = kanbanRuntimeByViewId[viewId];
+      if (!runtime?.collectionId) {
+        const message = 'Cannot create card: Kanban collection is unavailable.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      try {
+        await createRecord(accessToken, projectId, {
+          collection_id: runtime.collectionId,
+          title: payload.title,
+          source_pane_id: mutationPane.pane_id,
+          source_view_id: viewId,
+          values: runtime.groupFieldId
+            ? {
+                [runtime.groupFieldId]: payload.groupFieldValue || null,
+              }
+            : undefined,
+        });
+        await refreshViewsAndRecords();
+        const nextTimeline = await listTimeline(accessToken, projectId);
+        setTimeline(nextTimeline);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to create kanban card.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+    },
+    [accessToken, kanbanRuntimeByViewId, paneCanEditForUser, panes, projectId, refreshViewsAndRecords, sessionUserId, setTimeline],
+  );
+
+  const onUpdateKanbanRecord = useCallback(
+    async (
+      viewId: string,
+      recordId: string,
+      fields: Record<string, unknown>,
+      mutationPaneId: string | null,
+    ) => {
+      const mutationPane = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId) || null : null;
+      if (!mutationPane || !paneCanEditForUser(mutationPane, sessionUserId)) {
+        const message = 'Open an editable pane before editing cards.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      const runtime = kanbanRuntimeByViewId[viewId];
+      if (!runtime) {
+        const message = 'Cannot update card: Kanban view is unavailable.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      const { title, ...valueFields } = fields;
+
+      try {
+        if (typeof title === 'string') {
+          await updateRecord(accessToken, recordId, { title });
+        }
+
+        if (Object.keys(valueFields).length > 0) {
+          await setRecordValues(accessToken, recordId, valueFields, {
+            mutation_context_pane_id: mutationPane.pane_id,
+          });
+        }
+
+        await refreshViewsAndRecords();
+        const nextTimeline = await listTimeline(accessToken, projectId);
+        setTimeline(nextTimeline);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to update kanban card.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+    },
+    [accessToken, kanbanRuntimeByViewId, paneCanEditForUser, panes, projectId, refreshViewsAndRecords, sessionUserId, setTimeline],
+  );
+
+  const onDeleteKanbanRecord = useCallback(
+    async (recordId: string, mutationPaneId: string | null) => {
+      const mutationPane = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId) || null : null;
+      if (!mutationPane || !paneCanEditForUser(mutationPane, sessionUserId)) {
+        const message = 'Open an editable pane before deleting cards.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      try {
+        await archiveRecord(accessToken, recordId);
+        await refreshViewsAndRecords();
+        const nextTimeline = await listTimeline(accessToken, projectId);
+        setTimeline(nextTimeline);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to delete kanban card.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+    },
+    [accessToken, paneCanEditForUser, panes, projectId, refreshViewsAndRecords, sessionUserId, setTimeline],
+  );
+
   const tableViews = useMemo(
     () => views.filter((view) => view.type === 'table').map((view) => ({ view_id: view.view_id, name: view.name })),
     [views],
@@ -537,6 +695,9 @@ export const useProjectViewsRuntime = ({
     focusedWorkViewError,
     refreshViewsAndRecords,
     onMoveKanbanRecord,
+    onCreateKanbanRecord,
+    onUpdateKanbanRecord,
+    onDeleteKanbanRecord,
     tableViews,
     kanbanViews,
     tableViewRuntimeDataById,
