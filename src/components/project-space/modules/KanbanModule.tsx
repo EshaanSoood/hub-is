@@ -37,9 +37,13 @@ export const KanbanModule = ({
 }: Props) => {
   const selectedViewId = resolveBoundViewId(module, runtime.views, runtime.defaultViewId);
   const viewData = selectedViewId ? runtime.dataByViewId[selectedViewId] : undefined;
+  const createRecord = canEditPane && selectedViewId ? runtime.onCreateRecord : undefined;
+  const configureGrouping = canEditPane && selectedViewId ? runtime.onConfigureGrouping : undefined;
+  const updateRecord = canEditPane && selectedViewId ? runtime.onUpdateRecord : undefined;
+  const deleteRecord = canEditPane && selectedViewId ? runtime.onDeleteRecord : undefined;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
       {runtime.views.length > 0 ? (
         <label className="block text-xs text-muted">
           Source view
@@ -58,21 +62,44 @@ export const KanbanModule = ({
         </label>
       ) : null}
       {viewData?.error ? <p className="text-xs text-danger">{viewData.error}</p> : null}
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <Suspense fallback={<ModuleLoadingState label="Loading kanban module" rows={5} />}>
           <KanbanModuleSkin
+            sizeTier={module.size_tier}
             groups={viewData?.groups || []}
             groupOptions={viewData?.groupOptions || []}
             loading={viewData?.loading ?? false}
             groupingConfigured={viewData?.groupingConfigured ?? false}
             groupingMessage={viewData?.groupingMessage}
+            groupableFields={viewData?.groupableFields}
             metadataFieldIds={viewData?.metadataFieldIds}
+            wipLimits={viewData?.wipLimits}
             onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
             onMoveRecord={(recordId, nextGroup) => {
               if (canEditPane && selectedViewId) {
                 runtime.onMoveRecord(selectedViewId, recordId, nextGroup);
               }
             }}
+            onCreateRecord={
+              createRecord && selectedViewId
+                ? (payload) => createRecord(selectedViewId, payload)
+                : undefined
+            }
+            onConfigureGrouping={
+              configureGrouping && selectedViewId
+                ? (fieldId) => configureGrouping(selectedViewId, fieldId)
+                : undefined
+            }
+            onUpdateRecord={
+              updateRecord && selectedViewId
+                ? (recordId, fields) => updateRecord(selectedViewId, recordId, fields)
+                : undefined
+            }
+            onDeleteRecord={
+              deleteRecord && selectedViewId
+                ? (recordId) => deleteRecord(selectedViewId, recordId)
+                : undefined
+            }
             readOnly={!canEditPane}
           />
         </Suspense>

@@ -65,6 +65,16 @@ export const formatDueLabel = (isoString: string | null): string => {
   return monthDayYearFormatter.format(dueAt);
 };
 
+export const formatShortDate = (value: string): string | null => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  const currentYear = new Date().getFullYear();
+  return parsed.getFullYear() === currentYear ? monthDayFormatter.format(parsed) : monthDayYearFormatter.format(parsed);
+};
+
 export const adaptTaskSummary = (task: HubTaskSummary): TaskItem => ({
   // TODO: resolve assignee display names from user service when task assignments expose only user IDs.
   assigneeLabel:

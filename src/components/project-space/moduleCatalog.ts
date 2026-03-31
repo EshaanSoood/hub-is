@@ -1,11 +1,15 @@
 import type { IconName } from '../primitives';
 
+export type ModuleSizeTier = 'S' | 'M' | 'L';
+
 type ModuleCatalogEntry = {
   type: string;
   label: string;
   description: string;
   lensConfigurable: boolean;
   iconName: IconName;
+  allowedSizeTiers: readonly ModuleSizeTier[];
+  defaultSize: ModuleSizeTier;
 };
 
 export const MODULE_CATALOG = [
@@ -15,6 +19,8 @@ export const MODULE_CATALOG = [
     description: 'Structured records with sortable fields.',
     lensConfigurable: true,
     iconName: 'menu',
+    allowedSizeTiers: ['M', 'L'],
+    defaultSize: 'M',
   },
   {
     type: 'kanban',
@@ -22,6 +28,8 @@ export const MODULE_CATALOG = [
     description: 'Board-style work staged across columns.',
     lensConfigurable: true,
     iconName: 'menu',
+    allowedSizeTiers: ['M', 'L'],
+    defaultSize: 'M',
   },
   {
     type: 'calendar',
@@ -29,6 +37,8 @@ export const MODULE_CATALOG = [
     description: 'Time-based planning and event visibility.',
     lensConfigurable: true,
     iconName: 'calendar',
+    allowedSizeTiers: ['S', 'M', 'L'],
+    defaultSize: 'L',
   },
   {
     type: 'tasks',
@@ -36,6 +46,8 @@ export const MODULE_CATALOG = [
     description: 'A focused task list for this pane.',
     lensConfigurable: false,
     iconName: 'tasks',
+    allowedSizeTiers: ['S', 'M', 'L'],
+    defaultSize: 'M',
   },
   {
     type: 'reminders',
@@ -43,6 +55,8 @@ export const MODULE_CATALOG = [
     description: 'Upcoming reminders and nudges.',
     lensConfigurable: false,
     iconName: 'reminders',
+    allowedSizeTiers: ['S', 'M', 'L'],
+    defaultSize: 'M',
   },
   {
     type: 'timeline',
@@ -50,6 +64,8 @@ export const MODULE_CATALOG = [
     description: 'Recent project movement in one stream.',
     lensConfigurable: true,
     iconName: 'back',
+    allowedSizeTiers: ['S', 'M', 'L'],
+    defaultSize: 'M',
   },
   {
     type: 'files',
@@ -57,6 +73,8 @@ export const MODULE_CATALOG = [
     description: 'Shared assets and uploads for the pane.',
     lensConfigurable: true,
     iconName: 'upload',
+    allowedSizeTiers: ['S', 'M', 'L'],
+    defaultSize: 'S',
   },
   {
     type: 'quick_thoughts',
@@ -64,6 +82,8 @@ export const MODULE_CATALOG = [
     description: 'Low-friction capture for ideas and notes.',
     lensConfigurable: false,
     iconName: 'thought-pile',
+    allowedSizeTiers: ['S', 'M', 'L'],
+    defaultSize: 'S',
   },
 ] as const satisfies readonly ModuleCatalogEntry[];
 
@@ -81,3 +101,12 @@ export const isLensConfigurable = (moduleType: string): boolean =>
 
 export const moduleIconName = (moduleType: string): IconName | null =>
   moduleCatalogEntry(moduleType)?.iconName ?? null;
+
+export const moduleAllowedSizeTiers = (moduleType: string): readonly ModuleSizeTier[] =>
+  moduleCatalogEntry(moduleType)?.allowedSizeTiers ?? ['S', 'M', 'L'];
+
+export const moduleDefaultSize = (moduleType: string): ModuleSizeTier =>
+  moduleCatalogEntry(moduleType)?.defaultSize ?? 'M';
+
+export const clampModuleSizeTier = (moduleType: string, sizeTier: ModuleSizeTier): ModuleSizeTier =>
+  moduleAllowedSizeTiers(moduleType).includes(sizeTier) ? sizeTier : moduleDefaultSize(moduleType);

@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react';
+import { useModuleInsertContext } from '../../context/ModuleInsertContext';
+import { useLongPress } from '../../hooks/useLongPress';
 import { Icon } from '../primitives';
 import { cn } from '../../lib/cn';
-import { PRIORITY_DOT_COLORS, type PriorityLevel } from './designTokens';
+import type { PriorityLevel } from './designTokens';
+import { getPriorityClasses } from '../../lib/priorityStyles';
 import { TasksTab, type SortChain, type SortDimension, type TaskItem, type TaskPriorityValue, type TaskStatus } from './TasksTab';
 import { formatDueLabel } from './taskAdapter';
+import { ModuleEmptyState } from './ModuleFeedback';
 
 interface TasksModuleSkinProps {
   sizeTier: 'S' | 'M' | 'L';
@@ -110,6 +114,8 @@ const compareMediumTasks = (left: TaskItem, right: TaskItem) => {
   return left.label.localeCompare(right.label) || left.id.localeCompare(right.id);
 };
 
+const countLargeTaskSections = (tasks: TaskItem[]): number => tasks.length;
+
 const humanizeOption = (value: string, fallback: string) => {
   if (!value || value === fallback) {
     return fallback.charAt(0).toUpperCase() + fallback.slice(1);
@@ -131,6 +137,95 @@ const sortChainForGroupBy = (groupBy: SortDimension): SortChain => {
     return ['category', 'date', 'priority'];
   }
   return ['date', 'priority', 'category'];
+};
+
+const TaskSummaryRows = ({
+  tasks,
+  readOnly = false,
+  onUpdateTaskStatus,
+}: {
+  tasks: TaskItem[];
+  readOnly?: boolean;
+  onUpdateTaskStatus?: TasksModuleSkinProps['onUpdateTaskStatus'];
+}) => (
+  <ul className="space-y-2">
+    {tasks.map((task) => (
+      <TaskSummaryRow key={task.id} task={task} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
+    ))}
+  </ul>
+);
+
+const TaskSummaryRow = ({
+  task,
+  readOnly = false,
+  onUpdateTaskStatus,
+}: {
+  task: TaskItem;
+  readOnly?: boolean;
+  onUpdateTaskStatus?: TasksModuleSkinProps['onUpdateTaskStatus'];
+}) => {
+  const nextStatus = getNextStatus(task.status);
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    setActiveItem(task.id, 'task', task.label);
+  });
+  const showInsertAction = activeItemId === task.id && activeItemType === 'task';
+
+  return (
+    <li className="relative flex items-center gap-2" {...longPressHandlers}>
+      <button
+        type="button"
+        disabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
+        onClick={() => {
+          void Promise.resolve()
+            .then(() => onUpdateTaskStatus?.(task.id, nextStatus))
+            .catch((error) => {
+              console.error('Failed to update task status:', error);
+            });
+        }}
+        aria-label={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span aria-hidden="true">{STATUS_SYMBOLS[task.status]}</span>
+      </button>
+      <span
+        className={cn('h-2 w-2 shrink-0 rounded-full', getPriorityClasses(priorityTone(task)).dot)}
+        aria-hidden="true"
+      />
+      <button
+        type="button"
+        onClick={() => setActiveItem(task.id, 'task', task.label)}
+        onFocus={() => setActiveItem(task.id, 'task', task.label)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            clearActiveItem();
+          }
+        }}
+        aria-label={`Insert task ${task.label}`}
+        aria-pressed={showInsertAction}
+        className={cn(
+          'min-w-0 flex-1 truncate pr-16 text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+          task.status === 'cancelled' && 'line-through text-text-secondary',
+        )}
+      >
+        {task.label}
+      </button>
+      <span className="shrink-0 text-xs text-muted">{formatDueLabel(task.dueAt)}</span>
+      {showInsertAction ? (
+        <button
+          type="button"
+          data-module-insert-ignore="true"
+          onClick={() => {
+            onInsertToEditor?.({ id: task.id, type: 'task', title: task.label });
+            clearActiveItem();
+          }}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+        >
+          Insert
+        </button>
+      ) : null}
+    </li>
+  );
 };
 
 interface TaskComposerProps {
@@ -205,7 +300,7 @@ const TaskComposer = ({
         placeholder="New task..."
         aria-label="New task title"
         className={cn(
-          'w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+          'w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
           compact ? 'text-sm' : 'text-sm',
         )}
       />
@@ -306,69 +401,86 @@ const TaskComposer = ({
 
 const TasksModuleSmall = ({
   tasks,
+  tasksLoading,
   onCreateTask,
+  onUpdateTaskStatus,
   readOnly = false,
-}: Pick<TasksModuleSkinProps, 'tasks' | 'onCreateTask' | 'readOnly'>) => {
-  if (readOnly) {
-    return <p className="rounded-panel border border-border-muted bg-surface-elevated p-3 text-sm text-muted">Tasks (read-only)</p>;
-  }
+}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'>) => {
+  const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks).slice(0, 3), [tasks]);
 
-  return <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {!readOnly ? (
+        <div className="shrink-0">
+          <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />
+        </div>
+      ) : null}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
+        {tasksLoading ? (
+          <p role="status" aria-live="polite" className="text-sm text-muted">
+            Loading tasks...
+          </p>
+        ) : null}
+        {!tasksLoading && visibleTasks.length === 0 ? (
+          <ModuleEmptyState
+            title="No tasks in this pane."
+            iconName="tasks"
+            sizeTier="S"
+          />
+        ) : null}
+        {!tasksLoading && visibleTasks.length > 0 ? (
+          <TaskSummaryRows tasks={visibleTasks} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
+        ) : null}
+      </div>
+    </div>
+  );
 };
 
 const TasksModuleMedium = ({
   tasks,
   tasksLoading,
+  onCreateTask,
   onUpdateTaskStatus,
   readOnly = false,
-}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onUpdateTaskStatus' | 'readOnly'>) => {
+}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'>) => {
+  const [composerOpen, setComposerOpen] = useState(false);
   const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks), [tasks]);
   const displayedTasks = visibleTasks.slice(0, 8);
+  const canCreateTask = !readOnly && typeof onCreateTask === 'function';
 
   return (
-    <section className="h-full rounded-panel border border-border-muted bg-surface-elevated p-4" aria-label="Tasks module">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
-          <Icon name="tasks" className="text-[16px]" />
-          Tasks
-        </p>
-        <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
-      </div>
-
+    <section className="flex h-full min-h-0 flex-col rounded-panel border border-border-muted bg-surface-elevated p-4" aria-label="Tasks module">
+      {canCreateTask && displayedTasks.length > 0 && !composerOpen ? (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setComposerOpen(true)}
+            className="rounded-control border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          >
+            New Task
+          </button>
+        </div>
+      ) : null}
+      {!readOnly && composerOpen ? (
+        <TaskComposer
+          tasks={tasks}
+          onCreateTask={onCreateTask}
+          submitLabel="Create task"
+          onCancel={() => setComposerOpen(false)}
+        />
+      ) : null}
       {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}
-      {!tasksLoading && displayedTasks.length === 0 ? <p className="text-sm text-muted">No tasks in this pane.</p> : null}
+      {!tasksLoading && displayedTasks.length === 0 ? (
+        <ModuleEmptyState
+          title="No tasks in this pane."
+          iconName="tasks"
+          ctaLabel={canCreateTask ? 'New Task' : undefined}
+          onCta={canCreateTask ? () => setComposerOpen(true) : undefined}
+          sizeTier="M"
+        />
+      ) : null}
       {!tasksLoading && displayedTasks.length > 0 ? (
-        <ul className="space-y-2">
-          {displayedTasks.map((task) => {
-            const nextStatus = getNextStatus(task.status);
-            return (
-              <li key={task.id} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
-                  onClick={() => {
-                    void Promise.resolve(onUpdateTaskStatus?.(task.id, nextStatus)).catch((error) => {
-                      console.error('Failed to update task status:', error);
-                    });
-                  }}
-                  aria-label={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span aria-hidden="true">{STATUS_SYMBOLS[task.status]}</span>
-                </button>
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: PRIORITY_DOT_COLORS[priorityTone(task)] }}
-                  aria-hidden="true"
-                />
-                <span className={cn('min-w-0 flex-1 truncate text-sm text-text', task.status === 'cancelled' && 'line-through text-text-secondary')}>
-                  {task.label}
-                </span>
-                <span className="shrink-0 text-xs text-muted">{formatDueLabel(task.dueAt)}</span>
-              </li>
-            );
-          })}
-        </ul>
+        <TaskSummaryRows tasks={displayedTasks} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
       ) : null}
       {!tasksLoading && tasks.length > displayedTasks.length ? (
         <p className="mt-3 text-xs text-muted">+{tasks.length - displayedTasks.length} more</p>
@@ -386,7 +498,6 @@ const TasksModuleLarge = ({
   onUpdateTaskDueDate,
   onDeleteTask,
   onAddSubtask,
-  hideHeader = false,
   readOnly = false,
 }: Omit<TasksModuleSkinProps, 'sizeTier'>) => {
   const [activeUserId, setActiveUserId] = useState('all');
@@ -394,6 +505,12 @@ const TasksModuleLarge = ({
   const [groupBy, setGroupBy] = useState<SortDimension>('date');
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerParentTask, setComposerParentTask] = useState<TaskItem | null>(null);
+  const filteredTasks = useMemo(
+    () => tasks.filter((task) => (activeUserId === 'all' || task.assigneeId === activeUserId) && (activeCategoryId === 'all' || task.categoryId === activeCategoryId)),
+    [activeCategoryId, activeUserId, tasks],
+  );
+  const visibleLargeTaskCount = useMemo(() => countLargeTaskSections(filteredTasks), [filteredTasks]);
+  const hasDefaultLargeFilters = activeUserId === 'all' && activeCategoryId === 'all';
 
   const collaboratorOptions = useMemo(
     () => {
@@ -444,16 +561,7 @@ const TasksModuleLarge = ({
   };
 
   return (
-    <section className="h-full space-y-3" aria-label="Tasks module">
-      {!hideHeader ? (
-        <div className="flex items-center justify-between gap-2">
-          <p className="inline-flex items-center gap-2 text-sm font-semibold text-text">
-            <Icon name="tasks" className="text-[16px]" />
-            Tasks
-          </p>
-          <span className="rounded-control border border-border-muted bg-surface px-2 py-0.5 text-xs text-muted">{tasks.length}</span>
-        </div>
-      ) : null}
+    <section className="flex h-full min-h-0 flex-col gap-3" aria-label="Tasks module">
       {!readOnly ? (
         <div className="flex items-center justify-between gap-2">
           <button
@@ -484,43 +592,53 @@ const TasksModuleLarge = ({
         />
       ) : null}
 
-      <TasksTab
-        tasks={tasks}
-        collaborators={collaboratorOptions}
-        categories={categoryOptions}
-        activeUserId={activeUserId}
-        activeCategoryId={activeCategoryId}
-        sortChain={sortChainForGroupBy(groupBy)}
-        onSortChainChange={(chain) => setGroupBy(chain[0])}
-        onUserChange={setActiveUserId}
-        onCategoryChange={setActiveCategoryId}
-        onAddSubtask={
-          readOnly
-            ? undefined
-            : (task) => {
-                if (onAddSubtask) {
-                  onAddSubtask(task);
-                  return;
+      {!tasksLoading && hasDefaultLargeFilters && visibleLargeTaskCount === 0 ? (
+        <ModuleEmptyState
+          title="No tasks in this pane."
+          iconName="tasks"
+          description="It's Procrastinators vs ProTaskinators out here."
+          sizeTier="L"
+        />
+      ) : null}
+
+      {(!tasksLoading || tasks.length > 0) && !(hasDefaultLargeFilters && visibleLargeTaskCount === 0) ? (
+        <TasksTab
+          tasks={tasks}
+          collaborators={collaboratorOptions}
+          categories={categoryOptions}
+          activeUserId={activeUserId}
+          activeCategoryId={activeCategoryId}
+          sortChain={sortChainForGroupBy(groupBy)}
+          onSortChainChange={(chain) => setGroupBy(chain[0])}
+          onUserChange={setActiveUserId}
+          onCategoryChange={setActiveCategoryId}
+          onAddSubtask={
+            readOnly
+              ? undefined
+              : (task) => {
+                  if (onAddSubtask) {
+                    onAddSubtask(task);
+                    return;
+                  }
+                  handleOpenComposer(task);
                 }
-                handleOpenComposer(task);
-              }
-        }
-        onUpdateTaskStatus={readOnly ? undefined : onUpdateTaskStatus}
-        onUpdateTaskPriority={readOnly ? undefined : onUpdateTaskPriority}
-        onUpdateTaskDueDate={readOnly ? undefined : onUpdateTaskDueDate}
-        onDeleteTask={readOnly ? undefined : onDeleteTask}
-      />
+          }
+          onUpdateTaskStatus={readOnly ? undefined : onUpdateTaskStatus}
+          onUpdateTaskPriority={readOnly ? undefined : onUpdateTaskPriority}
+          onUpdateTaskDueDate={readOnly ? undefined : onUpdateTaskDueDate}
+          onDeleteTask={readOnly ? undefined : onDeleteTask}
+        />
+      ) : null}
     </section>
   );
 };
 
 export const TasksModuleSkin = ({ sizeTier, ...props }: TasksModuleSkinProps) => {
-  const { hideHeader, ...rest } = props;
   return (
-    <div className="h-full">
-      {sizeTier === 'S' ? <TasksModuleSmall {...rest} /> : null}
-      {sizeTier === 'M' ? <TasksModuleMedium {...rest} /> : null}
-      {sizeTier === 'L' ? <TasksModuleLarge {...rest} hideHeader={hideHeader} /> : null}
+    <div className="flex h-full min-h-0 flex-col">
+      {sizeTier === 'S' ? <TasksModuleSmall {...props} /> : null}
+      {sizeTier === 'M' ? <TasksModuleMedium {...props} /> : null}
+      {sizeTier === 'L' ? <TasksModuleLarge {...props} /> : null}
     </div>
   );
 };

@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useModuleInsertContext } from '../../context/ModuleInsertContext';
+import { useLongPress } from '../../hooks/useLongPress';
+import { cn } from '../../lib/cn';
 import { Icon } from '../primitives';
 
 export interface FilesModuleItem {
@@ -194,9 +197,41 @@ const UploadProgressBar = ({ progress }: { progress: number }) => {
   );
 };
 
-const DropZone = ({ compact, onFiles, readOnly = false }: { compact?: boolean; onFiles: (files: File[]) => void; readOnly?: boolean }) => {
+const DropZone = ({
+  sizeTier,
+  hasFiles,
+  onFiles,
+  readOnly = false,
+}: {
+  sizeTier: 'S' | 'M' | 'L';
+  hasFiles: boolean;
+  onFiles: (files: File[]) => void;
+  readOnly?: boolean;
+}) => {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const useStackedLayout = sizeTier === 'L' && !hasFiles;
+  const containerClassName = cn(
+    'relative rounded-control border border-dashed',
+    useStackedLayout ? 'flex flex-col items-center justify-center gap-3 px-md py-6 text-center' : 'flex items-center justify-between',
+    sizeTier === 'S' ? 'gap-xs px-sm py-1.5' : null,
+    sizeTier === 'M' ? (hasFiles ? 'gap-xs px-sm py-1.5' : 'gap-sm px-sm py-2.5') : null,
+    sizeTier === 'L' && hasFiles ? 'gap-sm px-sm py-3.5' : null,
+  );
+  const contentClassName = cn('min-w-0', useStackedLayout ? 'flex flex-col items-center text-center' : 'flex items-center gap-2 text-left');
+  const iconClassName = cn(
+    'shrink-0 text-muted',
+    useStackedLayout ? 'rounded-full border border-border-muted bg-surface px-3 py-3' : 'text-[14px]',
+  );
+  const label = readOnly ? 'Files are read-only' : sizeTier === 'L' && hasFiles ? 'Drop more files' : 'Drop files';
+  const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this pane.' : 'Drag files here or use upload.') : null;
+  const buttonClassName = cn(
+    'flex items-center justify-center rounded-control border border-border-muted bg-surface text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60',
+    useStackedLayout ? 'h-8 min-w-[5.5rem] px-3 text-xs font-medium' : 'h-7 w-7 text-lg',
+  );
+  const baseBackground = useStackedLayout
+    ? 'color-mix(in srgb, var(--color-primary) 4%, transparent)'
+    : 'color-mix(in srgb, var(--color-surface-elevated) 65%, transparent)';
 
   const readFiles = (files: FileList | null) => {
     const nextFiles = Array.from(files ?? []);
@@ -223,30 +258,41 @@ const DropZone = ({ compact, onFiles, readOnly = false }: { compact?: boolean; o
         setDragOver(false);
         readFiles(event.dataTransfer.files);
       }}
-      className="relative flex items-center justify-between gap-xs rounded-control border border-dashed px-sm"
+      className={containerClassName}
       style={{
-        paddingTop: compact ? 'var(--space-xs)' : 'var(--space-sm)',
-        paddingBottom: compact ? 'var(--space-xs)' : 'var(--space-sm)',
         borderColor: dragOver ? 'var(--color-primary)' : 'var(--color-border-muted)',
-        background: dragOver ? 'color-mix(in srgb, var(--color-primary) 5%, transparent)' : 'transparent',
+        background: dragOver ? 'color-mix(in srgb, var(--color-primary) 5%, transparent)' : baseBackground,
       }}
     >
-      <span className="text-xs text-muted">{readOnly ? 'Read-only' : compact ? 'Drop files' : 'Drop files or use +'}</span>
+      <div className={contentClassName}>
+        <span className={iconClassName} aria-hidden="true">
+          <Icon name="upload" className={useStackedLayout ? 'text-base' : 'text-[14px]'} />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-xs font-medium text-text">{label}</span>
+          {helperText ? <span className="mt-1 block text-xs text-muted">{helperText}</span> : null}
+        </span>
+      </div>
       <button
         type="button"
         disabled={readOnly}
-        className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted bg-surface text-lg text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className={buttonClassName}
         onClick={() => inputRef.current?.click()}
         aria-label="Upload files"
       >
-        <Icon name="upload" className="text-[14px]" />
+        {useStackedLayout ? 'Upload' : <Icon name="plus" className="text-[14px]" />}
       </button>
       <input
         ref={inputRef}
         type="file"
         multiple
+        disabled={readOnly}
         className="hidden"
         onChange={(event) => {
+          if (readOnly) {
+            event.target.value = '';
+            return;
+          }
           readFiles(event.target.files);
           event.target.value = '';
         }}
@@ -259,36 +305,138 @@ const DropZone = ({ compact, onFiles, readOnly = false }: { compact?: boolean; o
 
 const FileRow = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: FilesModuleItem) => void }) => {
   const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    if (!uploading) {
+      setActiveItem(file.id, 'file', file.name);
+    }
+  });
+  const showInsertAction = activeItemId === file.id && activeItemType === 'file';
 
   return (
-    <button
-      type="button"
-      onClick={() => {
-        if (!uploading) {
-          onOpen(file);
-        }
-      }}
-      disabled={uploading}
-      className="group relative flex w-full items-center gap-xs overflow-visible rounded-control px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
-      style={{
-        background: 'transparent',
-      }}
-      aria-label={`Open ${file.name}`}
-    >
-      <span className="shrink-0 text-base" aria-hidden="true">
-        {iconForExt(file.ext)}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-medium text-text">{file.name}</span>
-        <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
-      </span>
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 rounded-control opacity-0 transition-opacity group-hover:opacity-100"
-        style={{ background: 'color-mix(in srgb, var(--color-primary) 6%, transparent)' }}
-      />
-      {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
-    </button>
+    <div className="relative" {...longPressHandlers}>
+      <button
+        type="button"
+        onClick={() => {
+          if (!uploading) {
+            onOpen(file);
+          }
+        }}
+        onFocus={() => {
+          if (!uploading) {
+            setActiveItem(file.id, 'file', file.name);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            clearActiveItem();
+          }
+        }}
+        disabled={uploading}
+        className="group relative flex w-full items-center gap-xs overflow-visible rounded-control bg-transparent px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+        aria-label={`Open ${file.name}`}
+      >
+        <span className="shrink-0 text-base" aria-hidden="true">
+          {iconForExt(file.ext)}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-medium text-text">{file.name}</span>
+          <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-control opacity-0 transition-opacity group-hover:opacity-100"
+          style={{ background: 'color-mix(in srgb, var(--color-primary) 6%, transparent)' }}
+        />
+        {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
+      </button>
+      {showInsertAction ? (
+        <button
+          type="button"
+          data-module-insert-ignore="true"
+          onClick={() => {
+            onInsertToEditor?.({ id: file.id, type: 'file', title: file.name });
+            clearActiveItem();
+          }}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+        >
+          Insert
+        </button>
+      ) : null}
+    </div>
+  );
+};
+
+const FileTile = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: FilesModuleItem) => void }) => {
+  const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
+  const useThumbnail = IMAGE_EXTS.has(file.ext.toLowerCase()) && Boolean(file.thumbnailUrl);
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    if (!uploading) {
+      setActiveItem(file.id, 'file', file.name);
+    }
+  });
+  const showInsertAction = activeItemId === file.id && activeItemType === 'file';
+
+  return (
+    <div role="listitem" className="relative" {...longPressHandlers}>
+      <button
+        type="button"
+        onClick={() => {
+          if (!uploading) {
+            onOpen(file);
+          }
+        }}
+        onFocus={() => {
+          if (!uploading) {
+            setActiveItem(file.id, 'file', file.name);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            clearActiveItem();
+          }
+        }}
+        disabled={uploading}
+        aria-label={`Open ${file.name}`}
+        className="relative w-full overflow-visible rounded-panel border border-border-muted bg-surface text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        <div
+          className="flex h-24 items-center justify-center overflow-hidden"
+          style={{
+            background: useThumbnail ? undefined : 'var(--color-surface-elevated)',
+            borderTopLeftRadius: 'var(--radius-panel)',
+            borderTopRightRadius: 'var(--radius-panel)',
+          }}
+        >
+          {useThumbnail ? (
+            <img src={file.thumbnailUrl} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-[32px]" aria-hidden="true">
+              {iconForExt(file.ext)}
+            </span>
+          )}
+        </div>
+        <div className="p-xs">
+          <span className="block truncate text-xs font-medium text-text">{file.name}</span>
+          <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
+        </div>
+        {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
+      </button>
+      {showInsertAction ? (
+        <button
+          type="button"
+          data-module-insert-ignore="true"
+          onClick={() => {
+            onInsertToEditor?.({ id: file.id, type: 'file', title: file.name });
+            clearActiveItem();
+          }}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+        >
+          Insert
+        </button>
+      ) : null}
+    </div>
   );
 };
 
@@ -326,39 +474,24 @@ const FilesModuleSmall = ({
   onOpenFile: (file: FilesModuleItem) => void;
   readOnly?: boolean;
 }) => {
-  const [query, setQuery] = useState('');
-
-  const visible = useMemo(() => {
-    if (!query.trim()) {
-      return files.slice(0, 4);
-    }
-    const lowered = query.toLowerCase();
-    return files.filter((file) => file.name.toLowerCase().includes(lowered)).slice(0, 4);
-  }, [files, query]);
+  const visible = useMemo(() => files.slice(0, 4), [files]);
 
   return (
-    <div className="flex flex-col gap-xs rounded-panel border border-border-muted bg-surface-elevated p-sm">
-      <DropZone compact onFiles={onUpload} readOnly={readOnly} />
+    <div className="flex h-full min-h-0 flex-col gap-xs rounded-panel border border-border-muted bg-surface-elevated p-sm">
+      <DropZone sizeTier="S" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
 
-      <div className="flex flex-col gap-[2px]">
-        {visible.length === 0 ? (
-          <p className="m-0 py-sm text-center text-xs text-muted">
-            {query ? 'No files match' : readOnly ? 'No files in this pane (read-only)' : 'Add files to this pane'}
-          </p>
-        ) : null}
-        {visible.map((file) => (
-          <FileRow key={file.id} file={file} onOpen={onOpenFile} />
-        ))}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-[2px] pr-1">
+          {visible.length === 0 ? (
+            <p className="m-0 py-sm text-center text-xs text-muted">
+              {files.length === 0 ? 'No files in this pane.' : 'Add files to this pane'}
+            </p>
+          ) : null}
+          {visible.map((file) => (
+            <FileRow key={file.id} file={file} onOpen={onOpenFile} />
+          ))}
+        </div>
       </div>
-
-      <input
-        type="search"
-        placeholder="Search files..."
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        className="w-full rounded-control border border-border-muted bg-surface px-xs py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-        aria-label="Search files"
-      />
     </div>
   );
 };
@@ -378,8 +511,8 @@ const FilesModuleMedium = ({
   const sorted = useMemo(() => sortFiles(files, sortKey), [files, sortKey]);
 
   return (
-    <div className="flex flex-col gap-sm rounded-panel border border-border-muted bg-surface-elevated p-md">
-      <DropZone onFiles={onUpload} readOnly={readOnly} />
+    <div className="flex h-full min-h-0 flex-col gap-sm rounded-panel border border-border-muted bg-surface-elevated p-md">
+      <DropZone sizeTier="M" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
 
       <div role="toolbar" aria-label="Sort files" className="flex items-center gap-1">
         <span className="mr-1 text-xs text-muted">Sort:</span>
@@ -388,10 +521,10 @@ const FilesModuleMedium = ({
         ))}
       </div>
 
-      <div role="list" aria-label="Files" className="flex flex-col gap-[2px]">
+      <div role="list" aria-label="Files" className="min-h-0 flex-1 overflow-y-auto pr-1">
         {sorted.length === 0 ? (
           <p className="m-0 py-lg text-center text-sm text-muted">
-            {readOnly ? 'No files in this pane (read-only)' : 'Add files to this pane'}
+            {files.length === 0 ? 'No files in this pane.' : 'Add files to this pane'}
           </p>
         ) : null}
         {sorted.map((file) => (
@@ -421,8 +554,8 @@ const FilesModuleLarge = ({
   const visible = useMemo(() => sortFiles(filterFiles(files, filterKey), sortKey), [files, filterKey, sortKey]);
 
   return (
-    <div className="flex flex-col gap-md rounded-panel border border-border-muted bg-surface-elevated p-md">
-      <DropZone onFiles={onUpload} readOnly={readOnly} />
+    <div className="flex h-full min-h-0 flex-col gap-md rounded-panel border border-border-muted bg-surface-elevated p-md">
+      <DropZone sizeTier="L" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
 
       <div className="flex flex-wrap items-center justify-between gap-sm">
         <div role="toolbar" aria-label="Filter by file type" className="flex flex-wrap gap-1">
@@ -446,51 +579,15 @@ const FilesModuleLarge = ({
 
       {visible.length === 0 ? (
         <p className="m-0 py-xl text-center text-sm text-muted">
-          {filterKey === 'all' ? (readOnly ? 'No files in this pane (read-only)' : 'Add files to this pane') : `No ${filterKey} files`}
+          {filterKey === 'all' ? (files.length === 0 ? 'No files in this pane.' : 'Add files to this pane') : `No ${filterKey} files`}
         </p>
       ) : (
-        <div role="list" aria-label="Files" className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-sm">
-          {visible.map((file) => {
-            const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
-            const useThumbnail = IMAGE_EXTS.has(file.ext.toLowerCase()) && Boolean(file.thumbnailUrl);
-            return (
-              <div role="listitem" key={file.id} className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!uploading) {
-                      onOpenFile(file);
-                    }
-                  }}
-                  disabled={uploading}
-                  aria-label={`Open ${file.name}`}
-                  className="relative w-full overflow-visible rounded-panel border border-border-muted bg-surface text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <div
-                    className="flex h-24 items-center justify-center overflow-hidden"
-                    style={{
-                      background: useThumbnail ? undefined : 'var(--color-surface-elevated)',
-                      borderTopLeftRadius: 'var(--radius-panel)',
-                      borderTopRightRadius: 'var(--radius-panel)',
-                    }}
-                  >
-                    {useThumbnail ? (
-                      <img src={file.thumbnailUrl} alt="" aria-hidden="true" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-[32px]" aria-hidden="true">
-                        {iconForExt(file.ext)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-xs">
-                    <span className="block truncate text-xs font-medium text-text">{file.name}</span>
-                    <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
-                  </div>
-                  {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
-                </button>
-              </div>
-            );
-          })}
+        <div role="list" aria-label="Files" className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-sm">
+            {visible.map((file) => (
+              <FileTile key={file.id} file={file} onOpen={onOpenFile} />
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -507,7 +604,7 @@ export const FilesModuleSkin = ({ sizeTier, files, onUpload, onOpenFile, readOnl
   }, [files]);
 
   return (
-    <section className="h-full space-y-2" aria-label="Files module">
+    <section className="flex h-full min-h-0 flex-col gap-2" aria-label="Files module">
       <p className="sr-only" aria-live="polite">
         {liveMessage}
       </p>

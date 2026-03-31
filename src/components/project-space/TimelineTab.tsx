@@ -1,5 +1,6 @@
 import type { PriorityLevel } from './designTokens';
-import { PRIORITY_DOT_COLORS } from './designTokens';
+import { cn } from '../../lib/cn';
+import { getPriorityClasses } from '../../lib/priorityStyles';
 
 export interface TimelineClusterItem {
   id: string;
@@ -36,7 +37,7 @@ export const TimelineTab = ({ clusters }: TimelineTabProps) => (
           {cluster.items.map((item, index) => (
             <li key={item.id} className="flex gap-3">
               <div className="flex w-4 flex-col items-center" aria-hidden="true">
-                <span className="mt-1 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIORITY_DOT_COLORS[item.priority] }} />
+                <span className={cn('mt-1 h-2.5 w-2.5 rounded-full', getPriorityClasses(item.priority).dot)} />
                 {index === cluster.items.length - 1 ? null : <span className="mt-1 w-px flex-1 bg-border-subtle" />}
               </div>
 

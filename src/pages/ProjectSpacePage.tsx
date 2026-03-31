@@ -7,6 +7,7 @@ import {
   type HubProjectMember,
 } from '../services/hub/types';
 import { useAuthz } from '../context/AuthzContext';
+import { ModuleInsertProvider } from '../context/ModuleInsertContext';
 import {
   buildPaneContextHref,
   buildProjectOverviewHref,
@@ -370,7 +371,14 @@ const ProjectSpaceWorkspace = ({
     focusedWorkViewError,
     focusedWorkViewId,
     focusedWorkViewLoading,
+    onCreateKanbanRecord,
+    onCreateTableRecord,
+    onDeleteKanbanRecord,
+    onDeleteTableRecords,
+    onBulkUpdateTableRecords,
     onMoveKanbanRecord,
+    onUpdateKanbanRecord,
+    onUpdateTableRecord,
     recordsError,
     refreshViewsAndRecords,
     selectedEmbedViewId,
@@ -716,13 +724,34 @@ const ProjectSpaceWorkspace = ({
         views: tableViews,
         defaultViewId: tableViews[0]?.view_id || null,
         dataByViewId: tableViewRuntimeDataById,
+        onCreateRecord: async (viewId, payload) => {
+          await onCreateTableRecord(viewId, payload, activePane?.pane_id ?? null);
+        },
+        onUpdateRecord: async (viewId, recordId, fields) => {
+          await onUpdateTableRecord(viewId, recordId, fields, activePane?.pane_id ?? null);
+        },
+        onDeleteRecords: async (viewId, recordIds) => {
+          await onDeleteTableRecords(viewId, recordIds, activePane?.pane_id ?? null);
+        },
+        onBulkUpdateRecords: async (viewId, recordIds, fields) => {
+          await onBulkUpdateTableRecords(viewId, recordIds, fields, activePane?.pane_id ?? null);
+        },
       },
       kanban: {
         views: kanbanViews,
         defaultViewId: kanbanViews[0]?.view_id || null,
         dataByViewId: kanbanRuntimeDataByViewId,
+        onCreateRecord: async (viewId, payload) => {
+          await onCreateKanbanRecord(viewId, payload, activePane?.pane_id ?? null);
+        },
+        onDeleteRecord: async (_viewId, recordId) => {
+          await onDeleteKanbanRecord(recordId, activePane?.pane_id ?? null);
+        },
         onMoveRecord: (viewId, recordId, nextGroup) => {
           void onMoveKanbanRecord(viewId, recordId, nextGroup, activePane?.pane_id ?? null);
+        },
+        onUpdateRecord: async (viewId, recordId, fields) => {
+          await onUpdateKanbanRecord(viewId, recordId, fields, activePane?.pane_id ?? null);
         },
       },
       calendar: {
@@ -879,10 +908,17 @@ const ProjectSpaceWorkspace = ({
       activePane?.pane_id,
       accessToken,
       canWriteProject,
+      onCreateKanbanRecord,
+      onCreateTableRecord,
+      onDeleteKanbanRecord,
+      onDeleteTableRecords,
+      onBulkUpdateTableRecords,
       onMoveKanbanRecord,
       onOpenPaneFile,
       onUploadPaneFiles,
       onUploadProjectFiles,
+      onUpdateKanbanRecord,
+      onUpdateTableRecord,
       loadProjectTaskPage,
       paneFiles,
       paneTaskItems,
@@ -1268,15 +1304,38 @@ const ProjectSpaceWorkspace = ({
                           groupingConfigured={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupingConfigured ?? false}
                           readOnly={!activePaneCanEdit}
                           groupingMessage={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupingMessage}
+                          groupableFields={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupableFields}
                           metadataFieldIds={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.metadataFieldIds}
+                          wipLimits={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.wipLimits}
                           onOpenRecord={(recordId) => {
                             void openInspectorWithFocusRestore(recordId);
                           }}
+                          onCreateRecord={
+                            activePaneCanEdit
+                              ? async (payload) => {
+                                  await onCreateKanbanRecord(focusedWorkView.view_id, payload, activePane?.pane_id ?? null);
+                                }
+                              : undefined
+                          }
+                          onDeleteRecord={
+                            activePaneCanEdit
+                              ? async (recordId) => {
+                                  await onDeleteKanbanRecord(recordId, activePane?.pane_id ?? null);
+                                }
+                              : undefined
+                          }
                           onMoveRecord={(recordId, nextGroup) => {
                             if (activePaneCanEdit) {
                               void onMoveKanbanRecord(focusedWorkView.view_id, recordId, nextGroup, activePane?.pane_id ?? null);
                             }
                           }}
+                          onUpdateRecord={
+                            activePaneCanEdit
+                              ? async (recordId, fields) => {
+                                  await onUpdateKanbanRecord(focusedWorkView.view_id, recordId, fields, activePane?.pane_id ?? null);
+                                }
+                              : undefined
+                          }
                         />
                       </Suspense>
                     </div>
@@ -1576,7 +1635,7 @@ const ProjectSpaceWorkspace = ({
 
       <Dialog open={Boolean(inspectorRecordId)} onOpenChange={(open) => (!open ? closeInspectorWithFocusRestore() : undefined)}>
         <DialogContent
-          className="left-0 top-0 h-screen max-w-[min(42rem,92vw)] translate-x-0 translate-y-0 overflow-y-auto rounded-none border-r border-border-muted"
+          className="!left-0 !top-0 h-screen w-full max-w-[min(42rem,92vw)] !translate-x-0 !translate-y-0 overflow-y-auto rounded-none sm:!rounded-none border-r border-border-muted"
           onCloseAutoFocus={(event) => {
             if (inspectorTriggerRef.current) {
               event.preventDefault();
@@ -1664,12 +1723,11 @@ const ProjectSpaceWorkspace = ({
                             type="button"
                             onClick={() => setSelectedAttachmentId(attachment.attachment_id)}
                             aria-pressed={selected}
-                            className="rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                            style={{
-                              borderColor: selected ? 'var(--color-primary)' : 'var(--color-border-muted)',
-                              color: selected ? 'var(--color-text)' : 'var(--color-muted)',
-                              background: selected ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)' : 'transparent',
-                            }}
+                            className={`rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                              selected
+                                ? 'border-primary text-text bg-primary/10'
+                                : 'border-border-muted text-muted bg-transparent'
+                            }`}
                           >
                             {attachment.name}
                           </button>
@@ -1858,17 +1916,19 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps) => {
   }
 
   return (
-    <ProjectSpaceWorkspace
-      activeTab={activeTab}
-      project={project}
-      panes={panes}
-      setPanes={setPanes}
-      projectMembers={projectMembers}
-      accessToken={accessToken}
-      sessionUserId={sessionSummary.userId}
-      refreshProjectData={refreshProjectData}
-      timeline={timeline}
-      setTimeline={setTimeline}
-    />
+    <ModuleInsertProvider>
+      <ProjectSpaceWorkspace
+        activeTab={activeTab}
+        project={project}
+        panes={panes}
+        setPanes={setPanes}
+        projectMembers={projectMembers}
+        accessToken={accessToken}
+        sessionUserId={sessionSummary.userId}
+        refreshProjectData={refreshProjectData}
+        timeline={timeline}
+        setTimeline={setTimeline}
+      />
+    </ModuleInsertProvider>
   );
 };

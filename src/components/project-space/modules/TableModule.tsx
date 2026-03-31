@@ -37,9 +37,13 @@ export const TableModule = ({
 }: Props) => {
   const selectedViewId = resolveBoundViewId(module, runtime.views, runtime.defaultViewId);
   const viewData = selectedViewId ? runtime.dataByViewId[selectedViewId] : undefined;
+  const createRecord = canEditPane && selectedViewId ? runtime.onCreateRecord : undefined;
+  const updateRecord = canEditPane && selectedViewId ? runtime.onUpdateRecord : undefined;
+  const deleteRecords = canEditPane && selectedViewId ? runtime.onDeleteRecords : undefined;
+  const bulkUpdateRecords = canEditPane && selectedViewId ? runtime.onBulkUpdateRecords : undefined;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
       {runtime.views.length > 0 ? (
         <label className="block text-xs text-muted">
           Source view
@@ -58,13 +62,34 @@ export const TableModule = ({
         </label>
       ) : null}
       {viewData?.error ? <p className="text-xs text-danger">{viewData.error}</p> : null}
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <Suspense fallback={<ModuleLoadingState label="Loading table module" rows={6} />}>
           <TableModuleSkin
+            sizeTier={module.size_tier}
             schema={viewData?.schema || null}
             records={viewData?.records || []}
             loading={viewData?.loading ?? false}
             onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
+            onCreateRecord={
+              createRecord && selectedViewId
+                ? async (payload) => createRecord(selectedViewId, payload)
+                : undefined
+            }
+            onUpdateRecord={
+              updateRecord && selectedViewId
+                ? async (recordId, fields) => updateRecord(selectedViewId, recordId, fields)
+                : undefined
+            }
+            onDeleteRecords={
+              deleteRecords && selectedViewId
+                ? async (recordIds) => deleteRecords(selectedViewId, recordIds)
+                : undefined
+            }
+            onBulkUpdateRecords={
+              bulkUpdateRecords && selectedViewId
+                ? async (recordIds, fields) => bulkUpdateRecords(selectedViewId, recordIds, fields)
+                : undefined
+            }
           />
         </Suspense>
       </div>

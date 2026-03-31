@@ -2,7 +2,7 @@ import { useId, useState, type RefObject } from 'react';
 import { cn } from '../../lib/cn';
 import { Dialog, Icon, Select } from '../primitives';
 import type { ContractModuleConfig } from './ModuleGrid';
-import { MODULE_CATALOG, moduleDescription, moduleIconName } from './moduleCatalog';
+import { MODULE_CATALOG, clampModuleSizeTier, moduleDescription, moduleIconName } from './moduleCatalog';
 
 type ModuleSizeTier = ContractModuleConfig['size_tier'];
 
@@ -86,53 +86,57 @@ export const AddModuleDialog = ({
         </div>
 
         <div className={cn('grid gap-3', previewGridClass[selectedSize])} aria-label="Module picker">
-          {MODULE_CATALOG.map((entry) => (
-            <button
-              key={entry.type}
-              type="button"
-              onClick={() => {
-                onAddModule(entry.type, selectedSize);
-                onClose();
-              }}
-              className={cn(
-                'group flex h-full flex-col rounded-panel border border-border-muted bg-surface text-left transition hover:border-primary hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-                previewCardClass[selectedSize],
-              )}
-              aria-label={`Add ${entry.label} module at ${selectedSize} size`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div
-                  className={cn(
-                    'inline-flex items-center justify-center rounded-control border border-border-muted bg-elevated text-primary',
-                    previewIconWrapClass[selectedSize],
-                  )}
-                >
-                  {moduleIconName(entry.type) ? (
-                    <Icon name={moduleIconName(entry.type)!} className="text-[1em]" />
-                  ) : (
-                    <Icon name="plus" className="text-[0.9em]" />
-                  )}
-                </div>
-                <span className="rounded-control border border-border-muted bg-elevated px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
-                  {selectedSize}
-                </span>
-              </div>
+          {MODULE_CATALOG.map((entry) => {
+            const displaySize = clampModuleSizeTier(entry.type, selectedSize);
 
-              <div className="mt-4 space-y-2">
-                <p className="text-sm font-semibold text-text">{entry.label}</p>
-                <p className="text-sm text-muted">{moduleDescription(entry.type)}</p>
-              </div>
-
-              <div className="mt-auto pt-4">
-                <div className="space-y-2 rounded-control border border-dashed border-border-muted bg-elevated/70 p-3">
-                  <div className={cn('h-2 rounded-full bg-border-subtle', previewLineWidthClass[selectedSize])} />
-                  <div className="h-2 w-full rounded-full bg-border-subtle" />
-                  {selectedSize !== 'S' ? <div className="h-2 w-4/5 rounded-full bg-border-subtle" /> : null}
-                  {selectedSize === 'L' ? <div className="h-12 rounded-control bg-surface" /> : null}
+            return (
+              <button
+                key={entry.type}
+                type="button"
+                onClick={() => {
+                  onAddModule(entry.type, displaySize);
+                  onClose();
+                }}
+                className={cn(
+                  'group flex h-full flex-col rounded-panel border border-border-muted bg-surface text-left transition hover:border-primary hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                  previewCardClass[displaySize],
+                )}
+                aria-label={`Add ${entry.label} module at ${displaySize} size`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div
+                    className={cn(
+                      'inline-flex items-center justify-center rounded-control border border-border-muted bg-elevated text-primary',
+                      previewIconWrapClass[displaySize],
+                    )}
+                  >
+                    {moduleIconName(entry.type) ? (
+                      <Icon name={moduleIconName(entry.type)!} className="text-[1em]" />
+                    ) : (
+                      <Icon name="plus" className="text-[0.9em]" />
+                    )}
+                  </div>
+                  <span className="rounded-control border border-border-muted bg-elevated px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+                    {displaySize}
+                  </span>
                 </div>
-              </div>
-            </button>
-          ))}
+
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-semibold text-text">{entry.label}</p>
+                  <p className="text-sm text-muted">{moduleDescription(entry.type)}</p>
+                </div>
+
+                <div className="mt-auto pt-4">
+                  <div className="space-y-2 rounded-control border border-dashed border-border-muted bg-elevated/70 p-3">
+                    <div className={cn('h-2 rounded-full bg-border-subtle', previewLineWidthClass[displaySize])} />
+                    <div className="h-2 w-full rounded-full bg-border-subtle" />
+                    {displaySize !== 'S' ? <div className="h-2 w-4/5 rounded-full bg-border-subtle" /> : null}
+                    {displaySize === 'L' ? <div className="h-12 rounded-control bg-surface" /> : null}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </Dialog>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { cn } from '../../lib/cn';
-import { PRIORITY_COLORS, PRIORITY_TINT_COLORS, type PriorityLevel } from './designTokens';
+import type { PriorityLevel } from './designTokens';
+import { getPriorityClasses } from '../../lib/priorityStyles';
 
 export interface FilterOption {
   id: string;
@@ -101,13 +102,7 @@ export const FilterBarOverlay = ({ groups, activeFilterIds, onToggleFilter, onCl
                   {group.options.map((option) => {
                     const active = activeSet.has(option.id);
                     const priorityLevel = group.id === 'priority' ? priorityById[option.id] : null;
-                    const priorityStyles = priorityLevel
-                      ? {
-                          color: PRIORITY_COLORS[priorityLevel],
-                          borderColor: PRIORITY_COLORS[priorityLevel],
-                          backgroundColor: PRIORITY_TINT_COLORS[priorityLevel],
-                        }
-                      : undefined;
+                    const priorityClasses = priorityLevel ? getPriorityClasses(priorityLevel) : null;
 
                     return (
                       <button
@@ -115,11 +110,12 @@ export const FilterBarOverlay = ({ groups, activeFilterIds, onToggleFilter, onCl
                         type="button"
                         aria-pressed={active}
                         onClick={() => onToggleFilter(option.id)}
-                        style={active ? priorityStyles : undefined}
                         className={cn(
                           'inline-flex items-center gap-1 rounded-control border px-2 py-1 text-xs transition-colors',
                           active
-                            ? priorityStyles ? '' : 'border-primary bg-primary/10 text-primary'
+                            ? priorityClasses
+                              ? cn(priorityClasses.text, priorityClasses.border, priorityClasses.tint)
+                              : 'border-primary bg-primary/10 text-primary'
                             : 'border-subtle bg-surface text-muted hover:text-text',
                         )}
                       >

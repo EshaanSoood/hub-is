@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { cn } from '../../lib/cn';
+import { PRIORITY_DOT_CLASS } from '../../lib/priorityStyles';
 
 export type TimelineEventType = 'task' | 'event' | 'milestone' | 'file' | 'workspace';
 
@@ -34,6 +36,14 @@ const FILTER_LABELS: Record<TimelineEventType, string> = {
   milestone: 'Milestones',
   file: 'Files',
   workspace: 'Workspace',
+};
+
+const TIMELINE_DOT_CLASS: Record<TimelineEventType, string> = {
+  task: PRIORITY_DOT_CLASS.high,
+  event: 'bg-primary',
+  milestone: PRIORITY_DOT_CLASS.medium,
+  file: PRIORITY_DOT_CLASS.low,
+  workspace: 'bg-capture-rail',
 };
 
 export const TimelineFeed = ({
@@ -93,7 +103,7 @@ export const TimelineFeed = ({
                 return (
                   <div key={item.id} className="flex gap-sm">
                     <div className="flex w-3 shrink-0 flex-col items-center">
-                      <span className="mt-1 h-2.5 w-2.5 rounded-full" style={{ background: item.dotColor }} />
+                      <span className={cn('mt-1 h-2.5 w-2.5 rounded-full', TIMELINE_DOT_CLASS[item.type])} />
                       {!isLast ? <span className="mt-1 w-px flex-1 bg-border-muted" /> : null}
                     </div>
 

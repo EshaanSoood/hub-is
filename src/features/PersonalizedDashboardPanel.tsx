@@ -395,7 +395,7 @@ const ProjectLensView = ({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-        <h2 className="text-base font-semibold text-text" style={{ fontFamily: 'Outfit, sans-serif' }}>
+        <h2 className="font-serif text-base font-semibold text-text">
           Project Lens
         </h2>
         <Popover open={filterOpen} onOpenChange={setFilterOpen}>
@@ -627,8 +627,7 @@ const StreamView = ({
               >
                 <h3
                   id={`stream-section-${section.id}`}
-                  className="mb-2 text-right text-xs font-medium text-text-secondary"
-                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                  className="mb-2 font-serif text-right text-xs font-medium text-text-secondary"
                 >
                   {section.label}
                 </h3>

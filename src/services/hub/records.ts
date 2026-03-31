@@ -61,10 +61,14 @@ export const updateRecord = async (
       category?: string | null;
     };
   },
+  options?: { mutation_context_pane_id?: string },
 ): Promise<HubRecordDetail> => {
   const data = await hubRequest<{ record: HubRecordDetail }>(accessToken, `/api/hub/records/${encodeURIComponent(recordId)}`, {
     method: 'PATCH',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      ...(options?.mutation_context_pane_id ? { mutation_context_pane_id: options.mutation_context_pane_id } : {}),
+    }),
   });
   return normalizeRecordDetail(data.record);
 };

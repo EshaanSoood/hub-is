@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useModuleInsertContext } from '../../context/ModuleInsertContext';
+import { useLongPress } from '../../hooks/useLongPress';
 import { Icon } from '../primitives';
+import { ModuleEmptyState } from './ModuleFeedback';
 
 interface QuickThoughtEntry {
   id: string;
@@ -113,7 +116,7 @@ const QuickThoughtEditor = ({
       onChange={(event) => onChange(event.target.value)}
       rows={rows}
       readOnly={readOnly}
-      className="w-full resize-y border-0 bg-transparent px-sm py-sm text-sm text-text outline-none"
+      className="w-full resize-y border-0 bg-transparent px-sm py-sm text-sm text-text outline-none placeholder:text-text-secondary"
       placeholder={placeholder}
       aria-label="Quick Thought editor"
     />
@@ -170,11 +173,19 @@ const ThoughtRow = ({
   readOnly?: boolean;
 }) => {
   const preview = clipPreview(entry.text);
+  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
+  const longPressHandlers = useLongPress(() => {
+    if (!isEditing) {
+      setActiveItem(entry.id, 'quick-thought', preview);
+    }
+  });
+  const showInsertAction = activeItemId === entry.id && activeItemType === 'quick-thought';
 
   return (
     <div
       className="relative rounded-control bg-surface-elevated px-sm py-xs"
       style={{ paddingLeft: 'calc(var(--space-sm) + 6px)', opacity: entry.archived ? 0.6 : 1 }}
+      {...(!isEditing ? longPressHandlers : {})}
     >
       <div
         aria-hidden="true"
@@ -251,6 +262,19 @@ const ThoughtRow = ({
               </button>
             ) : null}
           </div>
+          {showInsertAction ? (
+            <button
+              type="button"
+              data-module-insert-ignore="true"
+              onClick={() => {
+                onInsertToEditor?.({ id: entry.id, type: 'quick-thought', title: preview });
+                clearActiveItem();
+              }}
+              className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+            >
+              Insert
+            </button>
+          ) : null}
         </>
       )}
     </div>
@@ -270,6 +294,7 @@ export const QuickThoughtsModuleSkin = ({
   const [announcement, setAnnouncement] = useState('');
   const [draftText, setDraftText] = useState('');
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const composerContainerRef = useRef<HTMLDivElement | null>(null);
   const isInteractive = !readOnly;
 
   useEffect(() => {
@@ -390,57 +415,35 @@ export const QuickThoughtsModuleSkin = ({
   const visibleEntries = sizeTier === 'M' ? liveEntries.slice(0, 5) : liveEntries;
   const showComposer = sizeTier !== 'S';
   const showArchivedSection = sizeTier === 'L' && archivedEntries.length > 0;
-
   return (
-    <div className="h-full rounded-panel border border-border-muted bg-surface-elevated p-sm">
+    <div className="flex h-full min-h-0 flex-col rounded-panel border border-border-muted bg-surface-elevated p-sm">
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
 
-      <div className="mb-xs flex items-start justify-between gap-xs">
-        <div>
-          <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted">
-            <Icon name="thought-pile" className="text-[16px]" />
-            Quick Thoughts
-          </p>
-          <p className="mt-1 text-[11px] text-text-secondary">Pane-local capture. These notes stay in this workspace only.</p>
-        </div>
-        <button
-          type="button"
-          disabled={!isInteractive}
-          onClick={() => {
-            setEditingEntryId(null);
-            setDraftText('');
-            setAnnouncement('Ready for a new Quick Thought.');
-          }}
-          className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          aria-label="New Quick Thought"
-        >
-          <Icon name="plus" className="text-[14px]" />
-        </button>
-      </div>
-
       {showComposer ? (
-        readOnly ? (
-          <div className="rounded-control border border-border-muted bg-surface px-sm py-sm text-sm text-muted">
-            Quick Thoughts are read-only for you in this pane.
+        !readOnly ? (
+          <div ref={composerContainerRef}>
+            <QuickThoughtEditor
+              value={editingEntryId ? '' : draftText}
+              rows={sizeTier === 'L' ? 6 : 4}
+              placeholder="Capture a thought for this pane..."
+              saveLabel="Save Thought"
+              readOnly={!isInteractive}
+              onChange={setDraftText}
+              onSave={addEntry}
+            />
           </div>
-        ) : (
-          <QuickThoughtEditor
-            value={editingEntryId ? '' : draftText}
-            rows={sizeTier === 'L' ? 6 : 4}
-            placeholder="Capture a thought for this pane..."
-            saveLabel="Save Thought"
-            readOnly={!isInteractive}
-            onChange={setDraftText}
-            onSave={addEntry}
-          />
-        )
+        ) : null
       ) : null}
 
-      <div className={showComposer ? 'mt-sm' : ''}>
+      <div className={showComposer ? 'mt-sm min-h-0 flex-1 overflow-y-auto pr-1' : 'min-h-0 flex-1 overflow-y-auto pr-1'}>
         {visibleEntries.length === 0 ? (
-          <p className="m-0 py-sm text-center font-heading text-sm text-muted">Nothing captured for this pane yet.</p>
+          <ModuleEmptyState
+            title="Nothing captured for this pane yet."
+            iconName="thought-pile"
+            sizeTier={sizeTier}
+          />
         ) : (
           <div className="space-y-1">
             {visibleEntries.map((entry) => (

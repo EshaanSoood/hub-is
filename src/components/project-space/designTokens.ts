@@ -1,19 +1,5 @@
 export type PriorityLevel = 'high' | 'medium' | 'low';
 
-export const PRIORITY_COLORS: Record<PriorityLevel, string> = {
-  high: 'rgb(220 80 100)',
-  medium: 'rgb(245 168 80)',
-  low: 'rgb(130 190 160)',
-};
-
-export const PRIORITY_TINT_COLORS: Record<PriorityLevel, string> = {
-  high: 'rgb(220 80 100 / 0.15)',
-  medium: 'rgb(245 168 80 / 0.15)',
-  low: 'rgb(130 190 160 / 0.15)',
-};
-
-export const PRIORITY_DOT_COLORS: Record<PriorityLevel, string> = PRIORITY_COLORS;
-
 // Priority colors are reserved for priority semantics only.
 export const COLLABORATOR_TONES = [
   'bg-[rgb(86_143_191)]',

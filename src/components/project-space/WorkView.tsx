@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
+import { AccessibleDialog, Icon, IconButton } from '../primitives';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import type { HubCollectionField, HubPaneSummary, HubRecordSummary } from '../../services/hub/types';
 import type { CalendarScope } from './CalendarModuleSkin';
 import type { FilesModuleItem } from './FilesModuleSkin';
+import { clampModuleSizeTier } from './moduleCatalog';
 import type { TaskItem } from './TasksTab';
 import type { TimelineCluster, TimelineEventType } from './TimelineFeed';
 import {
@@ -51,6 +53,10 @@ export interface WorkViewTableRuntime {
   views: WorkViewBoundViewSummary[];
   defaultViewId: string | null;
   dataByViewId: Record<string, WorkViewTableViewData>;
+  onCreateRecord?: (viewId: string, payload: { title: string; fields: Record<string, unknown> }) => Promise<void>;
+  onUpdateRecord?: (viewId: string, recordId: string, fields: Record<string, unknown>) => Promise<void>;
+  onDeleteRecords?: (viewId: string, recordIds: string[]) => Promise<void>;
+  onBulkUpdateRecords?: (viewId: string, recordIds: string[], fields: Record<string, unknown>) => Promise<void>;
 }
 
 export interface WorkViewKanbanRuntime {
@@ -65,15 +71,21 @@ export interface WorkViewKanbanRuntime {
       groupingConfigured: boolean;
       groupingMessage?: string;
       groupFieldId: string | null;
+      groupableFields?: Array<{ field_id: string; name: string }>;
       metadataFieldIds?: {
         priority?: string | null;
         assignee?: string | null;
         dueDate?: string | null;
       };
+      wipLimits?: Record<string, number>;
       error?: string;
     }
   >;
   onMoveRecord: (viewId: string, recordId: string, nextGroup: string) => void;
+  onCreateRecord?: (viewId: string, payload: { title: string; groupFieldValue: string }) => Promise<void>;
+  onConfigureGrouping?: (viewId: string, fieldId: string) => void;
+  onUpdateRecord?: (viewId: string, recordId: string, fields: Record<string, unknown>) => Promise<void>;
+  onDeleteRecord?: (viewId: string, recordId: string) => Promise<void>;
 }
 
 export interface WorkViewCalendarRuntime {
@@ -219,13 +231,15 @@ const parseModules = (layoutConfig: Record<string, unknown> | null | undefined):
           }
         : undefined;
 
+    const normalizedSizeTier = sizeTier === 'S' || sizeTier === 'M' || sizeTier === 'L' ? sizeTier : 'M';
+
     modules.push({
       module_instance_id:
         typeof value.module_instance_id === 'string' && value.module_instance_id
           ? value.module_instance_id
           : `module-${index + 1}`,
       module_type: moduleType,
-      size_tier: sizeTier === 'S' || sizeTier === 'M' || sizeTier === 'L' ? sizeTier : 'M',
+      size_tier: clampModuleSizeTier(moduleType, normalizedSizeTier),
       lens: normalizeModuleLens(moduleType, lens),
       binding,
     });
@@ -298,6 +312,75 @@ const EMPTY_RUNTIME: WorkViewModuleRuntime = {
     onDismiss: async () => undefined,
     onCreate: async () => undefined,
   },
+};
+
+const DESKTOP_MEDIA_QUERY = '(min-width: 768px)';
+
+const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches : false,
+  );
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY);
+    const updateMatches = (matches: boolean) => {
+      setIsDesktop(matches);
+      if (matches) {
+        setOverlayOpen(false);
+      }
+    };
+    updateMatches(mediaQuery.matches);
+
+    const handleChange = (event: MediaQueryListEvent) => updateMatches(event.matches);
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  if (isDesktop) {
+    return <div>{moduleGrid}</div>;
+  }
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOverlayOpen(true)}
+        className="sticky top-0 z-20 w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-center text-sm font-semibold text-text md:hidden"
+      >
+        Modules
+      </button>
+
+      {overlayOpen ? (
+        <AccessibleDialog
+          open={overlayOpen}
+          onClose={() => setOverlayOpen(false)}
+          triggerRef={triggerRef}
+          title="Modules"
+          description="Manage and browse pane modules"
+          hideHeader
+          panelClassName="left-1/2 top-1/2 h-[100dvh] w-screen max-w-none -translate-x-1/2 -translate-y-1/2 rounded-none border-none bg-surface p-0 md:hidden"
+          contentClassName="mt-0 h-full overflow-y-auto p-4"
+        >
+          <div className="relative pt-10">
+            <IconButton aria-label="Close modules" className="absolute right-0 top-0" onClick={() => setOverlayOpen(false)}>
+              <Icon name="close" className="h-4 w-4" />
+            </IconButton>
+            {moduleGrid}
+          </div>
+        </AccessibleDialog>
+      ) : null}
+    </>
+  );
 };
 
 export const WorkView = ({
@@ -397,13 +480,14 @@ export const WorkView = ({
   };
 
   const handleAddModule = (moduleType: string, sizeTier: ContractModuleConfig['size_tier']) => {
+    const normalizedModuleType = normalizeModuleType(moduleType);
     const nextModules: ContractModuleConfig[] = [
       ...modules,
       {
         module_instance_id: `${moduleType}-${Date.now()}`,
-        module_type: normalizeModuleType(moduleType),
-        size_tier: sizeTier,
-        lens: defaultModuleLens(normalizeModuleType(moduleType)),
+        module_type: normalizedModuleType,
+        size_tier: clampModuleSizeTier(normalizedModuleType, sizeTier),
+        lens: defaultModuleLens(normalizedModuleType),
       },
     ];
     void saveModules(nextModules);
@@ -431,7 +515,7 @@ export const WorkView = ({
       module.module_instance_id === moduleInstanceId
         ? {
             ...module,
-            size_tier: sizeTier,
+            size_tier: clampModuleSizeTier(module.module_type, sizeTier),
           }
         : module,
     );
@@ -466,6 +550,80 @@ export const WorkView = ({
       },
     });
   };
+
+  const renderModuleBody = (module: ContractModuleConfig) => {
+    if (module.module_type === 'table') {
+      return (
+        <TableModule
+          module={module}
+          runtime={mergedRuntime.table}
+          canEditPane={canEditPane}
+          onOpenRecord={onOpenRecord}
+          onSetModuleBinding={handleSetModuleBinding}
+        />
+      );
+    }
+
+    if (module.module_type === 'kanban') {
+      return (
+        <KanbanModule
+          module={module}
+          runtime={mergedRuntime.kanban}
+          canEditPane={canEditPane}
+          onOpenRecord={onOpenRecord}
+          onSetModuleBinding={handleSetModuleBinding}
+        />
+      );
+    }
+
+    if (module.module_type === 'calendar') {
+      return <CalendarModule module={module} runtime={mergedRuntime.calendar} onOpenRecord={onOpenRecord} />;
+    }
+
+    if (module.module_type === 'tasks') {
+      return <TasksModule module={module} runtime={mergedRuntime.tasks} canEditPane={canEditPane} />;
+    }
+
+    if (module.module_type === 'files') {
+      return <FilesModule module={module} runtime={mergedRuntime.files} canEditPane={canEditPane} />;
+    }
+
+    if (module.module_type === 'reminders') {
+      return <RemindersModule module={module} runtime={mergedRuntime.reminders} />;
+    }
+
+    if (module.module_type === 'quick_thoughts') {
+      return (
+        <QuickThoughtsModule
+          module={module}
+          runtime={mergedRuntime.quickThoughts}
+          pane={pane}
+          canEditPane={canEditPane}
+        />
+      );
+    }
+
+    if (module.module_type === 'timeline') {
+      return <TimelineModule runtime={mergedRuntime.timeline} />;
+    }
+
+    return <p className="text-xs text-muted">{module.module_type}</p>;
+  };
+
+  const moduleGrid = (
+    <ModuleGrid
+      modules={modules}
+      onAddModule={handleAddModule}
+      onRemoveModule={handleRemoveModule}
+      onSetModuleLens={handleSetModuleLens}
+      onResizeModule={handleResizeModule}
+      showAddControls={canEditPane}
+      disableAdd={!canEditPane || isSavingModules}
+      disableMutations={!canEditPane || isSavingModules}
+      readOnlyState={!canEditPane}
+      renderModuleBody={renderModuleBody}
+    />
+  );
 
   return (
     <section className="space-y-4">
@@ -535,74 +693,9 @@ export const WorkView = ({
       </header>
 
       {modulesEnabled ? (
-        <ModuleGrid
-          modules={modules}
-          onAddModule={handleAddModule}
-          onRemoveModule={handleRemoveModule}
-          onSetModuleLens={handleSetModuleLens}
-          onResizeModule={handleResizeModule}
-          showAddControls={canEditPane}
-          disableAdd={!canEditPane || isSavingModules}
-          disableMutations={!canEditPane || isSavingModules}
-          renderModuleBody={(module) => {
-            if (module.module_type === 'table') {
-              return (
-                <TableModule
-                  module={module}
-                  runtime={mergedRuntime.table}
-                  canEditPane={canEditPane}
-                  onOpenRecord={onOpenRecord}
-                  onSetModuleBinding={handleSetModuleBinding}
-                />
-              );
-            }
-
-            if (module.module_type === 'kanban') {
-              return (
-                <KanbanModule
-                  module={module}
-                  runtime={mergedRuntime.kanban}
-                  canEditPane={canEditPane}
-                  onOpenRecord={onOpenRecord}
-                  onSetModuleBinding={handleSetModuleBinding}
-                />
-              );
-            }
-
-            if (module.module_type === 'calendar') {
-              return <CalendarModule runtime={mergedRuntime.calendar} onOpenRecord={onOpenRecord} />;
-            }
-
-            if (module.module_type === 'tasks') {
-              return <TasksModule module={module} runtime={mergedRuntime.tasks} canEditPane={canEditPane} />;
-            }
-
-            if (module.module_type === 'files') {
-              return <FilesModule module={module} runtime={mergedRuntime.files} canEditPane={canEditPane} />;
-            }
-
-            if (module.module_type === 'reminders') {
-              return <RemindersModule module={module} runtime={mergedRuntime.reminders} />;
-            }
-
-            if (module.module_type === 'quick_thoughts') {
-              return (
-                <QuickThoughtsModule
-                  module={module}
-                  runtime={mergedRuntime.quickThoughts}
-                  pane={pane}
-                  canEditPane={canEditPane}
-                />
-              );
-            }
-
-            if (module.module_type === 'timeline') {
-              return <TimelineModule runtime={mergedRuntime.timeline} />;
-            }
-
-            return <p className="text-xs text-muted">{module.module_type}</p>;
-          }}
-        />
+        <>
+          <MobileModulesOverlay key={pane.pane_id} moduleGrid={moduleGrid} />
+        </>
       ) : (
         <section className="rounded-panel border border-subtle bg-elevated p-4">
           <h3 className="heading-4 text-primary">Structured Modules Off</h3>
