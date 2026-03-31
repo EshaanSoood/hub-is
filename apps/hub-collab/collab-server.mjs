@@ -154,9 +154,6 @@ const authorizeToken = async (token, docId) => {
   const isOwner = normalizeProjectRole(projectMembership.role) === 'owner';
   const paneEditor = paneEditorStmt.get(doc.pane_id, user.user_id);
   const canEdit = isOwner || Boolean(paneEditor?.ok);
-  if (!canEdit) {
-    throw new Error('pane_write_required');
-  }
 
   return {
     docId: doc.doc_id,
