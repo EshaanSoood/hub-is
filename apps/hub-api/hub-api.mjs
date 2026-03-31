@@ -56,7 +56,7 @@ const WS_READY_STATE_OPEN = 1;
 const REMINDER_CHECK_INTERVAL_MS = 30_000;
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
-const REGISTERED_ROUTE_COUNT = 78;
+const REGISTERED_ROUTE_COUNT = 80;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const nowIso = () => new Date().toISOString();
@@ -477,6 +477,11 @@ const {
     insert: insertUserStmt,
     update: updateUserStmt,
   },
+  calendarFeedTokens: {
+    findByUserId: calendarFeedTokenByUserIdStmt,
+    findByToken: calendarFeedTokenByTokenStmt,
+    insert: insertCalendarFeedTokenStmt,
+  },
   projects: {
     updateTasksCollection: updateProjectTasksCollectionStmt,
     updateRemindersCollection: updateProjectRemindersCollectionStmt,
@@ -578,6 +583,33 @@ const {
     insert: insertNotificationStmt,
   },
 } = stmts;
+
+const getOrCreateCalendarFeedToken = (userId) => {
+  const normalizedUserId = asText(userId);
+  if (!normalizedUserId) {
+    throw new Error('User ID is required to issue a calendar feed token.');
+  }
+
+  const existing = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
+  if (existing) {
+    return existing;
+  }
+
+  return withTransaction(db, () => {
+    const current = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
+    if (current) {
+      return current;
+    }
+
+    const created = {
+      token: randomBytes(32).toString('hex'),
+      user_id: normalizedUserId,
+      created_at: nowIso(),
+    };
+    insertCalendarFeedTokenStmt.run(created.token, created.user_id, created.created_at);
+    return created;
+  });
+};
 
 const normalizeProjectRole = (role) => (asText(role) === 'owner' || asText(role) === 'admin' ? 'owner' : 'member');
 
@@ -2223,6 +2255,7 @@ const routeDeps = {
   buildSessionSummary,
   buildTaskSummaryForUser,
   capabilitiesByRecordStmt: stmts.recordCapabilities.listForRecord,
+  calendarFeedTokenByTokenStmt: stmts.calendarFeedTokens.findByToken,
   capabilitySet,
   collectionByIdStmt: stmts.collections.findById,
   collectionByNameStmt: stmts.collections.findByName,
@@ -2359,6 +2392,7 @@ const routeDeps = {
   homeEventsByProjectStmt: stmts.calendar.listEventsForProject,
   personalCapturesStmt: stmts.records.listPersonalCaptures,
   getTaskStateStmt: stmts.tasks.findState,
+  getOrCreateCalendarFeedToken,
   subtasksByParentStmt: stmts.tasks.listSubtasksByParent,
   subtaskCountByParentStmt: stmts.tasks.countSubtasksByParent,
   taskStateByRecordStmt: stmts.tasks.findState,
@@ -3069,6 +3103,16 @@ const server = createServer(async (request, response) => {
 
     if (request.method === 'GET' && pathname === '/api/hub/calendar') {
       await viewRoutes.listPersonalCalendar({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (request.method === 'GET' && pathname === '/api/hub/calendar.ics') {
+      await viewRoutes.getCalendarFeed({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (request.method === 'GET' && pathname === '/api/hub/calendar-feed-token') {
+      await userRoutes.getCalendarFeedToken({ request, response, requestUrl, pathname });
       return;
     }
 

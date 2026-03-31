@@ -142,6 +142,13 @@ const resetSchemaToContractV1 = (db) => {
         updated_at TEXT NOT NULL
       );
 
+      CREATE TABLE calendar_feed_tokens (
+        token TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+
       CREATE TABLE projects (
         project_id TEXT PRIMARY KEY,
         name TEXT NOT NULL,

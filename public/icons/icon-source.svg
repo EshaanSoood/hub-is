@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Hub OS app icon">
+  <rect width="512" height="512" rx="112" fill="#1c2430" />
+  <circle cx="386" cy="126" r="54" fill="#ffa3cd" opacity="0.18" />
+  <circle cx="120" cy="392" r="72" fill="#ffa3cd" opacity="0.1" />
+  <g fill="#f0f4f8" transform="translate(58 434) scale(0.62 -0.62)">
+    <path d="M153 362H565V287H153ZM560 650H640V0H560ZM80 650H160V0H80Z" />
+  </g>
+</svg>

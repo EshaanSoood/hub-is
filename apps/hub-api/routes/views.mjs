@@ -1,7 +1,60 @@
 import { validateCreateEventRequest } from '../lib/validators.mjs';
 
+const escapeIcsText = (value) =>
+  String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\r?\n/g, '\\n')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,');
+
+const foldIcsLine = (line) => {
+  const chunks = [];
+  let remaining = String(line || '');
+
+  while (remaining.length > 75) {
+    chunks.push(remaining.slice(0, 75));
+    remaining = remaining.slice(75);
+  }
+
+  chunks.push(remaining);
+  return chunks.join('\r\n ');
+};
+
+const formatIcsDateTime = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const pad = (part) => String(part).padStart(2, '0');
+  return [
+    date.getUTCFullYear(),
+    pad(date.getUTCMonth() + 1),
+    pad(date.getUTCDate()),
+    'T',
+    pad(date.getUTCHours()),
+    pad(date.getUTCMinutes()),
+    pad(date.getUTCSeconds()),
+    'Z',
+  ].join('');
+};
+
+const calendarFeedResponse = ({ body, statusCode = 200, ALLOWED_ORIGIN }) => ({
+  statusCode,
+  headers: {
+    'Content-Type': 'text/calendar; charset=utf-8',
+    'Content-Disposition': 'inline; filename="hub-calendar.ics"',
+    'Cache-Control': 'private, max-age=300',
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+    'Access-Control-Allow-Methods': 'GET,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Hub-Dev-Auth',
+  },
+  body,
+});
+
 export const createViewRoutes = (deps) => {
   const {
+    ALLOWED_ORIGIN,
     withAuth,
     withTransaction,
     withProjectPolicyGate,
@@ -46,6 +99,7 @@ export const createViewRoutes = (deps) => {
     clearRemindersStmt,
     insertReminderStmt,
     calendarRecordsByProjectStmt,
+    calendarFeedTokenByTokenStmt,
     eventParticipantByRecordAndUserStmt,
     projectMembershipsByUserStmt,
     projectByIdStmt,
@@ -431,6 +485,82 @@ export const createViewRoutes = (deps) => {
     send(response, jsonResponse(200, okEnvelope({ mode, events })));
   };
 
+  const getCalendarFeed = async ({ request, response, requestUrl }) => {
+    const token = asText(requestUrl.searchParams.get('token'));
+    if (!token) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'token is required.')));
+      return;
+    }
+
+    const tokenRecord = calendarFeedTokenByTokenStmt.get(token);
+    if (!tokenRecord?.user_id) {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Calendar feed not found.')));
+      return;
+    }
+
+    const visibleProjectIds = Array.from(
+      new Set(
+        projectMembershipsByUserStmt
+          .all(tokenRecord.user_id)
+          .map((membership) => asText(membership.project_id))
+          .filter(Boolean),
+      ),
+    );
+
+    const mergedRecords = visibleProjectIds.flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId));
+    const events = mergedRecords
+      .flatMap((record) => {
+        const eventState = eventStateByRecordStmt.get(record.record_id);
+        if (!eventState) {
+          return [];
+        }
+
+        const dtStart = formatIcsDateTime(eventState.start_dt);
+        const dtEnd = formatIcsDateTime(eventState.end_dt);
+        if (!dtStart || !dtEnd) {
+          return [];
+        }
+
+        const project = projectByIdStmt.get(record.project_id);
+        const descriptionParts = [];
+        if (project?.name) {
+          descriptionParts.push(`Project: ${project.name}`);
+        }
+        if (eventState.location) {
+          descriptionParts.push(`Location: ${eventState.location}`);
+        }
+
+        const dtStamp = formatIcsDateTime(eventState.updated_at || record.updated_at || new Date().toISOString());
+        return [{
+          start: eventState.start_dt,
+          lines: [
+            'BEGIN:VEVENT',
+            `UID:${escapeIcsText(`${record.record_id}@hub.eshaansood.org`)}`,
+            `DTSTAMP:${dtStamp || formatIcsDateTime(new Date().toISOString())}`,
+            `DTSTART:${dtStart}`,
+            `DTEND:${dtEnd}`,
+            `SUMMARY:${escapeIcsText(record.title || 'Untitled Event')}`,
+            `DESCRIPTION:${escapeIcsText(descriptionParts.join('\n'))}`,
+            'END:VEVENT',
+          ],
+        }];
+      })
+      .sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime());
+
+    const body = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Hub OS//Calendar//EN',
+      ...events.flatMap((event) => event.lines),
+      'END:VCALENDAR',
+    ]
+      .map(foldIcsLine)
+      .join('\r\n')
+      .concat('\r\n');
+
+    send(response, calendarFeedResponse({ body, ALLOWED_ORIGIN }));
+  };
+
   const listProjectTimeline = async ({ request, response, requestUrl, params }) => {
     const auth = await withAuth(request);
     if (auth.error) {
@@ -456,6 +586,7 @@ export const createViewRoutes = (deps) => {
 
   return {
     createEventFromNlp,
+    getCalendarFeed,
     listPersonalCalendar,
     createView,
     listProjectCalendar,

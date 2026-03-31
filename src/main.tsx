@@ -9,6 +9,12 @@ import { SmartWakeProvider } from './context/SmartWakeContext';
 import '../tokens.css';
 import '../globals.css';
 
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js');
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
     <AuthzProvider>

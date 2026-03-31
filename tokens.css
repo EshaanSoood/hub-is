@@ -6,6 +6,7 @@
   --leading-normal: 1.5;
 
   /* Base Dark Denim Backgrounds */
+  --color-bg: rgb(28 36 48);
   --color-surface: rgb(28 36 48);
   --color-surface-elevated: rgb(38 48 64);
 
@@ -95,6 +96,7 @@
 
 @media (prefers-color-scheme: light) {
   :root {
+    --color-bg: rgb(244 247 250);
     --color-surface: rgb(244 247 250);
     --color-surface-elevated: rgb(255 255 255);
     --color-text: rgb(28 36 48);

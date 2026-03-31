@@ -22,6 +22,14 @@ export const createStatements = (db) => ({
       WHERE user_id = ?
     `),
   },
+  calendarFeedTokens: {
+    findByUserId: db.prepare('SELECT * FROM calendar_feed_tokens WHERE user_id = ? LIMIT 1'),
+    findByToken: db.prepare('SELECT * FROM calendar_feed_tokens WHERE token = ? LIMIT 1'),
+    insert: db.prepare(`
+      INSERT INTO calendar_feed_tokens (token, user_id, created_at)
+      VALUES (?, ?, ?)
+    `),
+  },
   projects: {
     updateTasksCollection: db.prepare(`
       UPDATE projects

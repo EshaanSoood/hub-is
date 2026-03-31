@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
 import { useProjects } from '../../context/ProjectsContext';
+import { ensureCalendarFeedToken } from '../../services/sessionService';
 import { QuickCapturePanel } from '../../features/QuickCapture';
 import { TaskCreateDialog } from '../project-space/TaskCreateDialog';
 import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
@@ -23,7 +24,7 @@ import { CalendarModuleSkin, type CalendarScope } from '../project-space/Calenda
 import { RemindersModuleSkin } from '../project-space/RemindersModuleSkin';
 import { TasksModuleSkin } from '../project-space/TasksModuleSkin';
 import { adaptTaskSummaries } from '../project-space/taskAdapter';
-import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
+import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent, notifyError, notifyInfo, notifySuccess } from '../primitives';
 import { NotificationsPanel } from './NotificationsPanel';
 import { ProfileMenu } from './ProfileMenu';
 import { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from './QuickAddDialogs';
@@ -88,6 +89,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installState, setInstallState] = useState<{ installed: boolean; iosSafari: boolean }>({
+    installed: false,
+    iosSafari: false,
+  });
   const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
   const [quickNavQuery, setQuickNavQuery] = useState('');
   const [quickNavActiveIndex, setQuickNavActiveIndex] = useState(-1);
@@ -1221,6 +1227,104 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     await remindersRuntime.refresh();
   }, [accessToken, remindersRuntime]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const standaloneMedia = window.matchMedia('(display-mode: standalone)');
+    const computeInstallState = () => {
+      const userAgent = window.navigator.userAgent;
+      const isIos = /iPhone|iPad|iPod/i.test(userAgent)
+        || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+      const isSafari = /Safari/i.test(userAgent)
+        && !/Chrome|CriOS|Edg|OPR|Firefox|FxiOS|Android/i.test(userAgent);
+      const installed = standaloneMedia.matches || window.navigator.standalone === true;
+      setInstallState({
+        installed,
+        iosSafari: isIos && isSafari,
+      });
+      if (installed) {
+        setDeferredInstallPrompt(null);
+      }
+    };
+
+    const onBeforeInstallPrompt = (event: Event) => {
+      const installEvent = event as BeforeInstallPromptEvent;
+      installEvent.preventDefault();
+      setDeferredInstallPrompt(installEvent);
+      computeInstallState();
+    };
+
+    const onAppInstalled = () => {
+      setDeferredInstallPrompt(null);
+      computeInstallState();
+    };
+
+    computeInstallState();
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+    standaloneMedia.addEventListener('change', computeInstallState);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
+      standaloneMedia.removeEventListener('change', computeInstallState);
+    };
+  }, []);
+
+  const onCopyCalendarLink = useCallback(async () => {
+    if (!accessToken) {
+      notifyError('Could not copy calendar link.', 'An authenticated session is required.');
+      return;
+    }
+
+    try {
+      const token = await ensureCalendarFeedToken(accessToken);
+      const calendarUrl = `https://eshaansood.org/api/hub/calendar.ics?token=${encodeURIComponent(token)}`;
+      await navigator.clipboard.writeText(calendarUrl);
+      notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
+    } catch (error) {
+      notifyError('Could not copy calendar link.', error instanceof Error ? error.message : undefined);
+    }
+  }, [accessToken]);
+
+  const onInstallHubOs = useCallback(async () => {
+    if (installState.installed) {
+      return;
+    }
+
+    if (deferredInstallPrompt) {
+      setProfileOpen(false);
+      const promptEvent = deferredInstallPrompt;
+      setDeferredInstallPrompt(null);
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice.catch(() => null);
+      if (choice?.outcome === 'dismissed') {
+        notifyInfo('Install cancelled.');
+      }
+      return;
+    }
+
+    if (installState.iosSafari) {
+      setProfileOpen(false);
+      notifyInfo('Add to Home Screen', 'In Safari, tap Share, then tap Add to Home Screen.');
+    }
+  }, [deferredInstallPrompt, installState.installed, installState.iosSafari]);
+
+  const installMenuLabel = useMemo(() => {
+    if (installState.installed) {
+      return null;
+    }
+    if (deferredInstallPrompt) {
+      return 'Install Hub OS';
+    }
+    if (installState.iosSafari) {
+      return 'Add to Home Screen';
+    }
+    return null;
+  }, [deferredInstallPrompt, installState.installed, installState.iosSafari]);
+
   const accountInitials = sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId);
   const avatarUrl = buildAccountAvatarUrl(accountInitials, sessionSummary.userId || sessionSummary.email || sessionSummary.name);
 
@@ -1876,6 +1980,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               avatarUrl={avatarUrl}
               avatarBroken={avatarBroken}
               menuRef={profileMenuRef}
+              onCopyCalendarLink={() => {
+                void onCopyCalendarLink();
+              }}
+              installLabel={installMenuLabel}
+              onInstall={
+                installMenuLabel
+                  ? () => {
+                      void onInstallHubOs();
+                    }
+                  : undefined
+              }
               onNavigateProjects={onNavigateProjectsFromProfileMenu}
               onLogout={onLogoutFromProfileMenu}
             />
