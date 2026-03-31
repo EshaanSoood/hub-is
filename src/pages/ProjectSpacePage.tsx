@@ -636,6 +636,7 @@ const ProjectSpaceWorkspace = ({
     docComments,
     onAddDocComment,
     onDocCommentDialogOpenChange,
+    onDocCollabConnectionStatusChange,
     onDocEditorChange,
     onInsertDocMention,
     onJumpToDocComment,
@@ -1539,6 +1540,7 @@ const ProjectSpaceWorkspace = ({
                           userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
                           editable={activePaneCanEdit}
                           onDocumentChange={onDocEditorChange}
+                          onConnectionStatusChange={onDocCollabConnectionStatusChange}
                           onSelectedNodeChange={setSelectedDocNodeKey}
                           focusNodeKey={pendingDocFocusNodeKey}
                           onNodeFocused={() => setPendingDocFocusNodeKey(null)}

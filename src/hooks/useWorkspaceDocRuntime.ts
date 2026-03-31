@@ -57,6 +57,8 @@ type DocSnapshotSaveState = {
   version: number;
 };
 
+type CollabConnectionStatus = 'connected' | 'connecting' | 'disconnected';
+
 const DOC_SNAPSHOT_SAVE_DEBOUNCE_MS = 600;
 
 const collectLexicalNodeKeys = (candidate: unknown, output: Set<string>) => {
@@ -222,6 +224,7 @@ export const useWorkspaceDocRuntime = ({
 
   const docSnapshotSaveTimerRef = useRef<number | null>(null);
   const docSnapshotSaveStatesRef = useRef<Map<string, DocSnapshotSaveState>>(new Map());
+  const docCollabConnectionStatusRef = useRef<CollabConnectionStatus>('disconnected');
   const latestDocCommentsRequestRef = useRef(0);
   const mountedRef = useRef(true);
 
@@ -409,6 +412,7 @@ export const useWorkspaceDocRuntime = ({
     setDocBootstrapReady(activePaneDocId === null);
     setCollabSession(null);
     setCollabSessionError(null);
+    docCollabConnectionStatusRef.current = 'disconnected';
     clearDocSnapshotSaveTimer();
   }, [activePaneDocId, clearDocSnapshotSaveTimer]);
 
@@ -530,12 +534,27 @@ export const useWorkspaceDocRuntime = ({
         hash: nextHash,
       };
 
+      if (docCollabConnectionStatusRef.current === 'connected') {
+        clearDocSnapshotSaveTimer();
+        return;
+      }
+
       clearDocSnapshotSaveTimer();
       docSnapshotSaveTimerRef.current = window.setTimeout(() => {
         flushPendingDocSnapshot(activePaneDocId);
       }, DOC_SNAPSHOT_SAVE_DEBOUNCE_MS);
     },
     [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot, getDocSnapshotSaveState],
+  );
+
+  const onDocCollabConnectionStatusChange = useCallback(
+    (status: CollabConnectionStatus) => {
+      docCollabConnectionStatusRef.current = status;
+      if (status === 'connected') {
+        clearDocSnapshotSaveTimer();
+      }
+    },
+    [clearDocSnapshotSaveTimer],
   );
 
   const onInsertDocMention = useCallback((target: HubMentionTarget) => {
@@ -719,6 +738,7 @@ export const useWorkspaceDocRuntime = ({
     docComments,
     onAddDocComment,
     onDocCommentDialogOpenChange,
+    onDocCollabConnectionStatusChange,
     onDocEditorChange,
     onInsertDocMention,
     onJumpToDocComment,

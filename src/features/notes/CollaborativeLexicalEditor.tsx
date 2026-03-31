@@ -25,7 +25,7 @@ import {
   $isRangeSelection,
   SKIP_COLLAB_TAG,
 } from 'lexical';
-import { Doc, XmlText, applyUpdate, encodeStateAsUpdate } from 'yjs';
+import { Doc, applyUpdate, encodeStateAsUpdate } from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { editorStateToLexicalSnapshot, normalizeLexicalState } from './lexicalState';
 import { notesLexicalTheme } from './lexicalTheme';
@@ -35,8 +35,6 @@ import { $createViewRefNode, ViewRefNode } from './nodes/ViewRefNode';
 import { ViewEmbedProvider, type ViewEmbedRuntime } from './viewEmbedContext';
 
 export type CollabConnectionStatus = 'connected' | 'connecting' | 'disconnected';
-
-const hasYjsDocumentState = (doc: Doc): boolean => doc.store.clients.size > 0;
 
 const base64ToUint8Array = (value: string): Uint8Array => {
   const binary = window.atob(value);
@@ -331,15 +329,18 @@ export const CollaborativeLexicalEditor = ({
   onConnectionStatusChange,
   onPresenceChange,
 }: CollaborativeLexicalEditorProps) => {
+  const collaborationRoomId = collaborationSession?.roomId ?? null;
+  const collaborationWebsocketUrl = collaborationSession?.websocketUrl ?? null;
+  const collaborationToken = collaborationSession?.token ?? null;
+
   const collaborationResources = useMemo<CollaborationResources | null>(() => {
-    if (!collaborationSession) {
+    if (!collaborationRoomId || !collaborationWebsocketUrl || !collaborationToken) {
       return null;
     }
 
     const doc = new Doc();
-    doc.get('root', XmlText);
 
-    if (bootstrapYjsUpdateBase64 && !hasYjsDocumentState(doc)) {
+    if (bootstrapYjsUpdateBase64) {
       try {
         applyUpdate(doc, base64ToUint8Array(bootstrapYjsUpdateBase64), 'rest-bootstrap');
       } catch (error) {
@@ -349,37 +350,37 @@ export const CollaborativeLexicalEditor = ({
 
     return {
       doc,
-      provider: new WebsocketProvider(collaborationSession.websocketUrl, collaborationSession.roomId, doc, {
+      provider: new WebsocketProvider(collaborationWebsocketUrl, collaborationRoomId, doc, {
         connect: false,
         params: {
-          access_token: collaborationSession.token,
+          access_token: collaborationToken,
         },
       }),
     };
-  }, [bootstrapYjsUpdateBase64, collaborationSession]);
+  }, [bootstrapYjsUpdateBase64, collaborationRoomId, collaborationToken, collaborationWebsocketUrl]);
   const normalizedInitialEditorState = useMemo(() => JSON.stringify(normalizeLexicalState(initialLexicalState)), [initialLexicalState]);
 
   const initialConfig = useMemo(
     () => ({
       namespace: `hub-note-${noteId}`,
       theme: notesLexicalTheme,
-      editorState: collaborationSession ? null : normalizedInitialEditorState,
+      editorState: collaborationRoomId ? null : normalizedInitialEditorState,
       editable,
       nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, ViewRefNode, MediaEmbedNode],
       onError: (error: Error) => {
         throw error;
       },
     }),
-    [collaborationSession, editable, normalizedInitialEditorState, noteId],
+    [collaborationRoomId, editable, normalizedInitialEditorState, noteId],
   );
 
   const providerFactory = useMemo(() => {
-    if (!collaborationSession || !collaborationResources) {
+    if (!collaborationRoomId || !collaborationResources) {
       return null;
     }
 
     return (id: string, yjsDocMap: Map<string, Doc>): Provider => {
-      if (id !== collaborationSession.roomId) {
+      if (id !== collaborationRoomId) {
         throw new Error(`Unexpected collaboration room: ${id}`);
       }
 
@@ -389,7 +390,7 @@ export const CollaborativeLexicalEditor = ({
 
       return collaborationResources.provider as unknown as Provider;
     };
-  }, [collaborationResources, collaborationSession]);
+  }, [collaborationResources, collaborationRoomId]);
 
   const getYjsUpdateBase64 = useMemo(() => {
     if (!collaborationResources) {
@@ -445,14 +446,14 @@ export const CollaborativeLexicalEditor = ({
     };
   }, [collaborationResources, onConnectionStatusChange, onPresenceChange]);
 
-  if (collaborationSession && (!collaborationResources || !providerFactory)) {
+  if (collaborationRoomId && (!collaborationResources || !providerFactory)) {
     return null;
   }
 
   const collaborationPlugin =
-    collaborationSession && providerFactory ? (
+    collaborationRoomId && providerFactory ? (
       <CollaborationPlugin
-        id={collaborationSession.roomId}
+        id={collaborationRoomId}
         providerFactory={providerFactory}
         shouldBootstrap
         initialEditorState={normalizedInitialEditorState}
@@ -475,6 +476,7 @@ export const CollaborativeLexicalEditor = ({
             placeholder={<div className="hub-editor__placeholder">Write project notes...</div>}
             ErrorBoundary={LexicalErrorBoundary}
           />
+          {collaborationPlugin}
           <PersistencePlugin onDocumentChange={onDocumentChange} getYjsUpdateBase64={getYjsUpdateBase64} />
           <SelectionTrackingPlugin onSelectedNodeChange={onSelectedNodeChange} />
           <FocusNodePlugin focusNodeKey={focusNodeKey} onNodeFocused={onNodeFocused} />
@@ -485,7 +487,6 @@ export const CollaborativeLexicalEditor = ({
           <ListPlugin />
           <LinkPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
-          {collaborationPlugin}
         </LexicalComposer>
       </LexicalCollaboration>
     </ViewEmbedProvider>
