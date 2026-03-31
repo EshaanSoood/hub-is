@@ -15,6 +15,7 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import type { Provider } from '@lexical/yjs';
+import { HocuspocusProvider } from '@hocuspocus/provider';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -26,7 +27,6 @@ import {
   SKIP_COLLAB_TAG,
 } from 'lexical';
 import { Doc, encodeStateAsUpdate } from 'yjs';
-import { HubOSSecureProvider } from './HubOSSecureProvider';
 import { editorStateToLexicalSnapshot, normalizeLexicalState } from './lexicalState';
 import { notesLexicalTheme } from './lexicalTheme';
 import { MediaAutoEmbedPlugin } from './MediaAutoEmbedPlugin';
@@ -45,7 +45,7 @@ const uint8ArrayToBase64 = (value: Uint8Array): string => {
 export interface NoteCollaborationSession {
   roomId: string;
   serverUrl: string;
-  fetchTicket: () => Promise<string>;
+  getAccessToken: () => Promise<string> | string;
 }
 
 interface CollaborativeLexicalEditorProps {
@@ -298,6 +298,19 @@ const PersistencePlugin = ({
   return null;
 };
 
+class LexicalHocuspocusProvider extends HocuspocusProvider {
+  constructor(configuration: ConstructorParameters<typeof HocuspocusProvider>[0]) {
+    super(configuration);
+    super.on('synced', ({ state }: { state: boolean }) => {
+      this.emit('sync', state);
+    });
+  }
+
+  override async connect(): Promise<void> {
+    await super.connect();
+  }
+}
+
 export const CollaborativeLexicalEditor = ({
   noteId,
   initialLexicalState,
@@ -352,7 +365,12 @@ export const CollaborativeLexicalEditor = ({
         yjsDocMap.set(id, doc);
       }
 
-      return new HubOSSecureProvider(doc, id, collaborationSession.serverUrl, collaborationSession.fetchTicket);
+      return new LexicalHocuspocusProvider({
+        document: doc,
+        name: id,
+        token: async () => await collaborationSession.getAccessToken(),
+        url: collaborationSession.serverUrl,
+      }) as unknown as Provider;
     },
     [collaborationEnabled, collaborationSession],
   );

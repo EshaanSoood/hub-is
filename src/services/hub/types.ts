@@ -65,19 +65,6 @@ export interface HubPaneSummary {
 
 export type HubSourcePaneContext = SourcePaneContext;
 
-export interface HubCollabAuthorization {
-  doc_id: string;
-  pane_id: string;
-  project_id: string;
-  user_id: string;
-  display_name: string;
-  can_edit?: boolean;
-  ws_ticket: string;
-  ticket_issued_at: string;
-  ticket_expires_at: string;
-  ticket_expires_in_ms: number;
-}
-
 export interface HubLiveAuthorization {
   user_id: string;
   ws_ticket: string;

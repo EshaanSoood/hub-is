@@ -10,6 +10,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@hocuspocus/server": "^3.4.4",
     "lib0": "^0.2.102",
     "ws": "^8.18.3",
     "y-protocols": "^1.0.6",

@@ -48,10 +48,6 @@ const TUWUNEL_REGISTRATION_SHARED_SECRET = (process.env.TUWUNEL_REGISTRATION_SHA
 const MATRIX_ACCOUNT_ENCRYPTION_KEY = (process.env.MATRIX_ACCOUNT_ENCRYPTION_KEY || '').trim();
 const HUB_API_MAX_BODY_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_MAX_BODY_BYTES || '1048576'), 10);
 const HUB_API_LARGE_BODY_MAX_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_LARGE_BODY_MAX_BYTES || '52428800'), 10);
-const HUB_COLLAB_TICKET_TTL_MS_RAW = Number.parseInt(String(process.env.HUB_COLLAB_TICKET_TTL_MS || '120000'), 10);
-const HUB_COLLAB_TICKET_TTL_MS = Number.isInteger(HUB_COLLAB_TICKET_TTL_MS_RAW)
-  ? Math.min(900_000, Math.max(10_000, HUB_COLLAB_TICKET_TTL_MS_RAW))
-  : 120_000;
 const MATRIX_HOMESERVER_URL = 'https://chat.eshaansood.org';
 const MATRIX_SERVER_NAME = 'chat.eshaansood.org';
 const MATRIX_ACCOUNT_SECRET_VERSION = 'v1';
@@ -59,7 +55,7 @@ const WS_READY_STATE_OPEN = 1;
 const REMINDER_CHECK_INTERVAL_MS = 30_000;
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
-const REGISTERED_ROUTE_COUNT = 79;
+const REGISTERED_ROUTE_COUNT = 77;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const nowIso = () => new Date().toISOString();
@@ -1018,81 +1014,6 @@ hubLiveWss.on('connection', (socket, _request, ticket) => {
     unregisterHubLiveSocket(userId, socket);
   });
 });
-
-// Collab WebSocket — document sync relay
-// Carries Yjs CRDT document updates between collaborating clients via hub-collab service.
-// Payload is continuous and potentially heavy. Latency matters — direct path, no unnecessary hops.
-// In the Tauri/local-first model this becomes a relay for offline sync via encrypted TURN-style relay.
-// Authentication is via short-lived tickets issued by /api/hub/collab/authorize.
-// Project owners have implicit edit access and receive tickets without appearing in pane_members.
-const collabTicketStore = new Map();
-
-const cleanupExpiredCollabTickets = () => {
-  const nowMs = Date.now();
-  for (const [ticket, entry] of collabTicketStore.entries()) {
-    if (entry.expires_at_ms <= nowMs) {
-      collabTicketStore.delete(ticket);
-    }
-  }
-};
-
-const collabTicketCleanupInterval = setInterval(cleanupExpiredCollabTickets, 60_000);
-collabTicketCleanupInterval.unref?.();
-
-const issueCollabTicket = ({ docId, paneId, projectId, userId, displayName, accessToken, canEdit = false }) => {
-  cleanupExpiredCollabTickets();
-  const ticket = `wst_${randomUUID().replace(/-/g, '')}`;
-  const issuedAtMs = Date.now();
-  const expiresAtMs = issuedAtMs + HUB_COLLAB_TICKET_TTL_MS;
-  collabTicketStore.set(ticket, {
-    ticket,
-    doc_id: docId,
-    pane_id: paneId,
-    project_id: projectId,
-    user_id: userId,
-    display_name: displayName,
-    access_token: accessToken,
-    can_edit: Boolean(canEdit),
-    issued_at_ms: issuedAtMs,
-    expires_at_ms: expiresAtMs,
-  });
-  return {
-    ws_ticket: ticket,
-    issued_at: new Date(issuedAtMs).toISOString(),
-    expires_at: new Date(expiresAtMs).toISOString(),
-    expires_in_ms: HUB_COLLAB_TICKET_TTL_MS,
-  };
-};
-
-const consumeCollabTicket = ({ wsTicket, docId }) => {
-  cleanupExpiredCollabTickets();
-  const entry = collabTicketStore.get(wsTicket);
-  if (!entry) {
-    return { error: { status: 401, code: 'unauthorized', message: 'Invalid or expired collaboration ticket.' } };
-  }
-  collabTicketStore.delete(wsTicket);
-
-  if (entry.expires_at_ms <= Date.now()) {
-    return { error: { status: 401, code: 'unauthorized', message: 'Invalid or expired collaboration ticket.' } };
-  }
-  if (entry.doc_id !== docId) {
-    return { error: { status: 403, code: 'forbidden', message: 'Collaboration ticket does not match requested doc.' } };
-  }
-
-  return {
-    ticket: {
-      doc_id: entry.doc_id,
-      pane_id: entry.pane_id,
-      project_id: entry.project_id,
-      user_id: entry.user_id,
-      display_name: entry.display_name,
-      access_token: entry.access_token,
-      can_edit: Boolean(entry.can_edit),
-      issued_at: new Date(entry.issued_at_ms).toISOString(),
-      expires_at: new Date(entry.expires_at_ms).toISOString(),
-    },
-  };
-};
 
 const ensureUserFromRequest = async (request) => {
   const token = parseBearerToken(request);
@@ -2307,7 +2228,6 @@ const routeDeps = {
   commentAnchorsByDocStmt: stmts.commentAnchors.listForDoc,
   commentByIdStmt: stmts.comments.findById,
   commentStatusSet,
-  consumeCollabTicket,
   createNotification,
   createPersonalTaskRecord,
   defaultAssetRootByProjectStmt: stmts.assetRoots.findDefaultForProject,
@@ -2357,7 +2277,6 @@ const routeDeps = {
   insertReminderStmt: stmts.calendar.insertReminder,
   insertViewStmt: stmts.views.insert,
   isPlainObject,
-  issueCollabTicket,
   issueHubLiveTicket,
   jsonResponse,
   listProjectsForUserStmt: stmts.projects.listForUser,
@@ -3402,16 +3321,6 @@ const server = createServer(async (request, response) => {
         pathname,
         params: { projectId: decodeURIComponent(projectAutomationRunsMatch[1]) },
       });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/collab/authorize') {
-      await docRoutes.authorizeCollab({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/collab/tickets/consume') {
-      await docRoutes.consumeCollab({ request, response, requestUrl, pathname });
       return;
     }
 

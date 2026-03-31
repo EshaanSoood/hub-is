@@ -1,6 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  authorizeCollabDoc,
   getDocSnapshot,
   postDocPresence,
   saveDocSnapshot,
@@ -197,6 +196,7 @@ export const useWorkspaceDocRuntime = ({
   refreshTrackedProjectFiles,
   refreshTimeline,
 }: UseWorkspaceDocRuntimeParams) => {
+  const accessTokenRef = useRef(accessToken);
   const [docComments, setDocComments] = useState<DocComment[]>([]);
   const [orphanedDocComments, setOrphanedDocComments] = useState<DocComment[]>([]);
   const [showResolvedDocComments, setShowResolvedDocComments] = useState(false);
@@ -219,6 +219,10 @@ export const useWorkspaceDocRuntime = ({
   const docSnapshotSaveStatesRef = useRef<Map<string, DocSnapshotSaveState>>(new Map());
   const latestDocCommentsRequestRef = useRef(0);
   const mountedRef = useRef(true);
+
+  useEffect(() => {
+    accessTokenRef.current = accessToken;
+  }, [accessToken]);
 
   useEffect(() => {
     return () => {
@@ -406,26 +410,13 @@ export const useWorkspaceDocRuntime = ({
     clearDocSnapshotSaveTimer();
   }, [activePaneDocId, clearDocSnapshotSaveTimer]);
 
-  const fetchCollabTicket = useCallback(async () => {
-    if (!activePaneDocId) {
+  const getCollabAccessToken = useCallback(async () => {
+    const token = accessTokenRef.current;
+    if (!token) {
       throw new Error('Workspace doc collaboration is unavailable right now.');
     }
-
-    try {
-      const authorization = await authorizeCollabDoc(accessToken, activePaneDocId);
-      if (mountedRef.current) {
-        setCollabSessionError(null);
-      }
-
-      return authorization.ws_ticket;
-    } catch (error) {
-      if (mountedRef.current) {
-        console.warn('[workspace-doc] failed to authorize collaboration session', error);
-        setCollabSessionError('Workspace doc collaboration is unavailable right now.');
-      }
-      throw error;
-    }
-  }, [accessToken, activePaneDocId]);
+    return token;
+  }, []);
 
   useEffect(() => {
     void refreshDocComments();
@@ -722,10 +713,10 @@ export const useWorkspaceDocRuntime = ({
         ? {
             roomId: activePaneDocId,
             serverUrl: env.hubCollabWsUrl,
-            fetchTicket: fetchCollabTicket,
+            getAccessToken: getCollabAccessToken,
           }
         : null,
-    [activePaneDocId, activeTab, docBootstrapReady, fetchCollabTicket],
+    [activePaneDocId, activeTab, docBootstrapReady, getCollabAccessToken],
   );
 
   return {
