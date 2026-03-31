@@ -35,6 +35,20 @@ import { MediaEmbedNode } from './nodes/MediaEmbedNode';
 import { $createViewRefNode, ViewRefNode } from './nodes/ViewRefNode';
 import { ViewEmbedProvider, type ViewEmbedRuntime } from './viewEmbedContext';
 
+const COLLABORATION_BOOTSTRAP_FALLBACK_MS = 2_000;
+
+const COLLABORATIVE_EDITOR_NODES = [
+  HeadingNode,
+  QuoteNode,
+  ListNode,
+  ListItemNode,
+  LinkNode,
+  AutoLinkNode,
+  CodeNode,
+  ViewRefNode,
+  MediaEmbedNode,
+];
+
 const uint8ArrayToBase64 = (value: Uint8Array): string => {
   let binary = '';
   for (let index = 0; index < value.length; index += 1) {
@@ -71,6 +85,126 @@ interface CollaborativeLexicalEditorProps {
   viewEmbedRuntime?: ViewEmbedRuntime | null;
   onSelectedNodeChange?: (nodeKey: string | null) => void;
 }
+
+type CollaborationPhase = 'disabled' | 'connecting' | 'synced';
+
+class LexicalHocuspocusProvider extends HocuspocusProvider {
+  constructor(
+    configuration: ConstructorParameters<typeof HocuspocusProvider>[0],
+    { onSyncStateChange }: { onSyncStateChange: (state: boolean) => void },
+  ) {
+    super(configuration);
+    super.on('synced', ({ state }: { state: boolean }) => {
+      onSyncStateChange(state);
+      this.emit('sync', state);
+    });
+  }
+}
+
+const shouldRestoreBootstrapSnapshot = (bootstrapPlainText: string, currentPlainText: string): boolean => {
+  if (!bootstrapPlainText) {
+    return false;
+  }
+
+  if (!currentPlainText) {
+    return true;
+  }
+
+  return bootstrapPlainText.length > currentPlainText.length && bootstrapPlainText.startsWith(currentPlainText);
+};
+
+const restoreBootstrapSnapshot = ({
+  editor,
+  initialEditorState,
+  initialPlainText,
+}: {
+  editor: ReturnType<typeof useLexicalComposerContext>[0];
+  initialEditorState: string;
+  initialPlainText: string;
+}): boolean => {
+  const currentSnapshot = editorStateToLexicalSnapshot(editor.getEditorState());
+  if (!shouldRestoreBootstrapSnapshot(initialPlainText, currentSnapshot.plainText)) {
+    return false;
+  }
+
+  const recoveredEditorState = editor.parseEditorState(initialEditorState);
+  editor.setEditorState(recoveredEditorState, {
+    tag: HISTORY_MERGE_TAG,
+  });
+  return true;
+};
+
+const useEditorBootstrap = (initialLexicalState: Record<string, unknown>) =>
+  useMemo(() => {
+    const normalizedState = normalizeLexicalState(initialLexicalState);
+    return {
+      plainText: lexicalStateToPlainText(normalizedState),
+      serializedState: JSON.stringify(normalizedState),
+    };
+  }, [initialLexicalState]);
+
+const useNoteCollaboration = (collaborationSession: NoteCollaborationSession | null) => {
+  const providerRef = useRef<HocuspocusProvider | null>(null);
+  const roomId = collaborationSession?.roomId.trim() || '';
+  const serverUrl = collaborationSession?.serverUrl.trim() || '';
+  const collaborationEnabled = roomId.length > 0 && serverUrl.length > 0;
+  const [phase, setPhase] = useState<CollaborationPhase>(collaborationEnabled ? 'connecting' : 'disabled');
+
+  const providerFactory = useCallback(
+    (id: string, yjsDocMap: Map<string, Doc>): Provider => {
+      if (!collaborationEnabled || !collaborationSession) {
+        throw new Error('Collaboration session is unavailable.');
+      }
+
+      const existingDoc = yjsDocMap.get(id);
+      if (existingDoc) {
+        yjsDocMap.delete(id);
+        existingDoc.destroy();
+      }
+
+      setPhase('connecting');
+
+      const doc = new Doc();
+      yjsDocMap.set(id, doc);
+
+      const provider = new LexicalHocuspocusProvider(
+        {
+          document: doc,
+          name: id,
+          token: async () => await collaborationSession.getAccessToken(),
+          url: collaborationSession.serverUrl,
+        },
+        {
+          onSyncStateChange: (state) => {
+            if (providerRef.current === provider) {
+              setPhase(state ? 'synced' : 'connecting');
+            }
+          },
+        },
+      );
+
+      provider.on('destroy', () => {
+        if (providerRef.current === provider) {
+          providerRef.current = null;
+        }
+      });
+
+      providerRef.current = provider;
+      return provider as unknown as Provider;
+    },
+    [collaborationEnabled, collaborationSession],
+  );
+
+  const getProvider = useCallback(() => providerRef.current, []);
+
+  return {
+    collaborationEnabled,
+    collaborationPhase: collaborationEnabled ? phase : 'disabled',
+    collaborationRoomId: collaborationEnabled ? roomId : null,
+    getProvider,
+    providerFactory,
+  };
+};
 
 const EditablePlugin = ({ editable }: { editable: boolean }) => {
   const [editor] = useLexicalComposerContext();
@@ -238,12 +372,10 @@ const SelectionTrackingPlugin = ({ onSelectedNodeChange }: { onSelectedNodeChang
 
 const PersistencePlugin = ({
   collaborationRoomId,
-  collaborationReady,
   getCollabProvider,
   onDocumentChange,
 }: {
   collaborationRoomId: string | null;
-  collaborationReady: boolean;
   getCollabProvider: () => HocuspocusProvider | null;
   onDocumentChange: (payload: {
     lexicalState: Record<string, unknown>;
@@ -278,9 +410,6 @@ const PersistencePlugin = ({
       if (tags.has(SKIP_COLLAB_TAG)) {
         return;
       }
-      if (collaborationRoomId && !collaborationReady) {
-        return;
-      }
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) {
         return;
       }
@@ -298,7 +427,7 @@ const PersistencePlugin = ({
         });
       }, 0);
     });
-  }, [collaborationReady, collaborationRoomId, editor, getYjsUpdateBase64, onDocumentChange]);
+  }, [editor, getYjsUpdateBase64, onDocumentChange]);
 
   useEffect(() => {
     return () => {
@@ -311,107 +440,62 @@ const PersistencePlugin = ({
   return null;
 };
 
-class LexicalHocuspocusProvider extends HocuspocusProvider {
-  constructor(
-    configuration: ConstructorParameters<typeof HocuspocusProvider>[0],
-    { onFirstSync }: { onFirstSync: () => void },
-  ) {
-    super(configuration);
-    super.on('synced', ({ state }: { state: boolean }) => {
-      if (state) {
-        onFirstSync();
-      }
-      this.emit('sync', state);
-    });
-  }
-}
-
-const shouldRecoverCollaborativeHydration = (bootstrapPlainText: string, currentPlainText: string): boolean => {
-  if (!bootstrapPlainText) {
-    return false;
-  }
-
-  if (!currentPlainText) {
-    return true;
-  }
-
-  return bootstrapPlainText.length > currentPlainText.length && bootstrapPlainText.startsWith(currentPlainText);
-};
-
-const COLLABORATION_BOOTSTRAP_FALLBACK_MS = 2_000;
-
-const applyEditorStateIfHydrationIsIncomplete = ({
-  editor,
-  initialEditorState,
-  initialPlainText,
-}: {
-  editor: ReturnType<typeof useLexicalComposerContext>[0];
-  initialEditorState: string;
-  initialPlainText: string;
-}): boolean => {
-  const currentSnapshot = editorStateToLexicalSnapshot(editor.getEditorState());
-  if (!shouldRecoverCollaborativeHydration(initialPlainText, currentSnapshot.plainText)) {
-    return false;
-  }
-
-  const recoveredEditorState = editor.parseEditorState(initialEditorState);
-  editor.setEditorState(recoveredEditorState, {
-    tag: HISTORY_MERGE_TAG,
-  });
-  return true;
-};
-
-const CollaborationRecoveryPlugin = ({
+const BootstrapGuardPlugin = ({
   collaborationEnabled,
-  collaborationReady,
+  collaborationPhase,
   initialEditorState,
   initialPlainText,
 }: {
   collaborationEnabled: boolean;
-  collaborationReady: boolean;
+  collaborationPhase: CollaborationPhase;
   initialEditorState: string;
   initialPlainText: string;
 }) => {
   const [editor] = useLexicalComposerContext();
-  const recoveredRef = useRef(false);
+  const restoredRef = useRef(false);
 
-  useEffect(() => {
-    if (!collaborationEnabled || !collaborationReady || recoveredRef.current) {
+  const restoreIfNeeded = useCallback(() => {
+    if (restoredRef.current) {
       return;
     }
 
-    recoveredRef.current = true;
-    applyEditorStateIfHydrationIsIncomplete({
+    const restored = restoreBootstrapSnapshot({
       editor,
       initialEditorState,
       initialPlainText,
     });
-  }, [collaborationEnabled, collaborationReady, editor, initialEditorState, initialPlainText]);
+    if (restored) {
+      restoredRef.current = true;
+    }
+  }, [editor, initialEditorState, initialPlainText]);
 
   useEffect(() => {
-    if (!collaborationEnabled || collaborationReady || recoveredRef.current) {
+    if (!collaborationEnabled || collaborationPhase !== 'synced' || restoredRef.current) {
       return undefined;
     }
 
     const timer = window.setTimeout(() => {
-      if (recoveredRef.current) {
-        return;
-      }
+      restoreIfNeeded();
+    }, 0);
 
-      const recovered = applyEditorStateIfHydrationIsIncomplete({
-        editor,
-        initialEditorState,
-        initialPlainText,
-      });
-      if (recovered) {
-        recoveredRef.current = true;
-      }
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [collaborationEnabled, collaborationPhase, restoreIfNeeded]);
+
+  useEffect(() => {
+    if (!collaborationEnabled || restoredRef.current) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      restoreIfNeeded();
     }, COLLABORATION_BOOTSTRAP_FALLBACK_MS);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [collaborationEnabled, collaborationReady, editor, initialEditorState, initialPlainText]);
+  }, [collaborationEnabled, collaborationPhase, restoreIfNeeded]);
 
   return null;
 };
@@ -434,73 +518,27 @@ export const CollaborativeLexicalEditor = ({
   viewEmbedRuntime,
   onSelectedNodeChange,
 }: CollaborativeLexicalEditorProps) => {
-  const normalizedInitialEditorState = useMemo(
-    () => JSON.stringify(normalizeLexicalState(initialLexicalState)),
-    [initialLexicalState],
-  );
-  const initialPlainText = useMemo(
-    () => lexicalStateToPlainText(normalizeLexicalState(initialLexicalState)),
-    [initialLexicalState],
-  );
-  const collaborationRoomId = collaborationSession?.roomId ?? null;
-  const collaborationEnabled =
-    collaborationSession !== null &&
-    collaborationSession.roomId.trim().length > 0 &&
-    collaborationSession.serverUrl.trim().length > 0;
-  const [syncedRoomId, setSyncedRoomId] = useState<string | null>(null);
-  const collabProviderRef = useRef<HocuspocusProvider | null>(null);
-  const collaborationReady = !collaborationEnabled || syncedRoomId === collaborationRoomId;
+  const bootstrap = useEditorBootstrap(initialLexicalState);
+  const {
+    collaborationEnabled,
+    collaborationPhase,
+    collaborationRoomId,
+    getProvider,
+    providerFactory,
+  } = useNoteCollaboration(collaborationSession);
 
   const initialConfig = useMemo(
     () => ({
       namespace: `hub-note-${noteId}`,
       theme: notesLexicalTheme,
-      editorState: collaborationEnabled ? null : normalizedInitialEditorState,
-      editable: editable && (!collaborationEnabled || collaborationReady),
-      nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, ViewRefNode, MediaEmbedNode],
+      editorState: bootstrap.serializedState,
+      editable,
+      nodes: COLLABORATIVE_EDITOR_NODES,
       onError: (error: Error) => {
         throw error;
       },
     }),
-    [collaborationEnabled, collaborationReady, editable, normalizedInitialEditorState, noteId],
-  );
-
-  const providerFactory = useCallback(
-    (id: string, yjsDocMap: Map<string, Doc>): Provider => {
-      if (!collaborationEnabled || !collaborationSession) {
-        throw new Error('Collaboration session is unavailable.');
-      }
-
-      const existingDoc = yjsDocMap.get(id);
-      if (existingDoc) {
-        yjsDocMap.delete(id);
-        existingDoc.destroy();
-      }
-
-      const doc = new Doc();
-      yjsDocMap.set(id, doc);
-
-      const provider = new LexicalHocuspocusProvider(
-        {
-          document: doc,
-          name: id,
-          token: async () => await collaborationSession.getAccessToken(),
-          url: collaborationSession.serverUrl,
-        },
-        {
-          onFirstSync: () => {
-            if (collabProviderRef.current === provider) {
-              setSyncedRoomId(id);
-            }
-          },
-        },
-      );
-
-      collabProviderRef.current = provider;
-
-      return provider as unknown as Provider;
-    },
-    [collaborationEnabled, collaborationSession],
+    [bootstrap.serializedState, editable, noteId],
   );
 
   return (
@@ -520,24 +558,23 @@ export const CollaborativeLexicalEditor = ({
           />
           {collaborationEnabled ? (
             <CollaborationPlugin
-              id={collaborationSession.roomId}
+              id={collaborationRoomId || noteId}
               providerFactory={providerFactory}
-              shouldBootstrap={true}
-              initialEditorState={normalizedInitialEditorState}
+              shouldBootstrap={false}
+              initialEditorState={bootstrap.serializedState}
               username={userName}
             />
           ) : null}
           <PersistencePlugin
             collaborationRoomId={collaborationRoomId}
-            collaborationReady={collaborationReady}
-            getCollabProvider={() => collabProviderRef.current}
+            getCollabProvider={getProvider}
             onDocumentChange={onDocumentChange}
           />
-          <CollaborationRecoveryPlugin
+          <BootstrapGuardPlugin
             collaborationEnabled={collaborationEnabled}
-            collaborationReady={collaborationReady}
-            initialEditorState={normalizedInitialEditorState}
-            initialPlainText={initialPlainText}
+            collaborationPhase={collaborationPhase}
+            initialEditorState={bootstrap.serializedState}
+            initialPlainText={bootstrap.plainText}
           />
           <SelectionTrackingPlugin onSelectedNodeChange={onSelectedNodeChange} />
           <FocusNodePlugin focusNodeKey={focusNodeKey} onNodeFocused={onNodeFocused} />
