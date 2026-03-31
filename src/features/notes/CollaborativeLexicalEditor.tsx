@@ -362,10 +362,13 @@ export const CollaborativeLexicalEditor = ({
         },
       });
 
+      const stopReconnects = () => {
+        (provider as WebsocketProvider & { shouldConnect?: boolean }).shouldConnect = false;
+      };
+
       // Collaboration tickets are single-use, so retries with the same provider are guaranteed to fail.
-      provider.on('connection-error', () => {
-        provider.disconnect();
-      });
+      provider.on('connection-error', stopReconnects);
+      provider.on('connection-close', stopReconnects);
 
       return provider as unknown as Provider;
     },
