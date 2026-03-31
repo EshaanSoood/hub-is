@@ -1,6 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import {
-  authorizeCollabDoc,
   getDocSnapshot,
   postDocPresence,
   saveDocSnapshot,
@@ -41,6 +40,7 @@ type WorkspaceDocSnapshotPayload = {
   lexical_state: Record<string, unknown>;
   plain_text: string;
   node_keys: string[];
+  yjs_update_base64?: string;
 };
 
 type PendingWorkspaceDocSnapshot = {
@@ -48,7 +48,13 @@ type PendingWorkspaceDocSnapshot = {
   lexicalState: Record<string, unknown>;
   snapshotPayload: WorkspaceDocSnapshotPayload;
   hash: string;
-  snapshotVersion: number;
+};
+
+type DocSnapshotSaveState = {
+  lastSavedHash: string;
+  queuedEntry: PendingWorkspaceDocSnapshot | null;
+  savePromise: Promise<void> | null;
+  version: number;
 };
 
 const DOC_SNAPSHOT_SAVE_DEBOUNCE_MS = 600;
@@ -139,10 +145,12 @@ const extractDocMentionsFromLexicalState = (
 const buildWorkspaceDocSnapshotPayload = (
   lexicalState: Record<string, unknown>,
   plainText: string,
+  yjsUpdateBase64?: string | null,
 ): WorkspaceDocSnapshotPayload => ({
   lexical_state: lexicalState,
   plain_text: plainText,
   node_keys: extractNodeKeysFromLexicalState(lexicalState),
+  ...(yjsUpdateBase64 ? { yjs_update_base64: yjsUpdateBase64 } : {}),
 });
 
 const normalizeWorkspaceDocSnapshotPayload = (payload: unknown): WorkspaceDocSnapshotPayload => {
@@ -152,11 +160,16 @@ const normalizeWorkspaceDocSnapshotPayload = (payload: unknown): WorkspaceDocSna
   const nodeKeys = Array.isArray(record.node_keys)
     ? record.node_keys.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
     : extractNodeKeysFromLexicalState(lexicalState);
+  const yjsUpdateBase64 =
+    typeof record.yjs_update_base64 === 'string' && record.yjs_update_base64.trim().length > 0
+      ? record.yjs_update_base64.trim()
+      : undefined;
 
   return {
     lexical_state: lexicalState,
     plain_text: plainText,
     node_keys: nodeKeys,
+    ...(yjsUpdateBase64 ? { yjs_update_base64: yjsUpdateBase64 } : {}),
   };
 };
 
@@ -197,6 +210,7 @@ export const useWorkspaceDocRuntime = ({
   const [pendingViewEmbedInsert, setPendingViewEmbedInsert] = useState<{ insert_id: string; view_id: string } | null>(null);
   const [pendingDocFocusNodeKey, setPendingDocFocusNodeKey] = useState<string | null>(null);
   const [docBootstrapLexicalState, setDocBootstrapLexicalState] = useState<Record<string, unknown>>(() => emptyLexicalState());
+  const [docBootstrapYjsUpdateBase64, setDocBootstrapYjsUpdateBase64] = useState<string | null>(null);
   const [docBootstrapReady, setDocBootstrapReady] = useState(activePaneDocId === null);
   const [collabSession, setCollabSession] = useState<{
     roomId: string;
@@ -207,17 +221,9 @@ export const useWorkspaceDocRuntime = ({
   const [collabSessionError, setCollabSessionError] = useState<string | null>(null);
 
   const docSnapshotSaveTimerRef = useRef<number | null>(null);
-  const docSnapshotVersionRef = useRef(0);
-  const lastDocSnapshotHashRef = useRef('');
-  const queuedDocSnapshotRef = useRef<PendingWorkspaceDocSnapshot | null>(null);
-  const activePaneDocIdRef = useRef<string | null>(activePaneDocId);
-  const docSnapshotSavePromiseRef = useRef<Promise<void> | null>(null);
+  const docSnapshotSaveStatesRef = useRef<Map<string, DocSnapshotSaveState>>(new Map());
   const latestDocCommentsRequestRef = useRef(0);
   const mountedRef = useRef(true);
-
-  useEffect(() => {
-    activePaneDocIdRef.current = activePaneDocId;
-  }, [activePaneDocId]);
 
   useEffect(() => {
     return () => {
@@ -285,71 +291,52 @@ export const useWorkspaceDocRuntime = ({
     }
   }, []);
 
+  const getDocSnapshotSaveState = useCallback((docId: string): DocSnapshotSaveState => {
+    const existingState = docSnapshotSaveStatesRef.current.get(docId);
+    if (existingState) {
+      return existingState;
+    }
+
+    const nextState: DocSnapshotSaveState = {
+      lastSavedHash: '',
+      queuedEntry: null,
+      savePromise: null,
+      version: 0,
+    };
+    docSnapshotSaveStatesRef.current.set(docId, nextState);
+    return nextState;
+  }, []);
+
   const saveQueuedDocSnapshot = useCallback(
     async (entry: PendingWorkspaceDocSnapshot, retryOnConflict = true): Promise<void> => {
+      const docSnapshotState = getDocSnapshotSaveState(entry.docId);
+
       try {
         const result = await saveDocSnapshot(accessToken, entry.docId, {
-          snapshot_version: entry.snapshotVersion,
+          snapshot_version: docSnapshotState.version,
           snapshot_payload: entry.snapshotPayload,
         });
 
-        if (activePaneDocIdRef.current === entry.docId) {
-          lastDocSnapshotHashRef.current = entry.hash;
-          docSnapshotVersionRef.current = result.snapshot_version;
-        }
-
-        const queuedEntry = queuedDocSnapshotRef.current;
-        if (queuedEntry?.docId === entry.docId) {
-          queuedDocSnapshotRef.current = {
-            ...queuedEntry,
-            snapshotVersion: result.snapshot_version,
-          };
-        }
+        docSnapshotState.lastSavedHash = entry.hash;
+        docSnapshotState.version = result.snapshot_version;
       } catch (error) {
         if (retryOnConflict && error instanceof HubRequestError && error.status === 409) {
-          try {
-            const latestDoc = await getDocSnapshot(accessToken, entry.docId);
-            const latestSnapshotPayload = normalizeWorkspaceDocSnapshotPayload(latestDoc.snapshot_payload);
-            const latestSnapshotHash = hashWorkspaceDocSnapshotPayload(latestSnapshotPayload);
-            const latestLocalEntry =
-              queuedDocSnapshotRef.current?.docId === entry.docId ? queuedDocSnapshotRef.current : entry;
+          const latestDoc = await getDocSnapshot(accessToken, entry.docId);
+          const latestSnapshotPayload = normalizeWorkspaceDocSnapshotPayload(latestDoc.snapshot_payload);
+          const latestSnapshotHash = hashWorkspaceDocSnapshotPayload(latestSnapshotPayload);
 
-            if (activePaneDocIdRef.current === entry.docId) {
-              docSnapshotVersionRef.current = latestDoc.snapshot_version;
-              lastDocSnapshotHashRef.current = latestSnapshotHash;
-            }
+          docSnapshotState.version = latestDoc.snapshot_version;
+          docSnapshotState.lastSavedHash = latestSnapshotHash;
 
-            if (latestLocalEntry.hash === latestSnapshotHash) {
-              if (queuedDocSnapshotRef.current?.docId === entry.docId && queuedDocSnapshotRef.current.hash === latestLocalEntry.hash) {
-                queuedDocSnapshotRef.current = null;
-              }
-              return;
-            }
-
-            if (queuedDocSnapshotRef.current?.docId === entry.docId && queuedDocSnapshotRef.current.hash === latestLocalEntry.hash) {
-              queuedDocSnapshotRef.current = null;
-            }
-
-            await saveQueuedDocSnapshot(
-              {
-                ...latestLocalEntry,
-                snapshotVersion: latestDoc.snapshot_version,
-              },
-              false,
-            );
-            return;
-          } catch (conflictRecoveryError) {
-            const queuedEntry = queuedDocSnapshotRef.current;
-            if (!queuedEntry || queuedEntry.docId !== entry.docId || queuedEntry.hash !== entry.hash) {
-              queuedDocSnapshotRef.current = entry;
-            }
-            throw conflictRecoveryError;
+          if (latestSnapshotHash !== entry.hash) {
+            await saveQueuedDocSnapshot(entry, false);
           }
+          return;
         }
 
-        const queuedEntry = queuedDocSnapshotRef.current;
+        const queuedEntry = docSnapshotState.queuedEntry;
         if (!queuedEntry || queuedEntry.docId !== entry.docId || queuedEntry.hash !== entry.hash) {
-          queuedDocSnapshotRef.current = entry;
+          docSnapshotState.queuedEntry = entry;
         }
         throw error;
       }
@@ -363,94 +350,82 @@ export const useWorkspaceDocRuntime = ({
           replace_source: true,
         });
       } catch (error) {
-        console.warn('[workspace-doc] failed to materialize doc mentions', error);
+        if (
+          !(error instanceof TypeError && error.message === 'Failed to fetch') &&
+          !(error instanceof DOMException && error.name === 'AbortError')
+        ) {
+          console.warn('[workspace-doc] failed to materialize doc mentions', error);
+        }
       }
     },
-    [accessToken, projectId],
+    [accessToken, getDocSnapshotSaveState, projectId],
   );
 
   const flushPendingDocSnapshot = useCallback(
     (targetDocId?: string | null) => {
       clearDocSnapshotSaveTimer();
-      if (docSnapshotSavePromiseRef.current) {
+      if (!targetDocId) {
         return;
       }
 
-      const entry = queuedDocSnapshotRef.current;
-      if (!entry || (targetDocId && entry.docId !== targetDocId)) {
+      const docSnapshotState = getDocSnapshotSaveState(targetDocId);
+      if (docSnapshotState.savePromise) {
         return;
       }
 
-      queuedDocSnapshotRef.current = null;
+      const entry = docSnapshotState.queuedEntry;
+      if (!entry) {
+        return;
+      }
+
+      docSnapshotState.queuedEntry = null;
       const savePromise = saveQueuedDocSnapshot(entry)
         .catch(() => {
           // best-effort doc metadata persistence and mention materialization
         })
         .finally(() => {
-          if (docSnapshotSavePromiseRef.current === savePromise) {
-            docSnapshotSavePromiseRef.current = null;
+          if (docSnapshotState.savePromise === savePromise) {
+            docSnapshotState.savePromise = null;
           }
 
-          const nextEntry = queuedDocSnapshotRef.current;
+          const nextEntry = docSnapshotState.queuedEntry;
           if (nextEntry) {
             flushPendingDocSnapshot(nextEntry.docId);
           }
         });
 
-      docSnapshotSavePromiseRef.current = savePromise;
+      docSnapshotState.savePromise = savePromise;
     },
-    [clearDocSnapshotSaveTimer, saveQueuedDocSnapshot],
+    [clearDocSnapshotSaveTimer, getDocSnapshotSaveState, saveQueuedDocSnapshot],
   );
 
   useEffect(() => {
-    lastDocSnapshotHashRef.current = '';
-    queuedDocSnapshotRef.current = null;
-    docSnapshotVersionRef.current = 0;
     setSelectedDocNodeKey(null);
     setPendingDocFocusNodeKey(null);
     setDocCommentComposerOpen(false);
     setDocCommentError(null);
     setDocBootstrapLexicalState(emptyLexicalState());
+    setDocBootstrapYjsUpdateBase64(null);
     setDocBootstrapReady(activePaneDocId === null);
     setCollabSession(null);
     setCollabSessionError(null);
     clearDocSnapshotSaveTimer();
-  }, [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot]);
+  }, [activePaneDocId, clearDocSnapshotSaveTimer]);
 
   useEffect(() => {
-    let cancelled = false;
     if (!activePaneDocId) {
-      return () => {
-        cancelled = true;
-      };
+      setCollabSession(null);
+      setCollabSessionError(null);
+      return;
     }
 
-    const issueSession = async () => {
-      setCollabSessionError(null);
-      try {
-        const authorization = await authorizeCollabDoc(accessToken, activePaneDocId);
-        if (cancelled) {
-          return;
-        }
-        setCollabSession({
-          roomId: authorization.doc_id,
-          websocketUrl: env.hubCollabWsUrl,
-          token: authorization.ws_ticket,
-          expiresAt: authorization.ticket_expires_at,
-        });
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-        setCollabSession(null);
-        setCollabSessionError(error instanceof Error ? error.message : 'Failed to authorize collaboration.');
-      }
-    };
-
-    void issueSession();
-    return () => {
-      cancelled = true;
-    };
+    setCollabSession({
+      roomId: activePaneDocId,
+      websocketUrl: env.hubCollabWsUrl,
+      token: accessToken,
+      expiresAt: '',
+    });
+    setCollabSessionError(null);
   }, [accessToken, activePaneDocId]);
 
   useEffect(() => {
@@ -461,6 +436,7 @@ export const useWorkspaceDocRuntime = ({
     let cancelled = false;
     if (!activePaneDocId) {
       setDocBootstrapLexicalState(emptyLexicalState());
+      setDocBootstrapYjsUpdateBase64(null);
       setDocBootstrapReady(true);
       return;
     }
@@ -473,13 +449,16 @@ export const useWorkspaceDocRuntime = ({
         }
 
         const snapshotPayload = normalizeWorkspaceDocSnapshotPayload(doc.snapshot_payload);
-        docSnapshotVersionRef.current = doc.snapshot_version;
-        lastDocSnapshotHashRef.current = hashWorkspaceDocSnapshotPayload(snapshotPayload);
+        const docSnapshotState = getDocSnapshotSaveState(activePaneDocId);
+        docSnapshotState.version = doc.snapshot_version;
+        docSnapshotState.lastSavedHash = hashWorkspaceDocSnapshotPayload(snapshotPayload);
         setDocBootstrapLexicalState(snapshotPayload.lexical_state);
+        setDocBootstrapYjsUpdateBase64(snapshotPayload.yjs_update_base64 || null);
       } catch (error) {
         if (!cancelled) {
           console.warn('[workspace-doc] failed to load bootstrap snapshot', error);
           setDocBootstrapLexicalState(emptyLexicalState());
+          setDocBootstrapYjsUpdateBase64(null);
         }
       } finally {
         if (!cancelled) {
@@ -493,7 +472,7 @@ export const useWorkspaceDocRuntime = ({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, activePaneDocId]);
+  }, [accessToken, activePaneDocId, getDocSnapshotSaveState]);
 
   useEffect(() => {
     if (!activePaneDocId) {
@@ -532,23 +511,23 @@ export const useWorkspaceDocRuntime = ({
   }, [activePaneDocId, flushPendingDocSnapshot]);
 
   const onDocEditorChange = useCallback(
-    (payload: { lexicalState: Record<string, unknown>; plainText: string }) => {
+    (payload: { lexicalState: Record<string, unknown>; plainText: string; yjsUpdateBase64?: string | null }) => {
       if (!activePaneDocId) {
         return;
       }
 
-      const snapshotPayload = buildWorkspaceDocSnapshotPayload(payload.lexicalState, payload.plainText);
+      const docSnapshotState = getDocSnapshotSaveState(activePaneDocId);
+      const snapshotPayload = buildWorkspaceDocSnapshotPayload(payload.lexicalState, payload.plainText, payload.yjsUpdateBase64);
       const nextHash = hashWorkspaceDocSnapshotPayload(snapshotPayload);
-      if (nextHash === lastDocSnapshotHashRef.current) {
+      if (nextHash === docSnapshotState.lastSavedHash) {
         return;
       }
 
-      queuedDocSnapshotRef.current = {
+      docSnapshotState.queuedEntry = {
         docId: activePaneDocId,
         lexicalState: payload.lexicalState,
         snapshotPayload,
         hash: nextHash,
-        snapshotVersion: docSnapshotVersionRef.current,
       };
 
       clearDocSnapshotSaveTimer();
@@ -556,7 +535,7 @@ export const useWorkspaceDocRuntime = ({
         flushPendingDocSnapshot(activePaneDocId);
       }, DOC_SNAPSHOT_SAVE_DEBOUNCE_MS);
     },
-    [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot],
+    [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot, getDocSnapshotSaveState],
   );
 
   const onInsertDocMention = useCallback((target: HubMentionTarget) => {
@@ -732,6 +711,7 @@ export const useWorkspaceDocRuntime = ({
     collabSessionError,
     commentTriggerRef,
     docBootstrapLexicalState,
+    docBootstrapYjsUpdateBase64,
     docBootstrapReady,
     docCommentComposerOpen,
     docCommentError,

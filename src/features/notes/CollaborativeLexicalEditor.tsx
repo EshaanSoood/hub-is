@@ -25,10 +25,9 @@ import {
   $isRangeSelection,
   SKIP_COLLAB_TAG,
 } from 'lexical';
-import { Doc } from 'yjs';
-import { IndexeddbPersistence } from 'y-indexeddb';
+import { Doc, XmlText, applyUpdate, encodeStateAsUpdate } from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
-import { editorStateToLexicalSnapshot, emptyLexicalState, normalizeLexicalState } from './lexicalState';
+import { editorStateToLexicalSnapshot, normalizeLexicalState } from './lexicalState';
 import { notesLexicalTheme } from './lexicalTheme';
 import { MediaAutoEmbedPlugin } from './MediaAutoEmbedPlugin';
 import { MediaEmbedNode } from './nodes/MediaEmbedNode';
@@ -36,6 +35,30 @@ import { $createViewRefNode, ViewRefNode } from './nodes/ViewRefNode';
 import { ViewEmbedProvider, type ViewEmbedRuntime } from './viewEmbedContext';
 
 export type CollabConnectionStatus = 'connected' | 'connecting' | 'disconnected';
+
+const hasYjsDocumentState = (doc: Doc): boolean => doc.store.clients.size > 0;
+
+const base64ToUint8Array = (value: string): Uint8Array => {
+  const binary = window.atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+};
+
+const uint8ArrayToBase64 = (value: Uint8Array): string => {
+  let binary = '';
+  for (let index = 0; index < value.length; index += 1) {
+    binary += String.fromCharCode(value[index]);
+  }
+  return window.btoa(binary);
+};
+
+type CollaborationResources = {
+  doc: Doc;
+  provider: WebsocketProvider;
+};
 
 export interface NoteCollaborationSession {
   roomId: string;
@@ -47,10 +70,11 @@ export interface NoteCollaborationSession {
 interface CollaborativeLexicalEditorProps {
   noteId: string;
   initialLexicalState: Record<string, unknown>;
+  bootstrapYjsUpdateBase64?: string | null;
   collaborationSession: NoteCollaborationSession | null;
   userName: string;
   editable: boolean;
-  onDocumentChange: (payload: { lexicalState: Record<string, unknown>; plainText: string }) => void;
+  onDocumentChange: (payload: { lexicalState: Record<string, unknown>; plainText: string; yjsUpdateBase64?: string | null }) => void;
   pendingAssetEmbed?: { embed_id: string; label: string; reference: string } | null;
   onAssetEmbedApplied?: (embedId: string) => void;
   pendingMentionInsert?: { insert_id: string; token: string } | null;
@@ -257,30 +281,31 @@ const SelectionTrackingPlugin = ({ onSelectedNodeChange }: { onSelectedNodeChang
 };
 
 const PersistencePlugin = ({
-  collaborationSession,
   onDocumentChange,
-  providerSyncedRef,
+  getYjsUpdateBase64,
 }: {
-  collaborationSession: NoteCollaborationSession | null;
-  onDocumentChange: (payload: { lexicalState: Record<string, unknown>; plainText: string }) => void;
-  providerSyncedRef: { current: boolean };
+  onDocumentChange: (payload: { lexicalState: Record<string, unknown>; plainText: string; yjsUpdateBase64?: string | null }) => void;
+  getYjsUpdateBase64?: (() => string | null) | null;
 }) => {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves, tags }) => {
-      if (collaborationSession && !providerSyncedRef.current) {
-        return;
-      }
       if (tags.has(SKIP_COLLAB_TAG)) {
         return;
       }
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) {
         return;
       }
-      onDocumentChange(editorStateToLexicalSnapshot(editorState));
+      const snapshot = editorStateToLexicalSnapshot(editorState);
+      queueMicrotask(() => {
+        onDocumentChange({
+          ...snapshot,
+          yjsUpdateBase64: getYjsUpdateBase64?.() || null,
+        });
+      });
     });
-  }, [collaborationSession, editor, onDocumentChange, providerSyncedRef]);
+  }, [editor, getYjsUpdateBase64, onDocumentChange]);
 
   return null;
 };
@@ -288,6 +313,7 @@ const PersistencePlugin = ({
 export const CollaborativeLexicalEditor = ({
   noteId,
   initialLexicalState,
+  bootstrapYjsUpdateBase64,
   collaborationSession,
   userName,
   editable,
@@ -305,130 +331,134 @@ export const CollaborativeLexicalEditor = ({
   onConnectionStatusChange,
   onPresenceChange,
 }: CollaborativeLexicalEditorProps) => {
-  const providerRef = useRef<{ provider: WebsocketProvider | null; persistence: IndexeddbPersistence | null }>({
-    provider: null,
-    persistence: null,
-  });
-  const providerSyncedRef = useRef(false);
+  const collaborationResources = useMemo<CollaborationResources | null>(() => {
+    if (!collaborationSession) {
+      return null;
+    }
+
+    const doc = new Doc();
+    doc.get('root', XmlText);
+
+    if (bootstrapYjsUpdateBase64 && !hasYjsDocumentState(doc)) {
+      try {
+        applyUpdate(doc, base64ToUint8Array(bootstrapYjsUpdateBase64), 'rest-bootstrap');
+      } catch (error) {
+        console.warn('[workspace-doc] failed to apply Yjs bootstrap snapshot', error);
+      }
+    }
+
+    return {
+      doc,
+      provider: new WebsocketProvider(collaborationSession.websocketUrl, collaborationSession.roomId, doc, {
+        connect: false,
+        params: {
+          access_token: collaborationSession.token,
+        },
+      }),
+    };
+  }, [bootstrapYjsUpdateBase64, collaborationSession]);
+  const normalizedInitialEditorState = useMemo(() => JSON.stringify(normalizeLexicalState(initialLexicalState)), [initialLexicalState]);
 
   const initialConfig = useMemo(
     () => ({
       namespace: `hub-note-${noteId}`,
       theme: notesLexicalTheme,
-      editorState: JSON.stringify(normalizeLexicalState(collaborationSession ? emptyLexicalState() : initialLexicalState)),
+      editorState: collaborationSession ? null : normalizedInitialEditorState,
       editable,
       nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, ViewRefNode, MediaEmbedNode],
       onError: (error: Error) => {
         throw error;
       },
     }),
-    [collaborationSession, editable, initialLexicalState, noteId],
+    [collaborationSession, editable, normalizedInitialEditorState, noteId],
   );
 
   const providerFactory = useMemo(() => {
+    if (!collaborationSession || !collaborationResources) {
+      return null;
+    }
+
     return (id: string, yjsDocMap: Map<string, Doc>): Provider => {
-      if (!collaborationSession) {
-        throw new Error('Collaboration session is required for provider creation.');
+      if (id !== collaborationSession.roomId) {
+        throw new Error(`Unexpected collaboration room: ${id}`);
       }
 
-      const existingDoc = yjsDocMap.get(id);
-      const doc = existingDoc || new Doc();
-      if (!existingDoc) {
-        yjsDocMap.set(id, doc);
+      if (yjsDocMap.get(id) !== collaborationResources.doc) {
+        yjsDocMap.set(id, collaborationResources.doc);
       }
 
-      // y-indexeddb: local persistence layer — survives navigation, tab close, and browser restart.
-      // Loads before the WebSocket so the document appears immediately on mount.
-      // On reconnect, Yjs sends its state vector to the collab server and receives only the
-      // operations it missed while offline. The WebSocket is the last step in the chain,
-      // not the only persistence mechanism.
-      const persistence = new IndexeddbPersistence(`hub-doc-${id}`, doc);
-      const provider = new WebsocketProvider(collaborationSession.websocketUrl, collaborationSession.roomId, doc, {
-        connect: false,
-        params: {
-          ws_ticket: collaborationSession.token,
-          doc_id: collaborationSession.roomId,
-        },
-      });
-
-      providerRef.current = { provider, persistence };
-      const connectProvider = () => {
-        if (providerRef.current.provider !== provider) {
-          return;
-        }
-        provider.connect();
-      };
-
-      if (persistence.synced) {
-        connectProvider();
-      } else {
-        persistence.once('synced', connectProvider);
-      }
-
-      return provider as unknown as Provider;
+      return collaborationResources.provider as unknown as Provider;
     };
-  }, [collaborationSession]);
+  }, [collaborationResources, collaborationSession]);
+
+  const getYjsUpdateBase64 = useMemo(() => {
+    if (!collaborationResources) {
+      return null;
+    }
+
+    return () => uint8ArrayToBase64(encodeStateAsUpdate(collaborationResources.doc));
+  }, [collaborationResources]);
 
   useEffect(() => {
-    if (!collaborationSession) {
+    if (!collaborationResources) {
       return;
     }
 
-    let cancelled = false;
-    let cleanup = () => {};
+    return () => {
+      collaborationResources.provider.destroy();
+      collaborationResources.doc.destroy();
+    };
+  }, [collaborationResources]);
 
-    const attach = () => {
-      const { provider, persistence } = providerRef.current;
-      if (!provider || cancelled) {
-        if (!cancelled) {
-          window.setTimeout(attach, 25);
-        }
-        return;
-      }
+  useEffect(() => {
+    if (!collaborationResources) {
+      onConnectionStatusChange?.('disconnected');
+      onPresenceChange?.(0, []);
+      return;
+    }
 
-      const applyPresence = () => {
-        const names = noteAwareNames(provider);
-        const editorCount = Math.max(provider.awareness.getStates().size, 1);
-        onPresenceChange?.(editorCount, names);
-      };
-
-      const handleStatus = ({ status }: { status: CollabConnectionStatus }) => {
-        onConnectionStatusChange?.(status);
-      };
-
-      const handleAwarenessChange = () => {
-        applyPresence();
-      };
-
-      const handleSync = (isSynced: boolean) => {
-        providerSyncedRef.current = isSynced;
-      };
-
-      provider.on('status', handleStatus);
-      providerSyncedRef.current = provider.synced;
-      provider.on('sync', handleSync);
-      provider.awareness.on('change', handleAwarenessChange);
-      applyPresence();
-
-      cleanup = () => {
-        provider.off('status', handleStatus);
-        provider.off('sync', handleSync);
-        provider.awareness.off('change', handleAwarenessChange);
-        provider.disconnect();
-        (provider as unknown as { destroy: () => void }).destroy();
-        providerSyncedRef.current = false;
-        providerRef.current = { provider: null, persistence: null };
-        void persistence?.destroy();
-      };
+    const { provider } = collaborationResources;
+    const applyPresence = () => {
+      const names = noteAwareNames(provider);
+      const editorCount = Math.max(provider.awareness.getStates().size, 1);
+      onPresenceChange?.(editorCount, names);
     };
 
-    attach();
+    const handleStatus = ({ status }: { status: CollabConnectionStatus }) => {
+      onConnectionStatusChange?.(status);
+    };
+
+    const handleAwarenessChange = () => {
+      applyPresence();
+    };
+
+    provider.on('status', handleStatus);
+    provider.awareness.on('change', handleAwarenessChange);
+    onConnectionStatusChange?.(provider.wsconnected ? 'connected' : provider.wsconnecting ? 'connecting' : 'disconnected');
+    applyPresence();
 
     return () => {
-      cancelled = true;
-      cleanup();
+      provider.off('status', handleStatus);
+      provider.awareness.off('change', handleAwarenessChange);
+      onConnectionStatusChange?.('disconnected');
+      onPresenceChange?.(0, []);
     };
-  }, [collaborationSession, onConnectionStatusChange, onPresenceChange]);
+  }, [collaborationResources, onConnectionStatusChange, onPresenceChange]);
+
+  if (collaborationSession && (!collaborationResources || !providerFactory)) {
+    return null;
+  }
+
+  const collaborationPlugin =
+    collaborationSession && providerFactory ? (
+      <CollaborationPlugin
+        id={collaborationSession.roomId}
+        providerFactory={providerFactory}
+        shouldBootstrap
+        initialEditorState={normalizedInitialEditorState}
+        awarenessData={{ name: userName }}
+      />
+    ) : null;
 
   return (
     <ViewEmbedProvider value={viewEmbedRuntime || null}>
@@ -445,11 +475,7 @@ export const CollaborativeLexicalEditor = ({
             placeholder={<div className="hub-editor__placeholder">Write project notes...</div>}
             ErrorBoundary={LexicalErrorBoundary}
           />
-          <PersistencePlugin
-            collaborationSession={collaborationSession}
-            onDocumentChange={onDocumentChange}
-            providerSyncedRef={providerSyncedRef}
-          />
+          <PersistencePlugin onDocumentChange={onDocumentChange} getYjsUpdateBase64={getYjsUpdateBase64} />
           <SelectionTrackingPlugin onSelectedNodeChange={onSelectedNodeChange} />
           <FocusNodePlugin focusNodeKey={focusNodeKey} onNodeFocused={onNodeFocused} />
           <AssetEmbedInsertPlugin pendingAssetEmbed={pendingAssetEmbed} onAssetEmbedApplied={onAssetEmbedApplied} />
@@ -459,15 +485,7 @@ export const CollaborativeLexicalEditor = ({
           <ListPlugin />
           <LinkPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
-          {collaborationSession ? (
-            <CollaborationPlugin
-              id={collaborationSession.roomId}
-              providerFactory={providerFactory}
-              shouldBootstrap
-              initialEditorState={JSON.stringify(normalizeLexicalState(initialLexicalState))}
-              awarenessData={{ name: userName }}
-            />
-          ) : null}
+          {collaborationPlugin}
         </LexicalComposer>
       </LexicalCollaboration>
     </ViewEmbedProvider>

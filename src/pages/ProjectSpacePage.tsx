@@ -628,6 +628,7 @@ const ProjectSpaceWorkspace = ({
     collabSessionError,
     commentTriggerRef,
     docBootstrapLexicalState,
+    docBootstrapYjsUpdateBase64,
     docBootstrapReady,
     docCommentComposerOpen,
     docCommentError,
@@ -1533,6 +1534,7 @@ const ProjectSpaceWorkspace = ({
                           key={collabSession.roomId}
                           noteId={collabSession.roomId}
                           initialLexicalState={docBootstrapLexicalState}
+                          bootstrapYjsUpdateBase64={docBootstrapYjsUpdateBase64}
                           collaborationSession={collabSession}
                           userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
                           editable={activePaneCanEdit}

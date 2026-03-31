@@ -29,6 +29,7 @@ const wsReadyStateOpen = WebSocket.OPEN;
 const docs = new Map();
 const messageSync = 0;
 const messageAwareness = 1;
+const messageQueryAwareness = 3;
 
 const jwtVerifier = (() => {
   if (KEYCLOAK_ISSUER) {
@@ -101,6 +102,28 @@ const parseTokenFromProtocols = (headerValue) => {
   return '';
 };
 
+const parseDocIdFromRequestUrl = (requestUrl) => {
+  const pathnameDocId = requestUrl.pathname
+    .split('/')
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch {
+        return segment;
+      }
+    })
+    .filter(Boolean)
+    .at(-1);
+
+  return asText(
+    requestUrl.searchParams.get('doc_id') ||
+      requestUrl.searchParams.get('docId') ||
+      requestUrl.searchParams.get('roomId') ||
+      requestUrl.searchParams.get('noteId') ||
+      pathnameDocId,
+  );
+};
+
 const buildHubApiAuthHeaders = (token, { hasBody = false } = {}) => {
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -167,6 +190,8 @@ const sendWsMessage = (ws, message) => {
   }
 };
 
+const encodeDocUpdateBase64 = (ydoc) => Buffer.from(Y.encodeStateAsUpdate(ydoc)).toString('base64');
+
 const createDocState = (docId) => {
   const ydoc = new Y.Doc();
   ydoc.gc = true;
@@ -184,6 +209,7 @@ const createDocState = (docId) => {
     loadPromise: null,
     saveTimer: null,
     snapshotVersion: 0,
+    lastPersistedYjsUpdate: '',
     lastKnownToken: '',
     projectId: '',
     paneId: '',
@@ -200,6 +226,9 @@ const createDocState = (docId) => {
     const message = encoding.toUint8Array(encoder);
 
     for (const [clientWs] of state.clients) {
+      if (clientWs === origin) {
+        continue;
+      }
       sendWsMessage(clientWs, message);
     }
 
@@ -373,6 +402,10 @@ const loadDocSnapshot = async (state, token) => {
           const update = Buffer.from(String(snapshotPayload.yjs_update_base64), 'base64');
           Y.applyUpdate(state.ydoc, new Uint8Array(update), { origin: 'initial-load' });
         }
+        state.lastPersistedYjsUpdate =
+          snapshotPayload?.yjs_update_base64 && typeof snapshotPayload.yjs_update_base64 === 'string'
+            ? String(snapshotPayload.yjs_update_base64)
+            : encodeDocUpdateBase64(state.ydoc);
 
         state.loaded = true;
         state.lastKnownToken = token;
@@ -396,13 +429,47 @@ const loadDocSnapshot = async (state, token) => {
   await state.loadPromise;
 };
 
-const persistDocSnapshot = async (state) => {
+const refreshSnapshotVersion = async (state) => {
   if (!state.lastKnownToken) {
     return;
   }
 
-  const yjsUpdate = Buffer.from(Y.encodeStateAsUpdate(state.ydoc)).toString('base64');
-  const nextVersion = state.snapshotVersion + 1;
+  let response;
+  try {
+    response = await fetchWithTimeout(`${HUB_API_URL}/api/hub/docs/${encodeURIComponent(state.docId)}`, {
+      method: 'GET',
+      headers: buildHubApiAuthHeaders(state.lastKnownToken),
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('doc_snapshot_load_timeout');
+    }
+    throw error;
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload?.ok !== true || !payload?.data?.doc) {
+    throw new Error(payload?.error?.message || 'doc_snapshot_load_failed');
+  }
+
+  const docSnapshot = payload.data.doc;
+  state.snapshotVersion = Number.isInteger(docSnapshot.snapshot_version) ? docSnapshot.snapshot_version : 0;
+  const snapshotPayload = parseJson(docSnapshot.snapshot_payload, null);
+  state.lastPersistedYjsUpdate =
+    snapshotPayload?.yjs_update_base64 && typeof snapshotPayload.yjs_update_base64 === 'string'
+      ? String(snapshotPayload.yjs_update_base64)
+      : encodeDocUpdateBase64(state.ydoc);
+};
+
+const persistDocSnapshot = async (state, retryOnConflict = true) => {
+  if (!state.lastKnownToken) {
+    return;
+  }
+
+  const yjsUpdate = encodeDocUpdateBase64(state.ydoc);
+  if (yjsUpdate === state.lastPersistedYjsUpdate) {
+    return;
+  }
 
   let response;
   try {
@@ -410,7 +477,7 @@ const persistDocSnapshot = async (state) => {
       method: 'PUT',
       headers: buildHubApiAuthHeaders(state.lastKnownToken, { hasBody: true }),
       body: JSON.stringify({
-        snapshot_version: nextVersion,
+        snapshot_version: state.snapshotVersion,
         snapshot_payload: {
           yjs_update_base64: yjsUpdate,
         },
@@ -425,10 +492,16 @@ const persistDocSnapshot = async (state) => {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || payload?.ok !== true) {
+    if (retryOnConflict && payload?.error?.code === 'version_conflict') {
+      await refreshSnapshotVersion(state);
+      await persistDocSnapshot(state, false);
+      return;
+    }
     throw new Error(payload?.error?.message || 'doc_snapshot_save_failed');
   }
 
-  state.snapshotVersion = nextVersion;
+  state.snapshotVersion = Number.isInteger(payload?.data?.snapshot_version) ? payload.data.snapshot_version : state.snapshotVersion + 1;
+  state.lastPersistedYjsUpdate = yjsUpdate;
 };
 
 const schedulePersist = (state) => {
@@ -475,10 +548,7 @@ const handleSyncMessage = (state, ws, decoder, messageType) => {
   const encoder = encoding.createEncoder();
   encoding.writeVarUint(encoder, messageSync);
 
-  const syncType = syncProtocol.readSyncMessage(decoder, encoder, state.ydoc, ws);
-  if (syncType === syncProtocol.messageYjsUpdate) {
-    schedulePersist(state);
-  }
+  syncProtocol.readSyncMessage(decoder, encoder, state.ydoc, ws);
 
   if (encoding.length(encoder) > 1) {
     sendWsMessage(ws, encoding.toUint8Array(encoder));
@@ -488,6 +558,21 @@ const handleSyncMessage = (state, ws, decoder, messageType) => {
 const handleAwarenessMessage = (state, ws, decoder) => {
   const update = decoding.readVarUint8Array(decoder);
   awarenessProtocol.applyAwarenessUpdate(state.awareness, update, ws);
+};
+
+const handleQueryAwarenessMessage = (state, ws) => {
+  const awarenessStates = Array.from(state.awareness.getStates().keys());
+  if (awarenessStates.length === 0) {
+    return;
+  }
+
+  const encoder = encoding.createEncoder();
+  encoding.writeVarUint(encoder, messageAwareness);
+  encoding.writeVarUint8Array(
+    encoder,
+    awarenessProtocol.encodeAwarenessUpdate(state.awareness, awarenessStates),
+  );
+  sendWsMessage(ws, encoding.toUint8Array(encoder));
 };
 
 const server = createServer((request, response) => {
@@ -531,8 +616,6 @@ wss.on('connection', async (ws, request, context) => {
     awarenessClientIds: new Set(),
   });
 
-  sendInitialSync(state, ws);
-
   ws.on('message', (data) => {
     let message;
     if (data instanceof Uint8Array) {
@@ -553,6 +636,11 @@ wss.on('connection', async (ws, request, context) => {
 
     if (messageType === messageAwareness) {
       handleAwarenessMessage(state, ws, decoder);
+      return;
+    }
+
+    if (messageType === messageQueryAwareness) {
+      handleQueryAwarenessMessage(state, ws);
     }
   });
 
@@ -572,6 +660,8 @@ wss.on('connection', async (ws, request, context) => {
   ws.on('error', () => {
     ws.close();
   });
+
+  sendInitialSync(state, ws);
 });
 
 server.on('upgrade', async (request, socket, head) => {
@@ -586,11 +676,16 @@ server.on('upgrade', async (request, socket, head) => {
     const origin = asText(request.headers.origin || '');
     ensureOriginAllowed(origin);
 
-    const docId = asText(requestUrl.searchParams.get('doc_id') || requestUrl.searchParams.get('docId'));
+    const docId = parseDocIdFromRequestUrl(requestUrl);
     const wsTicket = asText(requestUrl.searchParams.get('ws_ticket') || requestUrl.searchParams.get('wsTicket'));
+    const queryToken = asText(
+      requestUrl.searchParams.get('access_token') ||
+      requestUrl.searchParams.get('accessToken') ||
+      requestUrl.searchParams.get('token'),
+    );
     const bearerToken = parseBearerToken(request.headers.authorization || '');
     const protocolToken = parseTokenFromProtocols(request.headers['sec-websocket-protocol'] || '');
-    const token = bearerToken || protocolToken;
+    const token = bearerToken || protocolToken || queryToken;
 
     if (!docId || !/^doc_[a-z0-9-]+$/i.test(docId)) {
       throw new Error('invalid_doc_id');
