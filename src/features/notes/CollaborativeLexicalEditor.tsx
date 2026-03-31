@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { AutoLinkNode, LinkNode } from '@lexical/link';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { TRANSFORMERS } from '@lexical/markdown';
@@ -25,7 +25,7 @@ import {
   $isRangeSelection,
   SKIP_COLLAB_TAG,
 } from 'lexical';
-import { Doc, applyUpdate, encodeStateAsUpdate } from 'yjs';
+import { Doc, encodeStateAsUpdate } from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { editorStateToLexicalSnapshot, normalizeLexicalState } from './lexicalState';
 import { notesLexicalTheme } from './lexicalTheme';
@@ -36,26 +36,12 @@ import { ViewEmbedProvider, type ViewEmbedRuntime } from './viewEmbedContext';
 
 export type CollabConnectionStatus = 'connected' | 'connecting' | 'disconnected';
 
-const base64ToUint8Array = (value: string): Uint8Array => {
-  const binary = window.atob(value);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-  return bytes;
-};
-
 const uint8ArrayToBase64 = (value: Uint8Array): string => {
   let binary = '';
   for (let index = 0; index < value.length; index += 1) {
     binary += String.fromCharCode(value[index]);
   }
   return window.btoa(binary);
-};
-
-type CollaborationResources = {
-  doc: Doc;
-  provider: WebsocketProvider;
 };
 
 export interface NoteCollaborationSession {
@@ -122,6 +108,19 @@ const noteAwareNames = (provider: WebsocketProvider): string[] => {
     .filter(Boolean);
 
   return [...new Set(names)];
+};
+
+const getDocFromMap = (id: string, yjsDocMap: Map<string, Doc>): Doc => {
+  let doc = yjsDocMap.get(id);
+
+  if (doc === undefined) {
+    doc = new Doc();
+    yjsDocMap.set(id, doc);
+  } else {
+    doc.load();
+  }
+
+  return doc;
 };
 
 const AssetEmbedInsertPlugin = ({
@@ -311,7 +310,6 @@ const PersistencePlugin = ({
 export const CollaborativeLexicalEditor = ({
   noteId,
   initialLexicalState,
-  bootstrapYjsUpdateBase64,
   collaborationSession,
   userName,
   editable,
@@ -332,32 +330,9 @@ export const CollaborativeLexicalEditor = ({
   const collaborationRoomId = collaborationSession?.roomId ?? null;
   const collaborationWebsocketUrl = collaborationSession?.websocketUrl ?? null;
   const collaborationToken = collaborationSession?.token ?? null;
-
-  const collaborationResources = useMemo<CollaborationResources | null>(() => {
-    if (!collaborationRoomId || !collaborationWebsocketUrl || !collaborationToken) {
-      return null;
-    }
-
-    const doc = new Doc();
-
-    if (bootstrapYjsUpdateBase64) {
-      try {
-        applyUpdate(doc, base64ToUint8Array(bootstrapYjsUpdateBase64), 'rest-bootstrap');
-      } catch (error) {
-        console.warn('[workspace-doc] failed to apply Yjs bootstrap snapshot', error);
-      }
-    }
-
-    return {
-      doc,
-      provider: new WebsocketProvider(collaborationWebsocketUrl, collaborationRoomId, doc, {
-        connect: false,
-        params: {
-          access_token: collaborationToken,
-        },
-      }),
-    };
-  }, [bootstrapYjsUpdateBase64, collaborationRoomId, collaborationToken, collaborationWebsocketUrl]);
+  const collaborationDocRef = useRef<Doc | null>(null);
+  const collaborationProviderRef = useRef<WebsocketProvider | null>(null);
+  const collaborationProviderCleanupRef = useRef<(() => void) | null>(null);
   const normalizedInitialEditorState = useMemo(() => JSON.stringify(normalizeLexicalState(initialLexicalState)), [initialLexicalState]);
 
   const initialConfig = useMemo(
@@ -374,84 +349,94 @@ export const CollaborativeLexicalEditor = ({
     [collaborationRoomId, editable, normalizedInitialEditorState, noteId],
   );
 
-  const providerFactory = useMemo(() => {
-    if (!collaborationRoomId || !collaborationResources) {
-      return null;
-    }
-
-    return (id: string, yjsDocMap: Map<string, Doc>): Provider => {
+  const providerFactory = useCallback(
+    (id: string, yjsDocMap: Map<string, Doc>): Provider => {
+      if (!collaborationRoomId || !collaborationWebsocketUrl || !collaborationToken) {
+        throw new Error('Collaboration session is unavailable.');
+      }
       if (id !== collaborationRoomId) {
         throw new Error(`Unexpected collaboration room: ${id}`);
       }
 
-      if (yjsDocMap.get(id) !== collaborationResources.doc) {
-        yjsDocMap.set(id, collaborationResources.doc);
-      }
+      const doc = getDocFromMap(id, yjsDocMap);
+      const provider = new WebsocketProvider(collaborationWebsocketUrl, id, doc, {
+        connect: false,
+        params: {
+          access_token: collaborationToken,
+        },
+      });
 
-      return collaborationResources.provider as unknown as Provider;
-    };
-  }, [collaborationResources, collaborationRoomId]);
+      collaborationDocRef.current = doc;
+      collaborationProviderCleanupRef.current?.();
 
-  const getYjsUpdateBase64 = useMemo(() => {
-    if (!collaborationResources) {
-      return null;
-    }
+      const applyPresence = () => {
+        const names = noteAwareNames(provider);
+        const editorCount = Math.max(provider.awareness.getStates().size, 1);
+        onPresenceChange?.(editorCount, names);
+      };
 
-    return () => uint8ArrayToBase64(encodeStateAsUpdate(collaborationResources.doc));
-  }, [collaborationResources]);
+      const handleStatus = ({ status }: { status: CollabConnectionStatus }) => {
+        onConnectionStatusChange?.(status);
+      };
 
-  useEffect(() => {
-    if (!collaborationResources) {
-      return;
-    }
+      const handleAwarenessChange = () => {
+        applyPresence();
+      };
 
-    return () => {
-      collaborationResources.provider.destroy();
-      collaborationResources.doc.destroy();
-    };
-  }, [collaborationResources]);
-
-  useEffect(() => {
-    if (!collaborationResources) {
-      onConnectionStatusChange?.('disconnected');
-      onPresenceChange?.(0, []);
-      return;
-    }
-
-    const { provider } = collaborationResources;
-    const applyPresence = () => {
-      const names = noteAwareNames(provider);
-      const editorCount = Math.max(provider.awareness.getStates().size, 1);
-      onPresenceChange?.(editorCount, names);
-    };
-
-    const handleStatus = ({ status }: { status: CollabConnectionStatus }) => {
-      onConnectionStatusChange?.(status);
-    };
-
-    const handleAwarenessChange = () => {
+      provider.on('status', handleStatus);
+      provider.awareness.on('change', handleAwarenessChange);
+      onConnectionStatusChange?.(provider.wsconnected ? 'connected' : provider.wsconnecting ? 'connecting' : 'disconnected');
       applyPresence();
-    };
 
-    provider.on('status', handleStatus);
-    provider.awareness.on('change', handleAwarenessChange);
-    onConnectionStatusChange?.(provider.wsconnected ? 'connected' : provider.wsconnecting ? 'connecting' : 'disconnected');
-    applyPresence();
+      collaborationProviderRef.current = provider;
+      collaborationProviderCleanupRef.current = () => {
+        provider.off('status', handleStatus);
+        provider.awareness.off('change', handleAwarenessChange);
+        if (collaborationProviderRef.current === provider) {
+          collaborationProviderRef.current = null;
+        }
+        onConnectionStatusChange?.('disconnected');
+        onPresenceChange?.(0, []);
+      };
 
+      return provider as unknown as Provider;
+    },
+    [collaborationRoomId, collaborationToken, collaborationWebsocketUrl, onConnectionStatusChange, onPresenceChange],
+  );
+
+  const getYjsUpdateBase64 = useCallback(() => {
+    const doc = collaborationDocRef.current;
+    return doc ? uint8ArrayToBase64(encodeStateAsUpdate(doc)) : null;
+  }, []);
+
+  useEffect(() => {
+    if (collaborationRoomId) {
+      return;
+    }
+
+    collaborationDocRef.current = null;
+    collaborationProviderCleanupRef.current?.();
+    collaborationProviderCleanupRef.current = null;
+    onConnectionStatusChange?.('disconnected');
+    onPresenceChange?.(0, []);
+  }, [collaborationRoomId, onConnectionStatusChange, onPresenceChange]);
+
+  useEffect(() => {
     return () => {
-      provider.off('status', handleStatus);
-      provider.awareness.off('change', handleAwarenessChange);
+      collaborationProviderCleanupRef.current?.();
+      collaborationProviderCleanupRef.current = null;
+      collaborationDocRef.current = null;
       onConnectionStatusChange?.('disconnected');
       onPresenceChange?.(0, []);
     };
-  }, [collaborationResources, onConnectionStatusChange, onPresenceChange]);
+  }, [onConnectionStatusChange, onPresenceChange]);
 
-  if (collaborationRoomId && (!collaborationResources || !providerFactory)) {
+  if (collaborationRoomId && (!collaborationWebsocketUrl || !collaborationToken)) {
     return null;
   }
 
   const collaborationPlugin =
-    collaborationRoomId && providerFactory ? (
+    collaborationRoomId && collaborationWebsocketUrl && collaborationToken ? (
       <CollaborationPlugin
         id={collaborationRoomId}
         providerFactory={providerFactory}

@@ -224,7 +224,6 @@ export const useWorkspaceDocRuntime = ({
 
   const docSnapshotSaveTimerRef = useRef<number | null>(null);
   const docSnapshotSaveStatesRef = useRef<Map<string, DocSnapshotSaveState>>(new Map());
-  const docCollabConnectionStatusRef = useRef<CollabConnectionStatus>('disconnected');
   const latestDocCommentsRequestRef = useRef(0);
   const mountedRef = useRef(true);
 
@@ -412,7 +411,6 @@ export const useWorkspaceDocRuntime = ({
     setDocBootstrapReady(activePaneDocId === null);
     setCollabSession(null);
     setCollabSessionError(null);
-    docCollabConnectionStatusRef.current = 'disconnected';
     clearDocSnapshotSaveTimer();
   }, [activePaneDocId, clearDocSnapshotSaveTimer]);
 
@@ -534,11 +532,6 @@ export const useWorkspaceDocRuntime = ({
         hash: nextHash,
       };
 
-      if (docCollabConnectionStatusRef.current === 'connected') {
-        clearDocSnapshotSaveTimer();
-        return;
-      }
-
       clearDocSnapshotSaveTimer();
       docSnapshotSaveTimerRef.current = window.setTimeout(() => {
         flushPendingDocSnapshot(activePaneDocId);
@@ -549,12 +542,21 @@ export const useWorkspaceDocRuntime = ({
 
   const onDocCollabConnectionStatusChange = useCallback(
     (status: CollabConnectionStatus) => {
-      docCollabConnectionStatusRef.current = status;
-      if (status === 'connected') {
-        clearDocSnapshotSaveTimer();
+      if (status !== 'disconnected' || !activePaneDocId) {
+        return;
       }
+
+      const docSnapshotState = getDocSnapshotSaveState(activePaneDocId);
+      if (!docSnapshotState.queuedEntry) {
+        return;
+      }
+
+      clearDocSnapshotSaveTimer();
+      docSnapshotSaveTimerRef.current = window.setTimeout(() => {
+        flushPendingDocSnapshot(activePaneDocId);
+      }, DOC_SNAPSHOT_SAVE_DEBOUNCE_MS);
     },
-    [clearDocSnapshotSaveTimer],
+    [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot, getDocSnapshotSaveState],
   );
 
   const onInsertDocMention = useCallback((target: HubMentionTarget) => {
