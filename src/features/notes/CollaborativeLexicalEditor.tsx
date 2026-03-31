@@ -24,10 +24,11 @@ import {
   $getSelection,
   $insertNodes,
   $isRangeSelection,
+  HISTORY_MERGE_TAG,
   SKIP_COLLAB_TAG,
 } from 'lexical';
 import { Doc, encodeStateAsUpdate } from 'yjs';
-import { editorStateToLexicalSnapshot, normalizeLexicalState } from './lexicalState';
+import { editorStateToLexicalSnapshot, lexicalStateToPlainText, normalizeLexicalState } from './lexicalState';
 import { notesLexicalTheme } from './lexicalTheme';
 import { MediaAutoEmbedPlugin } from './MediaAutoEmbedPlugin';
 import { MediaEmbedNode } from './nodes/MediaEmbedNode';
@@ -238,10 +239,12 @@ const SelectionTrackingPlugin = ({ onSelectedNodeChange }: { onSelectedNodeChang
 const PersistencePlugin = ({
   collaborationRoomId,
   collaborationReady,
+  getCollabProvider,
   onDocumentChange,
 }: {
   collaborationRoomId: string | null;
   collaborationReady: boolean;
+  getCollabProvider: () => HocuspocusProvider | null;
   onDocumentChange: (payload: {
     lexicalState: Record<string, unknown>;
     plainText: string;
@@ -257,13 +260,18 @@ const PersistencePlugin = ({
       return null;
     }
 
+    const provider = getCollabProvider();
+    if (!provider || !provider.synced || provider.hasUnsyncedChanges) {
+      return null;
+    }
+
     const doc = yjsDocMap.get(collaborationRoomId);
     if (!doc) {
       return null;
     }
 
     return uint8ArrayToBase64(encodeStateAsUpdate(doc));
-  }, [collaborationRoomId, yjsDocMap]);
+  }, [collaborationRoomId, getCollabProvider, yjsDocMap]);
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves, tags }) => {
@@ -304,25 +312,11 @@ const PersistencePlugin = ({
 };
 
 class LexicalHocuspocusProvider extends HocuspocusProvider {
-  private readonly yjsDocMap: Map<string, Doc>;
-  private readonly roomId: string;
-  private cleanupComplete = false;
-
   constructor(
     configuration: ConstructorParameters<typeof HocuspocusProvider>[0],
-    {
-      roomId,
-      yjsDocMap,
-      onFirstSync,
-    }: {
-      roomId: string;
-      yjsDocMap: Map<string, Doc>;
-      onFirstSync: () => void;
-    },
+    { onFirstSync }: { onFirstSync: () => void },
   ) {
     super(configuration);
-    this.roomId = roomId;
-    this.yjsDocMap = yjsDocMap;
     super.on('synced', ({ state }: { state: boolean }) => {
       if (state) {
         onFirstSync();
@@ -330,34 +324,53 @@ class LexicalHocuspocusProvider extends HocuspocusProvider {
       this.emit('sync', state);
     });
   }
+}
 
-  override async connect(): Promise<void> {
-    await super.connect();
+const shouldRecoverCollaborativeHydration = (bootstrapPlainText: string, currentPlainText: string): boolean => {
+  if (!bootstrapPlainText) {
+    return false;
   }
 
-  override disconnect(): void {
-    this.cleanup();
+  if (!currentPlainText) {
+    return true;
   }
 
-  override destroy(): void {
-    this.cleanup();
-  }
+  return bootstrapPlainText.length > currentPlainText.length && bootstrapPlainText.startsWith(currentPlainText);
+};
 
-  private cleanup(): void {
-    if (this.cleanupComplete) {
+const CollaborationRecoveryPlugin = ({
+  collaborationEnabled,
+  collaborationReady,
+  initialEditorState,
+  initialPlainText,
+}: {
+  collaborationEnabled: boolean;
+  collaborationReady: boolean;
+  initialEditorState: string;
+  initialPlainText: string;
+}) => {
+  const [editor] = useLexicalComposerContext();
+  const recoveredRef = useRef(false);
+
+  useEffect(() => {
+    if (!collaborationEnabled || !collaborationReady || recoveredRef.current) {
       return;
     }
 
-    this.cleanupComplete = true;
-    super.destroy();
-
-    const currentDoc = this.yjsDocMap.get(this.roomId);
-    if (currentDoc === this.document) {
-      this.yjsDocMap.delete(this.roomId);
+    recoveredRef.current = true;
+    const currentSnapshot = editorStateToLexicalSnapshot(editor.getEditorState());
+    if (!shouldRecoverCollaborativeHydration(initialPlainText, currentSnapshot.plainText)) {
+      return;
     }
-    this.document.destroy();
-  }
-}
+
+    const recoveredEditorState = editor.parseEditorState(initialEditorState);
+    editor.setEditorState(recoveredEditorState, {
+      tag: HISTORY_MERGE_TAG,
+    });
+  }, [collaborationEnabled, collaborationReady, editor, initialEditorState, initialPlainText]);
+
+  return null;
+};
 
 export const CollaborativeLexicalEditor = ({
   noteId,
@@ -381,12 +394,17 @@ export const CollaborativeLexicalEditor = ({
     () => JSON.stringify(normalizeLexicalState(initialLexicalState)),
     [initialLexicalState],
   );
+  const initialPlainText = useMemo(
+    () => lexicalStateToPlainText(normalizeLexicalState(initialLexicalState)),
+    [initialLexicalState],
+  );
   const collaborationRoomId = collaborationSession?.roomId ?? null;
   const collaborationEnabled =
     collaborationSession !== null &&
     collaborationSession.roomId.trim().length > 0 &&
     collaborationSession.serverUrl.trim().length > 0;
   const [syncedRoomId, setSyncedRoomId] = useState<string | null>(null);
+  const collabProviderRef = useRef<HocuspocusProvider | null>(null);
   const collaborationReady = !collaborationEnabled || syncedRoomId === collaborationRoomId;
 
   const initialConfig = useMemo(
@@ -418,7 +436,7 @@ export const CollaborativeLexicalEditor = ({
       const doc = new Doc();
       yjsDocMap.set(id, doc);
 
-      return new LexicalHocuspocusProvider(
+      const provider = new LexicalHocuspocusProvider(
         {
           document: doc,
           name: id,
@@ -427,12 +445,16 @@ export const CollaborativeLexicalEditor = ({
         },
         {
           onFirstSync: () => {
-            setSyncedRoomId(id);
+            if (collabProviderRef.current === provider) {
+              setSyncedRoomId(id);
+            }
           },
-          roomId: id,
-          yjsDocMap,
         },
-      ) as unknown as Provider;
+      );
+
+      collabProviderRef.current = provider;
+
+      return provider as unknown as Provider;
     },
     [collaborationEnabled, collaborationSession],
   );
@@ -464,7 +486,14 @@ export const CollaborativeLexicalEditor = ({
           <PersistencePlugin
             collaborationRoomId={collaborationRoomId}
             collaborationReady={collaborationReady}
+            getCollabProvider={() => collabProviderRef.current}
             onDocumentChange={onDocumentChange}
+          />
+          <CollaborationRecoveryPlugin
+            collaborationEnabled={collaborationEnabled}
+            collaborationReady={collaborationReady}
+            initialEditorState={normalizedInitialEditorState}
+            initialPlainText={initialPlainText}
           />
           <SelectionTrackingPlugin onSelectedNodeChange={onSelectedNodeChange} />
           <FocusNodePlugin focusNodeKey={focusNodeKey} onNodeFocused={onNodeFocused} />
