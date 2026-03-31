@@ -636,7 +636,6 @@ const ProjectSpaceWorkspace = ({
     onAddDocComment,
     onDocCommentDialogOpenChange,
     onDocEditorChange,
-    onRefreshDocCollabSession,
     onInsertDocMention,
     onJumpToDocComment,
     onResolveDocComment,
@@ -1530,11 +1529,10 @@ const ProjectSpaceWorkspace = ({
                   <>
                     <Suspense fallback={<ModuleLoadingState label="Loading collaborative editor" rows={8} />}>
                       <CollaborativeLexicalEditor
-                        key={collabSession ? `${collabSession.roomId}:${collabSession.wsTicket}` : `${activePaneDocId}:rest`}
+                        key={activePaneDocId}
                         noteId={activePaneDocId}
                         initialLexicalState={docBootstrapLexicalState}
                         collaborationSession={collabSession}
-                        onRefreshCollaborationSession={onRefreshDocCollabSession}
                         userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
                         editable={activePaneCanEdit}
                         onDocumentChange={onDocEditorChange}

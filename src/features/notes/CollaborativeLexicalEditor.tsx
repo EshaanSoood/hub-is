@@ -26,7 +26,7 @@ import {
   SKIP_COLLAB_TAG,
 } from 'lexical';
 import { Doc, encodeStateAsUpdate } from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
+import { HubOSSecureProvider } from './HubOSSecureProvider';
 import { editorStateToLexicalSnapshot, normalizeLexicalState } from './lexicalState';
 import { notesLexicalTheme } from './lexicalTheme';
 import { MediaAutoEmbedPlugin } from './MediaAutoEmbedPlugin';
@@ -44,16 +44,14 @@ const uint8ArrayToBase64 = (value: Uint8Array): string => {
 
 export interface NoteCollaborationSession {
   roomId: string;
-  websocketUrl: string;
-  wsTicket: string;
-  expiresAt: string;
+  serverUrl: string;
+  fetchTicket: () => Promise<string>;
 }
 
 interface CollaborativeLexicalEditorProps {
   noteId: string;
   initialLexicalState: Record<string, unknown>;
   collaborationSession: NoteCollaborationSession | null;
-  onRefreshCollaborationSession?: () => Promise<NoteCollaborationSession | null>;
   userName: string;
   editable: boolean;
   onDocumentChange: (payload: {
@@ -304,7 +302,6 @@ export const CollaborativeLexicalEditor = ({
   noteId,
   initialLexicalState,
   collaborationSession,
-  onRefreshCollaborationSession,
   userName,
   editable,
   onDocumentChange,
@@ -327,8 +324,7 @@ export const CollaborativeLexicalEditor = ({
   const collaborationEnabled =
     collaborationSession !== null &&
     collaborationSession.roomId.trim().length > 0 &&
-    collaborationSession.websocketUrl.trim().length > 0 &&
-    collaborationSession.wsTicket.trim().length > 0;
+    collaborationSession.serverUrl.trim().length > 0;
 
   const initialConfig = useMemo(
     () => ({
@@ -356,68 +352,9 @@ export const CollaborativeLexicalEditor = ({
         yjsDocMap.set(id, doc);
       }
 
-      const provider = new WebsocketProvider(collaborationSession.websocketUrl, id, doc, {
-        connect: false,
-        disableBc: true,
-        maxBackoffTime: 60_000,
-        params: {
-          ws_ticket: collaborationSession.wsTicket,
-        },
-      });
-
-      let reconnecting = false;
-      let disposed = false;
-
-      const stopReconnects = () => {
-        (provider as WebsocketProvider & { shouldConnect?: boolean }).shouldConnect = false;
-      };
-
-      const reconnectWithFreshTicket = async () => {
-        if (disposed || reconnecting || !onRefreshCollaborationSession) {
-          return;
-        }
-
-        reconnecting = true;
-        try {
-          const nextSession = await onRefreshCollaborationSession();
-          if (disposed || !nextSession) {
-            return;
-          }
-
-          provider.params = {
-            ...provider.params,
-            ws_ticket: nextSession.wsTicket,
-          };
-          provider.connect();
-        } catch (error) {
-          console.warn('[workspace-doc] failed to refresh collaboration ticket', error);
-        } finally {
-          reconnecting = false;
-        }
-      };
-
-      const handleConnectionError = () => {
-        stopReconnects();
-      };
-
-      const handleConnectionClose = () => {
-        stopReconnects();
-        void reconnectWithFreshTicket();
-      };
-
-      const originalDisconnect = provider.disconnect.bind(provider);
-      provider.disconnect = () => {
-        disposed = true;
-        stopReconnects();
-        originalDisconnect();
-      };
-
-      provider.on('connection-error', handleConnectionError);
-      provider.on('connection-close', handleConnectionClose);
-
-      return provider as unknown as Provider;
+      return new HubOSSecureProvider(doc, id, collaborationSession.serverUrl, collaborationSession.fetchTicket);
     },
-    [collaborationEnabled, collaborationSession, onRefreshCollaborationSession],
+    [collaborationEnabled, collaborationSession],
   );
 
   return (

@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   authorizeCollabDoc,
   getDocSnapshot,
@@ -213,12 +213,6 @@ export const useWorkspaceDocRuntime = ({
   const [docBootstrapLexicalState, setDocBootstrapLexicalState] = useState<Record<string, unknown>>(() => emptyLexicalState());
   const [docBootstrapYjsUpdateBase64, setDocBootstrapYjsUpdateBase64] = useState<string | null>(null);
   const [docBootstrapReady, setDocBootstrapReady] = useState(activePaneDocId === null);
-  const [collabSession, setCollabSession] = useState<{
-    roomId: string;
-    websocketUrl: string;
-    wsTicket: string;
-    expiresAt: string;
-  } | null>(null);
   const [collabSessionError, setCollabSessionError] = useState<string | null>(null);
 
   const docSnapshotSaveTimerRef = useRef<number | null>(null);
@@ -408,65 +402,30 @@ export const useWorkspaceDocRuntime = ({
     setDocBootstrapLexicalState(emptyLexicalState());
     setDocBootstrapYjsUpdateBase64(null);
     setDocBootstrapReady(activePaneDocId === null);
-    setCollabSession(null);
     setCollabSessionError(null);
     clearDocSnapshotSaveTimer();
   }, [activePaneDocId, clearDocSnapshotSaveTimer]);
 
-  const refreshDocCollabSession = useCallback(async () => {
+  const fetchCollabTicket = useCallback(async () => {
     if (!activePaneDocId) {
-      return null;
+      throw new Error('Workspace doc collaboration is unavailable right now.');
     }
 
     try {
       const authorization = await authorizeCollabDoc(accessToken, activePaneDocId);
-      const nextSession = {
-        roomId: activePaneDocId,
-        websocketUrl: env.hubCollabWsUrl,
-        wsTicket: authorization.ws_ticket,
-        expiresAt: authorization.ticket_expires_at,
-      };
-
       if (mountedRef.current) {
-        setCollabSession(nextSession);
         setCollabSessionError(null);
       }
 
-      return nextSession;
+      return authorization.ws_ticket;
     } catch (error) {
       if (mountedRef.current) {
         console.warn('[workspace-doc] failed to authorize collaboration session', error);
-        setCollabSession(null);
         setCollabSessionError('Workspace doc collaboration is unavailable right now.');
       }
-      return null;
+      throw error;
     }
   }, [accessToken, activePaneDocId]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!activePaneDocId || activeTab !== 'work' || !docBootstrapReady) {
-      setCollabSession(null);
-      setCollabSessionError(null);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const loadCollabSession = async () => {
-      const session = await refreshDocCollabSession();
-      if (cancelled || session) {
-        return;
-      }
-    };
-
-    void loadCollabSession();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activePaneDocId, activeTab, docBootstrapReady, refreshDocCollabSession]);
 
   useEffect(() => {
     void refreshDocComments();
@@ -757,6 +716,18 @@ export const useWorkspaceDocRuntime = ({
     [accessToken, refreshDocComments],
   );
 
+  const collabSession = useMemo(
+    () =>
+      activePaneDocId && activeTab === 'work' && docBootstrapReady
+        ? {
+            roomId: activePaneDocId,
+            serverUrl: env.hubCollabWsUrl,
+            fetchTicket: fetchCollabTicket,
+          }
+        : null,
+    [activePaneDocId, activeTab, docBootstrapReady, fetchCollabTicket],
+  );
+
   return {
     collabSession,
     collabSessionError,
@@ -771,7 +742,6 @@ export const useWorkspaceDocRuntime = ({
     onAddDocComment,
     onDocCommentDialogOpenChange,
     onDocEditorChange,
-    onRefreshDocCollabSession: refreshDocCollabSession,
     onInsertDocMention,
     onJumpToDocComment,
     onResolveDocComment,
