@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  authorizeCollabDoc,
   getDocSnapshot,
   postDocPresence,
   saveDocSnapshot,
@@ -217,7 +218,7 @@ export const useWorkspaceDocRuntime = ({
   const [collabSession, setCollabSession] = useState<{
     roomId: string;
     websocketUrl: string;
-    token: string;
+    wsTicket: string;
     expiresAt: string;
   } | null>(null);
   const [collabSessionError, setCollabSessionError] = useState<string | null>(null);
@@ -415,19 +416,46 @@ export const useWorkspaceDocRuntime = ({
   }, [activePaneDocId, clearDocSnapshotSaveTimer]);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!activePaneDocId) {
       setCollabSession(null);
       setCollabSessionError(null);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
-    setCollabSession({
-      roomId: activePaneDocId,
-      websocketUrl: env.hubCollabWsUrl,
-      token: accessToken,
-      expiresAt: '',
-    });
-    setCollabSessionError(null);
+    const loadCollabSession = async () => {
+      try {
+        const authorization = await authorizeCollabDoc(accessToken, activePaneDocId);
+        if (cancelled) {
+          return;
+        }
+
+        setCollabSession({
+          roomId: activePaneDocId,
+          websocketUrl: env.hubCollabWsUrl,
+          wsTicket: authorization.ws_ticket,
+          expiresAt: authorization.ticket_expires_at,
+        });
+        setCollabSessionError(null);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.warn('[workspace-doc] failed to authorize collaboration session', error);
+        setCollabSession(null);
+        setCollabSessionError('Workspace doc collaboration is unavailable right now.');
+      }
+    };
+
+    void loadCollabSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, [accessToken, activePaneDocId]);
 
   useEffect(() => {

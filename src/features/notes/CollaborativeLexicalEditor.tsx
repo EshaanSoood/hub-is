@@ -47,7 +47,7 @@ const uint8ArrayToBase64 = (value: Uint8Array): string => {
 export interface NoteCollaborationSession {
   roomId: string;
   websocketUrl: string;
-  token: string;
+  wsTicket: string;
   expiresAt: string;
 }
 
@@ -310,6 +310,7 @@ const PersistencePlugin = ({
 export const CollaborativeLexicalEditor = ({
   noteId,
   initialLexicalState,
+  bootstrapYjsUpdateBase64,
   collaborationSession,
   userName,
   editable,
@@ -329,11 +330,12 @@ export const CollaborativeLexicalEditor = ({
 }: CollaborativeLexicalEditorProps) => {
   const collaborationRoomId = collaborationSession?.roomId ?? null;
   const collaborationWebsocketUrl = collaborationSession?.websocketUrl ?? null;
-  const collaborationToken = collaborationSession?.token ?? null;
+  const collaborationWsTicket = collaborationSession?.wsTicket ?? null;
   const collaborationDocRef = useRef<Doc | null>(null);
   const collaborationProviderRef = useRef<WebsocketProvider | null>(null);
   const collaborationProviderCleanupRef = useRef<(() => void) | null>(null);
   const normalizedInitialEditorState = useMemo(() => JSON.stringify(normalizeLexicalState(initialLexicalState)), [initialLexicalState]);
+  const collabInitialEditorState = bootstrapYjsUpdateBase64 ? undefined : normalizedInitialEditorState;
 
   const initialConfig = useMemo(
     () => ({
@@ -351,7 +353,7 @@ export const CollaborativeLexicalEditor = ({
 
   const providerFactory = useCallback(
     (id: string, yjsDocMap: Map<string, Doc>): Provider => {
-      if (!collaborationRoomId || !collaborationWebsocketUrl || !collaborationToken) {
+      if (!collaborationRoomId || !collaborationWebsocketUrl || !collaborationWsTicket) {
         throw new Error('Collaboration session is unavailable.');
       }
       if (id !== collaborationRoomId) {
@@ -362,7 +364,7 @@ export const CollaborativeLexicalEditor = ({
       const provider = new WebsocketProvider(collaborationWebsocketUrl, id, doc, {
         connect: false,
         params: {
-          access_token: collaborationToken,
+          ws_ticket: collaborationWsTicket,
         },
       });
 
@@ -401,7 +403,7 @@ export const CollaborativeLexicalEditor = ({
 
       return provider as unknown as Provider;
     },
-    [collaborationRoomId, collaborationToken, collaborationWebsocketUrl, onConnectionStatusChange, onPresenceChange],
+    [collaborationRoomId, collaborationWebsocketUrl, collaborationWsTicket, onConnectionStatusChange, onPresenceChange],
   );
 
   const getYjsUpdateBase64 = useCallback(() => {
@@ -431,17 +433,17 @@ export const CollaborativeLexicalEditor = ({
     };
   }, [onConnectionStatusChange, onPresenceChange]);
 
-  if (collaborationRoomId && (!collaborationWebsocketUrl || !collaborationToken)) {
+  if (collaborationRoomId && (!collaborationWebsocketUrl || !collaborationWsTicket)) {
     return null;
   }
 
   const collaborationPlugin =
-    collaborationRoomId && collaborationWebsocketUrl && collaborationToken ? (
+    collaborationRoomId && collaborationWebsocketUrl && collaborationWsTicket ? (
       <CollaborationPlugin
         id={collaborationRoomId}
         providerFactory={providerFactory}
         shouldBootstrap
-        initialEditorState={normalizedInitialEditorState}
+        initialEditorState={collabInitialEditorState}
         awarenessData={{ name: userName }}
       />
     ) : null;
