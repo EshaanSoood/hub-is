@@ -1,13 +1,9 @@
 import { Server } from '@hocuspocus/server';
 import * as Y from 'yjs';
-import { createJwksVerifier } from '../shared/jwksVerifier.mjs';
 
 const PORT = Number(process.env.PORT || '1234');
 const HOST = (process.env.HOST || '0.0.0.0').trim();
 const HUB_API_URL = (process.env.HUB_API_URL || 'http://127.0.0.1:3001').trim().replace(/\/+$/, '');
-const KEYCLOAK_ISSUER = (process.env.KEYCLOAK_ISSUER || '').trim();
-const KEYCLOAK_AUDIENCE = (process.env.KEYCLOAK_AUDIENCE || '').trim();
-const KEYCLOAK_JWKS_CACHE_MAX_AGE_MS = Number(process.env.KEYCLOAK_JWKS_CACHE_MAX_AGE_MS || '600000');
 const HUB_COLLAB_ALLOWED_ORIGINS = (process.env.HUB_COLLAB_ALLOWED_ORIGINS || '')
   .split(',')
   .map((item) => item.trim())
@@ -17,15 +13,6 @@ const HUB_COLLAB_MAX_CONNECTIONS = Number(process.env.HUB_COLLAB_MAX_CONNECTIONS
 const HUB_COLLAB_MAX_DOCUMENTS = Number(process.env.HUB_COLLAB_MAX_DOCUMENTS || '500');
 const DOC_SAVE_DEBOUNCE_MS = Number(process.env.HUB_COLLAB_SAVE_DEBOUNCE_MS || '750');
 const HUB_API_FETCH_TIMEOUT_MS = Number(process.env.HUB_API_FETCH_TIMEOUT_MS || '8000');
-
-const jwtVerifier = createJwksVerifier({
-  issuer: KEYCLOAK_ISSUER,
-  audience: KEYCLOAK_AUDIENCE,
-  jwksCacheMaxAgeMs:
-    Number.isFinite(KEYCLOAK_JWKS_CACHE_MAX_AGE_MS) && KEYCLOAK_JWKS_CACHE_MAX_AGE_MS > 0
-      ? Math.floor(KEYCLOAK_JWKS_CACHE_MAX_AGE_MS)
-      : 600_000,
-});
 
 const documentMetadata = new WeakMap();
 
@@ -110,8 +97,6 @@ const getDocumentMeta = (document) => {
 };
 
 const authorizeToken = async (token, docId) => {
-  await jwtVerifier.verifyToken(token);
-
   let response;
   try {
     response = await fetchWithTimeout(`${HUB_API_URL}/api/hub/collab/authorize?doc_id=${encodeURIComponent(docId)}`, {
