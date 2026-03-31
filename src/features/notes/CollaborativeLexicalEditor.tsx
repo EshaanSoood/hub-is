@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AutoLinkNode, LinkNode } from '@lexical/link';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { TRANSFORMERS } from '@lexical/markdown';
@@ -237,9 +237,11 @@ const SelectionTrackingPlugin = ({ onSelectedNodeChange }: { onSelectedNodeChang
 
 const PersistencePlugin = ({
   collaborationRoomId,
+  collaborationReady,
   onDocumentChange,
 }: {
   collaborationRoomId: string | null;
+  collaborationReady: boolean;
   onDocumentChange: (payload: {
     lexicalState: Record<string, unknown>;
     plainText: string;
@@ -268,6 +270,9 @@ const PersistencePlugin = ({
       if (tags.has(SKIP_COLLAB_TAG)) {
         return;
       }
+      if (collaborationRoomId && !collaborationReady) {
+        return;
+      }
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) {
         return;
       }
@@ -285,7 +290,7 @@ const PersistencePlugin = ({
         });
       }, 0);
     });
-  }, [editor, getYjsUpdateBase64, onDocumentChange]);
+  }, [collaborationReady, collaborationRoomId, editor, getYjsUpdateBase64, onDocumentChange]);
 
   useEffect(() => {
     return () => {
@@ -308,15 +313,20 @@ class LexicalHocuspocusProvider extends HocuspocusProvider {
     {
       roomId,
       yjsDocMap,
+      onFirstSync,
     }: {
       roomId: string;
       yjsDocMap: Map<string, Doc>;
+      onFirstSync: () => void;
     },
   ) {
     super(configuration);
     this.roomId = roomId;
     this.yjsDocMap = yjsDocMap;
     super.on('synced', ({ state }: { state: boolean }) => {
+      if (state) {
+        onFirstSync();
+      }
       this.emit('sync', state);
     });
   }
@@ -376,19 +386,21 @@ export const CollaborativeLexicalEditor = ({
     collaborationSession !== null &&
     collaborationSession.roomId.trim().length > 0 &&
     collaborationSession.serverUrl.trim().length > 0;
+  const [syncedRoomId, setSyncedRoomId] = useState<string | null>(null);
+  const collaborationReady = !collaborationEnabled || syncedRoomId === collaborationRoomId;
 
   const initialConfig = useMemo(
     () => ({
       namespace: `hub-note-${noteId}`,
       theme: notesLexicalTheme,
       editorState: collaborationEnabled ? null : normalizedInitialEditorState,
-      editable,
+      editable: editable && (!collaborationEnabled || collaborationReady),
       nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, ViewRefNode, MediaEmbedNode],
       onError: (error: Error) => {
         throw error;
       },
     }),
-    [collaborationEnabled, editable, normalizedInitialEditorState, noteId],
+    [collaborationEnabled, collaborationReady, editable, normalizedInitialEditorState, noteId],
   );
 
   const providerFactory = useCallback(
@@ -414,6 +426,9 @@ export const CollaborativeLexicalEditor = ({
           url: collaborationSession.serverUrl,
         },
         {
+          onFirstSync: () => {
+            setSyncedRoomId(id);
+          },
           roomId: id,
           yjsDocMap,
         },
@@ -446,7 +461,11 @@ export const CollaborativeLexicalEditor = ({
               username={userName}
             />
           ) : null}
-          <PersistencePlugin collaborationRoomId={collaborationRoomId} onDocumentChange={onDocumentChange} />
+          <PersistencePlugin
+            collaborationRoomId={collaborationRoomId}
+            collaborationReady={collaborationReady}
+            onDocumentChange={onDocumentChange}
+          />
           <SelectionTrackingPlugin onSelectedNodeChange={onSelectedNodeChange} />
           <FocusNodePlugin focusNodeKey={focusNodeKey} onNodeFocused={onNodeFocused} />
           <AssetEmbedInsertPlugin pendingAssetEmbed={pendingAssetEmbed} onAssetEmbedApplied={onAssetEmbedApplied} />
