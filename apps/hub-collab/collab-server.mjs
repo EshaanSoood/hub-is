@@ -248,9 +248,6 @@ const server = new Server({
     }
   },
   async onConnect({ documentName, instance }) {
-    if (!/^doc_[a-z0-9-]+$/i.test(documentName)) {
-      throw permissionError('invalid_doc_id');
-    }
     if (!instance.documents.has(documentName) && instance.getDocumentsCount() >= HUB_COLLAB_MAX_DOCUMENTS) {
       throw permissionError('max_documents_reached');
     }
