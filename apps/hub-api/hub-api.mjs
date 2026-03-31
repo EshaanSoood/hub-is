@@ -43,6 +43,7 @@ const NEXTCLOUD_BASE_URL = (process.env.NEXTCLOUD_BASE_URL || '').trim();
 const NEXTCLOUD_USER = (process.env.NEXTCLOUD_USER || '').trim();
 const NEXTCLOUD_APP_PASSWORD = (process.env.NEXTCLOUD_APP_PASSWORD || '').trim();
 const NEXTCLOUD_FETCH_TIMEOUT_MS_RAW = Number.parseInt(String(process.env.NEXTCLOUD_FETCH_TIMEOUT_MS || '30000'), 10);
+const HUB_COLLAB_TICKET_TTL_MS_RAW = Number.parseInt(String(process.env.HUB_COLLAB_TICKET_TTL_MS || '120000'), 10);
 const TUWUNEL_INTERNAL_URL = (process.env.TUWUNEL_INTERNAL_URL || 'http://tuwunel:6167').trim() || 'http://tuwunel:6167';
 const TUWUNEL_REGISTRATION_SHARED_SECRET = (process.env.TUWUNEL_REGISTRATION_SHARED_SECRET || '').trim();
 const MATRIX_ACCOUNT_ENCRYPTION_KEY = (process.env.MATRIX_ACCOUNT_ENCRYPTION_KEY || '').trim();
@@ -127,6 +128,8 @@ const asInteger = (value, fallback, min = Number.MIN_SAFE_INTEGER, max = Number.
   }
   return Math.min(max, Math.max(min, parsed));
 };
+
+const HUB_COLLAB_TICKET_TTL_MS = asInteger(HUB_COLLAB_TICKET_TTL_MS_RAW, 120_000, 5_000, 3_600_000);
 
 const asBoolean = (value, fallback = false) => {
   if (typeof value === 'boolean') {

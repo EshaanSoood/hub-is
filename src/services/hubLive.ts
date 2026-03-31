@@ -1,6 +1,5 @@
-import { env } from '../lib/env.ts';
 import { authorizeHubLive } from './hub/transport.ts';
-import type { HubNotification } from './hub/types.ts';
+import type { HubLiveAuthorization, HubNotification } from './hub/types.ts';
 
 export interface HubLiveTaskChangedMessage {
   type: 'task.changed';
@@ -37,8 +36,47 @@ export type HubLiveMessage =
   | HubLiveReminderChangedMessage
   | HubLiveNotificationNewMessage;
 
+type HubLiveListener = (message: HubLiveMessage) => void;
+type TimeoutHandle = ReturnType<typeof setTimeout> | number;
+type TimerApi = {
+  clearTimeout: (handle: TimeoutHandle) => void;
+  setTimeout: (callback: () => void, delayMs: number) => TimeoutHandle;
+};
+type WebSocketEventName = 'close' | 'error' | 'message' | 'open';
+type WebSocketLike = {
+  addEventListener: (
+    type: WebSocketEventName,
+    listener: (event?: { data?: unknown }) => void,
+  ) => void;
+  close: () => void;
+};
+type CreateSocket = (url: string) => WebSocketLike;
+type AuthorizeHubLiveFn = (accessToken: string) => Promise<HubLiveAuthorization>;
+
+const HUB_LIVE_RECONNECT_DELAYS_MS = [1_500, 5_000, 15_000, 30_000] as const;
+
+const defaultHubLiveWsUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return 'wss://api.eshaansood.org/api/hub/live';
+  }
+
+  if (/\.eshaansood\.org$/i.test(window.location.hostname) || window.location.hostname === 'eshaansood.org') {
+    return 'wss://api.eshaansood.org/api/hub/live';
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/api/hub/live`;
+};
+
+const hubLiveWsUrl = (): string => {
+  const viteEnv: Record<string, unknown> =
+    typeof import.meta === 'object' && import.meta && typeof import.meta.env === 'object' ? import.meta.env : {};
+  const configured = typeof viteEnv.VITE_HUB_LIVE_WS_URL === 'string' ? viteEnv.VITE_HUB_LIVE_WS_URL.trim() : '';
+  return configured || defaultHubLiveWsUrl();
+};
+
 const wsUrlWithTicket = (wsTicket: string): string => {
-  const url = new URL(env.hubLiveWsUrl, typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
+  const url = new URL(hubLiveWsUrl(), typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
   url.searchParams.set('ws_ticket', wsTicket);
   return url.toString();
 };
@@ -102,78 +140,181 @@ const isHubLiveMessage = (value: unknown): value is HubLiveMessage => {
   return false;
 };
 
-export const subscribeHubLive = (
-  accessToken: string,
-  onMessage: (message: HubLiveMessage) => void,
-): (() => void) => {
-  let closed = false;
-  let socket: WebSocket | null = null;
-  let reconnectTimer: number | null = null;
+export const getHubLiveReconnectDelayMs = (consecutiveFailures: number): number => {
+  const normalizedFailures = Number.isFinite(consecutiveFailures) ? Math.max(1, Math.trunc(consecutiveFailures)) : 1;
+  const index = Math.min(normalizedFailures - 1, HUB_LIVE_RECONNECT_DELAYS_MS.length - 1);
+  return HUB_LIVE_RECONNECT_DELAYS_MS[index];
+};
+
+export const createHubLiveClient = ({
+  authorize = authorizeHubLive,
+  createSocket = (url) => new WebSocket(url),
+  timers = {
+    clearTimeout: (handle: TimeoutHandle) => window.clearTimeout(handle),
+    setTimeout: (callback: () => void, delayMs: number) => window.setTimeout(callback, delayMs),
+  },
+}: {
+  authorize?: AuthorizeHubLiveFn;
+  createSocket?: CreateSocket;
+  timers?: TimerApi;
+} = {}) => {
+  const listeners = new Set<HubLiveListener>();
+  let accessToken: string | null = null;
+  let socket: WebSocketLike | null = null;
+  let reconnectTimer: TimeoutHandle | null = null;
+  let connectPromise: Promise<void> | null = null;
   let connectGeneration = 0;
+  let consecutiveFailures = 0;
+
+  const hasSubscribers = () => listeners.size > 0 && Boolean(accessToken);
 
   const cleanupReconnect = () => {
     if (reconnectTimer !== null) {
-      window.clearTimeout(reconnectTimer);
+      timers.clearTimeout(reconnectTimer);
       reconnectTimer = null;
+    }
+  };
+
+  const disconnectSocket = () => {
+    if (!socket) {
+      return;
+    }
+    const activeSocket = socket;
+    socket = null;
+    activeSocket.close();
+  };
+
+  const dispatchMessage = (message: HubLiveMessage) => {
+    for (const listener of listeners) {
+      try {
+        listener(message);
+      } catch {
+        // Ignore consumer failures so one broken listener does not kill the shared socket.
+      }
     }
   };
 
   const scheduleReconnect = () => {
-    if (closed || reconnectTimer !== null) {
+    if (!hasSubscribers() || reconnectTimer !== null) {
       return;
     }
-    reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = timers.setTimeout(() => {
       reconnectTimer = null;
       void connect();
-    }, 1_500);
+    }, getHubLiveReconnectDelayMs(consecutiveFailures));
   };
 
-  const connect = async () => {
+  const connect = () => {
+    if (!hasSubscribers() || connectPromise) {
+      return connectPromise ?? Promise.resolve();
+    }
+
     const generation = connectGeneration + 1;
     connectGeneration = generation;
     cleanupReconnect();
-    try {
-      const authorization = await authorizeHubLive(accessToken);
-      if (closed || generation !== connectGeneration) {
-        return;
-      }
 
-      const nextSocket = new WebSocket(wsUrlWithTicket(authorization.ws_ticket));
-      socket = nextSocket;
-      nextSocket.addEventListener('message', (event) => {
-        try {
-          const parsed = JSON.parse(String(event.data || '')) as unknown;
-          if (!isHubLiveMessage(parsed)) {
+    const currentAccessToken = accessToken;
+    let activeConnect: Promise<void> | null = null;
+    activeConnect = (async () => {
+      try {
+        const authorization = await authorize(currentAccessToken || '');
+        if (!hasSubscribers() || generation !== connectGeneration || currentAccessToken !== accessToken) {
+          return;
+        }
+
+        let socketOpened = false;
+        const nextSocket = createSocket(wsUrlWithTicket(authorization.ws_ticket));
+        socket = nextSocket;
+
+        nextSocket.addEventListener('open', () => {
+          if (generation !== connectGeneration || socket !== nextSocket) {
             return;
           }
-          onMessage(parsed);
-        } catch {
-          // ignore malformed frames
+          socketOpened = true;
+          consecutiveFailures = 0;
+        });
+
+        nextSocket.addEventListener('message', (event) => {
+          try {
+            const parsed = JSON.parse(String(event?.data || '')) as unknown;
+            if (!isHubLiveMessage(parsed)) {
+              return;
+            }
+            dispatchMessage(parsed);
+          } catch {
+            // Ignore malformed frames.
+          }
+        });
+
+        nextSocket.addEventListener('error', () => {
+          // The socket close handler owns retries.
+        });
+
+        nextSocket.addEventListener('close', () => {
+          if (socket === nextSocket) {
+            socket = null;
+          }
+          if (!hasSubscribers() || generation !== connectGeneration) {
+            return;
+          }
+          consecutiveFailures = socketOpened ? 1 : consecutiveFailures + 1;
+          scheduleReconnect();
+        });
+      } catch {
+        if (!hasSubscribers() || generation !== connectGeneration) {
+          return;
         }
-      });
-      nextSocket.addEventListener('error', () => {
-        // close will handle reconnect
-      });
-      nextSocket.addEventListener('close', () => {
-        if (socket === nextSocket) {
-          socket = null;
-        }
+        consecutiveFailures += 1;
         scheduleReconnect();
-      });
-    } catch {
-      scheduleReconnect();
-    }
+      } finally {
+        if (connectPromise === activeConnect) {
+          connectPromise = null;
+        }
+        if (hasSubscribers() && !socket && reconnectTimer === null && generation !== connectGeneration) {
+          void connect();
+        }
+      }
+    })();
+
+    connectPromise = activeConnect;
+    return activeConnect;
   };
 
-  void connect();
+  const subscribe = (nextAccessToken: string, onMessage: HubLiveListener): (() => void) => {
+    listeners.add(onMessage);
+    const tokenChanged = accessToken !== nextAccessToken;
+    accessToken = nextAccessToken;
 
-  return () => {
-    closed = true;
-    connectGeneration += 1;
-    cleanupReconnect();
-    if (socket) {
-      socket.close();
-      socket = null;
+    if (tokenChanged) {
+      consecutiveFailures = 0;
+      connectGeneration += 1;
+      cleanupReconnect();
+      disconnectSocket();
     }
+
+    void connect();
+
+    return () => {
+      listeners.delete(onMessage);
+      if (listeners.size > 0) {
+        return;
+      }
+      accessToken = null;
+      consecutiveFailures = 0;
+      connectGeneration += 1;
+      cleanupReconnect();
+      disconnectSocket();
+    };
+  };
+
+  return {
+    subscribe,
   };
 };
+
+const hubLiveClient = createHubLiveClient();
+
+export const subscribeHubLive = (
+  accessToken: string,
+  onMessage: (message: HubLiveMessage) => void,
+): (() => void) => hubLiveClient.subscribe(accessToken, onMessage);
