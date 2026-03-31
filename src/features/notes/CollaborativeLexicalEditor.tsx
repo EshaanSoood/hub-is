@@ -11,16 +11,24 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
-import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import type { Provider } from '@lexical/yjs';
-import { $createParagraphNode, $createTextNode, $getNodeByKey, $getRoot, $getSelection, $isRangeSelection, $insertNodes } from 'lexical';
+import {
+  $createParagraphNode,
+  $createTextNode,
+  $getNodeByKey,
+  $getRoot,
+  $getSelection,
+  $insertNodes,
+  $isRangeSelection,
+  SKIP_COLLAB_TAG,
+} from 'lexical';
 import { Doc } from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
-import { editorStateToLexicalSnapshot, normalizeLexicalState } from './lexicalState';
+import { editorStateToLexicalSnapshot, emptyLexicalState, normalizeLexicalState } from './lexicalState';
 import { notesLexicalTheme } from './lexicalTheme';
 import { MediaAutoEmbedPlugin } from './MediaAutoEmbedPlugin';
 import { MediaEmbedNode } from './nodes/MediaEmbedNode';
@@ -248,6 +256,35 @@ const SelectionTrackingPlugin = ({ onSelectedNodeChange }: { onSelectedNodeChang
   return null;
 };
 
+const PersistencePlugin = ({
+  collaborationSession,
+  onDocumentChange,
+  providerSyncedRef,
+}: {
+  collaborationSession: NoteCollaborationSession | null;
+  onDocumentChange: (payload: { lexicalState: Record<string, unknown>; plainText: string }) => void;
+  providerSyncedRef: { current: boolean };
+}) => {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves, tags }) => {
+      if (collaborationSession && !providerSyncedRef.current) {
+        return;
+      }
+      if (tags.has(SKIP_COLLAB_TAG)) {
+        return;
+      }
+      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) {
+        return;
+      }
+      onDocumentChange(editorStateToLexicalSnapshot(editorState));
+    });
+  }, [collaborationSession, editor, onDocumentChange, providerSyncedRef]);
+
+  return null;
+};
+
 export const CollaborativeLexicalEditor = ({
   noteId,
   initialLexicalState,
@@ -278,14 +315,14 @@ export const CollaborativeLexicalEditor = ({
     () => ({
       namespace: `hub-note-${noteId}`,
       theme: notesLexicalTheme,
-      editorState: JSON.stringify(normalizeLexicalState(initialLexicalState)),
+      editorState: JSON.stringify(normalizeLexicalState(collaborationSession ? emptyLexicalState() : initialLexicalState)),
       editable,
       nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, ViewRefNode, MediaEmbedNode],
       onError: (error: Error) => {
         throw error;
       },
     }),
-    [editable, initialLexicalState, noteId],
+    [collaborationSession, editable, initialLexicalState, noteId],
   );
 
   const providerFactory = useMemo(() => {
@@ -408,13 +445,10 @@ export const CollaborativeLexicalEditor = ({
             placeholder={<div className="hub-editor__placeholder">Write project notes...</div>}
             ErrorBoundary={LexicalErrorBoundary}
           />
-          <OnChangePlugin
-            ignoreHistoryMergeTagChange
-            ignoreSelectionChange
-            onChange={(editorState) => {
-              if (collaborationSession && !providerSyncedRef.current) return;
-              onDocumentChange(editorStateToLexicalSnapshot(editorState));
-            }}
+          <PersistencePlugin
+            collaborationSession={collaborationSession}
+            onDocumentChange={onDocumentChange}
+            providerSyncedRef={providerSyncedRef}
           />
           <SelectionTrackingPlugin onSelectedNodeChange={onSelectedNodeChange} />
           <FocusNodePlugin focusNodeKey={focusNodeKey} onNodeFocused={onNodeFocused} />

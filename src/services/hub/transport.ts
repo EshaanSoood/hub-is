@@ -4,6 +4,17 @@ import type { HubEnvelope, HubLiveAuthorization, HubRecordDetail, HubRecordSumma
 
 const authHeaders = (accessToken: string, hasBody = false): Headers => buildHubAuthHeaders(accessToken, hasBody);
 
+export class HubRequestError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'HubRequestError';
+    this.status = status;
+    Object.setPrototypeOf(this, HubRequestError.prototype);
+  }
+}
+
 const ensureData = <T>(envelope: HubEnvelope<T>, fallbackMessage: string): T => {
   if (!envelope.ok || envelope.data === null) {
     throw new Error(envelope.error?.message || fallbackMessage);
@@ -53,11 +64,11 @@ export const hubRequest = async <T>(
 
   const envelope = (await response.json().catch(() => null)) as HubEnvelope<T> | null;
   if (!envelope || typeof envelope.ok !== 'boolean') {
-    throw new Error(`Unexpected API response (${response.status}).`);
+    throw new HubRequestError(`Unexpected API response (${response.status}).`, response.status);
   }
 
   if (!response.ok || !envelope.ok || envelope.data === null) {
-    throw new Error(envelope.error?.message || `Request failed (${response.status}).`);
+    throw new HubRequestError(envelope.error?.message || `Request failed (${response.status}).`, response.status);
   }
 
   return envelope.data;
@@ -73,10 +84,10 @@ export const authorizeHubLive = async (accessToken: string): Promise<HubLiveAuth
 export const readEnvelope = async <T>(response: Response): Promise<T> => {
   const envelope = (await response.json().catch(() => null)) as HubEnvelope<T> | null;
   if (!envelope || typeof envelope.ok !== 'boolean') {
-    throw new Error(`Unexpected API response (${response.status}).`);
+    throw new HubRequestError(`Unexpected API response (${response.status}).`, response.status);
   }
   if (!response.ok) {
-    throw new Error(envelope.error?.message || `Request failed (${response.status}).`);
+    throw new HubRequestError(envelope.error?.message || `Request failed (${response.status}).`, response.status);
   }
   return ensureData(envelope, `Request failed (${response.status}).`);
 };

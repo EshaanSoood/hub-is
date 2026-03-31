@@ -12,10 +12,12 @@ import {
   setCommentStatus,
 } from '../services/hub/records';
 import { uploadFile } from '../services/hub/files';
+import { HubRequestError } from '../services/hub/transport';
 import type { HubMentionTarget } from '../services/hub/types';
 import { env } from '../lib/env';
 import { toBase64 } from '../lib/utils';
 import { extractMentionsFromText, mentionToken } from '../features/notes/mentionTokens';
+import { emptyLexicalState, lexicalStateToPlainText, normalizeLexicalState } from '../features/notes/lexicalState';
 
 type ProjectSpaceTab = 'overview' | 'work' | 'tools';
 
@@ -34,6 +36,22 @@ type DocComment = {
   orphaned?: boolean;
   is_orphaned?: boolean;
 };
+
+type WorkspaceDocSnapshotPayload = {
+  lexical_state: Record<string, unknown>;
+  plain_text: string;
+  node_keys: string[];
+};
+
+type PendingWorkspaceDocSnapshot = {
+  docId: string;
+  lexicalState: Record<string, unknown>;
+  snapshotPayload: WorkspaceDocSnapshotPayload;
+  hash: string;
+  snapshotVersion: number;
+};
+
+const DOC_SNAPSHOT_SAVE_DEBOUNCE_MS = 600;
 
 const collectLexicalNodeKeys = (candidate: unknown, output: Set<string>) => {
   if (!candidate || typeof candidate !== 'object') {
@@ -118,6 +136,32 @@ const extractDocMentionsFromLexicalState = (
   return [...output.values()];
 };
 
+const buildWorkspaceDocSnapshotPayload = (
+  lexicalState: Record<string, unknown>,
+  plainText: string,
+): WorkspaceDocSnapshotPayload => ({
+  lexical_state: lexicalState,
+  plain_text: plainText,
+  node_keys: extractNodeKeysFromLexicalState(lexicalState),
+});
+
+const normalizeWorkspaceDocSnapshotPayload = (payload: unknown): WorkspaceDocSnapshotPayload => {
+  const record = payload && typeof payload === 'object' && !Array.isArray(payload) ? (payload as Record<string, unknown>) : {};
+  const lexicalState = normalizeLexicalState(record.lexical_state);
+  const plainText = typeof record.plain_text === 'string' ? record.plain_text : lexicalStateToPlainText(lexicalState);
+  const nodeKeys = Array.isArray(record.node_keys)
+    ? record.node_keys.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    : extractNodeKeysFromLexicalState(lexicalState);
+
+  return {
+    lexical_state: lexicalState,
+    plain_text: plainText,
+    node_keys: nodeKeys,
+  };
+};
+
+const hashWorkspaceDocSnapshotPayload = (payload: WorkspaceDocSnapshotPayload): string => JSON.stringify(payload);
+
 interface UseWorkspaceDocRuntimeParams {
   accessToken: string;
   activePaneDocId: string | null;
@@ -152,6 +196,8 @@ export const useWorkspaceDocRuntime = ({
   const [pendingDocMentionInsert, setPendingDocMentionInsert] = useState<{ insert_id: string; token: string } | null>(null);
   const [pendingViewEmbedInsert, setPendingViewEmbedInsert] = useState<{ insert_id: string; view_id: string } | null>(null);
   const [pendingDocFocusNodeKey, setPendingDocFocusNodeKey] = useState<string | null>(null);
+  const [docBootstrapLexicalState, setDocBootstrapLexicalState] = useState<Record<string, unknown>>(() => emptyLexicalState());
+  const [docBootstrapReady, setDocBootstrapReady] = useState(activePaneDocId === null);
   const [collabSession, setCollabSession] = useState<{
     roomId: string;
     websocketUrl: string;
@@ -163,9 +209,15 @@ export const useWorkspaceDocRuntime = ({
   const docSnapshotSaveTimerRef = useRef<number | null>(null);
   const docSnapshotVersionRef = useRef(0);
   const lastDocSnapshotHashRef = useRef('');
-  const inFlightDocSnapshotHashRef = useRef<string | null>(null);
+  const queuedDocSnapshotRef = useRef<PendingWorkspaceDocSnapshot | null>(null);
+  const activePaneDocIdRef = useRef<string | null>(activePaneDocId);
+  const docSnapshotSavePromiseRef = useRef<Promise<void> | null>(null);
   const latestDocCommentsRequestRef = useRef(0);
   const mountedRef = useRef(true);
+
+  useEffect(() => {
+    activePaneDocIdRef.current = activePaneDocId;
+  }, [activePaneDocId]);
 
   useEffect(() => {
     return () => {
@@ -226,20 +278,144 @@ export const useWorkspaceDocRuntime = ({
     }
   }, [accessToken, activePaneDocId, projectId]);
 
-  useEffect(() => {
-    lastDocSnapshotHashRef.current = '';
-    inFlightDocSnapshotHashRef.current = null;
-    setSelectedDocNodeKey(null);
-    setPendingDocFocusNodeKey(null);
-    setDocCommentComposerOpen(false);
-    setDocCommentError(null);
-    setCollabSession(null);
-    setCollabSessionError(null);
+  const clearDocSnapshotSaveTimer = useCallback(() => {
     if (docSnapshotSaveTimerRef.current !== null) {
       window.clearTimeout(docSnapshotSaveTimerRef.current);
       docSnapshotSaveTimerRef.current = null;
     }
-  }, [activePaneDocId]);
+  }, []);
+
+  const saveQueuedDocSnapshot = useCallback(
+    async (entry: PendingWorkspaceDocSnapshot, retryOnConflict = true): Promise<void> => {
+      try {
+        const result = await saveDocSnapshot(accessToken, entry.docId, {
+          snapshot_version: entry.snapshotVersion,
+          snapshot_payload: entry.snapshotPayload,
+        });
+
+        if (activePaneDocIdRef.current === entry.docId) {
+          lastDocSnapshotHashRef.current = entry.hash;
+          docSnapshotVersionRef.current = result.snapshot_version;
+        }
+
+        const queuedEntry = queuedDocSnapshotRef.current;
+        if (queuedEntry?.docId === entry.docId) {
+          queuedDocSnapshotRef.current = {
+            ...queuedEntry,
+            snapshotVersion: result.snapshot_version,
+          };
+        }
+      } catch (error) {
+        if (retryOnConflict && error instanceof HubRequestError && error.status === 409) {
+          try {
+            const latestDoc = await getDocSnapshot(accessToken, entry.docId);
+            const latestSnapshotPayload = normalizeWorkspaceDocSnapshotPayload(latestDoc.snapshot_payload);
+            const latestSnapshotHash = hashWorkspaceDocSnapshotPayload(latestSnapshotPayload);
+            const latestLocalEntry =
+              queuedDocSnapshotRef.current?.docId === entry.docId ? queuedDocSnapshotRef.current : entry;
+
+            if (activePaneDocIdRef.current === entry.docId) {
+              docSnapshotVersionRef.current = latestDoc.snapshot_version;
+              lastDocSnapshotHashRef.current = latestSnapshotHash;
+            }
+
+            if (latestLocalEntry.hash === latestSnapshotHash) {
+              if (queuedDocSnapshotRef.current?.docId === entry.docId && queuedDocSnapshotRef.current.hash === latestLocalEntry.hash) {
+                queuedDocSnapshotRef.current = null;
+              }
+              return;
+            }
+
+            if (queuedDocSnapshotRef.current?.docId === entry.docId && queuedDocSnapshotRef.current.hash === latestLocalEntry.hash) {
+              queuedDocSnapshotRef.current = null;
+            }
+
+            await saveQueuedDocSnapshot(
+              {
+                ...latestLocalEntry,
+                snapshotVersion: latestDoc.snapshot_version,
+              },
+              false,
+            );
+            return;
+          } catch (conflictRecoveryError) {
+            const queuedEntry = queuedDocSnapshotRef.current;
+            if (!queuedEntry || queuedEntry.docId !== entry.docId || queuedEntry.hash !== entry.hash) {
+              queuedDocSnapshotRef.current = entry;
+            }
+            throw conflictRecoveryError;
+          }
+        }
+
+        const queuedEntry = queuedDocSnapshotRef.current;
+        if (!queuedEntry || queuedEntry.docId !== entry.docId || queuedEntry.hash !== entry.hash) {
+          queuedDocSnapshotRef.current = entry;
+        }
+        throw error;
+      }
+
+      try {
+        await materializeMentions(accessToken, {
+          project_id: projectId,
+          source_entity_type: 'doc',
+          source_entity_id: entry.docId,
+          mentions: extractDocMentionsFromLexicalState(entry.lexicalState),
+          replace_source: true,
+        });
+      } catch (error) {
+        console.warn('[workspace-doc] failed to materialize doc mentions', error);
+      }
+    },
+    [accessToken, projectId],
+  );
+
+  const flushPendingDocSnapshot = useCallback(
+    (targetDocId?: string | null) => {
+      clearDocSnapshotSaveTimer();
+      if (docSnapshotSavePromiseRef.current) {
+        return;
+      }
+
+      const entry = queuedDocSnapshotRef.current;
+      if (!entry || (targetDocId && entry.docId !== targetDocId)) {
+        return;
+      }
+
+      queuedDocSnapshotRef.current = null;
+      const savePromise = saveQueuedDocSnapshot(entry)
+        .catch(() => {
+          // best-effort doc metadata persistence and mention materialization
+        })
+        .finally(() => {
+          if (docSnapshotSavePromiseRef.current === savePromise) {
+            docSnapshotSavePromiseRef.current = null;
+          }
+
+          const nextEntry = queuedDocSnapshotRef.current;
+          if (nextEntry) {
+            flushPendingDocSnapshot(nextEntry.docId);
+          }
+        });
+
+      docSnapshotSavePromiseRef.current = savePromise;
+    },
+    [clearDocSnapshotSaveTimer, saveQueuedDocSnapshot],
+  );
+
+  useEffect(() => {
+    lastDocSnapshotHashRef.current = '';
+    queuedDocSnapshotRef.current = null;
+    docSnapshotVersionRef.current = 0;
+    setSelectedDocNodeKey(null);
+    setPendingDocFocusNodeKey(null);
+    setDocCommentComposerOpen(false);
+    setDocCommentError(null);
+    setDocBootstrapLexicalState(emptyLexicalState());
+    setDocBootstrapReady(activePaneDocId === null);
+    setCollabSession(null);
+    setCollabSessionError(null);
+    clearDocSnapshotSaveTimer();
+  }, [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot]);
 
   useEffect(() => {
     let cancelled = false;
@@ -282,14 +458,50 @@ export const useWorkspaceDocRuntime = ({
   }, [refreshDocComments]);
 
   useEffect(() => {
+    let cancelled = false;
+    if (!activePaneDocId) {
+      setDocBootstrapLexicalState(emptyLexicalState());
+      setDocBootstrapReady(true);
+      return;
+    }
+
+    const loadBootstrapSnapshot = async () => {
+      try {
+        const doc = await getDocSnapshot(accessToken, activePaneDocId);
+        if (cancelled) {
+          return;
+        }
+
+        const snapshotPayload = normalizeWorkspaceDocSnapshotPayload(doc.snapshot_payload);
+        docSnapshotVersionRef.current = doc.snapshot_version;
+        lastDocSnapshotHashRef.current = hashWorkspaceDocSnapshotPayload(snapshotPayload);
+        setDocBootstrapLexicalState(snapshotPayload.lexical_state);
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('[workspace-doc] failed to load bootstrap snapshot', error);
+          setDocBootstrapLexicalState(emptyLexicalState());
+        }
+      } finally {
+        if (!cancelled) {
+          setDocBootstrapReady(true);
+        }
+      }
+    };
+
+    void loadBootstrapSnapshot();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, activePaneDocId]);
+
+  useEffect(() => {
     if (!activePaneDocId) {
       return;
     }
 
     const syncPresence = async () => {
       try {
-        const doc = await getDocSnapshot(accessToken, activePaneDocId);
-        docSnapshotVersionRef.current = doc.snapshot_version;
         await postDocPresence(accessToken, activePaneDocId, {
           surface: activeTab,
           pane_id: activePaneId,
@@ -306,12 +518,18 @@ export const useWorkspaceDocRuntime = ({
 
     return () => {
       window.clearInterval(timer);
-      if (docSnapshotSaveTimerRef.current !== null) {
-        window.clearTimeout(docSnapshotSaveTimerRef.current);
-        docSnapshotSaveTimerRef.current = null;
-      }
     };
   }, [accessToken, activePaneDocId, activePaneId, activeTab]);
+
+  useEffect(() => {
+    if (!activePaneDocId) {
+      return;
+    }
+
+    return () => {
+      flushPendingDocSnapshot(activePaneDocId);
+    };
+  }, [activePaneDocId, flushPendingDocSnapshot]);
 
   const onDocEditorChange = useCallback(
     (payload: { lexicalState: Record<string, unknown>; plainText: string }) => {
@@ -319,55 +537,26 @@ export const useWorkspaceDocRuntime = ({
         return;
       }
 
-      const nodeKeys = extractNodeKeysFromLexicalState(payload.lexicalState);
-      const snapshotPayload = {
-        lexical_state: payload.lexicalState,
-        plain_text: payload.plainText,
-        node_keys: nodeKeys,
-      };
-      const nextHash = JSON.stringify(snapshotPayload);
-      if (nextHash === lastDocSnapshotHashRef.current || nextHash === inFlightDocSnapshotHashRef.current) {
+      const snapshotPayload = buildWorkspaceDocSnapshotPayload(payload.lexicalState, payload.plainText);
+      const nextHash = hashWorkspaceDocSnapshotPayload(snapshotPayload);
+      if (nextHash === lastDocSnapshotHashRef.current) {
         return;
       }
-      inFlightDocSnapshotHashRef.current = nextHash;
 
-      if (docSnapshotSaveTimerRef.current !== null) {
-        window.clearTimeout(docSnapshotSaveTimerRef.current);
-      }
+      queuedDocSnapshotRef.current = {
+        docId: activePaneDocId,
+        lexicalState: payload.lexicalState,
+        snapshotPayload,
+        hash: nextHash,
+        snapshotVersion: docSnapshotVersionRef.current,
+      };
 
+      clearDocSnapshotSaveTimer();
       docSnapshotSaveTimerRef.current = window.setTimeout(() => {
-        if (!mountedRef.current) {
-          return;
-        }
-        const docMentions = extractDocMentionsFromLexicalState(payload.lexicalState);
-        void saveDocSnapshot(accessToken, activePaneDocId, {
-          snapshot_payload: snapshotPayload,
-        })
-          .then((result) => {
-            lastDocSnapshotHashRef.current = nextHash;
-            inFlightDocSnapshotHashRef.current = null;
-            if (!mountedRef.current) {
-              return;
-            }
-            docSnapshotVersionRef.current = result.snapshot_version;
-            if (!mountedRef.current) {
-              return;
-            }
-            return materializeMentions(accessToken, {
-              project_id: projectId,
-              source_entity_type: 'doc',
-              source_entity_id: activePaneDocId,
-              mentions: docMentions,
-              replace_source: true,
-            });
-          })
-          .catch(() => {
-            inFlightDocSnapshotHashRef.current = null;
-            // best-effort doc metadata persistence and mention materialization
-          });
-      }, 600);
+        flushPendingDocSnapshot(activePaneDocId);
+      }, DOC_SNAPSHOT_SAVE_DEBOUNCE_MS);
     },
-    [accessToken, activePaneDocId, projectId],
+    [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot],
   );
 
   const onInsertDocMention = useCallback((target: HubMentionTarget) => {
@@ -542,6 +731,8 @@ export const useWorkspaceDocRuntime = ({
     collabSession,
     collabSessionError,
     commentTriggerRef,
+    docBootstrapLexicalState,
+    docBootstrapReady,
     docCommentComposerOpen,
     docCommentError,
     docCommentText,

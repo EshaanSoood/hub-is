@@ -71,26 +71,6 @@ const CollaborativeLexicalEditor = lazy(async () => {
   return { default: module.CollaborativeLexicalEditor };
 });
 
-const defaultLexicalState = {
-  root: {
-    children: [
-      {
-        children: [],
-        direction: null,
-        format: '',
-        indent: 0,
-        type: 'paragraph',
-        version: 1,
-      },
-    ],
-    direction: null,
-    format: '',
-    indent: 0,
-    type: 'root',
-    version: 1,
-  },
-};
-
 type TopLevelProjectTab = 'overview' | 'work' | 'tools';
 type OverviewView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
 
@@ -647,6 +627,8 @@ const ProjectSpaceWorkspace = ({
     collabSession,
     collabSessionError,
     commentTriggerRef,
+    docBootstrapLexicalState,
+    docBootstrapReady,
     docCommentComposerOpen,
     docCommentError,
     docCommentText,
@@ -1545,63 +1527,68 @@ const ProjectSpaceWorkspace = ({
                 <h3 className="heading-3 text-primary">Workspace Doc</h3>
                 {collabSession ? (
                   <>
-                    <Suspense fallback={<ModuleLoadingState label="Loading collaborative editor" rows={8} />}>
-                      <CollaborativeLexicalEditor
-                        noteId={collabSession.roomId}
-                        initialLexicalState={defaultLexicalState}
-                        collaborationSession={collabSession}
-                        userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
-                        editable={activePaneCanEdit}
-                        onDocumentChange={onDocEditorChange}
-                        onSelectedNodeChange={setSelectedDocNodeKey}
-                        focusNodeKey={pendingDocFocusNodeKey}
-                        onNodeFocused={() => setPendingDocFocusNodeKey(null)}
-                        pendingMentionInsert={pendingDocMentionInsert}
-                        onMentionInserted={(insertId) => {
-                          if (pendingDocMentionInsert?.insert_id === insertId) {
-                            setPendingDocMentionInsert(null);
-                          }
-                        }}
-                        pendingViewEmbedInsert={pendingViewEmbedInsert}
-                        onViewEmbedInserted={(insertId) => {
-                          if (pendingViewEmbedInsert?.insert_id === insertId) {
-                            setPendingViewEmbedInsert(null);
-                          }
-                        }}
-                        pendingAssetEmbed={pendingDocAssetEmbed}
-                        onAssetEmbedApplied={(embedId) => {
-                          if (pendingDocAssetEmbed?.embed_id === embedId) {
-                            setPendingDocAssetEmbed(null);
-                          }
-                        }}
-                        viewEmbedRuntime={{
-                          accessToken,
-                          onOpenRecord: (recordId) => {
-                            void openInspectorWithFocusRestore(recordId);
-                          },
-                          onOpenView: (viewId) => {
-                            const targetView = views.find((view) => view.view_id === viewId);
-                            if (!targetView) {
-                              navigate(buildProjectWorkHref(project.project_id, activePane.pane_id));
-                              return;
+                    {docBootstrapReady ? (
+                      <Suspense fallback={<ModuleLoadingState label="Loading collaborative editor" rows={8} />}>
+                        <CollaborativeLexicalEditor
+                          key={collabSession.roomId}
+                          noteId={collabSession.roomId}
+                          initialLexicalState={docBootstrapLexicalState}
+                          collaborationSession={collabSession}
+                          userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
+                          editable={activePaneCanEdit}
+                          onDocumentChange={onDocEditorChange}
+                          onSelectedNodeChange={setSelectedDocNodeKey}
+                          focusNodeKey={pendingDocFocusNodeKey}
+                          onNodeFocused={() => setPendingDocFocusNodeKey(null)}
+                          pendingMentionInsert={pendingDocMentionInsert}
+                          onMentionInserted={(insertId) => {
+                            if (pendingDocMentionInsert?.insert_id === insertId) {
+                              setPendingDocMentionInsert(null);
                             }
-                            if (targetView.type === 'kanban') {
-                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`);
-                              return;
+                          }}
+                          pendingViewEmbedInsert={pendingViewEmbedInsert}
+                          onViewEmbedInserted={(insertId) => {
+                            if (pendingViewEmbedInsert?.insert_id === insertId) {
+                              setPendingViewEmbedInsert(null);
                             }
-                            if (targetView.type === 'calendar') {
-                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=calendar`);
-                              return;
+                          }}
+                          pendingAssetEmbed={pendingDocAssetEmbed}
+                          onAssetEmbedApplied={(embedId) => {
+                            if (pendingDocAssetEmbed?.embed_id === embedId) {
+                              setPendingDocAssetEmbed(null);
                             }
-                            if (targetView.type === 'timeline') {
-                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=timeline`);
-                              return;
-                            }
-                            navigate(`${buildProjectWorkHref(project.project_id, activePane.pane_id)}?view_id=${encodeURIComponent(viewId)}`);
-                          },
-                        }}
-                      />
-                    </Suspense>
+                          }}
+                          viewEmbedRuntime={{
+                            accessToken,
+                            onOpenRecord: (recordId) => {
+                              void openInspectorWithFocusRestore(recordId);
+                            },
+                            onOpenView: (viewId) => {
+                              const targetView = views.find((view) => view.view_id === viewId);
+                              if (!targetView) {
+                                navigate(buildProjectWorkHref(project.project_id, activePane.pane_id));
+                                return;
+                              }
+                              if (targetView.type === 'kanban') {
+                                navigate(`${buildProjectOverviewHref(project.project_id)}?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`);
+                                return;
+                              }
+                              if (targetView.type === 'calendar') {
+                                navigate(`${buildProjectOverviewHref(project.project_id)}?view=calendar`);
+                                return;
+                              }
+                              if (targetView.type === 'timeline') {
+                                navigate(`${buildProjectOverviewHref(project.project_id)}?view=timeline`);
+                                return;
+                              }
+                              navigate(`${buildProjectWorkHref(project.project_id, activePane.pane_id)}?view_id=${encodeURIComponent(viewId)}`);
+                            },
+                          }}
+                        />
+                      </Suspense>
+                    ) : (
+                      <ModuleLoadingState label="Loading workspace doc" rows={8} />
+                    )}
                     {activePaneCanEdit ? (
                       <>
                         <div className="mt-3 flex flex-wrap items-center gap-2">
