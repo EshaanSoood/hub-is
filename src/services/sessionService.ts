@@ -4,10 +4,7 @@ import { buildHubAuthHeaders } from './hubAuthHeaders';
 
 interface MeResponse {
   sessionSummary: SessionSummary;
-}
-
-interface CalendarFeedTokenResponse {
-  token: string;
+  calendar_feed_url?: string;
 }
 
 export const fetchSessionSummary = async (accessToken: string): Promise<SessionSummary> => {
@@ -17,15 +14,8 @@ export const fetchSessionSummary = async (accessToken: string): Promise<SessionS
   });
 
   const data = await readEnvelope<MeResponse>(response);
-  return data.sessionSummary;
-};
-
-export const ensureCalendarFeedToken = async (accessToken: string): Promise<string> => {
-  const response = await fetch('/api/hub/calendar-feed-token', {
-    method: 'GET',
-    headers: buildHubAuthHeaders(accessToken),
-  });
-
-  const data = await readEnvelope<CalendarFeedTokenResponse>(response);
-  return data.token;
+  return {
+    ...data.sessionSummary,
+    calendarFeedUrl: data.calendar_feed_url || data.sessionSummary.calendarFeedUrl || '',
+  };
 };

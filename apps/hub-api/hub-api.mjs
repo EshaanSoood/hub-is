@@ -54,9 +54,10 @@ const MATRIX_SERVER_NAME = 'chat.eshaansood.org';
 const MATRIX_ACCOUNT_SECRET_VERSION = 'v1';
 const WS_READY_STATE_OPEN = 1;
 const REMINDER_CHECK_INTERVAL_MS = 30_000;
+const HUB_PUBLIC_APP_URL = (process.env.HUB_PUBLIC_APP_URL || 'https://eshaansood.org').trim().replace(/\/+$/, '');
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
-const REGISTERED_ROUTE_COUNT = 80;
+const REGISTERED_ROUTE_COUNT = 79;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const nowIso = () => new Date().toISOString();
@@ -611,6 +612,9 @@ const getOrCreateCalendarFeedToken = (userId) => {
   });
 };
 
+const buildCalendarFeedUrl = (token) =>
+  `${HUB_PUBLIC_APP_URL}/api/hub/calendar.ics?token=${encodeURIComponent(asText(token))}`;
+
 const normalizeProjectRole = (role) => (asText(role) === 'owner' || asText(role) === 'admin' ? 'owner' : 'member');
 
 const membershipRoleLabel = (role) => (normalizeProjectRole(role) === 'owner' ? 'owner' : 'member');
@@ -1116,6 +1120,7 @@ const ensureUserFromRequest = async (request) => {
       });
       throw error;
     }
+    getOrCreateCalendarFeedToken(userId);
     return {
       status: 200,
       token,
@@ -1359,6 +1364,7 @@ const ensureUserForEmail = ({ email, displayName }) => {
   const now = nowIso();
   const userId = newId('usr');
   insertUserStmt.run(userId, `local:${normalizedEmail}`, displayName || normalizedEmail, normalizedEmail, now, now);
+  getOrCreateCalendarFeedToken(userId);
   return userByIdStmt.get(userId);
 };
 
@@ -2246,6 +2252,7 @@ const routeDeps = {
   automationRunsByProjectStmt: stmts.automation.listRuns,
   buildAssetProxyPath,
   buildAssetRelativePath,
+  buildCalendarFeedUrl,
   buildHomeEventSummary,
   buildNotificationPayload,
   buildNotificationRouteContext,
@@ -3108,11 +3115,6 @@ const server = createServer(async (request, response) => {
 
     if (request.method === 'GET' && pathname === '/api/hub/calendar.ics') {
       await viewRoutes.getCalendarFeed({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/calendar-feed-token') {
-      await userRoutes.getCalendarFeedToken({ request, response, requestUrl, pathname });
       return;
     }
 

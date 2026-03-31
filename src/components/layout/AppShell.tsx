@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
 import { useProjects } from '../../context/ProjectsContext';
-import { ensureCalendarFeedToken } from '../../services/sessionService';
 import { QuickCapturePanel } from '../../features/QuickCapture';
 import { TaskCreateDialog } from '../project-space/TaskCreateDialog';
 import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
@@ -56,7 +55,7 @@ import {
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { sessionSummary, canGlobal, accessToken, signOut } = useAuthz();
+  const { sessionSummary, calendarFeedUrl, canGlobal, accessToken, signOut } = useAuthz();
   const { projects, refreshProjects } = useProjects();
 
   useRouteFocusReset();
@@ -1273,21 +1272,50 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const onCopyCalendarLink = useCallback(async () => {
-    if (!accessToken) {
-      notifyError('Could not copy calendar link.', 'An authenticated session is required.');
+  const onCopyCalendarLink = useCallback(() => {
+    const url = calendarFeedUrl.trim();
+    if (!url) {
+      notifyError('Could not copy calendar link.', 'Calendar link is not available yet.');
       return;
     }
 
-    try {
-      const token = await ensureCalendarFeedToken(accessToken);
-      const calendarUrl = `https://eshaansood.org/api/hub/calendar.ics?token=${encodeURIComponent(token)}`;
-      await navigator.clipboard.writeText(calendarUrl);
-      notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
-    } catch (error) {
-      notifyError('Could not copy calendar link.', error instanceof Error ? error.message : undefined);
+    const fallbackCopy = () => {
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.setAttribute('readonly', 'true');
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      textArea.style.pointerEvents = 'none';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const copied = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return copied;
+    };
+
+    if (navigator.clipboard?.writeText) {
+      const copyRequest = navigator.clipboard.writeText(url);
+      void copyRequest
+        .then(() => {
+          notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
+        })
+        .catch(() => {
+          if (fallbackCopy()) {
+            notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
+            return;
+          }
+          notifyError('Could not copy calendar link.');
+        });
+      return;
     }
-  }, [accessToken]);
+
+    if (fallbackCopy()) {
+      notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
+      return;
+    }
+    notifyError('Could not copy calendar link.');
+  }, [calendarFeedUrl]);
 
   const onInstallHubOs = useCallback(async () => {
     if (installState.installed) {

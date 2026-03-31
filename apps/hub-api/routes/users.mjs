@@ -4,6 +4,7 @@ export const createUserRoutes = (deps) => {
     send,
     jsonResponse,
     okEnvelope,
+    buildCalendarFeedUrl,
     getOrCreateCalendarFeedToken,
     membershipRoleLabel,
     projectMembershipsByUserStmt,
@@ -15,6 +16,8 @@ export const createUserRoutes = (deps) => {
       role: membershipRoleLabel(row.role),
       joined_at: row.joined_at,
     }));
+    const calendarFeedToken = getOrCreateCalendarFeedToken(auth.user.user_id);
+    const calendarFeedUrl = buildCalendarFeedUrl(calendarFeedToken.token);
 
     send(
       response,
@@ -28,19 +31,14 @@ export const createUserRoutes = (deps) => {
             email: auth.user.email,
           },
           memberships,
+          calendar_feed_url: calendarFeedUrl,
           sessionSummary,
         }),
       ),
     );
   });
 
-  const getCalendarFeedToken = withPolicyGate('hub.view', async ({ response, auth }) => {
-    const calendarFeedToken = getOrCreateCalendarFeedToken(auth.user.user_id);
-    send(response, jsonResponse(200, okEnvelope({ token: calendarFeedToken.token })));
-  });
-
   return {
-    getCalendarFeedToken,
     getSession,
   };
 };

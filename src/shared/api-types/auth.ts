@@ -48,4 +48,6 @@ export interface SessionSummary {
   globalCapabilities: GlobalCapability[];
   /** Project capability map keyed by project ID. */
   projectCapabilities: Record<string, ProjectCapability[]>;
+  /** Full personal calendar subscription URL for the current user. */
+  calendarFeedUrl: string;
 }
