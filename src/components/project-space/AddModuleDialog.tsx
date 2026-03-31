@@ -77,7 +77,8 @@ export const AddModuleDialog = ({
       title="Add Module"
       description="Choose a module, then choose the size to add to this pane."
       triggerRef={triggerRef}
-      panelClassName="max-w-2xl"
+      panelClassName="max-h-[88vh] max-w-2xl overflow-y-auto"
+      contentClassName="pr-1"
     >
       {selectedEntry ? (
         <div className="space-y-5">
@@ -130,7 +131,9 @@ export const AddModuleDialog = ({
             <p className="text-sm text-muted">Pick a module first, then choose the size that fits this pane.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3" role="group" aria-label="Module picker">
+          <p className="text-xs text-muted">{MODULE_CATALOG.length} modules available</p>
+
+          <div className="grid grid-cols-2 gap-3 pb-1" role="group" aria-label="Module picker">
             {MODULE_CATALOG.map((entry, index) => (
               <button
                 key={entry.type}

@@ -37,7 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/project-space/ProjectSpaceDialogPrimitives';
-import { Icon, InlineNotice } from '../components/primitives';
+import { Icon, IconButton, InlineNotice } from '../components/primitives';
 import { BacklinksPanel } from '../components/project-space/BacklinksPanel';
 import { CommentComposer } from '../components/project-space/CommentComposer';
 import { CommentRail } from '../components/project-space/CommentRail';
@@ -258,10 +258,15 @@ const ProjectSpaceWorkspace = ({
   const [overviewView, setOverviewView] = useState<OverviewView>(() => readOverviewView(searchParams));
 
   const [creatingPaneName, setCreatingPaneName] = useState('');
+  const [showCreatePaneControl, setShowCreatePaneControl] = useState(false);
   const [showPaneSwitcher, setShowPaneSwitcher] = useState(searchParams.get('pinned') !== '1');
   const [showOtherPanes, setShowOtherPanes] = useState(false);
   const [otherPaneQuery, setOtherPaneQuery] = useState('');
+  const [paneSettingsOpen, setPaneSettingsOpen] = useState(false);
   const inspectorTriggerRef = useRef<HTMLElement | null>(null);
+  const paneSettingsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const paneSettingsNameInputRef = useRef<HTMLInputElement | null>(null);
+  const createPaneNameInputRef = useRef<HTMLInputElement | null>(null);
   const docAssetFormRef = useRef<HTMLFormElement | null>(null);
   const docAssetInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -315,6 +320,10 @@ const ProjectSpaceWorkspace = ({
     () => panes.filter((pane) => paneCanEditForUser(pane, sessionUserId)),
     [panes, sessionUserId],
   );
+  const orderedEditablePanes = useMemo(
+    () => [...editablePanes].sort((a, b) => a.sort_order - b.sort_order),
+    [editablePanes],
+  );
   const readOnlyPanes = useMemo(
     () => panes.filter((pane) => !paneCanEditForUser(pane, sessionUserId)),
     [panes, sessionUserId],
@@ -331,6 +340,10 @@ const ProjectSpaceWorkspace = ({
     [activePane, sessionUserId],
   );
   const canWriteProject = typeof project.membership_role === 'string' && project.membership_role.toLowerCase() !== 'viewer';
+  const activeEditablePaneIndex = useMemo(
+    () => orderedEditablePanes.findIndex((pane) => pane.pane_id === activePane?.pane_id),
+    [activePane?.pane_id, orderedEditablePanes],
+  );
 
   const pinnedPanes = useMemo(() => panes.filter((pane) => pane.pinned), [panes]);
   const openedFromPinned = searchParams.get('pinned') === '1';
@@ -348,7 +361,6 @@ const ProjectSpaceWorkspace = ({
     onCreatePane,
     onDeletePane,
     onMovePane,
-    onRenamePane,
     onTogglePaneMember,
     onTogglePinned,
     onUpdatePaneFromWorkView,
@@ -469,6 +481,16 @@ const ProjectSpaceWorkspace = ({
     }
     previousOpenedFromPinnedRef.current = openedFromPinned;
   }, [openedFromPinned]);
+
+  useEffect(() => {
+    if (!showCreatePaneControl) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      createPaneNameInputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [showCreatePaneControl]);
 
   useEffect(() => {
     setOverviewView(readOverviewView(searchParams));
@@ -610,6 +632,7 @@ const ProjectSpaceWorkspace = ({
     }
 
     setCreatingPaneName('');
+    setShowCreatePaneControl(false);
     navigate(buildProjectWorkHref(project.project_id, nextPane.pane_id));
   };
 
@@ -669,6 +692,26 @@ const ProjectSpaceWorkspace = ({
     queueViewEmbed(selectedEmbedViewId);
   }, [queueViewEmbed, selectedEmbedViewId]);
 
+  const commitActivePaneSettingsName = useCallback(() => {
+    if (!activePane || !activePaneCanEdit) {
+      return;
+    }
+    const nextName = paneSettingsNameInputRef.current?.value.trim();
+    if (nextName && nextName !== activePane.name) {
+      void onUpdatePaneFromWorkView(activePane.pane_id, { name: nextName });
+    }
+  }, [activePane, activePaneCanEdit, onUpdatePaneFromWorkView]);
+
+  const handlePaneSettingsOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        commitActivePaneSettingsName();
+      }
+      setPaneSettingsOpen(nextOpen);
+    },
+    [commitActivePaneSettingsName],
+  );
+
   useEffect(() => {
     if (!activePaneDocId) {
       return;
@@ -691,6 +734,36 @@ const ProjectSpaceWorkspace = ({
   const workspaceEnabled = useMemo(
     () => (activePane ? readLayoutBool(activePane.layout_config, 'workspace_enabled', true) : true),
     [activePane],
+  );
+  const handleToggleActivePaneRegion = useCallback(
+    (region: 'modules_enabled' | 'workspace_enabled') => {
+      if (!activePane || !activePaneCanEdit) {
+        return;
+      }
+
+      const nextModulesEnabled = region === 'modules_enabled' ? !modulesEnabled : modulesEnabled;
+      const nextWorkspaceEnabled = region === 'workspace_enabled' ? !workspaceEnabled : workspaceEnabled;
+      if (!nextModulesEnabled && !nextWorkspaceEnabled) {
+        setPaneMutationError('A pane must keep at least one region enabled.');
+        return;
+      }
+
+      void onUpdatePaneFromWorkView(activePane.pane_id, {
+        layout_config: {
+          ...activePane.layout_config,
+          modules_enabled: nextModulesEnabled,
+          workspace_enabled: nextWorkspaceEnabled,
+        },
+      });
+    },
+    [
+      activePane,
+      activePaneCanEdit,
+      modulesEnabled,
+      onUpdatePaneFromWorkView,
+      setPaneMutationError,
+      workspaceEnabled,
+    ],
   );
   const paneTaskItems = useMemo(
     () =>
@@ -1097,176 +1170,266 @@ const ProjectSpaceWorkspace = ({
               </div>
             </div>
 
-            {showPaneSwitcher ? (
-              <div className="mt-3 space-y-3">
-                <PaneSwitcher
-                  panes={editablePanes.map((pane, index) => ({
-                    id: pane.pane_id,
-                    label: pane.name,
-                    shortcutNumber: index + 1,
-                  }))}
-                  activePaneId={activePane?.pane_id ?? null}
-                  onPaneChange={(nextPaneId) => {
-                    navigate(buildProjectWorkHref(project.project_id, nextPaneId));
-                  }}
-                  onMovePane={(paneIdToMove, direction) => {
-                    const pane = panes.find((entry) => entry.pane_id === paneIdToMove);
-                    if (pane) {
-                      void onMovePane(pane, direction);
-                    }
-                  }}
-                />
-
-                {showOtherPanes ? (
-                  <div className="rounded-panel border border-border-muted bg-surface p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Other panes</h3>
-                      <input
-                        value={otherPaneQuery}
-                        onChange={(event) => setOtherPaneQuery(event.target.value)}
-                        className="rounded-panel border border-border-muted bg-surface-elevated px-2 py-1 text-xs text-text"
-                        placeholder="Search panes"
-                        aria-label="Search read-only panes"
-                      />
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {filteredReadOnlyPanes.length === 0 ? (
-                        <p className="text-sm text-muted">No matching read-only panes.</p>
-                      ) : (
-                        filteredReadOnlyPanes.map((pane) => (
-                          <button
-                            key={pane.pane_id}
-                            type="button"
-                            onClick={() => navigate(buildProjectWorkHref(project.project_id, pane.pane_id))}
-                            className="flex w-full items-center justify-between rounded-panel border border-border-muted px-3 py-2 text-left"
-                          >
-                            <span className="text-sm font-medium text-text">{pane.name}</span>
-                            <span className="text-xs text-muted">Read only</span>
-                          </button>
-                        ))
-                      )}
-                    </div>
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {showPaneSwitcher ? (
+                  <div className="min-w-0 flex-1 overflow-x-auto">
+                    <PaneSwitcher
+                      panes={orderedEditablePanes.map((pane, index) => ({
+                        id: pane.pane_id,
+                        label: pane.name,
+                        shortcutNumber: index + 1,
+                      }))}
+                      activePaneId={activePane?.pane_id ?? null}
+                      onPaneChange={(nextPaneId) => {
+                        navigate(buildProjectWorkHref(project.project_id, nextPaneId));
+                      }}
+                      onMovePane={(paneIdToMove, direction) => {
+                        const pane = panes.find((entry) => entry.pane_id === paneIdToMove);
+                        if (pane) {
+                          void onMovePane(pane, direction);
+                        }
+                      }}
+                    />
                   </div>
+                ) : openedFromPinned ? (
+                  <p className="text-xs text-muted">Pane switcher hidden. Use the focusable toggle above to reveal it.</p>
                 ) : null}
-
                 {canWriteProject ? (
-                  <details className="rounded-panel border border-border-muted bg-surface p-3">
-                    <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted">Editable pane management</summary>
-                    <div className="mt-3 space-y-2">
-                      {editablePanes.map((pane) => (
-                        <article key={pane.pane_id} className="rounded-panel border border-border-muted p-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <button
-                              type="button"
-                              onClick={() => navigate(buildProjectWorkHref(project.project_id, pane.pane_id))}
-                              className="font-semibold text-primary underline"
-                            >
-                              {pane.name}
-                            </button>
-                            <div className="flex flex-wrap gap-1">
-                              <button
-                                type="button"
-                                className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-                                onClick={() => void onMovePane(pane, 'up')}
-                              >
-                                Up
-                              </button>
-                              <button
-                                type="button"
-                                className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-                                onClick={() => void onMovePane(pane, 'down')}
-                              >
-                                Down
-                              </button>
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-                                onClick={() => void onTogglePinned(pane)}
-                              >
-                                <Icon name="pin" className="text-[12px]" />
-                                {pane.pinned ? 'Unpin' : 'Pin'}
-                              </button>
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-                                onClick={() => {
-                                  const nextName = window.prompt('Rename pane', pane.name);
-                                  if (nextName) {
-                                    void onRenamePane(pane, nextName);
-                                  }
-                                }}
-                              >
-                                <Icon name="edit" className="text-[12px]" />
-                                Rename
-                              </button>
-                              {editablePanes.length > 1 ? (
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center gap-1 rounded-panel border border-danger px-2 py-1 text-xs font-semibold text-danger"
-                                  onClick={() => void onDeletePaneWithNavigation(pane)}
-                                >
-                                  <Icon name="trash" className="text-[12px]" />
-                                  Delete
-                                </button>
-                              ) : null}
-                            </div>
-                          </div>
-
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {projectMemberList
-                              .filter((member) => String(member.role).toLowerCase() !== 'owner'
-                                || pane.members.some((entry) => entry.user_id === member.user_id))
-                              .map((member) => {
-                                const selected = pane.members.some((entry) => entry.user_id === member.user_id);
-                                return (
-                                  <label
-                                    key={member.user_id}
-                                    className={`rounded-panel border px-2 py-1 text-xs ${
-                                      selected ? 'border-primary text-primary' : 'border-border-muted text-muted'
-                                    }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      className="mr-1"
-                                      checked={selected}
-                                      onChange={() => {
-                                        void onTogglePaneMember(pane, member.user_id);
-                                      }}
-                                      disabled={member.user_id === sessionUserId}
-                                    />
-                                    {member.display_name}
-                                  </label>
-                                );
-                              })}
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </details>
+                  <IconButton
+                    type="button"
+                    size="sm"
+                    variant={showCreatePaneControl ? 'secondary' : 'ghost'}
+                    aria-label={showCreatePaneControl ? 'Collapse create pane' : 'Create pane'}
+                    aria-expanded={showCreatePaneControl}
+                    onClick={() => setShowCreatePaneControl((current) => !current)}
+                  >
+                    <Icon name="plus" className="text-[14px]" />
+                  </IconButton>
                 ) : null}
+                <IconButton
+                  ref={paneSettingsTriggerRef}
+                  type="button"
+                  size="sm"
+                  variant={paneSettingsOpen ? 'secondary' : 'ghost'}
+                  aria-label="Pane settings"
+                  aria-expanded={paneSettingsOpen}
+                  onClick={() => setPaneSettingsOpen(true)}
+                  disabled={!activePane}
+                >
+                  <Icon name="settings" className="text-[14px]" />
+                </IconButton>
               </div>
-            ) : openedFromPinned ? (
-              <p className="mt-3 text-xs text-muted">Pane switcher hidden. Use the focusable toggle above to reveal it.</p>
-            ) : null}
 
-            {canWriteProject ? (
-              <form className="mt-3 flex flex-wrap gap-2" onSubmit={onCreatePaneSubmit}>
-                <input
-                  value={creatingPaneName}
-                  onChange={(event) => setCreatingPaneName(event.target.value)}
-                  className="rounded-panel border border-border-muted bg-surface px-3 py-1.5 text-sm text-text"
-                  placeholder="New pane name"
-                  aria-label="New pane name"
-                />
-                <button type="submit" className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary">
-                  Create pane
-                </button>
-              </form>
-            ) : null}
+              {showCreatePaneControl && canWriteProject ? (
+                <form className="flex flex-wrap items-center gap-2" onSubmit={onCreatePaneSubmit}>
+                  <input
+                    ref={createPaneNameInputRef}
+                    value={creatingPaneName}
+                    onChange={(event) => setCreatingPaneName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape') {
+                        event.preventDefault();
+                        setShowCreatePaneControl(false);
+                      }
+                    }}
+                    className="rounded-panel border border-border-muted bg-surface px-3 py-1.5 text-sm text-text"
+                    placeholder="New pane name"
+                    aria-label="New pane name"
+                  />
+                  <button type="submit" className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary">
+                    Create pane
+                  </button>
+                </form>
+              ) : null}
+
+              {showOtherPanes ? (
+                <div className="rounded-panel border border-border-muted bg-surface p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Other panes</h3>
+                    <input
+                      value={otherPaneQuery}
+                      onChange={(event) => setOtherPaneQuery(event.target.value)}
+                      className="rounded-panel border border-border-muted bg-surface-elevated px-2 py-1 text-xs text-text"
+                      placeholder="Search panes"
+                      aria-label="Search read-only panes"
+                    />
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {filteredReadOnlyPanes.length === 0 ? (
+                      <p className="text-sm text-muted">No matching read-only panes.</p>
+                    ) : (
+                      filteredReadOnlyPanes.map((pane) => (
+                        <button
+                          key={pane.pane_id}
+                          type="button"
+                          onClick={() => navigate(buildProjectWorkHref(project.project_id, pane.pane_id))}
+                          className="flex w-full items-center justify-between rounded-panel border border-border-muted px-3 py-2 text-left"
+                        >
+                          <span className="text-sm font-medium text-text">{pane.name}</span>
+                          <span className="text-xs text-muted">Read only</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
             {paneMutationError ? (
               <InlineNotice variant="danger" className="mt-2" title="Pane update failed">
                 {paneMutationError}
               </InlineNotice>
+            ) : null}
+
+            {activePane ? (
+              <Dialog open={paneSettingsOpen} onOpenChange={handlePaneSettingsOpenChange}>
+                <DialogContent
+                  onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    paneSettingsTriggerRef.current?.focus();
+                  }}
+                >
+                  <DialogHeader>
+                    <DialogTitle>Pane Settings</DialogTitle>
+                    <DialogDescription className="sr-only">
+                      Manage settings for pane {activePane.name}.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="mt-4 space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="pane-settings-name">
+                        Pane name
+                      </label>
+                      <input
+                        key={activePane.pane_id}
+                        ref={paneSettingsNameInputRef}
+                        id="pane-settings-name"
+                        defaultValue={activePane.name}
+                        autoFocus
+                        disabled={!activePaneCanEdit}
+                        className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                        aria-label="Pane name"
+                        onBlur={() => commitActivePaneSettingsName()}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            commitActivePaneSettingsName();
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        to={buildProjectWorkHref(project.project_id, activePane.pane_id)}
+                        onClick={() => handlePaneSettingsOpenChange(false)}
+                        className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary"
+                      >
+                        Open pane route
+                      </Link>
+                      <button
+                        type="button"
+                        className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
+                        onClick={() => {
+                          void onTogglePinned(activePane);
+                        }}
+                        disabled={!activePaneCanEdit}
+                      >
+                        {activePane.pinned ? 'Unpin' : 'Pin'}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
+                        onClick={() => {
+                          void onMovePane(activePane, 'up');
+                        }}
+                        disabled={!activePaneCanEdit || activeEditablePaneIndex <= 0}
+                      >
+                        Move up
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
+                        onClick={() => {
+                          void onMovePane(activePane, 'down');
+                        }}
+                        disabled={!activePaneCanEdit || activeEditablePaneIndex < 0 || activeEditablePaneIndex >= orderedEditablePanes.length - 1}
+                      >
+                        Move down
+                      </button>
+                      {orderedEditablePanes.length > 1 ? (
+                        <button
+                          type="button"
+                          className="rounded-panel border border-danger px-3 py-1.5 text-sm font-semibold text-danger disabled:opacity-60"
+                          onClick={() => {
+                            setPaneSettingsOpen(false);
+                            void onDeletePaneWithNavigation(activePane);
+                          }}
+                          disabled={!activePaneCanEdit}
+                        >
+                          Delete pane
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Regions</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
+                          onClick={() => handleToggleActivePaneRegion('modules_enabled')}
+                          disabled={!activePaneCanEdit}
+                        >
+                          {modulesEnabled ? 'Hide modules' : 'Show modules'}
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
+                          onClick={() => handleToggleActivePaneRegion('workspace_enabled')}
+                          disabled={!activePaneCanEdit}
+                        >
+                          {workspaceEnabled ? 'Hide workspace doc' : 'Show workspace doc'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Pane members</p>
+                      <div className="flex flex-wrap gap-2">
+                        {projectMemberList
+                          .filter((member) => String(member.role).toLowerCase() !== 'owner'
+                            || activePane.members.some((entry) => entry.user_id === member.user_id))
+                          .map((member) => {
+                            const selected = activePane.members.some((entry) => entry.user_id === member.user_id);
+                            return (
+                              <label
+                                key={member.user_id}
+                                className={`rounded-panel border px-2 py-1 text-xs ${
+                                  selected ? 'border-primary text-primary' : 'border-border-muted text-muted'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="mr-1"
+                                  checked={selected}
+                                  onChange={() => {
+                                    void onTogglePaneMember(activePane, member.user_id);
+                                  }}
+                                  disabled={!activePaneCanEdit || member.user_id === sessionUserId}
+                                />
+                                {member.display_name}
+                              </label>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {!activePaneCanEdit ? <p className="text-xs text-muted">Read-only pane.</p> : null}
+                  </div>
+                </DialogContent>
+              </Dialog>
             ) : null}
           </div>
 
@@ -1363,11 +1526,7 @@ const ProjectSpaceWorkspace = ({
                 pane={activePane ?? null}
                 canEditPane={activePaneCanEdit}
                 modulesEnabled={modulesEnabled}
-                workspaceEnabled={workspaceEnabled}
                 showWorkspaceDocPlaceholder={false}
-                onSelectPane={(nextPaneId) => {
-                  navigate(buildProjectWorkHref(project.project_id, nextPaneId));
-                }}
                 onUpdatePane={onUpdatePaneFromWorkView}
                 onOpenRecord={(recordId) => {
                   void openInspectorWithFocusRestore(recordId);
