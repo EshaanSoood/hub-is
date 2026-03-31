@@ -338,6 +338,29 @@ const shouldRecoverCollaborativeHydration = (bootstrapPlainText: string, current
   return bootstrapPlainText.length > currentPlainText.length && bootstrapPlainText.startsWith(currentPlainText);
 };
 
+const COLLABORATION_BOOTSTRAP_FALLBACK_MS = 2_000;
+
+const applyEditorStateIfHydrationIsIncomplete = ({
+  editor,
+  initialEditorState,
+  initialPlainText,
+}: {
+  editor: ReturnType<typeof useLexicalComposerContext>[0];
+  initialEditorState: string;
+  initialPlainText: string;
+}): boolean => {
+  const currentSnapshot = editorStateToLexicalSnapshot(editor.getEditorState());
+  if (!shouldRecoverCollaborativeHydration(initialPlainText, currentSnapshot.plainText)) {
+    return false;
+  }
+
+  const recoveredEditorState = editor.parseEditorState(initialEditorState);
+  editor.setEditorState(recoveredEditorState, {
+    tag: HISTORY_MERGE_TAG,
+  });
+  return true;
+};
+
 const CollaborationRecoveryPlugin = ({
   collaborationEnabled,
   collaborationReady,
@@ -358,15 +381,36 @@ const CollaborationRecoveryPlugin = ({
     }
 
     recoveredRef.current = true;
-    const currentSnapshot = editorStateToLexicalSnapshot(editor.getEditorState());
-    if (!shouldRecoverCollaborativeHydration(initialPlainText, currentSnapshot.plainText)) {
-      return;
+    applyEditorStateIfHydrationIsIncomplete({
+      editor,
+      initialEditorState,
+      initialPlainText,
+    });
+  }, [collaborationEnabled, collaborationReady, editor, initialEditorState, initialPlainText]);
+
+  useEffect(() => {
+    if (!collaborationEnabled || collaborationReady || recoveredRef.current) {
+      return undefined;
     }
 
-    const recoveredEditorState = editor.parseEditorState(initialEditorState);
-    editor.setEditorState(recoveredEditorState, {
-      tag: HISTORY_MERGE_TAG,
-    });
+    const timer = window.setTimeout(() => {
+      if (recoveredRef.current) {
+        return;
+      }
+
+      const recovered = applyEditorStateIfHydrationIsIncomplete({
+        editor,
+        initialEditorState,
+        initialPlainText,
+      });
+      if (recovered) {
+        recoveredRef.current = true;
+      }
+    }, COLLABORATION_BOOTSTRAP_FALLBACK_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [collaborationEnabled, collaborationReady, editor, initialEditorState, initialPlainText]);
 
   return null;
