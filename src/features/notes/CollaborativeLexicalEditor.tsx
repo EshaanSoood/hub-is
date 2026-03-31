@@ -22,6 +22,8 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import { editorStateToLexicalSnapshot, normalizeLexicalState } from './lexicalState';
 import { notesLexicalTheme } from './lexicalTheme';
+import { MediaAutoEmbedPlugin } from './MediaAutoEmbedPlugin';
+import { MediaEmbedNode } from './nodes/MediaEmbedNode';
 import { $createViewRefNode, ViewRefNode } from './nodes/ViewRefNode';
 import { ViewEmbedProvider, type ViewEmbedRuntime } from './viewEmbedContext';
 
@@ -278,7 +280,7 @@ export const CollaborativeLexicalEditor = ({
       theme: notesLexicalTheme,
       editorState: JSON.stringify(normalizeLexicalState(initialLexicalState)),
       editable,
-      nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, ViewRefNode],
+      nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, ViewRefNode, MediaEmbedNode],
       onError: (error: Error) => {
         throw error;
       },
@@ -419,6 +421,7 @@ export const CollaborativeLexicalEditor = ({
           <AssetEmbedInsertPlugin pendingAssetEmbed={pendingAssetEmbed} onAssetEmbedApplied={onAssetEmbedApplied} />
           <MentionInsertPlugin pendingMentionInsert={pendingMentionInsert} onMentionInserted={onMentionInserted} />
           <ViewEmbedInsertPlugin pendingViewEmbedInsert={pendingViewEmbedInsert} onViewEmbedInserted={onViewEmbedInserted} />
+          <MediaAutoEmbedPlugin />
           <ListPlugin />
           <LinkPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />

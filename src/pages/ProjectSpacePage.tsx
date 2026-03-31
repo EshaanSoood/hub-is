@@ -262,6 +262,8 @@ const ProjectSpaceWorkspace = ({
   const [showOtherPanes, setShowOtherPanes] = useState(false);
   const [otherPaneQuery, setOtherPaneQuery] = useState('');
   const inspectorTriggerRef = useRef<HTMLElement | null>(null);
+  const docAssetFormRef = useRef<HTMLFormElement | null>(null);
+  const docAssetInputRef = useRef<HTMLInputElement | null>(null);
 
   const { calendarEvents, calendarLoading, calendarMode, refreshCalendar, setCalendarMode } = useCalendarRuntime({
     accessToken,
@@ -1478,12 +1480,28 @@ const ProjectSpaceWorkspace = ({
                             Insert view block
                           </button>
                         </div>
-                        <form className="mt-3 flex flex-wrap items-center gap-2" onSubmit={onUploadDocAsset}>
-                          <input name="doc-asset-file" type="file" className="text-xs text-muted" aria-label="Upload doc asset" />
+                        <form ref={docAssetFormRef} className="mt-3 flex flex-wrap items-center gap-2" onSubmit={onUploadDocAsset}>
+                          <input
+                            ref={docAssetInputRef}
+                            name="doc-asset-file"
+                            type="file"
+                            className="hidden"
+                            aria-hidden="true"
+                            tabIndex={-1}
+                            disabled={uploadingDocAsset}
+                            onChange={(event) => {
+                              if (!event.currentTarget.files?.length) {
+                                return;
+                              }
+                              docAssetFormRef.current?.requestSubmit();
+                            }}
+                          />
                           <button
-                            type="submit"
+                            type="button"
+                            onClick={() => docAssetInputRef.current?.click()}
                             disabled={uploadingDocAsset}
                             className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label="Upload doc asset"
                           >
                             <Icon name="upload" className="text-[12px]" />
                             {uploadingDocAsset ? 'Uploading...' : 'Upload + embed'}
