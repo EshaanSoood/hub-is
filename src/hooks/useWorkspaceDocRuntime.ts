@@ -222,7 +222,6 @@ export const useWorkspaceDocRuntime = ({
     expiresAt: string;
   } | null>(null);
   const [collabSessionError, setCollabSessionError] = useState<string | null>(null);
-  const [collabSessionRefreshNonce, setCollabSessionRefreshNonce] = useState(0);
 
   const docSnapshotSaveTimerRef = useRef<number | null>(null);
   const docSnapshotSaveStatesRef = useRef<Map<string, DocSnapshotSaveState>>(new Map());
@@ -413,7 +412,6 @@ export const useWorkspaceDocRuntime = ({
     setDocBootstrapReady(activePaneDocId === null);
     setCollabSession(null);
     setCollabSessionError(null);
-    setCollabSessionRefreshNonce(0);
     clearDocSnapshotSaveTimer();
   }, [activePaneDocId, clearDocSnapshotSaveTimer]);
 
@@ -458,7 +456,7 @@ export const useWorkspaceDocRuntime = ({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, activePaneDocId, activeTab, collabSessionRefreshNonce]);
+  }, [accessToken, activePaneDocId, activeTab]);
 
   useEffect(() => {
     void refreshDocComments();
@@ -588,16 +586,6 @@ export const useWorkspaceDocRuntime = ({
     },
     [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot, getDocSnapshotSaveState],
   );
-
-  const onDocCollabReauthorizationRequired = useCallback(() => {
-    if (!activePaneDocId || activeTab !== 'work') {
-      return;
-    }
-
-    setCollabSession(null);
-    setCollabSessionError(null);
-    setCollabSessionRefreshNonce((current) => current + 1);
-  }, [activePaneDocId, activeTab]);
 
   const onInsertDocMention = useCallback((target: HubMentionTarget) => {
     const token = mentionToken({
@@ -781,7 +769,6 @@ export const useWorkspaceDocRuntime = ({
     onAddDocComment,
     onDocCommentDialogOpenChange,
     onDocCollabConnectionStatusChange,
-    onDocCollabReauthorizationRequired,
     onDocEditorChange,
     onInsertDocMention,
     onJumpToDocComment,
