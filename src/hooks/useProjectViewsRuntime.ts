@@ -677,6 +677,157 @@ export const useProjectViewsRuntime = ({
     [accessToken, paneCanEditForUser, panes, projectId, refreshViewsAndRecords, sessionUserId, setTimeline],
   );
 
+  const onCreateTableRecord = useCallback(
+    async (
+      viewId: string,
+      payload: { title: string; fields: Record<string, unknown> },
+      mutationPaneId: string | null,
+    ) => {
+      const mutationPane = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId) || null : null;
+      if (!mutationPane || !paneCanEditForUser(mutationPane, sessionUserId)) {
+        const message = 'Open an editable pane before creating records.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      const collectionId = tableViewDataById[viewId]?.schema?.collection_id ?? null;
+      if (!collectionId) {
+        const message = 'Cannot create record: Table collection is unavailable.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      try {
+        await createRecord(accessToken, projectId, {
+          collection_id: collectionId,
+          title: payload.title,
+          source_pane_id: mutationPane.pane_id,
+          source_view_id: viewId,
+          values: payload.fields,
+        });
+        await refreshViewsAndRecords();
+        const nextTimeline = await listTimeline(accessToken, projectId);
+        setTimeline(nextTimeline);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to create table record.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+    },
+    [accessToken, paneCanEditForUser, panes, projectId, refreshViewsAndRecords, sessionUserId, setTimeline, tableViewDataById],
+  );
+
+  const onUpdateTableRecord = useCallback(
+    async (
+      _viewId: string,
+      recordId: string,
+      fields: Record<string, unknown>,
+      mutationPaneId: string | null,
+    ) => {
+      const mutationPane = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId) || null : null;
+      if (!mutationPane || !paneCanEditForUser(mutationPane, sessionUserId)) {
+        const message = 'Open an editable pane before editing records.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      const { title, ...valueFields } = fields;
+
+      try {
+        const updateOperations: Array<{ label: string; promise: Promise<unknown> }> = [];
+
+        if (typeof title === 'string') {
+          updateOperations.push({
+            label: 'title',
+            promise: updateRecord(accessToken, recordId, { title }, { mutation_context_pane_id: mutationPane.pane_id }),
+          });
+        }
+
+        if (Object.keys(valueFields).length > 0) {
+          updateOperations.push({
+            label: 'fields',
+            promise: setRecordValues(accessToken, recordId, valueFields, {
+              mutation_context_pane_id: mutationPane.pane_id,
+            }),
+          });
+        }
+
+        await Promise.all(updateOperations.map((operation) => operation.promise));
+        await refreshViewsAndRecords();
+        const nextTimeline = await listTimeline(accessToken, projectId);
+        setTimeline(nextTimeline);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to update table record.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+    },
+    [accessToken, paneCanEditForUser, panes, projectId, refreshViewsAndRecords, sessionUserId, setTimeline],
+  );
+
+  const onDeleteTableRecords = useCallback(
+    async (
+      _viewId: string,
+      recordIds: string[],
+      mutationPaneId: string | null,
+    ) => {
+      const mutationPane = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId) || null : null;
+      if (!mutationPane || !paneCanEditForUser(mutationPane, sessionUserId)) {
+        const message = 'Open an editable pane before deleting records.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      try {
+        await Promise.all(
+          recordIds.map((recordId) =>
+            updateRecord(accessToken, recordId, { archived: true }, { mutation_context_pane_id: mutationPane.pane_id })),
+        );
+        await refreshViewsAndRecords();
+        const nextTimeline = await listTimeline(accessToken, projectId);
+        setTimeline(nextTimeline);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to delete table records.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+    },
+    [accessToken, paneCanEditForUser, panes, projectId, refreshViewsAndRecords, sessionUserId, setTimeline],
+  );
+
+  const onBulkUpdateTableRecords = useCallback(
+    async (
+      _viewId: string,
+      recordIds: string[],
+      fields: Record<string, unknown>,
+      mutationPaneId: string | null,
+    ) => {
+      const mutationPane = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId) || null : null;
+      if (!mutationPane || !paneCanEditForUser(mutationPane, sessionUserId)) {
+        const message = 'Open an editable pane before bulk updating records.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+
+      try {
+        await Promise.all(
+          recordIds.map((recordId) =>
+            setRecordValues(accessToken, recordId, fields, {
+              mutation_context_pane_id: mutationPane.pane_id,
+            })),
+        );
+        await refreshViewsAndRecords();
+        const nextTimeline = await listTimeline(accessToken, projectId);
+        setTimeline(nextTimeline);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to bulk update table records.';
+        setRecordsError(message);
+        throw new Error(message);
+      }
+    },
+    [accessToken, paneCanEditForUser, panes, projectId, refreshViewsAndRecords, sessionUserId, setTimeline],
+  );
+
   const tableViews = useMemo(
     () => views.filter((view) => view.type === 'table').map((view) => ({ view_id: view.view_id, name: view.name })),
     [views],
@@ -733,6 +884,10 @@ export const useProjectViewsRuntime = ({
     onCreateKanbanRecord,
     onUpdateKanbanRecord,
     onDeleteKanbanRecord,
+    onCreateTableRecord,
+    onUpdateTableRecord,
+    onDeleteTableRecords,
+    onBulkUpdateTableRecords,
     tableViews,
     kanbanViews,
     tableViewRuntimeDataById,

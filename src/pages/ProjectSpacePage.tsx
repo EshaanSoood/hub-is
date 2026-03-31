@@ -372,9 +372,13 @@ const ProjectSpaceWorkspace = ({
     focusedWorkViewId,
     focusedWorkViewLoading,
     onCreateKanbanRecord,
+    onCreateTableRecord,
     onDeleteKanbanRecord,
+    onDeleteTableRecords,
+    onBulkUpdateTableRecords,
     onMoveKanbanRecord,
     onUpdateKanbanRecord,
+    onUpdateTableRecord,
     recordsError,
     refreshViewsAndRecords,
     selectedEmbedViewId,
@@ -720,6 +724,18 @@ const ProjectSpaceWorkspace = ({
         views: tableViews,
         defaultViewId: tableViews[0]?.view_id || null,
         dataByViewId: tableViewRuntimeDataById,
+        onCreateRecord: async (viewId, payload) => {
+          await onCreateTableRecord(viewId, payload, activePane?.pane_id ?? null);
+        },
+        onUpdateRecord: async (viewId, recordId, fields) => {
+          await onUpdateTableRecord(viewId, recordId, fields, activePane?.pane_id ?? null);
+        },
+        onDeleteRecords: async (viewId, recordIds) => {
+          await onDeleteTableRecords(viewId, recordIds, activePane?.pane_id ?? null);
+        },
+        onBulkUpdateRecords: async (viewId, recordIds, fields) => {
+          await onBulkUpdateTableRecords(viewId, recordIds, fields, activePane?.pane_id ?? null);
+        },
       },
       kanban: {
         views: kanbanViews,
@@ -893,12 +909,16 @@ const ProjectSpaceWorkspace = ({
       accessToken,
       canWriteProject,
       onCreateKanbanRecord,
+      onCreateTableRecord,
       onDeleteKanbanRecord,
+      onDeleteTableRecords,
+      onBulkUpdateTableRecords,
       onMoveKanbanRecord,
       onOpenPaneFile,
       onUploadPaneFiles,
       onUploadProjectFiles,
       onUpdateKanbanRecord,
+      onUpdateTableRecord,
       loadProjectTaskPage,
       paneFiles,
       paneTaskItems,

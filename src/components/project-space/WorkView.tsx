@@ -53,6 +53,10 @@ export interface WorkViewTableRuntime {
   views: WorkViewBoundViewSummary[];
   defaultViewId: string | null;
   dataByViewId: Record<string, WorkViewTableViewData>;
+  onCreateRecord?: (viewId: string, payload: { title: string; fields: Record<string, unknown> }) => Promise<void>;
+  onUpdateRecord?: (viewId: string, recordId: string, fields: Record<string, unknown>) => Promise<void>;
+  onDeleteRecords?: (viewId: string, recordIds: string[]) => Promise<void>;
+  onBulkUpdateRecords?: (viewId: string, recordIds: string[], fields: Record<string, unknown>) => Promise<void>;
 }
 
 export interface WorkViewKanbanRuntime {

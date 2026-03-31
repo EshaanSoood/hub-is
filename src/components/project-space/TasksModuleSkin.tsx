@@ -114,34 +114,7 @@ const compareMediumTasks = (left: TaskItem, right: TaskItem) => {
   return left.label.localeCompare(right.label) || left.id.localeCompare(right.id);
 };
 
-const countLargeTaskSections = (tasks: TaskItem[]): number => {
-  const now = new Date();
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const weekEnd = new Date(now);
-  const daysUntilWeekEnd = (6 - weekEnd.getDay() + 7) % 7;
-  weekEnd.setDate(weekEnd.getDate() + daysUntilWeekEnd);
-  weekEnd.setHours(23, 59, 59, 999);
-
-  return tasks.reduce((count, task) => {
-    const due = parseDueAt(task.dueAt);
-    if (!due) {
-      return count + 1;
-    }
-    if (due.getTime() < today.getTime()) {
-      return count + 1;
-    }
-    if (due.getTime() < tomorrow.getTime()) {
-      return count + 1;
-    }
-    if (due.getTime() <= weekEnd.getTime()) {
-      return count + 1;
-    }
-    return count + 1;
-  }, 0);
-};
+const countLargeTaskSections = (tasks: TaskItem[]): number => tasks.length;
 
 const humanizeOption = (value: string, fallback: string) => {
   if (!value || value === fallback) {
@@ -204,9 +177,11 @@ const TaskSummaryRow = ({
         type="button"
         disabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
         onClick={() => {
-          void Promise.resolve(onUpdateTaskStatus?.(task.id, nextStatus)).catch((error) => {
-            console.error('Failed to update task status:', error);
-          });
+          void Promise.resolve()
+            .then(() => onUpdateTaskStatus?.(task.id, nextStatus))
+            .catch((error) => {
+              console.error('Failed to update task status:', error);
+            });
         }}
         aria-label={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -441,7 +416,11 @@ const TasksModuleSmall = ({
         </div>
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
-        {tasksLoading ? <p className="text-sm text-muted">Loading...</p> : null}
+        {tasksLoading ? (
+          <p role="status" aria-live="polite" className="text-sm text-muted">
+            Loading tasks...
+          </p>
+        ) : null}
         {!tasksLoading && visibleTasks.length === 0 ? (
           <ModuleEmptyState
             title="No tasks in this pane."
