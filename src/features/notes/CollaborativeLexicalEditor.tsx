@@ -299,8 +299,23 @@ const PersistencePlugin = ({
 };
 
 class LexicalHocuspocusProvider extends HocuspocusProvider {
-  constructor(configuration: ConstructorParameters<typeof HocuspocusProvider>[0]) {
+  private readonly yjsDocMap: Map<string, Doc>;
+  private readonly roomId: string;
+  private cleanupComplete = false;
+
+  constructor(
+    configuration: ConstructorParameters<typeof HocuspocusProvider>[0],
+    {
+      roomId,
+      yjsDocMap,
+    }: {
+      roomId: string;
+      yjsDocMap: Map<string, Doc>;
+    },
+  ) {
     super(configuration);
+    this.roomId = roomId;
+    this.yjsDocMap = yjsDocMap;
     super.on('synced', ({ state }: { state: boolean }) => {
       this.emit('sync', state);
     });
@@ -308,6 +323,29 @@ class LexicalHocuspocusProvider extends HocuspocusProvider {
 
   override async connect(): Promise<void> {
     await super.connect();
+  }
+
+  override disconnect(): void {
+    this.cleanup();
+  }
+
+  override destroy(): void {
+    this.cleanup();
+  }
+
+  private cleanup(): void {
+    if (this.cleanupComplete) {
+      return;
+    }
+
+    this.cleanupComplete = true;
+    super.destroy();
+
+    const currentDoc = this.yjsDocMap.get(this.roomId);
+    if (currentDoc === this.document) {
+      this.yjsDocMap.delete(this.roomId);
+    }
+    this.document.destroy();
   }
 }
 
@@ -359,18 +397,27 @@ export const CollaborativeLexicalEditor = ({
         throw new Error('Collaboration session is unavailable.');
       }
 
-      let doc = yjsDocMap.get(id);
-      if (!doc) {
-        doc = new Doc();
-        yjsDocMap.set(id, doc);
+      const existingDoc = yjsDocMap.get(id);
+      if (existingDoc) {
+        yjsDocMap.delete(id);
+        existingDoc.destroy();
       }
 
-      return new LexicalHocuspocusProvider({
-        document: doc,
-        name: id,
-        token: async () => await collaborationSession.getAccessToken(),
-        url: collaborationSession.serverUrl,
-      }) as unknown as Provider;
+      const doc = new Doc();
+      yjsDocMap.set(id, doc);
+
+      return new LexicalHocuspocusProvider(
+        {
+          document: doc,
+          name: id,
+          token: async () => await collaborationSession.getAccessToken(),
+          url: collaborationSession.serverUrl,
+        },
+        {
+          roomId: id,
+          yjsDocMap,
+        },
+      ) as unknown as Provider;
     },
     [collaborationEnabled, collaborationSession],
   );
