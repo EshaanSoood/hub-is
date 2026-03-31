@@ -18,6 +18,7 @@ const documentMetadata = new WeakMap();
 
 const nowIso = () => new Date().toISOString();
 const asText = (value) => (typeof value === 'string' ? value.trim() : '');
+const permissionError = (message) => Object.assign(new Error(message), { reason: message });
 const parseJson = (value, fallback = null) => {
   if (value === undefined || value === null || value === '') {
     return fallback;
@@ -105,14 +106,14 @@ const authorizeToken = async (token, docId) => {
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('collab_authorize_timeout');
+      throw permissionError('collab_authorize_timeout');
     }
     throw error;
   }
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || payload?.ok !== true || !payload?.data?.authorization) {
-    throw new Error(payload?.error?.message || 'collab_authorize_failed');
+    throw permissionError(payload?.error?.code || payload?.error?.message || 'collab_authorize_failed');
   }
 
   const authorization = payload.data.authorization;
@@ -248,10 +249,10 @@ const server = new Server({
   },
   async onConnect({ documentName, instance }) {
     if (!/^doc_[a-z0-9-]+$/i.test(documentName)) {
-      throw new Error('invalid_doc_id');
+      throw permissionError('invalid_doc_id');
     }
     if (!instance.documents.has(documentName) && instance.getDocumentsCount() >= HUB_COLLAB_MAX_DOCUMENTS) {
-      throw new Error('max_documents_reached');
+      throw permissionError('max_documents_reached');
     }
   },
   async onAuthenticate({ connectionConfig, documentName, token }) {
