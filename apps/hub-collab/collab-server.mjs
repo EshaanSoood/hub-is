@@ -218,7 +218,9 @@ const server = new Server({
   port: PORT,
   quiet: true,
   timeout: 30_000,
-  unloadImmediately: true,
+  // Keep documents warm across brief reconnect churn so transient socket closes
+  // do not persist or unload partially-synced Yjs state.
+  unloadImmediately: false,
   async onRequest({ request, response }) {
     response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     response.end(JSON.stringify({ ok: true, scope: 'hub-collab', timestamp: nowIso(), path: request.url || '/' }));
