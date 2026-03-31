@@ -416,7 +416,7 @@ export const useWorkspaceDocRuntime = ({
   useEffect(() => {
     let cancelled = false;
 
-    if (!activePaneDocId || activeTab !== 'work') {
+    if (!activePaneDocId || activeTab !== 'work' || !docBootstrapReady) {
       setCollabSession(null);
       setCollabSessionError(null);
       return () => {
@@ -454,7 +454,7 @@ export const useWorkspaceDocRuntime = ({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, activePaneDocId, activeTab]);
+  }, [accessToken, activePaneDocId, activeTab, docBootstrapReady]);
 
   useEffect(() => {
     void refreshDocComments();
@@ -468,6 +468,14 @@ export const useWorkspaceDocRuntime = ({
       setDocBootstrapReady(true);
       return;
     }
+
+    if (activeTab !== 'work') {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setDocBootstrapReady(false);
 
     const loadBootstrapSnapshot = async () => {
       try {
@@ -500,7 +508,7 @@ export const useWorkspaceDocRuntime = ({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, activePaneDocId, getDocSnapshotSaveState]);
+  }, [accessToken, activePaneDocId, activeTab, getDocSnapshotSaveState]);
 
   useEffect(() => {
     if (!activePaneDocId) {
@@ -543,6 +551,9 @@ export const useWorkspaceDocRuntime = ({
       if (!activePaneDocId) {
         return;
       }
+
+      setDocBootstrapLexicalState(payload.lexicalState);
+      setDocBootstrapYjsUpdateBase64(payload.yjsUpdateBase64 || null);
 
       const docSnapshotState = getDocSnapshotSaveState(activePaneDocId);
       const snapshotPayload = buildWorkspaceDocSnapshotPayload(payload.lexicalState, payload.plainText, payload.yjsUpdateBase64);

@@ -257,7 +257,7 @@ const PersistencePlugin = ({
     }
 
     const doc = yjsDocMap.get(collaborationRoomId);
-    if (!doc || !doc.share.has('root')) {
+    if (!doc) {
       return null;
     }
 
