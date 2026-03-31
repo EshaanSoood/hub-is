@@ -11,12 +11,6 @@ type ProviderEventCallback =
   | ((arg0: { status: string }) => void)
   | ((isSynced: boolean) => void)
   | ((arg0: unknown) => void);
-type AwarenessUpdate = {
-  added: number[];
-  updated: number[];
-  removed: number[];
-};
-
 const INITIAL_RECONNECT_DELAY_MS = 1_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
 
@@ -38,8 +32,6 @@ export class HubOSSecureProvider extends Observable<ProviderEventName> implement
   private destroyed = false;
   private connectAttempt = 0;
   private lastStatus: ProviderStatus = 'disconnected';
-  private readonly stableToTransportOrigin = Symbol('hubos-stable-awareness');
-  private readonly transportToStableOrigin = Symbol('hubos-transport-awareness');
 
   constructor(doc: Doc, roomId: string, serverUrl: string, fetchTicket: () => Promise<string>) {
     super();
@@ -120,7 +112,7 @@ export class HubOSSecureProvider extends Observable<ProviderEventName> implement
       return;
     }
 
-    this.destroyTransport();
+    this.destroyTransport(false);
     this.emitStatus('connecting');
 
     let ticket: string;
@@ -140,11 +132,8 @@ export class HubOSSecureProvider extends Observable<ProviderEventName> implement
       return;
     }
 
-    const transportAwareness = new awarenessProtocol.Awareness(this.doc);
-    this.syncAwarenessStates(this.stableAwareness, transportAwareness, this.stableToTransportOrigin);
-
     const transport = new WebsocketProvider(this.serverUrl, this.roomId, this.doc, {
-      awareness: transportAwareness,
+      awareness: this.stableAwareness,
       connect: true,
       disableBc: true,
       params: {
@@ -153,29 +142,10 @@ export class HubOSSecureProvider extends Observable<ProviderEventName> implement
     });
 
     this.transport = transport;
-    this.detachTransportListeners = this.attachTransportListeners(transport, transportAwareness);
+    this.detachTransportListeners = this.attachTransportListeners(transport);
   }
 
-  private attachTransportListeners(
-    transport: WebsocketProvider,
-    transportAwareness: awarenessProtocol.Awareness,
-  ): () => void {
-    const forwardStableAwareness = (changes: AwarenessUpdate, origin: unknown) => {
-      if (origin === this.transportToStableOrigin) {
-        return;
-      }
-
-      this.applyAwarenessChanges(this.stableAwareness, transportAwareness, changes, this.stableToTransportOrigin);
-    };
-
-    const forwardTransportAwareness = (changes: AwarenessUpdate, origin: unknown) => {
-      if (origin === this.stableToTransportOrigin) {
-        return;
-      }
-
-      this.applyAwarenessChanges(transportAwareness, this.stableAwareness, changes, this.transportToStableOrigin);
-    };
-
+  private attachTransportListeners(transport: WebsocketProvider): () => void {
     const handleSync = (isSynced: boolean) => {
       this.emit('sync', [isSynced]);
     };
@@ -188,27 +158,43 @@ export class HubOSSecureProvider extends Observable<ProviderEventName> implement
       }
 
       if (status === 'disconnected') {
-        if (this.transport === transport) {
-          this.destroyTransport();
-        }
-        this.scheduleReconnect();
+        this.rotateTransport(transport);
       }
     };
 
-    this.stableAwareness.on('update', forwardStableAwareness);
-    transportAwareness.on('update', forwardTransportAwareness);
+    const handleConnectionClose = () => {
+      this.rotateTransport(transport);
+    };
+
+    const handleConnectionError = () => {
+      this.rotateTransport(transport);
+    };
+
     transport.on('sync', handleSync);
     transport.on('status', handleStatus);
+    transport.on('connection-close', handleConnectionClose);
+    transport.on('connection-error', handleConnectionError);
 
     return () => {
-      this.stableAwareness.off('update', forwardStableAwareness);
-      transportAwareness.off('update', forwardTransportAwareness);
       transport.off('sync', handleSync);
       transport.off('status', handleStatus);
+      transport.off('connection-close', handleConnectionClose);
+      transport.off('connection-error', handleConnectionError);
     };
   }
 
-  private destroyTransport(): void {
+  private rotateTransport(transport: WebsocketProvider): void {
+    if (this.transport !== transport) {
+      return;
+    }
+
+    this.destroyTransport(false);
+    this.emit('sync', [false]);
+    this.emitStatus('disconnected');
+    this.scheduleReconnect();
+  }
+
+  private destroyTransport(emitDisconnected = true): void {
     const transport = this.transport;
     const detachTransportListeners = this.detachTransportListeners;
 
@@ -218,21 +204,12 @@ export class HubOSSecureProvider extends Observable<ProviderEventName> implement
 
     this.transport = null;
     this.detachTransportListeners = null;
-    transport.destroy();
     detachTransportListeners?.();
-  }
-
-  private scheduleReconnect(): void {
-    if (this.destroyed || !this.shouldConnect || this.reconnectTimer !== null) {
-      return;
+    transport.destroy();
+    if (emitDisconnected) {
+      this.emit('sync', [false]);
+      this.emitStatus('disconnected');
     }
-
-    const delayMs = this.reconnectDelayMs;
-    this.reconnectDelayMs = Math.min(this.reconnectDelayMs * 2, MAX_RECONNECT_DELAY_MS);
-    this.reconnectTimer = window.setTimeout(() => {
-      this.reconnectTimer = null;
-      void this.connect();
-    }, delayMs);
   }
 
   private clearReconnectTimer(): void {
@@ -257,37 +234,23 @@ export class HubOSSecureProvider extends Observable<ProviderEventName> implement
       return;
     }
 
-    awarenessProtocol.removeAwarenessStates(this.stableAwareness, remoteClientIds, this.transportToStableOrigin);
+    awarenessProtocol.removeAwarenessStates(this.stableAwareness, remoteClientIds, this);
   }
 
   private isCurrentAttempt(attempt: number): boolean {
     return !this.destroyed && this.shouldConnect && attempt === this.connectAttempt;
   }
 
-  private syncAwarenessStates(
-    source: awarenessProtocol.Awareness,
-    target: awarenessProtocol.Awareness,
-    origin: unknown,
-  ): void {
-    const clientIds = Array.from(source.getStates().keys());
-    if (clientIds.length === 0) {
+  private scheduleReconnect(): void {
+    if (this.destroyed || !this.shouldConnect || this.reconnectTimer !== null) {
       return;
     }
 
-    awarenessProtocol.applyAwarenessUpdate(target, awarenessProtocol.encodeAwarenessUpdate(source, clientIds), origin);
-  }
-
-  private applyAwarenessChanges(
-    source: awarenessProtocol.Awareness,
-    target: awarenessProtocol.Awareness,
-    changes: AwarenessUpdate,
-    origin: unknown,
-  ): void {
-    const clientIds = changes.added.concat(changes.updated, changes.removed);
-    if (clientIds.length === 0) {
-      return;
-    }
-
-    awarenessProtocol.applyAwarenessUpdate(target, awarenessProtocol.encodeAwarenessUpdate(source, clientIds), origin);
+    const delayMs = this.reconnectDelayMs;
+    this.reconnectDelayMs = Math.min(this.reconnectDelayMs * 2, MAX_RECONNECT_DELAY_MS);
+    this.reconnectTimer = window.setTimeout(() => {
+      this.reconnectTimer = null;
+      void this.connect();
+    }, delayMs);
   }
 }
