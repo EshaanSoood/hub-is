@@ -330,10 +330,16 @@ const ProjectSpaceWorkspace = ({
   const previousOpenedFromPinnedRef = useRef(openedFromPinned);
   const {
     projectMembers: projectMemberList,
+    inviteEmail,
+    isSubmittingInvite,
+    projectMemberMutationError,
+    projectMemberMutationNotice,
+    clearProjectMemberFeedback,
+    onInviteEmailChange,
+    onCreateProjectMember,
   } = useProjectMembers({
     accessToken,
     projectId: project.project_id,
-    membershipRole: project.membership_role,
     projectMembers,
     refreshProjectData,
   });
@@ -1121,6 +1127,16 @@ const ProjectSpaceWorkspace = ({
             void loadProjectTaskPage();
           }}
           projectMembers={projectMemberList}
+          canInviteMembers={!project.is_personal}
+          inviteEmail={inviteEmail}
+          inviteSubmitting={isSubmittingInvite}
+          inviteError={projectMemberMutationError}
+          inviteNotice={projectMemberMutationNotice}
+          onInviteEmailChange={onInviteEmailChange}
+          onInviteSubmit={() => {
+            void onCreateProjectMember();
+          }}
+          onDismissInviteFeedback={clearProjectMemberFeedback}
         />
       ) : null}
 

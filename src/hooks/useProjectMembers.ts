@@ -1,12 +1,11 @@
-import { type FormEvent, useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { addProjectMember, createProjectInvite } from '../services/hub/projects';
+import { createProjectInvite } from '../services/hub/projects';
 import type { HubProjectMember } from '../services/hub/types';
 
 interface UseProjectMembersParams {
   accessToken: string;
   projectId: string;
-  membershipRole: string | null;
   projectMembers: HubProjectMember[];
   refreshProjectData: () => Promise<void>;
 }
@@ -14,59 +13,73 @@ interface UseProjectMembersParams {
 export const useProjectMembers = ({
   accessToken,
   projectId,
-  membershipRole,
   projectMembers,
   refreshProjectData,
 }: UseProjectMembersParams) => {
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isSubmittingInvite, setIsSubmittingInvite] = useState(false);
   const [projectMemberMutationError, setProjectMemberMutationError] = useState<string | null>(null);
   const [projectMemberMutationNotice, setProjectMemberMutationNotice] = useState<string | null>(null);
 
+  const onInviteEmailChange = useCallback((value: string) => {
+    setInviteEmail(value);
+    if (projectMemberMutationError) {
+      setProjectMemberMutationError(null);
+    }
+    if (projectMemberMutationNotice) {
+      setProjectMemberMutationNotice(null);
+    }
+  }, [projectMemberMutationError, projectMemberMutationNotice]);
+
+  const clearProjectMemberFeedback = useCallback(() => {
+    setProjectMemberMutationError(null);
+    setProjectMemberMutationNotice(null);
+  }, []);
+
   const onCreateProjectMember = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      const input = form.elements.namedItem('member-email') as HTMLInputElement | null;
-      if (!input) {
-        return;
-      }
-      const email = input.value.trim() || '';
+    async () => {
+      const email = inviteEmail.trim().toLowerCase();
       if (!email) {
-        return;
+        setProjectMemberMutationError('Enter an email address to invite a collaborator.');
+        setProjectMemberMutationNotice(null);
+        return false;
       }
       setProjectMemberMutationError(null);
       setProjectMemberMutationNotice(null);
+      setIsSubmittingInvite(true);
 
       try {
-        if (membershipRole === 'owner') {
-          await addProjectMember(accessToken, projectId, {
-            email,
-            display_name: email.split('@')[0] || 'Member',
-            role: 'member',
-          });
-
-          input.value = '';
-          await refreshProjectData();
-          return;
-        }
-
         await createProjectInvite(accessToken, projectId, {
           email,
           role: 'member',
         });
-        input.value = '';
-        setProjectMemberMutationNotice('Invite sent - pending owner approval.');
+        setInviteEmail('');
+        setProjectMemberMutationNotice(`Invite sent to ${email}.`);
+        try {
+          await refreshProjectData();
+        } catch (refreshError) {
+          console.warn('Project data refresh failed after invite creation.', refreshError);
+        }
+        return true;
       } catch (error) {
         setProjectMemberMutationError(error instanceof Error ? error.message : 'Failed to add collaborator.');
+        return false;
+      } finally {
+        setIsSubmittingInvite(false);
       }
     },
-    [accessToken, membershipRole, projectId, refreshProjectData],
+    [accessToken, inviteEmail, projectId, refreshProjectData],
   );
 
   return {
     // passthrough: projectMembers is owned by the bootstrap fetch, not this hook
     projectMembers,
+    inviteEmail,
+    isSubmittingInvite,
     projectMemberMutationError,
     projectMemberMutationNotice,
+    clearProjectMemberFeedback,
+    onInviteEmailChange,
     onCreateProjectMember,
   };
 };

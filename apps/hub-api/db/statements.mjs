@@ -147,6 +147,7 @@ export const createStatements = (db) => ({
       SET status = ?, target_user_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ?
       WHERE invite_request_id = ?
     `),
+    deleteInvite: db.prepare('DELETE FROM pending_project_invites WHERE invite_request_id = ?'),
     isMember: db.prepare('SELECT 1 AS ok FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1'),
     getRole: db.prepare('SELECT role FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1'),
   },

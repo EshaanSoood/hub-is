@@ -5,9 +5,11 @@ import {
   randomBytes,
   randomUUID,
 } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { URL } from 'node:url';
+import { fileURLToPath, URL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { createJwksVerifier } from '../shared/jwksVerifier.mjs';
 import { runMigrations } from './db/migrations.mjs';
@@ -49,6 +51,11 @@ const TUWUNEL_REGISTRATION_SHARED_SECRET = (process.env.TUWUNEL_REGISTRATION_SHA
 const MATRIX_ACCOUNT_ENCRYPTION_KEY = (process.env.MATRIX_ACCOUNT_ENCRYPTION_KEY || '').trim();
 const HUB_API_MAX_BODY_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_MAX_BODY_BYTES || '1048576'), 10);
 const HUB_API_LARGE_BODY_MAX_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_LARGE_BODY_MAX_BYTES || '52428800'), 10);
+const POSTMARK_SERVER_TOKEN = (process.env.POSTMARK_SERVER_TOKEN || process.env.VITE_POSTMARK_SERVER_TOKEN || '').trim();
+const POSTMARK_FROM_EMAIL = (process.env.POSTMARK_FROM_EMAIL || process.env.VITE_POSTMARK_FROM_EMAIL || '').trim();
+const POSTMARK_MESSAGE_STREAM = (process.env.POSTMARK_MESSAGE_STREAM || 'outbound').trim() || 'outbound';
+const POSTMARK_API_BASE_URL = (process.env.POSTMARK_API_BASE_URL || 'https://api.postmarkapp.com').trim().replace(/\/+$/, '');
+const POSTMARK_REQUEST_TIMEOUT_MS_RAW = Number.parseInt(String(process.env.POSTMARK_REQUEST_TIMEOUT_MS || '15000'), 10);
 const MATRIX_HOMESERVER_URL = 'https://chat.eshaansood.org';
 const MATRIX_SERVER_NAME = 'chat.eshaansood.org';
 const MATRIX_ACCOUNT_SECRET_VERSION = 'v1';
@@ -59,6 +66,9 @@ const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
 const REGISTERED_ROUTE_COUNT = 79;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
+const HUB_API_DIR = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(HUB_API_DIR, '..', '..');
+const HUB_PILOT_INVITE_TEMPLATE_PATH = resolve(REPO_ROOT, 'hub-os-pilot-invite.html');
 
 const nowIso = () => new Date().toISOString();
 const asText = (value) => (typeof value === 'string' ? value.trim() : '');
@@ -66,6 +76,20 @@ const asNullableText = (value) => {
   const normalized = asText(value);
   return normalized || null;
 };
+
+const loadHubPilotInviteTemplate = () => {
+  try {
+    return readFileSync(HUB_PILOT_INVITE_TEMPLATE_PATH, 'utf8');
+  } catch (error) {
+    systemLog.warn('Failed to read invite email template; using fallback HTML.', {
+      path: HUB_PILOT_INVITE_TEMPLATE_PATH,
+      error,
+    });
+    return `<!DOCTYPE html><html lang="en"><body style="font-family: Arial, sans-serif; background: #1C2430; color: #F0F4F8; padding: 24px;"><p>You're invited to Hub OS.</p><p><a href="${HUB_PUBLIC_APP_URL}" style="color: #FFA3CD;">Open Hub OS</a></p></body></html>`;
+  }
+};
+
+const HUB_PILOT_INVITE_TEMPLATE = loadHubPilotInviteTemplate();
 
 const safeTuwunelConfig = () =>
   Boolean(TUWUNEL_INTERNAL_URL && TUWUNEL_REGISTRATION_SHARED_SECRET && MATRIX_ACCOUNT_ENCRYPTION_KEY);
@@ -131,6 +155,7 @@ const asInteger = (value, fallback, min = Number.MIN_SAFE_INTEGER, max = Number.
 };
 
 const HUB_COLLAB_TICKET_TTL_MS = asInteger(HUB_COLLAB_TICKET_TTL_MS_RAW, 120_000, 5_000, 3_600_000);
+const POSTMARK_REQUEST_TIMEOUT_MS = asInteger(POSTMARK_REQUEST_TIMEOUT_MS_RAW, 15_000, 1_000, 120_000);
 
 const asBoolean = (value, fallback = false) => {
   if (typeof value === 'boolean') {
@@ -185,6 +210,131 @@ const parseJsonObject = (value, fallback = {}) => {
   }
   return fallback;
 };
+
+const parseUpstreamJson = async (response, requestLog = null, message = 'Failed to parse upstream JSON response.') => {
+  try {
+    return await response.json();
+  } catch (error) {
+    requestLog?.warn?.(message, { error });
+    return null;
+  }
+};
+
+const safePostmarkConfig = () => Boolean(POSTMARK_SERVER_TOKEN && POSTMARK_FROM_EMAIL);
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('\'', '&#39;');
+
+const renderHubPilotInviteHtml = ({ appUrl = HUB_PUBLIC_APP_URL, projectName = 'Pilot Party' } = {}) => {
+  const resolvedUrl = asText(appUrl) || 'https://eshaansood.org';
+  const resolvedProjectName = escapeHtml(asText(projectName) || 'Pilot Party');
+  return HUB_PILOT_INVITE_TEMPLATE
+    .replaceAll('https://eshaansood.org', resolvedUrl)
+    .replaceAll('Pilot Party', resolvedProjectName);
+};
+
+const renderHubPilotInviteText = ({ appUrl = HUB_PUBLIC_APP_URL, projectName = 'Pilot Party' } = {}) => {
+  const resolvedUrl = asText(appUrl) || 'https://eshaansood.org';
+  const resolvedProjectName = asText(projectName) || 'Pilot Party';
+  return [
+    `You're invited to ${resolvedProjectName} on Hub OS.`,
+    'Well as you know I\'ve been working on this app pretty crazily for the last month. I think I\'m in a place where it\'s ready to be user tested.',
+    `I'm inviting you to a project called ${resolvedProjectName} where my hope is that we can use the app itself to track the user and bug testing to see what features it's missing.`,
+    `Join the pilot: ${resolvedUrl}`,
+    'Looking forward to what you discover!',
+    'Warmly,',
+    'Eshaan',
+  ].join('\n\n');
+};
+
+const sendPostmarkEmail = async ({
+  to,
+  subject,
+  htmlBody,
+  textBody,
+  tag = '',
+  requestLog = null,
+}) => {
+  if (!safePostmarkConfig()) {
+    return {
+      error: {
+        status: 503,
+        code: 'postmark_unavailable',
+        message: 'Postmark runtime credentials are not configured.',
+      },
+    };
+  }
+
+  let upstream;
+  try {
+    upstream = await fetchWithTimeout(
+      new URL('/email', `${POSTMARK_API_BASE_URL}/`),
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Postmark-Server-Token': POSTMARK_SERVER_TOKEN,
+        },
+        body: JSON.stringify({
+          From: POSTMARK_FROM_EMAIL,
+          To: to,
+          Subject: subject,
+          HtmlBody: htmlBody,
+          TextBody: textBody,
+          MessageStream: POSTMARK_MESSAGE_STREAM,
+          ...(tag ? { Tag: tag } : {}),
+        }),
+      },
+      { timeoutMs: POSTMARK_REQUEST_TIMEOUT_MS },
+    );
+  } catch (error) {
+    requestLog?.error?.('Postmark request failed.', { to, error });
+    if (isFetchTimeoutError(error)) {
+      return {
+        error: {
+          status: 504,
+          code: 'upstream_timeout',
+          message: 'Postmark invite email request timed out.',
+        },
+      };
+    }
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: 'Postmark invite email request failed.',
+      },
+    };
+  }
+
+  const body = await parseUpstreamJson(upstream, requestLog, 'Failed to parse Postmark JSON response.');
+  if (!upstream.ok) {
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: asText(body?.Message) || `Postmark invite email failed (${upstream.status}).`,
+      },
+    };
+  }
+
+  return { data: body };
+};
+
+const sendHubInviteEmail = async ({ to, projectName = 'Pilot Party', requestLog = null }) =>
+  sendPostmarkEmail({
+    to,
+    subject: "You're invited to Hub OS",
+    htmlBody: renderHubPilotInviteHtml({ appUrl: HUB_PUBLIC_APP_URL, projectName }),
+    textBody: renderHubPilotInviteText({ appUrl: HUB_PUBLIC_APP_URL, projectName }),
+    tag: 'hub-project-invite',
+    requestLog,
+  });
 
 const relationTargetCollectionIdFromField = (field) => {
   const config = parseJsonObject(field?.config, {});
@@ -2362,6 +2512,7 @@ const routeDeps = {
   chatSnapshotByIdStmt: stmts.chat.findSnapshotById,
   chatSnapshotsPageStmt: stmts.chat.listSnapshotsByProject,
   deleteChatSnapshotStmt: stmts.chat.deleteSnapshot,
+  deletePendingInviteStmt: stmts.projectMembers.deleteInvite,
   participantsByRecordStmt: stmts.calendar.listParticipants,
   pendingInviteByIdStmt: stmts.projectMembers.findInvite,
   pendingInviteRecord,
@@ -2392,6 +2543,7 @@ const routeDeps = {
   resolveProjectContentWriteGate,
   reassignTasksForRemovedMember,
   safeNextcloudConfig,
+  sendHubInviteEmail,
   safeTuwunelConfig,
   send,
   isFetchTimeoutError,

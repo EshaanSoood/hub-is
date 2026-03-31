@@ -34,7 +34,9 @@ export const createProjectRoutes = (deps) => {
     userByEmailStmt,
     pendingInviteByIdStmt,
     insertPendingInviteStmt,
+    deletePendingInviteStmt,
     updatePendingInviteDecisionStmt,
+    sendHubInviteEmail,
     insertProjectStmt,
     insertProjectMemberStmt,
     deleteProjectMemberStmt,
@@ -327,6 +329,7 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
+    const project = projectByIdStmt.get(projectId);
     const inviteRequestId = newId('pinv');
     const timestamp = nowIso();
     insertPendingInviteStmt.run(
@@ -340,6 +343,32 @@ export const createProjectRoutes = (deps) => {
       timestamp,
       timestamp,
     );
+
+    const inviteEmail = await sendHubInviteEmail({
+      to: email,
+      projectName: project?.name || 'Pilot Party',
+      requestLog: request.log,
+    });
+    if (inviteEmail.error) {
+      request.log.error('Failed to send project invite email.', {
+        projectId,
+        inviteRequestId,
+        email,
+        error: inviteEmail.error,
+      });
+      try {
+        deletePendingInviteStmt.run(inviteRequestId);
+      } catch (cleanupError) {
+        request.log.error('Failed to roll back pending invite after email failure.', {
+          projectId,
+          inviteRequestId,
+          email,
+          error: cleanupError,
+        });
+      }
+      send(response, jsonResponse(inviteEmail.error.status, errorEnvelope(inviteEmail.error.code, inviteEmail.error.message)));
+      return;
+    }
 
     send(response, jsonResponse(201, okEnvelope({ pending_invite: pendingInviteRecord(pendingInviteByIdStmt.get(inviteRequestId)) })));
   };

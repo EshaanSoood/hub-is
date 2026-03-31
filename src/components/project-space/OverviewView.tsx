@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { archiveRecord, updateRecord } from '../../services/hub/records';
 import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
-import { Card, TabButton, Tabs, TabsList } from '../primitives';
+import { Button, Card, InlineNotice, TabButton, Tabs, TabsList } from '../primitives';
 import { CalendarTab, type CalendarEvent, type CalendarLensOption, type CalendarTimeView } from './CalendarTab';
 import { FilterBarOverlay, type FilterGroup } from './FilterBarOverlay';
 import { OverviewHeader } from './OverviewHeader';
@@ -25,6 +25,14 @@ interface OverviewViewProps {
   tasksError: string | null;
   onRefreshTasks: () => void;
   projectMembers: HubProjectMember[];
+  canInviteMembers: boolean;
+  inviteEmail: string;
+  inviteSubmitting: boolean;
+  inviteError: string | null;
+  inviteNotice: string | null;
+  onInviteEmailChange: (value: string) => void;
+  onInviteSubmit: () => void;
+  onDismissInviteFeedback: () => void;
 }
 
 const overviewViews: Array<{ id: OverviewViewId; label: string }> = [
@@ -96,9 +104,20 @@ export const OverviewView = ({
   tasksError,
   onRefreshTasks,
   projectMembers,
+  canInviteMembers,
+  inviteEmail,
+  inviteSubmitting,
+  inviteError,
+  inviteNotice,
+  onInviteEmailChange,
+  onInviteSubmit,
+  onDismissInviteFeedback,
 }: OverviewViewProps) => {
   const [titleDraft, setTitleDraft] = useState(projectName);
+  const inviteInputId = useId();
+  const inviteDescriptionId = useId();
   const taskCreateTriggerRef = useRef<HTMLElement | null>(null);
+  const inviteInputRef = useRef<HTMLInputElement | null>(null);
   const lastSubtaskParentRef = useRef<{ id: string; title: string; at: number } | null>(null);
   const [taskCreateOpen, setTaskCreateOpen] = useState(false);
   const [subtaskParent, setSubtaskParent] = useState<{ id: string; title: string } | null>(null);
@@ -277,10 +296,91 @@ export const OverviewView = ({
         startDateLabel="March 4, 2026"
         collaborators={collaborators}
         refs={clients}
-        onInvite={() => undefined}
+        onInvite={() => {
+          inviteInputRef.current?.focus();
+          inviteInputRef.current?.select();
+        }}
       />
 
       <Card className="pt-3">
+        <div className="mb-4 space-y-4 border-b border-subtle px-4 pb-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-text">Invite members</h2>
+              <p className="mt-1 text-sm text-muted">
+                Add collaborators by email. They&apos;ll receive an invite to join this project.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2" aria-label="Current project members">
+              {projectMembers.map((member) => (
+                <span
+                  key={member.user_id}
+                  className="rounded-full border border-border-muted bg-surface px-3 py-1 text-xs font-medium text-text"
+                >
+                  {member.display_name}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {canInviteMembers ? (
+            <form
+              className="space-y-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                onInviteSubmit();
+              }}
+            >
+              <label htmlFor={inviteInputId} className="block text-xs font-semibold uppercase tracking-wide text-muted">
+                Collaborator email
+              </label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                <input
+                  ref={inviteInputRef}
+                  id={inviteInputId}
+                  name="member-email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  spellCheck={false}
+                  value={inviteEmail}
+                  onChange={(event) => onInviteEmailChange(event.target.value)}
+                  className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  placeholder="name@example.com"
+                  aria-describedby={inviteDescriptionId}
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={inviteSubmitting}
+                  loadingLabel="Sending invite"
+                  disabled={inviteEmail.trim().length === 0}
+                  aria-label="Send project invite"
+                  className="sm:min-w-[10rem]"
+                >
+                  Invite member
+                </Button>
+              </div>
+              <p id={inviteDescriptionId} className="text-xs text-muted">
+                Enter an email address and press Enter or activate the button to send the invite.
+              </p>
+            </form>
+          ) : (
+            <p className="text-sm text-muted">Personal projects do not support member invites.</p>
+          )}
+
+          {inviteError ? (
+            <InlineNotice variant="danger" title="Invite failed" onDismiss={onDismissInviteFeedback}>
+              {inviteError}
+            </InlineNotice>
+          ) : null}
+          {inviteNotice ? (
+            <InlineNotice variant="success" title="Invite sent" onDismiss={onDismissInviteFeedback}>
+              {inviteNotice}
+            </InlineNotice>
+          ) : null}
+        </div>
+
         <p className="mb-3 text-sm text-muted">{projectSummary}</p>
 
         <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as OverviewViewId)}>
