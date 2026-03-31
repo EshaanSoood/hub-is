@@ -636,6 +636,7 @@ const ProjectSpaceWorkspace = ({
     onAddDocComment,
     onDocCommentDialogOpenChange,
     onDocEditorChange,
+    onRefreshDocCollabSession,
     onInsertDocMention,
     onJumpToDocComment,
     onResolveDocComment,
@@ -1533,6 +1534,7 @@ const ProjectSpaceWorkspace = ({
                         noteId={activePaneDocId}
                         initialLexicalState={docBootstrapLexicalState}
                         collaborationSession={collabSession}
+                        onRefreshCollaborationSession={onRefreshDocCollabSession}
                         userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
                         editable={activePaneCanEdit}
                         onDocumentChange={onDocEditorChange}

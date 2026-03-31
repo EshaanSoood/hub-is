@@ -413,6 +413,36 @@ export const useWorkspaceDocRuntime = ({
     clearDocSnapshotSaveTimer();
   }, [activePaneDocId, clearDocSnapshotSaveTimer]);
 
+  const refreshDocCollabSession = useCallback(async () => {
+    if (!activePaneDocId) {
+      return null;
+    }
+
+    try {
+      const authorization = await authorizeCollabDoc(accessToken, activePaneDocId);
+      const nextSession = {
+        roomId: activePaneDocId,
+        websocketUrl: env.hubCollabWsUrl,
+        wsTicket: authorization.ws_ticket,
+        expiresAt: authorization.ticket_expires_at,
+      };
+
+      if (mountedRef.current) {
+        setCollabSession(nextSession);
+        setCollabSessionError(null);
+      }
+
+      return nextSession;
+    } catch (error) {
+      if (mountedRef.current) {
+        console.warn('[workspace-doc] failed to authorize collaboration session', error);
+        setCollabSession(null);
+        setCollabSessionError('Workspace doc collaboration is unavailable right now.');
+      }
+      return null;
+    }
+  }, [accessToken, activePaneDocId]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -425,27 +455,9 @@ export const useWorkspaceDocRuntime = ({
     }
 
     const loadCollabSession = async () => {
-      try {
-        const authorization = await authorizeCollabDoc(accessToken, activePaneDocId);
-        if (cancelled) {
-          return;
-        }
-
-        setCollabSession({
-          roomId: activePaneDocId,
-          websocketUrl: env.hubCollabWsUrl,
-          wsTicket: authorization.ws_ticket,
-          expiresAt: authorization.ticket_expires_at,
-        });
-        setCollabSessionError(null);
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-
-        console.warn('[workspace-doc] failed to authorize collaboration session', error);
-        setCollabSession(null);
-        setCollabSessionError('Workspace doc collaboration is unavailable right now.');
+      const session = await refreshDocCollabSession();
+      if (cancelled || session) {
+        return;
       }
     };
 
@@ -454,7 +466,7 @@ export const useWorkspaceDocRuntime = ({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, activePaneDocId, activeTab, docBootstrapReady]);
+  }, [activePaneDocId, activeTab, docBootstrapReady, refreshDocCollabSession]);
 
   useEffect(() => {
     void refreshDocComments();
@@ -759,6 +771,7 @@ export const useWorkspaceDocRuntime = ({
     onAddDocComment,
     onDocCommentDialogOpenChange,
     onDocEditorChange,
+    onRefreshDocCollabSession: refreshDocCollabSession,
     onInsertDocMention,
     onJumpToDocComment,
     onResolveDocComment,

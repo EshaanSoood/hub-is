@@ -53,6 +53,7 @@ interface CollaborativeLexicalEditorProps {
   noteId: string;
   initialLexicalState: Record<string, unknown>;
   collaborationSession: NoteCollaborationSession | null;
+  onRefreshCollaborationSession?: () => Promise<NoteCollaborationSession | null>;
   userName: string;
   editable: boolean;
   onDocumentChange: (payload: {
@@ -303,6 +304,7 @@ export const CollaborativeLexicalEditor = ({
   noteId,
   initialLexicalState,
   collaborationSession,
+  onRefreshCollaborationSession,
   userName,
   editable,
   onDocumentChange,
@@ -357,22 +359,65 @@ export const CollaborativeLexicalEditor = ({
       const provider = new WebsocketProvider(collaborationSession.websocketUrl, id, doc, {
         connect: false,
         disableBc: true,
+        maxBackoffTime: 60_000,
         params: {
           ws_ticket: collaborationSession.wsTicket,
         },
       });
 
+      let reconnecting = false;
+      let disposed = false;
+
       const stopReconnects = () => {
         (provider as WebsocketProvider & { shouldConnect?: boolean }).shouldConnect = false;
       };
 
-      // Collaboration tickets are single-use, so retries with the same provider are guaranteed to fail.
-      provider.on('connection-error', stopReconnects);
-      provider.on('connection-close', stopReconnects);
+      const reconnectWithFreshTicket = async () => {
+        if (disposed || reconnecting || !onRefreshCollaborationSession) {
+          return;
+        }
+
+        reconnecting = true;
+        try {
+          const nextSession = await onRefreshCollaborationSession();
+          if (disposed || !nextSession) {
+            return;
+          }
+
+          provider.params = {
+            ...provider.params,
+            ws_ticket: nextSession.wsTicket,
+          };
+          provider.connect();
+        } catch (error) {
+          console.warn('[workspace-doc] failed to refresh collaboration ticket', error);
+        } finally {
+          reconnecting = false;
+        }
+      };
+
+      const handleConnectionError = () => {
+        stopReconnects();
+      };
+
+      const handleConnectionClose = () => {
+        stopReconnects();
+        void reconnectWithFreshTicket();
+      };
+
+      const originalDisconnect = provider.disconnect.bind(provider);
+      provider.disconnect = () => {
+        disposed = true;
+        stopReconnects();
+        originalDisconnect();
+      };
+
+      provider.on('connection-error', handleConnectionError);
+      provider.on('connection-close', handleConnectionClose);
 
       return provider as unknown as Provider;
     },
-    [collaborationEnabled, collaborationSession],
+    [collaborationEnabled, collaborationSession, onRefreshCollaborationSession],
   );
 
   return (
