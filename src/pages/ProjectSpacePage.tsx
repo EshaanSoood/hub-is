@@ -637,6 +637,7 @@ const ProjectSpaceWorkspace = ({
     onAddDocComment,
     onDocCommentDialogOpenChange,
     onDocCollabConnectionStatusChange,
+    onDocCollabReauthorizationRequired,
     onDocEditorChange,
     onInsertDocMention,
     onJumpToDocComment,
@@ -1541,6 +1542,7 @@ const ProjectSpaceWorkspace = ({
                           editable={activePaneCanEdit}
                           onDocumentChange={onDocEditorChange}
                           onConnectionStatusChange={onDocCollabConnectionStatusChange}
+                          onReauthorizationRequired={onDocCollabReauthorizationRequired}
                           onSelectedNodeChange={setSelectedDocNodeKey}
                           focusNodeKey={pendingDocFocusNodeKey}
                           onNodeFocused={() => setPendingDocFocusNodeKey(null)}

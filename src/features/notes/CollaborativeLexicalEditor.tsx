@@ -71,6 +71,7 @@ interface CollaborativeLexicalEditorProps {
   onSelectedNodeChange?: (nodeKey: string | null) => void;
   onConnectionStatusChange?: (status: CollabConnectionStatus) => void;
   onPresenceChange?: (activeEditors: number, names: string[]) => void;
+  onReauthorizationRequired?: () => void;
 }
 
 const EditablePlugin = ({ editable }: { editable: boolean }) => {
@@ -327,6 +328,7 @@ export const CollaborativeLexicalEditor = ({
   onSelectedNodeChange,
   onConnectionStatusChange,
   onPresenceChange,
+  onReauthorizationRequired,
 }: CollaborativeLexicalEditorProps) => {
   const collaborationRoomId = collaborationSession?.roomId ?? null;
   const collaborationWebsocketUrl = collaborationSession?.websocketUrl ?? null;
@@ -363,10 +365,13 @@ export const CollaborativeLexicalEditor = ({
       const doc = getDocFromMap(id, yjsDocMap);
       const provider = new WebsocketProvider(collaborationWebsocketUrl, id, doc, {
         connect: false,
+        disableBc: true,
         params: {
           ws_ticket: collaborationWsTicket,
         },
       });
+      let disposed = false;
+      let reauthorizationRequested = false;
 
       collaborationDocRef.current = doc;
       collaborationProviderCleanupRef.current?.();
@@ -381,19 +386,41 @@ export const CollaborativeLexicalEditor = ({
         onConnectionStatusChange?.(status);
       };
 
+      const requestReauthorization = () => {
+        if (disposed || reauthorizationRequested || provider.synced) {
+          return;
+        }
+        reauthorizationRequested = true;
+        provider.disconnect();
+        onReauthorizationRequired?.();
+      };
+
       const handleAwarenessChange = () => {
         applyPresence();
       };
 
+      const handleConnectionError = () => {
+        requestReauthorization();
+      };
+
+      const handleConnectionClose = () => {
+        requestReauthorization();
+      };
+
       provider.on('status', handleStatus);
       provider.awareness.on('change', handleAwarenessChange);
+      provider.on('connection-error', handleConnectionError);
+      provider.on('connection-close', handleConnectionClose);
       onConnectionStatusChange?.(provider.wsconnected ? 'connected' : provider.wsconnecting ? 'connecting' : 'disconnected');
       applyPresence();
 
       collaborationProviderRef.current = provider;
       collaborationProviderCleanupRef.current = () => {
+        disposed = true;
         provider.off('status', handleStatus);
         provider.awareness.off('change', handleAwarenessChange);
+        provider.off('connection-error', handleConnectionError);
+        provider.off('connection-close', handleConnectionClose);
         provider.destroy();
         if (collaborationProviderRef.current === provider) {
           collaborationProviderRef.current = null;
@@ -404,7 +431,14 @@ export const CollaborativeLexicalEditor = ({
 
       return provider as unknown as Provider;
     },
-    [collaborationRoomId, collaborationWebsocketUrl, collaborationWsTicket, onConnectionStatusChange, onPresenceChange],
+    [
+      collaborationRoomId,
+      collaborationWebsocketUrl,
+      collaborationWsTicket,
+      onConnectionStatusChange,
+      onPresenceChange,
+      onReauthorizationRequired,
+    ],
   );
 
   const getYjsUpdateBase64 = useCallback(() => {
