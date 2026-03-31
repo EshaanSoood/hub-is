@@ -394,6 +394,7 @@ export const CollaborativeLexicalEditor = ({
       collaborationProviderCleanupRef.current = () => {
         provider.off('status', handleStatus);
         provider.awareness.off('change', handleAwarenessChange);
+        provider.destroy();
         if (collaborationProviderRef.current === provider) {
           collaborationProviderRef.current = null;
         }

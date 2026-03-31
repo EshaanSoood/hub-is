@@ -418,7 +418,7 @@ export const useWorkspaceDocRuntime = ({
   useEffect(() => {
     let cancelled = false;
 
-    if (!activePaneDocId) {
+    if (!activePaneDocId || activeTab !== 'work') {
       setCollabSession(null);
       setCollabSessionError(null);
       return () => {
@@ -456,7 +456,7 @@ export const useWorkspaceDocRuntime = ({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, activePaneDocId]);
+  }, [accessToken, activePaneDocId, activeTab]);
 
   useEffect(() => {
     void refreshDocComments();

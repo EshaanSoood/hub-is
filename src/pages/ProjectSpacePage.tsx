@@ -1532,7 +1532,7 @@ const ProjectSpaceWorkspace = ({
                     {docBootstrapReady ? (
                       <Suspense fallback={<ModuleLoadingState label="Loading collaborative editor" rows={8} />}>
                         <CollaborativeLexicalEditor
-                          key={collabSession.roomId}
+                          key={`${collabSession.roomId}:${collabSession.wsTicket}`}
                           noteId={collabSession.roomId}
                           initialLexicalState={docBootstrapLexicalState}
                           bootstrapYjsUpdateBase64={docBootstrapYjsUpdateBase64}
