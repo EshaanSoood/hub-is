@@ -1,4 +1,3 @@
-import { DatabaseSync } from 'node:sqlite';
 import { Server } from '@hocuspocus/server';
 import * as Y from 'yjs';
 import { createJwksVerifier } from '../shared/jwksVerifier.mjs';
@@ -6,7 +5,6 @@ import { createJwksVerifier } from '../shared/jwksVerifier.mjs';
 const PORT = Number(process.env.PORT || '1234');
 const HOST = (process.env.HOST || '0.0.0.0').trim();
 const HUB_API_URL = (process.env.HUB_API_URL || 'http://127.0.0.1:3001').trim().replace(/\/+$/, '');
-const HUB_DB_PATH = process.env.HUB_DB_PATH || '/data/hub.sqlite';
 const KEYCLOAK_ISSUER = (process.env.KEYCLOAK_ISSUER || '').trim();
 const KEYCLOAK_AUDIENCE = (process.env.KEYCLOAK_AUDIENCE || '').trim();
 const KEYCLOAK_JWKS_CACHE_MAX_AGE_MS = Number(process.env.KEYCLOAK_JWKS_CACHE_MAX_AGE_MS || '600000');
@@ -29,22 +27,6 @@ const jwtVerifier = createJwksVerifier({
       : 600_000,
 });
 
-const db = new DatabaseSync(HUB_DB_PATH, {
-  readOnly: true,
-});
-db.exec('PRAGMA foreign_keys = ON;');
-
-const userByKcSubStmt = db.prepare('SELECT user_id, display_name FROM users WHERE kc_sub = ? LIMIT 1');
-const docAccessByIdStmt = db.prepare(`
-  SELECT d.doc_id, d.pane_id, p.project_id
-  FROM docs d
-  JOIN panes p ON p.pane_id = d.pane_id
-  WHERE d.doc_id = ?
-  LIMIT 1
-`);
-const projectMembershipStmt = db.prepare('SELECT role FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1');
-const paneEditorStmt = db.prepare('SELECT 1 AS ok FROM pane_members WHERE pane_id = ? AND user_id = ? LIMIT 1');
-
 const documentMetadata = new WeakMap();
 
 const nowIso = () => new Date().toISOString();
@@ -62,7 +44,6 @@ const parseJson = (value, fallback = null) => {
     return fallback;
   }
 };
-const normalizeProjectRole = (role) => (asText(role) === 'owner' || asText(role) === 'admin' ? 'owner' : 'member');
 const buildHubApiAuthHeaders = (token, { hasBody = false } = {}) => ({
   Authorization: `Bearer ${token}`,
   ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
@@ -129,40 +110,35 @@ const getDocumentMeta = (document) => {
 };
 
 const authorizeToken = async (token, docId) => {
-  const verification = await jwtVerifier.verifyToken(token);
-  const claims = verification.claims;
-  const kcSub = asText(claims.sub);
-  if (!kcSub) {
-    throw new Error('token_sub_missing');
+  await jwtVerifier.verifyToken(token);
+
+  let response;
+  try {
+    response = await fetchWithTimeout(`${HUB_API_URL}/api/hub/collab/authorize?doc_id=${encodeURIComponent(docId)}`, {
+      method: 'GET',
+      headers: buildHubApiAuthHeaders(token),
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('collab_authorize_timeout');
+    }
+    throw error;
   }
 
-  const user = userByKcSubStmt.get(kcSub);
-  if (!user) {
-    throw new Error('user_not_registered');
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload?.ok !== true || !payload?.data?.authorization) {
+    throw new Error(payload?.error?.message || 'collab_authorize_failed');
   }
 
-  const doc = docAccessByIdStmt.get(docId);
-  if (!doc) {
-    throw new Error('doc_not_found');
-  }
-
-  const projectMembership = projectMembershipStmt.get(doc.project_id, user.user_id);
-  if (!projectMembership) {
-    throw new Error('project_membership_required');
-  }
-
-  const isOwner = normalizeProjectRole(projectMembership.role) === 'owner';
-  const paneEditor = paneEditorStmt.get(doc.pane_id, user.user_id);
-  const canEdit = isOwner || Boolean(paneEditor?.ok);
-
+  const authorization = payload.data.authorization;
   return {
-    docId: doc.doc_id,
-    paneId: doc.pane_id,
-    projectId: doc.project_id,
-    userId: user.user_id,
-    displayName: asText(claims.name) || asText(claims.preferred_username) || user.display_name || 'Collaborator',
+    docId: asText(authorization.doc_id),
+    paneId: asText(authorization.pane_id),
+    projectId: asText(authorization.project_id),
+    userId: asText(authorization.user_id),
+    displayName: asText(authorization.display_name) || 'Collaborator',
     accessToken: token,
-    canEdit,
+    canEdit: authorization.can_edit === true,
   };
 };
 

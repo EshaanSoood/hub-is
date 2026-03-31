@@ -734,7 +734,45 @@ export const createDocRoutes = (deps) => {
     send(response, jsonResponse(200, okEnvelope({ mentions })));
   };
 
+  const authorizeCollab = async ({ request, response, requestUrl }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const docId = asText(requestUrl.searchParams.get('doc_id'));
+    if (!docId) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'doc_id is required.')));
+      return;
+    }
+
+    const docGate = withDocPolicyGate({ userId: auth.user.user_id, docId, requiredCapability: 'view' });
+    if (docGate.error) {
+      send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
+      return;
+    }
+
+    send(
+      response,
+      jsonResponse(
+        200,
+        okEnvelope({
+          authorization: {
+            doc_id: docId,
+            pane_id: docGate.pane_id,
+            project_id: docGate.project_id,
+            user_id: auth.user.user_id,
+            display_name: auth.user.display_name,
+            can_edit: docGate.can_edit,
+          },
+        }),
+      ),
+    );
+  };
+
   return {
+    authorizeCollab,
     createComment,
     createDocAnchorComment,
     getDoc,

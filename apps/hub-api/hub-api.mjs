@@ -55,7 +55,7 @@ const WS_READY_STATE_OPEN = 1;
 const REMINDER_CHECK_INTERVAL_MS = 30_000;
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
-const REGISTERED_ROUTE_COUNT = 77;
+const REGISTERED_ROUTE_COUNT = 78;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const nowIso = () => new Date().toISOString();
@@ -3321,6 +3321,11 @@ const server = createServer(async (request, response) => {
         pathname,
         params: { projectId: decodeURIComponent(projectAutomationRunsMatch[1]) },
       });
+      return;
+    }
+
+    if (request.method === 'GET' && pathname === '/api/hub/collab/authorize') {
+      await docRoutes.authorizeCollab({ request, response, requestUrl, pathname });
       return;
     }
 
