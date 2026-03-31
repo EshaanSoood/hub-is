@@ -5,7 +5,7 @@ import { TRANSFORMERS } from '@lexical/markdown';
 import { CodeNode } from '@lexical/code';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
-import { LexicalCollaboration } from '@lexical/react/LexicalCollaborationContext';
+import { LexicalCollaboration, useCollaborationContext } from '@lexical/react/LexicalCollaborationContext';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
@@ -34,8 +34,6 @@ import { MediaEmbedNode } from './nodes/MediaEmbedNode';
 import { $createViewRefNode, ViewRefNode } from './nodes/ViewRefNode';
 import { ViewEmbedProvider, type ViewEmbedRuntime } from './viewEmbedContext';
 
-export type CollabConnectionStatus = 'connected' | 'connecting' | 'disconnected';
-
 const uint8ArrayToBase64 = (value: Uint8Array): string => {
   let binary = '';
   for (let index = 0; index < value.length; index += 1) {
@@ -54,11 +52,14 @@ export interface NoteCollaborationSession {
 interface CollaborativeLexicalEditorProps {
   noteId: string;
   initialLexicalState: Record<string, unknown>;
-  bootstrapYjsUpdateBase64?: string | null;
   collaborationSession: NoteCollaborationSession | null;
   userName: string;
   editable: boolean;
-  onDocumentChange: (payload: { lexicalState: Record<string, unknown>; plainText: string; yjsUpdateBase64?: string | null }) => void;
+  onDocumentChange: (payload: {
+    lexicalState: Record<string, unknown>;
+    plainText: string;
+    yjsUpdateBase64?: string | null;
+  }) => void;
   pendingAssetEmbed?: { embed_id: string; label: string; reference: string } | null;
   onAssetEmbedApplied?: (embedId: string) => void;
   pendingMentionInsert?: { insert_id: string; token: string } | null;
@@ -69,8 +70,6 @@ interface CollaborativeLexicalEditorProps {
   onNodeFocused?: (nodeKey: string) => void;
   viewEmbedRuntime?: ViewEmbedRuntime | null;
   onSelectedNodeChange?: (nodeKey: string | null) => void;
-  onConnectionStatusChange?: (status: CollabConnectionStatus) => void;
-  onPresenceChange?: (activeEditors: number, names: string[]) => void;
 }
 
 const EditablePlugin = ({ editable }: { editable: boolean }) => {
@@ -81,46 +80,6 @@ const EditablePlugin = ({ editable }: { editable: boolean }) => {
   }, [editor, editable]);
 
   return null;
-};
-
-const noteAwareNames = (provider: WebsocketProvider): string[] => {
-  const values = Array.from(provider.awareness.getStates().values());
-  const names = values
-    .map((entry) => {
-      if (!entry || typeof entry !== 'object') {
-        return '';
-      }
-
-      const state = entry as Record<string, unknown>;
-      const topLevelName = state.name;
-      if (typeof topLevelName === 'string' && topLevelName.trim()) {
-        return topLevelName.trim();
-      }
-
-      const user = state.user;
-      if (!user || typeof user !== 'object') {
-        return '';
-      }
-
-      const nestedName = (user as { name?: unknown }).name;
-      return typeof nestedName === 'string' ? nestedName.trim() : '';
-    })
-    .filter(Boolean);
-
-  return [...new Set(names)];
-};
-
-const getDocFromMap = (id: string, yjsDocMap: Map<string, Doc>): Doc => {
-  let doc = yjsDocMap.get(id);
-
-  if (doc === undefined) {
-    doc = new Doc();
-    yjsDocMap.set(id, doc);
-  } else {
-    doc.load();
-  }
-
-  return doc;
 };
 
 const AssetEmbedInsertPlugin = ({
@@ -278,13 +237,32 @@ const SelectionTrackingPlugin = ({ onSelectedNodeChange }: { onSelectedNodeChang
 };
 
 const PersistencePlugin = ({
+  collaborationRoomId,
   onDocumentChange,
-  getYjsUpdateBase64,
 }: {
-  onDocumentChange: (payload: { lexicalState: Record<string, unknown>; plainText: string; yjsUpdateBase64?: string | null }) => void;
-  getYjsUpdateBase64?: (() => string | null) | null;
+  collaborationRoomId: string | null;
+  onDocumentChange: (payload: {
+    lexicalState: Record<string, unknown>;
+    plainText: string;
+    yjsUpdateBase64?: string | null;
+  }) => void;
 }) => {
   const [editor] = useLexicalComposerContext();
+  const { yjsDocMap } = useCollaborationContext();
+  const saveTimerRef = useRef<number | null>(null);
+
+  const getYjsUpdateBase64 = useCallback(() => {
+    if (!collaborationRoomId) {
+      return null;
+    }
+
+    const doc = yjsDocMap.get(collaborationRoomId);
+    if (!doc || !doc.share.has('root')) {
+      return null;
+    }
+
+    return uint8ArrayToBase64(encodeStateAsUpdate(doc));
+  }, [collaborationRoomId, yjsDocMap]);
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves, tags }) => {
@@ -294,15 +272,29 @@ const PersistencePlugin = ({
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) {
         return;
       }
+
       const snapshot = editorStateToLexicalSnapshot(editorState);
-      queueMicrotask(() => {
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+      }
+
+      saveTimerRef.current = window.setTimeout(() => {
+        saveTimerRef.current = null;
         onDocumentChange({
           ...snapshot,
-          yjsUpdateBase64: getYjsUpdateBase64?.() || null,
+          yjsUpdateBase64: getYjsUpdateBase64(),
         });
-      });
+      }, 0);
     });
   }, [editor, getYjsUpdateBase64, onDocumentChange]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
 
   return null;
 };
@@ -310,7 +302,6 @@ const PersistencePlugin = ({
 export const CollaborativeLexicalEditor = ({
   noteId,
   initialLexicalState,
-  bootstrapYjsUpdateBase64,
   collaborationSession,
   userName,
   editable,
@@ -325,136 +316,61 @@ export const CollaborativeLexicalEditor = ({
   onNodeFocused,
   viewEmbedRuntime,
   onSelectedNodeChange,
-  onConnectionStatusChange,
-  onPresenceChange,
 }: CollaborativeLexicalEditorProps) => {
+  const normalizedInitialEditorState = useMemo(
+    () => JSON.stringify(normalizeLexicalState(initialLexicalState)),
+    [initialLexicalState],
+  );
   const collaborationRoomId = collaborationSession?.roomId ?? null;
-  const collaborationWebsocketUrl = collaborationSession?.websocketUrl ?? null;
-  const collaborationWsTicket = collaborationSession?.wsTicket ?? null;
-  const collaborationDocRef = useRef<Doc | null>(null);
-  const collaborationProviderRef = useRef<WebsocketProvider | null>(null);
-  const collaborationProviderCleanupRef = useRef<(() => void) | null>(null);
-  const normalizedInitialEditorState = useMemo(() => JSON.stringify(normalizeLexicalState(initialLexicalState)), [initialLexicalState]);
-  const collabInitialEditorState = bootstrapYjsUpdateBase64 ? undefined : normalizedInitialEditorState;
+  const collaborationEnabled =
+    collaborationSession !== null &&
+    collaborationSession.roomId.trim().length > 0 &&
+    collaborationSession.websocketUrl.trim().length > 0 &&
+    collaborationSession.wsTicket.trim().length > 0;
 
   const initialConfig = useMemo(
     () => ({
       namespace: `hub-note-${noteId}`,
       theme: notesLexicalTheme,
-      editorState: collaborationRoomId ? null : normalizedInitialEditorState,
+      editorState: collaborationEnabled ? null : normalizedInitialEditorState,
       editable,
       nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, ViewRefNode, MediaEmbedNode],
       onError: (error: Error) => {
         throw error;
       },
     }),
-    [collaborationRoomId, editable, normalizedInitialEditorState, noteId],
+    [collaborationEnabled, editable, normalizedInitialEditorState, noteId],
   );
 
   const providerFactory = useCallback(
     (id: string, yjsDocMap: Map<string, Doc>): Provider => {
-      if (!collaborationRoomId || !collaborationWebsocketUrl || !collaborationWsTicket) {
+      if (!collaborationEnabled || !collaborationSession) {
         throw new Error('Collaboration session is unavailable.');
       }
-      if (id !== collaborationRoomId) {
-        throw new Error(`Unexpected collaboration room: ${id}`);
+
+      let doc = yjsDocMap.get(id);
+      if (!doc) {
+        doc = new Doc();
+        yjsDocMap.set(id, doc);
       }
 
-      const doc = getDocFromMap(id, yjsDocMap);
-      const provider = new WebsocketProvider(collaborationWebsocketUrl, id, doc, {
+      const provider = new WebsocketProvider(collaborationSession.websocketUrl, id, doc, {
         connect: false,
         disableBc: true,
         params: {
-          ws_ticket: collaborationWsTicket,
+          ws_ticket: collaborationSession.wsTicket,
         },
       });
 
-      collaborationDocRef.current = doc;
-      collaborationProviderCleanupRef.current?.();
-
-      const applyPresence = () => {
-        const names = noteAwareNames(provider);
-        const editorCount = Math.max(provider.awareness.getStates().size, 1);
-        onPresenceChange?.(editorCount, names);
-      };
-
-      const handleStatus = ({ status }: { status: CollabConnectionStatus }) => {
-        onConnectionStatusChange?.(status);
-      };
-
-      const handleAwarenessChange = () => {
-        applyPresence();
-      };
-
-      provider.on('status', handleStatus);
-      provider.awareness.on('change', handleAwarenessChange);
-      onConnectionStatusChange?.(provider.wsconnected ? 'connected' : provider.wsconnecting ? 'connecting' : 'disconnected');
-      applyPresence();
-
-      collaborationProviderRef.current = provider;
-      collaborationProviderCleanupRef.current = () => {
-        provider.off('status', handleStatus);
-        provider.awareness.off('change', handleAwarenessChange);
-        provider.destroy();
-        if (collaborationProviderRef.current === provider) {
-          collaborationProviderRef.current = null;
-        }
-        onConnectionStatusChange?.('disconnected');
-        onPresenceChange?.(0, []);
-      };
+      // Collaboration tickets are single-use, so retries with the same provider are guaranteed to fail.
+      provider.on('connection-error', () => {
+        provider.disconnect();
+      });
 
       return provider as unknown as Provider;
     },
-    [
-      collaborationRoomId,
-      collaborationWebsocketUrl,
-      collaborationWsTicket,
-      onConnectionStatusChange,
-      onPresenceChange,
-    ],
+    [collaborationEnabled, collaborationSession],
   );
-
-  const getYjsUpdateBase64 = useCallback(() => {
-    const doc = collaborationDocRef.current;
-    return doc ? uint8ArrayToBase64(encodeStateAsUpdate(doc)) : null;
-  }, []);
-
-  useEffect(() => {
-    if (collaborationRoomId) {
-      return;
-    }
-
-    collaborationDocRef.current = null;
-    collaborationProviderCleanupRef.current?.();
-    collaborationProviderCleanupRef.current = null;
-    onConnectionStatusChange?.('disconnected');
-    onPresenceChange?.(0, []);
-  }, [collaborationRoomId, onConnectionStatusChange, onPresenceChange]);
-
-  useEffect(() => {
-    return () => {
-      collaborationProviderCleanupRef.current?.();
-      collaborationProviderCleanupRef.current = null;
-      collaborationDocRef.current = null;
-      onConnectionStatusChange?.('disconnected');
-      onPresenceChange?.(0, []);
-    };
-  }, [onConnectionStatusChange, onPresenceChange]);
-
-  if (collaborationRoomId && (!collaborationWebsocketUrl || !collaborationWsTicket)) {
-    return null;
-  }
-
-  const collaborationPlugin =
-    collaborationRoomId && collaborationWebsocketUrl && collaborationWsTicket ? (
-      <CollaborationPlugin
-        id={collaborationRoomId}
-        providerFactory={providerFactory}
-        shouldBootstrap
-        initialEditorState={collabInitialEditorState}
-        awarenessData={{ name: userName }}
-      />
-    ) : null;
 
   return (
     <ViewEmbedProvider value={viewEmbedRuntime || null}>
@@ -471,8 +387,16 @@ export const CollaborativeLexicalEditor = ({
             placeholder={<div className="hub-editor__placeholder">Write project notes...</div>}
             ErrorBoundary={LexicalErrorBoundary}
           />
-          {collaborationPlugin}
-          <PersistencePlugin onDocumentChange={onDocumentChange} getYjsUpdateBase64={getYjsUpdateBase64} />
+          {collaborationEnabled ? (
+            <CollaborationPlugin
+              id={collaborationSession.roomId}
+              providerFactory={providerFactory}
+              shouldBootstrap={true}
+              initialEditorState={normalizedInitialEditorState}
+              username={userName}
+            />
+          ) : null}
+          <PersistencePlugin collaborationRoomId={collaborationRoomId} onDocumentChange={onDocumentChange} />
           <SelectionTrackingPlugin onSelectedNodeChange={onSelectedNodeChange} />
           <FocusNodePlugin focusNodeKey={focusNodeKey} onNodeFocused={onNodeFocused} />
           <AssetEmbedInsertPlugin pendingAssetEmbed={pendingAssetEmbed} onAssetEmbedApplied={onAssetEmbedApplied} />

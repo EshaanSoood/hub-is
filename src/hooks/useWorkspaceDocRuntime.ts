@@ -58,8 +58,6 @@ type DocSnapshotSaveState = {
   version: number;
 };
 
-type CollabConnectionStatus = 'connected' | 'connecting' | 'disconnected';
-
 const DOC_SNAPSHOT_SAVE_DEBOUNCE_MS = 600;
 
 const collectLexicalNodeKeys = (candidate: unknown, output: Set<string>) => {
@@ -568,25 +566,6 @@ export const useWorkspaceDocRuntime = ({
     [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot, getDocSnapshotSaveState],
   );
 
-  const onDocCollabConnectionStatusChange = useCallback(
-    (status: CollabConnectionStatus) => {
-      if (status !== 'disconnected' || !activePaneDocId) {
-        return;
-      }
-
-      const docSnapshotState = getDocSnapshotSaveState(activePaneDocId);
-      if (!docSnapshotState.queuedEntry) {
-        return;
-      }
-
-      clearDocSnapshotSaveTimer();
-      docSnapshotSaveTimerRef.current = window.setTimeout(() => {
-        flushPendingDocSnapshot(activePaneDocId);
-      }, DOC_SNAPSHOT_SAVE_DEBOUNCE_MS);
-    },
-    [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot, getDocSnapshotSaveState],
-  );
-
   const onInsertDocMention = useCallback((target: HubMentionTarget) => {
     const token = mentionToken({
       entity_type: target.entity_type,
@@ -768,7 +747,6 @@ export const useWorkspaceDocRuntime = ({
     docComments,
     onAddDocComment,
     onDocCommentDialogOpenChange,
-    onDocCollabConnectionStatusChange,
     onDocEditorChange,
     onInsertDocMention,
     onJumpToDocComment,
