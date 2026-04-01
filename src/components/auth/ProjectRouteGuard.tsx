@@ -9,6 +9,7 @@ export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
   const { authReady, signedIn, canProject } = useAuthz();
   const { projects, initialized } = useProjects();
   const project = projects.find((entry) => entry.id === projectId) || null;
+  const hasProjectAccess = Boolean(projectId) && (project !== null || canProject(projectId, 'project.view'));
 
   if (!authReady) {
     return (
@@ -30,11 +31,7 @@ export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  if (project?.isPersonal) {
-    return <Navigate to="/projects" replace />;
-  }
-
-  if (!projectId || !canProject(projectId, 'project.view')) {
+  if (!hasProjectAccess) {
     return <AccessDeniedView message={`You do not have project.view access for ${projectId || 'this project'}.`} />;
   }
 

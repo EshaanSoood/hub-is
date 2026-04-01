@@ -55,7 +55,7 @@ import {
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { sessionSummary, calendarFeedUrl, canGlobal, accessToken, signOut } = useAuthz();
+  const { sessionSummary, calendarFeedUrl, canGlobal, accessToken, refreshSession, signOut } = useAuthz();
   const { projects, refreshProjects } = useProjects();
 
   useRouteFocusReset();
@@ -513,6 +513,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       }
       setQuickAddDialog(null);
       setProjectDialogName('');
+      await refreshSession();
       await refreshProjects();
       navigate(`/projects/${encodeURIComponent(created.data.id)}/overview`);
     } catch (error) {
@@ -520,7 +521,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     } finally {
       setProjectDialogSubmitting(false);
     }
-  }, [accessToken, navigate, projectDialogName, refreshProjects]);
+  }, [accessToken, navigate, projectDialogName, refreshProjects, refreshSession]);
 
   useEffect(() => {
     if (!captureOpen) {
