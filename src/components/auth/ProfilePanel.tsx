@@ -47,7 +47,7 @@ export const ProfilePanel = () => {
         onClose={() => setOpen(false)}
         triggerRef={triggerRef}
         hideHeader
-        panelClassName="w-full max-w-sm rounded-panel bg-surface-elevated p-6 shadow-soft"
+        panelClassName="dialog-panel-compact-size rounded-panel bg-surface-elevated p-6 shadow-soft"
       >
         <div className="flex flex-col items-center">
           {avatarBroken ? (

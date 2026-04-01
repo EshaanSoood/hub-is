@@ -1814,7 +1814,7 @@ const ProjectSpaceWorkspace = ({
 
       <Dialog open={Boolean(inspectorRecordId)} onOpenChange={(open) => (!open ? closeInspectorWithFocusRestore() : undefined)}>
         <DialogContent
-          className="!left-0 !top-0 h-screen w-full max-w-[min(42rem,92vw)] !translate-x-0 !translate-y-0 overflow-y-auto rounded-none sm:!rounded-none border-r border-border-muted"
+          className="dialog-panel-sheet-size !left-0 !top-0 h-screen !translate-x-0 !translate-y-0 overflow-y-auto rounded-none sm:!rounded-none border-r border-border-muted"
           onCloseAutoFocus={(event) => {
             if (inspectorTriggerRef.current) {
               event.preventDefault();

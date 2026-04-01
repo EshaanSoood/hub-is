@@ -23,7 +23,7 @@ export const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-1/2 top-1/2 z-[300] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
+        'alert-dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
         className,
       )}
       {...props}

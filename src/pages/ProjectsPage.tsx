@@ -261,7 +261,6 @@ export const ProjectsPage = () => {
         triggerRef={selectedHubRecordTriggerRef}
         title="Record Inspector"
         description="Review the selected Hub item without leaving the Hub."
-        panelClassName="max-w-2xl"
       >
         {selectedHubRecordLoading ? <p className="text-sm text-muted">Loading record...</p> : null}
         {selectedHubRecordError ? (

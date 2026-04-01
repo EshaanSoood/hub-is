@@ -48,7 +48,7 @@ export const Dialog = ({
           triggerRef.current.focus();
         }
       }}
-      className={cn('w-full max-w-xl', panelClassName)}
+      className={cn(panelClassName)}
     >
       <DialogHeader className={cn(hideHeader && 'sr-only')}>
         <DialogTitle>{title}</DialogTitle>

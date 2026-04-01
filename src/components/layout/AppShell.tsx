@@ -1762,7 +1762,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Calendar"
           description="Your personal calendar across all projects."
-          panelClassName="!top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] !w-[min(96vw,96rem)] !max-w-[min(96vw,96rem)] flex flex-col overflow-hidden"
+          panelClassName="dialog-panel-expanded-size !top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] flex flex-col overflow-hidden"
           contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
           <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -1807,7 +1807,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Tasks"
           description="All your tasks across projects."
-          panelClassName="!top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] !w-[min(96vw,64rem)] !max-w-[min(96vw,64rem)] flex flex-col overflow-hidden"
+          panelClassName="dialog-panel-wide-size !top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] flex flex-col overflow-hidden"
           contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
           <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -1843,7 +1843,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Reminders"
           description="Your active reminders."
-          panelClassName="w-[min(92vw,400px)] max-w-[400px] sm:min-w-[360px]"
+          panelClassName="dialog-panel-compact-size"
         >
           <RemindersModuleSkin
             sizeTier="L"

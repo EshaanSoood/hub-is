@@ -77,7 +77,7 @@ export const AddModuleDialog = ({
       title="Add Module"
       description="Choose a module, then choose the size to add to this pane."
       triggerRef={triggerRef}
-      panelClassName="max-h-[88vh] max-w-2xl overflow-y-auto"
+      panelClassName="max-h-[88vh] overflow-y-auto"
       contentClassName="pr-1"
     >
       {selectedEntry ? (
