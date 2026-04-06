@@ -128,7 +128,7 @@ export class MediaEmbedNode extends DecoratorNode<JSX.Element> {
     element.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     element.setAttribute('width', '100%');
     element.setAttribute('height', mediaFrameHeight(validatedEmbed.provider, validatedEmbed.originalUrl));
-    element.setAttribute('frameborder', '0');
+    element.style.border = 'none';
     element.setAttribute('allowfullscreen', 'true');
     return { element };
   }

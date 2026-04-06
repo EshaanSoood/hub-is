@@ -1329,10 +1329,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       setProfileOpen(false);
       const promptEvent = deferredInstallPrompt;
       setDeferredInstallPrompt(null);
-      await promptEvent.prompt();
-      const choice = await promptEvent.userChoice.catch(() => null);
-      if (choice?.outcome === 'dismissed') {
-        notifyInfo('Install cancelled.');
+      try {
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
+        if (choice.outcome === 'dismissed') {
+          notifyInfo('Install cancelled.');
+        }
+      } catch {
+        notifyError('Could not open the install prompt.');
       }
       return;
     }
@@ -1355,6 +1359,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
     return null;
   }, [deferredInstallPrompt, installState.installed, installState.iosSafari]);
+  const hasCalendarFeedUrl = calendarFeedUrl.trim().length > 0;
 
   const accountInitials = sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId);
   const avatarUrl = buildAccountAvatarUrl(accountInitials, sessionSummary.userId || sessionSummary.email || sessionSummary.name);
@@ -2011,9 +2016,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               avatarUrl={avatarUrl}
               avatarBroken={avatarBroken}
               menuRef={profileMenuRef}
-              onCopyCalendarLink={() => {
+              onCopyCalendarLink={hasCalendarFeedUrl ? () => {
                 void onCopyCalendarLink();
-              }}
+              } : undefined}
               installLabel={installMenuLabel}
               onInstall={
                 installMenuLabel

@@ -1,8 +1,9 @@
 /* global Response, URL, caches, fetch, self */
 
-const APP_SHELL_CACHE = 'hub-os-app-shell-v1';
-const STATIC_CACHE = 'hub-os-static-v1';
-const API_CACHE = 'hub-os-api-v1';
+const CACHE_VERSION = 'v2';
+const APP_SHELL_CACHE = `hub-os-app-shell-${CACHE_VERSION}`;
+const STATIC_CACHE = `hub-os-static-${CACHE_VERSION}`;
+const API_CACHE = `hub-os-api-${CACHE_VERSION}`;
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
@@ -31,7 +32,7 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-const cacheFirst = async (request, cacheName) => {
+const cacheFirst = async (request, cacheName, event) => {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   if (cached) {
@@ -39,19 +40,19 @@ const cacheFirst = async (request, cacheName) => {
   }
   const response = await fetch(request);
   if (response.ok) {
-    cache.put(request, response.clone());
+    event.waitUntil(cache.put(request, response.clone()));
   }
   return response;
 };
 
-const networkFirst = async (request, cacheName) => {
+const networkFirst = async (request, cacheName, event) => {
   const cache = await caches.open(cacheName);
   const authorizationHeader = request.headers.get('Authorization');
   const allowCacheWrite = !authorizationHeader || !authorizationHeader.trim();
   try {
     const response = await fetch(request);
     if (response.ok && allowCacheWrite) {
-      cache.put(request, response.clone());
+      event.waitUntil(cache.put(request, response.clone()));
     }
     return response;
   } catch {
@@ -75,7 +76,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (requestUrl.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request, API_CACHE));
+    event.respondWith(networkFirst(request, API_CACHE, event));
     return;
   }
 
@@ -105,8 +106,8 @@ self.addEventListener('fetch', (event) => {
 
   if (
     requestUrl.pathname.startsWith('/assets/')
-    || ['style', 'script', 'worker', 'image', 'font'].includes(request.destination)
+    || ['style', 'script', 'worker', 'font'].includes(request.destination)
   ) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    event.respondWith(cacheFirst(request, STATIC_CACHE, event));
   }
 });
