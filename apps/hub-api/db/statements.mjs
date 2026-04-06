@@ -22,6 +22,17 @@ export const createStatements = (db) => ({
       WHERE user_id = ?
     `),
   },
+  calendarFeedTokens: {
+    findByUserId: db.prepare('SELECT * FROM calendar_feed_tokens WHERE user_id = ? LIMIT 1'),
+    findByToken: db.prepare('SELECT * FROM calendar_feed_tokens WHERE token = ? LIMIT 1'),
+    insert: db.prepare(`
+      INSERT INTO calendar_feed_tokens (token, user_id, created_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE
+      SET token = EXCLUDED.token,
+          created_at = EXCLUDED.created_at
+    `),
+  },
   projects: {
     updateTasksCollection: db.prepare(`
       UPDATE projects
@@ -139,6 +150,7 @@ export const createStatements = (db) => ({
       SET status = ?, target_user_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ?
       WHERE invite_request_id = ?
     `),
+    deleteInvite: db.prepare('DELETE FROM pending_project_invites WHERE invite_request_id = ?'),
     isMember: db.prepare('SELECT 1 AS ok FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1'),
     getRole: db.prepare('SELECT role FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1'),
   },

@@ -34,7 +34,11 @@ export const createProjectRoutes = (deps) => {
     userByEmailStmt,
     pendingInviteByIdStmt,
     insertPendingInviteStmt,
+    deletePendingInviteStmt,
     updatePendingInviteDecisionStmt,
+    ensureKeycloakInviteOnboarding,
+    cleanupKeycloakInviteOnboarding,
+    sendHubInviteEmail,
     insertProjectStmt,
     insertProjectMemberStmt,
     deleteProjectMemberStmt,
@@ -327,6 +331,22 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
+    let onboardingResult = null;
+    if (!existingUser) {
+      onboardingResult = await ensureKeycloakInviteOnboarding({
+        email,
+        requestLog: request.log,
+      });
+      if (onboardingResult.error) {
+        send(
+          response,
+          jsonResponse(onboardingResult.error.status, errorEnvelope(onboardingResult.error.code, onboardingResult.error.message)),
+        );
+        return;
+      }
+    }
+
+    const project = projectByIdStmt.get(projectId);
     const inviteRequestId = newId('pinv');
     const timestamp = nowIso();
     insertPendingInviteStmt.run(
@@ -340,6 +360,47 @@ export const createProjectRoutes = (deps) => {
       timestamp,
       timestamp,
     );
+
+    const inviteEmail = await sendHubInviteEmail({
+      to: email,
+      projectName: project?.name || 'Pilot Party',
+      requestLog: request.log,
+    });
+    if (inviteEmail.error) {
+      request.log.error('Failed to send project invite email.', {
+        projectId,
+        inviteRequestId,
+        email,
+        error: inviteEmail.error,
+      });
+      try {
+        deletePendingInviteStmt.run(inviteRequestId);
+      } catch (cleanupError) {
+        request.log.error('Failed to roll back pending invite after email failure.', {
+          projectId,
+          inviteRequestId,
+          email,
+          error: cleanupError,
+        });
+      }
+      if (onboardingResult?.data?.created && onboardingResult.data.userId) {
+        const cleanupResult = await cleanupKeycloakInviteOnboarding({
+          userId: onboardingResult.data.userId,
+          requestLog: request.log,
+        });
+        if (cleanupResult.error) {
+          request.log.error('Failed to clean up Keycloak invite onboarding after email failure.', {
+            projectId,
+            inviteRequestId,
+            email,
+            userId: onboardingResult.data.userId,
+            error: cleanupResult.error,
+          });
+        }
+      }
+      send(response, jsonResponse(inviteEmail.error.status, errorEnvelope(inviteEmail.error.code, inviteEmail.error.message)));
+      return;
+    }
 
     send(response, jsonResponse(201, okEnvelope({ pending_invite: pendingInviteRecord(pendingInviteByIdStmt.get(inviteRequestId)) })));
   };

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - manual-project-tests
 
 jobs:
   deploy:

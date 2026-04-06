@@ -14,6 +14,7 @@ const notificationReasonCheckSql = notificationReasons.map((reason) => `'${reaso
 const CONTRACT_TABLES = [
   'schema_version',
   'users',
+  'calendar_feed_tokens',
   'projects',
   'project_members',
   'panes',
@@ -140,6 +141,13 @@ const resetSchemaToContractV1 = (db) => {
         email TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE calendar_feed_tokens (
+        token TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
       );
 
       CREATE TABLE projects (

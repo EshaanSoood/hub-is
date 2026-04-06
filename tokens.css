@@ -6,6 +6,7 @@
   --leading-normal: 1.5;
 
   /* Base Dark Denim Backgrounds */
+  --color-bg: rgb(28 36 48);
   --color-surface: rgb(28 36 48);
   --color-surface-elevated: rgb(38 48 64);
 
@@ -67,6 +68,13 @@
   --module-card-max-h-m: 28rem;
   --module-card-min-h-l: 24rem;
   --module-card-max-h-l: 40rem;
+  --dialog-panel-inline-gap: 1rem;
+  --dialog-panel-min-w: 20rem;
+  --dialog-panel-max-w: 42rem;
+  --dialog-panel-compact-max-w: 25rem;
+  --dialog-panel-wide-max-w: 64rem;
+  --dialog-panel-expanded-max-w: 96rem;
+  --alert-dialog-panel-max-w: 36rem;
 
   --radius-panel: 0.75rem;
   --radius-control: 0.625rem;
@@ -95,6 +103,7 @@
 
 @media (prefers-color-scheme: light) {
   :root {
+    --color-bg: rgb(244 247 250);
     --color-surface: rgb(244 247 250);
     --color-surface-elevated: rgb(255 255 255);
     --color-text: rgb(28 36 48);
@@ -192,6 +201,39 @@
 @utility module-card-l {
   min-height: var(--module-card-min-h-l);
   max-height: var(--module-card-max-h-l);
+}
+
+@utility dialog-panel-size {
+  width: min(calc(100vw - (var(--dialog-panel-inline-gap) * 2)), var(--dialog-panel-max-w));
+  min-width: min(var(--dialog-panel-min-w), calc(100vw - (var(--dialog-panel-inline-gap) * 2)));
+  max-width: var(--dialog-panel-max-w);
+}
+
+@utility dialog-panel-compact-size {
+  width: min(calc(100vw - (var(--dialog-panel-inline-gap) * 2)), var(--dialog-panel-compact-max-w));
+  min-width: min(var(--dialog-panel-min-w), calc(100vw - (var(--dialog-panel-inline-gap) * 2)));
+  max-width: var(--dialog-panel-compact-max-w);
+}
+
+@utility dialog-panel-wide-size {
+  width: min(96vw, var(--dialog-panel-wide-max-w));
+  max-width: var(--dialog-panel-wide-max-w);
+}
+
+@utility dialog-panel-expanded-size {
+  width: min(96vw, var(--dialog-panel-expanded-max-w));
+  max-width: var(--dialog-panel-expanded-max-w);
+}
+
+@utility dialog-panel-sheet-size {
+  width: min(92vw, var(--dialog-panel-max-w));
+  max-width: min(92vw, var(--dialog-panel-max-w));
+}
+
+@utility alert-dialog-panel-size {
+  width: min(calc(100vw - (var(--dialog-panel-inline-gap) * 2)), var(--alert-dialog-panel-max-w));
+  min-width: min(var(--dialog-panel-min-w), calc(100vw - (var(--dialog-panel-inline-gap) * 2)));
+  max-width: var(--alert-dialog-panel-max-w);
 }
 
 @utility heading-2 {

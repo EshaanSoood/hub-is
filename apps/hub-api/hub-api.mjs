@@ -2,6 +2,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
+  createHmac,
   randomBytes,
   randomUUID,
 } from 'node:crypto';
@@ -43,20 +44,31 @@ const NEXTCLOUD_BASE_URL = (process.env.NEXTCLOUD_BASE_URL || '').trim();
 const NEXTCLOUD_USER = (process.env.NEXTCLOUD_USER || '').trim();
 const NEXTCLOUD_APP_PASSWORD = (process.env.NEXTCLOUD_APP_PASSWORD || '').trim();
 const NEXTCLOUD_FETCH_TIMEOUT_MS_RAW = Number.parseInt(String(process.env.NEXTCLOUD_FETCH_TIMEOUT_MS || '30000'), 10);
+const HUB_COLLAB_TICKET_TTL_MS_RAW = Number.parseInt(String(process.env.HUB_COLLAB_TICKET_TTL_MS || '120000'), 10);
 const TUWUNEL_INTERNAL_URL = (process.env.TUWUNEL_INTERNAL_URL || 'http://tuwunel:6167').trim() || 'http://tuwunel:6167';
 const TUWUNEL_REGISTRATION_SHARED_SECRET = (process.env.TUWUNEL_REGISTRATION_SHARED_SECRET || '').trim();
 const MATRIX_ACCOUNT_ENCRYPTION_KEY = (process.env.MATRIX_ACCOUNT_ENCRYPTION_KEY || '').trim();
+const HUB_CALENDAR_FEED_TOKEN_SECRET = (process.env.HUB_CALENDAR_FEED_TOKEN_SECRET || MATRIX_ACCOUNT_ENCRYPTION_KEY || '').trim();
 const HUB_API_MAX_BODY_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_MAX_BODY_BYTES || '1048576'), 10);
 const HUB_API_LARGE_BODY_MAX_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_LARGE_BODY_MAX_BYTES || '52428800'), 10);
-const HUB_COLLAB_TICKET_TTL_MS_RAW = Number.parseInt(String(process.env.HUB_COLLAB_TICKET_TTL_MS || '120000'), 10);
-const HUB_COLLAB_TICKET_TTL_MS = Number.isInteger(HUB_COLLAB_TICKET_TTL_MS_RAW)
-  ? Math.min(900_000, Math.max(10_000, HUB_COLLAB_TICKET_TTL_MS_RAW))
-  : 120_000;
+const POSTMARK_SERVER_TOKEN = (process.env.POSTMARK_SERVER_TOKEN || '').trim();
+const POSTMARK_FROM_EMAIL = (process.env.POSTMARK_FROM_EMAIL || process.env.VITE_POSTMARK_FROM_EMAIL || '').trim();
+const POSTMARK_MESSAGE_STREAM = (process.env.POSTMARK_MESSAGE_STREAM || 'outbound').trim() || 'outbound';
+const POSTMARK_API_BASE_URL = (process.env.POSTMARK_API_BASE_URL || 'https://api.postmarkapp.com').trim().replace(/\/+$/, '');
+const EXTERNAL_API_TIMEOUT_MS_RAW = Number.parseInt(String(process.env.POSTMARK_REQUEST_TIMEOUT_MS || '15000'), 10);
+const KEYCLOAK_URL = (process.env.KEYCLOAK_URL || process.env.VITE_KEYCLOAK_URL || '').trim().replace(/\/+$/, '');
+const KEYCLOAK_REALM = (process.env.KEYCLOAK_REALM || process.env.VITE_KEYCLOAK_REALM || '').trim();
+const KEYCLOAK_CLIENT_ID = (process.env.KEYCLOAK_CLIENT_ID || process.env.VITE_KEYCLOAK_CLIENT_ID || '').trim();
+const KEYCLOAK_REDIRECT_URI = (process.env.KEYCLOAK_REDIRECT_URI || process.env.VITE_KEYCLOAK_REDIRECT_URI || '').trim();
+const KEYCLOAK_ADMIN_USERNAME = (process.env.KEYCLOAK_ADMIN_USERNAME || '').trim();
+const KEYCLOAK_ADMIN_PASSWORD = (process.env.KEYCLOAK_ADMIN_PASSWORD || '').trim();
+const KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS_RAW = Number.parseInt(String(process.env.KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS || '604800'), 10);
 const MATRIX_HOMESERVER_URL = 'https://chat.eshaansood.org';
 const MATRIX_SERVER_NAME = 'chat.eshaansood.org';
 const MATRIX_ACCOUNT_SECRET_VERSION = 'v1';
 const WS_READY_STATE_OPEN = 1;
 const REMINDER_CHECK_INTERVAL_MS = 30_000;
+const HUB_PUBLIC_APP_URL = (process.env.HUB_PUBLIC_APP_URL || 'https://eshaansood.org').trim().replace(/\/+$/, '');
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
 const REGISTERED_ROUTE_COUNT = 79;
@@ -68,6 +80,236 @@ const asNullableText = (value) => {
   const normalized = asText(value);
   return normalized || null;
 };
+const CALENDAR_FEED_TOKEN_HASH_PREFIX = 'h1:';
+const calendarFeedTokenSecret = () => {
+  if (!HUB_CALENDAR_FEED_TOKEN_SECRET) {
+    throw new Error('Calendar feed token secret is unavailable.');
+  }
+  return HUB_CALENDAR_FEED_TOKEN_SECRET;
+};
+const deriveCalendarFeedToken = (userId) =>
+  createHmac('sha256', calendarFeedTokenSecret())
+    .update(`calendar-feed:user:${asText(userId)}`)
+    .digest('hex');
+const hashCalendarFeedToken = (token) =>
+  `${CALENDAR_FEED_TOKEN_HASH_PREFIX}${createHmac('sha256', calendarFeedTokenSecret())
+    .update(`calendar-feed:token:${asText(token)}`)
+    .digest('hex')}`;
+
+const HUB_POSTMARK_INVITE_TEMPLATE = `<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>You're invited to Hub OS</title>
+  <!--[if mso]>
+  <style type="text/css">
+    table, td { font-family: Arial, sans-serif !important; }
+  </style>
+  <![endif]-->
+  <style type="text/css">
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap');
+
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0; padding: 0; width: 100% !important; height: 100% !important; }
+
+    .body-bg { background-color: #1C2430; }
+    .card-bg { background-color: #263040; }
+    .text-main { color: #F0F4F8; }
+    .text-secondary { color: #C0CCDA; }
+    .text-muted { color: #8D9BB0; }
+    .text-pink { color: #FFA3CD; }
+    .border-muted { border-color: #334155; }
+
+    .btn-primary {
+      background-color: #FFA3CD;
+      color: #1C2430 !important;
+      font-family: 'DM Sans', Arial, sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 10px;
+      display: inline-block;
+      mso-padding-alt: 0;
+    }
+    .btn-primary:hover {
+      background-color: #FF7AB5;
+    }
+
+    .feature-item {
+      font-family: 'DM Sans', Arial, sans-serif;
+      font-size: 14px;
+      color: #C0CCDA;
+      line-height: 1.5;
+      padding: 6px 0;
+    }
+
+    @media only screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .card { padding: 24px 20px !important; }
+      .logo-text { font-size: 28px !important; }
+    }
+  </style>
+</head>
+<body class="body-bg" style="margin: 0; padding: 0; background-color: #1C2430;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #1C2430;">
+    <tr>
+      <td align="center" style="padding: 40px 16px;">
+        <table role="presentation" class="container" width="560" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td align="center" style="padding-bottom: 32px;">
+              <span class="logo-text" style="font-family: 'Outfit', Arial, sans-serif; font-size: 32px; font-weight: 700; color: #F0F4F8; letter-spacing: 0.02em;">
+                HUB<span style="color: #FFA3CD;"> OS</span>
+              </span>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="card" style="background-color: #263040; border-radius: 12px; padding: 40px 36px; border: 1px solid #334155;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-family: 'Outfit', Arial, sans-serif; font-size: 24px; font-weight: 700; color: #F0F4F8; line-height: 1.3; padding-bottom: 20px;">
+                    You're invited to the {{PROJECT_NAME}}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 16px;">
+                    Hello hello!
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 16px;">
+                    Well as you know I've been working on this app pretty crazily for the last month. I think I'm in a place where it's ready to be user tested.
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 24px;">
+                    I'm inviting you to a project called <strong style="color: #FFA3CD;">{{PROJECT_NAME}}</strong> where my hope is that we can use the app itself to track the user and bug testing to see what features it's missing. That being said, I would love if you would also just use it for whatever else.
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 24px;">
+                    If you do not already have a Hub OS account, you should also receive a secure account setup email from Keycloak. Complete that first, then come back here.
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="font-family: 'Outfit', Arial, sans-serif; font-size: 16px; font-weight: 600; color: #F0F4F8; line-height: 1.4; padding-bottom: 12px;">
+                    Here's what's built (and hopefully works)
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding-bottom: 24px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
+                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;A home page with all your tasks, events and reminders rolled up
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
+                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;A daily timeline view on your dashboard
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
+                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Project Lens and Stream views on the homepage
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
+                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Create projects &mdash; each with its own roll-up across users
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
+                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;A Google Docs-style collaborative editor with drag &amp; drop
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
+                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Modules: Calendars, Tasks, Reminders, Kanban, Tables, Files &amp; Quick Thoughts
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
+                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Paste YouTube, Spotify, Vimeo or SoundCloud links &mdash; they auto-embed
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td align="center" style="padding-bottom: 28px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" style="border-radius: 10px; background-color: #FFA3CD;">
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{APP_URL}}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="21%" fillcolor="#FFA3CD">
+                            <w:anchorlock/>
+                            <center style="color:#1C2430;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">Join the Pilot</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-->
+                          <a href="{{APP_URL}}" class="btn-primary" style="background-color: #FFA3CD; color: #1C2430; font-family: 'DM Sans', Arial, sans-serif; font-weight: 700; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: 10px; display: inline-block;">
+                            Join the Pilot
+                          </a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="border-top: 1px solid #334155; padding-top: 20px; padding-bottom: 16px; font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7;">
+                    This has just been me feverishly working and testing all of this stuff so a lot of it might be broken. I know you will let me know if something is systemically or visually broken &mdash; which is why I'm inviting you to this pilot.
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 24px;">
+                    Apart from bugs, I also really want to know what features you wish existed. Invoicing? Personal finance? A different view for your files? A better way to lay out tasks? A different UX flow? I'm here for all of it.
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 4px;">
+                    Looking forward to what you discover!
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #F0F4F8; line-height: 1.7; padding-top: 12px;">
+                    Warmly,<br />
+                    <strong>Eshaan</strong>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="center" style="padding-top: 28px; padding-bottom: 16px;">
+              <span style="font-family: 'DM Sans', Arial, sans-serif; font-size: 12px; color: #8D9BB0; line-height: 1.5;">
+                Sent with love from <a href="{{APP_URL}}" style="color: #FFA3CD; text-decoration: none;">Hub OS</a>
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 
 const safeTuwunelConfig = () =>
   Boolean(TUWUNEL_INTERNAL_URL && TUWUNEL_REGISTRATION_SHARED_SECRET && MATRIX_ACCOUNT_ENCRYPTION_KEY);
@@ -132,6 +374,11 @@ const asInteger = (value, fallback, min = Number.MIN_SAFE_INTEGER, max = Number.
   return Math.min(max, Math.max(min, parsed));
 };
 
+const HUB_COLLAB_TICKET_TTL_MS = asInteger(HUB_COLLAB_TICKET_TTL_MS_RAW, 120_000, 5_000, 3_600_000);
+const EXTERNAL_API_TIMEOUT_MS = asInteger(EXTERNAL_API_TIMEOUT_MS_RAW, 15_000, 1_000, 120_000);
+const KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS = asInteger(KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS_RAW, 604_800, 300, 2_592_000);
+const KEYCLOAK_REQUIRED_INVITE_ACTIONS = Object.freeze(['VERIFY_EMAIL', 'UPDATE_PROFILE', 'UPDATE_PASSWORD']);
+
 const asBoolean = (value, fallback = false) => {
   if (typeof value === 'boolean') {
     return value;
@@ -185,6 +432,455 @@ const parseJsonObject = (value, fallback = {}) => {
   }
   return fallback;
 };
+
+const parseUpstreamJson = async (response, requestLog = null, message = 'Failed to parse upstream JSON response.') => {
+  try {
+    return await response.json();
+  } catch (error) {
+    requestLog?.warn?.(message, { error });
+    return null;
+  }
+};
+
+const safePostmarkConfig = () => Boolean(POSTMARK_SERVER_TOKEN && POSTMARK_FROM_EMAIL);
+const safeKeycloakInviteConfig = () =>
+  Boolean(
+    KEYCLOAK_URL
+    && KEYCLOAK_REALM
+    && KEYCLOAK_CLIENT_ID
+    && KEYCLOAK_ADMIN_USERNAME
+    && KEYCLOAK_ADMIN_PASSWORD,
+  );
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('\'', '&#39;');
+
+const renderHubPilotInviteHtml = ({ appUrl = HUB_PUBLIC_APP_URL, projectName = 'Pilot Party' } = {}) => {
+  const resolvedUrl = asText(appUrl) || 'https://eshaansood.org';
+  const resolvedProjectName = escapeHtml(asText(projectName) || 'Pilot Party');
+  return HUB_POSTMARK_INVITE_TEMPLATE
+    .replaceAll('{{APP_URL}}', resolvedUrl)
+    .replaceAll('{{PROJECT_NAME}}', resolvedProjectName);
+};
+
+const renderHubPilotInviteText = ({ appUrl = HUB_PUBLIC_APP_URL, projectName = 'Pilot Party' } = {}) => {
+  const resolvedUrl = asText(appUrl) || 'https://eshaansood.org';
+  const resolvedProjectName = asText(projectName) || 'Pilot Party';
+  return [
+    `You're invited to ${resolvedProjectName} on Hub OS.`,
+    'Well as you know I\'ve been working on this app pretty crazily for the last month. I think I\'m in a place where it\'s ready to be user tested.',
+    `I'm inviting you to a project called ${resolvedProjectName} where my hope is that we can use the app itself to track the user and bug testing to see what features it's missing.`,
+    'If you do not already have a Hub OS account, you should also receive a secure account setup email from Keycloak. Complete that first, then return to Hub OS.',
+    `Join the pilot: ${resolvedUrl}`,
+    'Looking forward to what you discover!',
+    'Warmly,',
+    'Eshaan',
+  ].join('\n\n');
+};
+
+const getKeycloakInviteRedirectUri = () => asText(KEYCLOAK_REDIRECT_URI) || `${HUB_PUBLIC_APP_URL}/`;
+
+const acquireKeycloakAdminToken = async (requestLog = null) => {
+  if (!safeKeycloakInviteConfig()) {
+    return {
+      error: {
+        status: 503,
+        code: 'keycloak_unavailable',
+        message: 'Keycloak invite provisioning is not configured.',
+      },
+    };
+  }
+
+  const form = new URLSearchParams({
+    grant_type: 'password',
+    client_id: 'admin-cli',
+    username: KEYCLOAK_ADMIN_USERNAME,
+    password: KEYCLOAK_ADMIN_PASSWORD,
+  });
+
+  let upstream;
+  try {
+    upstream = await fetchWithTimeout(
+      new URL('/realms/master/protocol/openid-connect/token', `${KEYCLOAK_URL}/`),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: form,
+      },
+      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
+    );
+  } catch (error) {
+    requestLog?.error?.('Keycloak admin token request failed.', { error });
+    if (isFetchTimeoutError(error)) {
+      return {
+        error: {
+          status: 504,
+          code: 'upstream_timeout',
+          message: 'Keycloak admin token request timed out.',
+        },
+      };
+    }
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: 'Keycloak admin token request failed.',
+      },
+    };
+  }
+
+  const body = await parseUpstreamJson(upstream, requestLog, 'Failed to parse Keycloak admin token response.');
+  if (!upstream.ok || !asText(body?.access_token)) {
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: 'Unable to acquire Keycloak admin access token.',
+      },
+    };
+  }
+
+  return { data: { accessToken: asText(body.access_token) } };
+};
+
+const keycloakAdminRequest = async ({
+  path,
+  method = 'GET',
+  accessToken,
+  requestLog = null,
+  headers = {},
+  body = undefined,
+}) => {
+  let upstream;
+  try {
+    upstream = await fetchWithTimeout(
+      new URL(path, `${KEYCLOAK_URL}/`),
+      {
+        method,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...headers,
+        },
+        ...(body === undefined ? {} : { body }),
+      },
+      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
+    );
+  } catch (error) {
+    requestLog?.error?.('Keycloak admin request failed.', { path, method, error });
+    if (isFetchTimeoutError(error)) {
+      return {
+        error: {
+          status: 504,
+          code: 'upstream_timeout',
+          message: 'Keycloak admin request timed out.',
+        },
+      };
+    }
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: 'Keycloak admin request failed.',
+      },
+    };
+  }
+
+  const parsedBody = upstream.status === 204
+    ? null
+    : await parseUpstreamJson(upstream, requestLog, 'Failed to parse Keycloak admin response.');
+  return { upstream, body: parsedBody };
+};
+
+const findKeycloakUserByEmail = async ({ accessToken, email, requestLog = null }) => {
+  const normalizedEmail = asText(email).toLowerCase();
+  if (!normalizedEmail) {
+    return { data: null };
+  }
+
+  const response = await keycloakAdminRequest({
+    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users?email=${encodeURIComponent(normalizedEmail)}&exact=true`,
+    accessToken,
+    requestLog,
+  });
+  if (response.error) {
+    return response;
+  }
+  if (!response.upstream.ok) {
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: `Keycloak user lookup failed (${response.upstream.status}).`,
+      },
+    };
+  }
+
+  const users = Array.isArray(response.body) ? response.body : [];
+  const match = users.find((user) => asText(user?.email).toLowerCase() === normalizedEmail) || null;
+  return { data: match };
+};
+
+const createKeycloakInviteUser = async ({ accessToken, email, requestLog = null }) => {
+  const normalizedEmail = asText(email).toLowerCase();
+  const localpart = normalizedEmail.split('@')[0] || 'hub-user';
+  const response = await keycloakAdminRequest({
+    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users`,
+    method: 'POST',
+    accessToken,
+    requestLog,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      username: normalizedEmail,
+      email: normalizedEmail,
+      firstName: localpart,
+      enabled: true,
+      emailVerified: false,
+      requiredActions: [...KEYCLOAK_REQUIRED_INVITE_ACTIONS],
+    }),
+  });
+  if (response.error) {
+    return response;
+  }
+  if (![201, 204, 409].includes(response.upstream.status)) {
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: `Keycloak user create failed (${response.upstream.status}).`,
+      },
+    };
+  }
+
+  return findKeycloakUserByEmail({ accessToken, email: normalizedEmail, requestLog });
+};
+
+const sendKeycloakInviteActionsEmail = async ({ accessToken, userId, requestLog = null }) => {
+  const query = new URLSearchParams({
+    client_id: KEYCLOAK_CLIENT_ID,
+    redirect_uri: getKeycloakInviteRedirectUri(),
+    lifespan: String(KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS),
+  });
+  const response = await keycloakAdminRequest({
+    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users/${encodeURIComponent(userId)}/execute-actions-email?${query.toString()}`,
+    method: 'PUT',
+    accessToken,
+    requestLog,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify([...KEYCLOAK_REQUIRED_INVITE_ACTIONS]),
+  });
+  if (response.error) {
+    return response;
+  }
+  if (!response.upstream.ok) {
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: `Keycloak invite email failed (${response.upstream.status}).`,
+      },
+    };
+  }
+
+  return { data: { sent: true } };
+};
+
+const deleteKeycloakUser = async ({ accessToken, userId, requestLog = null }) => {
+  const response = await keycloakAdminRequest({
+    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users/${encodeURIComponent(userId)}`,
+    method: 'DELETE',
+    accessToken,
+    requestLog,
+  });
+  if (response.error) {
+    return response;
+  }
+  if (![204, 404].includes(response.upstream.status)) {
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: `Keycloak user delete failed (${response.upstream.status}).`,
+      },
+    };
+  }
+
+  return { data: { deleted: response.upstream.status === 204 } };
+};
+
+const ensureKeycloakInviteOnboarding = async ({ email, requestLog = null }) => {
+  const normalizedEmail = asText(email).toLowerCase();
+  if (!normalizedEmail) {
+    return {
+      error: {
+        status: 400,
+        code: 'invalid_input',
+        message: 'Invite email is required.',
+      },
+    };
+  }
+
+  const tokenResult = await acquireKeycloakAdminToken(requestLog);
+  if (tokenResult.error) {
+    return tokenResult;
+  }
+
+  const accessToken = tokenResult.data.accessToken;
+  const existingLookup = await findKeycloakUserByEmail({ accessToken, email: normalizedEmail, requestLog });
+  if (existingLookup.error) {
+    return existingLookup;
+  }
+
+  let user = existingLookup.data;
+  const createdUser = !existingLookup.data;
+  if (!user) {
+    const created = await createKeycloakInviteUser({ accessToken, email: normalizedEmail, requestLog });
+    if (created.error) {
+      return created;
+    }
+    user = created.data;
+  }
+  if (!user?.id) {
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: 'Unable to resolve Keycloak user for invite.',
+      },
+    };
+  }
+
+  if (createdUser) {
+    const actionEmail = await sendKeycloakInviteActionsEmail({
+      accessToken,
+      userId: asText(user.id),
+      requestLog,
+    });
+    if (actionEmail.error) {
+      return actionEmail;
+    }
+  }
+
+  return {
+    data: {
+      userId: asText(user.id),
+      email: normalizedEmail,
+      created: createdUser,
+    },
+  };
+};
+
+const cleanupKeycloakInviteOnboarding = async ({ userId, requestLog = null }) => {
+  const normalizedUserId = asText(userId);
+  if (!normalizedUserId) {
+    return { data: { deleted: false } };
+  }
+
+  const tokenResult = await acquireKeycloakAdminToken(requestLog);
+  if (tokenResult.error) {
+    return tokenResult;
+  }
+
+  return deleteKeycloakUser({
+    accessToken: tokenResult.data.accessToken,
+    userId: normalizedUserId,
+    requestLog,
+  });
+};
+
+const sendPostmarkEmail = async ({
+  to,
+  subject,
+  htmlBody,
+  textBody,
+  tag = '',
+  requestLog = null,
+}) => {
+  if (!safePostmarkConfig()) {
+    return {
+      error: {
+        status: 503,
+        code: 'postmark_unavailable',
+        message: 'Postmark runtime credentials are not configured.',
+      },
+    };
+  }
+
+  let upstream;
+  try {
+    upstream = await fetchWithTimeout(
+      new URL('/email', `${POSTMARK_API_BASE_URL}/`),
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Postmark-Server-Token': POSTMARK_SERVER_TOKEN,
+        },
+        body: JSON.stringify({
+          From: POSTMARK_FROM_EMAIL,
+          To: to,
+          Subject: subject,
+          HtmlBody: htmlBody,
+          TextBody: textBody,
+          MessageStream: POSTMARK_MESSAGE_STREAM,
+          ...(tag ? { Tag: tag } : {}),
+        }),
+      },
+      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
+    );
+  } catch (error) {
+    requestLog?.error?.('Postmark request failed.', { to, error });
+    if (isFetchTimeoutError(error)) {
+      return {
+        error: {
+          status: 504,
+          code: 'upstream_timeout',
+          message: 'Postmark invite email request timed out.',
+        },
+      };
+    }
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: 'Postmark invite email request failed.',
+      },
+    };
+  }
+
+  const body = await parseUpstreamJson(upstream, requestLog, 'Failed to parse Postmark JSON response.');
+  if (!upstream.ok) {
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: asText(body?.Message) || `Postmark invite email failed (${upstream.status}).`,
+      },
+    };
+  }
+
+  return { data: body };
+};
+
+const sendHubInviteEmail = async ({ to, projectName = 'Pilot Party', requestLog = null }) =>
+  sendPostmarkEmail({
+    to,
+    subject: "You're invited to Hub OS",
+    htmlBody: renderHubPilotInviteHtml({ appUrl: HUB_PUBLIC_APP_URL, projectName }),
+    textBody: renderHubPilotInviteText({ appUrl: HUB_PUBLIC_APP_URL, projectName }),
+    tag: 'hub-project-invite',
+    requestLog,
+  });
 
 const relationTargetCollectionIdFromField = (field) => {
   const config = parseJsonObject(field?.config, {});
@@ -478,6 +1174,11 @@ const {
     insert: insertUserStmt,
     update: updateUserStmt,
   },
+  calendarFeedTokens: {
+    findByUserId: calendarFeedTokenByUserIdStmt,
+    findByToken: calendarFeedTokenByTokenStmt,
+    insert: insertCalendarFeedTokenStmt,
+  },
   projects: {
     updateTasksCollection: updateProjectTasksCollectionStmt,
     updateRemindersCollection: updateProjectRemindersCollectionStmt,
@@ -579,6 +1280,48 @@ const {
     insert: insertNotificationStmt,
   },
 } = stmts;
+
+const getOrCreateCalendarFeedToken = (userId) => {
+  const normalizedUserId = asText(userId);
+  if (!normalizedUserId) {
+    throw new Error('User ID is required to issue a calendar feed token.');
+  }
+
+  const token = deriveCalendarFeedToken(normalizedUserId);
+  const storedToken = hashCalendarFeedToken(token);
+  const existing = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
+  if (existing && asText(existing.token) === storedToken) {
+    return {
+      token,
+      user_id: normalizedUserId,
+      created_at: existing.created_at,
+    };
+  }
+
+  return withTransaction(db, () => {
+    const current = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
+    const createdAt = asText(current?.created_at) || nowIso();
+    if (!current || asText(current.token) !== storedToken) {
+      insertCalendarFeedTokenStmt.run(storedToken, normalizedUserId, createdAt);
+    }
+    return {
+      token,
+      user_id: normalizedUserId,
+      created_at: createdAt,
+    };
+  });
+};
+
+const buildCalendarFeedUrl = (token) =>
+  `${HUB_PUBLIC_APP_URL}/api/hub/calendar.ics?token=${encodeURIComponent(asText(token))}`;
+
+const findCalendarFeedTokenRecord = (token) => {
+  const normalizedToken = asText(token);
+  if (!normalizedToken) {
+    return null;
+  }
+  return calendarFeedTokenByTokenStmt.get(hashCalendarFeedToken(normalizedToken)) || null;
+};
 
 const normalizeProjectRole = (role) => (asText(role) === 'owner' || asText(role) === 'admin' ? 'owner' : 'member');
 
@@ -1019,81 +1762,6 @@ hubLiveWss.on('connection', (socket, _request, ticket) => {
   });
 });
 
-// Collab WebSocket — document sync relay
-// Carries Yjs CRDT document updates between collaborating clients via hub-collab service.
-// Payload is continuous and potentially heavy. Latency matters — direct path, no unnecessary hops.
-// In the Tauri/local-first model this becomes a relay for offline sync via encrypted TURN-style relay.
-// Authentication is via short-lived tickets issued by /api/hub/collab/authorize.
-// Project owners have implicit edit access and receive tickets without appearing in pane_members.
-const collabTicketStore = new Map();
-
-const cleanupExpiredCollabTickets = () => {
-  const nowMs = Date.now();
-  for (const [ticket, entry] of collabTicketStore.entries()) {
-    if (entry.expires_at_ms <= nowMs) {
-      collabTicketStore.delete(ticket);
-    }
-  }
-};
-
-const collabTicketCleanupInterval = setInterval(cleanupExpiredCollabTickets, 60_000);
-collabTicketCleanupInterval.unref?.();
-
-const issueCollabTicket = ({ docId, paneId, projectId, userId, displayName, accessToken, canEdit = false }) => {
-  cleanupExpiredCollabTickets();
-  const ticket = `wst_${randomUUID().replace(/-/g, '')}`;
-  const issuedAtMs = Date.now();
-  const expiresAtMs = issuedAtMs + HUB_COLLAB_TICKET_TTL_MS;
-  collabTicketStore.set(ticket, {
-    ticket,
-    doc_id: docId,
-    pane_id: paneId,
-    project_id: projectId,
-    user_id: userId,
-    display_name: displayName,
-    access_token: accessToken,
-    can_edit: Boolean(canEdit),
-    issued_at_ms: issuedAtMs,
-    expires_at_ms: expiresAtMs,
-  });
-  return {
-    ws_ticket: ticket,
-    issued_at: new Date(issuedAtMs).toISOString(),
-    expires_at: new Date(expiresAtMs).toISOString(),
-    expires_in_ms: HUB_COLLAB_TICKET_TTL_MS,
-  };
-};
-
-const consumeCollabTicket = ({ wsTicket, docId }) => {
-  cleanupExpiredCollabTickets();
-  const entry = collabTicketStore.get(wsTicket);
-  if (!entry) {
-    return { error: { status: 401, code: 'unauthorized', message: 'Invalid or expired collaboration ticket.' } };
-  }
-  collabTicketStore.delete(wsTicket);
-
-  if (entry.expires_at_ms <= Date.now()) {
-    return { error: { status: 401, code: 'unauthorized', message: 'Invalid or expired collaboration ticket.' } };
-  }
-  if (entry.doc_id !== docId) {
-    return { error: { status: 403, code: 'forbidden', message: 'Collaboration ticket does not match requested doc.' } };
-  }
-
-  return {
-    ticket: {
-      doc_id: entry.doc_id,
-      pane_id: entry.pane_id,
-      project_id: entry.project_id,
-      user_id: entry.user_id,
-      display_name: entry.display_name,
-      access_token: entry.access_token,
-      can_edit: Boolean(entry.can_edit),
-      issued_at: new Date(entry.issued_at_ms).toISOString(),
-      expires_at: new Date(entry.expires_at_ms).toISOString(),
-    },
-  };
-};
-
 const ensureUserFromRequest = async (request) => {
   const token = parseBearerToken(request);
   if (!token) {
@@ -1159,6 +1827,14 @@ const ensureUserFromRequest = async (request) => {
         error,
       });
       throw error;
+    }
+    try {
+      getOrCreateCalendarFeedToken(userId);
+    } catch (error) {
+      request.log?.warn?.('Failed to create calendar feed token for newly authenticated user.', {
+        userId,
+        error,
+      });
     }
     return {
       status: 200,
@@ -1403,6 +2079,14 @@ const ensureUserForEmail = ({ email, displayName }) => {
   const now = nowIso();
   const userId = newId('usr');
   insertUserStmt.run(userId, `local:${normalizedEmail}`, displayName || normalizedEmail, normalizedEmail, now, now);
+  try {
+    getOrCreateCalendarFeedToken(userId);
+  } catch (error) {
+    systemLog.warn('Failed to create calendar feed token for ensured user.', {
+      userId,
+      error,
+    });
+  }
   return userByIdStmt.get(userId);
 };
 
@@ -2290,6 +2974,7 @@ const routeDeps = {
   automationRunsByProjectStmt: stmts.automation.listRuns,
   buildAssetProxyPath,
   buildAssetRelativePath,
+  buildCalendarFeedUrl,
   buildHomeEventSummary,
   buildNotificationPayload,
   buildNotificationRouteContext,
@@ -2299,6 +2984,7 @@ const routeDeps = {
   buildSessionSummary,
   buildTaskSummaryForUser,
   capabilitiesByRecordStmt: stmts.recordCapabilities.listForRecord,
+  findCalendarFeedTokenRecord,
   capabilitySet,
   collectionByIdStmt: stmts.collections.findById,
   collectionByNameStmt: stmts.collections.findByName,
@@ -2307,9 +2993,9 @@ const routeDeps = {
   commentAnchorsByDocStmt: stmts.commentAnchors.listForDoc,
   commentByIdStmt: stmts.comments.findById,
   commentStatusSet,
-  consumeCollabTicket,
   createNotification,
   createPersonalTaskRecord,
+  cleanupKeycloakInviteOnboarding,
   defaultAssetRootByProjectStmt: stmts.assetRoots.findDefaultForProject,
   deleteAttachmentStmt: stmts.files.deleteAttachment,
   deletePaneMemberStmt: stmts.paneMembers.delete,
@@ -2357,7 +3043,6 @@ const routeDeps = {
   insertReminderStmt: stmts.calendar.insertReminder,
   insertViewStmt: stmts.views.insert,
   isPlainObject,
-  issueCollabTicket,
   issueHubLiveTicket,
   jsonResponse,
   listProjectsForUserStmt: stmts.projects.listForUser,
@@ -2400,6 +3085,7 @@ const routeDeps = {
   chatSnapshotByIdStmt: stmts.chat.findSnapshotById,
   chatSnapshotsPageStmt: stmts.chat.listSnapshotsByProject,
   deleteChatSnapshotStmt: stmts.chat.deleteSnapshot,
+  deletePendingInviteStmt: stmts.projectMembers.deleteInvite,
   participantsByRecordStmt: stmts.calendar.listParticipants,
   pendingInviteByIdStmt: stmts.projectMembers.findInvite,
   pendingInviteRecord,
@@ -2430,6 +3116,7 @@ const routeDeps = {
   resolveProjectContentWriteGate,
   reassignTasksForRemovedMember,
   safeNextcloudConfig,
+  sendHubInviteEmail,
   safeTuwunelConfig,
   send,
   isFetchTimeoutError,
@@ -2437,6 +3124,7 @@ const routeDeps = {
   homeEventsByProjectStmt: stmts.calendar.listEventsForProject,
   personalCapturesStmt: stmts.records.listPersonalCaptures,
   getTaskStateStmt: stmts.tasks.findState,
+  getOrCreateCalendarFeedToken,
   subtasksByParentStmt: stmts.tasks.listSubtasksByParent,
   subtaskCountByParentStmt: stmts.tasks.countSubtasksByParent,
   taskStateByRecordStmt: stmts.tasks.findState,
@@ -2490,6 +3178,7 @@ const routeDeps = {
   mentionsByTargetStmt: stmts.mentions.listInboxForUser,
   mentionSearchRecordsStmt: stmts.userSearch.searchRecords,
   mentionSearchUsersStmt: stmts.userSearch.searchProjectMembers,
+  ensureKeycloakInviteOnboarding,
   updateMatrixAccountCredentialsStmt: stmts.chat.updateAccountCredentials,
   uploadToNextcloud,
   updateMatrixAccountDeviceStmt: stmts.chat.updateAccountDevice,
@@ -3150,6 +3839,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'GET' && pathname === '/api/hub/calendar.ics') {
+      await viewRoutes.getCalendarFeed({ request, response, requestUrl, pathname });
+      return;
+    }
+
     const eventFromNlpMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/events\/from-nlp$/);
     if (eventFromNlpMatch && request.method === 'POST') {
       await viewRoutes.createEventFromNlp({
@@ -3407,11 +4101,6 @@ const server = createServer(async (request, response) => {
 
     if (request.method === 'GET' && pathname === '/api/hub/collab/authorize') {
       await docRoutes.authorizeCollab({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/collab/tickets/consume') {
-      await docRoutes.consumeCollab({ request, response, requestUrl, pathname });
       return;
     }
 

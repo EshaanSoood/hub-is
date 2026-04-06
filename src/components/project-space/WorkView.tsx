@@ -25,9 +25,7 @@ interface WorkViewProps {
   accessDenied?: boolean;
   canEditPane?: boolean;
   modulesEnabled?: boolean;
-  workspaceEnabled?: boolean;
   showWorkspaceDocPlaceholder?: boolean;
-  onSelectPane: (paneId: string) => void;
   onUpdatePane: (paneId: string, payload: { name?: string; pinned?: boolean; sort_order?: number; layout_config?: Record<string, unknown> }) => Promise<void>;
   onOpenRecord?: (recordId: string) => void;
   moduleRuntime?: Partial<WorkViewModuleRuntime>;
@@ -388,9 +386,7 @@ export const WorkView = ({
   accessDenied = false,
   canEditPane = true,
   modulesEnabled = true,
-  workspaceEnabled = true,
   showWorkspaceDocPlaceholder = true,
-  onSelectPane,
   onUpdatePane,
   onOpenRecord,
   moduleRuntime,
@@ -472,13 +468,6 @@ export const WorkView = ({
     return saveChainRef.current;
   };
 
-  const runPaneUpdate = (payload: { name?: string; pinned?: boolean; sort_order?: number; layout_config?: Record<string, unknown> }) => {
-    setModuleError(null);
-    void onUpdatePane(pane.pane_id, payload).catch((error) => {
-      setModuleError(error instanceof Error ? error.message : 'Pane update failed.');
-    });
-  };
-
   const handleAddModule = (moduleType: string, sizeTier: ContractModuleConfig['size_tier']) => {
     const normalizedModuleType = normalizeModuleType(moduleType);
     const nextModules: ContractModuleConfig[] = [
@@ -532,23 +521,6 @@ export const WorkView = ({
         : module,
     );
     void saveModules(nextModules);
-  };
-
-  const handleTogglePaneRegion = (region: 'modules_enabled' | 'workspace_enabled') => {
-    const nextModulesEnabled = region === 'modules_enabled' ? !modulesEnabled : modulesEnabled;
-    const nextWorkspaceEnabled = region === 'workspace_enabled' ? !workspaceEnabled : workspaceEnabled;
-    if (!nextModulesEnabled && !nextWorkspaceEnabled) {
-      setModuleError('A pane must keep at least one region enabled.');
-      return;
-    }
-
-    runPaneUpdate({
-      layout_config: {
-        ...pane.layout_config,
-        modules_enabled: nextModulesEnabled,
-        workspace_enabled: nextWorkspaceEnabled,
-      },
-    });
   };
 
   const renderModuleBody = (module: ContractModuleConfig) => {
@@ -628,67 +600,7 @@ export const WorkView = ({
   return (
     <section className="space-y-4">
       <header className="rounded-panel border border-subtle bg-elevated p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="heading-3 text-primary">{pane.name}</h2>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary"
-              onClick={() => runPaneUpdate({ pinned: !pane.pinned })}
-            >
-              {pane.pinned ? 'Unpin' : 'Pin'}
-            </button>
-            <button
-              type="button"
-              className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary"
-              onClick={() => onSelectPane(pane.pane_id)}
-            >
-              Open pane route
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-3">
-          <label className="flex flex-col gap-1 text-xs text-muted" htmlFor="pane-name-input">
-            Pane name
-            <input
-              key={pane.pane_id}
-              id="pane-name-input"
-              defaultValue={pane.name}
-              disabled={!canEditPane}
-              onBlur={(event) => {
-                if (!canEditPane) {
-                  return;
-                }
-                const nextName = event.target.value.trim();
-                if (nextName && nextName !== pane.name) {
-                  runPaneUpdate({ name: nextName });
-                }
-              }}
-              className="rounded-panel border border-border-muted bg-surface px-3 py-1.5 text-sm text-text"
-            />
-          </label>
-        </div>
-        {canEditPane ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-              onClick={() => handleTogglePaneRegion('modules_enabled')}
-            >
-              {modulesEnabled ? 'Hide modules' : 'Show modules'}
-            </button>
-            <button
-              type="button"
-              className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-              onClick={() => handleTogglePaneRegion('workspace_enabled')}
-            >
-              {workspaceEnabled ? 'Hide workspace doc' : 'Show workspace doc'}
-            </button>
-          </div>
-        ) : (
-          <p className="mt-3 text-xs text-muted">Read-only.</p>
-        )}
+        <h2 className="heading-3 text-primary">{pane.name}</h2>
         {moduleError ? <p className="mt-2 text-xs text-danger">{moduleError}</p> : null}
       </header>
 

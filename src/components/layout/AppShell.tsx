@@ -1,4 +1,4 @@
-import { type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
@@ -23,7 +23,7 @@ import { CalendarModuleSkin, type CalendarScope } from '../project-space/Calenda
 import { RemindersModuleSkin } from '../project-space/RemindersModuleSkin';
 import { TasksModuleSkin } from '../project-space/TasksModuleSkin';
 import { adaptTaskSummaries } from '../project-space/taskAdapter';
-import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent } from '../primitives';
+import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent, notifyError, notifyInfo, notifySuccess } from '../primitives';
 import { NotificationsPanel } from './NotificationsPanel';
 import { ProfileMenu } from './ProfileMenu';
 import { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from './QuickAddDialogs';
@@ -55,8 +55,8 @@ import {
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { sessionSummary, canGlobal, accessToken, signOut } = useAuthz();
-  const { projects, refreshProjects } = useProjects();
+  const { sessionSummary, calendarFeedUrl, canGlobal, accessToken, signOut } = useAuthz();
+  const { projects, upsertProject } = useProjects();
 
   useRouteFocusReset();
 
@@ -88,6 +88,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installState, setInstallState] = useState<{ installed: boolean; iosSafari: boolean }>({
+    installed: false,
+    iosSafari: false,
+  });
   const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
   const [quickNavQuery, setQuickNavQuery] = useState('');
   const [quickNavActiveIndex, setQuickNavActiveIndex] = useState(-1);
@@ -506,16 +511,19 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         setProjectDialogError(created.error || 'Project creation failed.');
         return;
       }
+      const createdProject = created.data;
       setQuickAddDialog(null);
       setProjectDialogName('');
-      await refreshProjects();
-      navigate(`/projects/${encodeURIComponent(created.data.id)}/overview`);
+      upsertProject(createdProject);
+      startTransition(() => {
+        navigate(`/projects/${encodeURIComponent(createdProject.id)}/overview`);
+      });
     } catch (error) {
       setProjectDialogError(error instanceof Error ? error.message : 'Project creation failed.');
     } finally {
       setProjectDialogSubmitting(false);
     }
-  }, [accessToken, navigate, projectDialogName, refreshProjects]);
+  }, [accessToken, navigate, projectDialogName, upsertProject]);
 
   useEffect(() => {
     if (!captureOpen) {
@@ -1221,6 +1229,138 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     await remindersRuntime.refresh();
   }, [accessToken, remindersRuntime]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const standaloneMedia = window.matchMedia('(display-mode: standalone)');
+    const computeInstallState = () => {
+      const userAgent = window.navigator.userAgent;
+      const isIos = /iPhone|iPad|iPod/i.test(userAgent)
+        || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+      const isSafari = /Safari/i.test(userAgent)
+        && !/Chrome|CriOS|Edg|OPR|Firefox|FxiOS|Android/i.test(userAgent);
+      const installed = standaloneMedia.matches || window.navigator.standalone === true;
+      setInstallState({
+        installed,
+        iosSafari: isIos && isSafari,
+      });
+      if (installed) {
+        setDeferredInstallPrompt(null);
+      }
+    };
+
+    const onBeforeInstallPrompt = (event: Event) => {
+      const installEvent = event as BeforeInstallPromptEvent;
+      installEvent.preventDefault();
+      setDeferredInstallPrompt(installEvent);
+      computeInstallState();
+    };
+
+    const onAppInstalled = () => {
+      setDeferredInstallPrompt(null);
+      computeInstallState();
+    };
+
+    computeInstallState();
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+    standaloneMedia.addEventListener('change', computeInstallState);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
+      standaloneMedia.removeEventListener('change', computeInstallState);
+    };
+  }, []);
+
+  const onCopyCalendarLink = useCallback(() => {
+    const url = calendarFeedUrl.trim();
+    if (!url) {
+      notifyError('Could not copy calendar link.', 'Calendar link is not available yet.');
+      return;
+    }
+
+    const fallbackCopy = () => {
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.setAttribute('readonly', 'true');
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      textArea.style.pointerEvents = 'none';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const copied = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return copied;
+    };
+
+    if (navigator.clipboard?.writeText) {
+      const copyRequest = navigator.clipboard.writeText(url);
+      void copyRequest
+        .then(() => {
+          notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
+        })
+        .catch(() => {
+          if (fallbackCopy()) {
+            notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
+            return;
+          }
+          notifyError('Could not copy calendar link.');
+        });
+      return;
+    }
+
+    if (fallbackCopy()) {
+      notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
+      return;
+    }
+    notifyError('Could not copy calendar link.');
+  }, [calendarFeedUrl]);
+
+  const onInstallHubOs = useCallback(async () => {
+    if (installState.installed) {
+      return;
+    }
+
+    if (deferredInstallPrompt) {
+      setProfileOpen(false);
+      const promptEvent = deferredInstallPrompt;
+      setDeferredInstallPrompt(null);
+      try {
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
+        if (choice.outcome === 'dismissed') {
+          notifyInfo('Install cancelled.');
+        }
+      } catch {
+        notifyError('Could not open the install prompt.');
+      }
+      return;
+    }
+
+    if (installState.iosSafari) {
+      setProfileOpen(false);
+      notifyInfo('Add to Home Screen', 'In Safari, tap Share, then tap Add to Home Screen.');
+    }
+  }, [deferredInstallPrompt, installState.installed, installState.iosSafari]);
+
+  const installMenuLabel = useMemo(() => {
+    if (installState.installed) {
+      return null;
+    }
+    if (deferredInstallPrompt) {
+      return 'Install Hub OS';
+    }
+    if (installState.iosSafari) {
+      return 'Add to Home Screen';
+    }
+    return null;
+  }, [deferredInstallPrompt, installState.installed, installState.iosSafari]);
+  const hasCalendarFeedUrl = calendarFeedUrl.trim().length > 0;
+
   const accountInitials = sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId);
   const avatarUrl = buildAccountAvatarUrl(accountInitials, sessionSummary.userId || sessionSummary.email || sessionSummary.name);
 
@@ -1630,7 +1770,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Calendar"
           description="Your personal calendar across all projects."
-          panelClassName="!top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] !w-[min(96vw,96rem)] !max-w-[min(96vw,96rem)] flex flex-col overflow-hidden"
+          panelClassName="dialog-panel-expanded-size !top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] flex flex-col overflow-hidden"
           contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
           <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -1675,7 +1815,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Tasks"
           description="All your tasks across projects."
-          panelClassName="!top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] !w-[min(96vw,64rem)] !max-w-[min(96vw,64rem)] flex flex-col overflow-hidden"
+          panelClassName="dialog-panel-wide-size !top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] flex flex-col overflow-hidden"
           contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
           <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -1711,7 +1851,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           triggerRef={quickNavTriggerRef}
           title="Reminders"
           description="Your active reminders."
-          panelClassName="w-[min(92vw,400px)] max-w-[400px] sm:min-w-[360px]"
+          panelClassName="dialog-panel-compact-size"
         >
           <RemindersModuleSkin
             sizeTier="L"
@@ -1876,6 +2016,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               avatarUrl={avatarUrl}
               avatarBroken={avatarBroken}
               menuRef={profileMenuRef}
+              onCopyCalendarLink={hasCalendarFeedUrl ? () => {
+                void onCopyCalendarLink();
+              } : undefined}
+              installLabel={installMenuLabel}
+              onInstall={
+                installMenuLabel
+                  ? () => {
+                      void onInstallHubOs();
+                    }
+                  : undefined
+              }
               onNavigateProjects={onNavigateProjectsFromProfileMenu}
               onLogout={onLogoutFromProfileMenu}
             />

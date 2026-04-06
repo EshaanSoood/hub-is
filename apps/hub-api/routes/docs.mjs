@@ -23,8 +23,6 @@ export const createDocRoutes = (deps) => {
     createNotification,
     notificationContextForSource,
     materializeMentions,
-    issueCollabTicket,
-    consumeCollabTicket,
     assignmentsByRecordStmt,
     docByIdStmt,
     paneMembersByPaneStmt,
@@ -755,16 +753,6 @@ export const createDocRoutes = (deps) => {
       return;
     }
 
-    const ticket = issueCollabTicket({
-      docId,
-      paneId: docGate.pane_id,
-      projectId: docGate.project_id,
-      userId: auth.user.user_id,
-      displayName: auth.user.display_name,
-      accessToken: auth.token,
-      canEdit: docGate.can_edit,
-    });
-
     send(
       response,
       jsonResponse(
@@ -777,49 +765,14 @@ export const createDocRoutes = (deps) => {
             user_id: auth.user.user_id,
             display_name: auth.user.display_name,
             can_edit: docGate.can_edit,
-            ws_ticket: ticket.ws_ticket,
-            ticket_issued_at: ticket.issued_at,
-            ticket_expires_at: ticket.expires_at,
-            ticket_expires_in_ms: ticket.expires_in_ms,
           },
         }),
       ),
     );
   };
 
-  const consumeCollab = async ({ request, response }) => {
-    let body;
-    try {
-      body = await parseBody(request);
-    } catch (error) {
-      request.log.warn('Failed to parse request body for collab ticket consume.', { error });
-      send(response, parseBody.errorResponse(error));
-      return;
-    }
-    if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_json', 'Body must be valid JSON.')));
-      return;
-    }
-
-    const docId = asText(body.doc_id);
-    const wsTicket = asText(body.ws_ticket);
-    if (!docId || !wsTicket) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'doc_id and ws_ticket are required.')));
-      return;
-    }
-
-    const consumed = consumeCollabTicket({ wsTicket, docId });
-    if (consumed.error) {
-      send(response, jsonResponse(consumed.error.status, errorEnvelope(consumed.error.code, consumed.error.message)));
-      return;
-    }
-
-    send(response, jsonResponse(200, okEnvelope({ ticket: consumed.ticket })));
-  };
-
   return {
     authorizeCollab,
-    consumeCollab,
     createComment,
     createDocAnchorComment,
     getDoc,

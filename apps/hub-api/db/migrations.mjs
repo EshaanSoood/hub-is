@@ -50,6 +50,15 @@ export const runMigrations = (db) => {
   };
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS calendar_feed_tokens (
+      token TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    );
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS pending_project_invites (
       invite_request_id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL,

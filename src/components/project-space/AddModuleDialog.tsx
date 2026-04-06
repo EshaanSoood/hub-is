@@ -1,10 +1,6 @@
-import { useId, useState, type RefObject } from 'react';
-import { cn } from '../../lib/cn';
-import { Dialog, Icon, Select } from '../primitives';
-import type { ContractModuleConfig } from './ModuleGrid';
-import { MODULE_CATALOG, clampModuleSizeTier, moduleDescription, moduleIconName } from './moduleCatalog';
-
-type ModuleSizeTier = ContractModuleConfig['size_tier'];
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { Dialog, Icon } from '../primitives';
+import { MODULE_CATALOG, moduleDescription, moduleIconName, type ModuleSizeTier } from './moduleCatalog';
 
 interface AddModuleDialogProps {
   open: boolean;
@@ -13,34 +9,19 @@ interface AddModuleDialogProps {
   triggerRef?: RefObject<HTMLElement | null>;
 }
 
-const SIZE_OPTIONS: Array<{ value: ModuleSizeTier; label: string }> = [
-  { value: 'S', label: 'S · compact' },
-  { value: 'M', label: 'M · balanced' },
-  { value: 'L', label: 'L · spacious' },
-];
-
-const previewGridClass: Record<ModuleSizeTier, string> = {
-  S: 'sm:grid-cols-3',
-  M: 'sm:grid-cols-2',
-  L: 'sm:grid-cols-1',
-};
-
-const previewCardClass: Record<ModuleSizeTier, string> = {
-  S: 'min-h-32 p-3',
-  M: 'min-h-40 p-4',
-  L: 'min-h-48 p-5',
-};
-
-const previewIconWrapClass: Record<ModuleSizeTier, string> = {
-  S: 'h-9 w-9 text-base',
-  M: 'h-11 w-11 text-lg',
-  L: 'h-12 w-12 text-xl',
-};
-
-const previewLineWidthClass: Record<ModuleSizeTier, string> = {
-  S: 'w-16',
-  M: 'w-24',
-  L: 'w-32',
+const SIZE_TIER_COPY: Record<ModuleSizeTier, { title: string; hint: string }> = {
+  S: {
+    title: 'S · Compact',
+    hint: 'Best for lightweight modules that can share space beside other cards.',
+  },
+  M: {
+    title: 'M · Balanced',
+    hint: 'A medium footprint with enough room for browsing and quick edits.',
+  },
+  L: {
+    title: 'L · Spacious',
+    hint: 'Gives the module the widest canvas for dense or detailed content.',
+  },
 };
 
 export const AddModuleDialog = ({
@@ -49,96 +30,135 @@ export const AddModuleDialog = ({
   onAddModule,
   triggerRef,
 }: AddModuleDialogProps) => {
-  const sizeSelectId = useId();
-  const [selectedSize, setSelectedSize] = useState<ModuleSizeTier>('M');
+  const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const firstModuleButtonRef = useRef<HTMLButtonElement | null>(null);
+  const backButtonRef = useRef<HTMLButtonElement | null>(null);
+  const selectedEntry = useMemo(
+    () => (selectedModule ? MODULE_CATALOG.find((entry) => entry.type === selectedModule) ?? null : null),
+    [selectedModule],
+  );
+  const handleClose = useCallback(() => {
+    setSelectedModule(null);
+    onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setSelectedModule(null);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      if (selectedModule) {
+        backButtonRef.current?.focus();
+        return;
+      }
+      firstModuleButtonRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, selectedModule]);
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Add Module"
-      description="Choose a module type and preview the size it will use in this pane."
+      description="Choose a module, then choose the size to add to this pane."
       triggerRef={triggerRef}
-      panelClassName="max-w-4xl"
+      panelClassName="max-h-[88vh] overflow-y-auto"
+      contentClassName="pr-1"
     >
-      <div className="space-y-5">
-        <div className="flex flex-col gap-4 border-b border-subtle pb-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-primary">Choose a module</p>
-            <p className="text-sm text-muted">
-              Pick the size first, then choose the module that fits this pane.
-            </p>
+      {selectedEntry ? (
+        <div className="space-y-5">
+          <button
+            ref={backButtonRef}
+            type="button"
+            onClick={() => setSelectedModule(null)}
+            className="text-sm font-medium text-primary transition hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            aria-label="Back to module list"
+          >
+            ← Back to modules
+          </button>
+
+          <div className="flex items-center gap-3 rounded-panel border border-subtle bg-surface p-4">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-control border border-border-muted bg-elevated text-primary">
+              {moduleIconName(selectedEntry.type) ? (
+                <Icon name={moduleIconName(selectedEntry.type)!} className="h-10 w-10" />
+              ) : (
+                <Icon name="plus" className="h-10 w-10" />
+              )}
+            </div>
+            <div className="min-w-0 space-y-1">
+              <h3 className="text-base font-semibold text-text">{selectedEntry.label}</h3>
+              <p className="text-sm text-muted">{moduleDescription(selectedEntry.type)}</p>
+            </div>
           </div>
-          <label className="flex min-w-48 flex-col gap-1 text-sm text-muted" htmlFor={sizeSelectId}>
-            Module size
-            <Select
-              id={sizeSelectId}
-              ariaLabel="Module size"
-              value={selectedSize}
-              onValueChange={(value) => {
-                if (value === 'S' || value === 'M' || value === 'L') {
-                  setSelectedSize(value);
-                }
-              }}
-              options={SIZE_OPTIONS}
-            />
-          </label>
-        </div>
 
-        <div className={cn('grid gap-3', previewGridClass[selectedSize])} aria-label="Module picker">
-          {MODULE_CATALOG.map((entry) => {
-            const displaySize = clampModuleSizeTier(entry.type, selectedSize);
-
-            return (
+          <div className="space-y-3" role="group" aria-label={`${selectedEntry.label} size picker`}>
+            {selectedEntry.allowedSizeTiers.map((tier) => (
               <button
-                key={entry.type}
+                key={tier}
                 type="button"
                 onClick={() => {
-                  onAddModule(entry.type, displaySize);
-                  onClose();
+                  onAddModule(selectedEntry.type, tier);
+                  handleClose();
                 }}
-                className={cn(
-                  'group flex h-full flex-col rounded-panel border border-border-muted bg-surface text-left transition hover:border-primary hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-                  previewCardClass[displaySize],
-                )}
-                aria-label={`Add ${entry.label} module at ${displaySize} size`}
+                className="flex w-full flex-col items-start gap-2 rounded-panel border border-border-muted bg-surface p-4 text-left transition hover:border-primary hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                aria-label={`Add ${selectedEntry.label} at ${tier} size`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div
-                    className={cn(
-                      'inline-flex items-center justify-center rounded-control border border-border-muted bg-elevated text-primary',
-                      previewIconWrapClass[displaySize],
-                    )}
-                  >
-                    {moduleIconName(entry.type) ? (
-                      <Icon name={moduleIconName(entry.type)!} className="text-[1em]" />
-                    ) : (
-                      <Icon name="plus" className="text-[0.9em]" />
-                    )}
-                  </div>
-                  <span className="rounded-control border border-border-muted bg-elevated px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
-                    {displaySize}
-                  </span>
-                </div>
+                <span className="text-sm font-semibold text-text">{SIZE_TIER_COPY[tier].title}</span>
+                <span className="text-sm text-muted">{SIZE_TIER_COPY[tier].hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-primary">Choose a module</p>
+            <p className="text-sm text-muted">Pick a module first, then choose the size that fits this pane.</p>
+          </div>
 
-                <div className="mt-4 space-y-2">
+          <p className="text-xs text-muted">{MODULE_CATALOG.length} modules available</p>
+
+          <div className="grid grid-cols-2 gap-3 pb-1" role="group" aria-label="Module picker">
+            {MODULE_CATALOG.map((entry, index) => (
+              <button
+                key={entry.type}
+                ref={index === 0 ? firstModuleButtonRef : undefined}
+                type="button"
+                onClick={() => setSelectedModule(entry.type)}
+                className="flex min-h-32 flex-col gap-3 rounded-panel border border-border-muted bg-surface p-4 text-left transition hover:border-primary hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                aria-label={`Select ${entry.label} module`}
+              >
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-control border border-border-muted bg-elevated text-primary">
+                  {moduleIconName(entry.type) ? (
+                    <Icon name={moduleIconName(entry.type)!} className="h-10 w-10" />
+                  ) : (
+                    <Icon name="plus" className="h-10 w-10" />
+                  )}
+                </div>
+                <div className="min-w-0 space-y-1">
                   <p className="text-sm font-semibold text-text">{entry.label}</p>
-                  <p className="text-sm text-muted">{moduleDescription(entry.type)}</p>
-                </div>
-
-                <div className="mt-auto pt-4">
-                  <div className="space-y-2 rounded-control border border-dashed border-border-muted bg-elevated/70 p-3">
-                    <div className={cn('h-2 rounded-full bg-border-subtle', previewLineWidthClass[displaySize])} />
-                    <div className="h-2 w-full rounded-full bg-border-subtle" />
-                    {displaySize !== 'S' ? <div className="h-2 w-4/5 rounded-full bg-border-subtle" /> : null}
-                    {displaySize === 'L' ? <div className="h-12 rounded-control bg-surface" /> : null}
-                  </div>
+                  <p className="truncate text-xs text-muted">{moduleDescription(entry.type)}</p>
                 </div>
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </Dialog>
   );
 };

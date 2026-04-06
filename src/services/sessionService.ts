@@ -4,6 +4,7 @@ import { buildHubAuthHeaders } from './hubAuthHeaders';
 
 interface MeResponse {
   sessionSummary: SessionSummary;
+  calendar_feed_url?: string;
 }
 
 export const fetchSessionSummary = async (accessToken: string): Promise<SessionSummary> => {
@@ -13,5 +14,8 @@ export const fetchSessionSummary = async (accessToken: string): Promise<SessionS
   });
 
   const data = await readEnvelope<MeResponse>(response);
-  return data.sessionSummary;
+  return {
+    ...data.sessionSummary,
+    calendarFeedUrl: data.calendar_feed_url ?? data.sessionSummary.calendarFeedUrl ?? '',
+  };
 };

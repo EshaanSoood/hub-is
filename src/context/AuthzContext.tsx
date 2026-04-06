@@ -15,6 +15,7 @@ import type {
 interface AuthzContextValue {
   user: UserIdentity;
   sessionSummary: SessionSummary;
+  calendarFeedUrl: string;
   signedIn: boolean;
   authReady: boolean;
   keycloakConfigured: boolean;
@@ -40,6 +41,7 @@ const emptySessionSummary: SessionSummary = {
   projectMemberships: [],
   globalCapabilities: [],
   projectCapabilities: {},
+  calendarFeedUrl: '',
 };
 
 const toUserRole = (role: SessionRole): UserIdentity['role'] => {
@@ -264,6 +266,7 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
     () => ({
       user,
       sessionSummary,
+      calendarFeedUrl: sessionSummary.calendarFeedUrl,
       signedIn,
       authReady,
       keycloakConfigured,

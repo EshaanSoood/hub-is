@@ -7,6 +7,9 @@ interface ProfileMenuProps {
   avatarUrl: string;
   avatarBroken: boolean;
   menuRef: RefObject<HTMLDivElement | null>;
+  onCopyCalendarLink?: () => void;
+  installLabel?: string | null;
+  onInstall?: () => void;
   onNavigateProjects: () => void;
   onLogout: () => void;
 }
@@ -17,6 +20,9 @@ export const ProfileMenu: FC<ProfileMenuProps> = ({
   avatarUrl,
   avatarBroken,
   menuRef,
+  onCopyCalendarLink,
+  installLabel,
+  onInstall,
   onNavigateProjects,
   onLogout,
 }) => (
@@ -42,6 +48,28 @@ export const ProfileMenu: FC<ProfileMenuProps> = ({
       </div>
     </div>
 
+    {onCopyCalendarLink ? (
+      <button
+        type="button"
+        role="menuitem"
+        aria-label="Copy calendar subscription link"
+        className="block w-full px-md py-sm text-left text-sm text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        onClick={onCopyCalendarLink}
+      >
+        Copy calendar link
+      </button>
+    ) : null}
+    {installLabel && onInstall ? (
+      <button
+        type="button"
+        role="menuitem"
+        aria-label="Install Hub OS app."
+        className="block w-full px-md py-sm text-left text-sm text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        onClick={onInstall}
+      >
+        {installLabel}
+      </button>
+    ) : null}
     <button
       type="button"
       role="menuitem"

@@ -4,16 +4,28 @@ export const createUserRoutes = (deps) => {
     send,
     jsonResponse,
     okEnvelope,
+    buildCalendarFeedUrl,
+    getOrCreateCalendarFeedToken,
     membershipRoleLabel,
     projectMembershipsByUserStmt,
   } = deps;
 
-  const getSession = withPolicyGate('hub.view', async ({ response, auth, sessionSummary }) => {
+  const getSession = withPolicyGate('hub.view', async ({ request, response, auth, sessionSummary }) => {
     const memberships = projectMembershipsByUserStmt.all(auth.user.user_id).map((row) => ({
       project_id: row.project_id,
       role: membershipRoleLabel(row.role),
       joined_at: row.joined_at,
     }));
+    let calendarFeedUrl = '';
+    try {
+      const calendarFeedToken = getOrCreateCalendarFeedToken(auth.user.user_id);
+      calendarFeedUrl = buildCalendarFeedUrl(calendarFeedToken.token);
+    } catch (error) {
+      request.log?.error?.('Failed to resolve calendar feed URL for session bootstrap.', {
+        userId: auth.user.user_id,
+        error,
+      });
+    }
 
     send(
       response,
@@ -27,6 +39,7 @@ export const createUserRoutes = (deps) => {
             email: auth.user.email,
           },
           memberships,
+          calendar_feed_url: calendarFeedUrl,
           sessionSummary,
         }),
       ),
