@@ -6,6 +6,9 @@ export type MediaEmbedMatch = {
   originalUrl: string;
 };
 
+export const isMediaEmbedProvider = (value: unknown): value is MediaEmbedProvider =>
+  value === 'youtube' || value === 'vimeo' || value === 'spotify' || value === 'soundcloud';
+
 const normalizeHostname = (hostname: string): string => hostname.trim().toLowerCase().replace(/^www\./, '');
 
 const readYouTubeVideoId = (url: URL): string | null => {
@@ -133,3 +136,23 @@ export const matchMediaEmbed = (candidate: string): MediaEmbedMatch | null => {
   );
 };
 
+export const resolveSerializedMediaEmbed = (
+  provider: unknown,
+  embedUrl: string,
+  originalUrl: string,
+): MediaEmbedMatch | null => {
+  if (!isMediaEmbedProvider(provider)) {
+    return null;
+  }
+
+  const match = matchMediaEmbed(originalUrl);
+  if (!match || match.provider !== provider) {
+    return null;
+  }
+
+  if (match.embedUrl !== embedUrl.trim()) {
+    return match;
+  }
+
+  return match;
+};

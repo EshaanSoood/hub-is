@@ -99,7 +99,7 @@ export const createViewRoutes = (deps) => {
     clearRemindersStmt,
     insertReminderStmt,
     calendarRecordsByProjectStmt,
-    calendarFeedTokenByTokenStmt,
+    findCalendarFeedTokenRecord,
     eventParticipantByRecordAndUserStmt,
     projectMembershipsByUserStmt,
     projectByIdStmt,
@@ -492,7 +492,14 @@ export const createViewRoutes = (deps) => {
       return;
     }
 
-    const tokenRecord = calendarFeedTokenByTokenStmt.get(token);
+    let tokenRecord = null;
+    try {
+      tokenRecord = findCalendarFeedTokenRecord(token);
+    } catch (error) {
+      request.log?.error?.('Failed to resolve calendar feed token.', { error });
+      send(response, jsonResponse(503, errorEnvelope('unavailable', 'Calendar feed is unavailable.')));
+      return;
+    }
     if (!tokenRecord?.user_id) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Calendar feed not found.')));
       return;

@@ -37,6 +37,7 @@ export const createProjectRoutes = (deps) => {
     deletePendingInviteStmt,
     updatePendingInviteDecisionStmt,
     ensureKeycloakInviteOnboarding,
+    cleanupKeycloakInviteOnboarding,
     sendHubInviteEmail,
     insertProjectStmt,
     insertProjectMemberStmt,
@@ -330,8 +331,9 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
+    let onboardingResult = null;
     if (!existingUser) {
-      const onboardingResult = await ensureKeycloakInviteOnboarding({
+      onboardingResult = await ensureKeycloakInviteOnboarding({
         email,
         requestLog: request.log,
       });
@@ -380,6 +382,21 @@ export const createProjectRoutes = (deps) => {
           email,
           error: cleanupError,
         });
+      }
+      if (onboardingResult?.data?.created && onboardingResult.data.userId) {
+        const cleanupResult = await cleanupKeycloakInviteOnboarding({
+          userId: onboardingResult.data.userId,
+          requestLog: request.log,
+        });
+        if (cleanupResult.error) {
+          request.log.error('Failed to clean up Keycloak invite onboarding after email failure.', {
+            projectId,
+            inviteRequestId,
+            email,
+            userId: onboardingResult.data.userId,
+            error: cleanupResult.error,
+          });
+        }
       }
       send(response, jsonResponse(inviteEmail.error.status, errorEnvelope(inviteEmail.error.code, inviteEmail.error.message)));
       return;

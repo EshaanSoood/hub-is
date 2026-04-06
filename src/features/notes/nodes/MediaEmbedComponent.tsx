@@ -2,7 +2,7 @@ import { useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useLexicalEditable } from '@lexical/react/useLexicalEditable';
 import { $createParagraphNode, $createTextNode, $getNodeByKey, type NodeKey } from 'lexical';
-import type { MediaEmbedProvider } from '../../../lib/mediaEmbed';
+import { resolveSerializedMediaEmbed, type MediaEmbedProvider } from '../../../lib/mediaEmbed';
 import { $isMediaEmbedNode } from './MediaEmbedNode';
 
 interface MediaEmbedComponentProps {
@@ -50,7 +50,10 @@ export const MediaEmbedComponent = ({
 }: MediaEmbedComponentProps) => {
   const [editor] = useLexicalComposerContext();
   const editable = useLexicalEditable();
-  const title = mediaTitle(provider);
+  const validatedEmbed = resolveSerializedMediaEmbed(provider, embedUrl, originalUrl);
+  const safeProvider = validatedEmbed?.provider ?? provider;
+  const safeOriginalUrl = validatedEmbed?.originalUrl ?? originalUrl;
+  const title = mediaTitle(safeProvider);
 
   const moveSelectionAroundEmbed = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -101,24 +104,31 @@ export const MediaEmbedComponent = ({
       aria-roledescription="embedded media"
       onKeyDown={moveSelectionAroundEmbed}
     >
-      <div className={`w-full overflow-hidden rounded-panel border border-border-muted bg-elevated ${wrapperSizeClass(provider, originalUrl)}`}>
-        <iframe
-          src={embedUrl}
-          title={title}
-          className="h-full w-full border-0"
-          allow="autoplay; encrypted-media"
-          allowFullScreen
-          loading="lazy"
-        />
+      <div className={`w-full overflow-hidden rounded-panel border border-border-muted bg-elevated ${wrapperSizeClass(safeProvider, safeOriginalUrl)}`}>
+        {validatedEmbed ? (
+          <iframe
+            src={validatedEmbed.embedUrl}
+            title={title}
+            className="h-full w-full border-0"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            loading="lazy"
+            sandbox="allow-scripts allow-same-origin"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center px-4 text-sm text-muted">
+            Embedded media unavailable.
+          </div>
+        )}
       </div>
       <div className="pointer-events-none absolute right-2 top-2 flex max-w-[calc(100%-1rem)] items-center gap-2 rounded-control border border-border-muted bg-surface-elevated/95 px-2 py-1 text-xs opacity-0 shadow-sm transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
         <a
-          href={originalUrl}
+          href={safeOriginalUrl}
           target="_blank"
           rel="noreferrer"
           className="max-w-52 truncate text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         >
-          {originalUrl}
+          {safeOriginalUrl}
         </a>
         {editable ? (
           <button

@@ -2,6 +2,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
+  createHmac,
   randomBytes,
   randomUUID,
 } from 'node:crypto';
@@ -47,9 +48,10 @@ const HUB_COLLAB_TICKET_TTL_MS_RAW = Number.parseInt(String(process.env.HUB_COLL
 const TUWUNEL_INTERNAL_URL = (process.env.TUWUNEL_INTERNAL_URL || 'http://tuwunel:6167').trim() || 'http://tuwunel:6167';
 const TUWUNEL_REGISTRATION_SHARED_SECRET = (process.env.TUWUNEL_REGISTRATION_SHARED_SECRET || '').trim();
 const MATRIX_ACCOUNT_ENCRYPTION_KEY = (process.env.MATRIX_ACCOUNT_ENCRYPTION_KEY || '').trim();
+const HUB_CALENDAR_FEED_TOKEN_SECRET = (process.env.HUB_CALENDAR_FEED_TOKEN_SECRET || MATRIX_ACCOUNT_ENCRYPTION_KEY || '').trim();
 const HUB_API_MAX_BODY_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_MAX_BODY_BYTES || '1048576'), 10);
 const HUB_API_LARGE_BODY_MAX_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_LARGE_BODY_MAX_BYTES || '52428800'), 10);
-const POSTMARK_SERVER_TOKEN = (process.env.POSTMARK_SERVER_TOKEN || process.env.VITE_POSTMARK_SERVER_TOKEN || '').trim();
+const POSTMARK_SERVER_TOKEN = (process.env.POSTMARK_SERVER_TOKEN || '').trim();
 const POSTMARK_FROM_EMAIL = (process.env.POSTMARK_FROM_EMAIL || process.env.VITE_POSTMARK_FROM_EMAIL || '').trim();
 const POSTMARK_MESSAGE_STREAM = (process.env.POSTMARK_MESSAGE_STREAM || 'outbound').trim() || 'outbound';
 const POSTMARK_API_BASE_URL = (process.env.POSTMARK_API_BASE_URL || 'https://api.postmarkapp.com').trim().replace(/\/+$/, '');
@@ -78,6 +80,21 @@ const asNullableText = (value) => {
   const normalized = asText(value);
   return normalized || null;
 };
+const CALENDAR_FEED_TOKEN_HASH_PREFIX = 'h1:';
+const calendarFeedTokenSecret = () => {
+  if (!HUB_CALENDAR_FEED_TOKEN_SECRET) {
+    throw new Error('Calendar feed token secret is unavailable.');
+  }
+  return HUB_CALENDAR_FEED_TOKEN_SECRET;
+};
+const deriveCalendarFeedToken = (userId) =>
+  createHmac('sha256', calendarFeedTokenSecret())
+    .update(`calendar-feed:user:${asText(userId)}`)
+    .digest('hex');
+const hashCalendarFeedToken = (token) =>
+  `${CALENDAR_FEED_TOKEN_HASH_PREFIX}${createHmac('sha256', calendarFeedTokenSecret())
+    .update(`calendar-feed:token:${asText(token)}`)
+    .digest('hex')}`;
 
 const HUB_POSTMARK_INVITE_TEMPLATE = `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -677,6 +694,29 @@ const sendKeycloakInviteActionsEmail = async ({ accessToken, userId, requestLog 
   return { data: { sent: true } };
 };
 
+const deleteKeycloakUser = async ({ accessToken, userId, requestLog = null }) => {
+  const response = await keycloakAdminRequest({
+    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users/${encodeURIComponent(userId)}`,
+    method: 'DELETE',
+    accessToken,
+    requestLog,
+  });
+  if (response.error) {
+    return response;
+  }
+  if (![204, 404].includes(response.upstream.status)) {
+    return {
+      error: {
+        status: 502,
+        code: 'upstream_error',
+        message: `Keycloak user delete failed (${response.upstream.status}).`,
+      },
+    };
+  }
+
+  return { data: { deleted: response.upstream.status === 204 } };
+};
+
 const ensureKeycloakInviteOnboarding = async ({ email, requestLog = null }) => {
   const normalizedEmail = asText(email).toLowerCase();
   if (!normalizedEmail) {
@@ -701,6 +741,7 @@ const ensureKeycloakInviteOnboarding = async ({ email, requestLog = null }) => {
   }
 
   let user = existingLookup.data;
+  const createdUser = !existingLookup.data;
   if (!user) {
     const created = await createKeycloakInviteUser({ accessToken, email: normalizedEmail, requestLog });
     if (created.error) {
@@ -718,22 +759,42 @@ const ensureKeycloakInviteOnboarding = async ({ email, requestLog = null }) => {
     };
   }
 
-  const actionEmail = await sendKeycloakInviteActionsEmail({
-    accessToken,
-    userId: asText(user.id),
-    requestLog,
-  });
-  if (actionEmail.error) {
-    return actionEmail;
+  if (createdUser) {
+    const actionEmail = await sendKeycloakInviteActionsEmail({
+      accessToken,
+      userId: asText(user.id),
+      requestLog,
+    });
+    if (actionEmail.error) {
+      return actionEmail;
+    }
   }
 
   return {
     data: {
       userId: asText(user.id),
       email: normalizedEmail,
-      created: !existingLookup.data,
+      created: createdUser,
     },
   };
+};
+
+const cleanupKeycloakInviteOnboarding = async ({ userId, requestLog = null }) => {
+  const normalizedUserId = asText(userId);
+  if (!normalizedUserId) {
+    return { data: { deleted: false } };
+  }
+
+  const tokenResult = await acquireKeycloakAdminToken(requestLog);
+  if (tokenResult.error) {
+    return tokenResult;
+  }
+
+  return deleteKeycloakUser({
+    accessToken: tokenResult.data.accessToken,
+    userId: normalizedUserId,
+    requestLog,
+  });
 };
 
 const sendPostmarkEmail = async ({
@@ -1226,29 +1287,41 @@ const getOrCreateCalendarFeedToken = (userId) => {
     throw new Error('User ID is required to issue a calendar feed token.');
   }
 
+  const token = deriveCalendarFeedToken(normalizedUserId);
+  const storedToken = hashCalendarFeedToken(token);
   const existing = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
-  if (existing) {
-    return existing;
+  if (existing && asText(existing.token) === storedToken) {
+    return {
+      token,
+      user_id: normalizedUserId,
+      created_at: existing.created_at,
+    };
   }
 
   return withTransaction(db, () => {
     const current = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
-    if (current) {
-      return current;
+    const createdAt = asText(current?.created_at) || nowIso();
+    if (!current || asText(current.token) !== storedToken) {
+      insertCalendarFeedTokenStmt.run(storedToken, normalizedUserId, createdAt);
     }
-
-    const created = {
-      token: randomBytes(32).toString('hex'),
+    return {
+      token,
       user_id: normalizedUserId,
-      created_at: nowIso(),
+      created_at: createdAt,
     };
-    insertCalendarFeedTokenStmt.run(created.token, created.user_id, created.created_at);
-    return created;
   });
 };
 
 const buildCalendarFeedUrl = (token) =>
   `${HUB_PUBLIC_APP_URL}/api/hub/calendar.ics?token=${encodeURIComponent(asText(token))}`;
+
+const findCalendarFeedTokenRecord = (token) => {
+  const normalizedToken = asText(token);
+  if (!normalizedToken) {
+    return null;
+  }
+  return calendarFeedTokenByTokenStmt.get(hashCalendarFeedToken(normalizedToken)) || null;
+};
 
 const normalizeProjectRole = (role) => (asText(role) === 'owner' || asText(role) === 'admin' ? 'owner' : 'member');
 
@@ -2897,7 +2970,7 @@ const routeDeps = {
   buildSessionSummary,
   buildTaskSummaryForUser,
   capabilitiesByRecordStmt: stmts.recordCapabilities.listForRecord,
-  calendarFeedTokenByTokenStmt: stmts.calendarFeedTokens.findByToken,
+  findCalendarFeedTokenRecord,
   capabilitySet,
   collectionByIdStmt: stmts.collections.findById,
   collectionByNameStmt: stmts.collections.findByName,
@@ -2908,6 +2981,7 @@ const routeDeps = {
   commentStatusSet,
   createNotification,
   createPersonalTaskRecord,
+  cleanupKeycloakInviteOnboarding,
   defaultAssetRootByProjectStmt: stmts.assetRoots.findDefaultForProject,
   deleteAttachmentStmt: stmts.files.deleteAttachment,
   deletePaneMemberStmt: stmts.paneMembers.delete,

@@ -257,23 +257,29 @@ const server = new Server({
   async onAuthenticate({ connectionConfig, documentName, token }) {
     const authorization = await authorizeToken(token, documentName);
     connectionConfig.readOnly = authorization.canEdit !== true;
+    connectionConfig.accessToken = authorization.canEdit === true ? authorization.accessToken : '';
+    connectionConfig.snapshotAccessToken = authorization.accessToken;
     return authorization;
   },
   async onTokenSync({ connectionConfig, document, token }) {
     const authorization = await authorizeToken(token, document.name);
-    const meta = getDocumentMeta(document);
-    meta.accessToken = authorization.accessToken;
     connectionConfig.readOnly = authorization.canEdit !== true;
+    connectionConfig.accessToken = authorization.canEdit === true ? authorization.accessToken : '';
+    connectionConfig.snapshotAccessToken = authorization.accessToken;
     return authorization;
   },
   async onLoadDocument({ context, document, documentName }) {
     const meta = getDocumentMeta(document);
-    meta.accessToken = asText(context?.accessToken || meta.accessToken);
+    const snapshotAccessToken = asText(context?.snapshotAccessToken || context?.accessToken || meta.accessToken);
+    const editorAccessToken = asText(context?.accessToken);
+    if (editorAccessToken) {
+      meta.accessToken = editorAccessToken;
+    }
     meta.projectId = asText(context?.projectId || meta.projectId);
     meta.paneId = asText(context?.paneId || meta.paneId);
 
     const snapshot = await loadSnapshot({
-      accessToken: meta.accessToken,
+      accessToken: snapshotAccessToken,
       docId: documentName,
     });
 
@@ -287,11 +293,17 @@ const server = new Server({
   },
   async onChange({ context, document }) {
     const meta = getDocumentMeta(document);
-    meta.accessToken = asText(context?.accessToken || meta.accessToken);
+    const editorAccessToken = asText(context?.accessToken);
+    if (editorAccessToken) {
+      meta.accessToken = editorAccessToken;
+    }
   },
   async onStoreDocument({ context, document }) {
     const meta = getDocumentMeta(document);
-    meta.accessToken = asText(context?.accessToken || meta.accessToken);
+    const editorAccessToken = asText(context?.accessToken);
+    if (editorAccessToken) {
+      meta.accessToken = editorAccessToken;
+    }
     await persistSnapshot(document, meta);
   },
   async connected({ clientsCount, context, documentName }) {

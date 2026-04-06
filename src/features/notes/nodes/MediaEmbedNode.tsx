@@ -9,7 +9,7 @@ import {
   type SerializedLexicalNode,
   type Spread,
 } from 'lexical';
-import type { MediaEmbedProvider } from '../../../lib/mediaEmbed';
+import { resolveSerializedMediaEmbed, type MediaEmbedProvider } from '../../../lib/mediaEmbed';
 import { MediaEmbedComponent } from './MediaEmbedComponent';
 
 export type SerializedMediaEmbedNode = Spread<
@@ -60,7 +60,15 @@ export class MediaEmbedNode extends DecoratorNode<JSX.Element> {
   }
 
   static importJSON(serializedNode: SerializedMediaEmbedNode): MediaEmbedNode {
-    return new MediaEmbedNode(serializedNode.provider, serializedNode.embed_url, serializedNode.original_url);
+    const validatedEmbed = resolveSerializedMediaEmbed(
+      serializedNode.provider,
+      typeof serializedNode.embed_url === 'string' ? serializedNode.embed_url : '',
+      typeof serializedNode.original_url === 'string' ? serializedNode.original_url : '',
+    );
+    if (validatedEmbed) {
+      return new MediaEmbedNode(validatedEmbed.provider, validatedEmbed.embedUrl, validatedEmbed.originalUrl);
+    }
+    return new MediaEmbedNode('youtube', '', typeof serializedNode.original_url === 'string' ? serializedNode.original_url.trim() : '');
   }
 
   constructor(provider: MediaEmbedProvider, embedUrl: string, originalUrl: string, key?: NodeKey) {
@@ -83,13 +91,26 @@ export class MediaEmbedNode extends DecoratorNode<JSX.Element> {
 
   exportDOM(editor: LexicalEditor): DOMExportOutput {
     void editor;
+    const validatedEmbed = resolveSerializedMediaEmbed(this.__provider, this.__embedUrl, this.__originalUrl);
+    if (!validatedEmbed) {
+      const fallbackText = this.__originalUrl.trim();
+      const element = fallbackText ? document.createElement('a') : document.createElement('span');
+      if (fallbackText) {
+        element.setAttribute('href', fallbackText);
+        element.textContent = fallbackText;
+      } else {
+        element.textContent = 'Embedded media unavailable';
+      }
+      return { element };
+    }
     const element = document.createElement('iframe');
-    element.setAttribute('src', this.__embedUrl);
-    element.setAttribute('title', mediaTitle(this.__provider));
+    element.setAttribute('src', validatedEmbed.embedUrl);
+    element.setAttribute('title', mediaTitle(validatedEmbed.provider));
     element.setAttribute('loading', 'lazy');
     element.setAttribute('allow', 'autoplay; encrypted-media');
+    element.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     element.setAttribute('width', '100%');
-    element.setAttribute('height', mediaFrameHeight(this.__provider, this.__originalUrl));
+    element.setAttribute('height', mediaFrameHeight(validatedEmbed.provider, validatedEmbed.originalUrl));
     element.setAttribute('frameborder', '0');
     element.setAttribute('allowfullscreen', 'true');
     return { element };

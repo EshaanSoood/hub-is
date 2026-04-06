@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjects } from '../../context/ProjectsContext';
@@ -6,10 +6,36 @@ import { AccessDeniedView } from './AccessDeniedView';
 
 export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
   const { projectId = '' } = useParams();
-  const { authReady, signedIn, canProject } = useAuthz();
-  const { projects, initialized } = useProjects();
-  const project = projects.find((entry) => entry.id === projectId) || null;
-  const hasProjectAccess = Boolean(projectId) && (project !== null || canProject(projectId, 'project.view'));
+  const { authReady, signedIn, canProject, refreshSession } = useAuthz();
+  const { initialized, refreshProjects } = useProjects();
+  const [refreshAttemptedProjectId, setRefreshAttemptedProjectId] = useState('');
+  const hasProjectAccess = Boolean(projectId) && canProject(projectId, 'project.view');
+  const shouldRefreshAccess =
+    authReady
+    && signedIn
+    && initialized
+    && Boolean(projectId)
+    && !hasProjectAccess
+    && refreshAttemptedProjectId !== projectId;
+
+  useEffect(() => {
+    if (!shouldRefreshAccess) {
+      return;
+    }
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) {
+        return;
+      }
+      setRefreshAttemptedProjectId(projectId);
+      void Promise.allSettled([refreshSession(), refreshProjects()]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, refreshProjects, refreshSession, shouldRefreshAccess]);
 
   if (!authReady) {
     return (
@@ -23,7 +49,7 @@ export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
     return <Navigate to="/" replace />;
   }
 
-  if (!initialized) {
+  if (!initialized || shouldRefreshAccess) {
     return (
       <div className="p-4" role="status" aria-live="polite">
         <p className="text-sm text-muted">Loading project...</p>

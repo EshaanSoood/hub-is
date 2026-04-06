@@ -15,13 +15,6 @@ export class HubRequestError extends Error {
   }
 }
 
-const ensureData = <T>(envelope: HubEnvelope<T>, fallbackMessage: string): T => {
-  if (!envelope.ok || envelope.data === null) {
-    throw new Error(envelope.error?.message || fallbackMessage);
-  }
-  return envelope.data;
-};
-
 // Normalize source-pane payloads once so the rest of the client only deals with a value or null.
 export const normalizeSourcePane = (sourcePane: HubSourcePaneContext | null | undefined): HubSourcePaneContext | null => {
   if (!sourcePane) {
@@ -86,8 +79,8 @@ export const readEnvelope = async <T>(response: Response): Promise<T> => {
   if (!envelope || typeof envelope.ok !== 'boolean') {
     throw new HubRequestError(`Unexpected API response (${response.status}).`, response.status);
   }
-  if (!response.ok) {
+  if (!response.ok || !envelope.ok || envelope.data === null) {
     throw new HubRequestError(envelope.error?.message || `Request failed (${response.status}).`, response.status);
   }
-  return ensureData(envelope, `Request failed (${response.status}).`);
+  return envelope.data;
 };

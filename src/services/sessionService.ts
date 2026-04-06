@@ -16,6 +16,6 @@ export const fetchSessionSummary = async (accessToken: string): Promise<SessionS
   const data = await readEnvelope<MeResponse>(response);
   return {
     ...data.sessionSummary,
-    calendarFeedUrl: data.calendar_feed_url || data.sessionSummary.calendarFeedUrl || '',
+    calendarFeedUrl: data.calendar_feed_url ?? data.sessionSummary.calendarFeedUrl ?? '',
   };
 };

@@ -9,6 +9,7 @@ interface ProjectsContextValue {
   initialized: boolean;
   error?: string;
   refreshProjects: () => Promise<void>;
+  upsertProject: (project: ProjectRecord) => void;
 }
 
 const ProjectsContext = createContext<ProjectsContextValue | undefined>(undefined);
@@ -52,6 +53,19 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
     }
   }, [accessToken, signedIn]);
 
+  const upsertProject = useCallback((project: ProjectRecord) => {
+    setProjects((current) => {
+      const existingIndex = current.findIndex((entry) => entry.id === project.id);
+      if (existingIndex === -1) {
+        return [project, ...current];
+      }
+
+      const next = [...current];
+      next[existingIndex] = project;
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     void refreshProjects();
   }, [refreshProjects]);
@@ -63,8 +77,9 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
       initialized,
       error,
       refreshProjects,
+      upsertProject,
     }),
-    [error, initialized, loading, projects, refreshProjects],
+    [error, initialized, loading, projects, refreshProjects, upsertProject],
   );
 
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;

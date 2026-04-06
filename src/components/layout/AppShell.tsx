@@ -1,4 +1,4 @@
-import { type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { appTabs } from '../../lib/policy';
@@ -56,7 +56,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { sessionSummary, calendarFeedUrl, canGlobal, accessToken, refreshSession, signOut } = useAuthz();
-  const { projects, refreshProjects } = useProjects();
+  const { projects, refreshProjects, upsertProject } = useProjects();
 
   useRouteFocusReset();
 
@@ -511,17 +511,25 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         setProjectDialogError(created.error || 'Project creation failed.');
         return;
       }
+      const createdProject = created.data;
       setQuickAddDialog(null);
       setProjectDialogName('');
-      await refreshSession();
-      await refreshProjects();
-      navigate(`/projects/${encodeURIComponent(created.data.id)}/overview`);
+      upsertProject(createdProject);
+      startTransition(() => {
+        navigate(`/projects/${encodeURIComponent(createdProject.id)}/overview`);
+      });
+      void Promise.allSettled([refreshSession(), refreshProjects()]).then((results) => {
+        const failures = results.filter((result) => result.status === 'rejected');
+        if (failures.length > 0) {
+          console.warn('Project refresh after creation failed.', failures);
+        }
+      });
     } catch (error) {
       setProjectDialogError(error instanceof Error ? error.message : 'Project creation failed.');
     } finally {
       setProjectDialogSubmitting(false);
     }
-  }, [accessToken, navigate, projectDialogName, refreshProjects, refreshSession]);
+  }, [accessToken, navigate, projectDialogName, refreshProjects, refreshSession, upsertProject]);
 
   useEffect(() => {
     if (!captureOpen) {

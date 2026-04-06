@@ -14,6 +14,7 @@ const notificationReasonCheckSql = notificationReasons.map((reason) => `'${reaso
 const CONTRACT_TABLES = [
   'schema_version',
   'users',
+  'calendar_feed_tokens',
   'projects',
   'project_members',
   'panes',

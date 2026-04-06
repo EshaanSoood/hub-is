@@ -28,6 +28,9 @@ export const createStatements = (db) => ({
     insert: db.prepare(`
       INSERT INTO calendar_feed_tokens (token, user_id, created_at)
       VALUES (?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE
+      SET token = EXCLUDED.token,
+          created_at = EXCLUDED.created_at
     `),
   },
   projects: {

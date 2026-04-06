@@ -45,9 +45,11 @@ const cacheFirst = async (request, cacheName) => {
 
 const networkFirst = async (request, cacheName) => {
   const cache = await caches.open(cacheName);
+  const authorizationHeader = request.headers.get('Authorization');
+  const allowCacheWrite = !authorizationHeader || !authorizationHeader.trim();
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    if (response.ok && allowCacheWrite) {
       cache.put(request, response.clone());
     }
     return response;
