@@ -1215,8 +1215,10 @@ export const PersonalizedDashboardPanel = ({
         </PopoverContent>
       </Popover>
 
-      {selectedView === 'project-lens' ? <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
-      {selectedView === 'stream' ? <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} now={now} /> : null}
+      <div className="mt-3">
+        {selectedView === 'project-lens' ? <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} /> : null}
+        {selectedView === 'stream' ? <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} now={now} /> : null}
+      </div>
     </section>
   );
 };

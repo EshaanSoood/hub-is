@@ -36,6 +36,7 @@ export const createProjectRoutes = (deps) => {
     insertPendingInviteStmt,
     deletePendingInviteStmt,
     updatePendingInviteDecisionStmt,
+    ensureKeycloakInviteOnboarding,
     sendHubInviteEmail,
     insertProjectStmt,
     insertProjectMemberStmt,
@@ -327,6 +328,20 @@ export const createProjectRoutes = (deps) => {
     if (existingInvite) {
       send(response, jsonResponse(409, errorEnvelope('conflict', 'A pending invite request already exists for this email.')));
       return;
+    }
+
+    if (!existingUser) {
+      const onboardingResult = await ensureKeycloakInviteOnboarding({
+        email,
+        requestLog: request.log,
+      });
+      if (onboardingResult.error) {
+        send(
+          response,
+          jsonResponse(onboardingResult.error.status, errorEnvelope(onboardingResult.error.code, onboardingResult.error.message)),
+        );
+        return;
+      }
     }
 
     const project = projectByIdStmt.get(projectId);
