@@ -37,6 +37,21 @@ export const normalizeRecordDetail = (record: HubRecordDetail): HubRecordDetail 
   source_pane: normalizeSourcePane(record.source_pane),
 });
 
+const readHubEnvelopeJson = async <T>(response: Response): Promise<HubEnvelope<T> | null> =>
+  (await response.json().catch(() => null)) as HubEnvelope<T> | null;
+
+const parseHubEnvelope = <T>(response: Response, envelope: HubEnvelope<T> | null): T => {
+  if (!envelope || typeof envelope.ok !== 'boolean') {
+    throw new HubRequestError(`Unexpected API response (${response.status}).`, response.status);
+  }
+
+  if (!response.ok || !envelope.ok || envelope.data == null) {
+    throw new HubRequestError(envelope.error?.message || `Request failed (${response.status}).`, response.status);
+  }
+
+  return envelope.data;
+};
+
 export const hubRequest = async <T>(
   accessToken: string,
   path: string,
@@ -55,16 +70,7 @@ export const hubRequest = async <T>(
     headers,
   });
 
-  const envelope = (await response.json().catch(() => null)) as HubEnvelope<T> | null;
-  if (!envelope || typeof envelope.ok !== 'boolean') {
-    throw new HubRequestError(`Unexpected API response (${response.status}).`, response.status);
-  }
-
-  if (!response.ok || !envelope.ok || envelope.data === null) {
-    throw new HubRequestError(envelope.error?.message || `Request failed (${response.status}).`, response.status);
-  }
-
-  return envelope.data;
+  return parseHubEnvelope(response, await readHubEnvelopeJson(response));
 };
 
 export const authorizeHubLive = async (accessToken: string): Promise<HubLiveAuthorization> => {
@@ -75,12 +81,5 @@ export const authorizeHubLive = async (accessToken: string): Promise<HubLiveAuth
 };
 
 export const readEnvelope = async <T>(response: Response): Promise<T> => {
-  const envelope = (await response.json().catch(() => null)) as HubEnvelope<T> | null;
-  if (!envelope || typeof envelope.ok !== 'boolean') {
-    throw new HubRequestError(`Unexpected API response (${response.status}).`, response.status);
-  }
-  if (!response.ok || !envelope.ok || envelope.data === null) {
-    throw new HubRequestError(envelope.error?.message || `Request failed (${response.status}).`, response.status);
-  }
-  return envelope.data;
+  return parseHubEnvelope(response, await readHubEnvelopeJson(response));
 };

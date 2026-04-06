@@ -46,6 +46,18 @@ const mediaFrameHeight = (provider: MediaEmbedProvider, originalUrl: string): st
   return '160';
 };
 
+const safeFallbackHref = (url: string): string | null => {
+  try {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return null;
+    }
+    return parsedUrl.toString();
+  } catch {
+    return null;
+  }
+};
+
 export class MediaEmbedNode extends DecoratorNode<JSX.Element> {
   __provider: MediaEmbedProvider;
   __embedUrl: string;
@@ -94,9 +106,14 @@ export class MediaEmbedNode extends DecoratorNode<JSX.Element> {
     const validatedEmbed = resolveSerializedMediaEmbed(this.__provider, this.__embedUrl, this.__originalUrl);
     if (!validatedEmbed) {
       const fallbackText = this.__originalUrl.trim();
-      const element = fallbackText ? document.createElement('a') : document.createElement('span');
-      if (fallbackText) {
-        element.setAttribute('href', fallbackText);
+      const fallbackHref = fallbackText ? safeFallbackHref(fallbackText) : null;
+      const element = fallbackHref ? document.createElement('a') : document.createElement('span');
+      if (fallbackHref) {
+        element.setAttribute('href', fallbackHref);
+        element.setAttribute('rel', 'noopener noreferrer');
+        element.setAttribute('target', '_blank');
+        element.textContent = fallbackText;
+      } else if (fallbackText) {
         element.textContent = fallbackText;
       } else {
         element.textContent = 'Embedded media unavailable';

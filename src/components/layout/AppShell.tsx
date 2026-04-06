@@ -55,8 +55,8 @@ import {
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { sessionSummary, calendarFeedUrl, canGlobal, accessToken, refreshSession, signOut } = useAuthz();
-  const { projects, refreshProjects, upsertProject } = useProjects();
+  const { sessionSummary, calendarFeedUrl, canGlobal, accessToken, signOut } = useAuthz();
+  const { projects, upsertProject } = useProjects();
 
   useRouteFocusReset();
 
@@ -518,18 +518,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       startTransition(() => {
         navigate(`/projects/${encodeURIComponent(createdProject.id)}/overview`);
       });
-      void Promise.allSettled([refreshSession(), refreshProjects()]).then((results) => {
-        const failures = results.filter((result) => result.status === 'rejected');
-        if (failures.length > 0) {
-          console.warn('Project refresh after creation failed.', failures);
-        }
-      });
     } catch (error) {
       setProjectDialogError(error instanceof Error ? error.message : 'Project creation failed.');
     } finally {
       setProjectDialogSubmitting(false);
     }
-  }, [accessToken, navigate, projectDialogName, refreshProjects, refreshSession, upsertProject]);
+  }, [accessToken, navigate, projectDialogName, upsertProject]);
 
   useEffect(() => {
     if (!captureOpen) {

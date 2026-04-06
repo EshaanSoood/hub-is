@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjects } from '../../context/ProjectsContext';
@@ -9,7 +9,10 @@ export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
   const { authReady, signedIn, canProject, refreshSession } = useAuthz();
   const { initialized, refreshProjects } = useProjects();
   const [refreshAttemptedProjectId, setRefreshAttemptedProjectId] = useState('');
+  const [refreshingProjectId, setRefreshingProjectId] = useState('');
+  const activeRefreshRef = useRef<{ cancelled: boolean; projectId: string } | null>(null);
   const hasProjectAccess = Boolean(projectId) && canProject(projectId, 'project.view');
+  const isRefreshingProjectAccess = refreshingProjectId === projectId;
   const shouldRefreshAccess =
     authReady
     && signedIn
@@ -19,23 +22,43 @@ export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
     && refreshAttemptedProjectId !== projectId;
 
   useEffect(() => {
-    if (!shouldRefreshAccess) {
+    const activeRefresh = activeRefreshRef.current;
+    if (activeRefresh && activeRefresh.projectId !== projectId) {
+      activeRefresh.cancelled = true;
+      activeRefreshRef.current = null;
+      setRefreshingProjectId((current) => (current === activeRefresh.projectId ? '' : current));
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!shouldRefreshAccess || activeRefreshRef.current?.projectId === projectId) {
       return;
     }
 
-    let cancelled = false;
+    const activeRefresh = { cancelled: false, projectId };
+    activeRefreshRef.current = activeRefresh;
     queueMicrotask(() => {
-      if (cancelled) {
+      if (activeRefresh.cancelled || activeRefreshRef.current !== activeRefresh) {
         return;
       }
-      setRefreshAttemptedProjectId(projectId);
-      void Promise.allSettled([refreshSession(), refreshProjects()]);
+      setRefreshingProjectId(projectId);
+      void Promise.allSettled([refreshSession(), refreshProjects()]).finally(() => {
+        if (activeRefresh.cancelled || activeRefreshRef.current !== activeRefresh) {
+          return;
+        }
+        activeRefreshRef.current = null;
+        setRefreshingProjectId((current) => (current === projectId ? '' : current));
+        setRefreshAttemptedProjectId(projectId);
+      });
     });
-
-    return () => {
-      cancelled = true;
-    };
   }, [projectId, refreshProjects, refreshSession, shouldRefreshAccess]);
+
+  useEffect(() => () => {
+    if (activeRefreshRef.current) {
+      activeRefreshRef.current.cancelled = true;
+      activeRefreshRef.current = null;
+    }
+  }, []);
 
   if (!authReady) {
     return (
@@ -49,7 +72,7 @@ export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
     return <Navigate to="/" replace />;
   }
 
-  if (!initialized || shouldRefreshAccess) {
+  if (!initialized || shouldRefreshAccess || isRefreshingProjectAccess) {
     return (
       <div className="p-4" role="status" aria-live="polite">
         <p className="text-sm text-muted">Loading project...</p>

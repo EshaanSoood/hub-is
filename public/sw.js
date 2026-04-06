@@ -1,4 +1,4 @@
-/* global URL, caches, fetch, self */
+/* global Response, URL, caches, fetch, self */
 
 const APP_SHELL_CACHE = 'hub-os-app-shell-v1';
 const STATIC_CACHE = 'hub-os-static-v1';
@@ -13,9 +13,10 @@ const APP_SHELL_URLS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(APP_SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL_URLS)),
+    caches.open(APP_SHELL_CACHE)
+      .then((cache) => cache.addAll(APP_SHELL_URLS))
+      .then(() => self.skipWaiting()),
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -87,7 +88,16 @@ self.addEventListener('fetch', (event) => {
         if (cached) {
           return cached;
         }
-        return caches.match('/index.html');
+        const indexShell = await caches.match('/index.html');
+        if (indexShell) {
+          return indexShell;
+        }
+        return new Response('Offline - app shell unavailable', {
+          status: 503,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+          },
+        });
       }
     })());
     return;

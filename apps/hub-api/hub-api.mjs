@@ -55,7 +55,7 @@ const POSTMARK_SERVER_TOKEN = (process.env.POSTMARK_SERVER_TOKEN || '').trim();
 const POSTMARK_FROM_EMAIL = (process.env.POSTMARK_FROM_EMAIL || process.env.VITE_POSTMARK_FROM_EMAIL || '').trim();
 const POSTMARK_MESSAGE_STREAM = (process.env.POSTMARK_MESSAGE_STREAM || 'outbound').trim() || 'outbound';
 const POSTMARK_API_BASE_URL = (process.env.POSTMARK_API_BASE_URL || 'https://api.postmarkapp.com').trim().replace(/\/+$/, '');
-const POSTMARK_REQUEST_TIMEOUT_MS_RAW = Number.parseInt(String(process.env.POSTMARK_REQUEST_TIMEOUT_MS || '15000'), 10);
+const EXTERNAL_API_TIMEOUT_MS_RAW = Number.parseInt(String(process.env.POSTMARK_REQUEST_TIMEOUT_MS || '15000'), 10);
 const KEYCLOAK_URL = (process.env.KEYCLOAK_URL || process.env.VITE_KEYCLOAK_URL || '').trim().replace(/\/+$/, '');
 const KEYCLOAK_REALM = (process.env.KEYCLOAK_REALM || process.env.VITE_KEYCLOAK_REALM || '').trim();
 const KEYCLOAK_CLIENT_ID = (process.env.KEYCLOAK_CLIENT_ID || process.env.VITE_KEYCLOAK_CLIENT_ID || '').trim();
@@ -375,7 +375,7 @@ const asInteger = (value, fallback, min = Number.MIN_SAFE_INTEGER, max = Number.
 };
 
 const HUB_COLLAB_TICKET_TTL_MS = asInteger(HUB_COLLAB_TICKET_TTL_MS_RAW, 120_000, 5_000, 3_600_000);
-const POSTMARK_REQUEST_TIMEOUT_MS = asInteger(POSTMARK_REQUEST_TIMEOUT_MS_RAW, 15_000, 1_000, 120_000);
+const EXTERNAL_API_TIMEOUT_MS = asInteger(EXTERNAL_API_TIMEOUT_MS_RAW, 15_000, 1_000, 120_000);
 const KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS = asInteger(KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS_RAW, 604_800, 300, 2_592_000);
 const KEYCLOAK_REQUIRED_INVITE_ACTIONS = Object.freeze(['VERIFY_EMAIL', 'UPDATE_PROFILE', 'UPDATE_PASSWORD']);
 
@@ -513,7 +513,7 @@ const acquireKeycloakAdminToken = async (requestLog = null) => {
         },
         body: form,
       },
-      { timeoutMs: POSTMARK_REQUEST_TIMEOUT_MS },
+      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
     );
   } catch (error) {
     requestLog?.error?.('Keycloak admin token request failed.', { error });
@@ -569,7 +569,7 @@ const keycloakAdminRequest = async ({
         },
         ...(body === undefined ? {} : { body }),
       },
-      { timeoutMs: POSTMARK_REQUEST_TIMEOUT_MS },
+      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
     );
   } catch (error) {
     requestLog?.error?.('Keycloak admin request failed.', { path, method, error });
@@ -836,7 +836,7 @@ const sendPostmarkEmail = async ({
           ...(tag ? { Tag: tag } : {}),
         }),
       },
-      { timeoutMs: POSTMARK_REQUEST_TIMEOUT_MS },
+      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
     );
   } catch (error) {
     requestLog?.error?.('Postmark request failed.', { to, error });
@@ -1828,7 +1828,14 @@ const ensureUserFromRequest = async (request) => {
       });
       throw error;
     }
-    getOrCreateCalendarFeedToken(userId);
+    try {
+      getOrCreateCalendarFeedToken(userId);
+    } catch (error) {
+      request.log?.warn?.('Failed to create calendar feed token for newly authenticated user.', {
+        userId,
+        error,
+      });
+    }
     return {
       status: 200,
       token,
@@ -2072,7 +2079,14 @@ const ensureUserForEmail = ({ email, displayName }) => {
   const now = nowIso();
   const userId = newId('usr');
   insertUserStmt.run(userId, `local:${normalizedEmail}`, displayName || normalizedEmail, normalizedEmail, now, now);
-  getOrCreateCalendarFeedToken(userId);
+  try {
+    getOrCreateCalendarFeedToken(userId);
+  } catch (error) {
+    systemLog.warn('Failed to create calendar feed token for ensured user.', {
+      userId,
+      error,
+    });
+  }
   return userByIdStmt.get(userId);
 };
 
