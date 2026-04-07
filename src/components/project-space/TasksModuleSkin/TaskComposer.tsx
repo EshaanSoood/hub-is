@@ -100,7 +100,7 @@ export const TaskComposer = ({
         aria-label="New task title"
         className={cn(
           'w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-          compact ? 'text-sm' : 'text-sm',
+          'text-sm',
         )}
       />
 
