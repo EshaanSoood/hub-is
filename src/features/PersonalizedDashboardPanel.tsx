@@ -1,6 +1,12 @@
 import { KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthz } from '../context/AuthzContext';
+import {
+  DATE_BUCKET_LABELS,
+  DATE_BUCKET_ORDER,
+  type DateBucketId,
+  useDateBuckets,
+} from '../hooks/useDateBuckets';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { dashboardCardRegistry } from '../lib/dashboardCards';
 import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
@@ -39,15 +45,7 @@ type HubEvent = EventSummary;
 export type HubDashboardView = 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
-type StreamBucketId =
-  | 'overdue'
-  | 'today'
-  | 'tomorrow'
-  | 'rest-of-week'
-  | 'later-this-month'
-  | 'later-this-year'
-  | 'beyond'
-  | 'no-date';
+type StreamBucketId = DateBucketId;
 
 export type HubDashboardItem =
   | {
@@ -81,16 +79,7 @@ export type HubDashboardItem =
 
 const VIEW_ORDER: HubDashboardView[] = ['project-lens', 'stream'];
 const STREAM_FILTERS: StreamTypeFilter[] = ['all', 'tasks', 'events'];
-const STREAM_BUCKET_ORDER: StreamBucketId[] = [
-  'overdue',
-  'today',
-  'tomorrow',
-  'rest-of-week',
-  'later-this-month',
-  'later-this-year',
-  'beyond',
-  'no-date',
-];
+const STREAM_BUCKET_ORDER = DATE_BUCKET_ORDER;
 
 const viewLabels: Record<HubDashboardView, string> = {
   'project-lens': 'Project Lens',
@@ -101,17 +90,6 @@ const streamFilterLabels: Record<StreamTypeFilter, string> = {
   all: 'All',
   tasks: 'Tasks',
   events: 'Events',
-};
-
-const streamBucketLabels: Record<StreamBucketId, string> = {
-  overdue: 'Overdue',
-  today: 'Today',
-  tomorrow: 'Tomorrow',
-  'rest-of-week': 'Rest of the Week',
-  'later-this-month': 'Later This Month',
-  'later-this-year': 'Later This Year',
-  beyond: 'Beyond',
-  'no-date': 'No Date',
 };
 
 const streamBucketOverlayOpacity: Record<StreamBucketId, number> = {
@@ -176,59 +154,6 @@ const formatRelativeDateTime = (value: string | null): string => {
 
 const formatCountLabel = (count: number, singular: string): string =>
   `${count} ${count === 1 ? singular : `${singular}s`}`;
-
-const endOfWeek = (date: Date): Date => {
-  const next = startOfDay(date);
-  const dayOffset = 6 - next.getDay();
-  next.setDate(next.getDate() + dayOffset);
-  next.setHours(23, 59, 59, 999);
-  return next;
-};
-
-const endOfMonth = (date: Date): Date => {
-  const next = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  next.setHours(23, 59, 59, 999);
-  return next;
-};
-
-const endOfYear = (date: Date): Date => {
-  const next = new Date(date.getFullYear(), 11, 31);
-  next.setHours(23, 59, 59, 999);
-  return next;
-};
-
-const streamBucketForDate = (dueAt: string | null, now: Date): StreamBucketId => {
-  const parsed = parseIso(dueAt);
-  if (!parsed) {
-    return 'no-date';
-  }
-
-  const todayStart = startOfDay(now);
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(todayStart.getDate() + 1);
-  const dayAfterTomorrowStart = new Date(todayStart);
-  dayAfterTomorrowStart.setDate(todayStart.getDate() + 2);
-
-  if (parsed < todayStart) {
-    return 'overdue';
-  }
-  if (isSameCalendarDay(parsed, now)) {
-    return 'today';
-  }
-  if (isSameCalendarDay(parsed, tomorrowStart)) {
-    return 'tomorrow';
-  }
-  if (parsed >= dayAfterTomorrowStart && parsed <= endOfWeek(now)) {
-    return 'rest-of-week';
-  }
-  if (parsed <= endOfMonth(now)) {
-    return 'later-this-month';
-  }
-  if (parsed <= endOfYear(now)) {
-    return 'later-this-year';
-  }
-  return 'beyond';
-};
 
 const sortByDueThenUpdated = (items: HubDashboardItem[]): HubDashboardItem[] =>
   [...items].sort((left, right) => {
@@ -536,31 +461,13 @@ const StreamView = ({
     return sortMode === 'updated' ? sortByUpdated(next) : sortByDueThenUpdated(next);
   }, [items, projectFilter, sortMode, typeFilter]);
 
-  const bucketedSections = useMemo(() => {
-    const buckets = new Map<StreamBucketId, HubDashboardItem[]>(
-      STREAM_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
-    );
-
-    for (const item of filteredItems) {
-      const bucketId = streamBucketForDate(item.dueAt, now);
-      const bucketItems = buckets.get(bucketId);
-      if (bucketItems) {
-        bucketItems.push(item);
-      }
-    }
-
-    return STREAM_BUCKET_ORDER.flatMap((bucketId) => {
-      const itemsForBucket = buckets.get(bucketId) || [];
-      if (itemsForBucket.length === 0) {
-        return [];
-      }
-      return [{
-        id: bucketId,
-        label: streamBucketLabels[bucketId],
-        items: itemsForBucket,
-      }];
-    });
-  }, [filteredItems, now]);
+  const bucketedSections = useDateBuckets({
+    items: filteredItems,
+    getDate: (item) => item.dueAt,
+    now,
+    order: STREAM_BUCKET_ORDER,
+    labels: DATE_BUCKET_LABELS,
+  });
 
   const projectOptions = [
     { value: 'all', label: 'All projects' },
