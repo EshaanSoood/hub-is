@@ -14,7 +14,6 @@ interface UseQuickNavEffectsArgs {
   contextMenuOpen: boolean;
   navigate: NavigateFunction;
   normalizedQuickNavActiveIndex: number;
-  notificationsOpen: boolean;
   openQuickNavPanel: (panel: Exclude<ToolbarDialog, null>) => void;
   profileOpen: boolean;
   quickAddDialog: QuickAddDialog;
@@ -23,7 +22,6 @@ interface UseQuickNavEffectsArgs {
   quickNavOpen: boolean;
   quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
   quickNavWasOpenRef: MutableRefObject<boolean>;
-  searchOpen: boolean;
   setQuickNavActiveIndex: Dispatch<SetStateAction<number>>;
   setQuickNavQuery: Dispatch<SetStateAction<string>>;
   setToolbarDialog: Dispatch<SetStateAction<ToolbarDialog>>;
@@ -37,7 +35,6 @@ export const useQuickNavEffects = ({
   contextMenuOpen,
   navigate,
   normalizedQuickNavActiveIndex,
-  notificationsOpen,
   openQuickNavPanel,
   profileOpen,
   quickAddDialog,
@@ -46,7 +43,6 @@ export const useQuickNavEffects = ({
   quickNavOpen,
   quickNavTriggerRef,
   quickNavWasOpenRef,
-  searchOpen,
   setQuickNavActiveIndex,
   setQuickNavQuery,
   setToolbarDialog,
@@ -124,8 +120,6 @@ export const useQuickNavEffects = ({
     } else if (
       quickNavWasOpenRef.current
       && !skipQuickNavFocusRestoreRef.current
-      && !searchOpen
-      && !notificationsOpen
       && !profileOpen
       && !contextMenuOpen
       && !captureOpen
@@ -138,5 +132,5 @@ export const useQuickNavEffects = ({
       skipQuickNavFocusRestoreRef.current = false;
     }
     quickNavWasOpenRef.current = quickNavOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
+  }, [captureOpen, contextMenuOpen, profileOpen, quickAddDialog, quickNavOpen, toolbarDialog]);
 };

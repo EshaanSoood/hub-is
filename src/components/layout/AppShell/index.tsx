@@ -7,22 +7,18 @@ import { useRouteFocusReset } from '../../../hooks/useRouteFocusReset';
 import { useRemindersRuntime } from '../../../hooks/useRemindersRuntime';
 import { usePersonalCalendarRuntime } from '../../../hooks/usePersonalCalendarRuntime';
 import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../../hooks/useReminderNLDraft';
-import { listNotifications, markNotificationRead } from '../../../services/hub/notifications';
 import { createEventFromNlp, createTask, getHubHome, queryTasks } from '../../../services/hub/records';
 import { createReminder, updateReminder, type CreateReminderPayload } from '../../../services/hub/reminders';
 import { listProjectMembers } from '../../../services/hub/projects';
-import type { HubSearchResult } from '../../../services/hub/search';
 import type { HubProjectMember, HubTaskSummary } from '../../../services/hub/types';
 import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
 import { createHubProject } from '../../../services/projectsService';
 import { adaptTaskSummaries } from '../../project-space/taskAdapter';
 import { notifyError, notifyInfo, notifySuccess } from '../../primitives';
-import { BottomToolbar } from '../BottomToolbar';
+import { BottomToolbar, type CloseNotificationsOptions, type CloseQuickNavOptions } from '../BottomToolbar';
 import { useCapturePanelEffects } from './hooks/useCapturePanelEffects';
 import { useGlobalInteractionEffects } from './hooks/useGlobalInteractionEffects';
-import { useGlobalSearchEffect } from './hooks/useGlobalSearchEffect';
 import { useInstallPromptEffect } from './hooks/useInstallPromptEffect';
-import { useNotificationsEffects } from './hooks/useNotificationsEffects';
 import { useQuickAddEffects } from './hooks/useQuickAddEffects';
 import { useQuickAddProjectRequestEffect } from './hooks/useQuickAddProjectRequestEffect';
 import { useQuickNavEffects } from './hooks/useQuickNavEffects';
@@ -31,7 +27,6 @@ import { useToolbarFocusEffects } from './hooks/useToolbarFocusEffects';
 import {
   buildAccountAvatarUrl,
   buildBreadcrumb,
-  buildSearchResultHref,
   focusElementSoon,
   nowPlusHours,
   parseIsoTimestamp,
@@ -40,13 +35,10 @@ import {
   sessionInitials,
   toDateTimeLocalInput,
   tomorrowAtNineIso,
-  toToolbarNotification,
-  type NotificationFilter,
   type QuickAddDialog,
   type QuickAddOption,
   type QuickNavActionItem,
   type ToolbarDialog,
-  type ToolbarNotification,
 } from '../appShellUtils';
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
@@ -57,7 +49,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   useRouteFocusReset();
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [avatarBroken, setAvatarBroken] = useState(false);
   const [quickNavOpen, setQuickNavOpen] = useState(false);
@@ -76,22 +67,13 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [projectDialogName, setProjectDialogName] = useState('');
   const [projectDialogSubmitting, setProjectDialogSubmitting] = useState(false);
   const [projectDialogError, setProjectDialogError] = useState<string | null>(null);
-  const [notifFilter, setNotifFilter] = useState<NotificationFilter>('unread');
-  const [notifProjectFilter, setNotifProjectFilter] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<HubSearchResult[]>([]);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installState, setInstallState] = useState<{ installed: boolean; iosSafari: boolean }>({
     installed: false,
     iosSafari: false,
   });
-  const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
   const [quickNavQuery, setQuickNavQuery] = useState('');
   const [quickNavActiveIndex, setQuickNavActiveIndex] = useState(-1);
-  const [notifications, setNotifications] = useState<ToolbarNotification[]>([]);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureIntent, setCaptureIntent] = useState<string | null>(null);
   const [captureActivationKey, setCaptureActivationKey] = useState(0);
@@ -134,18 +116,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     subscribeToLive: remindersDialogOpen,
   });
 
-  const searchRef = useRef<HTMLDivElement | null>(null);
-  const searchDismissedRef = useRef(false);
-  const searchRequestVersionRef = useRef(0);
   const quickNavRef = useRef<HTMLDivElement | null>(null);
   const quickNavTriggerRef = useRef<HTMLButtonElement | null>(null);
   const quickNavInputRef = useRef<HTMLInputElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
   const profileTriggerRef = useRef<HTMLButtonElement | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
-  const notificationsRef = useRef<HTMLDivElement | null>(null);
-  const notificationsTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const notificationsPanelRef = useRef<HTMLDivElement | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
   const contextMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const quickAddItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -159,14 +135,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const captureRequestVersionRef = useRef(0);
   const quickNavTasksRequestVersionRef = useRef(0);
   const quickNavWasOpenRef = useRef(false);
-  const notificationsWereOpenRef = useRef(false);
   const profileWasOpenRef = useRef(false);
   const contextMenuWasOpenRef = useRef(false);
   const skipQuickNavFocusRestoreRef = useRef(false);
-  const skipNotificationsFocusRestoreRef = useRef(false);
   const skipProfileFocusRestoreRef = useRef(false);
   const skipContextMenuFocusRestoreRef = useRef(false);
   const skipCaptureFocusRestoreRef = useRef(false);
+  const toolbarSearchCloseRef = useRef<() => void>(() => {});
+  const toolbarNotificationsCloseRef = useRef<(options?: CloseNotificationsOptions) => void>(() => {});
 
   const visibleTabs = appTabs.filter((tab) => canGlobal(tab.capability));
   const isOnHubHome = location.pathname === '/projects';
@@ -309,20 +285,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       if (quickNavTasksRequestVersionRef.current === requestVersion) {
         setQuickNavTasksLoading(false);
       }
-    }
-  }, [accessToken]);
-
-  const refreshNotifications = useCallback(async () => {
-    if (!accessToken) {
-      return [] as ToolbarNotification[];
-    }
-
-    try {
-      const next = await listNotifications(accessToken);
-      return next.map(toToolbarNotification);
-    } catch {
-      // best-effort toolbar data
-      return null;
     }
   }, [accessToken]);
 
@@ -542,13 +504,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     refreshQuickNavTasks,
   });
 
-  useNotificationsEffects({
-    accessToken,
-    refreshNotifications,
-    setNotifications,
-  });
-
-  const closeQuickNav = useCallback(() => {
+  const closeQuickNav = useCallback((options?: CloseQuickNavOptions) => {
+    skipQuickNavFocusRestoreRef.current = options?.restoreFocus === false;
     setQuickNavOpen(false);
     setQuickNavQuery('');
     setQuickNavActiveIndex(-1);
@@ -559,48 +516,45 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setCaptureOpen(false);
   }, []);
 
-  const resetSearch = useCallback(() => {
-    searchRequestVersionRef.current += 1;
-    searchDismissedRef.current = true;
-    setSearchQuery('');
-    setSearchResults([]);
-    setSearchError(null);
-    setSearchLoading(false);
-    setSearchOpen(false);
-    setSearchActiveIndex(-1);
+  const onSearchCloseAvailable = useCallback((closeSearch: () => void) => {
+    toolbarSearchCloseRef.current = closeSearch;
   }, []);
 
-  const closeSearch = useCallback(() => {
-    searchDismissedRef.current = true;
-    setSearchOpen(false);
-    setSearchActiveIndex(-1);
+  const onNotificationsCloseAvailable = useCallback((closeNotifications: (options?: CloseNotificationsOptions) => void) => {
+    toolbarNotificationsCloseRef.current = closeNotifications;
+  }, []);
+
+  const closeToolbarSearch = useCallback(() => {
+    toolbarSearchCloseRef.current();
+  }, []);
+
+  const closeToolbarNotifications = useCallback((options?: CloseNotificationsOptions) => {
+    toolbarNotificationsCloseRef.current(options);
   }, []);
 
   const openQuickNavPanel = useCallback((panel: Exclude<ToolbarDialog, null>) => {
     skipProfileFocusRestoreRef.current = true;
-    skipNotificationsFocusRestoreRef.current = true;
     skipContextMenuFocusRestoreRef.current = true;
     setToolbarDialog(panel);
+    closeToolbarSearch();
+    closeToolbarNotifications({ restoreFocus: false });
     closeQuickNav();
-    closeSearch();
     setProfileOpen(false);
-    setNotificationsOpen(false);
     setContextMenuOpen(false);
     closeCapturePanel({ restoreFocus: false });
-  }, [closeCapturePanel, closeQuickNav, closeSearch]);
+  }, [closeCapturePanel, closeQuickNav, closeToolbarNotifications, closeToolbarSearch]);
 
   useQuickAddProjectRequestEffect({
     closeCapturePanel,
     closeQuickNav,
     closeQuickNavPanel,
-    closeSearch,
+    closeSearch: closeToolbarSearch,
+    closeNotifications: closeToolbarNotifications,
     openQuickAddDialog,
     setProfileOpen,
-    setNotificationsOpen,
     setContextMenuOpen,
     skipQuickNavFocusRestoreRef,
     skipProfileFocusRestoreRef,
-    skipNotificationsFocusRestoreRef,
     skipContextMenuFocusRestoreRef,
   });
 
@@ -608,25 +562,19 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     closeCapturePanel,
     closeQuickNav,
     closeQuickNavPanel,
-    closeSearch,
+    closeSearch: closeToolbarSearch,
+    closeNotifications: closeToolbarNotifications,
     contextMenuOpen,
     contextMenuRef,
-    notificationsOpen,
-    notificationsRef,
     openQuickNavPanel,
     profileOpen,
     profileRef,
     quickAddDialog,
     quickNavOpen,
     quickNavRef,
-    searchOpen,
-    searchRef,
     setContextMenuOpen,
-    setNotificationsOpen,
     setProfileOpen,
   });
-
-  const unreadNotifications = notifications.filter((notification) => !notification.read).length;
 
   const quickNavDestinationItems = useMemo(() => {
     const tabItems: QuickNavActionItem[] = visibleTabs.map((tab) => ({ id: tab.to, label: tab.label, action: 'navigate', href: tab.to }));
@@ -657,32 +605,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         : 0
       : quickNavActiveIndex;
 
-  const normalizedSearchActiveIndex =
-    !searchOpen || searchLoading || searchResults.length === 0
-      ? -1
-      : searchActiveIndex < 0 || searchActiveIndex >= searchResults.length
-        ? 0
-        : searchActiveIndex;
-
-  useGlobalSearchEffect({
-    accessToken,
-    searchQuery,
-    searchRequestVersionRef,
-    searchDismissedRef,
-    setSearchResults,
-    setSearchError,
-    setSearchLoading,
-    setSearchOpen,
-    setSearchActiveIndex,
-  });
-
   useQuickNavEffects({
     captureOpen,
     closeQuickNav,
     contextMenuOpen,
     navigate,
     normalizedQuickNavActiveIndex,
-    notificationsOpen,
     openQuickNavPanel,
     profileOpen,
     quickAddDialog,
@@ -691,7 +619,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     quickNavOpen,
     quickNavTriggerRef,
     quickNavWasOpenRef,
-    searchOpen,
     setQuickNavActiveIndex,
     setQuickNavQuery,
     setToolbarDialog,
@@ -705,49 +632,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     contextMenuRef,
     contextMenuTriggerRef,
     contextMenuWasOpenRef,
-    notificationsOpen,
-    notificationsPanelRef,
-    notificationsTriggerRef,
-    notificationsWereOpenRef,
     profileMenuRef,
     profileOpen,
     profileTriggerRef,
     profileWasOpenRef,
     quickAddDialog,
     quickNavOpen,
-    searchOpen,
     skipContextMenuFocusRestoreRef,
-    skipNotificationsFocusRestoreRef,
     skipProfileFocusRestoreRef,
     toolbarDialog,
   });
-
-  const onMarkNotificationRead = async (notificationId: string) => {
-    if (!accessToken) {
-      return;
-    }
-
-    try {
-      await markNotificationRead(accessToken, notificationId);
-      setNotifications((current) =>
-        current.map((notification) => (notification.id === notificationId ? { ...notification, read: true } : notification)),
-      );
-    } catch {
-      const restored = await refreshNotifications();
-      if (restored) {
-        setNotifications(restored);
-      }
-    }
-  };
-
-  const onNavigateNotification = async (notification: ToolbarNotification) => {
-    navigate(notification.href);
-    skipNotificationsFocusRestoreRef.current = true;
-    setNotificationsOpen(false);
-    if (!notification.read) {
-      await onMarkNotificationRead(notification.id);
-    }
-  };
 
   const onNavigateProjectsFromProfileMenu = useCallback(() => {
     skipProfileFocusRestoreRef.current = true;
@@ -767,13 +661,13 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setCaptureIntent(intent && intent !== 'inbox' ? intent : null);
     setCaptureActivationKey((current) => current + 1);
     setCaptureOpen(true);
-    closeSearch();
+    closeToolbarSearch();
+    closeToolbarNotifications({ restoreFocus: false });
     closeQuickNav();
     closeQuickNavPanel();
     setProfileOpen(false);
-    setNotificationsOpen(false);
     setContextMenuOpen(false);
-  }, [closeQuickNav, closeQuickNavPanel, closeSearch]);
+  }, [closeQuickNav, closeQuickNavPanel, closeToolbarNotifications, closeToolbarSearch]);
 
   const onQuickCapture = () => {
     if (captureOpen && !captureIntent) {
@@ -802,12 +696,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       return nextOpen;
     });
     closeCapturePanel({ restoreFocus: false });
-    setNotificationsOpen(false);
+    closeToolbarSearch();
+    closeToolbarNotifications({ restoreFocus: false });
     setProfileOpen(false);
-    closeSearch();
     closeQuickNav();
     closeQuickNavPanel();
-  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch]);
+  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeToolbarNotifications, closeToolbarSearch]);
 
   const onSelectQuickAddOption = useCallback((option: QuickAddOption) => {
     skipContextMenuFocusRestoreRef.current = true;
@@ -841,25 +735,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       setContextMenuOpen(false);
     }
   }, [focusQuickAddMenuItem]);
-
-  const onSelectSearchResult = useCallback(
-    (result: HubSearchResult) => {
-      const href = buildSearchResultHref(result);
-      if (!href) {
-        return;
-      }
-      navigate(href);
-      resetSearch();
-      skipQuickNavFocusRestoreRef.current = true;
-      closeQuickNav();
-      closeQuickNavPanel();
-      setNotificationsOpen(false);
-      setProfileOpen(false);
-      setContextMenuOpen(false);
-      closeCapturePanel({ restoreFocus: false });
-    },
-    [closeCapturePanel, closeQuickNav, closeQuickNavPanel, navigate, resetSearch],
-  );
 
   const onSelectQuickNavItem = useCallback((item: QuickNavActionItem) => {
     skipQuickNavFocusRestoreRef.current = true;
@@ -1042,6 +917,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       </main>
 
       <BottomToolbar
+        onSearchCloseAvailable={onSearchCloseAvailable}
+        onNotificationsCloseAvailable={onNotificationsCloseAvailable}
         isOnHubHome={isOnHubHome}
         navigate={navigate}
         breadcrumb={breadcrumb}
@@ -1052,9 +929,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         setQuickNavOpen={setQuickNavOpen}
         setQuickNavActiveIndex={setQuickNavActiveIndex}
         quickNavItems={quickNavItems}
-        closeSearch={closeSearch}
         setProfileOpen={setProfileOpen}
-        setNotificationsOpen={setNotificationsOpen}
         setContextMenuOpen={setContextMenuOpen}
         closeQuickNavPanel={closeQuickNavPanel}
         closeCapturePanel={closeCapturePanel}
@@ -1064,18 +939,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         normalizedQuickNavActiveIndex={normalizedQuickNavActiveIndex}
         onSelectQuickNavItem={onSelectQuickNavItem}
         quickNavDestinationItems={quickNavDestinationItems}
-        searchRef={searchRef}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        setSearchActiveIndex={setSearchActiveIndex}
-        searchDismissedRef={searchDismissedRef}
-        setSearchOpen={setSearchOpen}
-        searchOpen={searchOpen}
-        searchResults={searchResults}
-        searchLoading={searchLoading}
-        normalizedSearchActiveIndex={normalizedSearchActiveIndex}
-        onSelectSearchResult={onSelectSearchResult}
-        searchError={searchError}
         contextMenuRef={contextMenuRef}
         contextMenuTriggerRef={contextMenuTriggerRef}
         contextMenuOpen={contextMenuOpen}
@@ -1149,17 +1012,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         projectDialogSubmitting={projectDialogSubmitting}
         projectDialogError={projectDialogError}
         projectNameInputRef={projectNameInputRef}
-        notificationsRef={notificationsRef}
-        notificationsTriggerRef={notificationsTriggerRef}
-        unreadNotifications={unreadNotifications}
-        notificationsOpen={notificationsOpen}
-        notifications={notifications}
-        notifFilter={notifFilter}
-        setNotifFilter={setNotifFilter}
-        notifProjectFilter={notifProjectFilter}
-        setNotifProjectFilter={setNotifProjectFilter}
-        onNavigateNotification={onNavigateNotification}
-        notificationsPanelRef={notificationsPanelRef}
         profileRef={profileRef}
         profileTriggerRef={profileTriggerRef}
         profileOpen={profileOpen}

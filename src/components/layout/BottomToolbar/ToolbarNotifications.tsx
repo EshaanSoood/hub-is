@@ -1,40 +1,29 @@
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { Icon } from '../../primitives';
+import type { NotificationFilter, ToolbarNotification } from '../appShellUtils';
 import { NotificationsPanelDialog } from './ToolbarDialogs/NotificationsPanelDialog';
 import type { BottomToolbarProps } from './types';
 
-type ToolbarNotificationsProps = Pick<
-  BottomToolbarProps,
-  | 'notificationsRef'
-  | 'notificationsTriggerRef'
-  | 'setNotificationsOpen'
-  | 'setProfileOpen'
-  | 'closeSearch'
-  | 'closeQuickNav'
-  | 'closeQuickNavPanel'
-  | 'setContextMenuOpen'
-  | 'closeCapturePanel'
-  | 'unreadNotifications'
-  | 'notificationsOpen'
-  | 'notifications'
-  | 'notifFilter'
-  | 'setNotifFilter'
-  | 'notifProjectFilter'
-  | 'setNotifProjectFilter'
-  | 'projects'
-  | 'onNavigateNotification'
-  | 'notificationsPanelRef'
->;
+interface ToolbarNotificationsProps {
+  notificationsRef: MutableRefObject<HTMLDivElement | null>;
+  notificationsTriggerRef: MutableRefObject<HTMLButtonElement | null>;
+  toggleNotifications: () => void;
+  unreadNotifications: number;
+  notificationsOpen: boolean;
+  notifications: ToolbarNotification[];
+  notifFilter: NotificationFilter;
+  setNotifFilter: Dispatch<SetStateAction<NotificationFilter>>;
+  notifProjectFilter: string | null;
+  setNotifProjectFilter: Dispatch<SetStateAction<string | null>>;
+  projects: BottomToolbarProps['projects'];
+  onNavigateNotification: (notification: ToolbarNotification) => Promise<void>;
+  notificationsPanelRef: MutableRefObject<HTMLDivElement | null>;
+}
 
 export const ToolbarNotifications = ({
   notificationsRef,
   notificationsTriggerRef,
-  setNotificationsOpen,
-  setProfileOpen,
-  closeSearch,
-  closeQuickNav,
-  closeQuickNavPanel,
-  setContextMenuOpen,
-  closeCapturePanel,
+  toggleNotifications,
   unreadNotifications,
   notificationsOpen,
   notifications,
@@ -50,15 +39,7 @@ export const ToolbarNotifications = ({
     <button
       ref={notificationsTriggerRef}
       type="button"
-      onClick={() => {
-        setNotificationsOpen((current) => !current);
-        setProfileOpen(false);
-        closeSearch();
-        closeQuickNav();
-        closeQuickNavPanel();
-        setContextMenuOpen(false);
-        closeCapturePanel({ restoreFocus: false });
-      }}
+      onClick={toggleNotifications}
       aria-label={unreadNotifications > 0 ? `${unreadNotifications} unread notifications` : 'Notifications'}
       className="relative flex h-9 w-9 items-center justify-center rounded-control text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
     >

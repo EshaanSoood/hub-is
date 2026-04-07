@@ -1,5 +1,6 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import { subscribeQuickAddProjectRequest } from '../../../../lib/quickAddProjectRequest';
+import type { CloseNotificationsOptions } from '../../BottomToolbar';
 import type { QuickAddDialog } from '../../appShellUtils';
 
 interface UseQuickAddProjectRequestEffectArgs {
@@ -7,13 +8,12 @@ interface UseQuickAddProjectRequestEffectArgs {
   closeQuickNav: () => void;
   closeQuickNavPanel: () => void;
   closeSearch: () => void;
+  closeNotifications: (options?: CloseNotificationsOptions) => void;
   openQuickAddDialog: (dialogType: Exclude<QuickAddDialog, null>) => Promise<void>;
   setProfileOpen: Dispatch<SetStateAction<boolean>>;
-  setNotificationsOpen: Dispatch<SetStateAction<boolean>>;
   setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
   skipQuickNavFocusRestoreRef: MutableRefObject<boolean>;
   skipProfileFocusRestoreRef: MutableRefObject<boolean>;
-  skipNotificationsFocusRestoreRef: MutableRefObject<boolean>;
   skipContextMenuFocusRestoreRef: MutableRefObject<boolean>;
 }
 
@@ -22,13 +22,12 @@ export const useQuickAddProjectRequestEffect = ({
   closeQuickNav,
   closeQuickNavPanel,
   closeSearch,
+  closeNotifications,
   openQuickAddDialog,
   setProfileOpen,
-  setNotificationsOpen,
   setContextMenuOpen,
   skipQuickNavFocusRestoreRef,
   skipProfileFocusRestoreRef,
-  skipNotificationsFocusRestoreRef,
   skipContextMenuFocusRestoreRef,
 }: UseQuickAddProjectRequestEffectArgs) => {
   useEffect(
@@ -36,16 +35,27 @@ export const useQuickAddProjectRequestEffect = ({
       skipQuickNavFocusRestoreRef.current = true;
       closeQuickNav();
       skipProfileFocusRestoreRef.current = true;
-      skipNotificationsFocusRestoreRef.current = true;
       skipContextMenuFocusRestoreRef.current = true;
       closeQuickNavPanel();
       closeSearch();
+      closeNotifications({ restoreFocus: false });
       setProfileOpen(false);
-      setNotificationsOpen(false);
       setContextMenuOpen(false);
       closeCapturePanel({ restoreFocus: false });
       void openQuickAddDialog('project');
     }),
-    [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, openQuickAddDialog],
+    [
+      closeCapturePanel,
+      closeNotifications,
+      closeQuickNav,
+      closeQuickNavPanel,
+      closeSearch,
+      openQuickAddDialog,
+      setContextMenuOpen,
+      setProfileOpen,
+      skipContextMenuFocusRestoreRef,
+      skipProfileFocusRestoreRef,
+      skipQuickNavFocusRestoreRef,
+    ],
   );
 };

@@ -6,35 +6,40 @@ import type {
   SetStateAction,
 } from 'react';
 import type { QuickCapturePanel } from '../../../features/QuickCapture';
-import type { HubSearchResult } from '../../../services/hub/search';
 import type { TaskCreateDialog } from '../../project-space/TaskCreateDialog';
 import type { CalendarModuleSkin, CalendarScope } from '../../project-space/CalendarModuleSkin';
 import type { RemindersModuleSkin } from '../../project-space/RemindersModuleSkin';
 import type { TasksModuleSkin } from '../../project-space/TasksModuleSkin';
 import type { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from '../QuickAddDialogs';
 import type {
-  NotificationFilter,
   QuickAddDialog,
   QuickAddOption,
   QuickNavActionItem,
   ToolbarDialog,
-  ToolbarNotification,
 } from '../appShellUtils';
 
+export interface CloseQuickNavOptions {
+  restoreFocus?: boolean;
+}
+
+export interface CloseNotificationsOptions {
+  restoreFocus?: boolean;
+}
+
 export interface BottomToolbarProps {
+  onSearchCloseAvailable?: (closeSearch: () => void) => void;
+  onNotificationsCloseAvailable?: (closeNotifications: (options?: CloseNotificationsOptions) => void) => void;
   isOnHubHome: boolean;
   navigate: (to: string) => void;
   breadcrumb: string[];
   quickNavRef: MutableRefObject<HTMLDivElement | null>;
   quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
   quickNavOpen: boolean;
-  closeQuickNav: () => void;
+  closeQuickNav: (options?: CloseQuickNavOptions) => void;
   setQuickNavOpen: Dispatch<SetStateAction<boolean>>;
   setQuickNavActiveIndex: Dispatch<SetStateAction<number>>;
   quickNavItems: QuickNavActionItem[];
-  closeSearch: () => void;
   setProfileOpen: Dispatch<SetStateAction<boolean>>;
-  setNotificationsOpen: Dispatch<SetStateAction<boolean>>;
   setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
   closeQuickNavPanel: () => void;
   closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
@@ -44,18 +49,6 @@ export interface BottomToolbarProps {
   normalizedQuickNavActiveIndex: number;
   onSelectQuickNavItem: (item: QuickNavActionItem) => void;
   quickNavDestinationItems: QuickNavActionItem[];
-  searchRef: MutableRefObject<HTMLDivElement | null>;
-  searchQuery: string;
-  setSearchQuery: Dispatch<SetStateAction<string>>;
-  setSearchActiveIndex: Dispatch<SetStateAction<number>>;
-  searchDismissedRef: MutableRefObject<boolean>;
-  setSearchOpen: Dispatch<SetStateAction<boolean>>;
-  searchOpen: boolean;
-  searchResults: HubSearchResult[];
-  searchLoading: boolean;
-  normalizedSearchActiveIndex: number;
-  onSelectSearchResult: (result: HubSearchResult) => void;
-  searchError: string | null;
   contextMenuRef: MutableRefObject<HTMLDivElement | null>;
   contextMenuTriggerRef: MutableRefObject<HTMLButtonElement | null>;
   contextMenuOpen: boolean;
@@ -137,17 +130,6 @@ export interface BottomToolbarProps {
   projectDialogSubmitting: boolean;
   projectDialogError: string | null;
   projectNameInputRef: ComponentProps<typeof QuickAddProjectDialog>['nameInputRef'];
-  notificationsRef: MutableRefObject<HTMLDivElement | null>;
-  notificationsTriggerRef: MutableRefObject<HTMLButtonElement | null>;
-  unreadNotifications: number;
-  notificationsOpen: boolean;
-  notifications: ToolbarNotification[];
-  notifFilter: NotificationFilter;
-  setNotifFilter: Dispatch<SetStateAction<NotificationFilter>>;
-  notifProjectFilter: string | null;
-  setNotifProjectFilter: Dispatch<SetStateAction<string | null>>;
-  onNavigateNotification: (notification: ToolbarNotification) => void;
-  notificationsPanelRef: MutableRefObject<HTMLDivElement | null>;
   profileRef: MutableRefObject<HTMLDivElement | null>;
   profileTriggerRef: MutableRefObject<HTMLButtonElement | null>;
   profileOpen: boolean;
