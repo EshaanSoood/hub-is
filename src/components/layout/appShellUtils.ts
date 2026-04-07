@@ -8,6 +8,7 @@ import {
   bucketForDate as resolveDateBucket,
   type DateBucketId,
 } from '../../hooks/useDateBuckets';
+import { getProjectColor, PROJECT_COLOR_PALETTE } from '../../lib/getProjectColor';
 
 export { DATE_BUCKET_LABELS, DATE_BUCKET_ORDER };
 export type { DateBucketId };
@@ -124,13 +125,7 @@ export const tomorrowAtNineIso = (): string => {
   return next.toISOString();
 };
 
-export const projectDotClassNames = [
-  'bg-[color:var(--color-primary)]',
-  'bg-[color:var(--color-primary-strong)]',
-  'bg-[color:var(--color-capture-rail)]',
-  'bg-[color:var(--color-text-secondary)]',
-  'bg-[color:var(--color-muted)]',
-];
+export const projectDotClassNames = [...PROJECT_COLOR_PALETTE];
 
 export const hashString = (value: string): number => {
   let hash = 0;
@@ -142,11 +137,7 @@ export const hashString = (value: string): number => {
 };
 
 export const projectDotClassName = (projectId: string | null): string => {
-  if (!projectId) {
-    return projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
-  }
-  const index = hashString(projectId) % projectDotClassNames.length;
-  return projectDotClassNames[index] || projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
+  return getProjectColor(projectId);
 };
 
 export const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; name: string }>): string[] => {

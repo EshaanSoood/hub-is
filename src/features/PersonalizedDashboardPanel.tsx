@@ -9,6 +9,7 @@ import {
 } from '../hooks/useDateBuckets';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { dashboardCardRegistry } from '../lib/dashboardCards';
+import { getProjectColor } from '../lib/getProjectColor';
 import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import { requestQuickAddProject } from '../lib/quickAddProjectRequest';
@@ -205,26 +206,6 @@ const buildEventItems = (events: HubEvent[]): HubDashboardItem[] =>
     explicitHref: buildEventDestinationHref(event),
   }));
 
-const projectDotClassNames = [
-  'bg-[color:var(--color-primary)]',
-  'bg-[color:var(--color-info)]',
-  'bg-[color:var(--color-success)]',
-  'bg-[color:var(--color-warning)]',
-  'bg-[color:var(--color-danger)]',
-];
-
-const projectDotClassName = (projectId: string | null): string => {
-  if (!projectId) {
-    return 'bg-[color:var(--color-muted)]';
-  }
-  let hash = 0;
-  for (let index = 0; index < projectId.length; index += 1) {
-    hash = (hash << 5) - hash + projectId.charCodeAt(index);
-    hash |= 0;
-  }
-  return projectDotClassNames[Math.abs(hash) % projectDotClassNames.length] || projectDotClassNames[0];
-};
-
 export const ItemRow = ({
   item,
   onOpen,
@@ -244,7 +225,7 @@ export const ItemRow = ({
             <span className="truncate text-sm font-semibold text-text">{item.title}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-            <span className={`inline-block h-2.5 w-2.5 rounded-full ${projectDotClassName(item.projectId)}`} aria-hidden="true" />
+            <span className={`inline-block h-2.5 w-2.5 rounded-full ${getProjectColor(item.projectId)}`} aria-hidden="true" />
             <span>{item.projectName || 'Inbox & Unassigned'}</span>
             {item.subtitle ? <span>{item.subtitle}</span> : null}
           </div>
@@ -384,7 +365,7 @@ const ProjectLensView = ({
           <section key={section.id} className="rounded-panel border border-border-muted bg-surface">
             <div className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
               <div className="flex min-w-0 items-baseline gap-2">
-                <span className={`inline-block h-2.5 w-2.5 rounded-full ${projectDotClassName(section.id === '__inbox__' ? null : section.id)}`} />
+                <span className={`inline-block h-2.5 w-2.5 rounded-full ${getProjectColor(section.id === '__inbox__' ? null : section.id)}`} />
                 <h3 className="truncate text-sm font-semibold text-text">{section.name}</h3>
                 {section.id !== '__inbox__' ? (
                   <Link

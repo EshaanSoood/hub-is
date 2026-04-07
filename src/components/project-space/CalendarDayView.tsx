@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/core';
 import { ModuleEmptyState } from './ModuleFeedback';
 import { cn } from '../../lib/cn';
+import { getProjectColor } from '../../lib/getProjectColor';
 
 const SLOT_MINUTES = 5;
 const SLOT_COUNT_PER_DAY = (24 * 60) / SLOT_MINUTES;
@@ -219,26 +220,6 @@ const eventAccentClassName = (kind: EventTypeKind): string => {
   return 'border-l-[color:var(--color-primary)]';
 };
 
-const projectDotClassNames = [
-  'bg-[color:var(--color-primary)]',
-  'bg-[color:var(--color-primary-strong)]',
-  'bg-[color:var(--color-capture-rail)]',
-  'bg-[color:var(--color-text-secondary)]',
-  'bg-[color:var(--color-muted)]',
-];
-
-const projectDotClassName = (projectKey: string): string => {
-  if (!projectKey) {
-    return projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
-  }
-  let hash = 0;
-  for (let index = 0; index < projectKey.length; index += 1) {
-    hash = (hash << 5) - hash + projectKey.charCodeAt(index);
-    hash |= 0;
-  }
-  return projectDotClassNames[Math.abs(hash) % projectDotClassNames.length] || projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
-};
-
 const extractProjectLabel = (event: CalendarDayEvent): { projectLabel: string; projectKey: string } => {
   const projectLabel = event.project_name || event.source_pane?.pane_name || 'Calendar';
   const projectKey = event.project_id || event.source_pane?.pane_id || projectLabel;
@@ -345,7 +326,7 @@ const DraggableEventCard = ({
         </div>
       </div>
       <p className="mt-2 flex items-center gap-1.5 text-xs text-text">
-        <span className={cn('inline-block h-2.5 w-2.5 rounded-full', projectDotClassName(item.projectKey))} aria-hidden="true" />
+        <span className={cn('inline-block h-2.5 w-2.5 rounded-full', getProjectColor(item.projectKey))} aria-hidden="true" />
         <span className="truncate">{item.projectLabel}</span>
       </p>
     </button>
