@@ -67,7 +67,7 @@ export const useQuickCaptureQueryIntentEffect = ({
       }
     };
 
-    void createAndOpenCapture();
+    void createAndOpenCapture().catch(() => undefined);
 
     return () => {
       cancelled = true;

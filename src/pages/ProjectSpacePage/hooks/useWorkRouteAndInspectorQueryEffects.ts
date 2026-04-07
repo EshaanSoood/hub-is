@@ -53,7 +53,7 @@ export const useWorkRouteAndInspectorQueryEffects = ({
         next.delete('record_id');
         return next;
       }, { replace: true });
-    })();
+    })().catch(() => undefined);
 
     return () => {
       cancelled = true;
