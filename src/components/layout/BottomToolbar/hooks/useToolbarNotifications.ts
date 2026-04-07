@@ -19,12 +19,13 @@ import {
   type ToolbarNotification,
 } from '../../appShellUtils';
 import { useNotificationsEffects } from './useNotificationsEffects';
+import type { CloseNotificationsOptions, CloseQuickNavOptions } from '../types';
 
 interface UseToolbarNotificationsArgs {
   accessToken: string | null | undefined;
   navigate: (to: string) => void;
   closeSearch: () => void;
-  closeQuickNav: () => void;
+  closeQuickNav: (options?: CloseQuickNavOptions) => void;
   closeQuickNavPanel: () => void;
   setProfileOpen: Dispatch<SetStateAction<boolean>>;
   setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
@@ -36,10 +37,6 @@ interface UseToolbarNotificationsArgs {
   toolbarDialog: ToolbarDialog;
   quickAddDialog: QuickAddDialog;
   searchOpen: boolean;
-}
-
-export interface CloseNotificationsOptions {
-  restoreFocus?: boolean;
 }
 
 interface UseToolbarNotificationsResult {
@@ -126,7 +123,7 @@ export const useToolbarNotifications = ({
     setNotificationsOpen((current) => !current);
     setProfileOpen(false);
     closeSearch();
-    closeQuickNav();
+    closeQuickNav({ restoreFocus: false });
     closeQuickNavPanel();
     setContextMenuOpen(false);
     closeCapturePanel({ restoreFocus: false });
@@ -159,17 +156,9 @@ export const useToolbarNotifications = ({
       }
     };
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeNotifications();
-      }
-    };
-
     document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('keydown', onKeyDown);
     };
   }, [closeNotifications, notificationsOpen]);
 

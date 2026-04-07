@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import type { HubSearchResult } from '../../../../services/hub/search';
 import { buildSearchResultHref } from '../../appShellUtils';
+import type { CloseQuickNavOptions } from '../types';
 import { useGlobalSearchEffect } from './useGlobalSearchEffect';
 
 interface UseToolbarSearchArgs {
   accessToken: string | null | undefined;
   navigate: (to: string) => void;
-  closeQuickNav: () => void;
+  closeQuickNav: (options?: CloseQuickNavOptions) => void;
   closeQuickNavPanel: () => void;
   setProfileOpen: Dispatch<SetStateAction<boolean>>;
   setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
@@ -73,7 +74,7 @@ export const useToolbarSearch = ({
     }
     navigate(href);
     resetSearch();
-    closeQuickNav();
+    closeQuickNav({ restoreFocus: false });
     closeQuickNavPanel();
     setProfileOpen(false);
     setContextMenuOpen(false);
@@ -109,17 +110,9 @@ export const useToolbarSearch = ({
       }
     };
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeSearch();
-      }
-    };
-
     document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('keydown', onKeyDown);
     };
   }, [closeSearch, searchOpen]);
 

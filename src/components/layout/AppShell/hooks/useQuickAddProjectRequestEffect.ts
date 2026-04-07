@@ -1,5 +1,6 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import { subscribeQuickAddProjectRequest } from '../../../../lib/quickAddProjectRequest';
+import type { CloseNotificationsOptions } from '../../BottomToolbar';
 import type { QuickAddDialog } from '../../appShellUtils';
 
 interface UseQuickAddProjectRequestEffectArgs {
@@ -7,7 +8,7 @@ interface UseQuickAddProjectRequestEffectArgs {
   closeQuickNav: () => void;
   closeQuickNavPanel: () => void;
   closeSearch: () => void;
-  closeNotifications: (options?: { restoreFocus?: boolean }) => void;
+  closeNotifications: (options?: CloseNotificationsOptions) => void;
   openQuickAddDialog: (dialogType: Exclude<QuickAddDialog, null>) => Promise<void>;
   setProfileOpen: Dispatch<SetStateAction<boolean>>;
   setContextMenuOpen: Dispatch<SetStateAction<boolean>>;

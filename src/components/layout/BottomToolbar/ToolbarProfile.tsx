@@ -1,8 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { Icon } from '../../primitives';
 import { ProfileMenuDialog } from './ToolbarDialogs/ProfileMenuDialog';
-import type { CloseNotificationsOptions } from './hooks/useToolbarNotifications';
-import type { BottomToolbarProps } from './types';
+import type { BottomToolbarProps, CloseNotificationsOptions, CloseQuickNavOptions } from './types';
 
 interface ToolbarProfileProps {
   profileRef: BottomToolbarProps['profileRef'];
@@ -10,7 +9,7 @@ interface ToolbarProfileProps {
   setProfileOpen: Dispatch<SetStateAction<boolean>>;
   closeNotifications: (options?: CloseNotificationsOptions) => void;
   closeSearch: () => void;
-  closeQuickNav: () => void;
+  closeQuickNav: (options?: CloseQuickNavOptions) => void;
   closeQuickNavPanel: () => void;
   setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
   closeCapturePanel: BottomToolbarProps['closeCapturePanel'];

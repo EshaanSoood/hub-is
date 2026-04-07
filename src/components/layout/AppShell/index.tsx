@@ -15,7 +15,7 @@ import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
 import { createHubProject } from '../../../services/projectsService';
 import { adaptTaskSummaries } from '../../project-space/taskAdapter';
 import { notifyError, notifyInfo, notifySuccess } from '../../primitives';
-import { BottomToolbar } from '../BottomToolbar';
+import { BottomToolbar, type CloseNotificationsOptions, type CloseQuickNavOptions } from '../BottomToolbar';
 import { useCapturePanelEffects } from './hooks/useCapturePanelEffects';
 import { useGlobalInteractionEffects } from './hooks/useGlobalInteractionEffects';
 import { useInstallPromptEffect } from './hooks/useInstallPromptEffect';
@@ -142,7 +142,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const skipContextMenuFocusRestoreRef = useRef(false);
   const skipCaptureFocusRestoreRef = useRef(false);
   const toolbarSearchCloseRef = useRef<() => void>(() => {});
-  const toolbarNotificationsCloseRef = useRef<(options?: { restoreFocus?: boolean }) => void>(() => {});
+  const toolbarNotificationsCloseRef = useRef<(options?: CloseNotificationsOptions) => void>(() => {});
 
   const visibleTabs = appTabs.filter((tab) => canGlobal(tab.capability));
   const isOnHubHome = location.pathname === '/projects';
@@ -504,7 +504,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     refreshQuickNavTasks,
   });
 
-  const closeQuickNav = useCallback(() => {
+  const closeQuickNav = useCallback((options?: CloseQuickNavOptions) => {
+    skipQuickNavFocusRestoreRef.current = options?.restoreFocus === false;
     setQuickNavOpen(false);
     setQuickNavQuery('');
     setQuickNavActiveIndex(-1);
@@ -519,7 +520,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     toolbarSearchCloseRef.current = closeSearch;
   }, []);
 
-  const onNotificationsCloseAvailable = useCallback((closeNotifications: (options?: { restoreFocus?: boolean }) => void) => {
+  const onNotificationsCloseAvailable = useCallback((closeNotifications: (options?: CloseNotificationsOptions) => void) => {
     toolbarNotificationsCloseRef.current = closeNotifications;
   }, []);
 
@@ -527,7 +528,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     toolbarSearchCloseRef.current();
   }, []);
 
-  const closeToolbarNotifications = useCallback((options?: { restoreFocus?: boolean }) => {
+  const closeToolbarNotifications = useCallback((options?: CloseNotificationsOptions) => {
     toolbarNotificationsCloseRef.current(options);
   }, []);
 

@@ -1,4 +1,5 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import type { CloseNotificationsOptions } from '../../BottomToolbar';
 import { isTextInputElement, type QuickAddDialog, type ToolbarDialog } from '../../appShellUtils';
 
 interface UseGlobalInteractionEffectsArgs {
@@ -6,7 +7,7 @@ interface UseGlobalInteractionEffectsArgs {
   closeQuickNav: () => void;
   closeQuickNavPanel: () => void;
   closeSearch: () => void;
-  closeNotifications: (options?: { restoreFocus?: boolean }) => void;
+  closeNotifications: (options?: CloseNotificationsOptions) => void;
   contextMenuOpen: boolean;
   contextMenuRef: MutableRefObject<HTMLDivElement | null>;
   openQuickNavPanel: (panel: Exclude<ToolbarDialog, null>) => void;
@@ -72,7 +73,7 @@ export const useGlobalInteractionEffects = ({
       if (event.key === 'Escape') {
         closeCapturePanel();
         closeSearch();
-        closeNotifications({ restoreFocus: false });
+        closeNotifications();
         closeQuickNav();
         closeQuickNavPanel();
         setProfileOpen(false);

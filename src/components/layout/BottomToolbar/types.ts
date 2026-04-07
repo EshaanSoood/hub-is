@@ -17,7 +17,14 @@ import type {
   QuickNavActionItem,
   ToolbarDialog,
 } from '../appShellUtils';
-import type { CloseNotificationsOptions } from './hooks/useToolbarNotifications';
+
+export interface CloseQuickNavOptions {
+  restoreFocus?: boolean;
+}
+
+export interface CloseNotificationsOptions {
+  restoreFocus?: boolean;
+}
 
 export interface BottomToolbarProps {
   onSearchCloseAvailable?: (closeSearch: () => void) => void;
@@ -28,7 +35,7 @@ export interface BottomToolbarProps {
   quickNavRef: MutableRefObject<HTMLDivElement | null>;
   quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
   quickNavOpen: boolean;
-  closeQuickNav: () => void;
+  closeQuickNav: (options?: CloseQuickNavOptions) => void;
   setQuickNavOpen: Dispatch<SetStateAction<boolean>>;
   setQuickNavActiveIndex: Dispatch<SetStateAction<number>>;
   quickNavItems: QuickNavActionItem[];

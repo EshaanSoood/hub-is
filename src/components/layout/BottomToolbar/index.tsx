@@ -14,7 +14,7 @@ import { ToolbarSearch } from './ToolbarSearch';
 import { ToolbarThoughtPile } from './ToolbarThoughtPile';
 import type { BottomToolbarProps } from './types';
 
-export type { BottomToolbarProps } from './types';
+export type { BottomToolbarProps, CloseNotificationsOptions, CloseQuickNavOptions } from './types';
 
 export const BottomToolbar = (props: BottomToolbarProps) => {
   const { onSearchCloseAvailable, onNotificationsCloseAvailable } = props;

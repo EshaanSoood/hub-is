@@ -1,14 +1,13 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { Icon } from '../../primitives';
 import { QuickNavPanel } from './ToolbarDialogs/QuickNavPanel';
-import type { CloseNotificationsOptions } from './hooks/useToolbarNotifications';
-import type { BottomToolbarProps } from './types';
+import type { BottomToolbarProps, CloseNotificationsOptions, CloseQuickNavOptions } from './types';
 
 interface ToolbarNavProps {
   quickNavRef: BottomToolbarProps['quickNavRef'];
   quickNavTriggerRef: BottomToolbarProps['quickNavTriggerRef'];
   quickNavOpen: boolean;
-  closeQuickNav: () => void;
+  closeQuickNav: (options?: CloseQuickNavOptions) => void;
   setQuickNavOpen: Dispatch<SetStateAction<boolean>>;
   setQuickNavActiveIndex: Dispatch<SetStateAction<number>>;
   quickNavItems: BottomToolbarProps['quickNavItems'];
