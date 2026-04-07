@@ -14,6 +14,7 @@ import {
   type UniqueIdentifier,
 } from '@dnd-kit/core';
 import { ModuleEmptyState } from './ModuleFeedback';
+import { EventCard } from '../cards/EventCard';
 import { cn } from '../../lib/cn';
 
 const SLOT_MINUTES = 5;
@@ -219,26 +220,6 @@ const eventAccentClassName = (kind: EventTypeKind): string => {
   return 'border-l-[color:var(--color-primary)]';
 };
 
-const projectDotClassNames = [
-  'bg-[color:var(--color-primary)]',
-  'bg-[color:var(--color-primary-strong)]',
-  'bg-[color:var(--color-capture-rail)]',
-  'bg-[color:var(--color-text-secondary)]',
-  'bg-[color:var(--color-muted)]',
-];
-
-const projectDotClassName = (projectKey: string): string => {
-  if (!projectKey) {
-    return projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
-  }
-  let hash = 0;
-  for (let index = 0; index < projectKey.length; index += 1) {
-    hash = (hash << 5) - hash + projectKey.charCodeAt(index);
-    hash |= 0;
-  }
-  return projectDotClassNames[Math.abs(hash) % projectDotClassNames.length] || projectDotClassNames[0] || 'bg-[color:var(--color-primary)]';
-};
-
 const extractProjectLabel = (event: CalendarDayEvent): { projectLabel: string; projectKey: string } => {
   const projectLabel = event.project_name || event.source_pane?.pane_name || 'Calendar';
   const projectKey = event.project_id || event.source_pane?.pane_id || projectLabel;
@@ -337,17 +318,13 @@ const DraggableEventCard = ({
       {...listeners}
       {...attributes}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="line-clamp-2 text-sm font-semibold text-text">{item.event.title}</p>
-        <div className="shrink-0 text-right">
-          <p className="text-[11px] font-medium text-text">{startLabel} - {endLabel}</p>
-          <p className="text-[11px] text-text-secondary">{durationLabel}</p>
-        </div>
-      </div>
-      <p className="mt-2 flex items-center gap-1.5 text-xs text-text">
-        <span className={cn('inline-block h-2.5 w-2.5 rounded-full', projectDotClassName(item.projectKey))} aria-hidden="true" />
-        <span className="truncate">{item.projectLabel}</span>
-      </p>
+      <EventCard
+        title={item.event.title}
+        timeLabel={`${startLabel} - ${endLabel}`}
+        detailLabel={durationLabel}
+        projectId={item.projectKey}
+        projectName={item.projectLabel}
+      />
     </button>
   );
 };

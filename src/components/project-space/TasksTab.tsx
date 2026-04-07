@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboa
 import { cn } from '../../lib/cn';
 import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
+import { TaskCard } from '../cards/TaskCard';
 import type { PriorityLevel } from './designTokens';
 import { getPriorityClasses } from '../../lib/priorityStyles';
 
@@ -85,12 +86,6 @@ const PRIORITY_MENU_OPTIONS: Array<{ value: TaskPriorityValue; label: string; to
   { value: 'low', label: 'Low', tone: 'low' },
   { value: null, label: 'None', tone: null },
 ];
-const STATUS_SYMBOLS: Record<TaskStatus, string> = {
-  todo: '○',
-  in_progress: '◐',
-  done: '✓',
-  cancelled: '⊘',
-};
 const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'To do',
   in_progress: 'In progress',
@@ -407,6 +402,7 @@ const TaskRow = ({
   const archiveTimerRef = useRef<number | null>(null);
   const visibleSubtaskCount = task.subtaskCount ?? task.subtasks.length;
   const taskHasSubtasks = task.subtasks.length > 0;
+  const subtaskListId = taskHasSubtasks ? `task-subtasks-${task.id}` : undefined;
   const hasMenuActions = Boolean(onUpdateTaskPriority || onUpdateTaskDueDate || onUpdateTaskCategory || onUpdateTaskStatus || onDeleteTask);
   const priorityTone = getPriorityTone(task.priorityValue, task.priority);
   const priorityClasses = getPriorityClasses(priorityTone);
@@ -545,43 +541,36 @@ const TaskRow = ({
       />
 
       <div className="flex items-center gap-2 pl-1">
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            if (!onToggleStatus || status === 'cancelled') {
-              return;
-            }
-            onToggleStatus(task.id, getNextStatus(status));
-          }}
-          className={cn(
-            'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50',
-            status === 'done' && 'text-primary',
-            status === 'cancelled' && 'text-danger',
-          )}
-          aria-label={status === 'cancelled' ? `${task.label} is cancelled. Use actions to reopen.` : `Advance ${task.label} from ${STATUS_LABELS[status]}`}
-          disabled={!onToggleStatus || status === 'cancelled'}
-        >
-          <span aria-hidden="true">{STATUS_SYMBOLS[status]}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setExpanded((current) => !current)}
-          disabled={!taskHasSubtasks}
-          className="flex min-w-0 flex-1 items-center gap-2 text-left disabled:cursor-default"
-        >
-          <span className="min-w-0 flex-1 truncate text-sm text-text">
-            <span className={cn(status === 'cancelled' && 'line-through text-text-secondary')}>{task.label}</span>
-          </span>
-          {visibleSubtaskCount > 0 ? (
-            <span className={cn('shrink-0 rounded-control border px-1.5 py-0.5 text-[10px] font-semibold', priorityClasses.text, priorityClasses.border, priorityClasses.tint)}>
-              {visibleSubtaskCount}
-            </span>
-          ) : null}
-          <span className="shrink-0 text-xs text-text-secondary">{task.dueLabel}</span>
-          {taskHasSubtasks ? <span className={cn('text-[10px] text-muted transition-transform', expanded && 'rotate-90')}>▶</span> : null}
-        </button>
+        <TaskCard
+          title={task.label}
+          status={status}
+          dueLabel={task.dueLabel}
+          className="flex-1"
+          onToggleStatus={
+            !onToggleStatus || status === 'cancelled'
+              ? undefined
+              : () => {
+                  onToggleStatus(task.id, getNextStatus(status));
+                }
+          }
+          toggleDisabled={!onToggleStatus || status === 'cancelled'}
+          toggleAriaLabel={status === 'cancelled' ? `${task.label} is cancelled. Use actions to reopen.` : `Advance ${task.label} from ${STATUS_LABELS[status]}`}
+          onTitleClick={taskHasSubtasks ? () => setExpanded((current) => !current) : undefined}
+          titleExpanded={taskHasSubtasks ? expanded : undefined}
+          titleControls={subtaskListId}
+          trailing={
+            visibleSubtaskCount > 0 || taskHasSubtasks ? (
+              <span className="flex shrink-0 items-center gap-1">
+                {visibleSubtaskCount > 0 ? (
+                  <span className={cn('shrink-0 rounded-control border px-1.5 py-0.5 text-[10px] font-semibold', priorityClasses.text, priorityClasses.border, priorityClasses.tint)}>
+                    {visibleSubtaskCount}
+                  </span>
+                ) : null}
+                {taskHasSubtasks ? <span className={cn('text-[10px] text-muted transition-transform', expanded && 'rotate-90')}>▶</span> : null}
+              </span>
+            ) : null
+          }
+        />
 
         <div className="ml-auto flex items-center gap-1">
           {onAddSubtask ? (
@@ -756,7 +745,7 @@ const TaskRow = ({
       </div>
 
       {expanded && taskHasSubtasks ? (
-        <ul className="mt-2 space-y-1">
+        <ul id={subtaskListId} className="mt-2 space-y-1">
           {task.subtasks.map((subtask) => (
             <SubtaskTree key={subtask.id} subtask={subtask} parentPriority={task.priority} level={1} visitedIds={EMPTY_VISITED_IDS} />
           ))}

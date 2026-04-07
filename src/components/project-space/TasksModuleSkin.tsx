@@ -2,9 +2,8 @@ import { useMemo, useState } from 'react';
 import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
 import { Icon } from '../primitives';
+import { TaskCard } from '../cards/TaskCard';
 import { cn } from '../../lib/cn';
-import type { PriorityLevel } from './designTokens';
-import { getPriorityClasses } from '../../lib/priorityStyles';
 import { TasksTab, type SortChain, type SortDimension, type TaskItem, type TaskPriorityValue, type TaskStatus } from './TasksTab';
 import { formatDueLabel } from './taskAdapter';
 import { ModuleEmptyState } from './ModuleFeedback';
@@ -35,12 +34,6 @@ const CREATE_PRIORITY_OPTIONS: Array<{ value: TaskPriorityValue; label: string }
   { value: 'high', label: 'High' },
   { value: 'urgent', label: 'Urgent' },
 ];
-const STATUS_SYMBOLS: Record<TaskStatus, string> = {
-  todo: '○',
-  in_progress: '◐',
-  done: '✓',
-  cancelled: '⊘',
-};
 const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'to do',
   in_progress: 'in progress',
@@ -72,16 +65,6 @@ const parseDueAt = (isoString: string | null): Date | null => {
   }
   const parsed = new Date(isoString);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
-const priorityTone = (task: TaskItem): PriorityLevel => {
-  if (task.priorityValue === 'urgent') {
-    return 'high';
-  }
-  if (task.priorityValue === 'medium' || task.priorityValue === 'low' || task.priorityValue === 'high') {
-    return task.priorityValue;
-  }
-  return task.priority;
 };
 
 const getNextStatus = (status: TaskStatus): TaskStatus => {
@@ -172,45 +155,35 @@ const TaskSummaryRow = ({
   const showInsertAction = activeItemId === task.id && activeItemType === 'task';
 
   return (
-    <li className="relative flex items-center gap-2" {...longPressHandlers}>
-      <button
-        type="button"
-        disabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
-        onClick={() => {
+    <li className="relative" {...longPressHandlers}>
+      <TaskCard
+        title={task.label}
+        status={task.status}
+        dueLabel={formatDueLabel(task.dueAt)}
+        subtitle={task.priorityValue ? `Priority ${task.priorityValue}` : null}
+        onToggleStatus={() => {
           void Promise.resolve()
             .then(() => onUpdateTaskStatus?.(task.id, nextStatus))
             .catch((error) => {
               console.error('Failed to update task status:', error);
             });
         }}
-        aria-label={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <span aria-hidden="true">{STATUS_SYMBOLS[task.status]}</span>
-      </button>
-      <span
-        className={cn('h-2 w-2 shrink-0 rounded-full', getPriorityClasses(priorityTone(task)).dot)}
-        aria-hidden="true"
-      />
-      <button
-        type="button"
-        onClick={() => setActiveItem(task.id, 'task', task.label)}
-        onFocus={() => setActiveItem(task.id, 'task', task.label)}
-        onKeyDown={(event) => {
+        toggleDisabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
+        toggleAriaLabel={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
+        onTitleClick={() => setActiveItem(task.id, 'task', task.label)}
+        onTitleFocus={() => setActiveItem(task.id, 'task', task.label)}
+        onTitleKeyDown={(event) => {
           if (event.key === 'Escape') {
             clearActiveItem();
           }
         }}
-        aria-label={`Insert task ${task.label}`}
-        aria-pressed={showInsertAction}
+        titleAriaLabel={`Insert task ${task.label}`}
+        titlePressed={showInsertAction}
         className={cn(
-          'min-w-0 flex-1 truncate pr-16 text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-          task.status === 'cancelled' && 'line-through text-text-secondary',
+          'items-center gap-1',
+          task.status === 'cancelled' && 'text-text-secondary',
         )}
-      >
-        {task.label}
-      </button>
-      <span className="shrink-0 text-xs text-muted">{formatDueLabel(task.dueAt)}</span>
+      />
       {showInsertAction ? (
         <button
           type="button"

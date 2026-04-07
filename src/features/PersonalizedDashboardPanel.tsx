@@ -1,8 +1,15 @@
 import { KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthz } from '../context/AuthzContext';
+import {
+  DATE_BUCKET_LABELS,
+  DATE_BUCKET_ORDER,
+  type DateBucketId,
+  useDateBuckets,
+} from '../hooks/useDateBuckets';
 import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { dashboardCardRegistry } from '../lib/dashboardCards';
+import { getProjectColor } from '../lib/getProjectColor';
 import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../lib/hubRoutes';
 import { requestQuickAddProject } from '../lib/quickAddProjectRequest';
@@ -23,6 +30,8 @@ import {
 import { ContextBar } from '../components/hub-home/ContextBar';
 import { DayStrip } from '../components/hub-home/DayStrip';
 import { TriagePanel } from '../components/hub-home/TriagePanel';
+import { EventCard } from '../components/cards/EventCard';
+import { TaskCard } from '../components/cards/TaskCard';
 import type {
   DayStripEventItem,
   DayStripReminderItem,
@@ -39,15 +48,7 @@ type HubEvent = EventSummary;
 export type HubDashboardView = 'project-lens' | 'stream';
 type StreamSort = 'due' | 'updated';
 type StreamTypeFilter = 'all' | 'tasks' | 'events';
-type StreamBucketId =
-  | 'overdue'
-  | 'today'
-  | 'tomorrow'
-  | 'rest-of-week'
-  | 'later-this-month'
-  | 'later-this-year'
-  | 'beyond'
-  | 'no-date';
+type StreamBucketId = DateBucketId;
 
 export type HubDashboardItem =
   | {
@@ -61,6 +62,7 @@ export type HubDashboardItem =
       updatedAt: string;
       unread: boolean;
       badgeLabel: 'Task';
+      taskStatus: HubTask['task_state']['status'];
       subtitle?: string;
       explicitHref: string;
     }
@@ -81,16 +83,7 @@ export type HubDashboardItem =
 
 const VIEW_ORDER: HubDashboardView[] = ['project-lens', 'stream'];
 const STREAM_FILTERS: StreamTypeFilter[] = ['all', 'tasks', 'events'];
-const STREAM_BUCKET_ORDER: StreamBucketId[] = [
-  'overdue',
-  'today',
-  'tomorrow',
-  'rest-of-week',
-  'later-this-month',
-  'later-this-year',
-  'beyond',
-  'no-date',
-];
+const STREAM_BUCKET_ORDER = DATE_BUCKET_ORDER;
 
 const viewLabels: Record<HubDashboardView, string> = {
   'project-lens': 'Project Lens',
@@ -101,17 +94,6 @@ const streamFilterLabels: Record<StreamTypeFilter, string> = {
   all: 'All',
   tasks: 'Tasks',
   events: 'Events',
-};
-
-const streamBucketLabels: Record<StreamBucketId, string> = {
-  overdue: 'Overdue',
-  today: 'Today',
-  tomorrow: 'Tomorrow',
-  'rest-of-week': 'Rest of the Week',
-  'later-this-month': 'Later This Month',
-  'later-this-year': 'Later This Year',
-  beyond: 'Beyond',
-  'no-date': 'No Date',
 };
 
 const streamBucketOverlayOpacity: Record<StreamBucketId, number> = {
@@ -177,59 +159,6 @@ const formatRelativeDateTime = (value: string | null): string => {
 const formatCountLabel = (count: number, singular: string): string =>
   `${count} ${count === 1 ? singular : `${singular}s`}`;
 
-const endOfWeek = (date: Date): Date => {
-  const next = startOfDay(date);
-  const dayOffset = 6 - next.getDay();
-  next.setDate(next.getDate() + dayOffset);
-  next.setHours(23, 59, 59, 999);
-  return next;
-};
-
-const endOfMonth = (date: Date): Date => {
-  const next = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  next.setHours(23, 59, 59, 999);
-  return next;
-};
-
-const endOfYear = (date: Date): Date => {
-  const next = new Date(date.getFullYear(), 11, 31);
-  next.setHours(23, 59, 59, 999);
-  return next;
-};
-
-const streamBucketForDate = (dueAt: string | null, now: Date): StreamBucketId => {
-  const parsed = parseIso(dueAt);
-  if (!parsed) {
-    return 'no-date';
-  }
-
-  const todayStart = startOfDay(now);
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(todayStart.getDate() + 1);
-  const dayAfterTomorrowStart = new Date(todayStart);
-  dayAfterTomorrowStart.setDate(todayStart.getDate() + 2);
-
-  if (parsed < todayStart) {
-    return 'overdue';
-  }
-  if (isSameCalendarDay(parsed, now)) {
-    return 'today';
-  }
-  if (isSameCalendarDay(parsed, tomorrowStart)) {
-    return 'tomorrow';
-  }
-  if (parsed >= dayAfterTomorrowStart && parsed <= endOfWeek(now)) {
-    return 'rest-of-week';
-  }
-  if (parsed <= endOfMonth(now)) {
-    return 'later-this-month';
-  }
-  if (parsed <= endOfYear(now)) {
-    return 'later-this-year';
-  }
-  return 'beyond';
-};
-
 const sortByDueThenUpdated = (items: HubDashboardItem[]): HubDashboardItem[] =>
   [...items].sort((left, right) => {
     const leftDue = parseIso(left.dueAt)?.getTime() ?? Number.POSITIVE_INFINITY;
@@ -261,6 +190,7 @@ export const buildTaskItems = (tasks: HubTask[]): HubDashboardItem[] =>
     updatedAt: task.updated_at,
     unread: false,
     badgeLabel: 'Task',
+    taskStatus: task.task_state.status,
     subtitle: task.task_state.priority ? `${task.task_state.status} · ${task.task_state.priority}` : task.task_state.status,
     explicitHref: buildTaskDestinationHref(task),
   }));
@@ -280,26 +210,6 @@ const buildEventItems = (events: HubEvent[]): HubDashboardItem[] =>
     explicitHref: buildEventDestinationHref(event),
   }));
 
-const projectDotClassNames = [
-  'bg-[color:var(--color-primary)]',
-  'bg-[color:var(--color-info)]',
-  'bg-[color:var(--color-success)]',
-  'bg-[color:var(--color-warning)]',
-  'bg-[color:var(--color-danger)]',
-];
-
-const projectDotClassName = (projectId: string | null): string => {
-  if (!projectId) {
-    return 'bg-[color:var(--color-muted)]';
-  }
-  let hash = 0;
-  for (let index = 0; index < projectId.length; index += 1) {
-    hash = (hash << 5) - hash + projectId.charCodeAt(index);
-    hash |= 0;
-  }
-  return projectDotClassNames[Math.abs(hash) % projectDotClassNames.length] || projectDotClassNames[0];
-};
-
 export const ItemRow = ({
   item,
   onOpen,
@@ -314,17 +224,25 @@ export const ItemRow = ({
         <Chip variant="neutral" className="shrink-0">
           {item.badgeLabel}
         </Chip>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-semibold text-text">{item.title}</span>
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-            <span className={`inline-block h-2.5 w-2.5 rounded-full ${projectDotClassName(item.projectId)}`} aria-hidden="true" />
-            <span>{item.projectName || 'Inbox & Unassigned'}</span>
-            {item.subtitle ? <span>{item.subtitle}</span> : null}
-          </div>
-        </div>
-        {item.dueAt ? <span className="shrink-0 text-xs text-muted">{formatRelativeDateTime(item.dueAt)}</span> : null}
+        {item.kind === 'task' ? (
+          <TaskCard
+            title={item.title}
+            status={item.taskStatus}
+            projectId={item.projectId}
+            projectName={item.projectName || 'Inbox & Unassigned'}
+            subtitle={item.subtitle}
+            dueLabel={item.dueAt ? formatRelativeDateTime(item.dueAt) : null}
+            className="min-w-0 flex-1"
+          />
+        ) : (
+          <EventCard
+            title={item.title}
+            timeLabel={item.dueAt ? formatRelativeDateTime(item.dueAt) : null}
+            projectId={item.projectId}
+            projectName={item.projectName || 'Inbox & Unassigned'}
+            className="min-w-0 flex-1"
+          />
+        )}
       </div>
     </>
   );
@@ -459,7 +377,7 @@ const ProjectLensView = ({
           <section key={section.id} className="rounded-panel border border-border-muted bg-surface">
             <div className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
               <div className="flex min-w-0 items-baseline gap-2">
-                <span className={`inline-block h-2.5 w-2.5 rounded-full ${projectDotClassName(section.id === '__inbox__' ? null : section.id)}`} />
+                <span className={`inline-block h-2.5 w-2.5 rounded-full ${getProjectColor(section.id === '__inbox__' ? null : section.id)}`} />
                 <h3 className="truncate text-sm font-semibold text-text">{section.name}</h3>
                 {section.id !== '__inbox__' ? (
                   <Link
@@ -536,31 +454,13 @@ const StreamView = ({
     return sortMode === 'updated' ? sortByUpdated(next) : sortByDueThenUpdated(next);
   }, [items, projectFilter, sortMode, typeFilter]);
 
-  const bucketedSections = useMemo(() => {
-    const buckets = new Map<StreamBucketId, HubDashboardItem[]>(
-      STREAM_BUCKET_ORDER.map((bucketId) => [bucketId, []]),
-    );
-
-    for (const item of filteredItems) {
-      const bucketId = streamBucketForDate(item.dueAt, now);
-      const bucketItems = buckets.get(bucketId);
-      if (bucketItems) {
-        bucketItems.push(item);
-      }
-    }
-
-    return STREAM_BUCKET_ORDER.flatMap((bucketId) => {
-      const itemsForBucket = buckets.get(bucketId) || [];
-      if (itemsForBucket.length === 0) {
-        return [];
-      }
-      return [{
-        id: bucketId,
-        label: streamBucketLabels[bucketId],
-        items: itemsForBucket,
-      }];
-    });
-  }, [filteredItems, now]);
+  const bucketedSections = useDateBuckets({
+    items: filteredItems,
+    getDate: (item) => item.dueAt,
+    now,
+    order: STREAM_BUCKET_ORDER,
+    labels: DATE_BUCKET_LABELS,
+  });
 
   const projectOptions = [
     { value: 'all', label: 'All projects' },

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
+import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../hooks/useReminderNLDraft';
 import { Icon } from '../primitives';
-import { parseReminderInput } from '../../lib/nlp/reminder-parser/index';
+import { ReminderCard } from '../cards/ReminderCard';
 import type { ReminderParseResult } from '../../lib/nlp/reminder-parser/types';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import { ModuleEmptyState } from './ModuleFeedback';
@@ -148,56 +149,6 @@ const recurrenceLabel = (preview: ReminderParseResult): string | null => {
   return interval > 1 ? `Every ${interval} ${unit}s` : `Every ${unit}`;
 };
 
-const hasMeaningfulPreview = (preview: ReminderParseResult): boolean =>
-  Boolean(preview.fields.title.trim() || preview.fields.remind_at || preview.fields.recurrence || preview.fields.context_hint);
-
-const emptyPreview = (): ReminderParseResult => ({
-  fields: {
-    title: '',
-    remind_at: null,
-    recurrence: null,
-    context_hint: null,
-  },
-  meta: {
-    confidence: {
-      title: 0,
-      remind_at: 0,
-      recurrence: 0,
-      context_hint: 0,
-    },
-    spans: {
-      title: [],
-      remind_at: [],
-      recurrence: [],
-      context_hint: [],
-    },
-    debugSteps: [],
-    maskedInput: '',
-  },
-  warnings: null,
-});
-
-const buildCreatePayload = (preview: ReminderParseResult): CreateReminderPayload | null => {
-  const title = preview.fields.title.trim();
-  if (!title || !preview.fields.remind_at) {
-    return null;
-  }
-  const remindAtDate = new Date(preview.fields.remind_at);
-  if (Number.isNaN(remindAtDate.getTime())) {
-    return null;
-  }
-  return {
-    title,
-    remind_at: remindAtDate.toISOString(),
-    recurrence_json: preview.fields.recurrence
-      ? {
-          frequency: preview.fields.recurrence.frequency,
-          ...(preview.fields.recurrence.interval ? { interval: preview.fields.recurrence.interval } : {}),
-        }
-      : null,
-  };
-};
-
 const createSparkles = (): SparkleParticle[] =>
   Array.from({ length: 10 }, (_, index) => ({
     id: `sparkle-${index}-${Math.random().toString(36).slice(2, 8)}`,
@@ -258,10 +209,11 @@ const ReminderRibbonRow = ({
             }
           }}
         >
-          <p className="truncate text-sm font-medium text-text">{reminder.record_title || 'Untitled reminder'}</p>
-          <p className={`mt-1 text-xs ${isOverdue ? 'text-text underline' : 'text-text-secondary'}`}>
-            {formatReminderChip(reminder.remind_at)}
-          </p>
+          <ReminderCard
+            title={reminder.record_title || 'Untitled reminder'}
+            whenLabel={formatReminderChip(reminder.remind_at)}
+            overdue={isOverdue}
+          />
         </button>
         {onSnooze ? (
           <button
@@ -317,8 +269,14 @@ export const RemindersModuleSkin = ({
   sizeTier,
   readOnly = false,
 }: RemindersModuleSkinProps) => {
-  const [draft, setDraft] = useState('');
-  const [preview, setPreview] = useState<ReminderParseResult>(() => emptyPreview());
+  const {
+    draft,
+    setDraft,
+    preview,
+    clear: clearDraft,
+    createPayload,
+    hasMeaningfulPreview,
+  } = useReminderNLDraft({ parseDelayMs: 300 });
   const [submitting, setSubmitting] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [animations, setAnimations] = useState<Record<string, ReminderAnimationState>>({});
@@ -328,16 +286,6 @@ export const RemindersModuleSkin = ({
   useEffect(() => {
     installReminderAnimations();
   }, []);
-
-  useEffect(() => {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const timer = window.setTimeout(() => {
-      setPreview(draft.trim() ? parseReminderInput(draft, { timezone }) : emptyPreview());
-    }, 300);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [draft]);
 
   const maxVisible = MAX_VISIBLE_BY_SIZE[sizeTier];
   const visibleReminders = useMemo(
@@ -365,23 +313,25 @@ export const RemindersModuleSkin = ({
 
   const hiddenCount = Math.max(0, reminders.length - visibleReminders.length);
   const showPreview = draft.length > 0;
-  const payload = buildCreatePayload(preview);
 
   const submitReminder = async () => {
     if (readOnly || submitting) {
       return;
     }
-    if (!payload) {
-      setInputError('Add a title and time to create a reminder.');
+    const payloadResult = createPayload({
+      fallbackTitleFromDraft: true,
+      forceReparse: true,
+    });
+    if (!payloadResult.payload) {
+      setInputError(mapReminderFailureReasonToMessage(payloadResult.failureReason));
       return;
     }
 
     setSubmitting(true);
     setInputError(null);
     try {
-      await onCreate(payload);
-      setDraft('');
-      setPreview(emptyPreview());
+      await onCreate(payloadResult.payload);
+      clearDraft();
     } catch (error) {
       setInputError(error instanceof Error ? error.message : 'Failed to create reminder.');
     } finally {
@@ -493,7 +443,7 @@ export const RemindersModuleSkin = ({
 
         {showPreview ? (
           <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
-            {hasMeaningfulPreview(preview) ? (
+            {hasMeaningfulPreview ? (
               <div className="space-y-1">
                 {preview.fields.title ? (
                   <p>

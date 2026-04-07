@@ -8,6 +8,7 @@ import { TaskCreateDialog } from '../project-space/TaskCreateDialog';
 import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
 import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { usePersonalCalendarRuntime } from '../../hooks/usePersonalCalendarRuntime';
+import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../hooks/useReminderNLDraft';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
 import { createEventFromNlp, createTask, getHubHome, queryTasks } from '../../services/hub/records';
 import { createReminder, updateReminder, type CreateReminderPayload } from '../../services/hub/reminders';
@@ -17,7 +18,6 @@ import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types'
 import { subscribeHubLive } from '../../services/hubLive';
 import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { subscribeQuickAddProjectRequest } from '../../lib/quickAddProjectRequest';
-import { parseReminderInput, type ReminderParseResult } from '../../lib/nlp/reminder-parser';
 import { createHubProject } from '../../services/projectsService';
 import { CalendarModuleSkin, type CalendarScope } from '../project-space/CalendarModuleSkin';
 import { RemindersModuleSkin } from '../project-space/RemindersModuleSkin';
@@ -31,7 +31,6 @@ import {
   buildAccountAvatarUrl,
   buildBreadcrumb,
   buildSearchResultHref,
-  emptyReminderPreview,
   focusElementSoon,
   focusFirstDescendantSoon,
   isTextInputElement,
@@ -74,8 +73,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [eventEndAt, setEventEndAt] = useState(() => toDateTimeLocalInput(nowPlusHours(2)));
   const [eventSubmitting, setEventSubmitting] = useState(false);
   const [eventError, setEventError] = useState<string | null>(null);
-  const [reminderDraft, setReminderDraft] = useState('');
-  const [reminderPreview, setReminderPreview] = useState<ReminderParseResult>(() => emptyReminderPreview());
   const [reminderSubmitting, setReminderSubmitting] = useState(false);
   const [reminderError, setReminderError] = useState<string | null>(null);
   const [projectDialogName, setProjectDialogName] = useState('');
@@ -113,6 +110,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [quickNavTasks, setQuickNavTasks] = useState<HubTaskSummary[]>([]);
   const [quickNavTasksLoading, setQuickNavTasksLoading] = useState(false);
   const [quickNavTasksError, setQuickNavTasksError] = useState<string | null>(null);
+  const {
+    draft: reminderDraft,
+    setDraft: setReminderDraft,
+    preview: reminderPreview,
+    clear: clearReminderDraft,
+    createPayload: createReminderPayload,
+  } = useReminderNLDraft({
+    enabled: quickAddDialog === 'reminder',
+    parseDelayMs: 250,
+  });
   const remindersDialogOpen = toolbarDialog === 'reminders';
   const calendarDialogOpen = toolbarDialog === 'calendar';
   const {
@@ -398,14 +405,13 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         setEventError(null);
       }
       if (dialogType === 'reminder') {
-        setReminderDraft('');
-        setReminderPreview(emptyReminderPreview());
+        clearReminderDraft();
         setReminderError(null);
       }
 
       setQuickAddDialog(dialogType);
     },
-    [accessToken, loadTaskProjectMembers, refreshCaptureData, resolveDefaultQuickAddProjectId],
+    [accessToken, clearReminderDraft, loadTaskProjectMembers, refreshCaptureData, resolveDefaultQuickAddProjectId],
   );
 
   const onCreateQuickAddEvent = useCallback(async (event: FormEvent<HTMLFormElement>) => {
@@ -456,28 +462,19 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const latestPreview = reminderDraft.trim() ? parseReminderInput(reminderDraft, { timezone }) : emptyReminderPreview();
-    const title = latestPreview.fields.title.trim() || reminderDraft.trim();
-    const remindAtRaw = latestPreview.fields.remind_at;
-    if (!title || !remindAtRaw) {
-      setReminderError('Add a title and time to create a reminder.');
-      return;
-    }
-    const remindAtDate = new Date(remindAtRaw);
-    if (Number.isNaN(remindAtDate.getTime())) {
-      setReminderError('Reminder time is invalid.');
+    const payloadResult = createReminderPayload({
+      fallbackTitleFromDraft: true,
+      forceReparse: true,
+    });
+    if (!payloadResult.payload) {
+      setReminderError(mapReminderFailureReasonToMessage(payloadResult.failureReason));
       return;
     }
 
     setReminderSubmitting(true);
     setReminderError(null);
     try {
-      await createReminder(accessToken, {
-        title,
-        remind_at: remindAtDate.toISOString(),
-        recurrence_json: latestPreview.fields.recurrence ? { ...latestPreview.fields.recurrence } : null,
-      });
+      await createReminder(accessToken, payloadResult.payload);
       void refreshCaptureData();
       requestHubHomeRefresh();
       setQuickAddDialog(null);
@@ -486,7 +483,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     } finally {
       setReminderSubmitting(false);
     }
-  }, [accessToken, reminderDraft, refreshCaptureData]);
+  }, [accessToken, createReminderPayload, refreshCaptureData]);
 
   const onCreateQuickAddProject = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -551,19 +548,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       window.cancelAnimationFrame(frameId);
     };
   }, [contextMenuOpen]);
-
-  useEffect(() => {
-    if (quickAddDialog !== 'reminder') {
-      return;
-    }
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const timer = window.setTimeout(() => {
-      setReminderPreview(reminderDraft.trim() ? parseReminderInput(reminderDraft, { timezone }) : emptyReminderPreview());
-    }, 250);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [quickAddDialog, reminderDraft]);
 
   useEffect(() => {
     if (quickAddDialog !== 'task' || !quickAddProjectId) {
