@@ -1,0 +1,56 @@
+import { useEffect } from 'react';
+import { type NavigateFunction } from 'react-router-dom';
+
+const readFocusNodeKeyFromLocationState = (state: unknown): string | null => {
+  if (!state || typeof state !== 'object') {
+    return null;
+  }
+  const focusNodeKey = (state as { focusNodeKey?: unknown }).focusNodeKey;
+  if (typeof focusNodeKey !== 'string') {
+    return null;
+  }
+  const trimmed = focusNodeKey.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const readFocusNodeKeyFromSearchParams = (params: URLSearchParams): string | null => {
+  const value = params.get('focus_node_key');
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+interface UseFocusNodeQueryEffectParams {
+  activePaneDocId: string | null;
+  locationPathname: string;
+  locationState: unknown;
+  navigate: NavigateFunction;
+  searchParams: URLSearchParams;
+  setPendingDocFocusNodeKey: (nodeKey: string | null) => void;
+}
+
+export const useFocusNodeQueryEffect = ({
+  activePaneDocId,
+  locationPathname,
+  locationState,
+  navigate,
+  searchParams,
+  setPendingDocFocusNodeKey,
+}: UseFocusNodeQueryEffectParams): void => {
+  useEffect(() => {
+    if (!activePaneDocId) {
+      return;
+    }
+    const focusNodeKey = readFocusNodeKeyFromLocationState(locationState) || readFocusNodeKeyFromSearchParams(searchParams);
+    if (!focusNodeKey) {
+      return;
+    }
+    setPendingDocFocusNodeKey(focusNodeKey);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('focus_node_key');
+    const query = nextParams.toString();
+    navigate(query ? `${locationPathname}?${query}` : locationPathname, { replace: true, state: null });
+  }, [activePaneDocId, locationPathname, locationState, navigate, searchParams, setPendingDocFocusNodeKey]);
+};
