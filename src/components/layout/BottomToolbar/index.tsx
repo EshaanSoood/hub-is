@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { CalendarDialog } from './ToolbarDialogs/CalendarDialog';
 import { QuickAddDialogs } from './ToolbarDialogs/QuickAddDialogs';
 import { RemindersDialog } from './ToolbarDialogs/RemindersDialog';
 import { TasksDialog } from './ToolbarDialogs/TasksDialog';
 import { ToolbarBreadcrumb } from './ToolbarBreadcrumb';
 import { useToolbarNotifications } from './hooks/useToolbarNotifications';
+import { useToolbarProfile } from './hooks/useToolbarProfile';
+import { useToolbarQuickNav } from './hooks/useToolbarQuickNav';
 import { useToolbarSearch } from './hooks/useToolbarSearch';
 import { ToolbarNav } from './ToolbarNav';
 import { ToolbarNotifications } from './ToolbarNotifications';
@@ -14,18 +16,56 @@ import { ToolbarSearch } from './ToolbarSearch';
 import { ToolbarThoughtPile } from './ToolbarThoughtPile';
 import type { BottomToolbarProps } from './types';
 
-export type { BottomToolbarProps, CloseNotificationsOptions, CloseQuickNavOptions } from './types';
+export type {
+  BottomToolbarProps,
+  CloseContextMenuOptions,
+  CloseNotificationsOptions,
+  CloseProfileOptions,
+  CloseQuickNavOptions,
+} from './types';
 
 export const BottomToolbar = (props: BottomToolbarProps) => {
-  const { onSearchCloseAvailable, onNotificationsCloseAvailable } = props;
+  const {
+    onSearchCloseAvailable,
+    onNotificationsCloseAvailable,
+    onQuickNavCloseAvailable,
+    onQuickNavPanelCloseAvailable,
+    onQuickNavPanelOpenAvailable,
+    onProfileCloseAvailable,
+  } = props;
+
+  const profile = useToolbarProfile({
+    sessionSummary: props.sessionSummary,
+    calendarFeedUrl: props.calendarFeedUrl,
+    navigate: props.navigate,
+    signOut: props.signOut,
+    contextMenuOpen: props.contextMenuOpen,
+    captureOpen: props.captureOpen,
+    quickAddDialog: props.quickAddDialog,
+  });
+
+  const quickNav = useToolbarQuickNav({
+    accessToken: props.accessToken,
+    canGlobal: props.canGlobal,
+    navigate: props.navigate,
+    projects: props.projects,
+    defaultTaskProjectId: props.defaultTaskProjectId,
+    closeProfile: profile.closeProfile,
+    closeContextMenu: props.closeContextMenu,
+    closeCapturePanel: props.closeCapturePanel,
+    contextMenuOpen: props.contextMenuOpen,
+    profileOpen: profile.profileOpen,
+    captureOpen: props.captureOpen,
+    quickAddDialog: props.quickAddDialog,
+  });
 
   const search = useToolbarSearch({
     accessToken: props.accessToken,
     navigate: props.navigate,
-    closeQuickNav: props.closeQuickNav,
-    closeQuickNavPanel: props.closeQuickNavPanel,
-    setProfileOpen: props.setProfileOpen,
-    setContextMenuOpen: props.setContextMenuOpen,
+    closeQuickNav: quickNav.closeQuickNav,
+    closeQuickNavPanel: quickNav.closeQuickNavPanel,
+    closeProfile: profile.closeProfile,
+    closeContextMenu: props.closeContextMenu,
     closeCapturePanel: props.closeCapturePanel,
   });
 
@@ -33,19 +73,25 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
     accessToken: props.accessToken,
     navigate: props.navigate,
     closeSearch: search.closeSearch,
-    closeQuickNav: props.closeQuickNav,
-    closeQuickNavPanel: props.closeQuickNavPanel,
-    setProfileOpen: props.setProfileOpen,
-    setContextMenuOpen: props.setContextMenuOpen,
+    closeQuickNav: quickNav.closeQuickNav,
+    closeQuickNavPanel: quickNav.closeQuickNavPanel,
+    closeProfile: profile.closeProfile,
+    closeContextMenu: props.closeContextMenu,
     closeCapturePanel: props.closeCapturePanel,
-    quickNavOpen: props.quickNavOpen,
-    profileOpen: props.profileOpen,
+    quickNavOpen: quickNav.quickNavOpen,
+    profileOpen: profile.profileOpen,
     contextMenuOpen: props.contextMenuOpen,
     captureOpen: props.captureOpen,
-    toolbarDialog: props.toolbarDialog,
+    toolbarDialog: quickNav.toolbarDialog,
     quickAddDialog: props.quickAddDialog,
     searchOpen: search.searchOpen,
   });
+
+  const openQuickNavPanel = useCallback((panel: 'calendar' | 'tasks' | 'reminders') => {
+    search.closeSearch();
+    notifications.closeNotifications({ restoreFocus: false });
+    quickNav.openQuickNavPanel(panel);
+  }, [notifications, quickNav, search]);
 
   useEffect(() => {
     onSearchCloseAvailable?.(search.closeSearch);
@@ -54,6 +100,22 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
   useEffect(() => {
     onNotificationsCloseAvailable?.(notifications.closeNotifications);
   }, [notifications.closeNotifications, onNotificationsCloseAvailable]);
+
+  useEffect(() => {
+    onQuickNavCloseAvailable?.(quickNav.closeQuickNav);
+  }, [onQuickNavCloseAvailable, quickNav.closeQuickNav]);
+
+  useEffect(() => {
+    onQuickNavPanelCloseAvailable?.(quickNav.closeQuickNavPanel);
+  }, [onQuickNavPanelCloseAvailable, quickNav.closeQuickNavPanel]);
+
+  useEffect(() => {
+    onQuickNavPanelOpenAvailable?.(openQuickNavPanel);
+  }, [onQuickNavPanelOpenAvailable, openQuickNavPanel]);
+
+  useEffect(() => {
+    onProfileCloseAvailable?.(profile.closeProfile);
+  }, [onProfileCloseAvailable, profile.closeProfile]);
 
   return (
     <footer aria-label="App toolbar">
@@ -68,25 +130,25 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
         />
 
         <ToolbarNav
-          quickNavRef={props.quickNavRef}
-          quickNavTriggerRef={props.quickNavTriggerRef}
-          quickNavOpen={props.quickNavOpen}
-          closeQuickNav={props.closeQuickNav}
-          setQuickNavOpen={props.setQuickNavOpen}
-          setQuickNavActiveIndex={props.setQuickNavActiveIndex}
-          quickNavItems={props.quickNavItems}
+          quickNavRef={quickNav.quickNavRef}
+          quickNavTriggerRef={quickNav.quickNavTriggerRef}
+          quickNavOpen={quickNav.quickNavOpen}
+          closeQuickNav={quickNav.closeQuickNav}
+          setQuickNavOpen={quickNav.setQuickNavOpen}
+          setQuickNavActiveIndex={quickNav.setQuickNavActiveIndex}
+          quickNavItems={quickNav.quickNavItems}
           closeSearch={search.closeSearch}
-          setProfileOpen={props.setProfileOpen}
+          closeProfile={profile.closeProfile}
           closeNotifications={notifications.closeNotifications}
-          setContextMenuOpen={props.setContextMenuOpen}
-          closeQuickNavPanel={props.closeQuickNavPanel}
+          closeContextMenu={props.closeContextMenu}
+          closeQuickNavPanel={quickNav.closeQuickNavPanel}
           closeCapturePanel={props.closeCapturePanel}
-          quickNavInputRef={props.quickNavInputRef}
-          quickNavQuery={props.quickNavQuery}
-          setQuickNavQuery={props.setQuickNavQuery}
-          normalizedQuickNavActiveIndex={props.normalizedQuickNavActiveIndex}
-          onSelectQuickNavItem={props.onSelectQuickNavItem}
-          quickNavDestinationItems={props.quickNavDestinationItems}
+          quickNavInputRef={quickNav.quickNavInputRef}
+          quickNavQuery={quickNav.quickNavQuery}
+          setQuickNavQuery={quickNav.setQuickNavQuery}
+          normalizedQuickNavActiveIndex={quickNav.normalizedQuickNavActiveIndex}
+          onSelectQuickNavItem={quickNav.onSelectQuickNavItem}
+          quickNavDestinationItems={quickNav.quickNavDestinationItems}
         />
 
         <ToolbarSearch
@@ -96,11 +158,11 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
           setSearchActiveIndex={search.setSearchActiveIndex}
           searchDismissedRef={search.searchDismissedRef}
           setSearchOpen={search.setSearchOpen}
-          closeQuickNav={props.closeQuickNav}
-          closeQuickNavPanel={props.closeQuickNavPanel}
-          setProfileOpen={props.setProfileOpen}
+          closeQuickNav={quickNav.closeQuickNav}
+          closeQuickNavPanel={quickNav.closeQuickNavPanel}
+          closeProfile={profile.closeProfile}
           closeNotifications={notifications.closeNotifications}
-          setContextMenuOpen={props.setContextMenuOpen}
+          closeContextMenu={props.closeContextMenu}
           closeCapturePanel={props.closeCapturePanel}
           searchOpen={search.searchOpen}
           searchLoading={search.searchLoading}
@@ -142,9 +204,9 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
         />
 
         <CalendarDialog
-          toolbarDialog={props.toolbarDialog}
-          closeQuickNavPanel={props.closeQuickNavPanel}
-          quickNavTriggerRef={props.quickNavTriggerRef}
+          toolbarDialog={quickNav.toolbarDialog}
+          closeQuickNavPanel={quickNav.closeQuickNavPanel}
+          quickNavTriggerRef={quickNav.quickNavTriggerRef}
           personalCalendarError={props.personalCalendarError}
           refreshPersonalCalendar={props.refreshPersonalCalendar}
           personalCalendarEvents={props.personalCalendarEvents}
@@ -157,20 +219,20 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
         />
 
         <TasksDialog
-          toolbarDialog={props.toolbarDialog}
-          closeQuickNavPanel={props.closeQuickNavPanel}
-          quickNavTriggerRef={props.quickNavTriggerRef}
-          quickNavTasksError={props.quickNavTasksError}
-          refreshQuickNavTasks={props.refreshQuickNavTasks}
-          adaptedTasks={props.adaptedTasks}
-          quickNavTasksLoading={props.quickNavTasksLoading}
-          onCreateTaskFromModule={props.onCreateTaskFromModule}
+          toolbarDialog={quickNav.toolbarDialog}
+          closeQuickNavPanel={quickNav.closeQuickNavPanel}
+          quickNavTriggerRef={quickNav.quickNavTriggerRef}
+          quickNavTasksError={quickNav.quickNavTasksError}
+          refreshQuickNavTasks={quickNav.refreshQuickNavTasks}
+          adaptedTasks={quickNav.adaptedTasks}
+          quickNavTasksLoading={quickNav.quickNavTasksLoading}
+          onCreateTaskFromModule={quickNav.onCreateTaskFromModule}
         />
 
         <RemindersDialog
-          toolbarDialog={props.toolbarDialog}
-          closeQuickNavPanel={props.closeQuickNavPanel}
-          quickNavTriggerRef={props.quickNavTriggerRef}
+          toolbarDialog={quickNav.toolbarDialog}
+          closeQuickNavPanel={quickNav.closeQuickNavPanel}
+          quickNavTriggerRef={quickNav.quickNavTriggerRef}
           remindersRuntime={props.remindersRuntime}
           onSnoozeReminderFromModule={props.onSnoozeReminderFromModule}
           onCreateReminderFromModule={props.onCreateReminderFromModule}
@@ -232,27 +294,27 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
         />
 
         <ToolbarProfile
-          profileRef={props.profileRef}
-          profileTriggerRef={props.profileTriggerRef}
-          setProfileOpen={props.setProfileOpen}
+          profileRef={profile.profileRef}
+          profileTriggerRef={profile.profileTriggerRef}
+          toggleProfile={profile.toggleProfile}
           closeNotifications={notifications.closeNotifications}
           closeSearch={search.closeSearch}
-          closeQuickNav={props.closeQuickNav}
-          closeQuickNavPanel={props.closeQuickNavPanel}
-          setContextMenuOpen={props.setContextMenuOpen}
+          closeQuickNav={quickNav.closeQuickNav}
+          closeQuickNavPanel={quickNav.closeQuickNavPanel}
+          closeContextMenu={props.closeContextMenu}
           closeCapturePanel={props.closeCapturePanel}
-          profileOpen={props.profileOpen}
-          avatarBroken={props.avatarBroken}
-          avatarUrl={props.avatarUrl}
+          profileOpen={profile.profileOpen}
+          avatarBroken={profile.avatarBroken}
+          avatarUrl={profile.avatarUrl}
           sessionSummary={props.sessionSummary}
-          setAvatarBroken={props.setAvatarBroken}
-          profileMenuRef={props.profileMenuRef}
-          hasCalendarFeedUrl={props.hasCalendarFeedUrl}
-          onCopyCalendarLink={props.onCopyCalendarLink}
-          installMenuLabel={props.installMenuLabel}
-          onInstallHubOs={props.onInstallHubOs}
-          onNavigateProjectsFromProfileMenu={props.onNavigateProjectsFromProfileMenu}
-          onLogoutFromProfileMenu={props.onLogoutFromProfileMenu}
+          setAvatarBroken={profile.setAvatarBroken}
+          profileMenuRef={profile.profileMenuRef}
+          hasCalendarFeedUrl={profile.hasCalendarFeedUrl}
+          onCopyCalendarLink={profile.onCopyCalendarLink}
+          installMenuLabel={profile.installMenuLabel}
+          onInstallHubOs={profile.onInstallHubOs}
+          onNavigateProjectsFromProfileMenu={profile.onNavigateProjectsFromProfileMenu}
+          onLogoutFromProfileMenu={profile.onLogoutFromProfileMenu}
         />
       </nav>
     </footer>

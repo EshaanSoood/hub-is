@@ -1,16 +1,21 @@
+import type { ComponentProps, MutableRefObject } from 'react';
 import { RemindersModuleSkin } from '../../../project-space/RemindersModuleSkin';
 import { Dialog } from '../../../primitives';
-import type { BottomToolbarProps } from '../types';
+import type { ToolbarDialog } from '../../appShellUtils';
 
-type RemindersDialogProps = Pick<
-  BottomToolbarProps,
-  | 'toolbarDialog'
-  | 'closeQuickNavPanel'
-  | 'quickNavTriggerRef'
-  | 'remindersRuntime'
-  | 'onSnoozeReminderFromModule'
-  | 'onCreateReminderFromModule'
->;
+interface RemindersDialogProps {
+  toolbarDialog: ToolbarDialog;
+  closeQuickNavPanel: () => void;
+  quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
+  remindersRuntime: {
+    reminders: ComponentProps<typeof RemindersModuleSkin>['reminders'];
+    loading: ComponentProps<typeof RemindersModuleSkin>['loading'];
+    error: ComponentProps<typeof RemindersModuleSkin>['error'];
+    dismiss: ComponentProps<typeof RemindersModuleSkin>['onDismiss'];
+  };
+  onSnoozeReminderFromModule: ComponentProps<typeof RemindersModuleSkin>['onSnooze'];
+  onCreateReminderFromModule: ComponentProps<typeof RemindersModuleSkin>['onCreate'];
+}
 
 export const RemindersDialog = ({
   toolbarDialog,

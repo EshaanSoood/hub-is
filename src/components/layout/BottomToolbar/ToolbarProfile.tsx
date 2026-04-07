@@ -1,24 +1,28 @@
-import type { Dispatch, SetStateAction } from 'react';
+import type { MutableRefObject } from 'react';
 import { Icon } from '../../primitives';
 import { ProfileMenuDialog } from './ToolbarDialogs/ProfileMenuDialog';
-import type { BottomToolbarProps, CloseNotificationsOptions, CloseQuickNavOptions } from './types';
+import type {
+  CloseContextMenuOptions,
+  CloseNotificationsOptions,
+  CloseQuickNavOptions,
+} from './types';
 
 interface ToolbarProfileProps {
-  profileRef: BottomToolbarProps['profileRef'];
-  profileTriggerRef: BottomToolbarProps['profileTriggerRef'];
-  setProfileOpen: Dispatch<SetStateAction<boolean>>;
+  profileRef: MutableRefObject<HTMLDivElement | null>;
+  profileTriggerRef: MutableRefObject<HTMLButtonElement | null>;
+  toggleProfile: () => void;
   closeNotifications: (options?: CloseNotificationsOptions) => void;
   closeSearch: () => void;
   closeQuickNav: (options?: CloseQuickNavOptions) => void;
   closeQuickNavPanel: () => void;
-  setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
-  closeCapturePanel: BottomToolbarProps['closeCapturePanel'];
+  closeContextMenu: (options?: CloseContextMenuOptions) => void;
+  closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
   profileOpen: boolean;
   avatarBroken: boolean;
   avatarUrl: string;
-  sessionSummary: BottomToolbarProps['sessionSummary'];
-  setAvatarBroken: Dispatch<SetStateAction<boolean>>;
-  profileMenuRef: BottomToolbarProps['profileMenuRef'];
+  sessionSummary: { name: string; email: string };
+  setAvatarBroken: (broken: boolean) => void;
+  profileMenuRef: MutableRefObject<HTMLDivElement | null>;
   hasCalendarFeedUrl: boolean;
   onCopyCalendarLink: () => void;
   installMenuLabel: string | null;
@@ -30,12 +34,12 @@ interface ToolbarProfileProps {
 export const ToolbarProfile = ({
   profileRef,
   profileTriggerRef,
-  setProfileOpen,
+  toggleProfile,
   closeNotifications,
   closeSearch,
   closeQuickNav,
   closeQuickNavPanel,
-  setContextMenuOpen,
+  closeContextMenu,
   closeCapturePanel,
   profileOpen,
   avatarBroken,
@@ -55,12 +59,12 @@ export const ToolbarProfile = ({
       ref={profileTriggerRef}
       type="button"
       onClick={() => {
-        setProfileOpen((current) => !current);
+        toggleProfile();
         closeNotifications({ restoreFocus: false });
         closeSearch();
-        closeQuickNav();
+        closeQuickNav({ restoreFocus: false });
         closeQuickNavPanel();
-        setContextMenuOpen(false);
+        closeContextMenu({ restoreFocus: false });
         closeCapturePanel({ restoreFocus: false });
       }}
       aria-label="Account menu"

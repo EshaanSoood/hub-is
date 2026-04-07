@@ -1,24 +1,24 @@
+import type { ComponentProps, MutableRefObject } from 'react';
 import { requestHubHomeRefresh } from '../../../../lib/hubHomeRefresh';
 import { createEventFromNlp } from '../../../../services/hub/records';
 import { CalendarModuleSkin } from '../../../project-space/CalendarModuleSkin';
 import { Dialog } from '../../../primitives';
-import type { BottomToolbarProps } from '../types';
+import type { ToolbarDialog } from '../../appShellUtils';
 
-type CalendarDialogProps = Pick<
-  BottomToolbarProps,
-  | 'toolbarDialog'
-  | 'closeQuickNavPanel'
-  | 'quickNavTriggerRef'
-  | 'personalCalendarError'
-  | 'refreshPersonalCalendar'
-  | 'personalCalendarEvents'
-  | 'personalCalendarLoading'
-  | 'personalCalendarMode'
-  | 'setPersonalCalendarMode'
-  | 'onOpenCalendarRecordFromDialog'
-  | 'accessToken'
-  | 'toolbarCalendarCreateProjectId'
->;
+interface CalendarDialogProps {
+  toolbarDialog: ToolbarDialog;
+  closeQuickNavPanel: () => void;
+  quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
+  personalCalendarError: string | null;
+  refreshPersonalCalendar: () => Promise<void>;
+  personalCalendarEvents: ComponentProps<typeof CalendarModuleSkin>['events'];
+  personalCalendarLoading: ComponentProps<typeof CalendarModuleSkin>['loading'];
+  personalCalendarMode: ComponentProps<typeof CalendarModuleSkin>['scope'];
+  setPersonalCalendarMode: ComponentProps<typeof CalendarModuleSkin>['onScopeChange'];
+  onOpenCalendarRecordFromDialog: ComponentProps<typeof CalendarModuleSkin>['onOpenRecord'];
+  accessToken: string | undefined;
+  toolbarCalendarCreateProjectId: string | null;
+}
 
 export const CalendarDialog = ({
   toolbarDialog,

@@ -1,5 +1,4 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
-import type { NavigateFunction } from 'react-router-dom';
 import {
   focusElementSoon,
   isTextInputElement,
@@ -12,7 +11,7 @@ interface UseQuickNavEffectsArgs {
   captureOpen: boolean;
   closeQuickNav: () => void;
   contextMenuOpen: boolean;
-  navigate: NavigateFunction;
+  navigate: (to: string) => void;
   normalizedQuickNavActiveIndex: number;
   openQuickNavPanel: (panel: Exclude<ToolbarDialog, null>) => void;
   profileOpen: boolean;

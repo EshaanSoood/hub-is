@@ -1,17 +1,16 @@
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { Icon } from '../../../primitives';
-import { QUICK_NAV_FIXED_ITEMS } from '../../appShellUtils';
-import type { BottomToolbarProps } from '../types';
+import { QUICK_NAV_FIXED_ITEMS, type QuickNavActionItem } from '../../appShellUtils';
 
-type QuickNavPanelProps = Pick<
-  BottomToolbarProps,
-  | 'quickNavInputRef'
-  | 'quickNavQuery'
-  | 'setQuickNavQuery'
-  | 'setQuickNavActiveIndex'
-  | 'normalizedQuickNavActiveIndex'
-  | 'onSelectQuickNavItem'
-  | 'quickNavDestinationItems'
->;
+interface QuickNavPanelProps {
+  quickNavInputRef: MutableRefObject<HTMLInputElement | null>;
+  quickNavQuery: string;
+  setQuickNavQuery: Dispatch<SetStateAction<string>>;
+  setQuickNavActiveIndex: Dispatch<SetStateAction<number>>;
+  normalizedQuickNavActiveIndex: number;
+  onSelectQuickNavItem: (item: QuickNavActionItem) => void;
+  quickNavDestinationItems: QuickNavActionItem[];
+}
 
 export const QuickNavPanel = ({
   quickNavInputRef,

@@ -12,14 +12,8 @@ interface UseToolbarFocusEffectsArgs {
   contextMenuRef: MutableRefObject<HTMLDivElement | null>;
   contextMenuTriggerRef: MutableRefObject<HTMLButtonElement | null>;
   contextMenuWasOpenRef: MutableRefObject<boolean>;
-  profileMenuRef: MutableRefObject<HTMLDivElement | null>;
-  profileOpen: boolean;
-  profileTriggerRef: MutableRefObject<HTMLButtonElement | null>;
-  profileWasOpenRef: MutableRefObject<boolean>;
   quickAddDialog: QuickAddDialog;
-  quickNavOpen: boolean;
   skipContextMenuFocusRestoreRef: MutableRefObject<boolean>;
-  skipProfileFocusRestoreRef: MutableRefObject<boolean>;
   toolbarDialog: ToolbarDialog;
 }
 
@@ -29,44 +23,16 @@ export const useToolbarFocusEffects = ({
   contextMenuRef,
   contextMenuTriggerRef,
   contextMenuWasOpenRef,
-  profileMenuRef,
-  profileOpen,
-  profileTriggerRef,
-  profileWasOpenRef,
   quickAddDialog,
-  quickNavOpen,
   skipContextMenuFocusRestoreRef,
-  skipProfileFocusRestoreRef,
   toolbarDialog,
 }: UseToolbarFocusEffectsArgs) => {
-  useEffect(() => {
-    if (profileOpen) {
-      focusFirstDescendantSoon(profileMenuRef.current, '[role="menuitem"]');
-    } else if (
-      profileWasOpenRef.current
-      && !skipProfileFocusRestoreRef.current
-      && !quickNavOpen
-      && !contextMenuOpen
-      && !captureOpen
-      && !toolbarDialog
-      && !quickAddDialog
-    ) {
-      focusElementSoon(profileTriggerRef.current);
-    }
-    if (!profileOpen) {
-      skipProfileFocusRestoreRef.current = false;
-    }
-    profileWasOpenRef.current = profileOpen;
-  }, [captureOpen, contextMenuOpen, profileOpen, quickAddDialog, quickNavOpen, toolbarDialog]);
-
   useEffect(() => {
     if (contextMenuOpen) {
       focusFirstDescendantSoon(contextMenuRef.current, '[role="menuitem"]');
     } else if (
       contextMenuWasOpenRef.current
       && !skipContextMenuFocusRestoreRef.current
-      && !quickNavOpen
-      && !profileOpen
       && !captureOpen
       && !toolbarDialog
       && !quickAddDialog
@@ -77,5 +43,5 @@ export const useToolbarFocusEffects = ({
       skipContextMenuFocusRestoreRef.current = false;
     }
     contextMenuWasOpenRef.current = contextMenuOpen;
-  }, [captureOpen, contextMenuOpen, profileOpen, quickAddDialog, quickNavOpen, toolbarDialog]);
+  }, [captureOpen, contextMenuOpen, quickAddDialog, toolbarDialog]);
 };

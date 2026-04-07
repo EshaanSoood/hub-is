@@ -5,16 +5,15 @@ import type {
   MutableRefObject,
   SetStateAction,
 } from 'react';
+import type { GlobalCapability, SessionSummary } from '../../../types/domain';
 import type { QuickCapturePanel } from '../../../features/QuickCapture';
 import type { TaskCreateDialog } from '../../project-space/TaskCreateDialog';
 import type { CalendarModuleSkin, CalendarScope } from '../../project-space/CalendarModuleSkin';
 import type { RemindersModuleSkin } from '../../project-space/RemindersModuleSkin';
-import type { TasksModuleSkin } from '../../project-space/TasksModuleSkin';
 import type { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from '../QuickAddDialogs';
 import type {
   QuickAddDialog,
   QuickAddOption,
-  QuickNavActionItem,
   ToolbarDialog,
 } from '../appShellUtils';
 
@@ -26,29 +25,28 @@ export interface CloseNotificationsOptions {
   restoreFocus?: boolean;
 }
 
+export interface CloseProfileOptions {
+  restoreFocus?: boolean;
+}
+
+export interface CloseContextMenuOptions {
+  restoreFocus?: boolean;
+}
+
 export interface BottomToolbarProps {
   onSearchCloseAvailable?: (closeSearch: () => void) => void;
   onNotificationsCloseAvailable?: (closeNotifications: (options?: CloseNotificationsOptions) => void) => void;
+  onQuickNavCloseAvailable?: (closeQuickNav: (options?: CloseQuickNavOptions) => void) => void;
+  onQuickNavPanelCloseAvailable?: (closeQuickNavPanel: () => void) => void;
+  onQuickNavPanelOpenAvailable?: (openQuickNavPanel: (panel: Exclude<ToolbarDialog, null>) => void) => void;
+  onProfileCloseAvailable?: (closeProfile: (options?: CloseProfileOptions) => void) => void;
   isOnHubHome: boolean;
   navigate: (to: string) => void;
   breadcrumb: string[];
-  quickNavRef: MutableRefObject<HTMLDivElement | null>;
-  quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
-  quickNavOpen: boolean;
-  closeQuickNav: (options?: CloseQuickNavOptions) => void;
-  setQuickNavOpen: Dispatch<SetStateAction<boolean>>;
-  setQuickNavActiveIndex: Dispatch<SetStateAction<number>>;
-  quickNavItems: QuickNavActionItem[];
-  setProfileOpen: Dispatch<SetStateAction<boolean>>;
+  canGlobal: (capability: GlobalCapability) => boolean;
   setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
-  closeQuickNavPanel: () => void;
+  closeContextMenu: (options?: CloseContextMenuOptions) => void;
   closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
-  quickNavInputRef: MutableRefObject<HTMLInputElement | null>;
-  quickNavQuery: string;
-  setQuickNavQuery: Dispatch<SetStateAction<string>>;
-  normalizedQuickNavActiveIndex: number;
-  onSelectQuickNavItem: (item: QuickNavActionItem) => void;
-  quickNavDestinationItems: QuickNavActionItem[];
   contextMenuRef: MutableRefObject<HTMLDivElement | null>;
   contextMenuTriggerRef: MutableRefObject<HTMLButtonElement | null>;
   contextMenuOpen: boolean;
@@ -70,12 +68,12 @@ export interface BottomToolbarProps {
     personalProjectId: string | null;
     captures: ComponentProps<typeof QuickCapturePanel>['captures'];
   };
+  defaultTaskProjectId: string;
   captureLoading: boolean;
   refreshCaptureData: () => Promise<void>;
   preferredCaptureProjectId: string | null;
   captureIntent: string | null;
   captureActivationKey: number;
-  toolbarDialog: ToolbarDialog;
   personalCalendarError: string | null;
   refreshPersonalCalendar: () => Promise<void>;
   personalCalendarEvents: ComponentProps<typeof CalendarModuleSkin>['events'];
@@ -84,11 +82,6 @@ export interface BottomToolbarProps {
   setPersonalCalendarMode: (scope: CalendarScope) => void;
   onOpenCalendarRecordFromDialog: ComponentProps<typeof CalendarModuleSkin>['onOpenRecord'];
   toolbarCalendarCreateProjectId: string | null;
-  quickNavTasksError: string | null;
-  refreshQuickNavTasks: () => Promise<void>;
-  adaptedTasks: ComponentProps<typeof TasksModuleSkin>['tasks'];
-  quickNavTasksLoading: ComponentProps<typeof TasksModuleSkin>['tasksLoading'];
-  onCreateTaskFromModule: ComponentProps<typeof TasksModuleSkin>['onCreateTask'];
   remindersRuntime: {
     reminders: ComponentProps<typeof RemindersModuleSkin>['reminders'];
     loading: ComponentProps<typeof RemindersModuleSkin>['loading'];
@@ -130,18 +123,7 @@ export interface BottomToolbarProps {
   projectDialogSubmitting: boolean;
   projectDialogError: string | null;
   projectNameInputRef: ComponentProps<typeof QuickAddProjectDialog>['nameInputRef'];
-  profileRef: MutableRefObject<HTMLDivElement | null>;
-  profileTriggerRef: MutableRefObject<HTMLButtonElement | null>;
-  profileOpen: boolean;
-  avatarBroken: boolean;
-  avatarUrl: string;
-  sessionSummary: { name: string; email: string };
-  setAvatarBroken: Dispatch<SetStateAction<boolean>>;
-  profileMenuRef: MutableRefObject<HTMLDivElement | null>;
-  hasCalendarFeedUrl: boolean;
-  onCopyCalendarLink: () => void;
-  installMenuLabel: string | null;
-  onInstallHubOs: () => Promise<void>;
-  onNavigateProjectsFromProfileMenu: () => void;
-  onLogoutFromProfileMenu: () => void;
+  sessionSummary: Pick<SessionSummary, 'name' | 'email' | 'userId'>;
+  calendarFeedUrl: string;
+  signOut: () => Promise<void>;
 }

@@ -1,28 +1,34 @@
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { Icon } from '../../primitives';
+import type { QuickNavActionItem } from '../appShellUtils';
 import { QuickNavPanel } from './ToolbarDialogs/QuickNavPanel';
-import type { BottomToolbarProps, CloseNotificationsOptions, CloseQuickNavOptions } from './types';
+import type {
+  CloseContextMenuOptions,
+  CloseNotificationsOptions,
+  CloseProfileOptions,
+  CloseQuickNavOptions,
+} from './types';
 
 interface ToolbarNavProps {
-  quickNavRef: BottomToolbarProps['quickNavRef'];
-  quickNavTriggerRef: BottomToolbarProps['quickNavTriggerRef'];
+  quickNavRef: MutableRefObject<HTMLDivElement | null>;
+  quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
   quickNavOpen: boolean;
   closeQuickNav: (options?: CloseQuickNavOptions) => void;
   setQuickNavOpen: Dispatch<SetStateAction<boolean>>;
   setQuickNavActiveIndex: Dispatch<SetStateAction<number>>;
-  quickNavItems: BottomToolbarProps['quickNavItems'];
+  quickNavItems: QuickNavActionItem[];
   closeSearch: () => void;
-  setProfileOpen: Dispatch<SetStateAction<boolean>>;
+  closeProfile: (options?: CloseProfileOptions) => void;
   closeNotifications: (options?: CloseNotificationsOptions) => void;
-  setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
+  closeContextMenu: (options?: CloseContextMenuOptions) => void;
   closeQuickNavPanel: () => void;
-  closeCapturePanel: BottomToolbarProps['closeCapturePanel'];
-  quickNavInputRef: BottomToolbarProps['quickNavInputRef'];
+  closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
+  quickNavInputRef: MutableRefObject<HTMLInputElement | null>;
   quickNavQuery: string;
   setQuickNavQuery: Dispatch<SetStateAction<string>>;
   normalizedQuickNavActiveIndex: number;
-  onSelectQuickNavItem: BottomToolbarProps['onSelectQuickNavItem'];
-  quickNavDestinationItems: BottomToolbarProps['quickNavDestinationItems'];
+  onSelectQuickNavItem: (item: QuickNavActionItem) => void;
+  quickNavDestinationItems: QuickNavActionItem[];
 }
 
 export const ToolbarNav = ({
@@ -34,9 +40,9 @@ export const ToolbarNav = ({
   setQuickNavActiveIndex,
   quickNavItems,
   closeSearch,
-  setProfileOpen,
+  closeProfile,
   closeNotifications,
-  setContextMenuOpen,
+  closeContextMenu,
   closeQuickNavPanel,
   closeCapturePanel,
   quickNavInputRef,
@@ -58,9 +64,9 @@ export const ToolbarNav = ({
           setQuickNavActiveIndex(quickNavItems.length > 0 ? 0 : -1);
         }
         closeSearch();
-        setProfileOpen(false);
+        closeProfile({ restoreFocus: false });
         closeNotifications({ restoreFocus: false });
-        setContextMenuOpen(false);
+        closeContextMenu({ restoreFocus: false });
         closeQuickNavPanel();
         closeCapturePanel({ restoreFocus: false });
       }}

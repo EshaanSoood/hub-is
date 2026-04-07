@@ -6,47 +6,33 @@ interface UseGlobalInteractionEffectsArgs {
   closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
   closeQuickNav: () => void;
   closeQuickNavPanel: () => void;
+  openQuickNavPanel: (panel: Exclude<ToolbarDialog, null>) => void;
+  closeProfile: () => void;
   closeSearch: () => void;
   closeNotifications: (options?: CloseNotificationsOptions) => void;
   contextMenuOpen: boolean;
   contextMenuRef: MutableRefObject<HTMLDivElement | null>;
-  openQuickNavPanel: (panel: Exclude<ToolbarDialog, null>) => void;
-  profileOpen: boolean;
-  profileRef: MutableRefObject<HTMLDivElement | null>;
   quickAddDialog: QuickAddDialog;
-  quickNavOpen: boolean;
-  quickNavRef: MutableRefObject<HTMLDivElement | null>;
   setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
-  setProfileOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 export const useGlobalInteractionEffects = ({
   closeCapturePanel,
   closeQuickNav,
   closeQuickNavPanel,
+  openQuickNavPanel,
+  closeProfile,
   closeSearch,
   closeNotifications,
   contextMenuOpen,
   contextMenuRef,
-  openQuickNavPanel,
-  profileOpen,
-  profileRef,
   quickAddDialog,
-  quickNavOpen,
-  quickNavRef,
   setContextMenuOpen,
-  setProfileOpen,
 }: UseGlobalInteractionEffectsArgs) => {
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
 
-      if (quickNavOpen && quickNavRef.current && !quickNavRef.current.contains(target)) {
-        closeQuickNav();
-      }
-      if (profileOpen && profileRef.current && !profileRef.current.contains(target)) {
-        setProfileOpen(false);
-      }
       if (contextMenuOpen && contextMenuRef.current && !contextMenuRef.current.contains(target)) {
         setContextMenuOpen(false);
       }
@@ -76,7 +62,7 @@ export const useGlobalInteractionEffects = ({
         closeNotifications();
         closeQuickNav();
         closeQuickNavPanel();
-        setProfileOpen(false);
+        closeProfile();
         setContextMenuOpen(false);
       }
     };
@@ -87,5 +73,5 @@ export const useGlobalInteractionEffects = ({
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closeCapturePanel, closeNotifications, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, openQuickNavPanel, profileOpen, quickAddDialog, quickNavOpen]);
+  }, [closeCapturePanel, closeNotifications, closeProfile, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, openQuickNavPanel, quickAddDialog]);
 };
