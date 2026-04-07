@@ -242,20 +242,17 @@ const ReminderRibbonRow = ({
       {...longPressHandlers}
     >
       <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3 pr-8">
-        <div
-          className="min-w-0 rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
+          className="min-w-0 rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           aria-label={`Insert reminder ${reminder.record_title || 'Untitled reminder'}`}
+          onClick={() => {
+            setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
+          }}
           onFocus={() => {
             setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
-              return;
-            }
             if (event.key === 'Escape') {
               clearActiveItem();
             }
@@ -265,7 +262,7 @@ const ReminderRibbonRow = ({
           <p className={`mt-1 text-xs ${isOverdue ? 'text-text underline' : 'text-text-secondary'}`}>
             {formatReminderChip(reminder.remind_at)}
           </p>
-        </div>
+        </button>
         {onSnooze ? (
           <button
             type="button"
@@ -528,12 +525,12 @@ export const RemindersModuleSkin = ({
           </div>
         ) : null}
 
-        {inputError ? <p className="text-xs text-danger">{inputError}</p> : null}
+        {inputError ? <p role="alert" aria-live="assertive" className="text-xs text-danger">{inputError}</p> : null}
       </form>
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
         {error ? (
-          <p className="rounded-panel border border-danger bg-danger-subtle px-3 py-4 text-sm text-danger">
+          <p role="alert" aria-live="assertive" className="rounded-panel border border-danger bg-danger-subtle px-3 py-4 text-sm text-danger">
             {error}
           </p>
         ) : null}
