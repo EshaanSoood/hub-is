@@ -8,6 +8,10 @@ import {
   bucketForDate as resolveDateBucket,
   type DateBucketId,
 } from '../../hooks/useDateBuckets';
+import {
+  emptyReminderPreview as createEmptyReminderPreview,
+  hasMeaningfulReminderPreview as previewHasMeaningfulFields,
+} from '../../hooks/useReminderNLDraft';
 import { getProjectColor, PROJECT_COLOR_PALETTE } from '../../lib/getProjectColor';
 
 export { DATE_BUCKET_LABELS, DATE_BUCKET_ORDER };
@@ -286,33 +290,10 @@ export const toDateTimeLocalInput = (date: Date): string => {
 export const nowPlusHours = (hours: number): Date => new Date(Date.now() + hours * 60 * 60 * 1000);
 
 export const hasMeaningfulReminderPreview = (preview: ReminderParseResult): boolean =>
-  Boolean(preview.fields.title.trim() || preview.fields.remind_at || preview.fields.recurrence || preview.fields.context_hint);
+  previewHasMeaningfulFields(preview);
 
-export const emptyReminderPreview = (): ReminderParseResult => ({
-  fields: {
-    title: '',
-    remind_at: null,
-    recurrence: null,
-    context_hint: null,
-  },
-  meta: {
-    confidence: {
-      title: 0,
-      remind_at: 0,
-      recurrence: 0,
-      context_hint: 0,
-    },
-    spans: {
-      title: [],
-      remind_at: [],
-      recurrence: [],
-      context_hint: [],
-    },
-    debugSteps: [],
-    maskedInput: '',
-  },
-  warnings: null,
-});
+export const emptyReminderPreview = (): ReminderParseResult =>
+  createEmptyReminderPreview();
 
 export const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
   record: 'Record',
