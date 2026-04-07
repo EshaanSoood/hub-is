@@ -1,11 +1,14 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Icon, IconButton, Select } from '../components/primitives';
-import { focusWhenReady } from '../lib/focusWhenReady';
-import { listCollections } from '../services/hub/collections';
-import { convertRecord, createPersonalTask, createRecord } from '../services/hub/records';
-import type { HubCollection, HubHomeCapture } from '../services/hub/types';
-import type { ProjectRecord } from '../types/domain';
+import { Icon, IconButton, Select } from '../../components/primitives';
+import { focusWhenReady } from '../../lib/focusWhenReady';
+import { listCollections } from '../../services/hub/collections';
+import { convertRecord, createPersonalTask, createRecord } from '../../services/hub/records';
+import type { HubCollection, HubHomeCapture } from '../../services/hub/types';
+import type { ProjectRecord } from '../../types/domain';
+import { useCaptureListEffects } from './hooks/useCaptureListEffects';
+import { usePersonalCollectionsEffect } from './hooks/usePersonalCollectionsEffect';
+import { useQuickCaptureComposerEffects } from './hooks/useQuickCaptureComposerEffects';
 
 const LAST_PROJECT_KEY = 'hub:last-opened-project-id';
 const PENDING_CAPTURE_DRAFT_KEY = 'hub:pending-project-capture';
@@ -198,10 +201,6 @@ export const QuickCapturePanel = ({
   );
   const defaultProjectCaptureTarget = preferredProject?.id ?? lastOpenedProject?.id ?? visibleProjects[0]?.id ?? PERSONAL_CAPTURE_TARGET;
 
-  useEffect(() => {
-    defaultProjectCaptureTargetRef.current = defaultProjectCaptureTarget;
-  }, [defaultProjectCaptureTarget]);
-
   const captureProjectOptions = useMemo(
     () => [
       { value: PERSONAL_CAPTURE_TARGET, label: 'Personal Hub', disabled: captureMode === 'reminder' || captureMode === 'calendar' },
@@ -282,66 +281,33 @@ export const QuickCapturePanel = ({
     [],
   );
 
-  useEffect(() => {
-    const nextMode = captureModeFromIntent(initialIntent);
-    const nextProjectId = nextMode === 'thought' ? PERSONAL_CAPTURE_TARGET : defaultProjectCaptureTargetRef.current;
-    resetCaptureComposer(nextMode, nextMode !== 'thought', nextProjectId);
-    void focusCaptureInput();
-  }, [activationKey, focusCaptureInput, initialIntent, resetCaptureComposer]);
+  useQuickCaptureComposerEffects({
+    defaultProjectCaptureTarget,
+    defaultProjectCaptureTargetRef,
+    activationKey,
+    initialIntent,
+    captureModeFromIntent,
+    personalCaptureTarget: PERSONAL_CAPTURE_TARGET,
+    resetCaptureComposer,
+    focusCaptureInput,
+    captureNotice,
+    setCaptureNotice,
+  });
 
-  useEffect(() => {
-    if (!captureNotice) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setCaptureNotice(null);
-    }, 2200);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [captureNotice]);
+  usePersonalCollectionsEffect({
+    accessToken,
+    personalProjectId,
+    setPersonalCollections,
+    projectCollectionsCacheRef,
+  });
 
-  useEffect(() => {
-    if (!accessToken || !personalProjectId) {
-      setPersonalCollections([]);
-      return;
-    }
-
-    let cancelled = false;
-    void listCollections(accessToken, personalProjectId)
-      .then((collections) => {
-        if (!cancelled) {
-          projectCollectionsCacheRef.current[personalProjectId] = collections;
-          setPersonalCollections(collections);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPersonalCollections([]);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, personalProjectId]);
-
-  useEffect(() => {
-    if (!expandedCaptureAssignment) {
-      return;
-    }
-    const stillExists = captures.some((capture) => capture.record_id === expandedCaptureAssignment.recordId);
-    if (!stillExists) {
-      setExpandedCaptureAssignment(null);
-      setCaptureAssignmentError(null);
-    }
-  }, [captures, expandedCaptureAssignment]);
-
-  useEffect(() => () => {
-    if (hoverExpandTimerRef.current) {
-      window.clearTimeout(hoverExpandTimerRef.current);
-    }
-  }, []);
+  useCaptureListEffects({
+    captures,
+    expandedCaptureAssignment,
+    setExpandedCaptureAssignment,
+    setCaptureAssignmentError,
+    hoverExpandTimerRef,
+  });
 
   const onCloseCapture = useCallback(() => {
     setCaptureSaving(false);
