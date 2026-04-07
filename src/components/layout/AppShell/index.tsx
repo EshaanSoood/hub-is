@@ -1,39 +1,45 @@
-import { type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, startTransition, useCallback, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuthz } from '../../context/AuthzContext';
-import { appTabs } from '../../lib/policy';
-import { useProjects } from '../../context/ProjectsContext';
-import { QuickCapturePanel } from '../../features/QuickCapture';
-import { TaskCreateDialog } from '../project-space/TaskCreateDialog';
-import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
-import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
-import { usePersonalCalendarRuntime } from '../../hooks/usePersonalCalendarRuntime';
-import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../hooks/useReminderNLDraft';
-import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
-import { createEventFromNlp, createTask, getHubHome, queryTasks } from '../../services/hub/records';
-import { createReminder, updateReminder, type CreateReminderPayload } from '../../services/hub/reminders';
-import { listProjectMembers } from '../../services/hub/projects';
-import { searchHub, type HubSearchResult } from '../../services/hub/search';
-import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
-import { subscribeHubLive } from '../../services/hubLive';
-import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
-import { subscribeQuickAddProjectRequest } from '../../lib/quickAddProjectRequest';
-import { createHubProject } from '../../services/projectsService';
-import { CalendarModuleSkin, type CalendarScope } from '../project-space/CalendarModuleSkin';
-import { RemindersModuleSkin } from '../project-space/RemindersModuleSkin';
-import { TasksModuleSkin } from '../project-space/TasksModuleSkin';
-import { adaptTaskSummaries } from '../project-space/taskAdapter';
-import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent, notifyError, notifyInfo, notifySuccess } from '../primitives';
-import { NotificationsPanel } from './NotificationsPanel';
-import { ProfileMenu } from './ProfileMenu';
-import { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from './QuickAddDialogs';
+import { useAuthz } from '../../../context/AuthzContext';
+import { appTabs } from '../../../lib/policy';
+import { useProjects } from '../../../context/ProjectsContext';
+import { QuickCapturePanel } from '../../../features/QuickCapture';
+import { TaskCreateDialog } from '../../project-space/TaskCreateDialog';
+import { useRouteFocusReset } from '../../../hooks/useRouteFocusReset';
+import { useRemindersRuntime } from '../../../hooks/useRemindersRuntime';
+import { usePersonalCalendarRuntime } from '../../../hooks/usePersonalCalendarRuntime';
+import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../../hooks/useReminderNLDraft';
+import { listNotifications, markNotificationRead } from '../../../services/hub/notifications';
+import { createEventFromNlp, createTask, getHubHome, queryTasks } from '../../../services/hub/records';
+import { createReminder, updateReminder, type CreateReminderPayload } from '../../../services/hub/reminders';
+import { listProjectMembers } from '../../../services/hub/projects';
+import type { HubSearchResult } from '../../../services/hub/search';
+import type { HubProjectMember, HubTaskSummary } from '../../../services/hub/types';
+import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
+import { createHubProject } from '../../../services/projectsService';
+import { CalendarModuleSkin, type CalendarScope } from '../../project-space/CalendarModuleSkin';
+import { RemindersModuleSkin } from '../../project-space/RemindersModuleSkin';
+import { TasksModuleSkin } from '../../project-space/TasksModuleSkin';
+import { adaptTaskSummaries } from '../../project-space/taskAdapter';
+import { Dialog, Icon, Popover, PopoverAnchor, PopoverContent, notifyError, notifyInfo, notifySuccess } from '../../primitives';
+import { NotificationsPanel } from '../NotificationsPanel';
+import { ProfileMenu } from '../ProfileMenu';
+import { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from '../QuickAddDialogs';
+import { useCapturePanelEffects } from './hooks/useCapturePanelEffects';
+import { useGlobalInteractionEffects } from './hooks/useGlobalInteractionEffects';
+import { useGlobalSearchEffect } from './hooks/useGlobalSearchEffect';
+import { useInstallPromptEffect } from './hooks/useInstallPromptEffect';
+import { useNotificationsEffects } from './hooks/useNotificationsEffects';
+import { useQuickAddEffects } from './hooks/useQuickAddEffects';
+import { useQuickAddProjectRequestEffect } from './hooks/useQuickAddProjectRequestEffect';
+import { useQuickNavEffects } from './hooks/useQuickNavEffects';
+import { useTasksDialogEffects } from './hooks/useTasksDialogEffects';
+import { useToolbarFocusEffects } from './hooks/useToolbarFocusEffects';
 import {
   buildAccountAvatarUrl,
   buildBreadcrumb,
   buildSearchResultHref,
   focusElementSoon,
-  focusFirstDescendantSoon,
-  isTextInputElement,
   nowPlusHours,
   parseIsoTimestamp,
   QUICK_ADD_OPTIONS,
@@ -49,7 +55,7 @@ import {
   type QuickNavActionItem,
   type ToolbarDialog,
   type ToolbarNotification,
-} from './appShellUtils';
+} from '../appShellUtils';
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
@@ -522,125 +528,35 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
   }, [accessToken, navigate, projectDialogName, upsertProject]);
 
-  useEffect(() => {
-    if (!captureOpen) {
-      return;
-    }
-    void refreshCaptureData();
-    setCaptureAnnouncement('Quick capture panel opened.');
-    const timer = window.setTimeout(() => {
-      setCaptureAnnouncement('');
-    }, 1500);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [captureOpen, refreshCaptureData]);
+  useCapturePanelEffects({
+    captureOpen,
+    refreshCaptureData,
+    setCaptureAnnouncement,
+  });
 
-  useEffect(() => {
-    if (!contextMenuOpen) {
-      return;
-    }
-    const frameId = window.requestAnimationFrame(() => {
-      setQuickAddActiveIndex(0);
-      focusElementSoon(quickAddItemRefs.current[0]);
-    });
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [contextMenuOpen]);
+  useQuickAddEffects({
+    contextMenuOpen,
+    setQuickAddActiveIndex,
+    quickAddItemRefs,
+    quickAddDialog,
+    quickAddProjectId,
+    loadTaskProjectMembers,
+    taskTitleInputRef,
+    eventTitleInputRef,
+    reminderInputRef,
+    projectNameInputRef,
+  });
 
-  useEffect(() => {
-    if (quickAddDialog !== 'task' || !quickAddProjectId) {
-      return;
-    }
-    void loadTaskProjectMembers(quickAddProjectId);
-  }, [loadTaskProjectMembers, quickAddDialog, quickAddProjectId]);
+  useTasksDialogEffects({
+    toolbarDialog,
+    refreshQuickNavTasks,
+  });
 
-  useEffect(() => {
-    if (quickAddDialog === 'task') {
-      focusElementSoon(taskTitleInputRef.current);
-      return;
-    }
-    if (quickAddDialog === 'event') {
-      focusElementSoon(eventTitleInputRef.current);
-      return;
-    }
-    if (quickAddDialog === 'reminder') {
-      focusElementSoon(reminderInputRef.current);
-      return;
-    }
-    if (quickAddDialog === 'project') {
-      focusElementSoon(projectNameInputRef.current);
-    }
-  }, [quickAddDialog]);
-
-  useEffect(() => {
-    if (toolbarDialog !== 'tasks') {
-      return;
-    }
-    void refreshQuickNavTasks();
-  }, [toolbarDialog, refreshQuickNavTasks]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const refreshAndStore = async () => {
-      const next = await refreshNotifications();
-      if (cancelled || !next) {
-        return;
-      }
-      setNotifications(next);
-    };
-    const kickoff = window.setTimeout(() => {
-      void refreshAndStore();
-    }, 0);
-    const timer = window.setInterval(() => {
-      void refreshAndStore();
-    }, 45_000);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(kickoff);
-      window.clearInterval(timer);
-    };
-  }, [refreshNotifications]);
-
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      void Notification.requestPermission();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!accessToken) {
-      return;
-    }
-    return subscribeHubLive(accessToken, (message) => {
-      if (message.type !== 'notification.new') {
-        return;
-      }
-      const nextNotification = toToolbarNotification(message.notification);
-      setNotifications((current) => {
-        const existingIndex = current.findIndex((notification) => notification.id === nextNotification.id);
-        if (existingIndex >= 0) {
-          return current.map((notification, index) => (index === existingIndex ? nextNotification : notification));
-        }
-        return [nextNotification, ...current];
-      });
-
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const payload = message.notification?.payload ?? {};
-        const title = typeof payload.message === 'string' && payload.message.trim() ? payload.message : 'New notification';
-        const browserNotification = new Notification(title, {
-          body: payload.source_project_id ? 'In project' : 'Hub OS',
-          tag: message.notification?.notification_id || undefined,
-          icon: '/favicon.ico',
-        });
-        browserNotification.onclick = () => {
-          window.focus();
-          browserNotification.close();
-        };
-      }
-    });
-  }, [accessToken]);
+  useNotificationsEffects({
+    accessToken,
+    refreshNotifications,
+    setNotifications,
+  });
 
   const closeQuickNav = useCallback(() => {
     setQuickNavOpen(false);
@@ -683,78 +599,42 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     closeCapturePanel({ restoreFocus: false });
   }, [closeCapturePanel, closeQuickNav, closeSearch]);
 
-  useEffect(() => subscribeQuickAddProjectRequest(() => {
-    skipQuickNavFocusRestoreRef.current = true;
-    closeQuickNav();
-    skipProfileFocusRestoreRef.current = true;
-    skipNotificationsFocusRestoreRef.current = true;
-    skipContextMenuFocusRestoreRef.current = true;
-    closeQuickNavPanel();
-    closeSearch();
-    setProfileOpen(false);
-    setNotificationsOpen(false);
-    setContextMenuOpen(false);
-    closeCapturePanel({ restoreFocus: false });
-    void openQuickAddDialog('project');
-  }), [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, openQuickAddDialog]);
+  useQuickAddProjectRequestEffect({
+    closeCapturePanel,
+    closeQuickNav,
+    closeQuickNavPanel,
+    closeSearch,
+    openQuickAddDialog,
+    setProfileOpen,
+    setNotificationsOpen,
+    setContextMenuOpen,
+    skipQuickNavFocusRestoreRef,
+    skipProfileFocusRestoreRef,
+    skipNotificationsFocusRestoreRef,
+    skipContextMenuFocusRestoreRef,
+  });
 
-  useEffect(() => {
-    const onMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-
-      if (quickNavOpen && quickNavRef.current && !quickNavRef.current.contains(target)) {
-        closeQuickNav();
-      }
-      if (searchOpen && searchRef.current && !searchRef.current.contains(target)) {
-        closeSearch();
-      }
-      if (profileOpen && profileRef.current && !profileRef.current.contains(target)) {
-        setProfileOpen(false);
-      }
-      if (notificationsOpen && notificationsRef.current && !notificationsRef.current.contains(target)) {
-        setNotificationsOpen(false);
-      }
-      if (contextMenuOpen && contextMenuRef.current && !contextMenuRef.current.contains(target)) {
-        setContextMenuOpen(false);
-      }
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (!quickAddDialog && !isTextInputElement(event.target) && event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        if (event.key.toLowerCase() === 'c') {
-          event.preventDefault();
-          openQuickNavPanel('calendar');
-          return;
-        }
-        if (event.key.toLowerCase() === 't') {
-          event.preventDefault();
-          openQuickNavPanel('tasks');
-          return;
-        }
-        if (event.key.toLowerCase() === 'r') {
-          event.preventDefault();
-          openQuickNavPanel('reminders');
-          return;
-        }
-      }
-      if (event.key === 'Escape') {
-        closeCapturePanel();
-        closeSearch();
-        closeQuickNav();
-        closeQuickNavPanel();
-        setProfileOpen(false);
-        setNotificationsOpen(false);
-        setContextMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, notificationsOpen, openQuickNavPanel, profileOpen, quickAddDialog, quickNavOpen, searchOpen]);
+  useGlobalInteractionEffects({
+    closeCapturePanel,
+    closeQuickNav,
+    closeQuickNavPanel,
+    closeSearch,
+    contextMenuOpen,
+    contextMenuRef,
+    notificationsOpen,
+    notificationsRef,
+    openQuickNavPanel,
+    profileOpen,
+    profileRef,
+    quickAddDialog,
+    quickNavOpen,
+    quickNavRef,
+    searchOpen,
+    searchRef,
+    setContextMenuOpen,
+    setNotificationsOpen,
+    setProfileOpen,
+  });
 
   const unreadNotifications = notifications.filter((notification) => !notification.read).length;
 
@@ -794,216 +674,63 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         ? 0
         : searchActiveIndex;
 
-  useEffect(() => {
-    const trimmedQuery = searchQuery.trim();
-    const requestVersion = searchRequestVersionRef.current + 1;
-    searchRequestVersionRef.current = requestVersion;
+  useGlobalSearchEffect({
+    accessToken,
+    searchQuery,
+    searchRequestVersionRef,
+    searchDismissedRef,
+    setSearchResults,
+    setSearchError,
+    setSearchLoading,
+    setSearchOpen,
+    setSearchActiveIndex,
+  });
 
-    if (!accessToken || !trimmedQuery) {
-      setSearchResults([]);
-      setSearchError(null);
-      setSearchLoading(false);
-      setSearchOpen(false);
-      setSearchActiveIndex(-1);
-      return;
-    }
+  useQuickNavEffects({
+    captureOpen,
+    closeQuickNav,
+    contextMenuOpen,
+    navigate,
+    normalizedQuickNavActiveIndex,
+    notificationsOpen,
+    openQuickNavPanel,
+    profileOpen,
+    quickAddDialog,
+    quickNavInputRef,
+    quickNavItems,
+    quickNavOpen,
+    quickNavTriggerRef,
+    quickNavWasOpenRef,
+    searchOpen,
+    setQuickNavActiveIndex,
+    setQuickNavQuery,
+    setToolbarDialog,
+    skipQuickNavFocusRestoreRef,
+    toolbarDialog,
+  });
 
-    searchDismissedRef.current = false;
-    setSearchLoading(true);
-    setSearchError(null);
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        try {
-          const response = await searchHub(accessToken, trimmedQuery, { limit: 20 });
-          if (searchRequestVersionRef.current !== requestVersion) {
-            return;
-          }
-          setSearchResults(response.results);
-          setSearchError(null);
-          if (searchDismissedRef.current) {
-            return;
-          }
-          setSearchOpen(true);
-          setSearchActiveIndex(response.results.length > 0 ? 0 : -1);
-        } catch {
-          if (searchRequestVersionRef.current !== requestVersion) {
-            return;
-          }
-          setSearchResults([]);
-          setSearchError('Search is temporarily unavailable.');
-          if (searchDismissedRef.current) {
-            return;
-          }
-          setSearchOpen(true);
-          setSearchActiveIndex(-1);
-        } finally {
-          if (searchRequestVersionRef.current === requestVersion) {
-            setSearchLoading(false);
-          }
-        }
-      })();
-    }, 300);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [accessToken, searchQuery]);
-
-  useEffect(() => {
-    if (!quickNavOpen) {
-      return;
-    }
-
-    const onQuickNavKeyDown = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey) {
-        return;
-      }
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setQuickNavActiveIndex((current) => {
-          if (quickNavItems.length === 0) {
-            return -1;
-          }
-          const nextIndex = current < 0 ? 0 : current + 1;
-          return nextIndex >= quickNavItems.length ? 0 : nextIndex;
-        });
-        return;
-      }
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setQuickNavActiveIndex((current) => {
-          if (quickNavItems.length === 0) {
-            return -1;
-          }
-          if (current <= 0) {
-            return quickNavItems.length - 1;
-          }
-          return current - 1;
-        });
-        return;
-      }
-
-      if (event.key === 'Enter' && normalizedQuickNavActiveIndex >= 0 && quickNavItems[normalizedQuickNavActiveIndex]) {
-        event.preventDefault();
-        const selectedItem = quickNavItems[normalizedQuickNavActiveIndex];
-        if (!selectedItem) {
-          return;
-        }
-        skipQuickNavFocusRestoreRef.current = true;
-        if (selectedItem.action === 'panel') {
-          openQuickNavPanel(selectedItem.panel);
-          return;
-        }
-        setToolbarDialog(null);
-        navigate(selectedItem.href);
-        closeQuickNav();
-        return;
-      }
-
-      if (event.key.length === 1 && !isTextInputElement(event.target)) {
-        event.preventDefault();
-        setQuickNavQuery((current) => `${current}${event.key}`);
-      }
-    };
-
-    document.addEventListener('keydown', onQuickNavKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onQuickNavKeyDown);
-    };
-  }, [closeQuickNav, navigate, normalizedQuickNavActiveIndex, openQuickNavPanel, quickNavItems, quickNavOpen]);
-
-  useEffect(() => {
-    if (quickNavOpen) {
-      focusElementSoon(quickNavInputRef.current);
-    } else if (
-      quickNavWasOpenRef.current
-      && !skipQuickNavFocusRestoreRef.current
-      && !searchOpen
-      && !notificationsOpen
-      && !profileOpen
-      && !contextMenuOpen
-      && !captureOpen
-      && !toolbarDialog
-      && !quickAddDialog
-    ) {
-      focusElementSoon(quickNavTriggerRef.current);
-    }
-    if (!quickNavOpen) {
-      skipQuickNavFocusRestoreRef.current = false;
-    }
-    quickNavWasOpenRef.current = quickNavOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
-
-  useEffect(() => {
-    if (notificationsOpen) {
-      focusFirstDescendantSoon(
-        notificationsPanelRef.current,
-        'button:not([disabled]), select:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-    } else if (
-      notificationsWereOpenRef.current
-      && !skipNotificationsFocusRestoreRef.current
-      && !searchOpen
-      && !quickNavOpen
-      && !profileOpen
-      && !contextMenuOpen
-      && !captureOpen
-      && !toolbarDialog
-      && !quickAddDialog
-    ) {
-      focusElementSoon(notificationsTriggerRef.current);
-    }
-    if (!notificationsOpen) {
-      skipNotificationsFocusRestoreRef.current = false;
-    }
-    notificationsWereOpenRef.current = notificationsOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
-
-  useEffect(() => {
-    if (profileOpen) {
-      focusFirstDescendantSoon(profileMenuRef.current, '[role="menuitem"]');
-    } else if (
-      profileWasOpenRef.current
-      && !skipProfileFocusRestoreRef.current
-      && !searchOpen
-      && !quickNavOpen
-      && !notificationsOpen
-      && !contextMenuOpen
-      && !captureOpen
-      && !toolbarDialog
-      && !quickAddDialog
-    ) {
-      focusElementSoon(profileTriggerRef.current);
-    }
-    if (!profileOpen) {
-      skipProfileFocusRestoreRef.current = false;
-    }
-    profileWasOpenRef.current = profileOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
-
-  useEffect(() => {
-    if (contextMenuOpen) {
-      focusFirstDescendantSoon(contextMenuRef.current, '[role="menuitem"]');
-    } else if (
-      contextMenuWasOpenRef.current
-      && !skipContextMenuFocusRestoreRef.current
-      && !searchOpen
-      && !quickNavOpen
-      && !notificationsOpen
-      && !profileOpen
-      && !captureOpen
-      && !toolbarDialog
-      && !quickAddDialog
-    ) {
-      focusElementSoon(contextMenuTriggerRef.current);
-    }
-    if (!contextMenuOpen) {
-      skipContextMenuFocusRestoreRef.current = false;
-    }
-    contextMenuWasOpenRef.current = contextMenuOpen;
-  }, [captureOpen, contextMenuOpen, notificationsOpen, profileOpen, quickAddDialog, quickNavOpen, searchOpen, toolbarDialog]);
+  useToolbarFocusEffects({
+    captureOpen,
+    contextMenuOpen,
+    contextMenuRef,
+    contextMenuTriggerRef,
+    contextMenuWasOpenRef,
+    notificationsOpen,
+    notificationsPanelRef,
+    notificationsTriggerRef,
+    notificationsWereOpenRef,
+    profileMenuRef,
+    profileOpen,
+    profileTriggerRef,
+    profileWasOpenRef,
+    quickAddDialog,
+    quickNavOpen,
+    searchOpen,
+    skipContextMenuFocusRestoreRef,
+    skipNotificationsFocusRestoreRef,
+    skipProfileFocusRestoreRef,
+    toolbarDialog,
+  });
 
   const onMarkNotificationRead = async (notificationId: string) => {
     if (!accessToken) {
@@ -1213,51 +940,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     await remindersRuntime.refresh();
   }, [accessToken, remindersRuntime]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-
-    const standaloneMedia = window.matchMedia('(display-mode: standalone)');
-    const computeInstallState = () => {
-      const userAgent = window.navigator.userAgent;
-      const isIos = /iPhone|iPad|iPod/i.test(userAgent)
-        || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
-      const isSafari = /Safari/i.test(userAgent)
-        && !/Chrome|CriOS|Edg|OPR|Firefox|FxiOS|Android/i.test(userAgent);
-      const installed = standaloneMedia.matches || window.navigator.standalone === true;
-      setInstallState({
-        installed,
-        iosSafari: isIos && isSafari,
-      });
-      if (installed) {
-        setDeferredInstallPrompt(null);
-      }
-    };
-
-    const onBeforeInstallPrompt = (event: Event) => {
-      const installEvent = event as BeforeInstallPromptEvent;
-      installEvent.preventDefault();
-      setDeferredInstallPrompt(installEvent);
-      computeInstallState();
-    };
-
-    const onAppInstalled = () => {
-      setDeferredInstallPrompt(null);
-      computeInstallState();
-    };
-
-    computeInstallState();
-    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-    window.addEventListener('appinstalled', onAppInstalled);
-    standaloneMedia.addEventListener('change', computeInstallState);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', onAppInstalled);
-      standaloneMedia.removeEventListener('change', computeInstallState);
-    };
-  }, []);
+  useInstallPromptEffect({
+    setDeferredInstallPrompt,
+    setInstallState,
+  });
 
   const onCopyCalendarLink = useCallback(() => {
     const url = calendarFeedUrl.trim();
