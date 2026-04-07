@@ -33,7 +33,7 @@ export const useQuickAddEffects = ({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [contextMenuOpen]);
+  }, [contextMenuOpen, quickAddItemRefs, setQuickAddActiveIndex]);
 
   useEffect(() => {
     if (quickAddDialog === 'task') {
@@ -51,5 +51,5 @@ export const useQuickAddEffects = ({
     if (quickAddDialog === 'project') {
       focusElementSoon(projectNameInputRef.current);
     }
-  }, [quickAddDialog]);
+  }, [eventTitleInputRef, projectNameInputRef, quickAddDialog, reminderInputRef, taskTitleInputRef]);
 };
