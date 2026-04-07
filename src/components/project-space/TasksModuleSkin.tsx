@@ -348,7 +348,7 @@ const TaskComposer = ({
         ) : null}
       </div>
 
-      {errorMsg ? <p className="mt-1 text-sm text-red-500">{errorMsg}</p> : null}
+      {errorMsg ? <p role="alert" aria-live="assertive" className="mt-1 text-sm text-danger">{errorMsg}</p> : null}
 
       <div className="space-y-2">
         {selectedParentTask ? (

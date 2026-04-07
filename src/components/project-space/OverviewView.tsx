@@ -4,6 +4,7 @@ import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types'
 import { Button, Card, InlineNotice, TabButton, Tabs, TabsList } from '../primitives';
 import { CalendarTab, type CalendarEvent, type CalendarLensOption, type CalendarTimeView } from './CalendarTab';
 import { FilterBarOverlay, type FilterGroup } from './FilterBarOverlay';
+import { ModuleEmptyState } from './ModuleFeedback';
 import { OverviewHeader } from './OverviewHeader';
 import { TaskCreateDialog } from './TaskCreateDialog';
 import { TasksTab, type SortChain } from './TasksTab';
@@ -42,46 +43,9 @@ const overviewViews: Array<{ id: OverviewViewId; label: string }> = [
   { id: 'kanban', label: 'Kanban' },
 ];
 
-const timelineDemo: TimelineCluster[] = [
-  {
-    id: 'today',
-    dateLabel: 'Today',
-    items: [
-      { id: 't1', label: 'Kicked off brand review', type: 'event', priority: 'high' },
-      { id: 't2', label: 'Script draft due', type: 'task', priority: 'high' },
-      { id: 't3', label: 'Weekly sync with Alex', type: 'event', priority: 'medium' },
-    ],
-  },
-  {
-    id: 'mar-3',
-    dateLabel: 'March 3, 2026',
-    items: [
-      { id: 't4', label: 'Uploaded campaign assets', type: 'event', priority: 'low' },
-      { id: 't5', label: 'Client call with Acme Corp', type: 'milestone', priority: 'high' },
-    ],
-  },
-];
-
 const categoryOptions: CalendarLensOption[] = [
   { id: 'all', label: 'All' },
-  { id: 'youtube', label: 'YouTube' },
-  { id: 'writing', label: 'Writing' },
-  { id: 'design', label: 'Design' },
-  { id: 'marketing', label: 'Marketing' },
 ];
-
-const buildCalendarEvents = (users: CalendarLensOption[]): CalendarEvent[] => {
-  const userA = users.find((user) => user.id !== 'all')?.id ?? 'current-user';
-  const userB = users.find((user) => user.id !== 'all' && user.id !== userA)?.id ?? userA;
-
-  return [
-    { id: 'e1', date: new Date(2026, 2, 4), label: 'Brand kickoff', categoryId: 'marketing', assigneeId: userA, priority: 'high' },
-    { id: 'e2', date: new Date(2026, 2, 4), label: 'Script due', categoryId: 'writing', assigneeId: userB, priority: 'high' },
-    { id: 'e3', date: new Date(2026, 2, 5), label: 'Weekly sync', categoryId: 'youtube', assigneeId: userA, priority: 'medium' },
-    { id: 'e4', date: new Date(2026, 2, 7), label: 'Figma review', categoryId: 'design', assigneeId: userB, priority: 'low' },
-    { id: 'e5', date: new Date(2026, 2, 10), label: 'Client call', categoryId: 'marketing', assigneeId: userB, priority: 'high' },
-  ];
-};
 
 const toCategoryLabel = (categoryId: string) =>
   categoryId
@@ -154,6 +118,8 @@ export const OverviewView = ({
   const [tasksCategoryId, setTasksCategoryId] = useState('all');
 
   const [timelineFilters, setTimelineFilters] = useState<string[]>([]);
+  // TODO(phase1): replace placeholder with real timeline data source.
+  const timelineClusters = useMemo<TimelineCluster[]>(() => [], []);
 
   const timelineFilterGroups: FilterGroup[] = [
     {
@@ -178,19 +144,20 @@ export const OverviewView = ({
 
   const filteredTimelineClusters = useMemo(() => {
     if (timelineFilters.length === 0) {
-      return timelineDemo;
+      return timelineClusters;
     }
 
     const active = new Set(timelineFilters);
-    return timelineDemo
+    return timelineClusters
       .map((cluster) => ({
         ...cluster,
         items: cluster.items.filter((item) => active.has(item.priority) || active.has(item.type)),
       }))
       .filter((cluster) => cluster.items.length > 0);
-  }, [timelineFilters]);
+  }, [timelineClusters, timelineFilters]);
 
-  const calendarEvents = useMemo(() => buildCalendarEvents(calendarCollaboratorOptions), [calendarCollaboratorOptions]);
+  // TODO(phase1): replace placeholder with real calendar event data source.
+  const calendarEvents = useMemo<CalendarEvent[]>(() => [], []);
   const adaptedTasks = useMemo(() => adaptTaskSummaries(tasks), [tasks]);
   const taskCategoryOptions = useMemo(() => {
     const ids = [...new Set(adaptedTasks.map((task) => task.categoryId).filter((categoryId) => categoryId !== ''))];
@@ -405,23 +372,40 @@ export const OverviewView = ({
               }}
               onClearAll={() => setTimelineFilters([])}
             />
-            <TimelineTab clusters={filteredTimelineClusters} />
+            {filteredTimelineClusters.length === 0 ? (
+              <ModuleEmptyState
+                title="No timeline activity yet."
+                description="Project updates will appear here."
+                sizeTier="M"
+              />
+            ) : (
+              <TimelineTab clusters={filteredTimelineClusters} />
+            )}
           </div>
         ) : null}
 
         {activeView === 'calendar' ? (
           <div id="overview-panel-calendar" role="tabpanel" aria-labelledby="overview-view-calendar" className="mt-4">
-            <CalendarTab
-              events={calendarEvents}
-              collaborators={calendarCollaboratorOptions}
-              categories={categoryOptions}
-              timeView={calendarTimeView}
-              activeUserId={calendarUserId}
-              activeCategoryId={calendarCategoryId}
-              onTimeViewChange={setCalendarTimeView}
-              onUserChange={setCalendarUserId}
-              onCategoryChange={setCalendarCategoryId}
-            />
+            {calendarEvents.length === 0 ? (
+              <ModuleEmptyState
+                iconName="calendar"
+                title="No project events yet."
+                description="Create an event to populate this calendar."
+                sizeTier="M"
+              />
+            ) : (
+              <CalendarTab
+                events={calendarEvents}
+                collaborators={calendarCollaboratorOptions}
+                categories={categoryOptions}
+                timeView={calendarTimeView}
+                activeUserId={calendarUserId}
+                activeCategoryId={calendarCategoryId}
+                onTimeViewChange={setCalendarTimeView}
+                onUserChange={setCalendarUserId}
+                onCategoryChange={setCalendarCategoryId}
+              />
+            )}
           </div>
         ) : null}
 
