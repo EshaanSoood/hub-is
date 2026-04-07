@@ -539,8 +539,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setQuickAddActiveIndex,
     quickAddItemRefs,
     quickAddDialog,
-    quickAddProjectId,
-    loadTaskProjectMembers,
     taskTitleInputRef,
     eventTitleInputRef,
     reminderInputRef,

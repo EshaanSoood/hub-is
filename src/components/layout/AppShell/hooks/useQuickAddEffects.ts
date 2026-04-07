@@ -6,8 +6,6 @@ interface UseQuickAddEffectsArgs {
   setQuickAddActiveIndex: Dispatch<SetStateAction<number>>;
   quickAddItemRefs: MutableRefObject<Array<HTMLButtonElement | null>>;
   quickAddDialog: QuickAddDialog;
-  quickAddProjectId: string;
-  loadTaskProjectMembers: (projectId: string) => Promise<void>;
   taskTitleInputRef: MutableRefObject<HTMLInputElement | null>;
   eventTitleInputRef: MutableRefObject<HTMLInputElement | null>;
   reminderInputRef: MutableRefObject<HTMLInputElement | null>;
@@ -19,8 +17,6 @@ export const useQuickAddEffects = ({
   setQuickAddActiveIndex,
   quickAddItemRefs,
   quickAddDialog,
-  quickAddProjectId,
-  loadTaskProjectMembers,
   taskTitleInputRef,
   eventTitleInputRef,
   reminderInputRef,
@@ -38,13 +34,6 @@ export const useQuickAddEffects = ({
       window.cancelAnimationFrame(frameId);
     };
   }, [contextMenuOpen]);
-
-  useEffect(() => {
-    if (quickAddDialog !== 'task' || !quickAddProjectId) {
-      return;
-    }
-    void loadTaskProjectMembers(quickAddProjectId);
-  }, [loadTaskProjectMembers, quickAddDialog, quickAddProjectId]);
 
   useEffect(() => {
     if (quickAddDialog === 'task') {

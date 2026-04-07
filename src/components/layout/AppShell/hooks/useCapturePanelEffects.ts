@@ -13,6 +13,7 @@ export const useCapturePanelEffects = ({
 }: UseCapturePanelEffectsArgs) => {
   useEffect(() => {
     if (!captureOpen) {
+      setCaptureAnnouncement('');
       return;
     }
     void refreshCaptureData();
@@ -23,5 +24,5 @@ export const useCapturePanelEffects = ({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [captureOpen, refreshCaptureData]);
+  }, [captureOpen, refreshCaptureData, setCaptureAnnouncement]);
 };

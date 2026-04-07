@@ -58,5 +58,5 @@ export const useInstallPromptEffect = ({
       window.removeEventListener('appinstalled', onAppInstalled);
       standaloneMedia.removeEventListener('change', computeInstallState);
     };
-  }, []);
+  }, [setDeferredInstallPrompt, setInstallState]);
 };
