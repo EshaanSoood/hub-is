@@ -1,4 +1,4 @@
-import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import { useEffect, type MutableRefObject } from 'react';
 import type { CloseNotificationsOptions } from '../../BottomToolbar';
 import { isTextInputElement, type QuickAddDialog, type ToolbarDialog } from '../../appShellUtils';
 
@@ -10,10 +10,10 @@ interface UseGlobalInteractionEffectsArgs {
   closeProfile: () => void;
   closeSearch: () => void;
   closeNotifications: (options?: CloseNotificationsOptions) => void;
+  closeContextMenu: (options?: { restoreFocus?: boolean }) => void;
   contextMenuOpen: boolean;
   contextMenuRef: MutableRefObject<HTMLDivElement | null>;
   quickAddDialog: QuickAddDialog;
-  setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 export const useGlobalInteractionEffects = ({
@@ -24,17 +24,17 @@ export const useGlobalInteractionEffects = ({
   closeProfile,
   closeSearch,
   closeNotifications,
+  closeContextMenu,
   contextMenuOpen,
   contextMenuRef,
   quickAddDialog,
-  setContextMenuOpen,
 }: UseGlobalInteractionEffectsArgs) => {
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
 
       if (contextMenuOpen && contextMenuRef.current && !contextMenuRef.current.contains(target)) {
-        setContextMenuOpen(false);
+        closeContextMenu({ restoreFocus: false });
       }
     };
 
@@ -63,7 +63,7 @@ export const useGlobalInteractionEffects = ({
         closeQuickNav();
         closeQuickNavPanel();
         closeProfile();
-        setContextMenuOpen(false);
+        closeContextMenu();
       }
     };
 
@@ -73,5 +73,5 @@ export const useGlobalInteractionEffects = ({
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closeCapturePanel, closeNotifications, closeProfile, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, openQuickNavPanel, quickAddDialog]);
+  }, [closeCapturePanel, closeContextMenu, closeNotifications, closeProfile, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, contextMenuRef, openQuickNavPanel, quickAddDialog]);
 };

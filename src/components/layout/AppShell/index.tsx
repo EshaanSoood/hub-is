@@ -484,10 +484,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     closeProfile: () => closeToolbarProfile(),
     closeSearch: closeToolbarSearch,
     closeNotifications: closeToolbarNotifications,
+    closeContextMenu,
     contextMenuOpen,
     contextMenuRef,
     quickAddDialog,
-    setContextMenuOpen,
   });
 
   useToolbarFocusEffects({

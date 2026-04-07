@@ -43,5 +43,6 @@ export const useToolbarFocusEffects = ({
       skipContextMenuFocusRestoreRef.current = false;
     }
     contextMenuWasOpenRef.current = contextMenuOpen;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are stable object identities; only .current changes.
   }, [captureOpen, contextMenuOpen, quickAddDialog, toolbarDialog]);
 };
