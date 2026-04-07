@@ -118,6 +118,7 @@ export const OverviewView = ({
   const [tasksCategoryId, setTasksCategoryId] = useState('all');
 
   const [timelineFilters, setTimelineFilters] = useState<string[]>([]);
+  // TODO(phase1): replace placeholder with real timeline data source.
   const timelineClusters = useMemo<TimelineCluster[]>(() => [], []);
 
   const timelineFilterGroups: FilterGroup[] = [
@@ -155,6 +156,7 @@ export const OverviewView = ({
       .filter((cluster) => cluster.items.length > 0);
   }, [timelineClusters, timelineFilters]);
 
+  // TODO(phase1): replace placeholder with real calendar event data source.
   const calendarEvents = useMemo<CalendarEvent[]>(() => [], []);
   const adaptedTasks = useMemo(() => adaptTaskSummaries(tasks), [tasks]);
   const taskCategoryOptions = useMemo(() => {
