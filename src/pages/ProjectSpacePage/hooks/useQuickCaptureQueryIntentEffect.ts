@@ -44,9 +44,6 @@ export const useQuickCaptureQueryIntentEffect = ({
               return null;
             }
           })();
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('capture');
-    nextParams.delete('intent');
 
     const createAndOpenCapture = async () => {
       let didRun = false;
@@ -60,7 +57,12 @@ export const useQuickCaptureQueryIntentEffect = ({
           if (typeof window !== 'undefined') {
             window.sessionStorage.removeItem(PENDING_CAPTURE_DRAFT_KEY);
           }
-          setSearchParams(nextParams, { replace: true });
+          setSearchParams((current) => {
+            const next = new URLSearchParams(current);
+            next.delete('capture');
+            next.delete('intent');
+            return next;
+          }, { replace: true });
         }
       }
     };

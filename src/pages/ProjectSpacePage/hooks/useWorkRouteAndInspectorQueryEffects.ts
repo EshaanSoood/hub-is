@@ -48,9 +48,11 @@ export const useWorkRouteAndInspectorQueryEffects = ({
       if (cancelled) {
         return;
       }
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete('record_id');
-      setSearchParams(nextParams, { replace: true });
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete('record_id');
+        return next;
+      }, { replace: true });
     })();
 
     return () => {

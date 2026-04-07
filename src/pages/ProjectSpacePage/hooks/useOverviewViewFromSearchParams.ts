@@ -13,5 +13,5 @@ export const useOverviewViewFromSearchParams = <TOverviewView extends string>({
 }: UseOverviewViewFromSearchParamsParams<TOverviewView>): void => {
   useEffect(() => {
     setOverviewView(readOverviewView(searchParams));
-  }, [searchParams]);
+  }, [readOverviewView, searchParams, setOverviewView]);
 };

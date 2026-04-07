@@ -20,7 +20,7 @@ export const usePaneControlEffects = ({
       setShowPaneSwitcher(!openedFromPinned);
     }
     previousOpenedFromPinnedRef.current = openedFromPinned;
-  }, [openedFromPinned]);
+  }, [openedFromPinned, previousOpenedFromPinnedRef, setShowPaneSwitcher]);
 
   useEffect(() => {
     if (!showCreatePaneControl) {
@@ -30,5 +30,5 @@ export const usePaneControlEffects = ({
       createPaneNameInputRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [showCreatePaneControl]);
+  }, [createPaneNameInputRef, showCreatePaneControl]);
 };
