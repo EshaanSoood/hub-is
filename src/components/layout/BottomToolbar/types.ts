@@ -87,7 +87,7 @@ export interface BottomToolbarProps {
   refreshPersonalCalendar: () => Promise<void>;
   personalCalendarEvents: ComponentProps<typeof CalendarModuleSkin>['events'];
   personalCalendarLoading: ComponentProps<typeof CalendarModuleSkin>['loading'];
-  personalCalendarMode: string;
+  personalCalendarMode: CalendarScope;
   setPersonalCalendarMode: (scope: CalendarScope) => void;
   onOpenCalendarRecordFromDialog: ComponentProps<typeof CalendarModuleSkin>['onOpenRecord'];
   toolbarCalendarCreateProjectId: string | null;

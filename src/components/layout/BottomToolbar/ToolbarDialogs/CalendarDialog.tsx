@@ -1,6 +1,6 @@
 import { requestHubHomeRefresh } from '../../../../lib/hubHomeRefresh';
 import { createEventFromNlp } from '../../../../services/hub/records';
-import { CalendarModuleSkin, type CalendarScope } from '../../../project-space/CalendarModuleSkin';
+import { CalendarModuleSkin } from '../../../project-space/CalendarModuleSkin';
 import { Dialog } from '../../../primitives';
 import type { BottomToolbarProps } from '../types';
 
@@ -62,7 +62,7 @@ export const CalendarDialog = ({
         <CalendarModuleSkin
           events={personalCalendarEvents}
           loading={personalCalendarLoading}
-          scope={personalCalendarMode as CalendarScope}
+          scope={personalCalendarMode}
           onScopeChange={setPersonalCalendarMode}
           onOpenRecord={onOpenCalendarRecordFromDialog}
           onCreateEvent={
