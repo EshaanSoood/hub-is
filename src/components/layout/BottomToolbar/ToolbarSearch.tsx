@@ -1,28 +1,29 @@
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { HubSearchResult } from '../../../services/hub/search';
 import { SearchResultsPanel } from './ToolbarDialogs/SearchResultsPanel';
-import type { BottomToolbarProps } from './types';
+import type { CloseNotificationsOptions } from './hooks/useToolbarNotifications';
 
-type ToolbarSearchProps = Pick<
-  BottomToolbarProps,
-  | 'searchRef'
-  | 'searchQuery'
-  | 'setSearchQuery'
-  | 'setSearchActiveIndex'
-  | 'searchDismissedRef'
-  | 'setSearchOpen'
-  | 'closeQuickNav'
-  | 'closeQuickNavPanel'
-  | 'setProfileOpen'
-  | 'setNotificationsOpen'
-  | 'setContextMenuOpen'
-  | 'closeCapturePanel'
-  | 'searchOpen'
-  | 'searchLoading'
-  | 'normalizedSearchActiveIndex'
-  | 'searchResults'
-  | 'onSelectSearchResult'
-  | 'closeSearch'
-  | 'searchError'
->;
+interface ToolbarSearchProps {
+  searchRef: MutableRefObject<HTMLDivElement | null>;
+  searchQuery: string;
+  setSearchQuery: Dispatch<SetStateAction<string>>;
+  setSearchActiveIndex: Dispatch<SetStateAction<number>>;
+  searchDismissedRef: MutableRefObject<boolean>;
+  setSearchOpen: Dispatch<SetStateAction<boolean>>;
+  closeQuickNav: () => void;
+  closeQuickNavPanel: () => void;
+  setProfileOpen: Dispatch<SetStateAction<boolean>>;
+  closeNotifications: (options?: CloseNotificationsOptions) => void;
+  setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
+  closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
+  searchOpen: boolean;
+  searchLoading: boolean;
+  normalizedSearchActiveIndex: number;
+  searchResults: HubSearchResult[];
+  onSelectSearchResult: (result: HubSearchResult) => void;
+  closeSearch: () => void;
+  searchError: string | null;
+}
 
 export const ToolbarSearch = ({
   searchRef,
@@ -34,7 +35,7 @@ export const ToolbarSearch = ({
   closeQuickNav,
   closeQuickNavPanel,
   setProfileOpen,
-  setNotificationsOpen,
+  closeNotifications,
   setContextMenuOpen,
   closeCapturePanel,
   searchOpen,
@@ -63,7 +64,7 @@ export const ToolbarSearch = ({
           closeQuickNav();
           closeQuickNavPanel();
           setProfileOpen(false);
-          setNotificationsOpen(false);
+          closeNotifications({ restoreFocus: false });
           setContextMenuOpen(false);
           closeCapturePanel({ restoreFocus: false });
         }}
@@ -132,7 +133,7 @@ export const ToolbarSearch = ({
       </div>
 
       {searchOpen ? (
-        <SearchResultsPanel
+	        <SearchResultsPanel
           searchLoading={searchLoading}
           searchError={searchError}
           searchResults={searchResults}

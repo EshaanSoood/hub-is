@@ -6,20 +6,16 @@ interface UseGlobalInteractionEffectsArgs {
   closeQuickNav: () => void;
   closeQuickNavPanel: () => void;
   closeSearch: () => void;
+  closeNotifications: (options?: { restoreFocus?: boolean }) => void;
   contextMenuOpen: boolean;
   contextMenuRef: MutableRefObject<HTMLDivElement | null>;
-  notificationsOpen: boolean;
-  notificationsRef: MutableRefObject<HTMLDivElement | null>;
   openQuickNavPanel: (panel: Exclude<ToolbarDialog, null>) => void;
   profileOpen: boolean;
   profileRef: MutableRefObject<HTMLDivElement | null>;
   quickAddDialog: QuickAddDialog;
   quickNavOpen: boolean;
   quickNavRef: MutableRefObject<HTMLDivElement | null>;
-  searchOpen: boolean;
-  searchRef: MutableRefObject<HTMLDivElement | null>;
   setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
-  setNotificationsOpen: Dispatch<SetStateAction<boolean>>;
   setProfileOpen: Dispatch<SetStateAction<boolean>>;
 }
 
@@ -28,20 +24,16 @@ export const useGlobalInteractionEffects = ({
   closeQuickNav,
   closeQuickNavPanel,
   closeSearch,
+  closeNotifications,
   contextMenuOpen,
   contextMenuRef,
-  notificationsOpen,
-  notificationsRef,
   openQuickNavPanel,
   profileOpen,
   profileRef,
   quickAddDialog,
   quickNavOpen,
   quickNavRef,
-  searchOpen,
-  searchRef,
   setContextMenuOpen,
-  setNotificationsOpen,
   setProfileOpen,
 }: UseGlobalInteractionEffectsArgs) => {
   useEffect(() => {
@@ -51,14 +43,8 @@ export const useGlobalInteractionEffects = ({
       if (quickNavOpen && quickNavRef.current && !quickNavRef.current.contains(target)) {
         closeQuickNav();
       }
-      if (searchOpen && searchRef.current && !searchRef.current.contains(target)) {
-        closeSearch();
-      }
       if (profileOpen && profileRef.current && !profileRef.current.contains(target)) {
         setProfileOpen(false);
-      }
-      if (notificationsOpen && notificationsRef.current && !notificationsRef.current.contains(target)) {
-        setNotificationsOpen(false);
       }
       if (contextMenuOpen && contextMenuRef.current && !contextMenuRef.current.contains(target)) {
         setContextMenuOpen(false);
@@ -86,10 +72,10 @@ export const useGlobalInteractionEffects = ({
       if (event.key === 'Escape') {
         closeCapturePanel();
         closeSearch();
+        closeNotifications({ restoreFocus: false });
         closeQuickNav();
         closeQuickNavPanel();
         setProfileOpen(false);
-        setNotificationsOpen(false);
         setContextMenuOpen(false);
       }
     };
@@ -100,5 +86,5 @@ export const useGlobalInteractionEffects = ({
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, notificationsOpen, openQuickNavPanel, profileOpen, quickAddDialog, quickNavOpen, searchOpen]);
+  }, [closeCapturePanel, closeNotifications, closeQuickNav, closeQuickNavPanel, closeSearch, contextMenuOpen, openQuickNavPanel, profileOpen, quickAddDialog, quickNavOpen]);
 };

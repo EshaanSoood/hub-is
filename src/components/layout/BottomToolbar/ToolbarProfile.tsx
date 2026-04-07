@@ -1,37 +1,38 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { Icon } from '../../primitives';
 import { ProfileMenuDialog } from './ToolbarDialogs/ProfileMenuDialog';
+import type { CloseNotificationsOptions } from './hooks/useToolbarNotifications';
 import type { BottomToolbarProps } from './types';
 
-type ToolbarProfileProps = Pick<
-  BottomToolbarProps,
-  | 'profileRef'
-  | 'profileTriggerRef'
-  | 'setProfileOpen'
-  | 'setNotificationsOpen'
-  | 'closeSearch'
-  | 'closeQuickNav'
-  | 'closeQuickNavPanel'
-  | 'setContextMenuOpen'
-  | 'closeCapturePanel'
-  | 'profileOpen'
-  | 'avatarBroken'
-  | 'avatarUrl'
-  | 'sessionSummary'
-  | 'setAvatarBroken'
-  | 'profileMenuRef'
-  | 'hasCalendarFeedUrl'
-  | 'onCopyCalendarLink'
-  | 'installMenuLabel'
-  | 'onInstallHubOs'
-  | 'onNavigateProjectsFromProfileMenu'
-  | 'onLogoutFromProfileMenu'
->;
+interface ToolbarProfileProps {
+  profileRef: BottomToolbarProps['profileRef'];
+  profileTriggerRef: BottomToolbarProps['profileTriggerRef'];
+  setProfileOpen: Dispatch<SetStateAction<boolean>>;
+  closeNotifications: (options?: CloseNotificationsOptions) => void;
+  closeSearch: () => void;
+  closeQuickNav: () => void;
+  closeQuickNavPanel: () => void;
+  setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
+  closeCapturePanel: BottomToolbarProps['closeCapturePanel'];
+  profileOpen: boolean;
+  avatarBroken: boolean;
+  avatarUrl: string;
+  sessionSummary: BottomToolbarProps['sessionSummary'];
+  setAvatarBroken: Dispatch<SetStateAction<boolean>>;
+  profileMenuRef: BottomToolbarProps['profileMenuRef'];
+  hasCalendarFeedUrl: boolean;
+  onCopyCalendarLink: () => void;
+  installMenuLabel: string | null;
+  onInstallHubOs: () => Promise<void>;
+  onNavigateProjectsFromProfileMenu: () => void;
+  onLogoutFromProfileMenu: () => void;
+}
 
 export const ToolbarProfile = ({
   profileRef,
   profileTriggerRef,
   setProfileOpen,
-  setNotificationsOpen,
+  closeNotifications,
   closeSearch,
   closeQuickNav,
   closeQuickNavPanel,
@@ -56,7 +57,7 @@ export const ToolbarProfile = ({
       type="button"
       onClick={() => {
         setProfileOpen((current) => !current);
-        setNotificationsOpen(false);
+        closeNotifications({ restoreFocus: false });
         closeSearch();
         closeQuickNav();
         closeQuickNavPanel();

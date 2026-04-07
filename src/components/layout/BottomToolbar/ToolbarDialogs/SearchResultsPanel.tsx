@@ -1,15 +1,15 @@
+import type { Dispatch, SetStateAction } from 'react';
+import type { HubSearchResult } from '../../../../services/hub/search';
 import { buildSearchResultHref, SEARCH_RESULT_TYPE_LABELS } from '../../appShellUtils';
-import type { BottomToolbarProps } from '../types';
 
-type SearchResultsPanelProps = Pick<
-  BottomToolbarProps,
-  | 'searchLoading'
-  | 'searchError'
-  | 'searchResults'
-  | 'normalizedSearchActiveIndex'
-  | 'setSearchActiveIndex'
-  | 'onSelectSearchResult'
->;
+interface SearchResultsPanelProps {
+  searchLoading: boolean;
+  searchError: string | null;
+  searchResults: HubSearchResult[];
+  normalizedSearchActiveIndex: number;
+  setSearchActiveIndex: Dispatch<SetStateAction<number>>;
+  onSelectSearchResult: (result: HubSearchResult) => void;
+}
 
 export const SearchResultsPanel = ({
   searchLoading,

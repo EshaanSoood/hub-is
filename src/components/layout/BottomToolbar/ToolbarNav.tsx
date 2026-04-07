@@ -1,29 +1,30 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { Icon } from '../../primitives';
 import { QuickNavPanel } from './ToolbarDialogs/QuickNavPanel';
+import type { CloseNotificationsOptions } from './hooks/useToolbarNotifications';
 import type { BottomToolbarProps } from './types';
 
-type ToolbarNavProps = Pick<
-  BottomToolbarProps,
-  | 'quickNavRef'
-  | 'quickNavTriggerRef'
-  | 'quickNavOpen'
-  | 'closeQuickNav'
-  | 'setQuickNavOpen'
-  | 'setQuickNavActiveIndex'
-  | 'quickNavItems'
-  | 'closeSearch'
-  | 'setProfileOpen'
-  | 'setNotificationsOpen'
-  | 'setContextMenuOpen'
-  | 'closeQuickNavPanel'
-  | 'closeCapturePanel'
-  | 'quickNavInputRef'
-  | 'quickNavQuery'
-  | 'setQuickNavQuery'
-  | 'normalizedQuickNavActiveIndex'
-  | 'onSelectQuickNavItem'
-  | 'quickNavDestinationItems'
->;
+interface ToolbarNavProps {
+  quickNavRef: BottomToolbarProps['quickNavRef'];
+  quickNavTriggerRef: BottomToolbarProps['quickNavTriggerRef'];
+  quickNavOpen: boolean;
+  closeQuickNav: () => void;
+  setQuickNavOpen: Dispatch<SetStateAction<boolean>>;
+  setQuickNavActiveIndex: Dispatch<SetStateAction<number>>;
+  quickNavItems: BottomToolbarProps['quickNavItems'];
+  closeSearch: () => void;
+  setProfileOpen: Dispatch<SetStateAction<boolean>>;
+  closeNotifications: (options?: CloseNotificationsOptions) => void;
+  setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
+  closeQuickNavPanel: () => void;
+  closeCapturePanel: BottomToolbarProps['closeCapturePanel'];
+  quickNavInputRef: BottomToolbarProps['quickNavInputRef'];
+  quickNavQuery: string;
+  setQuickNavQuery: Dispatch<SetStateAction<string>>;
+  normalizedQuickNavActiveIndex: number;
+  onSelectQuickNavItem: BottomToolbarProps['onSelectQuickNavItem'];
+  quickNavDestinationItems: BottomToolbarProps['quickNavDestinationItems'];
+}
 
 export const ToolbarNav = ({
   quickNavRef,
@@ -35,7 +36,7 @@ export const ToolbarNav = ({
   quickNavItems,
   closeSearch,
   setProfileOpen,
-  setNotificationsOpen,
+  closeNotifications,
   setContextMenuOpen,
   closeQuickNavPanel,
   closeCapturePanel,
@@ -59,7 +60,7 @@ export const ToolbarNav = ({
         }
         closeSearch();
         setProfileOpen(false);
-        setNotificationsOpen(false);
+        closeNotifications({ restoreFocus: false });
         setContextMenuOpen(false);
         closeQuickNavPanel();
         closeCapturePanel({ restoreFocus: false });
