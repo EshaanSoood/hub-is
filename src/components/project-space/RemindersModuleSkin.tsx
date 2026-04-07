@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
-import { useReminderNLDraft } from '../../hooks/useReminderNLDraft';
+import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../hooks/useReminderNLDraft';
 import { Icon } from '../primitives';
 import { ReminderCard } from '../cards/ReminderCard';
 import type { ReminderParseResult } from '../../lib/nlp/reminder-parser/types';
@@ -323,7 +323,7 @@ export const RemindersModuleSkin = ({
       forceReparse: true,
     });
     if (!payloadResult.payload) {
-      setInputError(payloadResult.failureReason === 'invalid-remind-at' ? 'Reminder time is invalid.' : 'Add a title and time to create a reminder.');
+      setInputError(mapReminderFailureReasonToMessage(payloadResult.failureReason));
       return;
     }
 

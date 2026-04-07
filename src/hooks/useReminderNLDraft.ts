@@ -1,42 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { parseReminderInput } from '../lib/nlp/reminder-parser';
 import type { ReminderParseResult } from '../lib/nlp/reminder-parser';
+import { emptyReminderPreview, hasMeaningfulReminderPreview } from '../lib/reminderPreview';
 import type { CreateReminderPayload } from '../services/hub/reminders';
 
-export const emptyReminderPreview = (): ReminderParseResult => ({
-  fields: {
-    title: '',
-    remind_at: null,
-    recurrence: null,
-    context_hint: null,
-  },
-  meta: {
-    confidence: {
-      title: 0,
-      remind_at: 0,
-      recurrence: 0,
-      context_hint: 0,
-    },
-    spans: {
-      title: [],
-      remind_at: [],
-      recurrence: [],
-      context_hint: [],
-    },
-    debugSteps: [],
-    maskedInput: '',
-  },
-  warnings: null,
-});
+export { emptyReminderPreview, hasMeaningfulReminderPreview };
 
-export const hasMeaningfulReminderPreview = (preview: ReminderParseResult): boolean =>
-  Boolean(preview.fields.title.trim() || preview.fields.remind_at || preview.fields.recurrence || preview.fields.context_hint);
-
-type BuildReminderCreatePayloadFailure = 'missing-required' | 'invalid-remind-at';
+export type ReminderNLDraftFailureReason = 'missing-required' | 'invalid-remind-at';
 
 interface BuildReminderCreatePayloadResult {
   payload: CreateReminderPayload | null;
-  failureReason: BuildReminderCreatePayloadFailure | null;
+  failureReason: ReminderNLDraftFailureReason | null;
 }
 
 interface BuildReminderCreatePayloadArgs {
@@ -44,6 +18,9 @@ interface BuildReminderCreatePayloadArgs {
   draft: string;
   fallbackTitleFromDraft?: boolean;
 }
+
+export const mapReminderFailureReasonToMessage = (failureReason: ReminderNLDraftFailureReason | null): string =>
+  failureReason === 'invalid-remind-at' ? 'Reminder time is invalid.' : 'Add a title and time to create a reminder.';
 
 export const buildReminderCreatePayload = ({
   preview,
@@ -87,7 +64,12 @@ export const useReminderNLDraft = ({
 
   useEffect(() => {
     if (!enabled) {
-      return;
+      const timer = window.setTimeout(() => {
+        setPreview(emptyReminderPreview());
+      }, 0);
+      return () => {
+        window.clearTimeout(timer);
+      };
     }
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const timer = window.setTimeout(() => {

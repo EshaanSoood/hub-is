@@ -1,8 +1,8 @@
 const PROJECT_COLOR_PALETTE = [
   'bg-[color:var(--color-primary)]',
-  'bg-[color:var(--color-info)]',
-  'bg-[color:var(--color-success)]',
-  'bg-[color:var(--color-warning)]',
+  'bg-[color:var(--color-info-subtle)]',
+  'bg-[color:var(--color-success-subtle)]',
+  'bg-[color:var(--color-warning-subtle)]',
   'bg-[color:var(--color-danger)]',
 ] as const;
 

@@ -22,6 +22,8 @@ interface TaskCardProps {
   onTitleKeyDown?: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
   titleAriaLabel?: string;
   titlePressed?: boolean;
+  titleExpanded?: boolean;
+  titleControls?: string;
 }
 
 const STATUS_SYMBOLS: Record<TaskCardStatus, string> = {
@@ -113,6 +115,8 @@ export const TaskCard = ({
   onTitleKeyDown,
   titleAriaLabel,
   titlePressed,
+  titleExpanded,
+  titleControls,
 }: TaskCardProps) => {
   const showInteractiveToggle = typeof onToggleStatus === 'function';
 
@@ -154,6 +158,8 @@ export const TaskCard = ({
           onKeyDown={onTitleKeyDown}
           aria-label={titleAriaLabel}
           aria-pressed={titlePressed}
+          aria-expanded={titleExpanded}
+          aria-controls={titleControls}
           className="flex min-w-0 flex-1 items-start gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         >
           <ContentBody

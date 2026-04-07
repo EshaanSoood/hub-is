@@ -8,7 +8,7 @@ import { TaskCreateDialog } from '../project-space/TaskCreateDialog';
 import { useRouteFocusReset } from '../../hooks/useRouteFocusReset';
 import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { usePersonalCalendarRuntime } from '../../hooks/usePersonalCalendarRuntime';
-import { useReminderNLDraft } from '../../hooks/useReminderNLDraft';
+import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../hooks/useReminderNLDraft';
 import { listNotifications, markNotificationRead } from '../../services/hub/notifications';
 import { createEventFromNlp, createTask, getHubHome, queryTasks } from '../../services/hub/records';
 import { createReminder, updateReminder, type CreateReminderPayload } from '../../services/hub/reminders';
@@ -467,7 +467,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       forceReparse: true,
     });
     if (!payloadResult.payload) {
-      setReminderError(payloadResult.failureReason === 'invalid-remind-at' ? 'Reminder time is invalid.' : 'Add a title and time to create a reminder.');
+      setReminderError(mapReminderFailureReasonToMessage(payloadResult.failureReason));
       return;
     }
 

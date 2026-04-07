@@ -271,7 +271,7 @@ const CalendarMediumWeekStrip = ({
                   {selectedDay.events.map((event) => {
                     const timeLabel = formatEventTime(event.event_state.start_dt);
                     const projectName = event.project_name || event.source_pane?.pane_name || 'Calendar';
-                    const projectId = event.project_id || event.source_pane?.pane_id || projectName;
+                    const projectId = event.project_id || event.source_pane?.pane_id || null;
                     return (
                       <li key={`${event.record_id}-${event.event_state.start_dt}`}>
                         <button
@@ -649,7 +649,7 @@ export const CalendarModuleSkin = ({
             {compactDayEvents.map((event) => {
               const timeLabel = formatEventTime(event.event_state.start_dt);
               const projectName = event.project_name || event.source_pane?.pane_name || 'Calendar';
-              const projectId = event.project_id || event.source_pane?.pane_id || projectName;
+              const projectId = event.project_id || event.source_pane?.pane_id || null;
               return (
                 <li key={`${event.record_id}-${event.event_state.start_dt}`}>
                   <button

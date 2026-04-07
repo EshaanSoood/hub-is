@@ -7,11 +7,11 @@ import {
   DATE_BUCKET_ORDER,
   bucketForDate as resolveDateBucket,
   type DateBucketId,
-} from '../../hooks/useDateBuckets';
+} from '../../lib/dateBuckets';
 import {
   emptyReminderPreview as createEmptyReminderPreview,
   hasMeaningfulReminderPreview as previewHasMeaningfulFields,
-} from '../../hooks/useReminderNLDraft';
+} from '../../lib/reminderPreview';
 import { getProjectColor, PROJECT_COLOR_PALETTE } from '../../lib/getProjectColor';
 
 export { DATE_BUCKET_LABELS, DATE_BUCKET_ORDER };

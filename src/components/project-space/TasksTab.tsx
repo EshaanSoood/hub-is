@@ -402,6 +402,7 @@ const TaskRow = ({
   const archiveTimerRef = useRef<number | null>(null);
   const visibleSubtaskCount = task.subtaskCount ?? task.subtasks.length;
   const taskHasSubtasks = task.subtasks.length > 0;
+  const subtaskListId = taskHasSubtasks ? `task-subtasks-${task.id}` : undefined;
   const hasMenuActions = Boolean(onUpdateTaskPriority || onUpdateTaskDueDate || onUpdateTaskCategory || onUpdateTaskStatus || onDeleteTask);
   const priorityTone = getPriorityTone(task.priorityValue, task.priority);
   const priorityClasses = getPriorityClasses(priorityTone);
@@ -555,6 +556,8 @@ const TaskRow = ({
           toggleDisabled={!onToggleStatus || status === 'cancelled'}
           toggleAriaLabel={status === 'cancelled' ? `${task.label} is cancelled. Use actions to reopen.` : `Advance ${task.label} from ${STATUS_LABELS[status]}`}
           onTitleClick={taskHasSubtasks ? () => setExpanded((current) => !current) : undefined}
+          titleExpanded={taskHasSubtasks ? expanded : undefined}
+          titleControls={subtaskListId}
           trailing={
             visibleSubtaskCount > 0 || taskHasSubtasks ? (
               <span className="flex shrink-0 items-center gap-1">
@@ -742,7 +745,7 @@ const TaskRow = ({
       </div>
 
       {expanded && taskHasSubtasks ? (
-        <ul className="mt-2 space-y-1">
+        <ul id={subtaskListId} className="mt-2 space-y-1">
           {task.subtasks.map((subtask) => (
             <SubtaskTree key={subtask.id} subtask={subtask} parentPriority={task.priority} level={1} visitedIds={EMPTY_VISITED_IDS} />
           ))}
