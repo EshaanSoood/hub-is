@@ -87,7 +87,6 @@ export const useReminderNLDraft = ({
 
   useEffect(() => {
     if (!enabled) {
-      setPreview(emptyReminderPreview());
       return;
     }
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
