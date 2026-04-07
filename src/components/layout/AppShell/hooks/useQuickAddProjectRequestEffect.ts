@@ -44,6 +44,18 @@ export const useQuickAddProjectRequestEffect = ({
       closeCapturePanel({ restoreFocus: false });
       void openQuickAddDialog('project');
     }),
-    [closeCapturePanel, closeNotifications, closeQuickNav, closeQuickNavPanel, closeSearch, openQuickAddDialog],
+    [
+      closeCapturePanel,
+      closeNotifications,
+      closeQuickNav,
+      closeQuickNavPanel,
+      closeSearch,
+      openQuickAddDialog,
+      setContextMenuOpen,
+      setProfileOpen,
+      skipContextMenuFocusRestoreRef,
+      skipProfileFocusRestoreRef,
+      skipQuickNavFocusRestoreRef,
+    ],
   );
 };
