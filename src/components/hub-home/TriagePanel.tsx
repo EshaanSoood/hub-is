@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { ReminderCard } from '../cards/ReminderCard';
 import { notifyError } from '../primitives';
 import { HUB_TRIAGE_DRAG_MIME } from './types';
 import type { TriageReminderItem, TriageTaskItem } from './types';
@@ -380,10 +381,13 @@ export const TriagePanel = ({
                       }}
                       className="rounded-control border border-border-muted bg-surface-elevated p-2"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-text">{reminder.title}</p>
-                        <p className="text-xs text-muted">Due {formatDateTime(reminder.remindAtIso)}</p>
-                      </div>
+                      <ReminderCard
+                        title={reminder.title}
+                        projectId={reminder.projectId}
+                        projectName={reminder.projectName || null}
+                        whenLabel={`Due ${formatDateTime(reminder.remindAtIso)}`}
+                        overdue
+                      />
                       <div className="mt-2 flex flex-wrap gap-2">
                         <button
                           type="button"

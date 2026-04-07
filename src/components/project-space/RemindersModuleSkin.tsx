@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
 import { Icon } from '../primitives';
+import { ReminderCard } from '../cards/ReminderCard';
 import { parseReminderInput } from '../../lib/nlp/reminder-parser/index';
 import type { ReminderParseResult } from '../../lib/nlp/reminder-parser/types';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
@@ -258,10 +259,11 @@ const ReminderRibbonRow = ({
             }
           }}
         >
-          <p className="truncate text-sm font-medium text-text">{reminder.record_title || 'Untitled reminder'}</p>
-          <p className={`mt-1 text-xs ${isOverdue ? 'text-text underline' : 'text-text-secondary'}`}>
-            {formatReminderChip(reminder.remind_at)}
-          </p>
+          <ReminderCard
+            title={reminder.record_title || 'Untitled reminder'}
+            whenLabel={formatReminderChip(reminder.remind_at)}
+            overdue={isOverdue}
+          />
         </button>
         {onSnooze ? (
           <button
