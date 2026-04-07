@@ -1,34 +1,40 @@
-import { FormEvent, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, Suspense, lazy, useCallback, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   type HubBacklink,
   type HubPaneSummary,
   type HubProject,
   type HubProjectMember,
-} from '../services/hub/types';
-import { useAuthz } from '../context/AuthzContext';
-import { ModuleInsertProvider } from '../context/ModuleInsertContext';
+} from '../../services/hub/types';
+import { useAuthz } from '../../context/AuthzContext';
+import { ModuleInsertProvider } from '../../context/ModuleInsertContext';
 import {
   buildPaneContextHref,
   buildProjectOverviewHref,
   buildProjectToolsHref,
   buildProjectWorkHref,
-} from '../lib/hubRoutes';
-import { useAutomationRuntime } from '../hooks/useAutomationRuntime';
-import { useCalendarRuntime } from '../hooks/useCalendarRuntime';
-import { usePaneMutations } from '../hooks/usePaneMutations';
-import { useProjectBootstrap } from '../hooks/useProjectBootstrap';
-import { useProjectMembers } from '../hooks/useProjectMembers';
-import { useProjectFilesRuntime } from '../hooks/useProjectFilesRuntime';
-import { useProjectTasksRuntime } from '../hooks/useProjectTasksRuntime';
-import { useProjectViewsRuntime } from '../hooks/useProjectViewsRuntime';
-import { useQuickCapture } from '../hooks/useQuickCapture';
-import { useRecordInspector } from '../hooks/useRecordInspector';
-import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
-import { useTimelineRuntime } from '../hooks/useTimelineRuntime';
-import { useWorkspaceDocRuntime } from '../hooks/useWorkspaceDocRuntime';
-import { archiveRecord, createEventFromNlp, createRecord, updateRecord } from '../services/hub/records';
-import { AccessDeniedView } from '../components/auth/AccessDeniedView';
+} from '../../lib/hubRoutes';
+import { useAutomationRuntime } from '../../hooks/useAutomationRuntime';
+import { useCalendarRuntime } from '../../hooks/useCalendarRuntime';
+import { usePaneMutations } from '../../hooks/usePaneMutations';
+import { useProjectBootstrap } from '../../hooks/useProjectBootstrap';
+import { useProjectMembers } from '../../hooks/useProjectMembers';
+import { useProjectFilesRuntime } from '../../hooks/useProjectFilesRuntime';
+import { useProjectTasksRuntime } from '../../hooks/useProjectTasksRuntime';
+import { useProjectViewsRuntime } from '../../hooks/useProjectViewsRuntime';
+import { useQuickCapture } from '../../hooks/useQuickCapture';
+import { useRecordInspector } from '../../hooks/useRecordInspector';
+import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
+import { useTimelineRuntime } from '../../hooks/useTimelineRuntime';
+import { useWorkspaceDocRuntime } from '../../hooks/useWorkspaceDocRuntime';
+import { archiveRecord, createEventFromNlp, createRecord, updateRecord } from '../../services/hub/records';
+import { useFocusNodeQueryEffect } from './hooks/useFocusNodeQueryEffect';
+import { useOverviewViewFromSearchParams } from './hooks/useOverviewViewFromSearchParams';
+import { useOverviewViewQuerySyncEffect } from './hooks/useOverviewViewQuerySyncEffect';
+import { usePaneControlEffects } from './hooks/usePaneControlEffects';
+import { useQuickCaptureQueryIntentEffect } from './hooks/useQuickCaptureQueryIntentEffect';
+import { useWorkRouteAndInspectorQueryEffects } from './hooks/useWorkRouteAndInspectorQueryEffects';
+import { AccessDeniedView } from '../../components/auth/AccessDeniedView';
 import {
   Dialog,
   DialogClose,
@@ -36,20 +42,20 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '../components/project-space/ProjectSpaceDialogPrimitives';
-import { Icon, IconButton, InlineNotice } from '../components/primitives';
-import { BacklinksPanel } from '../components/project-space/BacklinksPanel';
-import { CommentComposer } from '../components/project-space/CommentComposer';
-import { CommentRail } from '../components/project-space/CommentRail';
-import { MentionPicker } from '../components/project-space/MentionPicker';
-import { ModuleLoadingState } from '../components/project-space/ModuleFeedback';
-import { OverviewView } from '../components/project-space/OverviewView';
-import { PaneSwitcher } from '../components/project-space/PaneSwitcher';
-import { RelationsSection } from '../components/project-space/RelationsSection';
-import { AutomationBuilder } from '../components/project-space/AutomationBuilder';
-import { FileInspectorActionBar } from '../components/project-space/FileInspectorActionBar';
-import { WorkView, type WorkViewModuleRuntime } from '../components/project-space/WorkView';
-import { adaptTaskSummaries } from '../components/project-space/taskAdapter';
+} from '../../components/project-space/ProjectSpaceDialogPrimitives';
+import { Icon, IconButton, InlineNotice } from '../../components/primitives';
+import { BacklinksPanel } from '../../components/project-space/BacklinksPanel';
+import { CommentComposer } from '../../components/project-space/CommentComposer';
+import { CommentRail } from '../../components/project-space/CommentRail';
+import { MentionPicker } from '../../components/project-space/MentionPicker';
+import { ModuleLoadingState } from '../../components/project-space/ModuleFeedback';
+import { OverviewView } from '../../components/project-space/OverviewView';
+import { PaneSwitcher } from '../../components/project-space/PaneSwitcher';
+import { RelationsSection } from '../../components/project-space/RelationsSection';
+import { AutomationBuilder } from '../../components/project-space/AutomationBuilder';
+import { FileInspectorActionBar } from '../../components/project-space/FileInspectorActionBar';
+import { WorkView, type WorkViewModuleRuntime } from '../../components/project-space/WorkView';
+import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
 
 // Layout contract references:
 // components/project-space/TopNavTabs
@@ -57,17 +63,17 @@ import { adaptTaskSummaries } from '../components/project-space/taskAdapter';
 // components/project-space/ToolsView
 
 const KanbanModuleSkin = lazy(async () => {
-  const module = await import('../components/project-space/KanbanModuleSkin');
+  const module = await import('../../components/project-space/KanbanModuleSkin');
   return { default: module.KanbanModuleSkin };
 });
 
 const TableModuleSkin = lazy(async () => {
-  const module = await import('../components/project-space/TableModuleSkin');
+  const module = await import('../../components/project-space/TableModuleSkin');
   return { default: module.TableModuleSkin };
 });
 
 const CollaborativeLexicalEditor = lazy(async () => {
-  const module = await import('../features/notes/CollaborativeLexicalEditor');
+  const module = await import('../../features/notes/CollaborativeLexicalEditor');
   return { default: module.CollaborativeLexicalEditor };
 });
 
@@ -88,27 +94,6 @@ const readPlainComment = (bodyJson: Record<string, unknown>): string => {
     return content;
   }
   return JSON.stringify(bodyJson);
-};
-
-const readFocusNodeKeyFromLocationState = (state: unknown): string | null => {
-  if (!state || typeof state !== 'object') {
-    return null;
-  }
-  const focusNodeKey = (state as { focusNodeKey?: unknown }).focusNodeKey;
-  if (typeof focusNodeKey !== 'string') {
-    return null;
-  }
-  const trimmed = focusNodeKey.trim();
-  return trimmed.length > 0 ? trimmed : null;
-};
-
-const readFocusNodeKeyFromSearchParams = (params: URLSearchParams): string | null => {
-  const value = params.get('focus_node_key');
-  if (!value) {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
 };
 
 const paneCanEditForUser = (pane: HubPaneSummary | null | undefined, userId: string): boolean => {
@@ -157,8 +142,6 @@ const toBase64 = async (file: File): Promise<string> => {
   }
   return window.btoa(binary);
 };
-
-const PENDING_CAPTURE_DRAFT_KEY = 'hub:pending-project-capture';
 
 const readLayoutBool = (config: Record<string, unknown> | null | undefined, key: string, fallback: boolean): boolean => {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
@@ -461,27 +444,21 @@ const ProjectSpaceWorkspace = ({
   });
   const remindersRuntime = useRemindersRuntime(accessToken);
 
-  useEffect(() => {
-    if (previousOpenedFromPinnedRef.current !== openedFromPinned) {
-      setShowPaneSwitcher(!openedFromPinned);
-    }
-    previousOpenedFromPinnedRef.current = openedFromPinned;
-  }, [openedFromPinned]);
+  usePaneControlEffects({
+    openedFromPinned,
+    previousOpenedFromPinnedRef,
+    setShowPaneSwitcher,
+    showCreatePaneControl,
+    createPaneNameInputRef,
+  });
 
-  useEffect(() => {
-    if (!showCreatePaneControl) {
-      return;
-    }
-    const frame = window.requestAnimationFrame(() => {
-      createPaneNameInputRef.current?.focus();
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [showCreatePaneControl]);
+  useOverviewViewFromSearchParams({
+    searchParams,
+    readOverviewView,
+    setOverviewView,
+  });
 
-  useEffect(() => {
-    setOverviewView(readOverviewView(searchParams));
-  }, [searchParams]);
-
+  const activePaneId = activePane?.pane_id || null;
   const activePaneDocId = activePane?.doc_id || null;
   const openInspectorWithFocusRestore = useCallback(
     async (recordId: string, options?: { mutationPaneId?: string | null }) => {
@@ -507,99 +484,24 @@ const ProjectSpaceWorkspace = ({
     setPaneMutationError,
   });
 
-  useEffect(() => {
-    if (activeTab !== 'work') {
-      return;
-    }
-    if (activePane && ((!paneId) || (activePane.pane_id !== paneId && hasRequestedPane))) {
-      const nextPath = buildProjectWorkHref(project.project_id, activePane.pane_id);
-      const query = searchParams.toString();
-      navigate(query ? `${nextPath}?${query}` : nextPath, { replace: true });
-    }
-  }, [activePane, activeTab, hasRequestedPane, navigate, paneId, project.project_id, searchParams]);
+  useWorkRouteAndInspectorQueryEffects({
+    activePane,
+    activeTab,
+    hasRequestedPane,
+    navigate,
+    openInspectorWithFocusRestore,
+    paneId,
+    projectId: project.project_id,
+    searchParams,
+    setSearchParams,
+  });
 
-  useEffect(() => {
-    const recordId = searchParams.get('record_id');
-    if (
-      activeTab !== 'work' ||
-      !recordId ||
-      !activePane ||
-      (paneId && !hasRequestedPane)
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    void (async () => {
-      await openInspectorWithFocusRestore(recordId);
-      if (cancelled) {
-        return;
-      }
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete('record_id');
-      setSearchParams(nextParams, { replace: true });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activePane, activeTab, hasRequestedPane, openInspectorWithFocusRestore, paneId, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (searchParams.get('capture') !== '1') {
-      return;
-    }
-    if (quickCaptureInFlightRef.current) {
-      return;
-    }
-
-    let cancelled = false;
-    const intent = searchParams.get('intent');
-    const pendingDraft =
-      typeof window === 'undefined'
-        ? null
-        : (() => {
-            try {
-              const raw = window.sessionStorage.getItem(PENDING_CAPTURE_DRAFT_KEY);
-              if (!raw) {
-                return null;
-              }
-              const parsed = JSON.parse(raw) as { intent?: string | null; seedText?: string };
-              if ((parsed.intent ?? null) !== intent) {
-                return null;
-              }
-              return parsed;
-            } catch {
-              return null;
-            }
-          })();
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('capture');
-    nextParams.delete('intent');
-
-    const createAndOpenCapture = async () => {
-      let didRun = false;
-      try {
-        didRun = await createAndOpenCaptureRecord(intent, pendingDraft?.seedText);
-        if (cancelled || !didRun) {
-          return;
-        }
-      } finally {
-        if (!cancelled && didRun) {
-          if (typeof window !== 'undefined') {
-            window.sessionStorage.removeItem(PENDING_CAPTURE_DRAFT_KEY);
-          }
-          setSearchParams(nextParams, { replace: true });
-        }
-      }
-    };
-
-    void createAndOpenCapture();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [createAndOpenCaptureRecord, quickCaptureInFlightRef, searchParams, setSearchParams]);
+  useQuickCaptureQueryIntentEffect({
+    createAndOpenCaptureRecord,
+    quickCaptureInFlightRef,
+    searchParams,
+    setSearchParams,
+  });
 
   const onOpenBacklink = (backlink: HubBacklink) => {
     if (!backlink.source.pane_id) {
@@ -700,20 +602,14 @@ const ProjectSpaceWorkspace = ({
     [commitActivePaneSettingsName],
   );
 
-  useEffect(() => {
-    if (!activePaneDocId) {
-      return;
-    }
-    const focusNodeKey = readFocusNodeKeyFromLocationState(location.state) || readFocusNodeKeyFromSearchParams(searchParams);
-    if (!focusNodeKey) {
-      return;
-    }
-    setPendingDocFocusNodeKey(focusNodeKey);
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('focus_node_key');
-    const query = nextParams.toString();
-    navigate(query ? `${location.pathname}?${query}` : location.pathname, { replace: true, state: null });
-  }, [activePaneDocId, location.pathname, location.state, navigate, searchParams, setPendingDocFocusNodeKey]);
+  useFocusNodeQueryEffect({
+    activePaneDocId,
+    locationPathname: location.pathname,
+    locationState: location.state,
+    navigate,
+    searchParams,
+    setPendingDocFocusNodeKey,
+  });
 
   const modulesEnabled = useMemo(
     () => (activePane ? readLayoutBool(activePane.layout_config, 'modules_enabled', true) : true),
@@ -757,30 +653,21 @@ const ProjectSpaceWorkspace = ({
     () =>
       adaptTaskSummaries(
         tasksOverviewRows.filter((task) => {
-          if (!activePane?.pane_id) {
+          if (!activePaneId) {
             return false;
           }
-          return task.source_pane?.pane_id === activePane.pane_id;
+          return task.source_pane?.pane_id === activePaneId;
         }),
       ),
-    [activePane?.pane_id, tasksOverviewRows],
+    [activePaneId, tasksOverviewRows],
   );
 
-  useEffect(() => {
-    if (activeTab === 'overview') {
-      const currentView = searchParams.get('view');
-      const hasKanbanViewId = searchParams.has('kanban_view_id');
-      if (currentView === overviewView && !hasKanbanViewId) {
-        return;
-      }
-      setSearchParams((current) => {
-        const next = new URLSearchParams(current);
-        next.set('view', overviewView);
-        next.delete('kanban_view_id');
-        return next;
-      }, { replace: true });
-    }
-  }, [activeTab, overviewView, searchParams, setSearchParams]);
+  useOverviewViewQuerySyncEffect({
+    activeTab,
+    overviewView,
+    searchParams,
+    setSearchParams,
+  });
   const workViewModuleRuntime = useMemo<WorkViewModuleRuntime>(
     () => ({
       table: {
