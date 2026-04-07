@@ -30,6 +30,7 @@ import {
 import { ContextBar } from '../components/hub-home/ContextBar';
 import { DayStrip } from '../components/hub-home/DayStrip';
 import { TriagePanel } from '../components/hub-home/TriagePanel';
+import { EventCard } from '../components/cards/EventCard';
 import { TaskCard } from '../components/cards/TaskCard';
 import type {
   DayStripEventItem,
@@ -234,18 +235,14 @@ export const ItemRow = ({
             className="min-w-0 flex-1"
           />
         ) : (
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-sm font-semibold text-text">{item.title}</span>
-            </div>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-              <span className={`inline-block h-2.5 w-2.5 rounded-full ${getProjectColor(item.projectId)}`} aria-hidden="true" />
-              <span>{item.projectName || 'Inbox & Unassigned'}</span>
-              {item.subtitle ? <span>{item.subtitle}</span> : null}
-            </div>
-          </div>
+          <EventCard
+            title={item.title}
+            timeLabel={item.dueAt ? formatRelativeDateTime(item.dueAt) : null}
+            projectId={item.projectId}
+            projectName={item.projectName || 'Inbox & Unassigned'}
+            className="min-w-0 flex-1"
+          />
         )}
-        {item.kind === 'event' && item.dueAt ? <span className="shrink-0 text-xs text-muted">{formatRelativeDateTime(item.dueAt)}</span> : null}
       </div>
     </>
   );

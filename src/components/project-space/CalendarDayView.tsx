@@ -14,8 +14,8 @@ import {
   type UniqueIdentifier,
 } from '@dnd-kit/core';
 import { ModuleEmptyState } from './ModuleFeedback';
+import { EventCard } from '../cards/EventCard';
 import { cn } from '../../lib/cn';
-import { getProjectColor } from '../../lib/getProjectColor';
 
 const SLOT_MINUTES = 5;
 const SLOT_COUNT_PER_DAY = (24 * 60) / SLOT_MINUTES;
@@ -318,17 +318,13 @@ const DraggableEventCard = ({
       {...listeners}
       {...attributes}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="line-clamp-2 text-sm font-semibold text-text">{item.event.title}</p>
-        <div className="shrink-0 text-right">
-          <p className="text-[11px] font-medium text-text">{startLabel} - {endLabel}</p>
-          <p className="text-[11px] text-text-secondary">{durationLabel}</p>
-        </div>
-      </div>
-      <p className="mt-2 flex items-center gap-1.5 text-xs text-text">
-        <span className={cn('inline-block h-2.5 w-2.5 rounded-full', getProjectColor(item.projectKey))} aria-hidden="true" />
-        <span className="truncate">{item.projectLabel}</span>
-      </p>
+      <EventCard
+        title={item.event.title}
+        timeLabel={`${startLabel} - ${endLabel}`}
+        detailLabel={durationLabel}
+        projectId={item.projectKey}
+        projectName={item.projectLabel}
+      />
     </button>
   );
 };

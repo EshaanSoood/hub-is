@@ -3,6 +3,7 @@ import { ModuleEmptyState, ModuleLoadingState } from './ModuleFeedback';
 import { cn } from '../../lib/cn';
 import { CalendarDayView } from './CalendarDayView';
 import { CalendarWeekView } from './CalendarWeekView';
+import { EventCard } from '../cards/EventCard';
 
 export type CalendarScope = 'relevant' | 'all';
 type CalendarView = 'month' | 'year' | 'week' | 'day';
@@ -269,20 +270,21 @@ const CalendarMediumWeekStrip = ({
                 <ul className="space-y-2">
                   {selectedDay.events.map((event) => {
                     const timeLabel = formatEventTime(event.event_state.start_dt);
+                    const projectName = event.project_name || event.source_pane?.pane_name || 'Calendar';
+                    const projectId = event.project_id || event.source_pane?.pane_id || projectName;
                     return (
                       <li key={`${event.record_id}-${event.event_state.start_dt}`}>
                         <button
                           type="button"
                           onClick={() => onOpenRecord(event.record_id)}
-                          className="flex w-full min-w-0 items-start gap-3 rounded-control border border-border-muted bg-surface px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                         >
-                          <span className="shrink-0 text-xs font-medium text-text-secondary">{timeLabel || '--'}</span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-text">{event.title}</span>
-                            <span className="block truncate text-xs text-muted">
-                              {event.project_name || event.source_pane?.pane_name || 'Calendar'}
-                            </span>
-                          </span>
+                          <EventCard
+                            title={event.title}
+                            timeLabel={timeLabel || '--'}
+                            projectId={projectId}
+                            projectName={projectName}
+                          />
                         </button>
                       </li>
                     );
@@ -646,15 +648,21 @@ export const CalendarModuleSkin = ({
           <ul className="space-y-2">
             {compactDayEvents.map((event) => {
               const timeLabel = formatEventTime(event.event_state.start_dt);
+              const projectName = event.project_name || event.source_pane?.pane_name || 'Calendar';
+              const projectId = event.project_id || event.source_pane?.pane_id || projectName;
               return (
                 <li key={`${event.record_id}-${event.event_state.start_dt}`}>
                   <button
                     type="button"
                     onClick={() => onOpenRecord(event.record_id)}
-                    className="flex w-full items-center gap-3 rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                    className="w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   >
-                    <span className="shrink-0 text-xs font-medium text-text-secondary">{timeLabel || '--'}</span>
-                    <span className="min-w-0 flex-1 truncate text-sm text-text">{event.title}</span>
+                    <EventCard
+                      title={event.title}
+                      timeLabel={timeLabel || '--'}
+                      projectId={projectId}
+                      projectName={projectName}
+                    />
                   </button>
                 </li>
               );
