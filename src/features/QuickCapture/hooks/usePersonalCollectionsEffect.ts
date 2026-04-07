@@ -21,6 +21,9 @@ export const usePersonalCollectionsEffect = ({
       return;
     }
 
+    const cached = projectCollectionsCacheRef.current[personalProjectId];
+    setPersonalCollections(cached ?? []);
+
     let cancelled = false;
     void listCollections(accessToken, personalProjectId)
       .then((collections) => {
