@@ -18,7 +18,6 @@ import { adaptTaskSummaries } from '../../../project-space/taskAdapter';
 import { TasksModuleSkin } from '../../../project-space/TasksModuleSkin';
 import {
   parseIsoTimestamp,
-  QUICK_NAV_FIXED_ITEMS,
   type QuickAddDialog,
   type QuickNavActionItem,
   type ToolbarDialog,
@@ -129,10 +128,7 @@ export const useToolbarQuickNav = ({
     return allItems.filter((item) => item.label.toLowerCase().includes(query));
   }, [projects, quickNavQuery, visibleTabs]);
 
-  const quickNavItems = useMemo(
-    () => [...QUICK_NAV_FIXED_ITEMS, ...quickNavDestinationItems],
-    [quickNavDestinationItems],
-  );
+  const quickNavItems = useMemo(() => quickNavDestinationItems, [quickNavDestinationItems]);
 
   const normalizedQuickNavActiveIndex =
     quickNavItems.length === 0 || quickNavActiveIndex < 0 || quickNavActiveIndex >= quickNavItems.length
@@ -164,14 +160,10 @@ export const useToolbarQuickNav = ({
 
   const onSelectQuickNavItem = useCallback((item: QuickNavActionItem) => {
     skipQuickNavFocusRestoreRef.current = true;
-    if (item.action === 'panel') {
-      openQuickNavPanel(item.panel);
-      return;
-    }
     setToolbarDialog(null);
     navigate(item.href);
     closeQuickNav();
-  }, [closeQuickNav, navigate, openQuickNavPanel]);
+  }, [closeQuickNav, navigate]);
 
   const refreshQuickNavTasks = useCallback(async () => {
     if (!accessToken) {
@@ -273,7 +265,6 @@ export const useToolbarQuickNav = ({
     contextMenuOpen,
     navigate,
     normalizedQuickNavActiveIndex,
-    openQuickNavPanel,
     profileOpen,
     quickAddDialog,
     quickNavInputRef,
@@ -283,7 +274,6 @@ export const useToolbarQuickNav = ({
     quickNavWasOpenRef,
     setQuickNavActiveIndex,
     setQuickNavQuery,
-    setToolbarDialog,
     skipQuickNavFocusRestoreRef,
     toolbarDialog,
   });

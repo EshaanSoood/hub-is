@@ -7,6 +7,7 @@ interface UseQuickAddEffectsArgs {
   quickAddItemRefs: MutableRefObject<Array<HTMLButtonElement | null>>;
   quickAddDialog: QuickAddDialog;
   taskTitleInputRef: MutableRefObject<HTMLInputElement | null>;
+  eventNLInputRef: MutableRefObject<HTMLInputElement | null>;
   eventTitleInputRef: MutableRefObject<HTMLInputElement | null>;
   reminderInputRef: MutableRefObject<HTMLInputElement | null>;
   projectNameInputRef: MutableRefObject<HTMLInputElement | null>;
@@ -18,6 +19,7 @@ export const useQuickAddEffects = ({
   quickAddItemRefs,
   quickAddDialog,
   taskTitleInputRef,
+  eventNLInputRef,
   eventTitleInputRef,
   reminderInputRef,
   projectNameInputRef,
@@ -41,7 +43,7 @@ export const useQuickAddEffects = ({
       return;
     }
     if (quickAddDialog === 'event') {
-      focusElementSoon(eventTitleInputRef.current);
+      focusElementSoon(eventNLInputRef.current || eventTitleInputRef.current);
       return;
     }
     if (quickAddDialog === 'reminder') {
@@ -51,5 +53,5 @@ export const useQuickAddEffects = ({
     if (quickAddDialog === 'project') {
       focusElementSoon(projectNameInputRef.current);
     }
-  }, [eventTitleInputRef, projectNameInputRef, quickAddDialog, reminderInputRef, taskTitleInputRef]);
+  }, [eventNLInputRef, eventTitleInputRef, projectNameInputRef, quickAddDialog, reminderInputRef, taskTitleInputRef]);
 };

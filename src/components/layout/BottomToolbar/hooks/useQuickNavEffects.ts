@@ -4,7 +4,6 @@ import {
   isTextInputElement,
   type QuickAddDialog,
   type QuickNavActionItem,
-  type ToolbarDialog,
 } from '../../appShellUtils';
 
 interface UseQuickNavEffectsArgs {
@@ -13,7 +12,6 @@ interface UseQuickNavEffectsArgs {
   contextMenuOpen: boolean;
   navigate: (to: string) => void;
   normalizedQuickNavActiveIndex: number;
-  openQuickNavPanel: (panel: Exclude<ToolbarDialog, null>) => void;
   profileOpen: boolean;
   quickAddDialog: QuickAddDialog;
   quickNavInputRef: MutableRefObject<HTMLInputElement | null>;
@@ -23,9 +21,8 @@ interface UseQuickNavEffectsArgs {
   quickNavWasOpenRef: MutableRefObject<boolean>;
   setQuickNavActiveIndex: Dispatch<SetStateAction<number>>;
   setQuickNavQuery: Dispatch<SetStateAction<string>>;
-  setToolbarDialog: Dispatch<SetStateAction<ToolbarDialog>>;
   skipQuickNavFocusRestoreRef: MutableRefObject<boolean>;
-  toolbarDialog: ToolbarDialog;
+  toolbarDialog: 'calendar' | 'tasks' | 'reminders' | null;
 }
 
 export const useQuickNavEffects = ({
@@ -34,7 +31,6 @@ export const useQuickNavEffects = ({
   contextMenuOpen,
   navigate,
   normalizedQuickNavActiveIndex,
-  openQuickNavPanel,
   profileOpen,
   quickAddDialog,
   quickNavInputRef,
@@ -44,7 +40,6 @@ export const useQuickNavEffects = ({
   quickNavWasOpenRef,
   setQuickNavActiveIndex,
   setQuickNavQuery,
-  setToolbarDialog,
   skipQuickNavFocusRestoreRef,
   toolbarDialog,
 }: UseQuickNavEffectsArgs) => {
@@ -91,11 +86,6 @@ export const useQuickNavEffects = ({
           return;
         }
         skipQuickNavFocusRestoreRef.current = true;
-        if (selectedItem.action === 'panel') {
-          openQuickNavPanel(selectedItem.panel);
-          return;
-        }
-        setToolbarDialog(null);
         navigate(selectedItem.href);
         closeQuickNav();
         return;
@@ -111,7 +101,16 @@ export const useQuickNavEffects = ({
     return () => {
       document.removeEventListener('keydown', onQuickNavKeyDown);
     };
-  }, [closeQuickNav, navigate, normalizedQuickNavActiveIndex, openQuickNavPanel, quickNavItems, quickNavOpen]);
+  }, [
+    closeQuickNav,
+    navigate,
+    normalizedQuickNavActiveIndex,
+    quickNavItems,
+    quickNavOpen,
+    setQuickNavActiveIndex,
+    setQuickNavQuery,
+    skipQuickNavFocusRestoreRef,
+  ]);
 
   useEffect(() => {
     if (quickNavOpen) {

@@ -1,7 +1,24 @@
 import type { FC, FormEvent, RefObject } from 'react';
+import type { CalendarNLFormPreview, CalendarParseResult } from '../../hooks/useCalendarNLDraft';
 import type { ReminderParseResult } from '../../lib/nlp/reminder-parser';
 import { Dialog } from '../primitives';
 import { hasMeaningfulReminderPreview } from './appShellUtils';
+
+const formatDateTimePreview = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
 
 export const QuickAddEventDialog: FC<{
   open: boolean;
@@ -11,6 +28,13 @@ export const QuickAddEventDialog: FC<{
   selectedProjectId: string;
   onSelectedProjectIdChange: (id: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  nlDraft: string;
+  onNlDraftChange: (v: string) => void;
+  nlPreview: CalendarParseResult;
+  nlFormPreview: CalendarNLFormPreview;
+  nlHasMeaningfulPreview: boolean;
+  nlError: string | null;
+  nlInputRef: RefObject<HTMLInputElement | null>;
   title: string;
   onTitleChange: (v: string) => void;
   startAt: string;
@@ -28,6 +52,13 @@ export const QuickAddEventDialog: FC<{
   selectedProjectId,
   onSelectedProjectIdChange,
   onSubmit,
+  nlDraft,
+  onNlDraftChange,
+  nlPreview,
+  nlFormPreview,
+  nlHasMeaningfulPreview,
+  nlError,
+  nlInputRef,
   title,
   onTitleChange,
   startAt,
@@ -44,8 +75,61 @@ export const QuickAddEventDialog: FC<{
     triggerRef={triggerRef}
     title="New Calendar Event"
     description="Create a calendar event."
+    panelClassName="overflow-visible"
+    contentClassName="overflow-visible"
   >
     <form className="space-y-4" onSubmit={onSubmit}>
+      <div className="space-y-1">
+        <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-nl-input">
+          Describe event
+        </label>
+        <input
+          id="quick-add-event-nl-input"
+          ref={nlInputRef}
+          type="text"
+          value={nlDraft}
+          onChange={(event) => onNlDraftChange(event.target.value)}
+          placeholder="Lunch with Sam tomorrow at 1pm"
+          className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+        />
+      </div>
+
+      {nlDraft.trim() ? (
+        <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
+          {nlHasMeaningfulPreview ? (
+            <div className="space-y-1">
+              {nlFormPreview.title ? (
+                <p>
+                  <span className="font-semibold text-text">Title:</span> {nlFormPreview.title}
+                </p>
+              ) : null}
+              {nlFormPreview.startAt ? (
+                <p>
+                  <span className="font-semibold text-text">Start:</span> {formatDateTimePreview(nlFormPreview.startAt)}
+                </p>
+              ) : null}
+              {nlFormPreview.endAt ? (
+                <p>
+                  <span className="font-semibold text-text">End:</span> {formatDateTimePreview(nlFormPreview.endAt)}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p>Try adding a date and time to auto-fill the event fields.</p>
+          )}
+          {import.meta.env.DEV ? (
+            <details className="mt-2">
+              <summary className="cursor-pointer select-none">Calendar Parser Debug</summary>
+              <pre className="mt-1 whitespace-pre-wrap text-[11px]">
+                {nlPreview.meta.debugSteps.map((step) => `${step.pass} | ${step.ruleId} | ${step.note}`).join('\n') || 'No steps'}
+              </pre>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+
+      {nlError ? <p role="alert" aria-live="assertive" className="text-xs text-danger">{nlError}</p> : null}
+
       <div className="space-y-1">
         <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-project">
           Project

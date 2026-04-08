@@ -15,12 +15,14 @@ import { ToolbarBreadcrumb } from './ToolbarBreadcrumb';
 import { useGlobalInteractionEffects } from './hooks/useGlobalInteractionEffects';
 import { useToolbarCapture } from './hooks/useToolbarCapture';
 import { useToolbarNotifications } from './hooks/useToolbarNotifications';
+import { useToolbarPaneName } from './hooks/useToolbarPaneName';
 import { useToolbarProfile } from './hooks/useToolbarProfile';
 import { useToolbarQuickAdd } from './hooks/useToolbarQuickAdd';
 import { useToolbarQuickNav } from './hooks/useToolbarQuickNav';
 import { useToolbarSearch } from './hooks/useToolbarSearch';
 import { ToolbarNav } from './ToolbarNav';
 import { ToolbarNotifications } from './ToolbarNotifications';
+import { ToolbarPanels } from './ToolbarPanels';
 import { ToolbarProfile } from './ToolbarProfile';
 import { ToolbarQuickAdd } from './ToolbarQuickAdd';
 import { ToolbarSearch } from './ToolbarSearch';
@@ -80,9 +82,35 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
     }
     return decodeURIComponent(match[1]);
   }, [location.pathname]);
+  const currentPaneId = useMemo(() => {
+    const match = location.pathname.match(/^\/projects\/[^/]+\/work\/([^/]+)/);
+    if (!match) {
+      return null;
+    }
+    try {
+      return decodeURIComponent(match[1]);
+    } catch {
+      return match[1];
+    }
+  }, [location.pathname]);
+  const currentPaneName = useToolbarPaneName({
+    accessToken,
+    projectId: currentProjectId,
+    paneId: currentPaneId,
+  });
+  const currentProjectName = useMemo(() => {
+    if (!currentProjectId) {
+      return null;
+    }
+    return projects.find((project) => project.id === currentProjectId)?.name || 'Unknown project';
+  }, [currentProjectId, projects]);
   const breadcrumb = useMemo(
-    () => buildBreadcrumb(location.pathname, projects.map((project) => ({ id: project.id, name: project.name }))),
-    [location.pathname, projects],
+    () => (
+      currentProjectName && currentPaneId
+        ? [currentProjectName, currentPaneName || currentPaneId]
+        : buildBreadcrumb(location.pathname, projects.map((project) => ({ id: project.id, name: project.name })))
+    ),
+    [currentPaneId, currentPaneName, currentProjectName, location.pathname, projects],
   );
 
   const capture = useToolbarCapture({
@@ -303,6 +331,11 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
           quickNavDestinationItems={quickNav.quickNavDestinationItems}
         />
 
+        <ToolbarPanels
+          toolbarDialog={quickNav.toolbarDialog}
+          openQuickNavPanel={openQuickNavPanel}
+        />
+
         <ToolbarSearch
           searchRef={search.searchRef}
           searchQuery={search.searchQuery}
@@ -400,9 +433,16 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
           contextMenuTriggerRef={quickAdd.contextMenuTriggerRef}
           quickAddProjectOptions={quickAdd.quickAddProjectOptions}
           taskTitleInputRef={quickAdd.taskTitleInputRef}
+          eventNLInputRef={quickAdd.eventNLInputRef}
           setQuickAddProjectId={quickAdd.setQuickAddProjectId}
           loadTaskProjectMembers={quickAdd.loadTaskProjectMembers}
           onCreateQuickAddEvent={quickAdd.onCreateQuickAddEvent}
+          eventNLDraft={quickAdd.eventNLDraft}
+          setEventNLDraft={quickAdd.setEventNLDraft}
+          eventNLPreview={quickAdd.eventNLPreview}
+          eventNLFormPreview={quickAdd.eventNLFormPreview}
+          eventNLHasMeaningfulPreview={quickAdd.eventNLHasMeaningfulPreview}
+          eventNLError={quickAdd.eventNLError}
           eventTitle={quickAdd.eventTitle}
           setEventTitle={quickAdd.setEventTitle}
           eventStartAt={quickAdd.eventStartAt}
