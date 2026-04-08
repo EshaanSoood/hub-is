@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import type { ContractModuleConfig } from '../ModuleGrid';
 import { ModuleLoadingState } from '../ModuleFeedback';
-import type { WorkViewTableRuntime } from '../WorkView';
+import type { TableModuleContract } from '../moduleContracts';
 
 const TableModuleSkin = lazy(async () => {
   const module = await import('../TableModuleSkin');
@@ -10,7 +10,7 @@ const TableModuleSkin = lazy(async () => {
 
 interface Props {
   module: ContractModuleConfig;
-  runtime: WorkViewTableRuntime;
+  contract: TableModuleContract;
   canEditPane: boolean;
   onOpenRecord?: (recordId: string) => void;
   onSetModuleBinding: (moduleInstanceId: string, viewId: string) => void;
@@ -18,7 +18,7 @@ interface Props {
 
 const resolveBoundViewId = (
   module: ContractModuleConfig,
-  views: WorkViewTableRuntime['views'],
+  views: TableModuleContract['views'],
   defaultViewId: string | null,
 ): string | null => {
   const requested = module.binding?.view_id;
@@ -30,21 +30,21 @@ const resolveBoundViewId = (
 
 export const TableModule = ({
   module,
-  runtime,
+  contract,
   canEditPane,
   onOpenRecord,
   onSetModuleBinding,
 }: Props) => {
-  const selectedViewId = resolveBoundViewId(module, runtime.views, runtime.defaultViewId);
-  const viewData = selectedViewId ? runtime.dataByViewId[selectedViewId] : undefined;
-  const createRecord = canEditPane && selectedViewId ? runtime.onCreateRecord : undefined;
-  const updateRecord = canEditPane && selectedViewId ? runtime.onUpdateRecord : undefined;
-  const deleteRecords = canEditPane && selectedViewId ? runtime.onDeleteRecords : undefined;
-  const bulkUpdateRecords = canEditPane && selectedViewId ? runtime.onBulkUpdateRecords : undefined;
+  const selectedViewId = resolveBoundViewId(module, contract.views, contract.defaultViewId);
+  const viewData = selectedViewId ? contract.dataByViewId[selectedViewId] : undefined;
+  const createRecord = canEditPane && selectedViewId ? contract.onCreateRecord : undefined;
+  const updateRecord = canEditPane && selectedViewId ? contract.onUpdateRecord : undefined;
+  const deleteRecords = canEditPane && selectedViewId ? contract.onDeleteRecords : undefined;
+  const bulkUpdateRecords = canEditPane && selectedViewId ? contract.onBulkUpdateRecords : undefined;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-      {runtime.views.length > 0 ? (
+      {contract.views.length > 0 ? (
         <label className="block text-xs text-muted">
           Source view
           <select
@@ -53,7 +53,7 @@ export const TableModule = ({
             onChange={(event) => onSetModuleBinding(module.module_instance_id, event.target.value)}
             className="mt-1 w-full rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs text-text"
           >
-            {runtime.views.map((view) => (
+            {contract.views.map((view) => (
               <option key={view.view_id} value={view.view_id}>
                 {view.name}
               </option>

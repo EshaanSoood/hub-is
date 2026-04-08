@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
 import { cn } from '../../lib/cn';
+import { useModuleInsertState, type ModuleInsertState } from './hooks/useModuleInsertState';
 import { Icon } from '../primitives';
 
 export interface FilesModuleItem {
@@ -22,6 +22,7 @@ interface FilesModuleSkinProps {
   files: FilesModuleItem[];
   onUpload: (files: File[]) => void;
   onOpenFile: (file: FilesModuleItem) => void;
+  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
   readOnly?: boolean;
 }
 
@@ -303,9 +304,24 @@ const DropZone = ({
   );
 };
 
-const FileRow = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: FilesModuleItem) => void }) => {
+const FileRow = ({
+  file,
+  onOpen,
+  activeItemId,
+  activeItemType,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
+}: {
+  file: FilesModuleItem;
+  onOpen: (file: FilesModuleItem) => void;
+  activeItemId: ModuleInsertState['activeItemId'];
+  activeItemType: ModuleInsertState['activeItemType'];
+  setActiveItem: ModuleInsertState['setActiveItem'];
+  clearActiveItem: ModuleInsertState['clearActiveItem'];
+  onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
+}) => {
   const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
-  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
   const longPressHandlers = useLongPress(() => {
     if (!uploading) {
       setActiveItem(file.id, 'file', file.name);
@@ -367,10 +383,25 @@ const FileRow = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: Files
   );
 };
 
-const FileTile = ({ file, onOpen }: { file: FilesModuleItem; onOpen: (file: FilesModuleItem) => void }) => {
+const FileTile = ({
+  file,
+  onOpen,
+  activeItemId,
+  activeItemType,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
+}: {
+  file: FilesModuleItem;
+  onOpen: (file: FilesModuleItem) => void;
+  activeItemId: ModuleInsertState['activeItemId'];
+  activeItemType: ModuleInsertState['activeItemType'];
+  setActiveItem: ModuleInsertState['setActiveItem'];
+  clearActiveItem: ModuleInsertState['clearActiveItem'];
+  onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
+}) => {
   const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
   const useThumbnail = IMAGE_EXTS.has(file.ext.toLowerCase()) && Boolean(file.thumbnailUrl);
-  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
   const longPressHandlers = useLongPress(() => {
     if (!uploading) {
       setActiveItem(file.id, 'file', file.name);
@@ -467,11 +498,13 @@ const FilesModuleSmall = ({
   files,
   onUpload,
   onOpenFile,
+  insertState,
   readOnly = false,
 }: {
   files: FilesModuleItem[];
   onUpload: (files: File[]) => void;
   onOpenFile: (file: FilesModuleItem) => void;
+  insertState: ModuleInsertState;
   readOnly?: boolean;
 }) => {
   const visible = useMemo(() => files.slice(0, 4), [files]);
@@ -488,7 +521,16 @@ const FilesModuleSmall = ({
             </p>
           ) : null}
           {visible.map((file) => (
-            <FileRow key={file.id} file={file} onOpen={onOpenFile} />
+            <FileRow
+              key={file.id}
+              file={file}
+              onOpen={onOpenFile}
+              activeItemId={insertState.activeItemId}
+              activeItemType={insertState.activeItemType}
+              setActiveItem={insertState.setActiveItem}
+              clearActiveItem={insertState.clearActiveItem}
+              onInsertToEditor={insertState.onInsertToEditor}
+            />
           ))}
         </div>
       </div>
@@ -500,11 +542,13 @@ const FilesModuleMedium = ({
   files,
   onUpload,
   onOpenFile,
+  insertState,
   readOnly = false,
 }: {
   files: FilesModuleItem[];
   onUpload: (files: File[]) => void;
   onOpenFile: (file: FilesModuleItem) => void;
+  insertState: ModuleInsertState;
   readOnly?: boolean;
 }) => {
   const [sortKey, setSortKey] = useState<SortKey>('date');
@@ -529,7 +573,15 @@ const FilesModuleMedium = ({
         ) : null}
         {sorted.map((file) => (
           <div role="listitem" key={file.id}>
-            <FileRow file={file} onOpen={onOpenFile} />
+            <FileRow
+              file={file}
+              onOpen={onOpenFile}
+              activeItemId={insertState.activeItemId}
+              activeItemType={insertState.activeItemType}
+              setActiveItem={insertState.setActiveItem}
+              clearActiveItem={insertState.clearActiveItem}
+              onInsertToEditor={insertState.onInsertToEditor}
+            />
           </div>
         ))}
       </div>
@@ -541,11 +593,13 @@ const FilesModuleLarge = ({
   files,
   onUpload,
   onOpenFile,
+  insertState,
   readOnly = false,
 }: {
   files: FilesModuleItem[];
   onUpload: (files: File[]) => void;
   onOpenFile: (file: FilesModuleItem) => void;
+  insertState: ModuleInsertState;
   readOnly?: boolean;
 }) => {
   const [filterKey, setFilterKey] = useState<FilterKey>('all');
@@ -585,7 +639,16 @@ const FilesModuleLarge = ({
         <div role="list" aria-label="Files" className="min-h-0 flex-1 overflow-y-auto pr-1">
           <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-sm">
             {visible.map((file) => (
-              <FileTile key={file.id} file={file} onOpen={onOpenFile} />
+              <FileTile
+                key={file.id}
+                file={file}
+                onOpen={onOpenFile}
+                activeItemId={insertState.activeItemId}
+                activeItemType={insertState.activeItemType}
+                setActiveItem={insertState.setActiveItem}
+                clearActiveItem={insertState.clearActiveItem}
+                onInsertToEditor={insertState.onInsertToEditor}
+              />
             ))}
           </div>
         </div>
@@ -594,7 +657,15 @@ const FilesModuleLarge = ({
   );
 };
 
-export const FilesModuleSkin = ({ sizeTier, files, onUpload, onOpenFile, readOnly = false }: FilesModuleSkinProps) => {
+export const FilesModuleSkin = ({
+  sizeTier,
+  files,
+  onUpload,
+  onOpenFile,
+  onInsertToEditor,
+  readOnly = false,
+}: FilesModuleSkinProps) => {
+  const insertState = useModuleInsertState({ onInsertToEditor });
   const liveMessage = useMemo(() => {
     const uploading = files.filter((file) => file.uploadProgress !== undefined && file.uploadProgress < 100);
     if (uploading.length > 0) {
@@ -608,9 +679,9 @@ export const FilesModuleSkin = ({ sizeTier, files, onUpload, onOpenFile, readOnl
       <p className="sr-only" aria-live="polite">
         {liveMessage}
       </p>
-      {sizeTier === 'S' ? <FilesModuleSmall files={files} onUpload={onUpload} onOpenFile={onOpenFile} readOnly={readOnly} /> : null}
-      {sizeTier === 'M' ? <FilesModuleMedium files={files} onUpload={onUpload} onOpenFile={onOpenFile} readOnly={readOnly} /> : null}
-      {sizeTier === 'L' ? <FilesModuleLarge files={files} onUpload={onUpload} onOpenFile={onOpenFile} readOnly={readOnly} /> : null}
+      {sizeTier === 'S' ? <FilesModuleSmall files={files} onUpload={onUpload} onOpenFile={onOpenFile} insertState={insertState} readOnly={readOnly} /> : null}
+      {sizeTier === 'M' ? <FilesModuleMedium files={files} onUpload={onUpload} onOpenFile={onOpenFile} insertState={insertState} readOnly={readOnly} /> : null}
+      {sizeTier === 'L' ? <FilesModuleLarge files={files} onUpload={onUpload} onOpenFile={onOpenFile} insertState={insertState} readOnly={readOnly} /> : null}
     </section>
   );
 };

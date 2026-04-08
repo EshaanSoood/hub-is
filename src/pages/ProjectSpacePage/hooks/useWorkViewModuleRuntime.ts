@@ -6,26 +6,26 @@ import {
   updateRecord,
 } from '../../../services/hub/records';
 import type {
-  WorkViewCalendarRuntime,
-  WorkViewFilesRuntime,
-  WorkViewKanbanRuntime,
-  WorkViewModuleRuntime,
-  WorkViewRemindersRuntime,
-  WorkViewTableRuntime,
-  WorkViewTasksRuntime,
-  WorkViewTimelineRuntime,
-} from '../../../components/project-space/WorkView';
+  CalendarModuleContract,
+  FilesModuleContract,
+  KanbanModuleContract,
+  RemindersModuleContract,
+  TableModuleContract,
+  TasksModuleContract,
+  TimelineModuleContract,
+  WorkViewModuleContracts,
+} from '../../../components/project-space/moduleContracts';
 
 type CreateTableRecord = (
   viewId: string,
-  payload: Parameters<NonNullable<WorkViewTableRuntime['onCreateRecord']>>[1],
+  payload: Parameters<NonNullable<TableModuleContract['onCreateRecord']>>[1],
   sourcePaneId: string | null,
 ) => Promise<void>;
 
 type UpdateTableRecord = (
   viewId: string,
   recordId: string,
-  fields: Parameters<NonNullable<WorkViewTableRuntime['onUpdateRecord']>>[2],
+  fields: Parameters<NonNullable<TableModuleContract['onUpdateRecord']>>[2],
   sourcePaneId: string | null,
 ) => Promise<void>;
 
@@ -46,14 +46,14 @@ type MoveKanbanRecord = (viewId: string, recordId: string, nextGroup: string, so
 
 type CreateKanbanRecord = (
   viewId: string,
-  payload: Parameters<NonNullable<WorkViewKanbanRuntime['onCreateRecord']>>[1],
+  payload: Parameters<NonNullable<KanbanModuleContract['onCreateRecord']>>[1],
   sourcePaneId: string | null,
 ) => Promise<void>;
 
 type UpdateKanbanRecord = (
   viewId: string,
   recordId: string,
-  fields: Parameters<NonNullable<WorkViewKanbanRuntime['onUpdateRecord']>>[2],
+  fields: Parameters<NonNullable<KanbanModuleContract['onUpdateRecord']>>[2],
   sourcePaneId: string | null,
 ) => Promise<void>;
 
@@ -67,48 +67,48 @@ interface UseWorkViewModuleRuntimeParams {
   projectId: string;
   setRecordsError: Dispatch<SetStateAction<string | null>>;
 
-  tableViews: WorkViewTableRuntime['views'];
-  tableViewRuntimeDataById: WorkViewTableRuntime['dataByViewId'];
+  tableViews: TableModuleContract['views'];
+  tableViewRuntimeDataById: TableModuleContract['dataByViewId'];
   onCreateTableRecord: CreateTableRecord;
   onUpdateTableRecord: UpdateTableRecord;
   onDeleteTableRecords: DeleteTableRecords;
   onBulkUpdateTableRecords: BulkUpdateTableRecords;
 
-  kanbanViews: WorkViewKanbanRuntime['views'];
-  kanbanRuntimeDataByViewId: WorkViewKanbanRuntime['dataByViewId'];
+  kanbanViews: KanbanModuleContract['views'];
+  kanbanRuntimeDataByViewId: KanbanModuleContract['dataByViewId'];
   onMoveKanbanRecord: MoveKanbanRecord;
   onCreateKanbanRecord: CreateKanbanRecord;
   onUpdateKanbanRecord: UpdateKanbanRecord;
   onDeleteKanbanRecord: DeleteKanbanRecord;
 
-  calendarEvents: WorkViewCalendarRuntime['events'];
+  calendarEvents: CalendarModuleContract['events'];
   calendarLoading: boolean;
-  calendarMode: WorkViewCalendarRuntime['scope'];
+  calendarMode: CalendarModuleContract['scope'];
   refreshCalendar: () => Promise<void>;
-  setCalendarMode: WorkViewCalendarRuntime['onScopeChange'];
+  setCalendarMode: CalendarModuleContract['onScopeChange'];
 
-  paneFiles: WorkViewFilesRuntime['paneFiles'];
-  projectFiles: WorkViewFilesRuntime['projectFiles'];
-  onUploadPaneFiles: WorkViewFilesRuntime['onUploadPaneFiles'];
-  onUploadProjectFiles: WorkViewFilesRuntime['onUploadProjectFiles'];
-  onOpenPaneFile: WorkViewFilesRuntime['onOpenFile'];
+  paneFiles: FilesModuleContract['paneFiles'];
+  projectFiles: FilesModuleContract['projectFiles'];
+  onUploadPaneFiles: FilesModuleContract['onUploadPaneFiles'];
+  onUploadProjectFiles: FilesModuleContract['onUploadProjectFiles'];
+  onOpenPaneFile: FilesModuleContract['onOpenFile'];
 
-  paneTaskItems: WorkViewTasksRuntime['items'];
+  paneTaskItems: TasksModuleContract['items'];
   projectTasksLoading: boolean;
   taskCollectionId: string | null;
   loadProjectTaskPage: () => Promise<void>;
 
-  timelineClusters: WorkViewTimelineRuntime['clusters'];
-  timelineFilters: WorkViewTimelineRuntime['activeFilters'];
-  toggleTimelineFilter: WorkViewTimelineRuntime['onFilterToggle'];
+  timelineClusters: TimelineModuleContract['clusters'];
+  timelineFilters: TimelineModuleContract['activeFilters'];
+  toggleTimelineFilter: TimelineModuleContract['onFilterToggle'];
   refreshProjectData: () => Promise<void>;
   openInspectorWithFocusRestore: (recordId: string, options?: { mutationPaneId?: string | null }) => Promise<void>;
 
-  reminders: WorkViewRemindersRuntime['items'];
-  remindersLoading: WorkViewRemindersRuntime['loading'];
-  remindersError: WorkViewRemindersRuntime['error'];
-  onDismissReminder: WorkViewRemindersRuntime['onDismiss'];
-  onCreateReminder: WorkViewRemindersRuntime['onCreate'];
+  reminders: RemindersModuleContract['items'];
+  remindersLoading: RemindersModuleContract['loading'];
+  remindersError: RemindersModuleContract['error'];
+  onDismissReminder: RemindersModuleContract['onDismiss'];
+  onCreateReminder: RemindersModuleContract['onCreate'];
 }
 
 export const useWorkViewModuleRuntime = ({
@@ -154,10 +154,10 @@ export const useWorkViewModuleRuntime = ({
   remindersError,
   onDismissReminder,
   onCreateReminder,
-}: UseWorkViewModuleRuntimeParams): WorkViewModuleRuntime => {
-  return useMemo<WorkViewModuleRuntime>(
+}: UseWorkViewModuleRuntimeParams): WorkViewModuleContracts => {
+  return useMemo<WorkViewModuleContracts>(
     () => ({
-      table: {
+      tableContract: {
         views: tableViews,
         defaultViewId: tableViews[0]?.view_id || null,
         dataByViewId: tableViewRuntimeDataById,
@@ -174,7 +174,7 @@ export const useWorkViewModuleRuntime = ({
           await onBulkUpdateTableRecords(viewId, recordIds, fields, activePaneId);
         },
       },
-      kanban: {
+      kanbanContract: {
         views: kanbanViews,
         defaultViewId: kanbanViews[0]?.view_id || null,
         dataByViewId: kanbanRuntimeDataByViewId,
@@ -190,8 +190,9 @@ export const useWorkViewModuleRuntime = ({
         onUpdateRecord: async (viewId, recordId, fields) => {
           await onUpdateKanbanRecord(viewId, recordId, fields, activePaneId);
         },
+        onInsertToEditor: undefined,
       },
-      calendar: {
+      calendarContract: {
         events: calendarEvents,
         loading: calendarLoading,
         scope: calendarMode,
@@ -229,18 +230,20 @@ export const useWorkViewModuleRuntime = ({
               }
             : undefined,
       },
-      files: {
+      filesContract: {
         paneFiles,
         projectFiles,
         onUploadPaneFiles,
         onUploadProjectFiles,
         onOpenFile: onOpenPaneFile,
+        onInsertToEditor: undefined,
       },
-      quickThoughts: {
+      quickThoughtsContract: {
         storageKeyBase: `hub:quick-thoughts:${projectId}`,
         legacyStorageKeyBase: `hub:capture:${projectId}`,
+        onInsertToEditor: undefined,
       },
-      tasks: {
+      tasksContract: {
         items: paneTaskItems,
         loading: projectTasksLoading,
         onCreateTask: async (task) => {
@@ -310,8 +313,9 @@ export const useWorkViewModuleRuntime = ({
             console.error('Failed to delete task:', err);
           }
         },
+        onInsertToEditor: undefined,
       },
-      timeline: {
+      timelineContract: {
         clusters: timelineClusters,
         activeFilters: timelineFilters,
         loading: false,
@@ -324,12 +328,13 @@ export const useWorkViewModuleRuntime = ({
           void openInspectorWithFocusRestore(recordId);
         },
       },
-      reminders: {
+      remindersContract: {
         items: reminders,
         loading: remindersLoading,
         error: remindersError,
         onDismiss: onDismissReminder,
         onCreate: onCreateReminder,
+        onInsertToEditor: undefined,
       },
     }),
     [

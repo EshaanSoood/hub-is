@@ -2,13 +2,18 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
 import { AccessibleDialog, Icon, IconButton } from '../primitives';
-import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
-import type { HubCollectionField, HubPaneSummary, HubRecordSummary } from '../../services/hub/types';
-import type { CalendarScope } from './CalendarModuleSkin';
-import type { FilesModuleItem } from './FilesModuleSkin';
+import type { HubPaneSummary } from '../../services/hub/types';
 import { clampModuleSizeTier } from './moduleCatalog';
-import type { TaskItem } from './TasksTab';
-import type { TimelineCluster, TimelineEventType } from './TimelineFeed';
+import type {
+  CalendarModuleContract,
+  FilesModuleContract,
+  KanbanModuleContract,
+  QuickThoughtsModuleContract,
+  RemindersModuleContract,
+  TableModuleContract,
+  TasksModuleContract,
+  TimelineModuleContract,
+} from './moduleContracts';
 import {
   CalendarModule,
   FilesModule,
@@ -28,145 +33,14 @@ interface WorkViewProps {
   showWorkspaceDocPlaceholder?: boolean;
   onUpdatePane: (paneId: string, payload: { name?: string; pinned?: boolean; sort_order?: number; layout_config?: Record<string, unknown> }) => Promise<void>;
   onOpenRecord?: (recordId: string) => void;
-  moduleRuntime?: Partial<WorkViewModuleRuntime>;
-}
-
-interface WorkViewBoundViewSummary {
-  view_id: string;
-  name: string;
-}
-
-interface WorkViewTableViewData {
-  schema: {
-    collection_id: string;
-    name: string;
-    fields: HubCollectionField[];
-  } | null;
-  records: HubRecordSummary[];
-  loading: boolean;
-  error?: string;
-}
-
-export interface WorkViewTableRuntime {
-  views: WorkViewBoundViewSummary[];
-  defaultViewId: string | null;
-  dataByViewId: Record<string, WorkViewTableViewData>;
-  onCreateRecord?: (viewId: string, payload: { title: string; fields: Record<string, unknown> }) => Promise<void>;
-  onUpdateRecord?: (viewId: string, recordId: string, fields: Record<string, unknown>) => Promise<void>;
-  onDeleteRecords?: (viewId: string, recordIds: string[]) => Promise<void>;
-  onBulkUpdateRecords?: (viewId: string, recordIds: string[], fields: Record<string, unknown>) => Promise<void>;
-}
-
-export interface WorkViewKanbanRuntime {
-  views: WorkViewBoundViewSummary[];
-  defaultViewId: string | null;
-  dataByViewId: Record<
-    string,
-    {
-      groups: Array<{ id: string; label: string; records: HubRecordSummary[] }>;
-      groupOptions: Array<{ id: string; label: string }>;
-      loading: boolean;
-      groupingConfigured: boolean;
-      groupingMessage?: string;
-      groupFieldId: string | null;
-      groupableFields?: Array<{ field_id: string; name: string }>;
-      metadataFieldIds?: {
-        priority?: string | null;
-        assignee?: string | null;
-        dueDate?: string | null;
-      };
-      wipLimits?: Record<string, number>;
-      error?: string;
-    }
-  >;
-  onMoveRecord: (viewId: string, recordId: string, nextGroup: string) => void;
-  onCreateRecord?: (viewId: string, payload: { title: string; groupFieldValue: string }) => Promise<void>;
-  onConfigureGrouping?: (viewId: string, fieldId: string) => void;
-  onUpdateRecord?: (viewId: string, recordId: string, fields: Record<string, unknown>) => Promise<void>;
-  onDeleteRecord?: (viewId: string, recordId: string) => Promise<void>;
-}
-
-export interface WorkViewCalendarRuntime {
-  events: Array<{
-    record_id: string;
-    title: string;
-    event_state: {
-      start_dt: string;
-      end_dt: string;
-      timezone: string;
-      location: string | null;
-      updated_at: string;
-    };
-    participants: Array<{ user_id: string; role: string | null }>;
-  }>;
-  loading: boolean;
-  scope: CalendarScope;
-  onScopeChange: (scope: CalendarScope) => void;
-  onCreateEvent?: (payload: {
-    title: string;
-    start_dt: string;
-    end_dt: string;
-    timezone: string;
-    location?: string;
-  }) => Promise<void>;
-  onRescheduleEvent?: (payload: {
-    record_id: string;
-    start_dt: string;
-    end_dt: string;
-    timezone: string;
-  }) => Promise<void>;
-}
-
-export interface WorkViewFilesRuntime {
-  paneFiles: FilesModuleItem[];
-  projectFiles: FilesModuleItem[];
-  onUploadPaneFiles: (files: File[]) => void;
-  onUploadProjectFiles: (files: File[]) => void;
-  onOpenFile: (file: FilesModuleItem) => void;
-}
-
-export interface WorkViewQuickThoughtsRuntime {
-  storageKeyBase: string;
-  legacyStorageKeyBase?: string;
-}
-
-export interface WorkViewTasksRuntime {
-  items: TaskItem[];
-  loading: boolean;
-  onCreateTask: (task: { title: string; priority: string | null; due_at: string | null; parent_record_id?: string | null }) => Promise<void>;
-  onUpdateTaskStatus: (taskId: string, status: string) => void;
-  onUpdateTaskPriority: (taskId: string, priority: string | null) => void;
-  onUpdateTaskDueDate: (taskId: string, dueAt: string | null) => void;
-  onDeleteTask: (taskId: string) => void;
-}
-
-export interface WorkViewTimelineRuntime {
-  clusters: TimelineCluster[];
-  activeFilters: TimelineEventType[];
-  loading: boolean;
-  hasMore: boolean;
-  onFilterToggle: (type: TimelineEventType) => void;
-  onLoadMore: () => void;
-  onItemClick: (recordId: string, recordType: string) => void;
-}
-
-export interface WorkViewRemindersRuntime {
-  items: HubReminderSummary[];
-  loading: boolean;
-  error?: string | null;
-  onDismiss: (reminderId: string) => Promise<void>;
-  onCreate: (payload: CreateReminderPayload) => Promise<void>;
-}
-
-export interface WorkViewModuleRuntime {
-  table: WorkViewTableRuntime;
-  kanban: WorkViewKanbanRuntime;
-  calendar: WorkViewCalendarRuntime;
-  files: WorkViewFilesRuntime;
-  quickThoughts: WorkViewQuickThoughtsRuntime;
-  tasks: WorkViewTasksRuntime;
-  timeline: WorkViewTimelineRuntime;
-  reminders: WorkViewRemindersRuntime;
+  tableContract?: Partial<TableModuleContract>;
+  kanbanContract?: Partial<KanbanModuleContract>;
+  calendarContract?: Partial<CalendarModuleContract>;
+  filesContract?: Partial<FilesModuleContract>;
+  quickThoughtsContract?: Partial<QuickThoughtsModuleContract>;
+  tasksContract?: Partial<TasksModuleContract>;
+  timelineContract?: Partial<TimelineModuleContract>;
+  remindersContract?: Partial<RemindersModuleContract>;
 }
 
 const normalizeModuleType = (moduleType: unknown): string => {
@@ -255,61 +129,71 @@ const serializeModules = (modules: ContractModuleConfig[]): Array<Record<string,
     ...(module.binding?.view_id ? { binding: { view_id: module.binding.view_id } } : {}),
   }));
 
-const EMPTY_RUNTIME: WorkViewModuleRuntime = {
-  table: {
-    views: [],
-    defaultViewId: null,
-    dataByViewId: {},
-  },
-  kanban: {
-    views: [],
-    defaultViewId: null,
-    dataByViewId: {},
-    onMoveRecord: () => undefined,
-  },
-  calendar: {
-    events: [],
-    loading: false,
-    scope: 'relevant',
-    onScopeChange: () => undefined,
-    onCreateEvent: undefined,
-    onRescheduleEvent: undefined,
-  },
-  files: {
-    paneFiles: [],
-    projectFiles: [],
-    onUploadPaneFiles: () => undefined,
-    onUploadProjectFiles: () => undefined,
-    onOpenFile: () => undefined,
-  },
-  quickThoughts: {
-    storageKeyBase: 'hub:quick-thoughts:default',
-  },
-  tasks: {
-    items: [],
-    loading: false,
-    onCreateTask: async () => {},
-    onUpdateTaskStatus: () => undefined,
-    onUpdateTaskPriority: () => undefined,
-    onUpdateTaskDueDate: () => undefined,
-    onDeleteTask: () => undefined,
-  },
-  timeline: {
-    clusters: [],
-    activeFilters: ['task', 'event', 'milestone', 'file', 'workspace'],
-    loading: false,
-    hasMore: false,
-    onFilterToggle: () => undefined,
-    onLoadMore: () => undefined,
-    onItemClick: () => undefined,
-  },
-  reminders: {
-    items: [],
-    loading: false,
-    error: null,
-    onDismiss: async () => undefined,
-    onCreate: async () => undefined,
-  },
+const EMPTY_TABLE_CONTRACT: TableModuleContract = {
+  views: [],
+  defaultViewId: null,
+  dataByViewId: {},
+};
+
+const EMPTY_KANBAN_CONTRACT: KanbanModuleContract = {
+  views: [],
+  defaultViewId: null,
+  dataByViewId: {},
+  onMoveRecord: () => undefined,
+};
+
+const EMPTY_CALENDAR_CONTRACT: CalendarModuleContract = {
+  events: [],
+  loading: false,
+  scope: 'relevant',
+  onScopeChange: () => undefined,
+  onCreateEvent: undefined,
+  onRescheduleEvent: undefined,
+};
+
+const EMPTY_FILES_CONTRACT: FilesModuleContract = {
+  paneFiles: [],
+  projectFiles: [],
+  onUploadPaneFiles: () => undefined,
+  onUploadProjectFiles: () => undefined,
+  onOpenFile: () => undefined,
+  onInsertToEditor: undefined,
+};
+
+const EMPTY_QUICK_THOUGHTS_CONTRACT: QuickThoughtsModuleContract = {
+  storageKeyBase: 'hub:quick-thoughts:default',
+  legacyStorageKeyBase: undefined,
+  onInsertToEditor: undefined,
+};
+
+const EMPTY_TASKS_CONTRACT: TasksModuleContract = {
+  items: [],
+  loading: false,
+  onCreateTask: async () => {},
+  onUpdateTaskStatus: () => undefined,
+  onUpdateTaskPriority: () => undefined,
+  onUpdateTaskDueDate: () => undefined,
+  onDeleteTask: () => undefined,
+  onInsertToEditor: undefined,
+};
+
+const EMPTY_TIMELINE_CONTRACT: TimelineModuleContract = {
+  clusters: [],
+  activeFilters: ['task', 'event', 'milestone', 'file', 'workspace'],
+  loading: false,
+  hasMore: false,
+  onFilterToggle: () => undefined,
+  onLoadMore: () => undefined,
+  onItemClick: () => undefined,
+};
+
+const EMPTY_REMINDERS_CONTRACT: RemindersModuleContract = {
+  items: [],
+  loading: false,
+  error: null,
+  onDismiss: async () => undefined,
+  onCreate: async () => undefined,
+  onInsertToEditor: undefined,
 };
 
 const DESKTOP_MEDIA_QUERY = '(min-width: 768px)';
@@ -389,7 +273,14 @@ export const WorkView = ({
   showWorkspaceDocPlaceholder = true,
   onUpdatePane,
   onOpenRecord,
-  moduleRuntime,
+  tableContract,
+  kanbanContract,
+  calendarContract,
+  filesContract,
+  quickThoughtsContract,
+  tasksContract,
+  timelineContract,
+  remindersContract,
 }: WorkViewProps) => {
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
   const [pendingModuleSaves, setPendingModuleSaves] = useState(0);
@@ -407,41 +298,37 @@ export const WorkView = ({
     );
   }
 
-  const mergedRuntime: WorkViewModuleRuntime = {
-    ...EMPTY_RUNTIME,
-    ...moduleRuntime,
-    table: {
-      ...EMPTY_RUNTIME.table,
-      ...moduleRuntime?.table,
-    },
-    kanban: {
-      ...EMPTY_RUNTIME.kanban,
-      ...moduleRuntime?.kanban,
-    },
-    calendar: {
-      ...EMPTY_RUNTIME.calendar,
-      ...moduleRuntime?.calendar,
-    },
-    files: {
-      ...EMPTY_RUNTIME.files,
-      ...moduleRuntime?.files,
-    },
-    quickThoughts: {
-      ...EMPTY_RUNTIME.quickThoughts,
-      ...moduleRuntime?.quickThoughts,
-    },
-    tasks: {
-      ...EMPTY_RUNTIME.tasks,
-      ...moduleRuntime?.tasks,
-    },
-    timeline: {
-      ...EMPTY_RUNTIME.timeline,
-      ...moduleRuntime?.timeline,
-    },
-    reminders: {
-      ...EMPTY_RUNTIME.reminders,
-      ...moduleRuntime?.reminders,
-    },
+  const resolvedTableContract: TableModuleContract = {
+    ...EMPTY_TABLE_CONTRACT,
+    ...tableContract,
+  };
+  const resolvedKanbanContract: KanbanModuleContract = {
+    ...EMPTY_KANBAN_CONTRACT,
+    ...kanbanContract,
+  };
+  const resolvedCalendarContract: CalendarModuleContract = {
+    ...EMPTY_CALENDAR_CONTRACT,
+    ...calendarContract,
+  };
+  const resolvedFilesContract: FilesModuleContract = {
+    ...EMPTY_FILES_CONTRACT,
+    ...filesContract,
+  };
+  const resolvedQuickThoughtsContract: QuickThoughtsModuleContract = {
+    ...EMPTY_QUICK_THOUGHTS_CONTRACT,
+    ...quickThoughtsContract,
+  };
+  const resolvedTasksContract: TasksModuleContract = {
+    ...EMPTY_TASKS_CONTRACT,
+    ...tasksContract,
+  };
+  const resolvedTimelineContract: TimelineModuleContract = {
+    ...EMPTY_TIMELINE_CONTRACT,
+    ...timelineContract,
+  };
+  const resolvedRemindersContract: RemindersModuleContract = {
+    ...EMPTY_REMINDERS_CONTRACT,
+    ...remindersContract,
   };
 
   const modules = parseModules(pane.layout_config);
@@ -528,7 +415,7 @@ export const WorkView = ({
       return (
         <TableModule
           module={module}
-          runtime={mergedRuntime.table}
+          contract={resolvedTableContract}
           canEditPane={canEditPane}
           onOpenRecord={onOpenRecord}
           onSetModuleBinding={handleSetModuleBinding}
@@ -540,7 +427,7 @@ export const WorkView = ({
       return (
         <KanbanModule
           module={module}
-          runtime={mergedRuntime.kanban}
+          contract={resolvedKanbanContract}
           canEditPane={canEditPane}
           onOpenRecord={onOpenRecord}
           onSetModuleBinding={handleSetModuleBinding}
@@ -549,26 +436,26 @@ export const WorkView = ({
     }
 
     if (module.module_type === 'calendar') {
-      return <CalendarModule module={module} runtime={mergedRuntime.calendar} onOpenRecord={onOpenRecord} />;
+      return <CalendarModule module={module} contract={resolvedCalendarContract} onOpenRecord={onOpenRecord} />;
     }
 
     if (module.module_type === 'tasks') {
-      return <TasksModule module={module} runtime={mergedRuntime.tasks} canEditPane={canEditPane} />;
+      return <TasksModule module={module} contract={resolvedTasksContract} canEditPane={canEditPane} />;
     }
 
     if (module.module_type === 'files') {
-      return <FilesModule module={module} runtime={mergedRuntime.files} canEditPane={canEditPane} />;
+      return <FilesModule module={module} contract={resolvedFilesContract} canEditPane={canEditPane} />;
     }
 
     if (module.module_type === 'reminders') {
-      return <RemindersModule module={module} runtime={mergedRuntime.reminders} />;
+      return <RemindersModule module={module} contract={resolvedRemindersContract} />;
     }
 
     if (module.module_type === 'quick_thoughts') {
       return (
         <QuickThoughtsModule
           module={module}
-          runtime={mergedRuntime.quickThoughts}
+          contract={resolvedQuickThoughtsContract}
           pane={pane}
           canEditPane={canEditPane}
         />
@@ -576,7 +463,7 @@ export const WorkView = ({
     }
 
     if (module.module_type === 'timeline') {
-      return <TimelineModule runtime={mergedRuntime.timeline} />;
+      return <TimelineModule contract={resolvedTimelineContract} />;
     }
 
     return <p className="text-xs text-muted">{module.module_type}</p>;

@@ -18,12 +18,12 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { HubRecordSummary } from '../../services/hub/types';
 import { cn } from '../../lib/cn';
-import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
 import { getPriorityClasses } from '../../lib/priorityStyles';
 import { Icon, IconButton } from '../primitives';
 import type { PriorityLevel } from './designTokens';
 import { ModuleEmptyState, ModuleLoadingState } from './ModuleFeedback';
+import { useModuleInsertState, type ModuleInsertState } from './hooks/useModuleInsertState';
 import { formatShortDate } from './taskAdapter';
 
 const UNASSIGNED_ID = '__unassigned__';
@@ -67,6 +67,7 @@ interface KanbanModuleSkinProps {
   onConfigureGrouping?: (fieldId: string) => void;
   onUpdateRecord?: (recordId: string, fields: Record<string, unknown>) => Promise<void>;
   onDeleteRecord?: (recordId: string) => Promise<void>;
+  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
 }
 
 interface EditableCardFields {
@@ -246,6 +247,11 @@ const SortableCard = ({
   onStopEditing,
   onUpdateRecord,
   onDeleteRecord,
+  activeItemId,
+  activeItemType,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
 }: {
   record: HubRecordSummary;
   canMove: boolean;
@@ -260,10 +266,14 @@ const SortableCard = ({
   onStopEditing: () => void;
   onUpdateRecord?: (recordId: string, fields: Record<string, unknown>) => Promise<void>;
   onDeleteRecord?: (recordId: string) => Promise<void>;
+  activeItemId: ModuleInsertState['activeItemId'];
+  activeItemType: ModuleInsertState['activeItemType'];
+  setActiveItem: ModuleInsertState['setActiveItem'];
+  clearActiveItem: ModuleInsertState['clearActiveItem'];
+  onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
 }) => {
   const editable = !readOnly && typeof onUpdateRecord === 'function';
   const deletable = !readOnly && typeof onDeleteRecord === 'function';
-  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const wasEditingRef = useRef(false);
@@ -823,6 +833,11 @@ const KanbanColumn = ({
   onStopEditing,
   onUpdateRecord,
   onDeleteRecord,
+  activeItemId,
+  activeItemType,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
 }: {
   group: KanbanModuleGroup;
   canMove: boolean;
@@ -848,6 +863,11 @@ const KanbanColumn = ({
   onStopEditing: () => void;
   onUpdateRecord?: (recordId: string, fields: Record<string, unknown>) => Promise<void>;
   onDeleteRecord?: (recordId: string) => Promise<void>;
+  activeItemId: ModuleInsertState['activeItemId'];
+  activeItemType: ModuleInsertState['activeItemType'];
+  setActiveItem: ModuleInsertState['setActiveItem'];
+  clearActiveItem: ModuleInsertState['clearActiveItem'];
+  onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
 }) => {
   const { isOver, setNodeRef } = useDroppable({ id: group.id });
   const count = group.records.length;
@@ -907,6 +927,11 @@ const KanbanColumn = ({
                 onStopEditing={onStopEditing}
                 onUpdateRecord={onUpdateRecord}
                 onDeleteRecord={onDeleteRecord}
+                activeItemId={activeItemId}
+                activeItemType={activeItemType}
+                setActiveItem={setActiveItem}
+                clearActiveItem={clearActiveItem}
+                onInsertToEditor={onInsertToEditor}
               />
             ))}
           </SortableContext>
@@ -947,7 +972,14 @@ export const KanbanModuleSkin = ({
   onConfigureGrouping,
   onUpdateRecord,
   onDeleteRecord,
+  onInsertToEditor,
 }: KanbanModuleSkinProps) => {
+  const {
+    activeItemId,
+    activeItemType,
+    setActiveItem,
+    clearActiveItem,
+  } = useModuleInsertState({ onInsertToEditor });
   const canMove = groupingConfigured && !readOnly;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -1207,6 +1239,11 @@ export const KanbanModuleSkin = ({
                   onStopEditing={() => setEditingRecordId(null)}
                   onUpdateRecord={onUpdateRecord}
                   onDeleteRecord={onDeleteRecord}
+                  activeItemId={activeItemId}
+                  activeItemType={activeItemType}
+                  setActiveItem={setActiveItem}
+                  clearActiveItem={clearActiveItem}
+                  onInsertToEditor={onInsertToEditor}
                 />
               ))}
             </div>

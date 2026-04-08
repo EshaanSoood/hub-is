@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
+import { useModuleInsertState, type ModuleInsertState } from './hooks/useModuleInsertState';
 import { Icon } from '../primitives';
 import { ModuleEmptyState } from './ModuleFeedback';
 
@@ -16,6 +16,7 @@ interface QuickThoughtsModuleSkinProps {
   sizeTier: 'S' | 'M' | 'L';
   storageKey: string;
   legacyStorageKey?: string;
+  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
   readOnly?: boolean;
 }
 
@@ -157,6 +158,11 @@ const ThoughtRow = ({
   onDelete,
   onCancelEdit,
   showDelete,
+  activeItemId,
+  activeItemType,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
   readOnly = false,
 }: {
   entry: QuickThoughtEntry;
@@ -170,10 +176,14 @@ const ThoughtRow = ({
   onDelete: () => void;
   onCancelEdit: () => void;
   showDelete: boolean;
+  activeItemId: ModuleInsertState['activeItemId'];
+  activeItemType: ModuleInsertState['activeItemType'];
+  setActiveItem: ModuleInsertState['setActiveItem'];
+  clearActiveItem: ModuleInsertState['clearActiveItem'];
+  onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
   readOnly?: boolean;
 }) => {
   const preview = clipPreview(entry.text);
-  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
   const longPressHandlers = useLongPress(() => {
     if (!isEditing) {
       setActiveItem(entry.id, 'quick-thought', preview);
@@ -285,8 +295,15 @@ export const QuickThoughtsModuleSkin = ({
   sizeTier,
   storageKey,
   legacyStorageKey,
+  onInsertToEditor,
   readOnly = false,
 }: QuickThoughtsModuleSkinProps) => {
+  const {
+    activeItemId,
+    activeItemType,
+    setActiveItem,
+    clearActiveItem,
+  } = useModuleInsertState({ onInsertToEditor });
   const persistStorageKeyRef = useRef(storageKey);
   const skipNextPersistRef = useRef(true);
   const [entries, setEntries] = useState<QuickThoughtEntry[]>(() => readEntriesForStorageKey(storageKey, legacyStorageKey));
@@ -460,6 +477,11 @@ export const QuickThoughtsModuleSkin = ({
                 onDelete={() => deleteEntry(entry.id)}
                 onCancelEdit={cancelEditing}
                 showDelete={!readOnly && false}
+                activeItemId={activeItemId}
+                activeItemType={activeItemType}
+                setActiveItem={setActiveItem}
+                clearActiveItem={clearActiveItem}
+                onInsertToEditor={onInsertToEditor}
                 readOnly={!isInteractive}
               />
             ))}
@@ -494,6 +516,11 @@ export const QuickThoughtsModuleSkin = ({
                   onDelete={() => deleteEntry(entry.id)}
                   onCancelEdit={() => undefined}
                   showDelete={!readOnly}
+                  activeItemId={activeItemId}
+                  activeItemType={activeItemType}
+                  setActiveItem={setActiveItem}
+                  clearActiveItem={clearActiveItem}
+                  onInsertToEditor={onInsertToEditor}
                   readOnly={!isInteractive}
                 />
               ))}

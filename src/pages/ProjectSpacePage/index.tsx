@@ -7,7 +7,6 @@ import {
   type HubProjectMember,
 } from '../../services/hub/types';
 import { useAuthz } from '../../context/AuthzContext';
-import { ModuleInsertProvider } from '../../context/ModuleInsertContext';
 import {
   buildPaneContextHref,
   buildProjectOverviewHref,
@@ -669,7 +668,16 @@ const ProjectSpaceWorkspace = ({
     setSearchParams,
   });
   const taskCollectionId = tasksOverviewRows[0]?.collection_id || null;
-  const workViewModuleRuntime = useWorkViewModuleRuntime({
+  const {
+    tableContract,
+    kanbanContract,
+    calendarContract,
+    filesContract,
+    quickThoughtsContract,
+    tasksContract,
+    timelineContract,
+    remindersContract,
+  } = useWorkViewModuleRuntime({
     activePaneId: activePane?.pane_id ?? null,
     activePaneCanEdit,
     accessToken,
@@ -1240,7 +1248,14 @@ const ProjectSpaceWorkspace = ({
                 onOpenRecord={(recordId) => {
                   void openInspectorWithFocusRestore(recordId);
                 }}
-                moduleRuntime={workViewModuleRuntime}
+                tableContract={tableContract}
+                kanbanContract={kanbanContract}
+                calendarContract={calendarContract}
+                filesContract={filesContract}
+                quickThoughtsContract={quickThoughtsContract}
+                tasksContract={tasksContract}
+                timelineContract={timelineContract}
+                remindersContract={remindersContract}
               />
               {activePane && workspaceEnabled ? (
                 <>
@@ -1806,19 +1821,17 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps) => {
   }
 
   return (
-    <ModuleInsertProvider>
-      <ProjectSpaceWorkspace
-        activeTab={activeTab}
-        project={project}
-        panes={panes}
-        setPanes={setPanes}
-        projectMembers={projectMembers}
-        accessToken={accessToken}
-        sessionUserId={sessionSummary.userId}
-        refreshProjectData={refreshProjectData}
-        timeline={timeline}
-        setTimeline={setTimeline}
-      />
-    </ModuleInsertProvider>
+    <ProjectSpaceWorkspace
+      activeTab={activeTab}
+      project={project}
+      panes={panes}
+      setPanes={setPanes}
+      projectMembers={projectMembers}
+      accessToken={accessToken}
+      sessionUserId={sessionSummary.userId}
+      refreshProjectData={refreshProjectData}
+      timeline={timeline}
+      setTimeline={setTimeline}
+    />
   );
 };

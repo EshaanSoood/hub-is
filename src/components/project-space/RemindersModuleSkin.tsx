@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { useModuleInsertContext } from '../../context/ModuleInsertContext';
 import { useLongPress } from '../../hooks/useLongPress';
 import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../hooks/useReminderNLDraft';
+import { useModuleInsertState, type ModuleInsertState } from './hooks/useModuleInsertState';
 import { Icon } from '../primitives';
 import { ReminderCard } from '../cards/ReminderCard';
 import type { ReminderParseResult } from '../../lib/nlp/reminder-parser/types';
@@ -17,6 +17,7 @@ export interface RemindersModuleSkinProps {
   onDismiss: (reminderId: string) => Promise<void>;
   onSnooze?: (reminderId: string) => Promise<void>;
   onCreate: (payload: CreateReminderPayload) => Promise<void>;
+  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
   sizeTier: RemindersSizeTier;
   readOnly?: boolean;
 }
@@ -167,6 +168,11 @@ const ReminderRibbonRow = ({
   readOnly,
   onSnooze,
   onDismiss,
+  activeItemId,
+  activeItemType,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
 }: {
   reminder: HubReminderSummary;
   animationPhase: ReminderAnimationState['phase'] | null;
@@ -174,8 +180,12 @@ const ReminderRibbonRow = ({
   readOnly: boolean;
   onSnooze?: (reminder: HubReminderSummary) => void;
   onDismiss: (reminder: HubReminderSummary) => void;
+  activeItemId: ModuleInsertState['activeItemId'];
+  activeItemType: ModuleInsertState['activeItemType'];
+  setActiveItem: ModuleInsertState['setActiveItem'];
+  clearActiveItem: ModuleInsertState['clearActiveItem'];
+  onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
 }) => {
-  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
   const longPressHandlers = useLongPress(() => {
     setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
   });
@@ -266,9 +276,16 @@ export const RemindersModuleSkin = ({
   onDismiss,
   onSnooze,
   onCreate,
+  onInsertToEditor,
   sizeTier,
   readOnly = false,
 }: RemindersModuleSkinProps) => {
+  const {
+    activeItemId,
+    activeItemType,
+    setActiveItem,
+    clearActiveItem,
+  } = useModuleInsertState({ onInsertToEditor });
   const {
     draft,
     setDraft,
@@ -544,6 +561,11 @@ export const RemindersModuleSkin = ({
               onDismiss={(nextReminder) => {
                 void handleDismiss(nextReminder);
               }}
+              activeItemId={activeItemId}
+              activeItemType={activeItemType}
+              setActiveItem={setActiveItem}
+              clearActiveItem={clearActiveItem}
+              onInsertToEditor={onInsertToEditor}
             />
           );
         })}
