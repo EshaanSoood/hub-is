@@ -961,8 +961,10 @@ const ProjectSpaceWorkspace = ({
               key={pane.pane_id}
               type="button"
               onClick={() => navigate(`${buildProjectWorkHref(project.project_id, pane.pane_id)}?pinned=1`)}
-              className={`rounded-panel px-3 py-1.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                selected ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
+              className={`cursor-pointer rounded-panel border px-3 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                selected
+                  ? 'border-primary bg-primary text-on-primary'
+                  : 'border-border-muted bg-surface text-primary hover:border-primary hover:bg-primary/10'
               }`}
               role="tab"
               aria-selected={selected}
