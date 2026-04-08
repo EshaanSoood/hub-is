@@ -44,6 +44,8 @@ export const QuickAddEventDialog: FC<{
     triggerRef={triggerRef}
     title="New Calendar Event"
     description="Create a calendar event."
+    panelClassName="overflow-visible"
+    contentClassName="overflow-visible"
   >
     <form className="space-y-4" onSubmit={onSubmit}>
       <div className="space-y-1">
