@@ -1214,6 +1214,7 @@ const createPersonalTaskRecord = ({
 
 const createPersonalProjectForUser = (user, now = nowIso()) => {
   const displayName = asText(user.display_name) || 'Personal';
+  const firstName = displayName.trim().split(/\s+/).filter(Boolean)[0] || 'Personal';
   const projectId = newId('prj');
   const collectionId = newId('col');
   const remindersCollectionId = newId('col');
@@ -1224,7 +1225,7 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
   const statusFieldId = newId('fld');
   const priorityFieldId = newId('fld');
 
-  insertProjectWithTypeStmt.run(projectId, `${displayName}'s Hub`, user.user_id, 'personal', 1, now, now);
+  insertProjectWithTypeStmt.run(projectId, `${firstName}'s Project`, user.user_id, 'personal', 1, now, now);
   insertProjectMemberStmt.run(projectId, user.user_id, 'owner', now);
   insertPaneStmt.run(
     paneId,
