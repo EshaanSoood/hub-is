@@ -56,6 +56,7 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
     <AnimatedSurface
       ref={popoverRef}
       role="dialog"
+      aria-modal="true"
       ariaLabel={`Move ${currentFileName} to pane`}
       transformOrigin="top left"
       className="absolute left-0 top-[calc(100%+4px)] z-[200] min-w-[220px] rounded-panel border border-border-muted bg-surface-elevated p-xs shadow-soft"

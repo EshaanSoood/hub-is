@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
-import { motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { cn } from '../../lib/cn';
 import { dialogSurfaceVariants, routeFadeVariants } from '../motion/hubMotion';
 
@@ -33,9 +33,39 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
 export const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & { layoutId?: string; animated?: boolean }
->(({ className, layoutId, animated = false, children, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & { layoutId?: string; animated?: boolean; open?: boolean }
+>(({ className, layoutId, animated = false, open, children, ...props }, ref) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
+  if (animated && typeof open === 'boolean') {
+    return (
+      <AlertDialogPortal forceMount>
+        <AnimatePresence>
+          {open ? (
+            <React.Fragment key="alert-dialog-content">
+              <AlertDialogOverlay animated forceMount />
+              <AlertDialogPrimitive.Content forceMount asChild {...props}>
+                <motion.div
+                  ref={ref}
+                  layoutId={!prefersReducedMotion ? layoutId : undefined}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={dialogSurfaceVariants(prefersReducedMotion)}
+                  className={cn(
+                    'alert-dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
+                    className,
+                  )}
+                >
+                  {children}
+                </motion.div>
+              </AlertDialogPrimitive.Content>
+            </React.Fragment>
+          ) : null}
+        </AnimatePresence>
+      </AlertDialogPortal>
+    );
+  }
+
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay animated={animated} />

@@ -1109,6 +1109,7 @@ export const ProjectSpaceWorkspace = ({
             {activePane ? (
               <Dialog open={paneSettingsOpen} onOpenChange={handlePaneSettingsOpenChange}>
                 <DialogContent
+                  open={paneSettingsOpen}
                   animated
                   layoutId={dialogLayoutIds.paneSettings}
                   onCloseAutoFocus={(event) => {
@@ -1571,7 +1572,7 @@ export const ProjectSpaceWorkspace = ({
                   />
 
                   <Dialog open={docCommentComposerOpen} onOpenChange={onDocCommentDialogOpenChange}>
-                <DialogContent animated layoutId={dialogLayoutIds.commentOnBlock}>
+                <DialogContent open={docCommentComposerOpen} animated layoutId={dialogLayoutIds.commentOnBlock}>
                   <DialogHeader>
                     <DialogTitle>Comment on block</DialogTitle>
                     <DialogDescription className="sr-only">
@@ -1687,6 +1688,7 @@ export const ProjectSpaceWorkspace = ({
 
       <Dialog open={Boolean(inspectorRecordId)} onOpenChange={(open) => (!open ? closeInspectorWithFocusRestore() : undefined)}>
         <DialogContent
+          open={Boolean(inspectorRecordId)}
           animated
           layoutId={dialogLayoutIds.recordInspector}
           className="dialog-panel-sheet-size !left-0 !top-0 h-screen !translate-x-0 !translate-y-0 overflow-y-auto rounded-none sm:!rounded-none border-r border-border-muted"

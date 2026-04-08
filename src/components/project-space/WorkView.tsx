@@ -240,6 +240,8 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
         layoutId={mobileModulesLayoutId}
         ref={triggerRef}
         type="button"
+        aria-haspopup="dialog"
+        aria-expanded={overlayOpen}
         onClick={() => setOverlayOpen(true)}
         className="sticky top-0 z-20 w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-center text-sm font-semibold text-text md:hidden"
       >

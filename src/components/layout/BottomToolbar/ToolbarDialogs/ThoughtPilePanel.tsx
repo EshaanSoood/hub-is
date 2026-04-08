@@ -34,6 +34,7 @@ export const ThoughtPilePanel = ({
   closeCapturePanel,
 }: ThoughtPilePanelProps) => (
   <PopoverContent
+    forceMount
     asChild
     side="top"
     align="center"

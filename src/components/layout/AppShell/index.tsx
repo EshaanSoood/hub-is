@@ -48,7 +48,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       ? fadeThroughVariants(prefersReducedMotion)
       : routeFadeVariants(prefersReducedMotion);
 
-  const routeTransitionKey = `${location.pathname}${location.search}`;
+  const routeTransitionKey = location.pathname;
 
   return (
     <div className="flex h-screen flex-col bg-surface text-text">

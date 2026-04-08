@@ -44,6 +44,7 @@ export const Dialog = ({
 }: BaseDialogProps) => (
   <DialogRoot open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
     <DialogContent
+      open={open}
       onCloseAutoFocus={(event) => {
         if (triggerRef?.current) {
           event.preventDefault();
@@ -90,6 +91,7 @@ export const AlertDialog = ({
 }: ConfirmDialogProps) => (
   <AlertDialogRoot open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent
+      open={open}
       animated={Boolean(layoutId)}
       layoutId={layoutId}
       onCloseAutoFocus={(event) => {

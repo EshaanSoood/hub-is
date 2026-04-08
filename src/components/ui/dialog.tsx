@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { cn } from '../../lib/cn';
 import { dialogSurfaceVariants, routeFadeVariants } from '../motion/hubMotion';
 
@@ -34,9 +34,39 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 export const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { layoutId?: string; animated?: boolean }
->(({ className, children, layoutId, animated = false, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { layoutId?: string; animated?: boolean; open?: boolean }
+>(({ className, children, layoutId, animated = false, open, ...props }, ref) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
+  if (animated && typeof open === 'boolean') {
+    return (
+      <DialogPortal forceMount>
+        <AnimatePresence>
+          {open ? (
+            <React.Fragment key="dialog-content">
+              <DialogOverlay animated forceMount />
+              <DialogPrimitive.Content forceMount asChild {...props}>
+                <motion.div
+                  ref={ref}
+                  layoutId={!prefersReducedMotion ? layoutId : undefined}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={dialogSurfaceVariants(prefersReducedMotion)}
+                  className={cn(
+                    'dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
+                    className,
+                  )}
+                >
+                  {children}
+                </motion.div>
+              </DialogPrimitive.Content>
+            </React.Fragment>
+          ) : null}
+        </AnimatePresence>
+      </DialogPortal>
+    );
+  }
+
   return (
     <DialogPortal>
       <DialogOverlay animated={animated} />

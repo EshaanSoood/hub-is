@@ -43,7 +43,7 @@ export const ModuleGrid = ({
   const prefersReducedMotion = useReducedMotion() ?? false;
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const addModuleLayoutId = !prefersReducedMotion && addDialogOpen ? dialogLayoutIds.addModule : undefined;
+  const addModuleLayoutId = !prefersReducedMotion ? dialogLayoutIds.addModule : undefined;
 
   const openAddDialog = () => {
     if (disableAdd) {

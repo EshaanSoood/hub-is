@@ -48,7 +48,7 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
   return (
     <div id={id} role="toolbar" aria-label="Open panes" className="flex items-center gap-0.5 px-2 py-1">
       <span className="sr-only">
-        Use Left and Right arrows to move focus. Use Home and End to jump to first and last panes. Use Ctrl plus arrows to reorder panes.
+        Use Left and Right arrows to navigate between panes. Use Home and End to jump to first and last panes. Use Ctrl plus arrows to reorder panes.
       </span>
       {panes.map((pane, index) => {
         const isActive = pane.id === activePaneId;

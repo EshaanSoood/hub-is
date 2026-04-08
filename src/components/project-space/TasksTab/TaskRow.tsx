@@ -374,7 +374,7 @@ export const TaskRow = ({
               <button
                 ref={triggerRef}
                 type="button"
-                aria-haspopup="menu"
+                aria-haspopup="dialog"
                 aria-expanded={menuOpen}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -401,7 +401,7 @@ export const TaskRow = ({
                 {menuOpen ? (
                   <AnimatedSurface
                     ref={menuRef}
-                    role="menu"
+                    role="dialog"
                     tabIndex={-1}
                     ariaLabel={`Task actions for ${task.label}`}
                     onClick={(event) => event.stopPropagation()}
@@ -421,7 +421,6 @@ export const TaskRow = ({
                               <button
                                 key={option.label}
                                 type="button"
-                                role="menuitem"
                                 data-menu-item="true"
                                 onClick={() => runMenuAction(() => onUpdateTaskPriority(task.id, option.value))}
                                 className={cn(
@@ -455,7 +454,6 @@ export const TaskRow = ({
                           />
                           <button
                             type="button"
-                            role="menuitem"
                             data-menu-item="true"
                             onClick={() => runMenuAction(() => onUpdateTaskDueDate(task.id, null))}
                             className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -497,7 +495,6 @@ export const TaskRow = ({
                       {onUpdateTaskStatus ? (
                         <button
                           type="button"
-                          role="menuitem"
                           data-menu-item="true"
                           onClick={() => runMenuAction(() => onUpdateTaskStatus(task.id, status === 'cancelled' ? 'todo' : 'cancelled'))}
                           className="rounded-control px-2 py-1 text-left text-sm text-text hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -508,7 +505,6 @@ export const TaskRow = ({
                       {onDeleteTask ? (
                         <button
                           type="button"
-                          role="menuitem"
                           data-menu-item="true"
                           onClick={handleArchiveClick}
                           className="rounded-control px-2 py-1 text-left text-sm text-danger hover:bg-danger-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
