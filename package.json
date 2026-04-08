@@ -49,7 +49,7 @@
     "deploy": "npm run deploy:root && npm run deploy:hub-api && npm run deploy:collab && npm run deploy:tuwunel"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

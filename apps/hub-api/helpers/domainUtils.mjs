@@ -32,7 +32,13 @@ export const createDomainUtils = ({
     const parts = raw.split('/').map((part) => part.trim()).filter(Boolean);
     const clean = [];
     for (const part of parts) {
-      if (part === '.' || part === '..') {
+      if (part === '.') {
+        continue;
+      }
+      if (part === '..') {
+        if (clean.length > 0) {
+          clean.pop();
+        }
         continue;
       }
       clean.push(part);

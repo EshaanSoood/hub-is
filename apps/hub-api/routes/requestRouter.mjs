@@ -35,7 +35,14 @@ export const createRequestRouter = ({
     return;
   }
 
-  const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+  let requestUrl;
+  try {
+    requestUrl = new URL(request.url, 'http://localhost');
+  } catch (error) {
+    request.log.warn('Failed to parse request URL.', { url: request.url, error });
+    send(response, jsonResponse(400, errorEnvelope('bad_request', 'Malformed request URL.')));
+    return;
+  }
   const pathname = requestUrl.pathname;
 
   if (request.method === 'OPTIONS') {
@@ -833,6 +840,11 @@ export const createRequestRouter = ({
 
     send(response, jsonResponse(404, errorEnvelope('not_found', 'Endpoint not found.')));
   } catch (error) {
+    if (error instanceof URIError) {
+      request.log.warn('Malformed URL-encoded path parameter.', { error });
+      send(response, jsonResponse(400, errorEnvelope('bad_request', 'Malformed URL-encoded path parameter.')));
+      return;
+    }
     request.log.error('Unhandled request error.', { error });
     send(
       response,

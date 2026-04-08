@@ -23,7 +23,7 @@ export const createPostmarkIntegration = ({
       .replaceAll('\'', '&#39;');
 
   const renderHubPilotInviteHtml = ({ appUrl = HUB_PUBLIC_APP_URL, projectName = 'Pilot Party' } = {}) => {
-    const resolvedUrl = asText(appUrl) || 'https://eshaansood.org';
+    const resolvedUrl = escapeHtml(asText(appUrl) || 'https://eshaansood.org');
     const resolvedProjectName = escapeHtml(asText(projectName) || 'Pilot Party');
     return HUB_POSTMARK_INVITE_TEMPLATE
       .replaceAll('{{APP_URL}}', resolvedUrl)
