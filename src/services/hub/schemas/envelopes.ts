@@ -5,7 +5,13 @@ export const HubErrorPayloadSchema = z.object({
   message: z.string(),
 });
 
-export const createHubEnvelopeSchema = <TData extends z.ZodTypeAny>(dataSchema: TData) =>
+type HubEnvelopeSchema<TData extends z.ZodTypeAny> = z.ZodObject<{
+  ok: z.ZodBoolean;
+  data: z.ZodNullable<TData>;
+  error: z.ZodNullable<typeof HubErrorPayloadSchema>;
+}>;
+
+export const createHubEnvelopeSchema = <TData extends z.ZodTypeAny>(dataSchema: TData): HubEnvelopeSchema<TData> =>
   z.object({
     ok: z.boolean(),
     data: dataSchema.nullable(),
