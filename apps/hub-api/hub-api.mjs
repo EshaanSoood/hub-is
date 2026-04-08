@@ -2,7 +2,6 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
-  createHmac,
   randomBytes,
   randomUUID,
 } from 'node:crypto';
@@ -16,6 +15,10 @@ import { initSearch } from './db/search-setup.mjs';
 import { initSchema } from './db/schema.mjs';
 import { createStatements } from './db/statements.mjs';
 import { withTransaction } from './db/transaction.mjs';
+import { createAuthHelpers } from './helpers/auth.mjs';
+import { createCalendarFeedTokenHelpers } from './helpers/calendarFeedToken.mjs';
+import { createPermissionHelpers } from './helpers/permissions.mjs';
+import { createValidationHelpers } from './helpers/validation.mjs';
 import { createRequestLogger } from './lib/logger.mjs';
 import { applyRequestContext } from './lib/requestContext.mjs';
 import { fetchWithTimeout, isFetchTimeoutError } from './lib/fetch-utils.mjs';
@@ -76,27 +79,27 @@ const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerC
 const REGISTERED_ROUTE_COUNT = 79;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
-const nowIso = () => new Date().toISOString();
-const asText = (value) => (typeof value === 'string' ? value.trim() : '');
-const asNullableText = (value) => {
-  const normalized = asText(value);
-  return normalized || null;
-};
-const CALENDAR_FEED_TOKEN_HASH_PREFIX = 'h1:';
-const calendarFeedTokenSecret = () => {
-  if (!HUB_CALENDAR_FEED_TOKEN_SECRET) {
-    throw new Error('Calendar feed token secret is unavailable.');
-  }
-  return HUB_CALENDAR_FEED_TOKEN_SECRET;
-};
-const deriveCalendarFeedToken = (userId) =>
-  createHmac('sha256', calendarFeedTokenSecret())
-    .update(`calendar-feed:user:${asText(userId)}`)
-    .digest('hex');
-const hashCalendarFeedToken = (token) =>
-  `${CALENDAR_FEED_TOKEN_HASH_PREFIX}${createHmac('sha256', calendarFeedTokenSecret())
-    .update(`calendar-feed:token:${asText(token)}`)
-    .digest('hex')}`;
+const {
+  nowIso,
+  asText,
+  asNullableText,
+  asInteger,
+  asBoolean,
+  parseJson,
+  parseJsonObject,
+  parseUpstreamJson,
+  toJson,
+  okEnvelope,
+  errorEnvelope,
+  jsonResponse,
+  send,
+  parseBody,
+} = createValidationHelpers({
+  ALLOWED_ORIGIN,
+  HUB_API_MAX_BODY_BYTES_RAW,
+  HUB_API_LARGE_BODY_MAX_BYTES_RAW,
+  systemLog,
+});
 
 
 const safeTuwunelConfig = () =>
@@ -154,81 +157,12 @@ if (!safeTuwunelConfig()) {
   systemLog.warn('Matrix chat provisioning is disabled until TUWUNEL_REGISTRATION_SHARED_SECRET and MATRIX_ACCOUNT_ENCRYPTION_KEY are configured.');
 }
 
-const asInteger = (value, fallback, min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER) => {
-  const parsed = Number.parseInt(String(value ?? ''), 10);
-  if (!Number.isInteger(parsed)) {
-    return fallback;
-  }
-  return Math.min(max, Math.max(min, parsed));
-};
-
 const HUB_COLLAB_TICKET_TTL_MS = asInteger(HUB_COLLAB_TICKET_TTL_MS_RAW, 120_000, 5_000, 3_600_000);
 const EXTERNAL_API_TIMEOUT_MS = asInteger(EXTERNAL_API_TIMEOUT_MS_RAW, 15_000, 1_000, 120_000);
 const KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS = asInteger(KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS_RAW, 604_800, 300, 2_592_000);
 const KEYCLOAK_REQUIRED_INVITE_ACTIONS = Object.freeze(['VERIFY_EMAIL', 'UPDATE_PROFILE', 'UPDATE_PASSWORD']);
 
-const asBoolean = (value, fallback = false) => {
-  if (typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return value !== 0;
-  }
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    if (['true', '1', 'yes', 'on'].includes(normalized)) {
-      return true;
-    }
-    if (['false', '0', 'no', 'off'].includes(normalized)) {
-      return false;
-    }
-  }
-  return fallback;
-};
-
 const NEXTCLOUD_FETCH_TIMEOUT_MS = asInteger(NEXTCLOUD_FETCH_TIMEOUT_MS_RAW, 30_000, 1_000, 300_000);
-const HUB_API_MAX_BODY_BYTES = asInteger(HUB_API_MAX_BODY_BYTES_RAW, 1_048_576, 1_024, 50 * 1024 * 1024);
-const HUB_API_LARGE_BODY_MAX_BYTES = asInteger(
-  HUB_API_LARGE_BODY_MAX_BYTES_RAW,
-  50 * 1024 * 1024,
-  HUB_API_MAX_BODY_BYTES,
-  100 * 1024 * 1024,
-);
-
-const parseJson = (value, fallback = null) => {
-  if (value === null || value === undefined || value === '') {
-    return fallback;
-  }
-  if (typeof value === 'object') {
-    return value;
-  }
-  try {
-    return JSON.parse(String(value));
-  } catch (error) {
-    systemLog.warn('Failed to parse JSON value; using fallback.', {
-      error,
-      valueType: typeof value,
-    });
-    return fallback;
-  }
-};
-
-const parseJsonObject = (value, fallback = {}) => {
-  const parsed = parseJson(value, fallback);
-  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-    return parsed;
-  }
-  return fallback;
-};
-
-const parseUpstreamJson = async (response, requestLog = null, message = 'Failed to parse upstream JSON response.') => {
-  try {
-    return await response.json();
-  } catch (error) {
-    requestLog?.warn?.(message, { error });
-    return null;
-  }
-};
 
 const {
   ensureKeycloakInviteOnboarding,
@@ -373,155 +307,6 @@ const extractDocNodeKeyState = (snapshotPayload) => {
   return result;
 };
 
-const toJson = (value) => JSON.stringify(value ?? null);
-
-const okEnvelope = (data) => ({ ok: true, data, error: null });
-const errorEnvelope = (code, message) => ({
-  ok: false,
-  data: null,
-  error: {
-    code,
-    message,
-  },
-});
-
-const jsonResponse = (statusCode, payload) => ({
-  statusCode,
-  headers: {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-    'Access-Control-Allow-Methods': 'GET,POST,PATCH,PUT,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Hub-Dev-Auth',
-  },
-  body: JSON.stringify(payload),
-});
-
-const send = (response, output) => {
-  response.writeHead(output.statusCode, output.headers);
-  response.end(output.body);
-};
-
-class BodyTooLargeError extends Error {
-  constructor(limitBytes) {
-    super(`Request body exceeds ${limitBytes} bytes.`);
-    this.name = 'BodyTooLargeError';
-    this.limit_bytes = limitBytes;
-  }
-}
-
-const isBodyTooLargeError = (error) => error instanceof BodyTooLargeError;
-
-const readRequestBuffer = async (request, { maxBytes = HUB_API_MAX_BODY_BYTES } = {}) => {
-  const normalizedMaxBytes = asInteger(maxBytes, HUB_API_MAX_BODY_BYTES, 1_024, HUB_API_LARGE_BODY_MAX_BYTES);
-  const contentLength = Number.parseInt(String(request.headers['content-length'] || ''), 10);
-  if (Number.isInteger(contentLength) && contentLength > normalizedMaxBytes) {
-    request.resume();
-    throw new BodyTooLargeError(normalizedMaxBytes);
-  }
-
-  const chunks = [];
-  let totalBytes = 0;
-  for await (const chunk of request) {
-    const nextChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    totalBytes += nextChunk.byteLength;
-    if (totalBytes > normalizedMaxBytes) {
-      request.resume();
-      throw new BodyTooLargeError(normalizedMaxBytes);
-    }
-    chunks.push(nextChunk);
-  }
-  return Buffer.concat(chunks);
-};
-
-const bodyParseErrorResponse = (error, { invalidCode = 'invalid_json', invalidMessage = 'Body must be valid JSON.' } = {}) => {
-  if (isBodyTooLargeError(error)) {
-    return jsonResponse(413, errorEnvelope('payload_too_large', `Request body exceeds ${error.limit_bytes} bytes.`));
-  }
-  return jsonResponse(400, errorEnvelope(invalidCode, invalidMessage));
-};
-
-const parseBody = async (request, options = {}) => {
-  const raw = (await readRequestBuffer(request, options)).toString('utf8').trim();
-  if (!raw) {
-    return {};
-  }
-  return JSON.parse(raw);
-};
-parseBody.errorResponse = bodyParseErrorResponse;
-parseBody.defaultMaxBytes = HUB_API_MAX_BODY_BYTES;
-parseBody.largeMaxBytes = HUB_API_LARGE_BODY_MAX_BYTES;
-
-const fromBase64Url = (value) => {
-  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
-  return Buffer.from(padded, 'base64').toString('utf8');
-};
-
-const parseBearerToken = (request) => {
-  const header = asText(request.headers.authorization || '');
-  if (!header) {
-    return '';
-  }
-  const [scheme, token] = header.split(/\s+/);
-  if (scheme !== 'Bearer' || !token) {
-    return '';
-  }
-  return token;
-};
-
-const projectRoleSet = new Set(['owner', 'member']);
-const fieldTypeSet = new Set([
-  'text',
-  'number',
-  'date',
-  'checkbox',
-  'select',
-  'multi_select',
-  'person',
-  'relation',
-  'file',
-]);
-const viewTypeSet = new Set(['table', 'kanban', 'list', 'calendar', 'timeline', 'gallery']);
-const capabilitySet = new Set(['task', 'calendar_event', 'recurring', 'remindable', 'meeting', 'milestone', 'capture']);
-const commentStatusSet = new Set(['open', 'resolved']);
-const notificationReasons = Object.freeze([
-  'mention', 'assignment', 'reminder', 'comment_reply', 'automation', 'update', 'comment', 'snapshot',
-]);
-const notificationReasonSet = new Set(notificationReasons);
-const automationRunStatusSet = new Set(['queued', 'running', 'success', 'failed']);
-const projectPolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage_members']);
-const panePolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage']);
-const docPolicyCapabilitySet = new Set(['view', 'comment', 'write']);
-const ownerProjectCapabilities = Object.freeze([
-  'project.view',
-  'project.activity.view',
-  'project.notes.view',
-  'project.files.view',
-  'project.automations.view',
-]);
-const collaboratorProjectCapabilities = Object.freeze([
-  'project.view',
-  'project.activity.view',
-  'project.notes.view',
-  'project.files.view',
-]);
-const viewerProjectCapabilities = Object.freeze(['project.view', 'project.activity.view', 'project.notes.view', 'project.files.view']);
-const globalCapabilitiesBySessionRole = Object.freeze({
-  Owner: Object.freeze(['hub.view', 'hub.tasks.write', 'hub.notifications.write', 'hub.live', 'projects.view', 'services.external.view']),
-  Collaborator: Object.freeze(['hub.view', 'hub.tasks.write', 'hub.notifications.write', 'hub.live', 'projects.view']),
-  Viewer: Object.freeze([]),
-});
-const authenticatedGlobalCapabilities = Object.freeze([
-  'hub.chat.provision',
-  'hub.chat.view',
-  'hub.chat.write',
-]);
-const sessionRolePriority = Object.freeze({
-  Viewer: 0,
-  Collaborator: 1,
-  Owner: 2,
-});
-
 const jwtVerifier = (() => {
   if (KEYCLOAK_ISSUER) {
     return createJwksVerifier({
@@ -662,173 +447,63 @@ const {
   },
 } = stmts;
 
-const getOrCreateCalendarFeedToken = (userId) => {
-  const normalizedUserId = asText(userId);
-  if (!normalizedUserId) {
-    throw new Error('User ID is required to issue a calendar feed token.');
-  }
-
-  const token = deriveCalendarFeedToken(normalizedUserId);
-  const storedToken = hashCalendarFeedToken(token);
-  const existing = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
-  if (existing && asText(existing.token) === storedToken) {
-    return {
-      token,
-      user_id: normalizedUserId,
-      created_at: existing.created_at,
-    };
-  }
-
-  return withTransaction(db, () => {
-    const current = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
-    const createdAt = asText(current?.created_at) || nowIso();
-    if (!current || asText(current.token) !== storedToken) {
-      insertCalendarFeedTokenStmt.run(storedToken, normalizedUserId, createdAt);
-    }
-    return {
-      token,
-      user_id: normalizedUserId,
-      created_at: createdAt,
-    };
-  });
-};
-
-const buildCalendarFeedUrl = (token) =>
-  `${HUB_PUBLIC_APP_URL}/api/hub/calendar.ics?token=${encodeURIComponent(asText(token))}`;
-
-const findCalendarFeedTokenRecord = (token) => {
-  const normalizedToken = asText(token);
-  if (!normalizedToken) {
-    return null;
-  }
-  return calendarFeedTokenByTokenStmt.get(hashCalendarFeedToken(normalizedToken)) || null;
-};
-
-const normalizeProjectRole = (role) => (asText(role) === 'owner' || asText(role) === 'admin' ? 'owner' : 'member');
-
-const membershipRoleLabel = (role) => (normalizeProjectRole(role) === 'owner' ? 'owner' : 'member');
-
-const withProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
-  if (!projectPolicyCapabilitySet.has(requiredCapability)) {
-    throw new Error(`Unknown project capability: ${requiredCapability}`);
-  }
-
-  const membership = projectMembershipRoleStmt.get(projectId, userId);
-  if (!membership) {
-    return { error: { status: 403, code: 'forbidden', message: 'Project membership required.' } };
-  }
-
-  const role = normalizeProjectRole(membership.role);
-  const capabilities = new Set(role === 'owner'
-    ? ['view', 'comment', 'write', 'manage_members']
-    : ['view', 'comment']);
-  if (!capabilities.has(requiredCapability)) {
-    return {
-      error: {
-        status: 403,
-        code: 'forbidden',
-        message: `Project capability "${requiredCapability}" required.`,
-      },
-    };
-  }
-
-  return {
-    project_id: projectId,
-    role,
-    is_owner: role === 'owner',
-  };
-};
-
-const withPanePolicyGate = ({ userId, paneId, requiredCapability }) => {
-  if (!panePolicyCapabilitySet.has(requiredCapability)) {
-    throw new Error(`Unknown pane capability: ${requiredCapability}`);
-  }
-
-  const pane = paneByIdStmt.get(paneId);
-  if (!pane) {
-    return { error: { status: 404, code: 'not_found', message: 'Pane not found.' } };
-  }
-
-  const projectGate = withProjectPolicyGate({ userId, projectId: pane.project_id, requiredCapability: 'view' });
-  if (projectGate.error) {
-    return projectGate;
-  }
-
-  const isExplicitEditor = Boolean(paneEditorExistsStmt.get(paneId, userId)?.ok);
-  const canWrite = projectGate.is_owner || isExplicitEditor;
-  const capabilities = new Set(canWrite ? ['view', 'comment', 'write', 'manage'] : ['view', 'comment']);
-  if (!capabilities.has(requiredCapability)) {
-    return {
-      error: {
-        status: 403,
-        code: 'forbidden',
-        message: `Pane capability "${requiredCapability}" required.`,
-      },
-    };
-  }
-
-  return {
-    pane_id: paneId,
-    project_id: pane.project_id,
-    pane,
-    is_owner: projectGate.is_owner,
-    is_explicit_editor: isExplicitEditor,
-    can_edit: canWrite,
-  };
-};
-
-const withDocPolicyGate = ({ userId, docId, requiredCapability }) => {
-  if (!docPolicyCapabilitySet.has(requiredCapability)) {
-    throw new Error(`Unknown doc capability: ${requiredCapability}`);
-  }
-
-  const doc = paneForDocStmt.get(docId);
-  if (!doc) {
-    return { error: { status: 404, code: 'not_found', message: 'Doc not found.' } };
-  }
-
-  const paneGate = withPanePolicyGate({
-    userId,
-    paneId: doc.pane_id,
-    requiredCapability: requiredCapability === 'write' ? 'write' : 'view',
-  });
-  if (paneGate.error) {
-    return paneGate;
-  }
-  if (requiredCapability === 'comment') {
-    const commentGate = withPanePolicyGate({ userId, paneId: doc.pane_id, requiredCapability: 'comment' });
-    if (commentGate.error) {
-      return commentGate;
-    }
-  }
-
-  return {
-    doc_id: doc.doc_id,
-    pane_id: doc.pane_id,
-    project_id: doc.project_id,
-    can_edit: paneGate.can_edit,
-  };
-};
-
-const ensureProjectMembership = (userId, projectId) =>
-  withProjectPolicyGate({ userId, projectId, requiredCapability: 'view' }).error || null;
-
-const requireProjectMember = (projectId, userId) => withProjectPolicyGate({
-  userId,
-  projectId,
-  requiredCapability: 'view',
+const {
+  fieldTypeSet,
+  viewTypeSet,
+  capabilitySet,
+  commentStatusSet,
+  notificationReasons,
+  notificationReasonSet,
+  ownerProjectCapabilities,
+  collaboratorProjectCapabilities,
+  globalCapabilitiesBySessionRole,
+  authenticatedGlobalCapabilities,
+  sessionRolePriority,
+  normalizeProjectRole,
+  membershipRoleLabel,
+  withProjectPolicyGate,
+  withPanePolicyGate,
+  withDocPolicyGate,
+  requireDocAccess,
+} = createPermissionHelpers({
+  asText,
+  projectMembershipRoleStmt,
+  paneByIdStmt,
+  paneEditorExistsStmt,
+  paneForDocStmt,
 });
 
-const requirePaneMember = (paneId, userId) => withPanePolicyGate({
-  userId,
-  paneId,
-  requiredCapability: 'view',
+const {
+  parseBearerToken,
+  parseCursorOffset,
+  encodeCursorOffset,
+  buildSessionSummary,
+} = createAuthHelpers({
+  asText,
+  systemLog,
+  projectMembershipsByUserStmt,
+  membershipRoleLabel,
+  collaboratorProjectCapabilities,
+  ownerProjectCapabilities,
+  sessionRolePriority,
+  authenticatedGlobalCapabilities,
+  globalCapabilitiesBySessionRole,
 });
 
-const requireDocAccess = (docId, userId) => withDocPolicyGate({
-  userId,
-  docId,
-  requiredCapability: 'view',
+const {
+  getOrCreateCalendarFeedToken,
+  buildCalendarFeedUrl,
+  findCalendarFeedTokenRecord,
+} = createCalendarFeedTokenHelpers({
+  HUB_CALENDAR_FEED_TOKEN_SECRET,
+  HUB_PUBLIC_APP_URL,
+  asText,
+  nowIso,
+  db,
+  withTransaction,
+  calendarFeedTokenByUserIdStmt,
+  calendarFeedTokenByTokenStmt,
+  insertCalendarFeedTokenStmt,
 });
 
 const timelineRecord = (row) => ({
@@ -2075,72 +1750,7 @@ const materializeMentions = ({ projectId, sourceEntityType, sourceEntityId, ment
   return created;
 };
 
-const buildSessionSummary = (user) => {
-  const memberships = projectMembershipsByUserStmt.all(user.user_id);
-  let sessionRole = 'Viewer';
-  const projectMemberships = memberships.map((membership) => ({
-    projectId: membership.project_id,
-    membershipRole: membershipRoleLabel(membership.role),
-  }));
-
-  const projectCapabilities = {};
-  for (const membership of memberships) {
-    const membershipRole = membershipRoleLabel(membership.role);
-    let capabilities = collaboratorProjectCapabilities;
-    let derivedSessionRole = 'Collaborator';
-
-    if (membershipRole === 'owner') {
-      capabilities = ownerProjectCapabilities;
-      derivedSessionRole = 'Owner';
-    }
-
-    projectCapabilities[membership.project_id] = [...capabilities];
-    if (sessionRolePriority[derivedSessionRole] > sessionRolePriority[sessionRole]) {
-      sessionRole = derivedSessionRole;
-    }
-  }
-
-  const globalCapabilities = [...new Set([
-    ...authenticatedGlobalCapabilities,
-    ...(memberships.length > 0 ? globalCapabilitiesBySessionRole[sessionRole] : []),
-  ])];
-
-  return {
-    userId: user.user_id,
-    name: user.display_name,
-    firstName: user.display_name,
-    lastName: '',
-    email: user.email || '',
-    role: sessionRole,
-    projectMemberships,
-    globalCapabilities,
-    projectCapabilities,
-  };
-};
-
 const pathMatch = (pathname, regex) => pathname.match(regex);
-
-const parseCursorOffset = (cursorRaw) => {
-  const cursor = asText(cursorRaw);
-  if (!cursor) {
-    return 0;
-  }
-  try {
-    const payload = JSON.parse(fromBase64Url(cursor));
-    const offset = Number(payload?.offset);
-    return Number.isInteger(offset) && offset >= 0 ? offset : 0;
-  } catch (error) {
-    systemLog.warn('Failed to decode pagination cursor; defaulting to offset 0.', { error });
-    return 0;
-  }
-};
-
-const encodeCursorOffset = (offset) =>
-  Buffer.from(JSON.stringify({ offset }), 'utf8')
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
 
 const withAuth = async (request) => {
   const identity = await ensureUserFromRequest(request);
