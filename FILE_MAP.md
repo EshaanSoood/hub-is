@@ -158,7 +158,7 @@ src/components/project-space/FilesModuleSkin.tsx — Renders files module skin m
 src/components/project-space/FilterBar.tsx — Renders filter bar UI.
 src/components/project-space/FilterBarOverlay.tsx — Renders filter bar overlay UI; uses state, memoized data.
 src/components/project-space/FocusModeToolbar.tsx — Renders focus mode toolbar; uses memoized data, refs.
-src/components/project-space/InboxCaptureModuleSkin.tsx — Renders quick thoughts module skin module view; uses state, memoized data, effects, refs.
+src/components/project-space/QuickThoughtsModuleSkin.tsx — Renders quick thoughts module skin module view; uses state, memoized data, effects, refs.
 src/components/project-space/KanbanModuleSkin.tsx — Renders kanban module skin module view; uses memoized data, useDroppable.
 src/components/project-space/MentionPicker.tsx — Renders mention picker UI; uses state, memoized data, effects, refs, useId.
 src/components/project-space/mockProjectSpace.ts — Exports moduleTemplates, buildCollaborators, buildClientReferences for mock project space.

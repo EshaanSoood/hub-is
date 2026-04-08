@@ -123,13 +123,11 @@ export interface FilesModuleContract {
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
 }
 
-export interface InboxCaptureModuleContract {
+export interface QuickThoughtsModuleContract {
   storageKeyBase: string;
   legacyStorageKeyBase?: string;
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
 }
-
-export type QuickThoughtsModuleContract = InboxCaptureModuleContract;
 
 export interface TimelineModuleContract {
   clusters: TimelineCluster[];

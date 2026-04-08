@@ -270,7 +270,7 @@ Audit note on shared wrapper behavior:
 - Trigger: none in this file.
 - What renders: no dedicated error UI.
 
-## InboxCaptureModuleSkin
+## QuickThoughtsModuleSkin
 ### Empty state
 - Trigger: `visibleEntries.length === 0`.
 - What renders: Text `"Nothing captured for this pane yet."`.
