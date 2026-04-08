@@ -1117,7 +1117,7 @@ function FormField({ label, error, id, children }) {
 Hub OS must maintain a logical heading hierarchy on every view. VoiceOver users navigate by headings constantly.
 The examples below are target semantics for view-level headings (`myHub` naming), while the current app shell keeps a separate visually hidden global `<h1>Hub workspace</h1>`.
 
-```
+```text
 h1: myHub (or current view name — ONE per page)
   h2: Today's Tasks
     h3: Project: Hub OS
