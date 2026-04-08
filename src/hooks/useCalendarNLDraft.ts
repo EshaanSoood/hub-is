@@ -176,6 +176,7 @@ export const useCalendarNLDraft = ({
 
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef(0);
+  const debounceTimerRef = useRef(0);
 
   const queueParse = useCallback((nextDraft: string) => {
     if (!enabled) {
@@ -214,28 +215,56 @@ export const useCalendarNLDraft = ({
   }, []);
 
   useEffect(() => {
-    if (!enabled) {
-      const timer = window.setTimeout(() => {
-        requestIdRef.current += 1;
+    if (!enabled || !draft.trim()) {
+      requestIdRef.current += 1;
+      const requestId = requestIdRef.current;
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled || requestIdRef.current !== requestId) {
+          return;
+        }
         setPreview(emptyPreview());
         setError(null);
         setLastParsedDraft('');
-      }, 0);
+      });
       return () => {
-        window.clearTimeout(timer);
+        cancelled = true;
       };
     }
 
-    const timer = window.setTimeout(() => {
+    if (debounceTimerRef.current) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = 0;
+    }
+
+    debounceTimerRef.current = window.setTimeout(() => {
+      debounceTimerRef.current = 0;
       queueParse(draft);
     }, parseDelayMs);
 
     return () => {
-      window.clearTimeout(timer);
+      if (debounceTimerRef.current) {
+        window.clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = 0;
+      }
     };
   }, [draft, enabled, parseDelayMs, queueParse]);
 
   const parseNow = (): CalendarParseResult => {
+    if (debounceTimerRef.current) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = 0;
+    }
+
+    if (!draft.trim()) {
+      const nextPreview = emptyPreview();
+      requestIdRef.current += 1;
+      setPreview(nextPreview);
+      setError(null);
+      setLastParsedDraft('');
+      return nextPreview;
+    }
+
     if (!enabled) {
       const nextPreview = emptyPreview();
       requestIdRef.current += 1;
@@ -244,8 +273,13 @@ export const useCalendarNLDraft = ({
       setLastParsedDraft('');
       return nextPreview;
     }
+    const nextPreview = emptyPreview();
+    requestIdRef.current += 1;
+    setPreview(nextPreview);
+    setError(null);
+    setLastParsedDraft('');
     queueParse(draft);
-    return preview;
+    return nextPreview;
   };
 
   const clear = () => {
