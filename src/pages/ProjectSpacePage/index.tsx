@@ -27,12 +27,12 @@ import { useRecordInspector } from '../../hooks/useRecordInspector';
 import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { useTimelineRuntime } from '../../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../../hooks/useWorkspaceDocRuntime';
-import { archiveRecord, createEventFromNlp, createRecord, updateRecord } from '../../services/hub/records';
 import { useFocusNodeQueryEffect } from './hooks/useFocusNodeQueryEffect';
 import { useOverviewViewFromSearchParams } from './hooks/useOverviewViewFromSearchParams';
 import { useOverviewViewQuerySyncEffect } from './hooks/useOverviewViewQuerySyncEffect';
 import { usePaneControlEffects } from './hooks/usePaneControlEffects';
 import { useQuickCaptureQueryIntentEffect } from './hooks/useQuickCaptureQueryIntentEffect';
+import { useWorkViewModuleRuntime } from './hooks/useWorkViewModuleRuntime';
 import { useWorkRouteAndInspectorQueryEffects } from './hooks/useWorkRouteAndInspectorQueryEffects';
 import { AccessDeniedView } from '../../components/auth/AccessDeniedView';
 import {
@@ -54,7 +54,7 @@ import { PaneSwitcher } from '../../components/project-space/PaneSwitcher';
 import { RelationsSection } from '../../components/project-space/RelationsSection';
 import { AutomationBuilder } from '../../components/project-space/AutomationBuilder';
 import { FileInspectorActionBar } from '../../components/project-space/FileInspectorActionBar';
-import { WorkView, type WorkViewModuleRuntime } from '../../components/project-space/WorkView';
+import { WorkView } from '../../components/project-space/WorkView';
 import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
 
 // Layout contract references:
@@ -668,229 +668,51 @@ const ProjectSpaceWorkspace = ({
     searchParams,
     setSearchParams,
   });
-  const workViewModuleRuntime = useMemo<WorkViewModuleRuntime>(
-    () => ({
-      table: {
-        views: tableViews,
-        defaultViewId: tableViews[0]?.view_id || null,
-        dataByViewId: tableViewRuntimeDataById,
-        onCreateRecord: async (viewId, payload) => {
-          await onCreateTableRecord(viewId, payload, activePane?.pane_id ?? null);
-        },
-        onUpdateRecord: async (viewId, recordId, fields) => {
-          await onUpdateTableRecord(viewId, recordId, fields, activePane?.pane_id ?? null);
-        },
-        onDeleteRecords: async (viewId, recordIds) => {
-          await onDeleteTableRecords(viewId, recordIds, activePane?.pane_id ?? null);
-        },
-        onBulkUpdateRecords: async (viewId, recordIds, fields) => {
-          await onBulkUpdateTableRecords(viewId, recordIds, fields, activePane?.pane_id ?? null);
-        },
-      },
-      kanban: {
-        views: kanbanViews,
-        defaultViewId: kanbanViews[0]?.view_id || null,
-        dataByViewId: kanbanRuntimeDataByViewId,
-        onCreateRecord: async (viewId, payload) => {
-          await onCreateKanbanRecord(viewId, payload, activePane?.pane_id ?? null);
-        },
-        onDeleteRecord: async (_viewId, recordId) => {
-          await onDeleteKanbanRecord(recordId, activePane?.pane_id ?? null);
-        },
-        onMoveRecord: (viewId, recordId, nextGroup) => {
-          void onMoveKanbanRecord(viewId, recordId, nextGroup, activePane?.pane_id ?? null);
-        },
-        onUpdateRecord: async (viewId, recordId, fields) => {
-          await onUpdateKanbanRecord(viewId, recordId, fields, activePane?.pane_id ?? null);
-        },
-      },
-      calendar: {
-        events: calendarEvents,
-        loading: calendarLoading,
-        scope: calendarMode,
-        onScopeChange: setCalendarMode,
-        onCreateEvent:
-          activePaneCanEdit && canWriteProject
-            ? async (payload) => {
-                if (!accessToken) {
-                  return;
-                }
-                await createEventFromNlp(accessToken, project.project_id, payload);
-                await refreshCalendar();
-              }
-            : undefined,
-        onRescheduleEvent:
-          activePaneCanEdit && canWriteProject
-            ? async (payload) => {
-                if (!accessToken) {
-                  return;
-                }
-                try {
-                  await updateRecord(accessToken, payload.record_id, {
-                    event_state: {
-                      start_dt: payload.start_dt,
-                      end_dt: payload.end_dt,
-                      timezone: payload.timezone,
-                    },
-                  });
-                  await refreshCalendar();
-                } catch (error) {
-                  const message = error instanceof Error ? error.message : 'Failed to reschedule event.';
-                  console.error('onRescheduleEvent: failed to update record', error);
-                  setRecordsError(message);
-                }
-              }
-            : undefined,
-      },
-      files: {
-        paneFiles,
-        projectFiles,
-        onUploadPaneFiles,
-        onUploadProjectFiles,
-        onOpenFile: onOpenPaneFile,
-      },
-      quickThoughts: {
-        storageKeyBase: `hub:quick-thoughts:${project.project_id}`,
-        legacyStorageKeyBase: `hub:capture:${project.project_id}`,
-      },
-      tasks: {
-        items: paneTaskItems,
-        loading: projectTasksLoading,
-        onCreateTask: async (task) => {
-          const collectionId = tasksOverviewRows[0]?.collection_id;
-          if (!collectionId) {
-            console.error('onCreateTask: no task collection found for this project');
-            alert('No task collection found for this project. Create a task from a pane first.');
-            return;
-          }
-          if (!accessToken) {
-            return;
-          }
-          await createRecord(accessToken, project.project_id, {
-            collection_id: collectionId,
-            title: task.title,
-            capability_types: ['task'],
-            task_state: {
-              status: 'todo',
-              priority: task.priority,
-              due_at: task.due_at,
-            },
-            parent_record_id: task.parent_record_id || null,
-            source_pane_id: activePane?.pane_id,
-          });
-          await loadProjectTaskPage();
-        },
-        onUpdateTaskStatus: async (taskId, status) => {
-          if (!accessToken) {
-            return;
-          }
-          try {
-            await updateRecord(accessToken, taskId, { task_state: { status } });
-            await loadProjectTaskPage();
-          } catch (err) {
-            console.error('Failed to update task status:', err);
-          }
-        },
-        onUpdateTaskPriority: async (taskId, priority) => {
-          if (!accessToken) {
-            return;
-          }
-          try {
-            await updateRecord(accessToken, taskId, { task_state: { priority } });
-            await loadProjectTaskPage();
-          } catch (err) {
-            console.error('Failed to update task priority:', err);
-          }
-        },
-        onUpdateTaskDueDate: async (taskId, dueAt) => {
-          if (!accessToken) {
-            return;
-          }
-          try {
-            await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
-            await loadProjectTaskPage();
-          } catch (err) {
-            console.error('Failed to update task due date:', err);
-          }
-        },
-        onDeleteTask: async (taskId) => {
-          if (!accessToken) {
-            return;
-          }
-          try {
-            await archiveRecord(accessToken, taskId);
-            await loadProjectTaskPage();
-          } catch (err) {
-            console.error('Failed to delete task:', err);
-          }
-        },
-      },
-      timeline: {
-        clusters: timelineClusters,
-        activeFilters: timelineFilters,
-        loading: false,
-        hasMore: false,
-        onFilterToggle: toggleTimelineFilter,
-        onLoadMore: () => {
-          void refreshProjectData();
-        },
-        onItemClick: (recordId) => {
-          void openInspectorWithFocusRestore(recordId);
-        },
-      },
-      reminders: {
-        items: remindersRuntime.reminders,
-        loading: remindersRuntime.loading,
-        error: remindersRuntime.error,
-        onDismiss: remindersRuntime.dismiss,
-        onCreate: remindersRuntime.create,
-      },
-    }),
-    [
-      calendarEvents,
-      calendarLoading,
-      calendarMode,
-      refreshCalendar,
-      setCalendarMode,
-      kanbanRuntimeDataByViewId,
-      kanbanViews,
-      activePaneCanEdit,
-      activePane?.pane_id,
-      accessToken,
-      canWriteProject,
-      onCreateKanbanRecord,
-      onCreateTableRecord,
-      onDeleteKanbanRecord,
-      onDeleteTableRecords,
-      onBulkUpdateTableRecords,
-      onMoveKanbanRecord,
-      onOpenPaneFile,
-      onUploadPaneFiles,
-      onUploadProjectFiles,
-      onUpdateKanbanRecord,
-      onUpdateTableRecord,
-      loadProjectTaskPage,
-      paneFiles,
-      paneTaskItems,
-      projectTasksLoading,
-      project.project_id,
-      projectFiles,
-      tableViewRuntimeDataById,
-      tableViews,
-      tasksOverviewRows,
-      timelineClusters,
-      timelineFilters,
-      toggleTimelineFilter,
-      refreshProjectData,
-      openInspectorWithFocusRestore,
-      remindersRuntime.create,
-      remindersRuntime.dismiss,
-      remindersRuntime.error,
-      remindersRuntime.loading,
-      remindersRuntime.reminders,
-      setRecordsError,
-    ],
-  );
+  const taskCollectionId = tasksOverviewRows[0]?.collection_id || null;
+  const workViewModuleRuntime = useWorkViewModuleRuntime({
+    activePaneId: activePane?.pane_id ?? null,
+    activePaneCanEdit,
+    accessToken,
+    canWriteProject,
+    projectId: project.project_id,
+    setRecordsError,
+    tableViews,
+    tableViewRuntimeDataById,
+    onCreateTableRecord,
+    onUpdateTableRecord,
+    onDeleteTableRecords,
+    onBulkUpdateTableRecords,
+    kanbanViews,
+    kanbanRuntimeDataByViewId,
+    onMoveKanbanRecord,
+    onCreateKanbanRecord,
+    onUpdateKanbanRecord,
+    onDeleteKanbanRecord,
+    calendarEvents,
+    calendarLoading,
+    calendarMode,
+    refreshCalendar,
+    setCalendarMode,
+    paneFiles,
+    projectFiles,
+    onUploadPaneFiles,
+    onUploadProjectFiles,
+    onOpenPaneFile,
+    paneTaskItems,
+    projectTasksLoading,
+    taskCollectionId,
+    loadProjectTaskPage,
+    timelineClusters,
+    timelineFilters,
+    toggleTimelineFilter,
+    refreshProjectData,
+    openInspectorWithFocusRestore,
+    reminders: remindersRuntime.reminders,
+    remindersLoading: remindersRuntime.loading,
+    remindersError: remindersRuntime.error,
+    onDismissReminder: remindersRuntime.dismiss,
+    onCreateReminder: remindersRuntime.create,
+  });
 
   const availableRecordTypes = useMemo(() => {
     const names = collections.map((collection) => collection.name.trim()).filter((name) => name.length > 0);
