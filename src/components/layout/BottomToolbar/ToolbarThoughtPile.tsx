@@ -1,17 +1,15 @@
 import { Icon, Popover, PopoverAnchor } from '../../primitives';
+import type { ProjectRecord } from '../../../types/domain';
+import type { UseToolbarCaptureResult } from './hooks/useToolbarCapture';
 import { ThoughtPilePanel } from './ToolbarDialogs/ThoughtPilePanel';
-import type { BottomToolbarProps } from './types';
 
 type ToolbarThoughtPileProps = Pick<
-  BottomToolbarProps,
+  UseToolbarCaptureResult,
   | 'captureOpen'
   | 'setCaptureOpen'
   | 'captureTriggerRef'
-  | 'onQuickCapture'
   | 'skipCaptureFocusRestoreRef'
   | 'captureRestoreTargetRef'
-  | 'accessToken'
-  | 'projects'
   | 'captureHomeData'
   | 'captureLoading'
   | 'refreshCaptureData'
@@ -19,7 +17,11 @@ type ToolbarThoughtPileProps = Pick<
   | 'captureIntent'
   | 'captureActivationKey'
   | 'closeCapturePanel'
->;
+> & {
+  accessToken: string | null | undefined;
+  projects: ProjectRecord[];
+  onQuickCapture: () => void;
+};
 
 export const ToolbarThoughtPile = ({
   captureOpen,

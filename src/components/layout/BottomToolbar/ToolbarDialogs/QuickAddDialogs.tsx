@@ -1,14 +1,12 @@
 import { requestHubHomeRefresh } from '../../../../lib/hubHomeRefresh';
 import { TaskCreateDialog } from '../../../project-space/TaskCreateDialog';
 import { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from '../../QuickAddDialogs';
-import type { BottomToolbarProps } from '../types';
+import type { UseToolbarQuickAddResult } from '../hooks/useToolbarQuickAdd';
 
 type QuickAddDialogsProps = Pick<
-  BottomToolbarProps,
+  UseToolbarQuickAddResult,
   | 'quickAddDialog'
   | 'closeQuickAddDialog'
-  | 'refreshCaptureData'
-  | 'accessToken'
   | 'quickAddProjectId'
   | 'selectedTaskProjectMembers'
   | 'contextMenuTriggerRef'
@@ -41,7 +39,10 @@ type QuickAddDialogsProps = Pick<
   | 'projectDialogSubmitting'
   | 'projectDialogError'
   | 'projectNameInputRef'
->;
+> & {
+  accessToken: string | null | undefined;
+  refreshCaptureData: () => Promise<void>;
+};
 
 export const QuickAddDialogs = ({
   quickAddDialog,
