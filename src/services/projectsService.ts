@@ -12,6 +12,7 @@ import type {
   ProjectRecord,
 } from '../types/domain';
 import type { HubEnvelope, HubProject } from './hub/types';
+import { HubEnvelopeRecordSchema, LegacyRecordResponseSchema } from './hub/schemas';
 import { buildHubAuthHeaders } from './hubAuthHeaders';
 
 interface NoteResponse {
@@ -42,12 +43,10 @@ const parseResponse = async <T>(
   requiredField: string,
   fallbackError: string,
 ): Promise<IntegrationOutcome<T>> => {
-  const body = (await response.json().catch(() => ({}))) as
-    | (Record<string, unknown> & { error?: string })
-    | HubEnvelope<Record<string, unknown>>;
-
-  const envelope = body as HubEnvelope<Record<string, unknown>>;
-  if (typeof envelope?.ok === 'boolean') {
+  const body = await response.json().catch(() => null);
+  const parsedEnvelope = HubEnvelopeRecordSchema.safeParse(body);
+  if (parsedEnvelope.success) {
+    const envelope: HubEnvelope<Record<string, unknown>> = parsedEnvelope.data;
     if (!response.ok || !envelope.ok || !envelope.data) {
       return { error: envelope.error?.message || `${fallbackError} (${response.status})` };
     }
@@ -58,7 +57,16 @@ const parseResponse = async <T>(
     return { data: value };
   }
 
-  const legacy = body as Record<string, unknown> & { error?: string };
+  if (body && typeof body === 'object' && 'ok' in body) {
+    return { error: `Invalid API envelope for ${requiredField} (${response.status}).` };
+  }
+
+  const parsedLegacy = LegacyRecordResponseSchema.safeParse(body);
+  if (!parsedLegacy.success) {
+    return { error: `Invalid API response for ${requiredField} (${response.status}).` };
+  }
+
+  const legacy = parsedLegacy.data;
   const value = legacy[requiredField] as T | undefined;
   if (!response.ok || typeof value === 'undefined') {
     return { error: legacy.error || `${fallbackError} (${response.status})` };

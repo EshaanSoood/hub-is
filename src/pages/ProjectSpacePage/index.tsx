@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjectBootstrap } from '../../hooks/useProjectBootstrap';
@@ -8,7 +9,7 @@ interface ProjectSpacePageProps {
   activeTab: TopLevelProjectTab;
 }
 
-export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps) => {
+export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactElement => {
   const { projectId = '' } = useParams();
   const { accessToken, sessionSummary } = useAuthz();
   const { error, loading, panes, project, projectMembers, refreshProjectData, setPanes, setTimeline, timeline } =

@@ -1,4 +1,4 @@
-import { FormEvent, Suspense, lazy, useCallback, useMemo, useRef, useState } from 'react';
+import { FormEvent, Suspense, lazy, useCallback, useMemo, useRef, useState, type ReactElement } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   type HubBacklink,
@@ -201,7 +201,7 @@ export const ProjectSpaceWorkspace = ({
   refreshProjectData: () => Promise<void>;
   timeline: TimelineEvent[];
   setTimeline: React.Dispatch<React.SetStateAction<TimelineEvent[]>>;
-}) => {
+}): ReactElement => {
   const { paneId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
