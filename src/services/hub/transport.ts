@@ -1,4 +1,5 @@
 import { buildHubAuthHeaders } from '../hubAuthHeaders.ts';
+import { HubEnvelopeUnknownSchema } from './schemas';
 
 import type { HubEnvelope, HubLiveAuthorization, HubRecordDetail, HubRecordSummary, HubSourcePaneContext } from './types.ts';
 
@@ -37,19 +38,21 @@ export const normalizeRecordDetail = (record: HubRecordDetail): HubRecordDetail 
   source_pane: normalizeSourcePane(record.source_pane),
 });
 
-const readHubEnvelopeJson = async <T>(response: Response): Promise<HubEnvelope<T> | null> =>
-  (await response.json().catch(() => null)) as HubEnvelope<T> | null;
-
-const parseHubEnvelope = <T>(response: Response, envelope: HubEnvelope<T> | null): T => {
-  if (!envelope || typeof envelope.ok !== 'boolean') {
-    throw new HubRequestError(`Unexpected API response (${response.status}).`, response.status);
+const readHubEnvelopeJson = async (response: Response): Promise<HubEnvelope<unknown>> => {
+  const body = await response.json().catch(() => null);
+  const parsedEnvelope = HubEnvelopeUnknownSchema.safeParse(body);
+  if (!parsedEnvelope.success) {
+    throw new HubRequestError(`Invalid API response envelope (${response.status}).`, response.status);
   }
+  return parsedEnvelope.data;
+};
 
+const parseHubEnvelope = <T>(response: Response, envelope: HubEnvelope<unknown>): T => {
   if (!response.ok || !envelope.ok || envelope.data == null) {
     throw new HubRequestError(envelope.error?.message || `Request failed (${response.status}).`, response.status);
   }
 
-  return envelope.data;
+  return envelope.data as T;
 };
 
 export const hubRequest = async <T>(
