@@ -1,8 +1,8 @@
 import { Suspense, lazy } from 'react';
 import type { ContractModuleConfig } from '../ModuleGrid';
 import { ModuleLoadingState } from '../ModuleFeedback';
-import type { WorkViewQuickThoughtsRuntime } from '../WorkView';
 import type { HubPaneSummary } from '../../../services/hub/types';
+import type { QuickThoughtsModuleContract } from '../moduleContracts';
 
 const QuickThoughtsModuleSkin = lazy(async () => {
   const module = await import('../InboxCaptureModuleSkin');
@@ -11,22 +11,23 @@ const QuickThoughtsModuleSkin = lazy(async () => {
 
 interface Props {
   module: ContractModuleConfig;
-  runtime: WorkViewQuickThoughtsRuntime;
+  contract: QuickThoughtsModuleContract;
   pane: HubPaneSummary;
   canEditPane: boolean;
 }
 
-export const QuickThoughtsModule = ({ module, runtime, pane, canEditPane }: Props) => (
+export const QuickThoughtsModule = ({ module, contract, pane, canEditPane }: Props) => (
   <Suspense fallback={<ModuleLoadingState label="Loading Quick Thoughts module" rows={5} />}>
     <QuickThoughtsModuleSkin
-      key={`${runtime.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}`}
+      key={`${contract.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}`}
       sizeTier={module.size_tier}
-      storageKey={`${runtime.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}`}
+      storageKey={`${contract.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}`}
       legacyStorageKey={
-        runtime.legacyStorageKeyBase
-          ? `${runtime.legacyStorageKeyBase}:${pane.pane_id}:${module.module_instance_id}`
+        contract.legacyStorageKeyBase
+          ? `${contract.legacyStorageKeyBase}:${pane.pane_id}:${module.module_instance_id}`
           : undefined
       }
+      onInsertToEditor={contract.onInsertToEditor}
       readOnly={!canEditPane}
     />
   </Suspense>

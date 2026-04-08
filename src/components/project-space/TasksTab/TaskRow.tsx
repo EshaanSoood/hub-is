@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { cn } from '../../../lib/cn';
-import { useModuleInsertContext } from '../../../context/ModuleInsertContext';
 import { useLongPress } from '../../../hooks/useLongPress';
 import { TaskCard } from '../../cards/TaskCard';
 import type { PriorityLevel } from '../designTokens';
 import { getPriorityClasses } from '../../../lib/priorityStyles';
 import type { TaskItem, TaskPriorityValue, TaskStatus, TaskSubtask } from './index';
+import type { ModuleInsertItemType } from '../moduleContracts';
 
 const PRIORITY_MENU_OPTIONS: Array<{ value: TaskPriorityValue; label: string; tone: PriorityLevel | null }> = [
   { value: 'urgent', label: 'Urgent', tone: 'high' },
@@ -148,6 +148,11 @@ interface TaskRowProps {
   onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
   onUpdateTaskCategory?: (taskId: string, category: string | null) => void | Promise<void>;
   onDeleteTask?: (taskId: string) => void | Promise<void>;
+  activeItemId?: string | null;
+  activeItemType?: ModuleInsertItemType;
+  setActiveItem?: (id: string, type: ModuleInsertItemType, title: string) => void;
+  clearActiveItem?: () => void;
+  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
 }
 
 export const TaskRow = ({
@@ -160,6 +165,11 @@ export const TaskRow = ({
   onUpdateTaskDueDate,
   onUpdateTaskCategory,
   onDeleteTask,
+  activeItemId = null,
+  activeItemType = null,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
 }: TaskRowProps) => {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -174,11 +184,10 @@ export const TaskRow = ({
   const hasMenuActions = Boolean(onUpdateTaskPriority || onUpdateTaskDueDate || onUpdateTaskCategory || onUpdateTaskStatus || onDeleteTask);
   const priorityTone = getPriorityTone(task.priorityValue, task.priority);
   const priorityClasses = getPriorityClasses(priorityTone);
-  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
   const longPressHandlers = useLongPress(() => {
-    setActiveItem(task.id, 'task', task.label);
+    setActiveItem?.(task.id, 'task', task.label);
   });
-  const showInsertAction = activeItemId === task.id && activeItemType === 'task';
+  const showInsertAction = Boolean(activeItemId === task.id && activeItemType === 'task' && onInsertToEditor && clearActiveItem);
 
   const closeMenu = (options?: { restoreFocus?: boolean }) => {
     setMenuOpen(false);
@@ -525,7 +534,7 @@ export const TaskRow = ({
           data-module-insert-ignore="true"
           onClick={() => {
             onInsertToEditor?.({ id: task.id, type: 'task', title: task.label });
-            clearActiveItem();
+            clearActiveItem?.();
           }}
           className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
         >

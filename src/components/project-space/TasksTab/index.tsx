@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { cn } from '../../../lib/cn';
 import type { PriorityLevel } from '../designTokens';
 import { getPriorityClasses } from '../../../lib/priorityStyles';
+import type { ModuleInsertItemType } from '../moduleContracts';
 import { TaskRow } from './TaskRow';
 
 export type SortDimension = 'date' | 'priority' | 'category';
@@ -62,6 +63,11 @@ interface TasksTabProps {
   onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
   onUpdateTaskCategory?: (taskId: string, category: string | null) => void | Promise<void>;
   onDeleteTask?: (taskId: string) => void | Promise<void>;
+  activeItemId?: string | null;
+  activeItemType?: ModuleInsertItemType;
+  setActiveItem?: (id: string, type: ModuleInsertItemType, title: string) => void;
+  clearActiveItem?: () => void;
+  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
   showSortControls?: boolean;
 }
 
@@ -264,6 +270,11 @@ export const TasksTab = ({
   onUpdateTaskDueDate,
   onUpdateTaskCategory,
   onDeleteTask,
+  activeItemId = null,
+  activeItemType = null,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
   showSortControls = true,
 }: TasksTabProps) => {
   const [collapsedClusterIds, setCollapsedClusterIds] = useState<Set<string>>(new Set());
@@ -457,6 +468,11 @@ export const TasksTab = ({
                       onUpdateTaskDueDate={onUpdateTaskDueDate}
                       onUpdateTaskCategory={onUpdateTaskCategory}
                       onDeleteTask={onDeleteTask}
+                      activeItemId={activeItemId}
+                      activeItemType={activeItemType}
+                      setActiveItem={setActiveItem}
+                      clearActiveItem={clearActiveItem}
+                      onInsertToEditor={onInsertToEditor}
                     />
                   </li>
                 ))}

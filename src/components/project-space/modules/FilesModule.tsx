@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import type { ContractModuleConfig } from '../ModuleGrid';
 import { ModuleLoadingState } from '../ModuleFeedback';
-import type { WorkViewFilesRuntime } from '../WorkView';
+import type { FilesModuleContract } from '../moduleContracts';
 
 const FilesModuleSkin = lazy(async () => {
   const module = await import('../FilesModuleSkin');
@@ -10,23 +10,24 @@ const FilesModuleSkin = lazy(async () => {
 
 interface Props {
   module: ContractModuleConfig;
-  runtime: WorkViewFilesRuntime;
+  contract: FilesModuleContract;
   canEditPane: boolean;
 }
 
-export const FilesModule = ({ module, runtime, canEditPane }: Props) => (
+export const FilesModule = ({ module, contract, canEditPane }: Props) => (
   <Suspense fallback={<ModuleLoadingState label="Loading files module" rows={4} />}>
     <FilesModuleSkin
       sizeTier={module.size_tier}
-      files={module.lens === 'project' ? runtime.projectFiles : runtime.paneFiles}
+      files={module.lens === 'project' ? contract.projectFiles : contract.paneFiles}
       onUpload={
         canEditPane
           ? module.lens === 'project'
-            ? runtime.onUploadProjectFiles
-            : runtime.onUploadPaneFiles
+            ? contract.onUploadProjectFiles
+            : contract.onUploadPaneFiles
           : () => undefined
       }
-      onOpenFile={runtime.onOpenFile}
+      onOpenFile={contract.onOpenFile}
+      onInsertToEditor={contract.onInsertToEditor}
       readOnly={!canEditPane}
     />
   </Suspense>

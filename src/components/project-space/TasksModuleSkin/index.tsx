@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useModuleInsertContext } from '../../../context/ModuleInsertContext';
 import { useLongPress } from '../../../hooks/useLongPress';
 import { Icon } from '../../primitives';
 import { TaskCard } from '../../cards/TaskCard';
@@ -7,13 +6,14 @@ import { cn } from '../../../lib/cn';
 import { TasksTab, type SortChain, type SortDimension, type TaskItem, type TaskPriorityValue, type TaskStatus } from '../TasksTab';
 import { formatDueLabel } from '../taskAdapter';
 import { ModuleEmptyState } from '../ModuleFeedback';
+import { useModuleInsertState, type ModuleInsertState } from '../hooks/useModuleInsertState';
 import { TaskComposer } from './TaskComposer';
 
 interface TasksModuleSkinProps {
   sizeTier: 'S' | 'M' | 'L';
   tasks: TaskItem[];
   tasksLoading: boolean;
-  onCreateTask: (task: {
+  onCreateTask?: (task: {
     title: string;
     priority: string | null;
     due_at: string | null;
@@ -24,6 +24,7 @@ interface TasksModuleSkinProps {
   onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
   onDeleteTask?: (taskId: string) => void | Promise<void>;
   onAddSubtask?: (task: TaskItem) => void;
+  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
   hideHeader?: boolean;
   readOnly?: boolean;
 }
@@ -109,14 +110,34 @@ const TaskSummaryRows = ({
   tasks,
   readOnly = false,
   onUpdateTaskStatus,
+  activeItemId,
+  activeItemType,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
 }: {
   tasks: TaskItem[];
   readOnly?: boolean;
   onUpdateTaskStatus?: TasksModuleSkinProps['onUpdateTaskStatus'];
+  activeItemId: ModuleInsertState['activeItemId'];
+  activeItemType: ModuleInsertState['activeItemType'];
+  setActiveItem: ModuleInsertState['setActiveItem'];
+  clearActiveItem: ModuleInsertState['clearActiveItem'];
+  onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
 }) => (
   <ul className="space-y-2">
     {tasks.map((task) => (
-      <TaskSummaryRow key={task.id} task={task} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
+      <TaskSummaryRow
+        key={task.id}
+        task={task}
+        readOnly={readOnly}
+        onUpdateTaskStatus={onUpdateTaskStatus}
+        activeItemId={activeItemId}
+        activeItemType={activeItemType}
+        setActiveItem={setActiveItem}
+        clearActiveItem={clearActiveItem}
+        onInsertToEditor={onInsertToEditor}
+      />
     ))}
   </ul>
 );
@@ -125,17 +146,26 @@ const TaskSummaryRow = ({
   task,
   readOnly = false,
   onUpdateTaskStatus,
+  activeItemId,
+  activeItemType,
+  setActiveItem,
+  clearActiveItem,
+  onInsertToEditor,
 }: {
   task: TaskItem;
   readOnly?: boolean;
   onUpdateTaskStatus?: TasksModuleSkinProps['onUpdateTaskStatus'];
+  activeItemId: ModuleInsertState['activeItemId'];
+  activeItemType: ModuleInsertState['activeItemType'];
+  setActiveItem: ModuleInsertState['setActiveItem'];
+  clearActiveItem: ModuleInsertState['clearActiveItem'];
+  onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
 }) => {
   const nextStatus = getNextStatus(task.status);
-  const { activeItemId, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem } = useModuleInsertContext();
   const longPressHandlers = useLongPress(() => {
     setActiveItem(task.id, 'task', task.label);
   });
-  const showInsertAction = activeItemId === task.id && activeItemType === 'task';
+  const showInsertAction = Boolean(activeItemId === task.id && activeItemType === 'task' && onInsertToEditor);
 
   return (
     <li className="relative" {...longPressHandlers}>
@@ -189,13 +219,17 @@ const TasksModuleSmall = ({
   tasksLoading,
   onCreateTask,
   onUpdateTaskStatus,
+  insertState,
   readOnly = false,
-}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'>) => {
+}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'> & {
+  insertState: ModuleInsertState;
+}) => {
   const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks).slice(0, 3), [tasks]);
+  const canCreateTask = !readOnly && typeof onCreateTask === 'function';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {!readOnly ? (
+      {canCreateTask ? (
         <div className="shrink-0">
           <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />
         </div>
@@ -214,7 +248,16 @@ const TasksModuleSmall = ({
           />
         ) : null}
         {!tasksLoading && visibleTasks.length > 0 ? (
-          <TaskSummaryRows tasks={visibleTasks} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
+          <TaskSummaryRows
+            tasks={visibleTasks}
+            readOnly={readOnly}
+            onUpdateTaskStatus={onUpdateTaskStatus}
+            activeItemId={insertState.activeItemId}
+            activeItemType={insertState.activeItemType}
+            setActiveItem={insertState.setActiveItem}
+            clearActiveItem={insertState.clearActiveItem}
+            onInsertToEditor={insertState.onInsertToEditor}
+          />
         ) : null}
       </div>
     </div>
@@ -226,8 +269,11 @@ const TasksModuleMedium = ({
   tasksLoading,
   onCreateTask,
   onUpdateTaskStatus,
+  insertState,
   readOnly = false,
-}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'>) => {
+}: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'> & {
+  insertState: ModuleInsertState;
+}) => {
   const [composerOpen, setComposerOpen] = useState(false);
   const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks), [tasks]);
   const displayedTasks = visibleTasks.slice(0, 8);
@@ -246,7 +292,7 @@ const TasksModuleMedium = ({
           </button>
         </div>
       ) : null}
-      {!readOnly && composerOpen ? (
+      {canCreateTask && composerOpen ? (
         <TaskComposer
           tasks={tasks}
           onCreateTask={onCreateTask}
@@ -265,7 +311,16 @@ const TasksModuleMedium = ({
         />
       ) : null}
       {!tasksLoading && displayedTasks.length > 0 ? (
-        <TaskSummaryRows tasks={displayedTasks} readOnly={readOnly} onUpdateTaskStatus={onUpdateTaskStatus} />
+        <TaskSummaryRows
+          tasks={displayedTasks}
+          readOnly={readOnly}
+          onUpdateTaskStatus={onUpdateTaskStatus}
+          activeItemId={insertState.activeItemId}
+          activeItemType={insertState.activeItemType}
+          setActiveItem={insertState.setActiveItem}
+          clearActiveItem={insertState.clearActiveItem}
+          onInsertToEditor={insertState.onInsertToEditor}
+        />
       ) : null}
       {!tasksLoading && tasks.length > displayedTasks.length ? (
         <p className="mt-3 text-xs text-muted">+{tasks.length - displayedTasks.length} more</p>
@@ -283,8 +338,11 @@ const TasksModuleLarge = ({
   onUpdateTaskDueDate,
   onDeleteTask,
   onAddSubtask,
+  insertState,
   readOnly = false,
-}: Omit<TasksModuleSkinProps, 'sizeTier'>) => {
+}: Omit<TasksModuleSkinProps, 'sizeTier'> & {
+  insertState: ModuleInsertState;
+}) => {
   const [activeUserId, setActiveUserId] = useState('all');
   const [activeCategoryId, setActiveCategoryId] = useState('all');
   const [groupBy, setGroupBy] = useState<SortDimension>('date');
@@ -296,6 +354,7 @@ const TasksModuleLarge = ({
   );
   const visibleLargeTaskCount = useMemo(() => countLargeTaskSections(filteredTasks), [filteredTasks]);
   const hasDefaultLargeFilters = activeUserId === 'all' && activeCategoryId === 'all';
+  const canCreateTask = !readOnly && typeof onCreateTask === 'function';
 
   const collaboratorOptions = useMemo(
     () => {
@@ -347,7 +406,7 @@ const TasksModuleLarge = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3" aria-label="Tasks module">
-      {!readOnly ? (
+      {canCreateTask ? (
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
@@ -363,7 +422,7 @@ const TasksModuleLarge = ({
         <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p>
       ) : null}
 
-      {!readOnly && composerOpen ? (
+      {canCreateTask && composerOpen ? (
         <TaskComposer
           key={composerParentTask?.id ?? 'standalone'}
           tasks={tasks}
@@ -398,7 +457,7 @@ const TasksModuleLarge = ({
           onUserChange={setActiveUserId}
           onCategoryChange={setActiveCategoryId}
           onAddSubtask={
-            readOnly
+            !canCreateTask
               ? undefined
               : (task) => {
                   if (onAddSubtask) {
@@ -412,18 +471,25 @@ const TasksModuleLarge = ({
           onUpdateTaskPriority={readOnly ? undefined : onUpdateTaskPriority}
           onUpdateTaskDueDate={readOnly ? undefined : onUpdateTaskDueDate}
           onDeleteTask={readOnly ? undefined : onDeleteTask}
+          activeItemId={insertState.activeItemId}
+          activeItemType={insertState.activeItemType}
+          setActiveItem={insertState.setActiveItem}
+          clearActiveItem={insertState.clearActiveItem}
+          onInsertToEditor={insertState.onInsertToEditor}
         />
       ) : null}
     </section>
   );
 };
 
-export const TasksModuleSkin = ({ sizeTier, ...props }: TasksModuleSkinProps) => {
+export const TasksModuleSkin = ({ sizeTier, onInsertToEditor, ...props }: TasksModuleSkinProps) => {
+  const insertState = useModuleInsertState({ onInsertToEditor });
+
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {sizeTier === 'S' ? <TasksModuleSmall {...props} /> : null}
-      {sizeTier === 'M' ? <TasksModuleMedium {...props} /> : null}
-      {sizeTier === 'L' ? <TasksModuleLarge {...props} /> : null}
+      {sizeTier === 'S' ? <TasksModuleSmall {...props} insertState={insertState} /> : null}
+      {sizeTier === 'M' ? <TasksModuleMedium {...props} insertState={insertState} /> : null}
+      {sizeTier === 'L' ? <TasksModuleLarge {...props} insertState={insertState} /> : null}
     </div>
   );
 };

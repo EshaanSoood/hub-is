@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import type { ContractModuleConfig } from '../ModuleGrid';
 import { ModuleLoadingState } from '../ModuleFeedback';
-import type { WorkViewRemindersRuntime } from '../WorkView';
+import type { RemindersModuleContract } from '../moduleContracts';
 
 const RemindersModuleSkin = lazy(async () => {
   const module = await import('../RemindersModuleSkin');
@@ -10,18 +10,21 @@ const RemindersModuleSkin = lazy(async () => {
 
 interface Props {
   module: ContractModuleConfig;
-  runtime: WorkViewRemindersRuntime;
+  contract: RemindersModuleContract;
+  canEditPane: boolean;
 }
 
-export const RemindersModule = ({ module, runtime }: Props) => (
+export const RemindersModule = ({ module, contract, canEditPane }: Props) => (
   <Suspense fallback={<ModuleLoadingState label="Loading reminders module" rows={4} />}>
     <RemindersModuleSkin
-      reminders={runtime.items}
-      loading={runtime.loading}
-      error={runtime.error}
-      onDismiss={runtime.onDismiss}
-      onCreate={runtime.onCreate}
+      reminders={contract.items}
+      loading={contract.loading}
+      error={contract.error}
+      onDismiss={canEditPane ? contract.onDismiss : async () => {}}
+      onCreate={canEditPane ? contract.onCreate : async () => {}}
+      onInsertToEditor={contract.onInsertToEditor}
       sizeTier={module.size_tier}
+      readOnly={!canEditPane}
     />
   </Suspense>
 );

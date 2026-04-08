@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import type { ContractModuleConfig } from '../ModuleGrid';
 import { ModuleLoadingState } from '../ModuleFeedback';
-import type { WorkViewCalendarRuntime } from '../WorkView';
+import type { CalendarModuleContract } from '../moduleContracts';
 
 const CalendarModuleSkin = lazy(async () => {
   const module = await import('../CalendarModuleSkin');
@@ -10,21 +10,21 @@ const CalendarModuleSkin = lazy(async () => {
 
 interface Props {
   module: ContractModuleConfig;
-  runtime: WorkViewCalendarRuntime;
+  contract: CalendarModuleContract;
   onOpenRecord?: (recordId: string) => void;
 }
 
-export const CalendarModule = ({ module, runtime, onOpenRecord }: Props) => (
+export const CalendarModule = ({ module, contract, onOpenRecord }: Props) => (
   <Suspense fallback={<ModuleLoadingState label="Loading calendar module" rows={5} />}>
     <div className="h-full min-h-0 overflow-hidden">
       <CalendarModuleSkin
-        events={runtime.events}
-        loading={runtime.loading}
+        events={contract.events}
+        loading={contract.loading}
         sizeTier={module.size_tier}
-        scope={runtime.scope}
-        onScopeChange={runtime.onScopeChange}
-        onCreateEvent={runtime.onCreateEvent}
-        onRescheduleEvent={runtime.onRescheduleEvent}
+        scope={contract.scope}
+        onScopeChange={contract.onScopeChange}
+        onCreateEvent={contract.onCreateEvent}
+        onRescheduleEvent={contract.onRescheduleEvent}
         onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
       />
     </div>

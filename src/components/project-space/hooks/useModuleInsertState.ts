@@ -1,43 +1,41 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import type { ModuleInsertItemType } from '../moduleContracts';
 
-export type ModuleInsertItemType = 'task' | 'record' | 'file' | 'reminder' | 'quick-thought' | null;
+export interface ModuleInsertPayload {
+  id: string;
+  type: string;
+  title: string;
+}
 
-interface ModuleInsertContextValue {
+interface UseModuleInsertStateOptions {
+  onInsertToEditor?: (item: ModuleInsertPayload) => void;
+}
+
+export interface ModuleInsertState {
   activeItemId: string | null;
   activeItemType: ModuleInsertItemType;
   activeItemTitle: string | null;
   setActiveItem: (id: string, type: ModuleInsertItemType, title: string) => void;
   clearActiveItem: () => void;
-  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
+  onInsertToEditor?: (item: ModuleInsertPayload) => void;
 }
 
-const DEFAULT_CONTEXT: ModuleInsertContextValue = {
-  activeItemId: null,
-  activeItemType: null,
-  activeItemTitle: null,
-  setActiveItem: () => undefined,
-  clearActiveItem: () => undefined,
-  onInsertToEditor: undefined,
-};
-
-const ModuleInsertContext = createContext<ModuleInsertContextValue>(DEFAULT_CONTEXT);
-
-export const ModuleInsertProvider = ({
-  children,
+export const useModuleInsertState = ({
   onInsertToEditor,
-}: {
-  children: ReactNode;
-  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
-}) => {
+}: UseModuleInsertStateOptions = {}): ModuleInsertState => {
+  const insertEnabled = Boolean(onInsertToEditor);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [activeItemType, setActiveItemType] = useState<ModuleInsertItemType>(null);
   const [activeItemTitle, setActiveItemTitle] = useState<string | null>(null);
 
   const setActiveItem = useCallback((id: string, type: ModuleInsertItemType, title: string) => {
+    if (!insertEnabled) {
+      return;
+    }
     setActiveItemId(id);
     setActiveItemType(type);
     setActiveItemTitle(title);
-  }, []);
+  }, [insertEnabled]);
 
   const clearActiveItem = useCallback(() => {
     setActiveItemId(null);
@@ -46,7 +44,7 @@ export const ModuleInsertProvider = ({
   }, []);
 
   useEffect(() => {
-    if (!activeItemId) {
+    if (!insertEnabled || !activeItemId) {
       return;
     }
 
@@ -64,23 +62,14 @@ export const ModuleInsertProvider = ({
       document.removeEventListener('mousedown', handleDocumentPress);
       document.removeEventListener('touchstart', handleDocumentPress);
     };
-  }, [activeItemId, clearActiveItem]);
+  }, [activeItemId, clearActiveItem, insertEnabled]);
 
-  const value = useMemo<ModuleInsertContextValue>(
-    () => ({
-      activeItemId,
-      activeItemType,
-      activeItemTitle,
-      setActiveItem,
-      clearActiveItem,
-      onInsertToEditor,
-    }),
-    [activeItemId, activeItemTitle, activeItemType, clearActiveItem, onInsertToEditor, setActiveItem],
-  );
-
-  return <ModuleInsertContext.Provider value={value}>{children}</ModuleInsertContext.Provider>;
-};
-
-export const useModuleInsertContext = (): ModuleInsertContextValue => {
-  return useContext(ModuleInsertContext);
+  return {
+    activeItemId: insertEnabled ? activeItemId : null,
+    activeItemType: insertEnabled ? activeItemType : null,
+    activeItemTitle: insertEnabled ? activeItemTitle : null,
+    setActiveItem,
+    clearActiveItem,
+    onInsertToEditor,
+  };
 };
