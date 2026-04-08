@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLongPress } from '../../hooks/useLongPress';
 import { cn } from '../../lib/cn';
-import { useModuleInsertState, type ModuleInsertState } from './hooks/useModuleInsertState';
+import { useModuleInsertState, type ModuleInsertPayload, type ModuleInsertState } from './hooks/useModuleInsertState';
 import { Icon } from '../primitives';
 
 export interface FilesModuleItem {
@@ -22,7 +22,7 @@ interface FilesModuleSkinProps {
   files: FilesModuleItem[];
   onUpload: (files: File[]) => void;
   onOpenFile: (file: FilesModuleItem) => void;
-  onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
+  onInsertToEditor?: (item: ModuleInsertPayload) => void;
   readOnly?: boolean;
 }
 

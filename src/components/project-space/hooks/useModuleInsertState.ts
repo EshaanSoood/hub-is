@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ModuleInsertItemType } from '../moduleContracts';
 
-interface ModuleInsertPayload {
+export interface ModuleInsertPayload {
   id: string;
   type: string;
   title: string;

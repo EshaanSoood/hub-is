@@ -190,6 +190,7 @@ export const useWorkViewModuleRuntime = ({
         onUpdateRecord: async (viewId, recordId, fields) => {
           await onUpdateKanbanRecord(viewId, recordId, fields, activePaneId);
         },
+        // TODO(phase8): wire module insert-to-editor callbacks from workspace-doc runtime.
         onInsertToEditor: undefined,
       },
       calendarContract: {
@@ -236,11 +237,13 @@ export const useWorkViewModuleRuntime = ({
         onUploadPaneFiles,
         onUploadProjectFiles,
         onOpenFile: onOpenPaneFile,
+        // TODO(phase8): wire module insert-to-editor callbacks from workspace-doc runtime.
         onInsertToEditor: undefined,
       },
       quickThoughtsContract: {
         storageKeyBase: `hub:quick-thoughts:${projectId}`,
         legacyStorageKeyBase: `hub:capture:${projectId}`,
+        // TODO(phase8): wire module insert-to-editor callbacks from workspace-doc runtime.
         onInsertToEditor: undefined,
       },
       tasksContract: {
@@ -313,6 +316,7 @@ export const useWorkViewModuleRuntime = ({
             console.error('Failed to delete task:', err);
           }
         },
+        // TODO(phase8): wire module insert-to-editor callbacks from workspace-doc runtime.
         onInsertToEditor: undefined,
       },
       timelineContract: {
@@ -334,6 +338,7 @@ export const useWorkViewModuleRuntime = ({
         error: remindersError,
         onDismiss: onDismissReminder,
         onCreate: onCreateReminder,
+        // TODO(phase8): wire module insert-to-editor callbacks from workspace-doc runtime.
         onInsertToEditor: undefined,
       },
     }),

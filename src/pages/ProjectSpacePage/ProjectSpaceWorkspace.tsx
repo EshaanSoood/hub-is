@@ -377,7 +377,6 @@ export const ProjectSpaceWorkspace = ({
     inspectorLoading,
     inspectorMutationPane,
     inspectorMutationPaneCanEdit,
-    inspectorMutationPaneId,
     inspectorRecord,
     inspectorRecordId,
     inspectorRelationFields,
@@ -413,7 +412,6 @@ export const ProjectSpaceWorkspace = ({
     relationFieldTargetCollectionId,
     toBase64,
   });
-  void inspectorMutationPaneId;
   const {
     automationRules,
     automationRuns,
