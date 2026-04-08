@@ -250,36 +250,32 @@ export const useCalendarNLDraft = ({
     };
   }, [draft, enabled, parseDelayMs, queueParse]);
 
-  const parseNow = (): CalendarParseResult => {
+  const parseNow = (): void => {
     if (debounceTimerRef.current) {
       window.clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = 0;
     }
 
     if (!draft.trim()) {
-      const nextPreview = emptyPreview();
       requestIdRef.current += 1;
-      setPreview(nextPreview);
+      setPreview(emptyPreview());
       setError(null);
       setLastParsedDraft('');
-      return nextPreview;
+      return;
     }
 
     if (!enabled) {
-      const nextPreview = emptyPreview();
       requestIdRef.current += 1;
-      setPreview(nextPreview);
+      setPreview(emptyPreview());
       setError(null);
       setLastParsedDraft('');
-      return nextPreview;
+      return;
     }
-    const nextPreview = emptyPreview();
     requestIdRef.current += 1;
-    setPreview(nextPreview);
+    setPreview(emptyPreview());
     setError(null);
     setLastParsedDraft('');
     queueParse(draft);
-    return nextPreview;
   };
 
   const clear = () => {
