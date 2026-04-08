@@ -1,19 +1,18 @@
+import type { MutableRefObject } from 'react';
 import { ProfileMenu } from '../../ProfileMenu';
-import type { BottomToolbarProps } from '../types';
 
-type ProfileMenuDialogProps = Pick<
-  BottomToolbarProps,
-  | 'sessionSummary'
-  | 'avatarUrl'
-  | 'avatarBroken'
-  | 'profileMenuRef'
-  | 'hasCalendarFeedUrl'
-  | 'onCopyCalendarLink'
-  | 'installMenuLabel'
-  | 'onInstallHubOs'
-  | 'onNavigateProjectsFromProfileMenu'
-  | 'onLogoutFromProfileMenu'
->;
+interface ProfileMenuDialogProps {
+  sessionSummary: { name: string; email: string };
+  avatarUrl: string;
+  avatarBroken: boolean;
+  profileMenuRef: MutableRefObject<HTMLDivElement | null>;
+  hasCalendarFeedUrl: boolean;
+  onCopyCalendarLink: () => void;
+  installMenuLabel: string | null;
+  onInstallHubOs: () => Promise<void>;
+  onNavigateProjectsFromProfileMenu: () => void;
+  onLogoutFromProfileMenu: () => void;
+}
 
 export const ProfileMenuDialog = ({
   sessionSummary,

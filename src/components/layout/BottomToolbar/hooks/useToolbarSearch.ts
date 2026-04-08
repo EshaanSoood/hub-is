@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import type { HubSearchResult } from '../../../../services/hub/search';
 import { buildSearchResultHref } from '../../appShellUtils';
-import type { CloseQuickNavOptions } from '../types';
+import type { CloseContextMenuOptions, CloseProfileOptions, CloseQuickNavOptions } from '../types';
 import { useGlobalSearchEffect } from './useGlobalSearchEffect';
 
 interface UseToolbarSearchArgs {
@@ -9,8 +9,8 @@ interface UseToolbarSearchArgs {
   navigate: (to: string) => void;
   closeQuickNav: (options?: CloseQuickNavOptions) => void;
   closeQuickNavPanel: () => void;
-  setProfileOpen: Dispatch<SetStateAction<boolean>>;
-  setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
+  closeProfile: (options?: CloseProfileOptions) => void;
+  closeContextMenu: (options?: CloseContextMenuOptions) => void;
   closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
 }
 
@@ -35,8 +35,8 @@ export const useToolbarSearch = ({
   navigate,
   closeQuickNav,
   closeQuickNavPanel,
-  setProfileOpen,
-  setContextMenuOpen,
+  closeProfile,
+  closeContextMenu,
   closeCapturePanel,
 }: UseToolbarSearchArgs): UseToolbarSearchResult => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,10 +76,10 @@ export const useToolbarSearch = ({
     resetSearch();
     closeQuickNav({ restoreFocus: false });
     closeQuickNavPanel();
-    setProfileOpen(false);
-    setContextMenuOpen(false);
+    closeProfile({ restoreFocus: false });
+    closeContextMenu({ restoreFocus: false });
     closeCapturePanel({ restoreFocus: false });
-  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, navigate, resetSearch, setContextMenuOpen, setProfileOpen]);
+  }, [closeCapturePanel, closeContextMenu, closeProfile, closeQuickNav, closeQuickNavPanel, navigate, resetSearch]);
 
   const normalizedSearchActiveIndex = useMemo(
     () => (!searchOpen || searchLoading || searchResults.length === 0

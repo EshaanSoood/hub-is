@@ -19,7 +19,12 @@ import {
   type ToolbarNotification,
 } from '../../appShellUtils';
 import { useNotificationsEffects } from './useNotificationsEffects';
-import type { CloseNotificationsOptions, CloseQuickNavOptions } from '../types';
+import type {
+  CloseContextMenuOptions,
+  CloseNotificationsOptions,
+  CloseProfileOptions,
+  CloseQuickNavOptions,
+} from '../types';
 
 interface UseToolbarNotificationsArgs {
   accessToken: string | null | undefined;
@@ -27,8 +32,8 @@ interface UseToolbarNotificationsArgs {
   closeSearch: () => void;
   closeQuickNav: (options?: CloseQuickNavOptions) => void;
   closeQuickNavPanel: () => void;
-  setProfileOpen: Dispatch<SetStateAction<boolean>>;
-  setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
+  closeProfile: (options?: CloseProfileOptions) => void;
+  closeContextMenu: (options?: CloseContextMenuOptions) => void;
   closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
   quickNavOpen: boolean;
   profileOpen: boolean;
@@ -61,8 +66,8 @@ export const useToolbarNotifications = ({
   closeSearch,
   closeQuickNav,
   closeQuickNavPanel,
-  setProfileOpen,
-  setContextMenuOpen,
+  closeProfile,
+  closeContextMenu,
   closeCapturePanel,
   quickNavOpen,
   profileOpen,
@@ -121,13 +126,13 @@ export const useToolbarNotifications = ({
 
   const toggleNotifications = useCallback(() => {
     setNotificationsOpen((current) => !current);
-    setProfileOpen(false);
+    closeProfile({ restoreFocus: false });
     closeSearch();
     closeQuickNav({ restoreFocus: false });
     closeQuickNavPanel();
-    setContextMenuOpen(false);
+    closeContextMenu({ restoreFocus: false });
     closeCapturePanel({ restoreFocus: false });
-  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeSearch, setContextMenuOpen, setProfileOpen]);
+  }, [closeCapturePanel, closeContextMenu, closeProfile, closeQuickNav, closeQuickNavPanel, closeSearch]);
 
   const onNavigateNotification = useCallback(async (notification: ToolbarNotification) => {
     navigate(notification.href);

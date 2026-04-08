@@ -1,44 +1,38 @@
 import { type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, startTransition, useCallback, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../../context/AuthzContext';
-import { appTabs } from '../../../lib/policy';
 import { useProjects } from '../../../context/ProjectsContext';
 import { useRouteFocusReset } from '../../../hooks/useRouteFocusReset';
 import { useRemindersRuntime } from '../../../hooks/useRemindersRuntime';
 import { usePersonalCalendarRuntime } from '../../../hooks/usePersonalCalendarRuntime';
 import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../../hooks/useReminderNLDraft';
-import { createEventFromNlp, createTask, getHubHome, queryTasks } from '../../../services/hub/records';
+import { createEventFromNlp, getHubHome } from '../../../services/hub/records';
 import { createReminder, updateReminder, type CreateReminderPayload } from '../../../services/hub/reminders';
 import { listProjectMembers } from '../../../services/hub/projects';
-import type { HubProjectMember, HubTaskSummary } from '../../../services/hub/types';
+import type { HubProjectMember } from '../../../services/hub/types';
 import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
 import { createHubProject } from '../../../services/projectsService';
-import { adaptTaskSummaries } from '../../project-space/taskAdapter';
-import { notifyError, notifyInfo, notifySuccess } from '../../primitives';
-import { BottomToolbar, type CloseNotificationsOptions, type CloseQuickNavOptions } from '../BottomToolbar';
+import {
+  BottomToolbar,
+  type CloseContextMenuOptions,
+  type CloseNotificationsOptions,
+  type CloseProfileOptions,
+  type CloseQuickNavOptions,
+} from '../BottomToolbar';
 import { useCapturePanelEffects } from './hooks/useCapturePanelEffects';
 import { useGlobalInteractionEffects } from './hooks/useGlobalInteractionEffects';
-import { useInstallPromptEffect } from './hooks/useInstallPromptEffect';
 import { useQuickAddEffects } from './hooks/useQuickAddEffects';
 import { useQuickAddProjectRequestEffect } from './hooks/useQuickAddProjectRequestEffect';
-import { useQuickNavEffects } from './hooks/useQuickNavEffects';
-import { useTasksDialogEffects } from './hooks/useTasksDialogEffects';
 import { useToolbarFocusEffects } from './hooks/useToolbarFocusEffects';
 import {
-  buildAccountAvatarUrl,
   buildBreadcrumb,
   focusElementSoon,
   nowPlusHours,
-  parseIsoTimestamp,
   QUICK_ADD_OPTIONS,
-  QUICK_NAV_FIXED_ITEMS,
-  sessionInitials,
   toDateTimeLocalInput,
   tomorrowAtNineIso,
   type QuickAddDialog,
   type QuickAddOption,
-  type QuickNavActionItem,
-  type ToolbarDialog,
 } from '../appShellUtils';
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
@@ -49,9 +43,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   useRouteFocusReset();
 
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [avatarBroken, setAvatarBroken] = useState(false);
-  const [quickNavOpen, setQuickNavOpen] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [quickAddActiveIndex, setQuickAddActiveIndex] = useState(0);
   const [quickAddDialog, setQuickAddDialog] = useState<QuickAddDialog>(null);
@@ -67,13 +58,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [projectDialogName, setProjectDialogName] = useState('');
   const [projectDialogSubmitting, setProjectDialogSubmitting] = useState(false);
   const [projectDialogError, setProjectDialogError] = useState<string | null>(null);
-  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installState, setInstallState] = useState<{ installed: boolean; iosSafari: boolean }>({
-    installed: false,
-    iosSafari: false,
-  });
-  const [quickNavQuery, setQuickNavQuery] = useState('');
-  const [quickNavActiveIndex, setQuickNavActiveIndex] = useState(-1);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureIntent, setCaptureIntent] = useState<string | null>(null);
   const [captureActivationKey, setCaptureActivationKey] = useState(0);
@@ -86,10 +70,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     captures: [],
   });
   const [captureLoading, setCaptureLoading] = useState(false);
-  const [toolbarDialog, setToolbarDialog] = useState<ToolbarDialog>(null);
-  const [quickNavTasks, setQuickNavTasks] = useState<HubTaskSummary[]>([]);
-  const [quickNavTasksLoading, setQuickNavTasksLoading] = useState(false);
-  const [quickNavTasksError, setQuickNavTasksError] = useState<string | null>(null);
   const {
     draft: reminderDraft,
     setDraft: setReminderDraft,
@@ -100,8 +80,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     enabled: quickAddDialog === 'reminder',
     parseDelayMs: 250,
   });
-  const remindersDialogOpen = toolbarDialog === 'reminders';
-  const calendarDialogOpen = toolbarDialog === 'calendar';
   const {
     calendarEvents: personalCalendarEvents,
     calendarLoading: personalCalendarLoading,
@@ -109,19 +87,13 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     calendarMode: personalCalendarMode,
     setCalendarMode: setPersonalCalendarMode,
     refreshCalendar: refreshPersonalCalendar,
-  } = usePersonalCalendarRuntime(accessToken ?? null, { autoload: calendarDialogOpen });
+  } = usePersonalCalendarRuntime(accessToken ?? null, { autoload: true });
   const remindersRuntime = useRemindersRuntime(accessToken ?? null, {
-    autoload: remindersDialogOpen,
-    subscribeToHomeRefresh: remindersDialogOpen,
-    subscribeToLive: remindersDialogOpen,
+    autoload: true,
+    subscribeToHomeRefresh: true,
+    subscribeToLive: true,
   });
 
-  const quickNavRef = useRef<HTMLDivElement | null>(null);
-  const quickNavTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const quickNavInputRef = useRef<HTMLInputElement | null>(null);
-  const profileRef = useRef<HTMLDivElement | null>(null);
-  const profileTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
   const contextMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const quickAddItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -133,18 +105,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const reminderInputRef = useRef<HTMLInputElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
   const captureRequestVersionRef = useRef(0);
-  const quickNavTasksRequestVersionRef = useRef(0);
-  const quickNavWasOpenRef = useRef(false);
-  const profileWasOpenRef = useRef(false);
   const contextMenuWasOpenRef = useRef(false);
-  const skipQuickNavFocusRestoreRef = useRef(false);
-  const skipProfileFocusRestoreRef = useRef(false);
   const skipContextMenuFocusRestoreRef = useRef(false);
   const skipCaptureFocusRestoreRef = useRef(false);
   const toolbarSearchCloseRef = useRef<() => void>(() => {});
   const toolbarNotificationsCloseRef = useRef<(options?: CloseNotificationsOptions) => void>(() => {});
+  const toolbarQuickNavCloseRef = useRef<(options?: CloseQuickNavOptions) => void>(() => {});
+  const toolbarQuickNavPanelCloseRef = useRef<() => void>(() => {});
+  const toolbarQuickNavPanelOpenRef = useRef<(panel: 'calendar' | 'tasks' | 'reminders') => void>(() => {});
+  const toolbarProfileCloseRef = useRef<(options?: CloseProfileOptions) => void>(() => {});
 
-  const visibleTabs = appTabs.filter((tab) => canGlobal(tab.capability));
   const isOnHubHome = location.pathname === '/projects';
   const currentProjectId = useMemo(() => {
     const match = location.pathname.match(/^\/projects\/([^/]+)/);
@@ -160,6 +130,19 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     const project = projects.find((entry) => entry.id === currentProjectId) || null;
     return project && !project.isPersonal ? project.id : null;
   }, [currentProjectId, projects]);
+  const defaultTaskProjectId = useMemo(() => {
+    if (currentProjectId && projects.some((project) => project.id === currentProjectId)) {
+      return currentProjectId;
+    }
+    if (captureHomeData.personalProjectId && projects.some((project) => project.id === captureHomeData.personalProjectId)) {
+      return captureHomeData.personalProjectId;
+    }
+    const personalProjectId = projects.find((project) => project.isPersonal)?.id;
+    if (personalProjectId) {
+      return personalProjectId;
+    }
+    return projects[0]?.id || '';
+  }, [captureHomeData.personalProjectId, currentProjectId, projects]);
   const breadcrumb = useMemo(
     () => buildBreadcrumb(location.pathname, projects.map((project) => ({ id: project.id, name: project.name }))),
     [location.pathname, projects],
@@ -180,7 +163,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     () => taskProjectMembersById[quickAddProjectId] ?? [],
     [quickAddProjectId, taskProjectMembersById],
   );
-  const adaptedTasks = useMemo(() => adaptTaskSummaries(quickNavTasks), [quickNavTasks]);
 
   const refreshCaptureData = useCallback(async () => {
     if (!accessToken) {
@@ -214,76 +196,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     } finally {
       if (captureRequestVersionRef.current === requestVersion) {
         setCaptureLoading(false);
-      }
-    }
-  }, [accessToken]);
-
-  const refreshQuickNavTasks = useCallback(async () => {
-    if (!accessToken) {
-      quickNavTasksRequestVersionRef.current += 1;
-      setQuickNavTasks([]);
-      setQuickNavTasksLoading(false);
-      setQuickNavTasksError(null);
-      return;
-    }
-
-    const requestVersion = quickNavTasksRequestVersionRef.current + 1;
-    quickNavTasksRequestVersionRef.current = requestVersion;
-    setQuickNavTasksLoading(true);
-    setQuickNavTasksError(null);
-    try {
-      const nextTasks: HubTaskSummary[] = [];
-      let nextCursor: string | undefined;
-      const seenCursors = new Set<string>();
-
-      for (let page = 0; page < 100; page += 1) {
-        if (quickNavTasksRequestVersionRef.current !== requestVersion) {
-          return;
-        }
-        const taskPage = await queryTasks(
-          accessToken,
-          nextCursor
-            ? {
-                lens: 'assigned',
-                limit: 200,
-                cursor: nextCursor,
-              }
-            : {
-                lens: 'assigned',
-                limit: 200,
-              },
-        );
-        nextTasks.push(...taskPage.tasks);
-
-        if (!taskPage.next_cursor || seenCursors.has(taskPage.next_cursor)) {
-          break;
-        }
-        seenCursors.add(taskPage.next_cursor);
-        nextCursor = taskPage.next_cursor;
-      }
-
-      if (quickNavTasksRequestVersionRef.current !== requestVersion) {
-        return;
-      }
-
-      const nextItems = [...nextTasks].sort((left, right) => {
-        const leftDue = parseIsoTimestamp(left.task_state.due_at);
-        const rightDue = parseIsoTimestamp(right.task_state.due_at);
-        if (leftDue !== rightDue) {
-          return leftDue - rightDue;
-        }
-        return parseIsoTimestamp(right.updated_at) - parseIsoTimestamp(left.updated_at);
-      });
-      setQuickNavTasks(nextItems);
-    } catch (error) {
-      if (quickNavTasksRequestVersionRef.current !== requestVersion) {
-        return;
-      }
-      setQuickNavTasks([]);
-      setQuickNavTasksError(error instanceof Error ? error.message : 'Failed to load tasks.');
-    } finally {
-      if (quickNavTasksRequestVersionRef.current === requestVersion) {
-        setQuickNavTasksLoading(false);
       }
     }
   }, [accessToken]);
@@ -331,10 +243,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setEventError(null);
     setReminderError(null);
     setProjectDialogError(null);
-  }, []);
-
-  const closeQuickNavPanel = useCallback(() => {
-    setToolbarDialog(null);
   }, []);
 
   const openQuickAddDialog = useCallback(
@@ -499,21 +407,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     projectNameInputRef,
   });
 
-  useTasksDialogEffects({
-    toolbarDialog,
-    refreshQuickNavTasks,
-  });
-
-  const closeQuickNav = useCallback((options?: CloseQuickNavOptions) => {
-    skipQuickNavFocusRestoreRef.current = options?.restoreFocus === false;
-    setQuickNavOpen(false);
-    setQuickNavQuery('');
-    setQuickNavActiveIndex(-1);
-  }, []);
-
   const closeCapturePanel = useCallback((options?: { restoreFocus?: boolean }) => {
     skipCaptureFocusRestoreRef.current = options?.restoreFocus === false;
     setCaptureOpen(false);
+  }, []);
+
+  const closeContextMenu = useCallback((options?: CloseContextMenuOptions) => {
+    skipContextMenuFocusRestoreRef.current = options?.restoreFocus === false;
+    setContextMenuOpen(false);
   }, []);
 
   const onSearchCloseAvailable = useCallback((closeSearch: () => void) => {
@@ -524,6 +425,22 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     toolbarNotificationsCloseRef.current = closeNotifications;
   }, []);
 
+  const onQuickNavCloseAvailable = useCallback((closeQuickNav: (options?: CloseQuickNavOptions) => void) => {
+    toolbarQuickNavCloseRef.current = closeQuickNav;
+  }, []);
+
+  const onQuickNavPanelCloseAvailable = useCallback((closeQuickNavPanel: () => void) => {
+    toolbarQuickNavPanelCloseRef.current = closeQuickNavPanel;
+  }, []);
+
+  const onQuickNavPanelOpenAvailable = useCallback((openQuickNavPanel: (panel: 'calendar' | 'tasks' | 'reminders') => void) => {
+    toolbarQuickNavPanelOpenRef.current = openQuickNavPanel;
+  }, []);
+
+  const onProfileCloseAvailable = useCallback((closeProfile: (options?: CloseProfileOptions) => void) => {
+    toolbarProfileCloseRef.current = closeProfile;
+  }, []);
+
   const closeToolbarSearch = useCallback(() => {
     toolbarSearchCloseRef.current();
   }, []);
@@ -532,98 +449,45 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     toolbarNotificationsCloseRef.current(options);
   }, []);
 
-  const openQuickNavPanel = useCallback((panel: Exclude<ToolbarDialog, null>) => {
-    skipProfileFocusRestoreRef.current = true;
-    skipContextMenuFocusRestoreRef.current = true;
-    setToolbarDialog(panel);
-    closeToolbarSearch();
-    closeToolbarNotifications({ restoreFocus: false });
-    closeQuickNav();
-    setProfileOpen(false);
-    setContextMenuOpen(false);
-    closeCapturePanel({ restoreFocus: false });
-  }, [closeCapturePanel, closeQuickNav, closeToolbarNotifications, closeToolbarSearch]);
+  const closeToolbarQuickNav = useCallback((options?: CloseQuickNavOptions) => {
+    toolbarQuickNavCloseRef.current(options);
+  }, []);
+
+  const closeToolbarQuickNavPanel = useCallback(() => {
+    toolbarQuickNavPanelCloseRef.current();
+  }, []);
+
+  const openToolbarQuickNavPanel = useCallback((panel: 'calendar' | 'tasks' | 'reminders') => {
+    toolbarQuickNavPanelOpenRef.current(panel);
+  }, []);
+
+  const closeToolbarProfile = useCallback((options?: CloseProfileOptions) => {
+    toolbarProfileCloseRef.current(options);
+  }, []);
 
   useQuickAddProjectRequestEffect({
     closeCapturePanel,
-    closeQuickNav,
-    closeQuickNavPanel,
+    closeQuickNav: closeToolbarQuickNav,
+    closeQuickNavPanel: closeToolbarQuickNavPanel,
+    closeProfile: closeToolbarProfile,
+    closeContextMenu,
     closeSearch: closeToolbarSearch,
     closeNotifications: closeToolbarNotifications,
     openQuickAddDialog,
-    setProfileOpen,
-    setContextMenuOpen,
-    skipQuickNavFocusRestoreRef,
-    skipProfileFocusRestoreRef,
-    skipContextMenuFocusRestoreRef,
   });
 
   useGlobalInteractionEffects({
     closeCapturePanel,
-    closeQuickNav,
-    closeQuickNavPanel,
+    closeQuickNav: closeToolbarQuickNav,
+    closeQuickNavPanel: closeToolbarQuickNavPanel,
+    openQuickNavPanel: openToolbarQuickNavPanel,
+    closeProfile: () => closeToolbarProfile(),
     closeSearch: closeToolbarSearch,
     closeNotifications: closeToolbarNotifications,
+    closeContextMenu,
     contextMenuOpen,
     contextMenuRef,
-    openQuickNavPanel,
-    profileOpen,
-    profileRef,
     quickAddDialog,
-    quickNavOpen,
-    quickNavRef,
-    setContextMenuOpen,
-    setProfileOpen,
-  });
-
-  const quickNavDestinationItems = useMemo(() => {
-    const tabItems: QuickNavActionItem[] = visibleTabs.map((tab) => ({ id: tab.to, label: tab.label, action: 'navigate', href: tab.to }));
-    const projectItems = projects.map((project) => ({
-      id: `project-${project.id}`,
-      label: project.name,
-      iconName: 'menu' as const,
-      action: 'navigate' as const,
-      href: `/projects/${encodeURIComponent(project.id)}/overview`,
-    }));
-    const allItems = [...tabItems, ...projectItems];
-
-    const query = quickNavQuery.trim().toLowerCase();
-    if (!query) {
-      return allItems;
-    }
-    return allItems.filter((item) => item.label.toLowerCase().includes(query));
-  }, [projects, quickNavQuery, visibleTabs]);
-  const quickNavItems = useMemo(
-    () => [...QUICK_NAV_FIXED_ITEMS, ...quickNavDestinationItems],
-    [quickNavDestinationItems],
-  );
-
-  const normalizedQuickNavActiveIndex =
-    quickNavItems.length === 0 || quickNavActiveIndex < 0 || quickNavActiveIndex >= quickNavItems.length
-      ? quickNavItems.length === 0
-        ? -1
-        : 0
-      : quickNavActiveIndex;
-
-  useQuickNavEffects({
-    captureOpen,
-    closeQuickNav,
-    contextMenuOpen,
-    navigate,
-    normalizedQuickNavActiveIndex,
-    openQuickNavPanel,
-    profileOpen,
-    quickAddDialog,
-    quickNavInputRef,
-    quickNavItems,
-    quickNavOpen,
-    quickNavTriggerRef,
-    quickNavWasOpenRef,
-    setQuickNavActiveIndex,
-    setQuickNavQuery,
-    setToolbarDialog,
-    skipQuickNavFocusRestoreRef,
-    toolbarDialog,
   });
 
   useToolbarFocusEffects({
@@ -632,28 +496,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     contextMenuRef,
     contextMenuTriggerRef,
     contextMenuWasOpenRef,
-    profileMenuRef,
-    profileOpen,
-    profileTriggerRef,
-    profileWasOpenRef,
     quickAddDialog,
-    quickNavOpen,
     skipContextMenuFocusRestoreRef,
-    skipProfileFocusRestoreRef,
-    toolbarDialog,
+    toolbarDialog: null,
   });
-
-  const onNavigateProjectsFromProfileMenu = useCallback(() => {
-    skipProfileFocusRestoreRef.current = true;
-    navigate('/projects');
-    setProfileOpen(false);
-  }, [navigate]);
-
-  const onLogoutFromProfileMenu = useCallback(() => {
-    skipProfileFocusRestoreRef.current = true;
-    void signOut();
-    setProfileOpen(false);
-  }, [signOut]);
 
   const openCapturePanel = useCallback((intent: string | null, restoreTarget?: HTMLElement | null) => {
     captureRestoreTargetRef.current = restoreTarget ?? captureTriggerRef.current;
@@ -663,11 +509,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setCaptureOpen(true);
     closeToolbarSearch();
     closeToolbarNotifications({ restoreFocus: false });
-    closeQuickNav();
-    closeQuickNavPanel();
-    setProfileOpen(false);
-    setContextMenuOpen(false);
-  }, [closeQuickNav, closeQuickNavPanel, closeToolbarNotifications, closeToolbarSearch]);
+    closeToolbarQuickNav({ restoreFocus: false });
+    closeToolbarQuickNavPanel();
+    closeToolbarProfile({ restoreFocus: false });
+    closeContextMenu({ restoreFocus: false });
+  }, [closeContextMenu, closeToolbarNotifications, closeToolbarProfile, closeToolbarQuickNav, closeToolbarQuickNavPanel, closeToolbarSearch]);
 
   const onQuickCapture = () => {
     if (captureOpen && !captureIntent) {
@@ -698,16 +544,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     closeCapturePanel({ restoreFocus: false });
     closeToolbarSearch();
     closeToolbarNotifications({ restoreFocus: false });
-    setProfileOpen(false);
-    closeQuickNav();
-    closeQuickNavPanel();
-  }, [closeCapturePanel, closeQuickNav, closeQuickNavPanel, closeToolbarNotifications, closeToolbarSearch]);
+    closeToolbarProfile({ restoreFocus: false });
+    closeToolbarQuickNav({ restoreFocus: false });
+    closeToolbarQuickNavPanel();
+  }, [closeCapturePanel, closeToolbarNotifications, closeToolbarProfile, closeToolbarQuickNav, closeToolbarQuickNavPanel, closeToolbarSearch]);
 
   const onSelectQuickAddOption = useCallback((option: QuickAddOption) => {
-    skipContextMenuFocusRestoreRef.current = true;
-    setContextMenuOpen(false);
+    closeContextMenu({ restoreFocus: false });
     void openQuickAddDialog(option.key);
-  }, [openQuickAddDialog]);
+  }, [closeContextMenu, openQuickAddDialog]);
 
   const onQuickAddMenuItemKeyDown = useCallback((event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.key === 'ArrowDown') {
@@ -732,20 +577,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     }
     if (event.key === 'Escape') {
       event.preventDefault();
-      setContextMenuOpen(false);
+      closeContextMenu();
     }
-  }, [focusQuickAddMenuItem]);
-
-  const onSelectQuickNavItem = useCallback((item: QuickNavActionItem) => {
-    skipQuickNavFocusRestoreRef.current = true;
-    if (item.action === 'panel') {
-      openQuickNavPanel(item.panel);
-      return;
-    }
-    setToolbarDialog(null);
-    navigate(item.href);
-    closeQuickNav();
-  }, [closeQuickNav, navigate, openQuickNavPanel]);
+  }, [closeContextMenu, focusQuickAddMenuItem]);
 
   const onOpenCalendarRecordFromDialog = useCallback((recordId: string) => {
     const event = personalCalendarEvents.find((entry) => entry.record_id === recordId);
@@ -753,39 +587,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     if (!targetProjectId) {
       return;
     }
-    setToolbarDialog(null);
+    closeToolbarQuickNavPanel();
     navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
-  }, [captureHomeData.personalProjectId, currentProjectId, navigate, personalCalendarEvents]);
+  }, [captureHomeData.personalProjectId, closeToolbarQuickNavPanel, currentProjectId, navigate, personalCalendarEvents]);
 
   const toolbarCalendarCreateProjectId =
     captureHomeData.personalProjectId
     || projects.find((project) => project.isPersonal)?.id
     || null;
-
-  const onCreateTaskFromModule = useCallback(async (task: {
-    title: string;
-    priority: string | null;
-    due_at: string | null;
-    parent_record_id?: string | null;
-  }) => {
-    if (!accessToken) {
-      throw new Error('An authenticated session is required.');
-    }
-    const projectId = resolveDefaultQuickAddProjectId();
-    const priority = task.priority === 'low' || task.priority === 'medium' || task.priority === 'high' || task.priority === 'urgent'
-      ? task.priority
-      : null;
-    await createTask(accessToken, {
-      project_id: projectId || undefined,
-      parent_record_id: task.parent_record_id ?? null,
-      title: task.title,
-      status: 'todo',
-      priority,
-      due_at: task.due_at ?? null,
-    });
-    requestHubHomeRefresh();
-    await refreshQuickNavTasks();
-  }, [accessToken, refreshQuickNavTasks, resolveDefaultQuickAddProjectId]);
 
   const onCreateReminderFromModule = useCallback(async (payload: CreateReminderPayload) => {
     if (!accessToken) {
@@ -804,100 +613,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     requestHubHomeRefresh();
     await remindersRuntime.refresh();
   }, [accessToken, remindersRuntime]);
-
-  useInstallPromptEffect({
-    setDeferredInstallPrompt,
-    setInstallState,
-  });
-
-  const onCopyCalendarLink = useCallback(() => {
-    const url = calendarFeedUrl.trim();
-    if (!url) {
-      notifyError('Could not copy calendar link.', 'Calendar link is not available yet.');
-      return;
-    }
-
-    const fallbackCopy = () => {
-      const textArea = document.createElement('textarea');
-      textArea.value = url;
-      textArea.setAttribute('readonly', 'true');
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      textArea.style.pointerEvents = 'none';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      const copied = document.execCommand('copy');
-      document.body.removeChild(textArea);
-      return copied;
-    };
-
-    if (navigator.clipboard?.writeText) {
-      const copyRequest = navigator.clipboard.writeText(url);
-      void copyRequest
-        .then(() => {
-          notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
-        })
-        .catch(() => {
-          if (fallbackCopy()) {
-            notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
-            return;
-          }
-          notifyError('Could not copy calendar link.');
-        });
-      return;
-    }
-
-    if (fallbackCopy()) {
-      notifySuccess('Calendar link copied — paste in Google Calendar, Outlook, or Apple Calendar to subscribe.');
-      return;
-    }
-    notifyError('Could not copy calendar link.');
-  }, [calendarFeedUrl]);
-
-  const onInstallHubOs = useCallback(async () => {
-    if (installState.installed) {
-      return;
-    }
-
-    if (deferredInstallPrompt) {
-      setProfileOpen(false);
-      const promptEvent = deferredInstallPrompt;
-      setDeferredInstallPrompt(null);
-      try {
-        await promptEvent.prompt();
-        const choice = await promptEvent.userChoice;
-        if (choice.outcome === 'dismissed') {
-          notifyInfo('Install cancelled.');
-        }
-      } catch {
-        notifyError('Could not open the install prompt.');
-      }
-      return;
-    }
-
-    if (installState.iosSafari) {
-      setProfileOpen(false);
-      notifyInfo('Add to Home Screen', 'In Safari, tap Share, then tap Add to Home Screen.');
-    }
-  }, [deferredInstallPrompt, installState.installed, installState.iosSafari]);
-
-  const installMenuLabel = useMemo(() => {
-    if (installState.installed) {
-      return null;
-    }
-    if (deferredInstallPrompt) {
-      return 'Install Hub OS';
-    }
-    if (installState.iosSafari) {
-      return 'Add to Home Screen';
-    }
-    return null;
-  }, [deferredInstallPrompt, installState.installed, installState.iosSafari]);
-  const hasCalendarFeedUrl = calendarFeedUrl.trim().length > 0;
-
-  const accountInitials = sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId);
-  const avatarUrl = buildAccountAvatarUrl(accountInitials, sessionSummary.userId || sessionSummary.email || sessionSummary.name);
 
   return (
     <div className="flex h-screen flex-col bg-surface text-text">
@@ -919,26 +634,17 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       <BottomToolbar
         onSearchCloseAvailable={onSearchCloseAvailable}
         onNotificationsCloseAvailable={onNotificationsCloseAvailable}
+        onQuickNavCloseAvailable={onQuickNavCloseAvailable}
+        onQuickNavPanelCloseAvailable={onQuickNavPanelCloseAvailable}
+        onQuickNavPanelOpenAvailable={onQuickNavPanelOpenAvailable}
+        onProfileCloseAvailable={onProfileCloseAvailable}
         isOnHubHome={isOnHubHome}
         navigate={navigate}
         breadcrumb={breadcrumb}
-        quickNavRef={quickNavRef}
-        quickNavTriggerRef={quickNavTriggerRef}
-        quickNavOpen={quickNavOpen}
-        closeQuickNav={closeQuickNav}
-        setQuickNavOpen={setQuickNavOpen}
-        setQuickNavActiveIndex={setQuickNavActiveIndex}
-        quickNavItems={quickNavItems}
-        setProfileOpen={setProfileOpen}
+        canGlobal={canGlobal}
         setContextMenuOpen={setContextMenuOpen}
-        closeQuickNavPanel={closeQuickNavPanel}
+        closeContextMenu={closeContextMenu}
         closeCapturePanel={closeCapturePanel}
-        quickNavInputRef={quickNavInputRef}
-        quickNavQuery={quickNavQuery}
-        setQuickNavQuery={setQuickNavQuery}
-        normalizedQuickNavActiveIndex={normalizedQuickNavActiveIndex}
-        onSelectQuickNavItem={onSelectQuickNavItem}
-        quickNavDestinationItems={quickNavDestinationItems}
         contextMenuRef={contextMenuRef}
         contextMenuTriggerRef={contextMenuTriggerRef}
         contextMenuOpen={contextMenuOpen}
@@ -957,12 +663,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         accessToken={accessToken}
         projects={projects}
         captureHomeData={captureHomeData}
+        defaultTaskProjectId={defaultTaskProjectId}
         captureLoading={captureLoading}
         refreshCaptureData={refreshCaptureData}
         preferredCaptureProjectId={preferredCaptureProjectId}
         captureIntent={captureIntent}
         captureActivationKey={captureActivationKey}
-        toolbarDialog={toolbarDialog}
         personalCalendarError={personalCalendarError}
         refreshPersonalCalendar={refreshPersonalCalendar}
         personalCalendarEvents={personalCalendarEvents}
@@ -971,11 +677,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         setPersonalCalendarMode={setPersonalCalendarMode}
         onOpenCalendarRecordFromDialog={onOpenCalendarRecordFromDialog}
         toolbarCalendarCreateProjectId={toolbarCalendarCreateProjectId}
-        quickNavTasksError={quickNavTasksError}
-        refreshQuickNavTasks={refreshQuickNavTasks}
-        adaptedTasks={adaptedTasks}
-        quickNavTasksLoading={quickNavTasksLoading}
-        onCreateTaskFromModule={onCreateTaskFromModule}
         remindersRuntime={remindersRuntime}
         onSnoozeReminderFromModule={onSnoozeReminderFromModule}
         onCreateReminderFromModule={onCreateReminderFromModule}
@@ -1012,20 +713,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         projectDialogSubmitting={projectDialogSubmitting}
         projectDialogError={projectDialogError}
         projectNameInputRef={projectNameInputRef}
-        profileRef={profileRef}
-        profileTriggerRef={profileTriggerRef}
-        profileOpen={profileOpen}
-        avatarBroken={avatarBroken}
-        avatarUrl={avatarUrl}
         sessionSummary={sessionSummary}
-        setAvatarBroken={setAvatarBroken}
-        profileMenuRef={profileMenuRef}
-        hasCalendarFeedUrl={hasCalendarFeedUrl}
-        onCopyCalendarLink={onCopyCalendarLink}
-        installMenuLabel={installMenuLabel}
-        onInstallHubOs={onInstallHubOs}
-        onNavigateProjectsFromProfileMenu={onNavigateProjectsFromProfileMenu}
-        onLogoutFromProfileMenu={onLogoutFromProfileMenu}
+        calendarFeedUrl={calendarFeedUrl}
+        signOut={signOut}
       />
       <div className="sr-only" aria-live="polite">
         {captureAnnouncement}

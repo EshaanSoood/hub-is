@@ -1,7 +1,12 @@
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import type { HubSearchResult } from '../../../services/hub/search';
 import { SearchResultsPanel } from './ToolbarDialogs/SearchResultsPanel';
-import type { CloseNotificationsOptions, CloseQuickNavOptions } from './types';
+import type {
+  CloseContextMenuOptions,
+  CloseNotificationsOptions,
+  CloseProfileOptions,
+  CloseQuickNavOptions,
+} from './types';
 
 interface ToolbarSearchProps {
   searchRef: MutableRefObject<HTMLDivElement | null>;
@@ -12,9 +17,9 @@ interface ToolbarSearchProps {
   setSearchOpen: Dispatch<SetStateAction<boolean>>;
   closeQuickNav: (options?: CloseQuickNavOptions) => void;
   closeQuickNavPanel: () => void;
-  setProfileOpen: Dispatch<SetStateAction<boolean>>;
+  closeProfile: (options?: CloseProfileOptions) => void;
   closeNotifications: (options?: CloseNotificationsOptions) => void;
-  setContextMenuOpen: Dispatch<SetStateAction<boolean>>;
+  closeContextMenu: (options?: CloseContextMenuOptions) => void;
   closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
   searchOpen: boolean;
   searchLoading: boolean;
@@ -34,9 +39,9 @@ export const ToolbarSearch = ({
   setSearchOpen,
   closeQuickNav,
   closeQuickNavPanel,
-  setProfileOpen,
+  closeProfile,
   closeNotifications,
-  setContextMenuOpen,
+  closeContextMenu,
   closeCapturePanel,
   searchOpen,
   searchLoading,
@@ -69,9 +74,9 @@ export const ToolbarSearch = ({
             }
             closeQuickNav({ restoreFocus: false });
             closeQuickNavPanel();
-            setProfileOpen(false);
+            closeProfile({ restoreFocus: false });
             closeNotifications({ restoreFocus: false });
-            setContextMenuOpen(false);
+            closeContextMenu({ restoreFocus: false });
             closeCapturePanel({ restoreFocus: false });
           }}
           onKeyDown={(event) => {

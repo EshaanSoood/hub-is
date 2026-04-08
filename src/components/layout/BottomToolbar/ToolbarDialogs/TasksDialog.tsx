@@ -1,18 +1,18 @@
+import type { ComponentProps, MutableRefObject } from 'react';
 import { TasksModuleSkin } from '../../../project-space/TasksModuleSkin';
 import { Dialog } from '../../../primitives';
-import type { BottomToolbarProps } from '../types';
+import type { ToolbarDialog } from '../../appShellUtils';
 
-type TasksDialogProps = Pick<
-  BottomToolbarProps,
-  | 'toolbarDialog'
-  | 'closeQuickNavPanel'
-  | 'quickNavTriggerRef'
-  | 'quickNavTasksError'
-  | 'refreshQuickNavTasks'
-  | 'adaptedTasks'
-  | 'quickNavTasksLoading'
-  | 'onCreateTaskFromModule'
->;
+interface TasksDialogProps {
+  toolbarDialog: ToolbarDialog;
+  closeQuickNavPanel: () => void;
+  quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
+  quickNavTasksError: string | null;
+  refreshQuickNavTasks: () => Promise<void>;
+  adaptedTasks: ComponentProps<typeof TasksModuleSkin>['tasks'];
+  quickNavTasksLoading: ComponentProps<typeof TasksModuleSkin>['tasksLoading'];
+  onCreateTaskFromModule: ComponentProps<typeof TasksModuleSkin>['onCreateTask'];
+}
 
 export const TasksDialog = ({
   toolbarDialog,
