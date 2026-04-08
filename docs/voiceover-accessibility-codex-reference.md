@@ -1117,7 +1117,7 @@ function FormField({ label, error, id, children }) {
 Hub OS must maintain a logical heading hierarchy on every view. VoiceOver users navigate by headings constantly.
 
 ```
-h1: Hub Home (or current view name — ONE per page)
+h1: myHub (or current view name — ONE per page)
   h2: Today's Tasks
     h3: Project: Hub OS
     h3: Project: Living Score
@@ -1674,11 +1674,11 @@ Patterns mapped to actual Hub OS features.
 </section>
 ```
 
-### Hub Home Date Bands (stream layout)
+### myHub Date Bands (stream layout)
 
 ```tsx
-<main aria-label="Hub Home">
-  <h1>Hub Home</h1>
+<main aria-label="myHub">
+  <h1>myHub</h1>
 
   <section aria-labelledby="today-heading">
     <h2 id="today-heading">Today — March 26, 2026</h2>

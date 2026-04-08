@@ -103,7 +103,7 @@ export const ProjectsPage = () => {
       setHomeData(next);
       setHomeError(null);
     } catch (error) {
-      setHomeError(error instanceof Error ? error.message : 'Failed to load Hub Home.');
+      setHomeError(error instanceof Error ? error.message : 'Failed to load myHub.');
     } finally {
       setHomeLoading(false);
     }

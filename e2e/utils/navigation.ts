@@ -10,7 +10,7 @@ const projectIdFromHref = (href: string): string => {
 
 export const openProjectsIndex = async (page: Page, baseUrl: string): Promise<void> => {
   await page.goto(new URL('/projects', baseUrl).toString(), { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: /Hub Home|Projects/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /myHub|Projects/i })).toBeVisible();
 };
 
 export const navigateWithinSpa = async (page: Page, path: string): Promise<void> => {

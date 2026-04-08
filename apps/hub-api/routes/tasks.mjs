@@ -357,7 +357,7 @@ export const createTaskRoutes = (deps) => {
     const unreadOnly = asBoolean(requestUrl.searchParams.get('unread'), false);
     const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
     if (!personalProject) {
-      request.log.error('Personal project is unavailable during hub home load.', { userId: auth.user.user_id });
+      request.log.error('Personal project is unavailable during myHub load.', { userId: auth.user.user_id });
       send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
       return;
     }
@@ -368,7 +368,7 @@ export const createTaskRoutes = (deps) => {
     const createdTasks = listCreatedTasksForUser({ userId: auth.user.user_id, rowsByProjectCache });
     const allTasks = mergeTaskSummaries(assignedTasks, createdTasks)
       .sort(compareTasksByUpdatedAt);
-    request.log.debug('Hub home tasks query completed.', {
+    request.log.debug('myHub tasks query completed.', {
       durationMs: elapsedMs(tasksQueryStartedAt),
     });
     const tasks = allTasks.slice(0, tasksLimit);
@@ -380,19 +380,19 @@ export const createTaskRoutes = (deps) => {
         ? unreadNotificationsByUserStmt.all(auth.user.user_id, notificationsLimit)
         : notificationsByUserStmt.all(auth.user.user_id, notificationsLimit)
     ).map(notificationRecord);
-    request.log.debug('Hub home notifications query completed.', {
+    request.log.debug('myHub notifications query completed.', {
       durationMs: elapsedMs(notificationsQueryStartedAt),
     });
 
     const capturesQueryStartedAt = performance.now();
     const captures = listPersonalCapturesForUser({ projectId: personalProject.project_id, limit: capturesLimit });
-    request.log.debug('Hub home captures query completed.', {
+    request.log.debug('myHub captures query completed.', {
       durationMs: elapsedMs(capturesQueryStartedAt),
     });
 
     const eventsQueryStartedAt = performance.now();
     const events = listHomeEventsForUser({ userId: auth.user.user_id, limit: eventsLimit });
-    request.log.debug('Hub home events query completed.', {
+    request.log.debug('myHub events query completed.', {
       durationMs: elapsedMs(eventsQueryStartedAt),
     });
 
@@ -412,7 +412,7 @@ export const createTaskRoutes = (deps) => {
         }),
       ),
     );
-    request.log.debug('Hub home request completed.', {
+    request.log.debug('myHub request completed.', {
       durationMs: elapsedMs(homeStartedAt),
     });
   });

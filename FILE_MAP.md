@@ -274,7 +274,7 @@ src/lib/cn.ts — Exports cn for cn; used by Cluster and Grid.
 src/lib/dashboardCards.ts — Defines dashboard card registry constants and filtering helpers for personalized dashboard rendering.
 src/lib/env.ts — Exports env for env; used by useWorkspaceDocRuntime and blockingInputs.
 src/lib/focusWhenReady.ts — Exports focusWhenReady for focus when ready; used by QuickCapture and LoginPage.
-src/lib/hubHomeRefresh.ts — Exports HUB_HOME_REFRESH_EVENT, requestHubHomeRefresh, subscribeHubHomeRefresh for hub home refresh; used by AppShell.
+src/lib/hubHomeRefresh.ts — Exports HUB_HOME_REFRESH_EVENT, requestHubHomeRefresh, subscribeHubHomeRefresh for myHub refresh; used by AppShell.
 src/lib/hubRoutes.ts — Builds Hub deep-link/context hrefs from records, panes, and lexical node metadata.
 src/lib/keycloak.ts — Exports isKeycloakConfigured, getKeycloak for keycloak; used by AuthzContext.
 src/lib/policy.ts — Exports appTabs, hasGlobalCapability, getMembershipForProject for policy; used by AppShell and AuthzContext.
@@ -409,7 +409,7 @@ src/services/hub/__tests__/hubRoutes.test.ts — Test suite validating Hub route
 ## src/shared/api-types
 src/shared/api-types/auth.ts — Shared API type definitions for auth.
 src/shared/api-types/events.ts — Shared API type definitions for events.
-src/shared/api-types/hub-home.ts — Shared API type definitions for hub home.
+src/shared/api-types/hub-home.ts — Shared API type definitions for myHub.
 src/shared/api-types/index.ts — Barrel export for shared API contracts and runtime validators.
 src/shared/api-types/projects.ts — Shared API type definitions for projects.
 src/shared/api-types/records.ts — Shared API type definitions for records.

@@ -1,12 +1,12 @@
 interface ToolbarBreadcrumbProps {
-  isOnHubHome: boolean;
+  isOnMyHub: boolean;
   navigate: (to: string) => void;
   breadcrumb: string[];
 }
 
-export const ToolbarBreadcrumb = ({ isOnHubHome, navigate, breadcrumb }: ToolbarBreadcrumbProps) => (
+export const ToolbarBreadcrumb = ({ isOnMyHub, navigate, breadcrumb }: ToolbarBreadcrumbProps) => (
   <div className="mr-sm flex min-w-0 items-center gap-xs">
-    {!isOnHubHome ? (
+    {!isOnMyHub ? (
       <button
         type="button"
         onClick={() => navigate('/projects')}

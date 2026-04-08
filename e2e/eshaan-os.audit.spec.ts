@@ -83,8 +83,8 @@ test.describe('Authentication & Session', () => {
   });
 });
 
-test.describe('Hub Home', () => {
-  test('Hub home page loads', async ({ page }) => {
+test.describe('myHub', () => {
+  test('myHub page loads', async ({ page }) => {
     await gotoReady(page, '/projects');
     await waitForHubHome(page);
   });
@@ -94,7 +94,7 @@ test.describe('Hub Home', () => {
     await expect(page.locator(`a[href="/projects/${fixture.owner.personalProjectId}/overview"]`)).toBeVisible();
   });
 
-  test('Tasks and events sections render on Hub home', async ({ page }) => {
+  test('Tasks and events sections render on myHub', async ({ page }) => {
     await gotoReady(page, '/projects');
     const dailyBrief = page.getByRole('tabpanel', { name: 'Daily Brief' });
     await expect(dailyBrief.getByText('Tasks', { exact: true })).toBeVisible();
@@ -257,7 +257,7 @@ test.describe('Calendar & Events', () => {
 });
 
 test.describe('Tasks', () => {
-  test('Tasks appear in Hub home', async ({ page }) => {
+  test('Tasks appear in myHub', async ({ page }) => {
     await gotoReady(page, '/projects');
     await page.getByRole('tab', { name: 'Project Lens' }).click();
     const projectLens = page.getByRole('tabpanel', { name: 'Project Lens' });
@@ -392,7 +392,7 @@ test.describe('Navigation & Shell', () => {
     await expect(page).toHaveURL(new RegExp(`/projects/${fixture.auxProject.id}/overview$`));
   });
 
-  test('Navigation between panes works and Hub home is reachable from a project', async ({ page }) => {
+  test('Navigation between panes works and myHub is reachable from a project', async ({ page }) => {
     await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
     await page.getByRole('button', { name: /Audit Private/i }).click();
     await expect(page).toHaveURL(new RegExp(`/projects/${fixture.project.id}/work/${fixture.panes.privateId}`));

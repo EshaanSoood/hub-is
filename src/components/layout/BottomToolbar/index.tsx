@@ -74,7 +74,7 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
     profileCloseRef.current(options);
   }, []);
 
-  const isOnHubHome = location.pathname === '/projects';
+  const isOnMyHub = location.pathname === '/projects';
   const currentProjectId = useMemo(() => {
     const match = location.pathname.match(/^\/projects\/([^/]+)/);
     if (!match || location.pathname === '/projects') {
@@ -304,7 +304,7 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
         className="relative flex h-12 shrink-0 items-center gap-sm border-t border-border-muted bg-surface-elevated px-md"
       >
         <ToolbarBreadcrumb
-          isOnHubHome={isOnHubHome}
+          isOnMyHub={isOnMyHub}
           navigate={navigate}
           breadcrumb={breadcrumb}
         />

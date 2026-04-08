@@ -85,7 +85,7 @@ const extractRecordId = (data: unknown): string => {
   throw new Error('Could not locate task record_id in response.');
 };
 
-test.describe('Hub Home data contract tests', () => {
+test.describe('myHub data contract tests', () => {
   let client: HubApiClient;
   let personalProjectId = '';
   const createdRecordIds = new Set<string>();

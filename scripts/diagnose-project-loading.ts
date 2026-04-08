@@ -386,7 +386,7 @@ const main = async (): Promise<void> => {
       || projectCandidates[0];
 
     if (!firstNonPersonal) {
-      throw new Error('No projects were discovered on the Hub home page.');
+      throw new Error('No projects were discovered on the myHub page.');
     }
 
     selectedProjectUrl = firstNonPersonal.url;
