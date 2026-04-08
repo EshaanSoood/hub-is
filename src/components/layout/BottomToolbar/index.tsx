@@ -74,7 +74,8 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
     profileCloseRef.current(options);
   }, []);
 
-  const isOnMyHub = location.pathname === '/projects';
+  const normalizedPathname = location.pathname.replace(/\/+$/, '') || '/';
+  const isOnMyHub = normalizedPathname === '/projects';
   const currentProjectId = useMemo(() => {
     const match = location.pathname.match(/^\/projects\/([^/]+)/);
     if (!match || location.pathname === '/projects') {

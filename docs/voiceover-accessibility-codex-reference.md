@@ -1115,6 +1115,7 @@ function FormField({ label, error, id, children }) {
 ## 12. Heading Structure & Document Outline
 
 Hub OS must maintain a logical heading hierarchy on every view. VoiceOver users navigate by headings constantly.
+The examples below are target semantics for view-level headings (`myHub` naming), while the current app shell keeps a separate visually hidden global `<h1>Hub workspace</h1>`.
 
 ```
 h1: myHub (or current view name — ONE per page)
@@ -1675,6 +1676,8 @@ Patterns mapped to actual Hub OS features.
 ```
 
 ### myHub Date Bands (stream layout)
+
+> Note: This snippet is aspirational for view-level semantics. Current implementation keeps `<main id="main-content">` plus a separate sr-only global app heading in `AppShell`.
 
 ```tsx
 <main aria-label="myHub">

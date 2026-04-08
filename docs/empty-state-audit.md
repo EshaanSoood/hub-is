@@ -326,9 +326,9 @@ Audit note on shared wrapper behavior:
 | Files | L empty/filter empty | no | yes | yes | no |
 | Files | loading (fetch) | no state | no state | no state | no |
 | Files | error | no state | no state | no state | no |
-| InboxCapture | empty list | no | yes | yes | no |
-| InboxCapture | loading | no state | no state | no state | no |
-| InboxCapture | error | no state | no state | no state | no |
+| QuickThoughts | empty list | no | yes | yes | no |
+| QuickThoughts | loading | no state | no state | no state | no |
+| QuickThoughts | error | no state | no state | no state | no |
 
 ## Recommendations
 For each state that does not meet the standard:
@@ -438,7 +438,7 @@ For each state that does not meet the standard:
 - CTA: `"Upload files"` (or `"Clear filters"` for filtered/search case)
 - Per-tier: `S` can use icon + one-line copy; `L` can show both upload and clear-filter CTAs
 
-17. `InboxCapture empty list`
+17. `QuickThoughts empty list`
 - Icon: `Icon name="thought-pile"` in the empty card itself (not only header)
 - Message: `"No quick thoughts captured for this pane yet."`
 - CTA: `"Capture thought"` (focus composer or open editor)
