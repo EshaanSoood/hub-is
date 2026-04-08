@@ -13,6 +13,8 @@ import { initializeDatabase } from './db/bootstrap.mjs';
 import { withTransaction } from './db/transaction.mjs';
 import { createAuthHelpers } from './helpers/auth.mjs';
 import { createCalendarFeedTokenHelpers } from './helpers/calendarFeedToken.mjs';
+import { createDomainUtils } from './helpers/domainUtils.mjs';
+import { createNextcloudHelpers } from './helpers/nextcloud.mjs';
 import { createPermissionHelpers } from './helpers/permissions.mjs';
 import { createValidationHelpers } from './helpers/validation.mjs';
 import { createRequestLogger } from './lib/logger.mjs';
@@ -194,116 +196,6 @@ const { sendHubInviteEmail } = createPostmarkIntegration({
   isFetchTimeoutError,
   parseUpstreamJson,
 });
-
-const relationTargetCollectionIdFromField = (field) => {
-  const config = parseJsonObject(field?.config, {});
-  const direct = asText(config.target_collection_id || config.targetCollectionId);
-  if (direct) {
-    return direct;
-  }
-  const nestedTarget = config.target;
-  if (nestedTarget && typeof nestedTarget === 'object' && !Array.isArray(nestedTarget)) {
-    const nested = asText(nestedTarget.collection_id || nestedTarget.collectionId);
-    if (nested) {
-      return nested;
-    }
-  }
-  return '';
-};
-
-const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-
-const normalizeAssetRelativePath = (value) => {
-  const raw = asText(value).replace(/\\/g, '/');
-  if (!raw) {
-    return '';
-  }
-
-  const parts = raw.split('/').map((part) => part.trim()).filter(Boolean);
-  const clean = [];
-  for (const part of parts) {
-    if (part === '.' || part === '..') {
-      continue;
-    }
-    clean.push(part);
-  }
-  return clean.join('/');
-};
-
-const buildAssetRelativePath = (...segments) => normalizeAssetRelativePath(segments.filter(Boolean).join('/'));
-const normalizeAssetPathSegment = (value, fallback = 'Unsorted') =>
-  asText(value).replace(/[\\/]+/g, ' ').trim().replace(/\s+/g, '_') || fallback;
-
-const collectLexicalNodeKeys = (candidate, output) => {
-  if (!candidate || typeof candidate !== 'object') {
-    return;
-  }
-
-  if (Array.isArray(candidate)) {
-    for (const item of candidate) {
-      collectLexicalNodeKeys(item, output);
-    }
-    return;
-  }
-
-  const key = candidate.key;
-  if (typeof key === 'string' && key.trim()) {
-    output.add(key.trim());
-  }
-
-  for (const value of Object.values(candidate)) {
-    if (value && typeof value === 'object') {
-      collectLexicalNodeKeys(value, output);
-    }
-  }
-};
-
-const extractDocNodeKeyState = (snapshotPayload) => {
-  const result = {
-    hasSignal: false,
-    nodeKeys: new Set(),
-  };
-
-  if (!snapshotPayload || typeof snapshotPayload !== 'object' || Array.isArray(snapshotPayload)) {
-    return result;
-  }
-
-  const payload = snapshotPayload;
-
-  if (Array.isArray(payload.node_keys)) {
-    result.hasSignal = true;
-    for (const key of payload.node_keys) {
-      const normalized = asText(key);
-      if (normalized) {
-        result.nodeKeys.add(normalized);
-      }
-    }
-  }
-
-  const lexicalCandidates = [];
-  if (isPlainObject(payload.lexical_state)) {
-    lexicalCandidates.push(payload.lexical_state);
-  }
-  if (isPlainObject(payload.lexicalState)) {
-    lexicalCandidates.push(payload.lexicalState);
-  }
-  if (isPlainObject(payload.lexical_snapshot)) {
-    lexicalCandidates.push(payload.lexical_snapshot);
-    if (isPlainObject(payload.lexical_snapshot.lexicalState)) {
-      lexicalCandidates.push(payload.lexical_snapshot.lexicalState);
-    }
-    if (isPlainObject(payload.lexical_snapshot.lexical_state)) {
-      lexicalCandidates.push(payload.lexical_snapshot.lexical_state);
-    }
-  }
-
-  for (const lexicalState of lexicalCandidates) {
-    result.hasSignal = true;
-    collectLexicalNodeKeys(lexicalState, result.nodeKeys);
-  }
-
-  return result;
-};
 
 const jwtVerifier = (() => {
   if (KEYCLOAK_ISSUER) {
@@ -497,50 +389,45 @@ const {
   insertCalendarFeedTokenStmt,
 });
 
-const timelineRecord = (row) => ({
-  timeline_event_id: row.timeline_event_id,
-  project_id: row.project_id,
-  actor_user_id: row.actor_user_id,
-  event_type: row.event_type,
-  primary_entity_type: row.primary_entity_type,
-  primary_entity_id: row.primary_entity_id,
-  secondary_entities: parseJson(row.secondary_entities_json, []),
-  summary: parseJsonObject(row.summary_json, {}),
-  created_at: row.created_at,
+const {
+  relationTargetCollectionIdFromField,
+  isPlainObject,
+  normalizeAssetRelativePath,
+  buildAssetRelativePath,
+  normalizeAssetPathSegment,
+  extractDocNodeKeyState,
+  timelineRecord,
+  notificationRecord,
+  buildNotificationRouteContext,
+  buildNotificationPayload,
+} = createDomainUtils({
+  asText,
+  asNullableText,
+  parseJson,
+  parseJsonObject,
+  paneForDocStmt,
 });
 
-const notificationRecord = (row) => ({
-  notification_id: row.notification_id,
-  project_id: row.project_id,
-  user_id: row.user_id,
-  reason: row.reason,
-  entity_type: row.entity_type,
-  entity_id: row.entity_id,
-  payload: parseJsonObject(row.payload_json, {}),
-  notification_scope: asText(row.notification_scope) === 'local' ? 'local' : 'network',
-  read_at: row.read_at,
-  created_at: row.created_at,
+const {
+  safeNextcloudConfig,
+  nextcloudAuthHeader,
+  nextcloudUrl,
+  resolveProjectAssetRoot,
+  uploadToNextcloud,
+  buildAssetProxyPath,
+} = createNextcloudHelpers({
+  NEXTCLOUD_BASE_URL,
+  NEXTCLOUD_USER,
+  NEXTCLOUD_APP_PASSWORD,
+  NEXTCLOUD_FETCH_TIMEOUT_MS,
+  asText,
+  assetRootByIdStmt,
+  defaultAssetRootByProjectStmt,
+  normalizeAssetRelativePath,
+  buildAssetRelativePath,
+  fetchWithTimeout,
+  isFetchTimeoutError,
 });
-
-const buildNotificationRouteContext = ({
-  projectId,
-  sourcePaneId = null,
-  sourceDocId = null,
-  sourceNodeKey = null,
-  originKind = null,
-}) => {
-  const normalizedDocId = asNullableText(sourceDocId);
-  const doc = normalizedDocId ? paneForDocStmt.get(normalizedDocId) : null;
-  const resolvedPaneId = asNullableText(sourcePaneId) || asNullableText(doc?.pane_id);
-  const resolvedProjectId = asNullableText(doc?.project_id) || projectId;
-  return {
-    sourcePaneId: resolvedPaneId,
-    sourceProjectId: resolvedProjectId,
-    sourceDocId: normalizedDocId,
-    sourceNodeKey: asNullableText(sourceNodeKey),
-    originKind: resolvedPaneId ? 'pane' : asNullableText(originKind) || 'project',
-  };
-};
 
 const hubLiveTicketStore = new Map();
 const hubLiveSocketsByUserId = new Map();
@@ -631,24 +518,6 @@ const broadcastHubLiveToUser = (userId, message) => {
     sendHubLiveMessage(socket, message);
   }
 };
-
-const buildNotificationPayload = ({
-  message = null,
-  sourcePaneId = null,
-  sourceProjectId = null,
-  sourceDocId = null,
-  sourceNodeKey = null,
-  originKind = null,
-  extras = {},
-}) => ({
-  ...extras,
-  message: message ?? null,
-  source_pane_id: sourcePaneId ?? null,
-  source_project_id: sourceProjectId ?? null,
-  source_doc_id: sourceDocId ?? null,
-  source_node_key: sourceNodeKey ?? null,
-  origin_kind: originKind ?? null,
-});
 
 const notificationContextForSource = ({ projectId, sourceEntityType, sourceEntityId, context = null }) => {
   const sourceNodeKeyFromContext = asNullableText(context?.nodeKey);
@@ -1811,128 +1680,6 @@ const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, maybeHan
       projectId,
     });
   };
-};
-
-const safeNextcloudConfig = () => Boolean(NEXTCLOUD_BASE_URL && NEXTCLOUD_USER && NEXTCLOUD_APP_PASSWORD);
-
-const nextcloudAuthHeader = () =>
-  `Basic ${Buffer.from(`${NEXTCLOUD_USER}:${NEXTCLOUD_APP_PASSWORD}`, 'utf8').toString('base64')}`;
-
-const nextcloudUrl = (rootPath, relativePath) => {
-  const normalizedRoot = `/${asText(rootPath).replace(/^\/+/, '').replace(/\/+$/, '')}`;
-  const normalizedPath = `/${asText(relativePath).replace(/^\/+/, '')}`;
-  const combined = `${normalizedRoot}${normalizedPath === '/' ? '' : normalizedPath}`;
-  const encoded = combined
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
-  return `${NEXTCLOUD_BASE_URL.replace(/\/$/, '')}/remote.php/dav/files/${encodeURIComponent(NEXTCLOUD_USER)}${encoded}`;
-};
-
-const resolveProjectAssetRoot = (projectId, requestedAssetRootId = '') => {
-  const requestedId = asText(requestedAssetRootId);
-  if (requestedId) {
-    const root = assetRootByIdStmt.get(requestedId);
-    if (!root || root.project_id !== projectId) {
-      return { error: { status: 404, code: 'not_found', message: 'Asset root not found.' } };
-    }
-    if (root.provider !== 'nextcloud') {
-      return { error: { status: 400, code: 'invalid_input', message: 'Only nextcloud asset roots are supported in V1.' } };
-    }
-    return { root };
-  }
-
-  const root = defaultAssetRootByProjectStmt.get(projectId);
-  if (!root) {
-    return { error: { status: 400, code: 'asset_root_required', message: 'Create an asset root before uploading files.' } };
-  }
-  if (root.provider !== 'nextcloud') {
-    return { error: { status: 400, code: 'invalid_input', message: 'Only nextcloud asset roots are supported in V1.' } };
-  }
-
-  return { root };
-};
-
-const uploadToNextcloud = async ({ rootPath, relativePath, mimeType, content }) => {
-  if (!safeNextcloudConfig()) {
-    return { error: { status: 503, code: 'nextcloud_unavailable', message: 'Nextcloud runtime credentials are not configured.' } };
-  }
-
-  const normalized = normalizeAssetRelativePath(relativePath);
-  const fileSegments = normalized.split('/').filter(Boolean);
-  const rootSegments = normalizeAssetRelativePath(rootPath).split('/').filter(Boolean);
-  const directorySegments = [...rootSegments, ...fileSegments.slice(0, -1)];
-
-  let currentDir = '';
-  for (const segment of directorySegments) {
-    currentDir = buildAssetRelativePath(currentDir, segment);
-    const mkcolUrl = nextcloudUrl('/', currentDir);
-    let mkcolResponse;
-    try {
-      mkcolResponse = await fetchWithTimeout(
-        mkcolUrl,
-        {
-          method: 'MKCOL',
-          headers: {
-            Authorization: nextcloudAuthHeader(),
-          },
-        },
-        { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
-      );
-      mkcolResponse.clearTimeout?.();
-    } catch (error) {
-      if (isFetchTimeoutError(error)) {
-        return { error: { status: 504, code: 'upstream_timeout', message: 'Nextcloud folder create timed out.' } };
-      }
-      throw error;
-    }
-
-    if (![201, 301, 302, 405].includes(mkcolResponse.status)) {
-      return {
-        error: {
-          status: 502,
-          code: 'upstream_error',
-          message: `Nextcloud folder create failed (${mkcolResponse.status}).`,
-        },
-      };
-    }
-  }
-
-  const targetUrl = nextcloudUrl(rootPath, normalized);
-  let upstream;
-  try {
-    upstream = await fetchWithTimeout(
-      targetUrl,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: nextcloudAuthHeader(),
-          'Content-Type': mimeType || 'application/octet-stream',
-        },
-        body: content,
-      },
-      { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
-    );
-    upstream.clearTimeout?.();
-  } catch (error) {
-    if (isFetchTimeoutError(error)) {
-      return { error: { status: 504, code: 'upstream_timeout', message: 'Nextcloud upload timed out.' } };
-    }
-    throw error;
-  }
-
-  if (![200, 201, 204].includes(upstream.status)) {
-    return { error: { status: 502, code: 'upstream_error', message: `Nextcloud upload failed (${upstream.status}).` } };
-  }
-
-  return { ok: true };
-};
-
-const buildAssetProxyPath = ({ projectId, assetRootId, assetPath }) => {
-  const params = new URLSearchParams();
-  params.set('asset_root_id', assetRootId);
-  params.set('path', assetPath);
-  return `/api/hub/projects/${encodeURIComponent(projectId)}/assets/proxy?${params.toString()}`;
 };
 
 const routeDeps = {
