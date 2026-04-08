@@ -5,7 +5,6 @@ export const createPermissionHelpers = ({
   paneEditorExistsStmt,
   paneForDocStmt,
 }) => {
-  const projectRoleSet = new Set(['owner', 'member']);
   const fieldTypeSet = new Set([
     'text',
     'number',
@@ -24,7 +23,6 @@ export const createPermissionHelpers = ({
     'mention', 'assignment', 'reminder', 'comment_reply', 'automation', 'update', 'comment', 'snapshot',
   ]);
   const notificationReasonSet = new Set(notificationReasons);
-  const automationRunStatusSet = new Set(['queued', 'running', 'success', 'failed']);
   const projectPolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage_members']);
   const panePolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage']);
   const docPolicyCapabilitySet = new Set(['view', 'comment', 'write']);
@@ -41,7 +39,6 @@ export const createPermissionHelpers = ({
     'project.notes.view',
     'project.files.view',
   ]);
-  const viewerProjectCapabilities = Object.freeze(['project.view', 'project.activity.view', 'project.notes.view', 'project.files.view']);
   const globalCapabilitiesBySessionRole = Object.freeze({
     Owner: Object.freeze(['hub.view', 'hub.tasks.write', 'hub.notifications.write', 'hub.live', 'projects.view', 'services.external.view']),
     Collaborator: Object.freeze(['hub.view', 'hub.tasks.write', 'hub.notifications.write', 'hub.live', 'projects.view']),
@@ -186,20 +183,17 @@ export const createPermissionHelpers = ({
   });
 
   return {
-    projectRoleSet,
     fieldTypeSet,
     viewTypeSet,
     capabilitySet,
     commentStatusSet,
     notificationReasons,
     notificationReasonSet,
-    automationRunStatusSet,
     projectPolicyCapabilitySet,
     panePolicyCapabilitySet,
     docPolicyCapabilitySet,
     ownerProjectCapabilities,
     collaboratorProjectCapabilities,
-    viewerProjectCapabilities,
     globalCapabilitiesBySessionRole,
     authenticatedGlobalCapabilities,
     sessionRolePriority,

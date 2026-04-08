@@ -1794,7 +1794,7 @@ const policyGateError = (requiredCapability, projectId = '') => {
   return jsonResponse(403, errorEnvelope('forbidden', scopedMessage));
 };
 
-export const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, maybeHandler) => {
+const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, maybeHandler) => {
   const resolveProjectId = typeof maybeHandler === 'function' ? projectIdResolverOrHandler : null;
   const handler = typeof maybeHandler === 'function' ? maybeHandler : projectIdResolverOrHandler;
 
