@@ -158,8 +158,7 @@ export const useDashboardAggregation = ({
           remindAtIso: remindAt.toISOString(),
           dismissed: false,
         });
-      }
-      if (remindAt < now) {
+      } else if (remindAt < now) {
         missedReminders.push({
           id: `triage-reminder:${reminder.reminder_id}`,
           reminderId: reminder.reminder_id,

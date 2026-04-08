@@ -28,7 +28,7 @@ export const ProjectLensFilter = ({
     <PopoverTrigger asChild>
       <button
         type="button"
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
         aria-expanded={filterOpen}
         className="inline-flex items-center justify-center gap-2 rounded-control border border-border-muted bg-surface px-3 py-1.5 text-xs font-medium text-text"
       >

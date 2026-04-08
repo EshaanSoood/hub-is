@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 
 import { createRecord, listTimeline, setRecordValues, updateRecord } from '../services/hub/records';
 import type { HubPaneSummary, HubView } from '../services/hub/types';
@@ -27,9 +27,13 @@ export const useProjectTableRuntime = ({
 }: UseProjectTableRuntimeParams) => {
   const [tableViewDataById, setTableViewDataById] = useState<Record<string, TableViewRuntimeState>>({});
   const [tableLoading, setTableLoading] = useState(false);
+  const refreshRequestIdRef = useRef(0);
+  const refreshInFlightRef = useRef(0);
 
   const refreshTableRuntime = useCallback(
     async (nextViews: HubView[]) => {
+      const requestId = ++refreshRequestIdRef.current;
+      refreshInFlightRef.current += 1;
       setTableLoading(true);
       try {
         const nextTableViews = nextViews.filter((view) => view.type === 'table');
@@ -59,15 +63,22 @@ export const useProjectTableRuntime = ({
           }),
         );
 
-        setTableViewDataById(Object.fromEntries(tableEntries));
+        if (requestId === refreshRequestIdRef.current) {
+          setTableViewDataById(Object.fromEntries(tableEntries));
+        }
       } finally {
-        setTableLoading(false);
+        refreshInFlightRef.current = Math.max(0, refreshInFlightRef.current - 1);
+        if (refreshInFlightRef.current === 0) {
+          setTableLoading(false);
+        }
       }
     },
     [accessToken],
   );
 
   const clearTableRuntime = useCallback(() => {
+    refreshRequestIdRef.current += 1;
+    refreshInFlightRef.current = 0;
     setTableViewDataById({});
     setTableLoading(false);
   }, []);
@@ -90,6 +101,7 @@ export const useProjectTableRuntime = ({
       payload: { title: string; fields: Record<string, unknown> },
       mutationPaneId: string | null,
     ) => {
+      setRecordsError(null);
       const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before creating records.');
       if (!mutationPane) {
         const message = 'Open an editable pane before creating records.';
@@ -138,6 +150,7 @@ export const useProjectTableRuntime = ({
       fields: Record<string, unknown>,
       mutationPaneId: string | null,
     ) => {
+      setRecordsError(null);
       const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before editing records.');
       if (!mutationPane) {
         const message = 'Open an editable pane before editing records.';
@@ -182,6 +195,7 @@ export const useProjectTableRuntime = ({
       recordIds: string[],
       mutationPaneId: string | null,
     ) => {
+      setRecordsError(null);
       const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before deleting records.');
       if (!mutationPane) {
         const message = 'Open an editable pane before deleting records.';
@@ -212,6 +226,7 @@ export const useProjectTableRuntime = ({
       fields: Record<string, unknown>,
       mutationPaneId: string | null,
     ) => {
+      setRecordsError(null);
       const mutationPane = resolveEditableMutationPane(
         mutationPaneId,
         'Open an editable pane before bulk updating records.',

@@ -2,6 +2,14 @@ import { useMemo, useState } from 'react';
 import type { TableField, TableRowData, TableSchema, TableOption } from '../types';
 import { matchesDatePreset, readFieldOptions, readRecordValue } from '../valueNormalization';
 
+const readSelectFilterValue = (value: unknown): string => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    return readRecordValue(record.id ?? record.value ?? record.key ?? record.name ?? record.label);
+  }
+  return readRecordValue(value);
+};
+
 interface UseTableFilteringResult {
   activeFilters: Record<string, string>;
   setActiveFilters: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -37,7 +45,7 @@ export const useTableFiltering = (schema: TableSchema | null, rows: TableRowData
         }
 
         if (field.type === 'select') {
-          return readRecordValue(rawValue) === filterValue;
+          return readSelectFilterValue(rawValue) === filterValue;
         }
 
         return true;

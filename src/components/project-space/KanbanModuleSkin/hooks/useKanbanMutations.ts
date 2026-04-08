@@ -20,11 +20,11 @@ export const useKanbanMutations = ({
   const [createState, setCreateState] = useState<KanbanCreateState>(() => createEmptyState());
 
   const handleToggleCollapse = (group: KanbanModuleGroup) => {
-    setCollapsedGroupIds((current) => {
-      if (group.records.some((record) => record.record_id === editingRecordId)) {
-        return current;
-      }
+    if (group.records.some((record) => record.record_id === editingRecordId)) {
+      return;
+    }
 
+    setCollapsedGroupIds((current) => {
       const next = new Set(current);
       if (next.has(group.id)) {
         next.delete(group.id);
@@ -32,13 +32,12 @@ export const useKanbanMutations = ({
       }
 
       next.add(group.id);
-
-      if (createState.groupId === group.id) {
-        setCreateState(createEmptyState());
-      }
-
       return next;
     });
+
+    if (createState.groupId === group.id) {
+      setCreateState(createEmptyState());
+    }
   };
 
   const handleOpenCreate = (groupId: string) => {

@@ -39,7 +39,7 @@ export const useTableCreateRow = ({ fieldById, createTitleInputRef, onCreateReco
         return accumulator;
       }
 
-      const normalizedValue = field.type === 'text' ? value : value.trim();
+      const normalizedValue = field.type === 'text' && typeof value === 'string' ? value.trim() : value;
       if (!normalizedValue) {
         return accumulator;
       }

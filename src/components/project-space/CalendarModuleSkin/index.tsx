@@ -97,6 +97,18 @@ export const CalendarModuleSkin = ({
   const effectiveMediumWeekAnchorDate =
     tier === 'medium' && !selectedIsVisibleInAnchor ? selectedDate : mediumWeekAnchorDate;
 
+  useEffect(() => {
+    if (tier === 'medium' && !selectedIsVisibleInAnchor) {
+      const timerId = window.setTimeout(() => {
+        setMediumWeekAnchorDate(selectedDate);
+      }, 0);
+      return () => {
+        window.clearTimeout(timerId);
+      };
+    }
+    return undefined;
+  }, [tier, selectedDate, selectedIsVisibleInAnchor]);
+
   const weekRangeLabel = formatWeekRangeLabel(effectiveMediumWeekAnchorDate);
   const mediumWeekDays = useMemo<MediumWeekDay[]>(
     () =>

@@ -17,12 +17,14 @@ interface UseTableInlineEditingResult {
 
 export const useTableInlineEditing = ({ fieldById, onUpdateRecord }: UseTableInlineEditingArgs): UseTableInlineEditingResult => {
   const skipEditableBlurRef = useRef(false);
+  const editableSubmitInFlightRef = useRef(false);
   const [editableCell, setEditableCell] = useState<EditableCellState | null>(null);
 
   const submitEditableCell = useCallback(async () => {
-    if (!editableCell || !onUpdateRecord) {
+    if (!editableCell || !onUpdateRecord || editableSubmitInFlightRef.current) {
       return;
     }
+    editableSubmitInFlightRef.current = true;
 
     const field = editableCell.fieldId === 'title' ? null : fieldById.get(editableCell.fieldId) ?? null;
     const nextValue = field ? editableCell.value : editableCell.value.trim();
@@ -34,6 +36,7 @@ export const useTableInlineEditing = ({ fieldById, onUpdateRecord }: UseTableInl
           ? { ...current, error: 'Title is required.' }
           : current,
       );
+      editableSubmitInFlightRef.current = false;
       return;
     }
 
@@ -41,6 +44,7 @@ export const useTableInlineEditing = ({ fieldById, onUpdateRecord }: UseTableInl
       setEditableCell((current) =>
         current && current.recordId === editableCell.recordId && current.fieldId === editableCell.fieldId ? null : current,
       );
+      editableSubmitInFlightRef.current = false;
       return;
     }
 
@@ -63,6 +67,8 @@ export const useTableInlineEditing = ({ fieldById, onUpdateRecord }: UseTableInl
           ? { ...current, error: error instanceof Error ? error.message : 'Unable to update cell.' }
           : current,
       );
+    } finally {
+      editableSubmitInFlightRef.current = false;
     }
   }, [editableCell, fieldById, onUpdateRecord]);
 
@@ -78,7 +84,12 @@ export const useTableInlineEditing = ({ fieldById, onUpdateRecord }: UseTableInl
     async (event: ReactKeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
       if (event.key === 'Enter') {
         event.preventDefault();
-        await submitEditableCell();
+        skipEditableBlurRef.current = true;
+        try {
+          await submitEditableCell();
+        } finally {
+          skipEditableBlurRef.current = false;
+        }
         return;
       }
       if (event.key === 'Escape') {

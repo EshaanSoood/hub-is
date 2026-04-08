@@ -135,24 +135,24 @@ export const TableModuleSkin = ({
       if (!field) {
         if (canEditCells) {
           return (
-            <button
-              type="button"
-              className="truncate text-left font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              onClick={() =>
-                setEditableCell({
-                  recordId: row.recordId,
-                  fieldId: 'title',
-                  value: row.title,
-                  baseline: row.title,
-                  error: null,
-                })
-              }
-              onDoubleClick={() => onOpenRecord(row.recordId)}
-              aria-label={`Edit title for ${row.title}`}
-              data-testid={`open-record-button-${row.recordId}`}
-            >
-              {row.title}
-            </button>
+              <button
+                type="button"
+                className="truncate text-left font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                onClick={() => onOpenRecord(row.recordId)}
+                onDoubleClick={() =>
+                  setEditableCell({
+                    recordId: row.recordId,
+                    fieldId: 'title',
+                    value: row.title,
+                    baseline: row.title,
+                    error: null,
+                  })
+                }
+                aria-label={`Open record ${row.title}`}
+                data-testid={`open-record-button-${row.recordId}`}
+              >
+                {row.title}
+              </button>
           );
         }
 

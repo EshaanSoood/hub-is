@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { PriorityLevel } from '../../designTokens';
 import type { SortChain, SortDimension, TaskItem } from '../index';
 
@@ -104,8 +104,7 @@ const buildComparator = (dimensions: SortDimension[]): ((left: TaskItem, right: 
   };
 };
 
-const buildDateClusters = (tasks: TaskItem[]): TaskCluster[] => {
-  const now = new Date();
+const buildDateClusters = (tasks: TaskItem[], now: Date): TaskCluster[] => {
   const today = startOfDay(now);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -170,12 +169,12 @@ const buildCategoryClusters = (tasks: TaskItem[]): TaskCluster[] => {
     })) as TaskCluster[];
 };
 
-const buildClusters = (tasks: TaskItem[], chain: SortChain): TaskCluster[] => {
+const buildClusters = (tasks: TaskItem[], chain: SortChain, now: Date): TaskCluster[] => {
   const primary = chain[0];
   const comparator = buildComparator([chain[1], chain[2]]);
   const grouped =
     primary === 'date'
-      ? buildDateClusters(tasks)
+      ? buildDateClusters(tasks, now)
       : primary === 'priority'
         ? buildPriorityClusters(tasks)
         : buildCategoryClusters(tasks);
@@ -187,12 +186,23 @@ const buildClusters = (tasks: TaskItem[], chain: SortChain): TaskCluster[] => {
 };
 
 export const useTasksTabFiltering = ({ tasks, activeUserId, activeCategoryId, sortChain }: UseTasksTabFilteringArgs) => {
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60_000);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
   const filteredTasks = useMemo(
     () => tasks.filter((task) => (activeUserId === 'all' || task.assigneeId === activeUserId) && (activeCategoryId === 'all' || task.categoryId === activeCategoryId)),
     [activeCategoryId, activeUserId, tasks],
   );
 
-  const clusters = useMemo(() => buildClusters(filteredTasks, sortChain), [filteredTasks, sortChain]);
+  const clusters = useMemo(() => buildClusters(filteredTasks, sortChain, currentDate), [currentDate, filteredTasks, sortChain]);
 
   return { clusters, filteredTasks };
 };

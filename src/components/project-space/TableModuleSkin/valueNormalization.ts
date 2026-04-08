@@ -255,12 +255,16 @@ export const matchesDatePreset = (value: unknown, preset: string): boolean => {
   }
 
   if (preset === 'this-week') {
+    const startOfWeek = new Date(today);
+    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const startKey = toDayKey(startOfWeek);
     const endOfWeek = new Date(today);
     endOfWeek.setHours(0, 0, 0, 0);
     const daysUntilSaturday = (6 - endOfWeek.getDay() + 7) % 7;
     endOfWeek.setDate(endOfWeek.getDate() + daysUntilSaturday);
     const endKey = toDayKey(endOfWeek);
-    return dateKey >= todayKey && dateKey <= endKey;
+    return dateKey >= startKey && dateKey <= endKey;
   }
 
   return true;
