@@ -12,8 +12,12 @@ export const useToolbarPaneName = ({ accessToken, projectId, paneId }: UseToolba
 
   useEffect(() => {
     if (!accessToken || !projectId || !paneId) {
-      setPaneName(null);
-      return;
+      const timer = window.setTimeout(() => {
+        setPaneName(null);
+      }, 0);
+      return () => {
+        window.clearTimeout(timer);
+      };
     }
 
     let cancelled = false;
