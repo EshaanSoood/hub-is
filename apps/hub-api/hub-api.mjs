@@ -6,14 +6,10 @@ import {
   randomUUID,
 } from 'node:crypto';
 import { createServer } from 'node:http';
-import { DatabaseSync } from 'node:sqlite';
 import { URL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { createJwksVerifier } from '../shared/jwksVerifier.mjs';
-import { runMigrations } from './db/migrations.mjs';
-import { initSearch } from './db/search-setup.mjs';
-import { initSchema } from './db/schema.mjs';
-import { createStatements } from './db/statements.mjs';
+import { initializeDatabase } from './db/bootstrap.mjs';
 import { withTransaction } from './db/transaction.mjs';
 import { createAuthHelpers } from './helpers/auth.mjs';
 import { createCalendarFeedTokenHelpers } from './helpers/calendarFeedToken.mjs';
@@ -323,16 +319,9 @@ const jwtVerifier = (() => {
   throw new Error('KEYCLOAK_ISSUER must be configured.');
 })();
 
-const db = new DatabaseSync(HUB_DB_PATH);
-db.exec('PRAGMA journal_mode = WAL;');
-db.exec('PRAGMA foreign_keys = ON;');
-initSchema(db);
-runMigrations(db);
-initSearch(db);
+const { db, stmts } = initializeDatabase(HUB_DB_PATH);
 
 const newId = (prefix) => `${prefix}_${randomUUID()}`;
-
-const stmts = createStatements(db);
 
 const {
   users: {
