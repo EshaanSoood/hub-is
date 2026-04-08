@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - manual-project-tests
+      - phase9-refactor
 
 jobs:
   deploy:
