@@ -2,23 +2,26 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
-  createHmac,
   randomBytes,
   randomUUID,
 } from 'node:crypto';
 import { createServer } from 'node:http';
-import { DatabaseSync } from 'node:sqlite';
 import { URL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { createJwksVerifier } from '../shared/jwksVerifier.mjs';
-import { runMigrations } from './db/migrations.mjs';
-import { initSearch } from './db/search-setup.mjs';
-import { initSchema } from './db/schema.mjs';
-import { createStatements } from './db/statements.mjs';
+import { initializeDatabase } from './db/bootstrap.mjs';
 import { withTransaction } from './db/transaction.mjs';
+import { createAuthHelpers } from './helpers/auth.mjs';
+import { createCalendarFeedTokenHelpers } from './helpers/calendarFeedToken.mjs';
+import { createDomainUtils } from './helpers/domainUtils.mjs';
+import { createNextcloudHelpers } from './helpers/nextcloud.mjs';
+import { createPermissionHelpers } from './helpers/permissions.mjs';
+import { createValidationHelpers } from './helpers/validation.mjs';
 import { createRequestLogger } from './lib/logger.mjs';
 import { applyRequestContext } from './lib/requestContext.mjs';
 import { fetchWithTimeout, isFetchTimeoutError } from './lib/fetch-utils.mjs';
+import { createKeycloakIntegration } from './integrations/keycloak.mjs';
+import { createPostmarkIntegration } from './integrations/postmark.mjs';
 import { createAutomationRoutes } from './routes/automation.mjs';
 import { createChatRoutes } from './routes/chat.mjs';
 import { createCollectionRoutes } from './routes/collections.mjs';
@@ -29,10 +32,13 @@ import { createPaneRoutes } from './routes/panes.mjs';
 import { createProjectRoutes } from './routes/projects.mjs';
 import { createRecordRoutes } from './routes/records.mjs';
 import { createReminderRoutes } from './routes/reminders.mjs';
+import { createRequestRouter } from './routes/requestRouter.mjs';
 import { createSearchRoutes } from './routes/search.mjs';
 import { createTaskRoutes } from './routes/tasks.mjs';
 import { createUserRoutes } from './routes/users.mjs';
 import { createViewRoutes } from './routes/views.mjs';
+import { createReminderScheduler } from './scheduler/reminderScheduler.mjs';
+import { buildRouteDeps } from './routeDeps.mjs';
 
 const PORT = Number(process.env.PORT || '3001');
 const HUB_DB_PATH = process.env.HUB_DB_PATH || '/data/hub.sqlite';
@@ -74,242 +80,28 @@ const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerC
 const REGISTERED_ROUTE_COUNT = 79;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
-const nowIso = () => new Date().toISOString();
-const asText = (value) => (typeof value === 'string' ? value.trim() : '');
-const asNullableText = (value) => {
-  const normalized = asText(value);
-  return normalized || null;
-};
-const CALENDAR_FEED_TOKEN_HASH_PREFIX = 'h1:';
-const calendarFeedTokenSecret = () => {
-  if (!HUB_CALENDAR_FEED_TOKEN_SECRET) {
-    throw new Error('Calendar feed token secret is unavailable.');
-  }
-  return HUB_CALENDAR_FEED_TOKEN_SECRET;
-};
-const deriveCalendarFeedToken = (userId) =>
-  createHmac('sha256', calendarFeedTokenSecret())
-    .update(`calendar-feed:user:${asText(userId)}`)
-    .digest('hex');
-const hashCalendarFeedToken = (token) =>
-  `${CALENDAR_FEED_TOKEN_HASH_PREFIX}${createHmac('sha256', calendarFeedTokenSecret())
-    .update(`calendar-feed:token:${asText(token)}`)
-    .digest('hex')}`;
+const {
+  nowIso,
+  asText,
+  asNullableText,
+  asInteger,
+  asBoolean,
+  parseJson,
+  parseJsonObject,
+  parseUpstreamJson,
+  toJson,
+  okEnvelope,
+  errorEnvelope,
+  jsonResponse,
+  send,
+  parseBody,
+} = createValidationHelpers({
+  ALLOWED_ORIGIN,
+  HUB_API_MAX_BODY_BYTES_RAW,
+  HUB_API_LARGE_BODY_MAX_BYTES_RAW,
+  systemLog,
+});
 
-const HUB_POSTMARK_INVITE_TEMPLATE = `<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>You're invited to Hub OS</title>
-  <!--[if mso]>
-  <style type="text/css">
-    table, td { font-family: Arial, sans-serif !important; }
-  </style>
-  <![endif]-->
-  <style type="text/css">
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap');
-
-    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
-    body { margin: 0; padding: 0; width: 100% !important; height: 100% !important; }
-
-    .body-bg { background-color: #1C2430; }
-    .card-bg { background-color: #263040; }
-    .text-main { color: #F0F4F8; }
-    .text-secondary { color: #C0CCDA; }
-    .text-muted { color: #8D9BB0; }
-    .text-pink { color: #FFA3CD; }
-    .border-muted { border-color: #334155; }
-
-    .btn-primary {
-      background-color: #FFA3CD;
-      color: #1C2430 !important;
-      font-family: 'DM Sans', Arial, sans-serif;
-      font-weight: 700;
-      font-size: 16px;
-      text-decoration: none;
-      padding: 14px 32px;
-      border-radius: 10px;
-      display: inline-block;
-      mso-padding-alt: 0;
-    }
-    .btn-primary:hover {
-      background-color: #FF7AB5;
-    }
-
-    .feature-item {
-      font-family: 'DM Sans', Arial, sans-serif;
-      font-size: 14px;
-      color: #C0CCDA;
-      line-height: 1.5;
-      padding: 6px 0;
-    }
-
-    @media only screen and (max-width: 600px) {
-      .container { width: 100% !important; }
-      .card { padding: 24px 20px !important; }
-      .logo-text { font-size: 28px !important; }
-    }
-  </style>
-</head>
-<body class="body-bg" style="margin: 0; padding: 0; background-color: #1C2430;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #1C2430;">
-    <tr>
-      <td align="center" style="padding: 40px 16px;">
-        <table role="presentation" class="container" width="560" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td align="center" style="padding-bottom: 32px;">
-              <span class="logo-text" style="font-family: 'Outfit', Arial, sans-serif; font-size: 32px; font-weight: 700; color: #F0F4F8; letter-spacing: 0.02em;">
-                HUB<span style="color: #FFA3CD;"> OS</span>
-              </span>
-            </td>
-          </tr>
-
-          <tr>
-            <td class="card" style="background-color: #263040; border-radius: 12px; padding: 40px 36px; border: 1px solid #334155;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="font-family: 'Outfit', Arial, sans-serif; font-size: 24px; font-weight: 700; color: #F0F4F8; line-height: 1.3; padding-bottom: 20px;">
-                    You're invited to the {{PROJECT_NAME}}
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 16px;">
-                    Hello hello!
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 16px;">
-                    Well as you know I've been working on this app pretty crazily for the last month. I think I'm in a place where it's ready to be user tested.
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 24px;">
-                    I'm inviting you to a project called <strong style="color: #FFA3CD;">{{PROJECT_NAME}}</strong> where my hope is that we can use the app itself to track the user and bug testing to see what features it's missing. That being said, I would love if you would also just use it for whatever else.
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 24px;">
-                    If you do not already have a Hub OS account, you should also receive a secure account setup email from Keycloak. Complete that first, then come back here.
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="font-family: 'Outfit', Arial, sans-serif; font-size: 16px; font-weight: 600; color: #F0F4F8; line-height: 1.4; padding-bottom: 12px;">
-                    Here's what's built (and hopefully works)
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="padding-bottom: 24px;">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                      <tr>
-                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
-                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;A home page with all your tasks, events and reminders rolled up
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
-                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;A daily timeline view on your dashboard
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
-                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Project Lens and Stream views on the homepage
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
-                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Create projects &mdash; each with its own roll-up across users
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
-                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;A Google Docs-style collaborative editor with drag &amp; drop
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
-                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Modules: Calendars, Tasks, Reminders, Kanban, Tables, Files &amp; Quick Thoughts
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
-                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Paste YouTube, Spotify, Vimeo or SoundCloud links &mdash; they auto-embed
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td align="center" style="padding-bottom: 28px;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                      <tr>
-                        <td align="center" style="border-radius: 10px; background-color: #FFA3CD;">
-                          <!--[if mso]>
-                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{APP_URL}}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="21%" fillcolor="#FFA3CD">
-                            <w:anchorlock/>
-                            <center style="color:#1C2430;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">Join the Pilot</center>
-                          </v:roundrect>
-                          <![endif]-->
-                          <!--[if !mso]><!-->
-                          <a href="{{APP_URL}}" class="btn-primary" style="background-color: #FFA3CD; color: #1C2430; font-family: 'DM Sans', Arial, sans-serif; font-weight: 700; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: 10px; display: inline-block;">
-                            Join the Pilot
-                          </a>
-                          <!--<![endif]-->
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="border-top: 1px solid #334155; padding-top: 20px; padding-bottom: 16px; font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7;">
-                    This has just been me feverishly working and testing all of this stuff so a lot of it might be broken. I know you will let me know if something is systemically or visually broken &mdash; which is why I'm inviting you to this pilot.
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 24px;">
-                    Apart from bugs, I also really want to know what features you wish existed. Invoicing? Personal finance? A different view for your files? A better way to lay out tasks? A different UX flow? I'm here for all of it.
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #C0CCDA; line-height: 1.7; padding-bottom: 4px;">
-                    Looking forward to what you discover!
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-family: 'DM Sans', Arial, sans-serif; font-size: 15px; color: #F0F4F8; line-height: 1.7; padding-top: 12px;">
-                    Warmly,<br />
-                    <strong>Eshaan</strong>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <tr>
-            <td align="center" style="padding-top: 28px; padding-bottom: 16px;">
-              <span style="font-family: 'DM Sans', Arial, sans-serif; font-size: 12px; color: #8D9BB0; line-height: 1.5;">
-                Sent with love from <a href="{{APP_URL}}" style="color: #FFA3CD; text-decoration: none;">Hub OS</a>
-              </span>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
 
 const safeTuwunelConfig = () =>
   Boolean(TUWUNEL_INTERNAL_URL && TUWUNEL_REGISTRATION_SHARED_SECRET && MATRIX_ACCOUNT_ENCRYPTION_KEY);
@@ -366,779 +158,44 @@ if (!safeTuwunelConfig()) {
   systemLog.warn('Matrix chat provisioning is disabled until TUWUNEL_REGISTRATION_SHARED_SECRET and MATRIX_ACCOUNT_ENCRYPTION_KEY are configured.');
 }
 
-const asInteger = (value, fallback, min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER) => {
-  const parsed = Number.parseInt(String(value ?? ''), 10);
-  if (!Number.isInteger(parsed)) {
-    return fallback;
-  }
-  return Math.min(max, Math.max(min, parsed));
-};
-
 const HUB_COLLAB_TICKET_TTL_MS = asInteger(HUB_COLLAB_TICKET_TTL_MS_RAW, 120_000, 5_000, 3_600_000);
 const EXTERNAL_API_TIMEOUT_MS = asInteger(EXTERNAL_API_TIMEOUT_MS_RAW, 15_000, 1_000, 120_000);
 const KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS = asInteger(KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS_RAW, 604_800, 300, 2_592_000);
 const KEYCLOAK_REQUIRED_INVITE_ACTIONS = Object.freeze(['VERIFY_EMAIL', 'UPDATE_PROFILE', 'UPDATE_PASSWORD']);
 
-const asBoolean = (value, fallback = false) => {
-  if (typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return value !== 0;
-  }
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    if (['true', '1', 'yes', 'on'].includes(normalized)) {
-      return true;
-    }
-    if (['false', '0', 'no', 'off'].includes(normalized)) {
-      return false;
-    }
-  }
-  return fallback;
-};
-
 const NEXTCLOUD_FETCH_TIMEOUT_MS = asInteger(NEXTCLOUD_FETCH_TIMEOUT_MS_RAW, 30_000, 1_000, 300_000);
-const HUB_API_MAX_BODY_BYTES = asInteger(HUB_API_MAX_BODY_BYTES_RAW, 1_048_576, 1_024, 50 * 1024 * 1024);
-const HUB_API_LARGE_BODY_MAX_BYTES = asInteger(
-  HUB_API_LARGE_BODY_MAX_BYTES_RAW,
-  50 * 1024 * 1024,
-  HUB_API_MAX_BODY_BYTES,
-  100 * 1024 * 1024,
-);
 
-const parseJson = (value, fallback = null) => {
-  if (value === null || value === undefined || value === '') {
-    return fallback;
-  }
-  if (typeof value === 'object') {
-    return value;
-  }
-  try {
-    return JSON.parse(String(value));
-  } catch (error) {
-    systemLog.warn('Failed to parse JSON value; using fallback.', {
-      error,
-      valueType: typeof value,
-    });
-    return fallback;
-  }
-};
-
-const parseJsonObject = (value, fallback = {}) => {
-  const parsed = parseJson(value, fallback);
-  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-    return parsed;
-  }
-  return fallback;
-};
-
-const parseUpstreamJson = async (response, requestLog = null, message = 'Failed to parse upstream JSON response.') => {
-  try {
-    return await response.json();
-  } catch (error) {
-    requestLog?.warn?.(message, { error });
-    return null;
-  }
-};
-
-const safePostmarkConfig = () => Boolean(POSTMARK_SERVER_TOKEN && POSTMARK_FROM_EMAIL);
-const safeKeycloakInviteConfig = () =>
-  Boolean(
-    KEYCLOAK_URL
-    && KEYCLOAK_REALM
-    && KEYCLOAK_CLIENT_ID
-    && KEYCLOAK_ADMIN_USERNAME
-    && KEYCLOAK_ADMIN_PASSWORD,
-  );
-const escapeHtml = (value) =>
-  String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('\'', '&#39;');
-
-const renderHubPilotInviteHtml = ({ appUrl = HUB_PUBLIC_APP_URL, projectName = 'Pilot Party' } = {}) => {
-  const resolvedUrl = asText(appUrl) || 'https://eshaansood.org';
-  const resolvedProjectName = escapeHtml(asText(projectName) || 'Pilot Party');
-  return HUB_POSTMARK_INVITE_TEMPLATE
-    .replaceAll('{{APP_URL}}', resolvedUrl)
-    .replaceAll('{{PROJECT_NAME}}', resolvedProjectName);
-};
-
-const renderHubPilotInviteText = ({ appUrl = HUB_PUBLIC_APP_URL, projectName = 'Pilot Party' } = {}) => {
-  const resolvedUrl = asText(appUrl) || 'https://eshaansood.org';
-  const resolvedProjectName = asText(projectName) || 'Pilot Party';
-  return [
-    `You're invited to ${resolvedProjectName} on Hub OS.`,
-    'Well as you know I\'ve been working on this app pretty crazily for the last month. I think I\'m in a place where it\'s ready to be user tested.',
-    `I'm inviting you to a project called ${resolvedProjectName} where my hope is that we can use the app itself to track the user and bug testing to see what features it's missing.`,
-    'If you do not already have a Hub OS account, you should also receive a secure account setup email from Keycloak. Complete that first, then return to Hub OS.',
-    `Join the pilot: ${resolvedUrl}`,
-    'Looking forward to what you discover!',
-    'Warmly,',
-    'Eshaan',
-  ].join('\n\n');
-};
-
-const getKeycloakInviteRedirectUri = () => asText(KEYCLOAK_REDIRECT_URI) || `${HUB_PUBLIC_APP_URL}/`;
-
-const acquireKeycloakAdminToken = async (requestLog = null) => {
-  if (!safeKeycloakInviteConfig()) {
-    return {
-      error: {
-        status: 503,
-        code: 'keycloak_unavailable',
-        message: 'Keycloak invite provisioning is not configured.',
-      },
-    };
-  }
-
-  const form = new URLSearchParams({
-    grant_type: 'password',
-    client_id: 'admin-cli',
-    username: KEYCLOAK_ADMIN_USERNAME,
-    password: KEYCLOAK_ADMIN_PASSWORD,
-  });
-
-  let upstream;
-  try {
-    upstream = await fetchWithTimeout(
-      new URL('/realms/master/protocol/openid-connect/token', `${KEYCLOAK_URL}/`),
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: form,
-      },
-      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
-    );
-  } catch (error) {
-    requestLog?.error?.('Keycloak admin token request failed.', { error });
-    if (isFetchTimeoutError(error)) {
-      return {
-        error: {
-          status: 504,
-          code: 'upstream_timeout',
-          message: 'Keycloak admin token request timed out.',
-        },
-      };
-    }
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Keycloak admin token request failed.',
-      },
-    };
-  }
-
-  const body = await parseUpstreamJson(upstream, requestLog, 'Failed to parse Keycloak admin token response.');
-  if (!upstream.ok || !asText(body?.access_token)) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Unable to acquire Keycloak admin access token.',
-      },
-    };
-  }
-
-  return { data: { accessToken: asText(body.access_token) } };
-};
-
-const keycloakAdminRequest = async ({
-  path,
-  method = 'GET',
-  accessToken,
-  requestLog = null,
-  headers = {},
-  body = undefined,
-}) => {
-  let upstream;
-  try {
-    upstream = await fetchWithTimeout(
-      new URL(path, `${KEYCLOAK_URL}/`),
-      {
-        method,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          ...headers,
-        },
-        ...(body === undefined ? {} : { body }),
-      },
-      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
-    );
-  } catch (error) {
-    requestLog?.error?.('Keycloak admin request failed.', { path, method, error });
-    if (isFetchTimeoutError(error)) {
-      return {
-        error: {
-          status: 504,
-          code: 'upstream_timeout',
-          message: 'Keycloak admin request timed out.',
-        },
-      };
-    }
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Keycloak admin request failed.',
-      },
-    };
-  }
-
-  const parsedBody = upstream.status === 204
-    ? null
-    : await parseUpstreamJson(upstream, requestLog, 'Failed to parse Keycloak admin response.');
-  return { upstream, body: parsedBody };
-};
-
-const findKeycloakUserByEmail = async ({ accessToken, email, requestLog = null }) => {
-  const normalizedEmail = asText(email).toLowerCase();
-  if (!normalizedEmail) {
-    return { data: null };
-  }
-
-  const response = await keycloakAdminRequest({
-    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users?email=${encodeURIComponent(normalizedEmail)}&exact=true`,
-    accessToken,
-    requestLog,
-  });
-  if (response.error) {
-    return response;
-  }
-  if (!response.upstream.ok) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: `Keycloak user lookup failed (${response.upstream.status}).`,
-      },
-    };
-  }
-
-  const users = Array.isArray(response.body) ? response.body : [];
-  const match = users.find((user) => asText(user?.email).toLowerCase() === normalizedEmail) || null;
-  return { data: match };
-};
-
-const createKeycloakInviteUser = async ({ accessToken, email, requestLog = null }) => {
-  const normalizedEmail = asText(email).toLowerCase();
-  const localpart = normalizedEmail.split('@')[0] || 'hub-user';
-  const response = await keycloakAdminRequest({
-    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users`,
-    method: 'POST',
-    accessToken,
-    requestLog,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      username: normalizedEmail,
-      email: normalizedEmail,
-      firstName: localpart,
-      enabled: true,
-      emailVerified: false,
-      requiredActions: [...KEYCLOAK_REQUIRED_INVITE_ACTIONS],
-    }),
-  });
-  if (response.error) {
-    return response;
-  }
-  if (![201, 204, 409].includes(response.upstream.status)) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: `Keycloak user create failed (${response.upstream.status}).`,
-      },
-    };
-  }
-
-  return findKeycloakUserByEmail({ accessToken, email: normalizedEmail, requestLog });
-};
-
-const sendKeycloakInviteActionsEmail = async ({ accessToken, userId, requestLog = null }) => {
-  const query = new URLSearchParams({
-    client_id: KEYCLOAK_CLIENT_ID,
-    redirect_uri: getKeycloakInviteRedirectUri(),
-    lifespan: String(KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS),
-  });
-  const response = await keycloakAdminRequest({
-    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users/${encodeURIComponent(userId)}/execute-actions-email?${query.toString()}`,
-    method: 'PUT',
-    accessToken,
-    requestLog,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify([...KEYCLOAK_REQUIRED_INVITE_ACTIONS]),
-  });
-  if (response.error) {
-    return response;
-  }
-  if (!response.upstream.ok) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: `Keycloak invite email failed (${response.upstream.status}).`,
-      },
-    };
-  }
-
-  return { data: { sent: true } };
-};
-
-const deleteKeycloakUser = async ({ accessToken, userId, requestLog = null }) => {
-  const response = await keycloakAdminRequest({
-    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users/${encodeURIComponent(userId)}`,
-    method: 'DELETE',
-    accessToken,
-    requestLog,
-  });
-  if (response.error) {
-    return response;
-  }
-  if (![204, 404].includes(response.upstream.status)) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: `Keycloak user delete failed (${response.upstream.status}).`,
-      },
-    };
-  }
-
-  return { data: { deleted: response.upstream.status === 204 } };
-};
-
-const ensureKeycloakInviteOnboarding = async ({ email, requestLog = null }) => {
-  const normalizedEmail = asText(email).toLowerCase();
-  if (!normalizedEmail) {
-    return {
-      error: {
-        status: 400,
-        code: 'invalid_input',
-        message: 'Invite email is required.',
-      },
-    };
-  }
-
-  const tokenResult = await acquireKeycloakAdminToken(requestLog);
-  if (tokenResult.error) {
-    return tokenResult;
-  }
-
-  const accessToken = tokenResult.data.accessToken;
-  const existingLookup = await findKeycloakUserByEmail({ accessToken, email: normalizedEmail, requestLog });
-  if (existingLookup.error) {
-    return existingLookup;
-  }
-
-  let user = existingLookup.data;
-  const createdUser = !existingLookup.data;
-  if (!user) {
-    const created = await createKeycloakInviteUser({ accessToken, email: normalizedEmail, requestLog });
-    if (created.error) {
-      return created;
-    }
-    user = created.data;
-  }
-  if (!user?.id) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Unable to resolve Keycloak user for invite.',
-      },
-    };
-  }
-
-  if (createdUser) {
-    const actionEmail = await sendKeycloakInviteActionsEmail({
-      accessToken,
-      userId: asText(user.id),
-      requestLog,
-    });
-    if (actionEmail.error) {
-      return actionEmail;
-    }
-  }
-
-  return {
-    data: {
-      userId: asText(user.id),
-      email: normalizedEmail,
-      created: createdUser,
-    },
-  };
-};
-
-const cleanupKeycloakInviteOnboarding = async ({ userId, requestLog = null }) => {
-  const normalizedUserId = asText(userId);
-  if (!normalizedUserId) {
-    return { data: { deleted: false } };
-  }
-
-  const tokenResult = await acquireKeycloakAdminToken(requestLog);
-  if (tokenResult.error) {
-    return tokenResult;
-  }
-
-  return deleteKeycloakUser({
-    accessToken: tokenResult.data.accessToken,
-    userId: normalizedUserId,
-    requestLog,
-  });
-};
-
-const sendPostmarkEmail = async ({
-  to,
-  subject,
-  htmlBody,
-  textBody,
-  tag = '',
-  requestLog = null,
-}) => {
-  if (!safePostmarkConfig()) {
-    return {
-      error: {
-        status: 503,
-        code: 'postmark_unavailable',
-        message: 'Postmark runtime credentials are not configured.',
-      },
-    };
-  }
-
-  let upstream;
-  try {
-    upstream = await fetchWithTimeout(
-      new URL('/email', `${POSTMARK_API_BASE_URL}/`),
-      {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Postmark-Server-Token': POSTMARK_SERVER_TOKEN,
-        },
-        body: JSON.stringify({
-          From: POSTMARK_FROM_EMAIL,
-          To: to,
-          Subject: subject,
-          HtmlBody: htmlBody,
-          TextBody: textBody,
-          MessageStream: POSTMARK_MESSAGE_STREAM,
-          ...(tag ? { Tag: tag } : {}),
-        }),
-      },
-      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
-    );
-  } catch (error) {
-    requestLog?.error?.('Postmark request failed.', { to, error });
-    if (isFetchTimeoutError(error)) {
-      return {
-        error: {
-          status: 504,
-          code: 'upstream_timeout',
-          message: 'Postmark invite email request timed out.',
-        },
-      };
-    }
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Postmark invite email request failed.',
-      },
-    };
-  }
-
-  const body = await parseUpstreamJson(upstream, requestLog, 'Failed to parse Postmark JSON response.');
-  if (!upstream.ok) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: asText(body?.Message) || `Postmark invite email failed (${upstream.status}).`,
-      },
-    };
-  }
-
-  return { data: body };
-};
-
-const sendHubInviteEmail = async ({ to, projectName = 'Pilot Party', requestLog = null }) =>
-  sendPostmarkEmail({
-    to,
-    subject: "You're invited to Hub OS",
-    htmlBody: renderHubPilotInviteHtml({ appUrl: HUB_PUBLIC_APP_URL, projectName }),
-    textBody: renderHubPilotInviteText({ appUrl: HUB_PUBLIC_APP_URL, projectName }),
-    tag: 'hub-project-invite',
-    requestLog,
-  });
-
-const relationTargetCollectionIdFromField = (field) => {
-  const config = parseJsonObject(field?.config, {});
-  const direct = asText(config.target_collection_id || config.targetCollectionId);
-  if (direct) {
-    return direct;
-  }
-  const nestedTarget = config.target;
-  if (nestedTarget && typeof nestedTarget === 'object' && !Array.isArray(nestedTarget)) {
-    const nested = asText(nestedTarget.collection_id || nestedTarget.collectionId);
-    if (nested) {
-      return nested;
-    }
-  }
-  return '';
-};
-
-const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-
-const normalizeAssetRelativePath = (value) => {
-  const raw = asText(value).replace(/\\/g, '/');
-  if (!raw) {
-    return '';
-  }
-
-  const parts = raw.split('/').map((part) => part.trim()).filter(Boolean);
-  const clean = [];
-  for (const part of parts) {
-    if (part === '.' || part === '..') {
-      continue;
-    }
-    clean.push(part);
-  }
-  return clean.join('/');
-};
-
-const buildAssetRelativePath = (...segments) => normalizeAssetRelativePath(segments.filter(Boolean).join('/'));
-const normalizeAssetPathSegment = (value, fallback = 'Unsorted') =>
-  asText(value).replace(/[\\/]+/g, ' ').trim().replace(/\s+/g, '_') || fallback;
-
-const collectLexicalNodeKeys = (candidate, output) => {
-  if (!candidate || typeof candidate !== 'object') {
-    return;
-  }
-
-  if (Array.isArray(candidate)) {
-    for (const item of candidate) {
-      collectLexicalNodeKeys(item, output);
-    }
-    return;
-  }
-
-  const key = candidate.key;
-  if (typeof key === 'string' && key.trim()) {
-    output.add(key.trim());
-  }
-
-  for (const value of Object.values(candidate)) {
-    if (value && typeof value === 'object') {
-      collectLexicalNodeKeys(value, output);
-    }
-  }
-};
-
-const extractDocNodeKeyState = (snapshotPayload) => {
-  const result = {
-    hasSignal: false,
-    nodeKeys: new Set(),
-  };
-
-  if (!snapshotPayload || typeof snapshotPayload !== 'object' || Array.isArray(snapshotPayload)) {
-    return result;
-  }
-
-  const payload = snapshotPayload;
-
-  if (Array.isArray(payload.node_keys)) {
-    result.hasSignal = true;
-    for (const key of payload.node_keys) {
-      const normalized = asText(key);
-      if (normalized) {
-        result.nodeKeys.add(normalized);
-      }
-    }
-  }
-
-  const lexicalCandidates = [];
-  if (isPlainObject(payload.lexical_state)) {
-    lexicalCandidates.push(payload.lexical_state);
-  }
-  if (isPlainObject(payload.lexicalState)) {
-    lexicalCandidates.push(payload.lexicalState);
-  }
-  if (isPlainObject(payload.lexical_snapshot)) {
-    lexicalCandidates.push(payload.lexical_snapshot);
-    if (isPlainObject(payload.lexical_snapshot.lexicalState)) {
-      lexicalCandidates.push(payload.lexical_snapshot.lexicalState);
-    }
-    if (isPlainObject(payload.lexical_snapshot.lexical_state)) {
-      lexicalCandidates.push(payload.lexical_snapshot.lexical_state);
-    }
-  }
-
-  for (const lexicalState of lexicalCandidates) {
-    result.hasSignal = true;
-    collectLexicalNodeKeys(lexicalState, result.nodeKeys);
-  }
-
-  return result;
-};
-
-const toJson = (value) => JSON.stringify(value ?? null);
-
-const okEnvelope = (data) => ({ ok: true, data, error: null });
-const errorEnvelope = (code, message) => ({
-  ok: false,
-  data: null,
-  error: {
-    code,
-    message,
-  },
+const {
+  ensureKeycloakInviteOnboarding,
+  cleanupKeycloakInviteOnboarding,
+} = createKeycloakIntegration({
+  KEYCLOAK_URL,
+  KEYCLOAK_REALM,
+  KEYCLOAK_CLIENT_ID,
+  KEYCLOAK_REDIRECT_URI,
+  KEYCLOAK_ADMIN_USERNAME,
+  KEYCLOAK_ADMIN_PASSWORD,
+  KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS,
+  KEYCLOAK_REQUIRED_INVITE_ACTIONS,
+  HUB_PUBLIC_APP_URL,
+  EXTERNAL_API_TIMEOUT_MS,
+  asText,
+  fetchWithTimeout,
+  isFetchTimeoutError,
+  parseUpstreamJson,
 });
 
-const jsonResponse = (statusCode, payload) => ({
-  statusCode,
-  headers: {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-    'Access-Control-Allow-Methods': 'GET,POST,PATCH,PUT,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Hub-Dev-Auth',
-  },
-  body: JSON.stringify(payload),
-});
-
-const send = (response, output) => {
-  response.writeHead(output.statusCode, output.headers);
-  response.end(output.body);
-};
-
-class BodyTooLargeError extends Error {
-  constructor(limitBytes) {
-    super(`Request body exceeds ${limitBytes} bytes.`);
-    this.name = 'BodyTooLargeError';
-    this.limit_bytes = limitBytes;
-  }
-}
-
-const isBodyTooLargeError = (error) => error instanceof BodyTooLargeError;
-
-const readRequestBuffer = async (request, { maxBytes = HUB_API_MAX_BODY_BYTES } = {}) => {
-  const normalizedMaxBytes = asInteger(maxBytes, HUB_API_MAX_BODY_BYTES, 1_024, HUB_API_LARGE_BODY_MAX_BYTES);
-  const contentLength = Number.parseInt(String(request.headers['content-length'] || ''), 10);
-  if (Number.isInteger(contentLength) && contentLength > normalizedMaxBytes) {
-    request.resume();
-    throw new BodyTooLargeError(normalizedMaxBytes);
-  }
-
-  const chunks = [];
-  let totalBytes = 0;
-  for await (const chunk of request) {
-    const nextChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    totalBytes += nextChunk.byteLength;
-    if (totalBytes > normalizedMaxBytes) {
-      request.resume();
-      throw new BodyTooLargeError(normalizedMaxBytes);
-    }
-    chunks.push(nextChunk);
-  }
-  return Buffer.concat(chunks);
-};
-
-const bodyParseErrorResponse = (error, { invalidCode = 'invalid_json', invalidMessage = 'Body must be valid JSON.' } = {}) => {
-  if (isBodyTooLargeError(error)) {
-    return jsonResponse(413, errorEnvelope('payload_too_large', `Request body exceeds ${error.limit_bytes} bytes.`));
-  }
-  return jsonResponse(400, errorEnvelope(invalidCode, invalidMessage));
-};
-
-const parseBody = async (request, options = {}) => {
-  const raw = (await readRequestBuffer(request, options)).toString('utf8').trim();
-  if (!raw) {
-    return {};
-  }
-  return JSON.parse(raw);
-};
-parseBody.errorResponse = bodyParseErrorResponse;
-parseBody.defaultMaxBytes = HUB_API_MAX_BODY_BYTES;
-parseBody.largeMaxBytes = HUB_API_LARGE_BODY_MAX_BYTES;
-
-const fromBase64Url = (value) => {
-  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
-  return Buffer.from(padded, 'base64').toString('utf8');
-};
-
-const parseBearerToken = (request) => {
-  const header = asText(request.headers.authorization || '');
-  if (!header) {
-    return '';
-  }
-  const [scheme, token] = header.split(/\s+/);
-  if (scheme !== 'Bearer' || !token) {
-    return '';
-  }
-  return token;
-};
-
-const projectRoleSet = new Set(['owner', 'member']);
-const fieldTypeSet = new Set([
-  'text',
-  'number',
-  'date',
-  'checkbox',
-  'select',
-  'multi_select',
-  'person',
-  'relation',
-  'file',
-]);
-const viewTypeSet = new Set(['table', 'kanban', 'list', 'calendar', 'timeline', 'gallery']);
-const capabilitySet = new Set(['task', 'calendar_event', 'recurring', 'remindable', 'meeting', 'milestone', 'capture']);
-const commentStatusSet = new Set(['open', 'resolved']);
-const notificationReasons = Object.freeze([
-  'mention', 'assignment', 'reminder', 'comment_reply', 'automation', 'update', 'comment', 'snapshot',
-]);
-const notificationReasonSet = new Set(notificationReasons);
-const automationRunStatusSet = new Set(['queued', 'running', 'success', 'failed']);
-const projectPolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage_members']);
-const panePolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage']);
-const docPolicyCapabilitySet = new Set(['view', 'comment', 'write']);
-const ownerProjectCapabilities = Object.freeze([
-  'project.view',
-  'project.activity.view',
-  'project.notes.view',
-  'project.files.view',
-  'project.automations.view',
-]);
-const collaboratorProjectCapabilities = Object.freeze([
-  'project.view',
-  'project.activity.view',
-  'project.notes.view',
-  'project.files.view',
-]);
-const viewerProjectCapabilities = Object.freeze(['project.view', 'project.activity.view', 'project.notes.view', 'project.files.view']);
-const globalCapabilitiesBySessionRole = Object.freeze({
-  Owner: Object.freeze(['hub.view', 'hub.tasks.write', 'hub.notifications.write', 'hub.live', 'projects.view', 'services.external.view']),
-  Collaborator: Object.freeze(['hub.view', 'hub.tasks.write', 'hub.notifications.write', 'hub.live', 'projects.view']),
-  Viewer: Object.freeze([]),
-});
-const authenticatedGlobalCapabilities = Object.freeze([
-  'hub.chat.provision',
-  'hub.chat.view',
-  'hub.chat.write',
-]);
-const sessionRolePriority = Object.freeze({
-  Viewer: 0,
-  Collaborator: 1,
-  Owner: 2,
+const { sendHubInviteEmail } = createPostmarkIntegration({
+  POSTMARK_SERVER_TOKEN,
+  POSTMARK_FROM_EMAIL,
+  POSTMARK_MESSAGE_STREAM,
+  POSTMARK_API_BASE_URL,
+  EXTERNAL_API_TIMEOUT_MS,
+  HUB_PUBLIC_APP_URL,
+  asText,
+  fetchWithTimeout,
+  isFetchTimeoutError,
+  parseUpstreamJson,
 });
 
 const jwtVerifier = (() => {
@@ -1155,16 +212,9 @@ const jwtVerifier = (() => {
   throw new Error('KEYCLOAK_ISSUER must be configured.');
 })();
 
-const db = new DatabaseSync(HUB_DB_PATH);
-db.exec('PRAGMA journal_mode = WAL;');
-db.exec('PRAGMA foreign_keys = ON;');
-initSchema(db);
-runMigrations(db);
-initSearch(db);
+const { db, stmts } = initializeDatabase(HUB_DB_PATH);
 
 const newId = (prefix) => `${prefix}_${randomUUID()}`;
-
-const stmts = createStatements(db);
 
 const {
   users: {
@@ -1281,219 +331,104 @@ const {
   },
 } = stmts;
 
-const getOrCreateCalendarFeedToken = (userId) => {
-  const normalizedUserId = asText(userId);
-  if (!normalizedUserId) {
-    throw new Error('User ID is required to issue a calendar feed token.');
-  }
-
-  const token = deriveCalendarFeedToken(normalizedUserId);
-  const storedToken = hashCalendarFeedToken(token);
-  const existing = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
-  if (existing && asText(existing.token) === storedToken) {
-    return {
-      token,
-      user_id: normalizedUserId,
-      created_at: existing.created_at,
-    };
-  }
-
-  return withTransaction(db, () => {
-    const current = calendarFeedTokenByUserIdStmt.get(normalizedUserId);
-    const createdAt = asText(current?.created_at) || nowIso();
-    if (!current || asText(current.token) !== storedToken) {
-      insertCalendarFeedTokenStmt.run(storedToken, normalizedUserId, createdAt);
-    }
-    return {
-      token,
-      user_id: normalizedUserId,
-      created_at: createdAt,
-    };
-  });
-};
-
-const buildCalendarFeedUrl = (token) =>
-  `${HUB_PUBLIC_APP_URL}/api/hub/calendar.ics?token=${encodeURIComponent(asText(token))}`;
-
-const findCalendarFeedTokenRecord = (token) => {
-  const normalizedToken = asText(token);
-  if (!normalizedToken) {
-    return null;
-  }
-  return calendarFeedTokenByTokenStmt.get(hashCalendarFeedToken(normalizedToken)) || null;
-};
-
-const normalizeProjectRole = (role) => (asText(role) === 'owner' || asText(role) === 'admin' ? 'owner' : 'member');
-
-const membershipRoleLabel = (role) => (normalizeProjectRole(role) === 'owner' ? 'owner' : 'member');
-
-const withProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
-  if (!projectPolicyCapabilitySet.has(requiredCapability)) {
-    throw new Error(`Unknown project capability: ${requiredCapability}`);
-  }
-
-  const membership = projectMembershipRoleStmt.get(projectId, userId);
-  if (!membership) {
-    return { error: { status: 403, code: 'forbidden', message: 'Project membership required.' } };
-  }
-
-  const role = normalizeProjectRole(membership.role);
-  const capabilities = new Set(role === 'owner'
-    ? ['view', 'comment', 'write', 'manage_members']
-    : ['view', 'comment']);
-  if (!capabilities.has(requiredCapability)) {
-    return {
-      error: {
-        status: 403,
-        code: 'forbidden',
-        message: `Project capability "${requiredCapability}" required.`,
-      },
-    };
-  }
-
-  return {
-    project_id: projectId,
-    role,
-    is_owner: role === 'owner',
-  };
-};
-
-const withPanePolicyGate = ({ userId, paneId, requiredCapability }) => {
-  if (!panePolicyCapabilitySet.has(requiredCapability)) {
-    throw new Error(`Unknown pane capability: ${requiredCapability}`);
-  }
-
-  const pane = paneByIdStmt.get(paneId);
-  if (!pane) {
-    return { error: { status: 404, code: 'not_found', message: 'Pane not found.' } };
-  }
-
-  const projectGate = withProjectPolicyGate({ userId, projectId: pane.project_id, requiredCapability: 'view' });
-  if (projectGate.error) {
-    return projectGate;
-  }
-
-  const isExplicitEditor = Boolean(paneEditorExistsStmt.get(paneId, userId)?.ok);
-  const canWrite = projectGate.is_owner || isExplicitEditor;
-  const capabilities = new Set(canWrite ? ['view', 'comment', 'write', 'manage'] : ['view', 'comment']);
-  if (!capabilities.has(requiredCapability)) {
-    return {
-      error: {
-        status: 403,
-        code: 'forbidden',
-        message: `Pane capability "${requiredCapability}" required.`,
-      },
-    };
-  }
-
-  return {
-    pane_id: paneId,
-    project_id: pane.project_id,
-    pane,
-    is_owner: projectGate.is_owner,
-    is_explicit_editor: isExplicitEditor,
-    can_edit: canWrite,
-  };
-};
-
-const withDocPolicyGate = ({ userId, docId, requiredCapability }) => {
-  if (!docPolicyCapabilitySet.has(requiredCapability)) {
-    throw new Error(`Unknown doc capability: ${requiredCapability}`);
-  }
-
-  const doc = paneForDocStmt.get(docId);
-  if (!doc) {
-    return { error: { status: 404, code: 'not_found', message: 'Doc not found.' } };
-  }
-
-  const paneGate = withPanePolicyGate({
-    userId,
-    paneId: doc.pane_id,
-    requiredCapability: requiredCapability === 'write' ? 'write' : 'view',
-  });
-  if (paneGate.error) {
-    return paneGate;
-  }
-  if (requiredCapability === 'comment') {
-    const commentGate = withPanePolicyGate({ userId, paneId: doc.pane_id, requiredCapability: 'comment' });
-    if (commentGate.error) {
-      return commentGate;
-    }
-  }
-
-  return {
-    doc_id: doc.doc_id,
-    pane_id: doc.pane_id,
-    project_id: doc.project_id,
-    can_edit: paneGate.can_edit,
-  };
-};
-
-const ensureProjectMembership = (userId, projectId) =>
-  withProjectPolicyGate({ userId, projectId, requiredCapability: 'view' }).error || null;
-
-const requireProjectMember = (projectId, userId) => withProjectPolicyGate({
-  userId,
-  projectId,
-  requiredCapability: 'view',
+const {
+  fieldTypeSet,
+  viewTypeSet,
+  capabilitySet,
+  commentStatusSet,
+  notificationReasons,
+  notificationReasonSet,
+  ownerProjectCapabilities,
+  collaboratorProjectCapabilities,
+  globalCapabilitiesBySessionRole,
+  authenticatedGlobalCapabilities,
+  sessionRolePriority,
+  normalizeProjectRole,
+  membershipRoleLabel,
+  withProjectPolicyGate,
+  withPanePolicyGate,
+  withDocPolicyGate,
+  requireDocAccess,
+} = createPermissionHelpers({
+  asText,
+  projectMembershipRoleStmt,
+  paneByIdStmt,
+  paneEditorExistsStmt,
+  paneForDocStmt,
 });
 
-const requirePaneMember = (paneId, userId) => withPanePolicyGate({
-  userId,
-  paneId,
-  requiredCapability: 'view',
+const {
+  parseBearerToken,
+  parseCursorOffset,
+  encodeCursorOffset,
+  buildSessionSummary,
+} = createAuthHelpers({
+  asText,
+  systemLog,
+  projectMembershipsByUserStmt,
+  membershipRoleLabel,
+  collaboratorProjectCapabilities,
+  ownerProjectCapabilities,
+  sessionRolePriority,
+  authenticatedGlobalCapabilities,
+  globalCapabilitiesBySessionRole,
 });
 
-const requireDocAccess = (docId, userId) => withDocPolicyGate({
-  userId,
-  docId,
-  requiredCapability: 'view',
+const {
+  getOrCreateCalendarFeedToken,
+  buildCalendarFeedUrl,
+  findCalendarFeedTokenRecord,
+} = createCalendarFeedTokenHelpers({
+  HUB_CALENDAR_FEED_TOKEN_SECRET,
+  HUB_PUBLIC_APP_URL,
+  asText,
+  nowIso,
+  db,
+  withTransaction,
+  calendarFeedTokenByUserIdStmt,
+  calendarFeedTokenByTokenStmt,
+  insertCalendarFeedTokenStmt,
 });
 
-const timelineRecord = (row) => ({
-  timeline_event_id: row.timeline_event_id,
-  project_id: row.project_id,
-  actor_user_id: row.actor_user_id,
-  event_type: row.event_type,
-  primary_entity_type: row.primary_entity_type,
-  primary_entity_id: row.primary_entity_id,
-  secondary_entities: parseJson(row.secondary_entities_json, []),
-  summary: parseJsonObject(row.summary_json, {}),
-  created_at: row.created_at,
+const {
+  relationTargetCollectionIdFromField,
+  isPlainObject,
+  normalizeAssetRelativePath,
+  buildAssetRelativePath,
+  normalizeAssetPathSegment,
+  extractDocNodeKeyState,
+  timelineRecord,
+  notificationRecord,
+  buildNotificationRouteContext,
+  buildNotificationPayload,
+} = createDomainUtils({
+  asText,
+  asNullableText,
+  parseJson,
+  parseJsonObject,
+  paneForDocStmt,
 });
 
-const notificationRecord = (row) => ({
-  notification_id: row.notification_id,
-  project_id: row.project_id,
-  user_id: row.user_id,
-  reason: row.reason,
-  entity_type: row.entity_type,
-  entity_id: row.entity_id,
-  payload: parseJsonObject(row.payload_json, {}),
-  notification_scope: asText(row.notification_scope) === 'local' ? 'local' : 'network',
-  read_at: row.read_at,
-  created_at: row.created_at,
+const {
+  safeNextcloudConfig,
+  nextcloudAuthHeader,
+  nextcloudUrl,
+  resolveProjectAssetRoot,
+  uploadToNextcloud,
+  buildAssetProxyPath,
+} = createNextcloudHelpers({
+  NEXTCLOUD_BASE_URL,
+  NEXTCLOUD_USER,
+  NEXTCLOUD_APP_PASSWORD,
+  NEXTCLOUD_FETCH_TIMEOUT_MS,
+  asText,
+  assetRootByIdStmt,
+  defaultAssetRootByProjectStmt,
+  normalizeAssetRelativePath,
+  buildAssetRelativePath,
+  fetchWithTimeout,
+  isFetchTimeoutError,
 });
-
-const buildNotificationRouteContext = ({
-  projectId,
-  sourcePaneId = null,
-  sourceDocId = null,
-  sourceNodeKey = null,
-  originKind = null,
-}) => {
-  const normalizedDocId = asNullableText(sourceDocId);
-  const doc = normalizedDocId ? paneForDocStmt.get(normalizedDocId) : null;
-  const resolvedPaneId = asNullableText(sourcePaneId) || asNullableText(doc?.pane_id);
-  const resolvedProjectId = asNullableText(doc?.project_id) || projectId;
-  return {
-    sourcePaneId: resolvedPaneId,
-    sourceProjectId: resolvedProjectId,
-    sourceDocId: normalizedDocId,
-    sourceNodeKey: asNullableText(sourceNodeKey),
-    originKind: resolvedPaneId ? 'pane' : asNullableText(originKind) || 'project',
-  };
-};
 
 const hubLiveTicketStore = new Map();
 const hubLiveSocketsByUserId = new Map();
@@ -1584,24 +519,6 @@ const broadcastHubLiveToUser = (userId, message) => {
     sendHubLiveMessage(socket, message);
   }
 };
-
-const buildNotificationPayload = ({
-  message = null,
-  sourcePaneId = null,
-  sourceProjectId = null,
-  sourceDocId = null,
-  sourceNodeKey = null,
-  originKind = null,
-  extras = {},
-}) => ({
-  ...extras,
-  message: message ?? null,
-  source_pane_id: sourcePaneId ?? null,
-  source_project_id: sourceProjectId ?? null,
-  source_doc_id: sourceDocId ?? null,
-  source_node_key: sourceNodeKey ?? null,
-  origin_kind: originKind ?? null,
-});
 
 const notificationContextForSource = ({ projectId, sourceEntityType, sourceEntityId, context = null }) => {
   const sourceNodeKeyFromContext = asNullableText(context?.nodeKey);
@@ -2694,72 +1611,7 @@ const materializeMentions = ({ projectId, sourceEntityType, sourceEntityId, ment
   return created;
 };
 
-const buildSessionSummary = (user) => {
-  const memberships = projectMembershipsByUserStmt.all(user.user_id);
-  let sessionRole = 'Viewer';
-  const projectMemberships = memberships.map((membership) => ({
-    projectId: membership.project_id,
-    membershipRole: membershipRoleLabel(membership.role),
-  }));
-
-  const projectCapabilities = {};
-  for (const membership of memberships) {
-    const membershipRole = membershipRoleLabel(membership.role);
-    let capabilities = collaboratorProjectCapabilities;
-    let derivedSessionRole = 'Collaborator';
-
-    if (membershipRole === 'owner') {
-      capabilities = ownerProjectCapabilities;
-      derivedSessionRole = 'Owner';
-    }
-
-    projectCapabilities[membership.project_id] = [...capabilities];
-    if (sessionRolePriority[derivedSessionRole] > sessionRolePriority[sessionRole]) {
-      sessionRole = derivedSessionRole;
-    }
-  }
-
-  const globalCapabilities = [...new Set([
-    ...authenticatedGlobalCapabilities,
-    ...(memberships.length > 0 ? globalCapabilitiesBySessionRole[sessionRole] : []),
-  ])];
-
-  return {
-    userId: user.user_id,
-    name: user.display_name,
-    firstName: user.display_name,
-    lastName: '',
-    email: user.email || '',
-    role: sessionRole,
-    projectMemberships,
-    globalCapabilities,
-    projectCapabilities,
-  };
-};
-
 const pathMatch = (pathname, regex) => pathname.match(regex);
-
-const parseCursorOffset = (cursorRaw) => {
-  const cursor = asText(cursorRaw);
-  if (!cursor) {
-    return 0;
-  }
-  try {
-    const payload = JSON.parse(fromBase64Url(cursor));
-    const offset = Number(payload?.offset);
-    return Number.isInteger(offset) && offset >= 0 ? offset : 0;
-  } catch (error) {
-    systemLog.warn('Failed to decode pagination cursor; defaulting to offset 0.', { error });
-    return 0;
-  }
-};
-
-const encodeCursorOffset = (offset) =>
-  Buffer.from(JSON.stringify({ offset }), 'utf8')
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
 
 const withAuth = async (request) => {
   const identity = await ensureUserFromRequest(request);
@@ -2801,7 +1653,7 @@ const policyGateError = (requiredCapability, projectId = '') => {
   return jsonResponse(403, errorEnvelope('forbidden', scopedMessage));
 };
 
-export const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, maybeHandler) => {
+const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, maybeHandler) => {
   const resolveProjectId = typeof maybeHandler === 'function' ? projectIdResolverOrHandler : null;
   const handler = typeof maybeHandler === 'function' ? maybeHandler : projectIdResolverOrHandler;
 
@@ -2831,147 +1683,21 @@ export const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, m
   };
 };
 
-const safeNextcloudConfig = () => Boolean(NEXTCLOUD_BASE_URL && NEXTCLOUD_USER && NEXTCLOUD_APP_PASSWORD);
-
-const nextcloudAuthHeader = () =>
-  `Basic ${Buffer.from(`${NEXTCLOUD_USER}:${NEXTCLOUD_APP_PASSWORD}`, 'utf8').toString('base64')}`;
-
-const nextcloudUrl = (rootPath, relativePath) => {
-  const normalizedRoot = `/${asText(rootPath).replace(/^\/+/, '').replace(/\/+$/, '')}`;
-  const normalizedPath = `/${asText(relativePath).replace(/^\/+/, '')}`;
-  const combined = `${normalizedRoot}${normalizedPath === '/' ? '' : normalizedPath}`;
-  const encoded = combined
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
-  return `${NEXTCLOUD_BASE_URL.replace(/\/$/, '')}/remote.php/dav/files/${encodeURIComponent(NEXTCLOUD_USER)}${encoded}`;
-};
-
-const resolveProjectAssetRoot = (projectId, requestedAssetRootId = '') => {
-  const requestedId = asText(requestedAssetRootId);
-  if (requestedId) {
-    const root = assetRootByIdStmt.get(requestedId);
-    if (!root || root.project_id !== projectId) {
-      return { error: { status: 404, code: 'not_found', message: 'Asset root not found.' } };
-    }
-    if (root.provider !== 'nextcloud') {
-      return { error: { status: 400, code: 'invalid_input', message: 'Only nextcloud asset roots are supported in V1.' } };
-    }
-    return { root };
-  }
-
-  const root = defaultAssetRootByProjectStmt.get(projectId);
-  if (!root) {
-    return { error: { status: 400, code: 'asset_root_required', message: 'Create an asset root before uploading files.' } };
-  }
-  if (root.provider !== 'nextcloud') {
-    return { error: { status: 400, code: 'invalid_input', message: 'Only nextcloud asset roots are supported in V1.' } };
-  }
-
-  return { root };
-};
-
-const uploadToNextcloud = async ({ rootPath, relativePath, mimeType, content }) => {
-  if (!safeNextcloudConfig()) {
-    return { error: { status: 503, code: 'nextcloud_unavailable', message: 'Nextcloud runtime credentials are not configured.' } };
-  }
-
-  const normalized = normalizeAssetRelativePath(relativePath);
-  const fileSegments = normalized.split('/').filter(Boolean);
-  const rootSegments = normalizeAssetRelativePath(rootPath).split('/').filter(Boolean);
-  const directorySegments = [...rootSegments, ...fileSegments.slice(0, -1)];
-
-  let currentDir = '';
-  for (const segment of directorySegments) {
-    currentDir = buildAssetRelativePath(currentDir, segment);
-    const mkcolUrl = nextcloudUrl('/', currentDir);
-    let mkcolResponse;
-    try {
-      mkcolResponse = await fetchWithTimeout(
-        mkcolUrl,
-        {
-          method: 'MKCOL',
-          headers: {
-            Authorization: nextcloudAuthHeader(),
-          },
-        },
-        { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
-      );
-      mkcolResponse.clearTimeout?.();
-    } catch (error) {
-      if (isFetchTimeoutError(error)) {
-        return { error: { status: 504, code: 'upstream_timeout', message: 'Nextcloud folder create timed out.' } };
-      }
-      throw error;
-    }
-
-    if (![201, 301, 302, 405].includes(mkcolResponse.status)) {
-      return {
-        error: {
-          status: 502,
-          code: 'upstream_error',
-          message: `Nextcloud folder create failed (${mkcolResponse.status}).`,
-        },
-      };
-    }
-  }
-
-  const targetUrl = nextcloudUrl(rootPath, normalized);
-  let upstream;
-  try {
-    upstream = await fetchWithTimeout(
-      targetUrl,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: nextcloudAuthHeader(),
-          'Content-Type': mimeType || 'application/octet-stream',
-        },
-        body: content,
-      },
-      { timeoutMs: NEXTCLOUD_FETCH_TIMEOUT_MS },
-    );
-    upstream.clearTimeout?.();
-  } catch (error) {
-    if (isFetchTimeoutError(error)) {
-      return { error: { status: 504, code: 'upstream_timeout', message: 'Nextcloud upload timed out.' } };
-    }
-    throw error;
-  }
-
-  if (![200, 201, 204].includes(upstream.status)) {
-    return { error: { status: 502, code: 'upstream_error', message: `Nextcloud upload failed (${upstream.status}).` } };
-  }
-
-  return { ok: true };
-};
-
-const buildAssetProxyPath = ({ projectId, assetRootId, assetPath }) => {
-  const params = new URLSearchParams();
-  params.set('asset_root_id', assetRootId);
-  params.set('path', assetPath);
-  return `/api/hub/projects/${encodeURIComponent(projectId)}/assets/proxy?${params.toString()}`;
-};
-
-const routeDeps = {
+const routeDeps = buildRouteDeps({
+  db,
+  stmts,
+  withTransaction,
   ALLOWED_ORIGIN,
   NEXTCLOUD_USER,
   MATRIX_HOMESERVER_URL,
   MATRIX_SERVER_NAME,
   TUWUNEL_INTERNAL_URL,
   TUWUNEL_REGISTRATION_SHARED_SECRET,
-  db,
   asBoolean,
   asInteger,
   asNullableText,
   asText,
-  attachmentByIdStmt: stmts.files.findAttachmentById,
-  assetRootByIdStmt: stmts.assetRoots.findById,
-  assetRootsByProjectStmt: stmts.assetRoots.listForProject,
   assignedTaskListForUser,
-  automationRuleByIdStmt: stmts.automation.findRule,
-  automationRulesByProjectStmt: stmts.automation.listRules,
-  automationRunsByProjectStmt: stmts.automation.listRuns,
   buildAssetProxyPath,
   buildAssetRelativePath,
   buildCalendarFeedUrl,
@@ -2983,75 +1709,29 @@ const routeDeps = {
   buildPersonalTaskSummaryFromRecord,
   buildSessionSummary,
   buildTaskSummaryForUser,
-  capabilitiesByRecordStmt: stmts.recordCapabilities.listForRecord,
   findCalendarFeedTokenRecord,
   capabilitySet,
-  collectionByIdStmt: stmts.collections.findById,
-  collectionByNameStmt: stmts.collections.findByName,
   collectionSchema,
-  collectionsByProjectStmt: stmts.collections.listForProject,
-  commentAnchorsByDocStmt: stmts.commentAnchors.listForDoc,
-  commentByIdStmt: stmts.comments.findById,
   commentStatusSet,
   createNotification,
   createPersonalTaskRecord,
   cleanupKeycloakInviteOnboarding,
-  defaultAssetRootByProjectStmt: stmts.assetRoots.findDefaultForProject,
-  deleteAttachmentStmt: stmts.files.deleteAttachment,
-  deletePaneMemberStmt: stmts.paneMembers.delete,
-  deletePaneStmt: stmts.panes.delete,
-  deleteProjectMemberStmt: stmts.projectMembers.delete,
-  deleteRelationStmt: stmts.recordRelations.delete,
-  docByIdStmt: stmts.docs.findById,
   emitTimelineEvent,
   encodeCursorOffset,
   encryptMatrixAccountSecret,
   ensureUserForEmail,
   errorEnvelope,
-  eventStateByRecordStmt: stmts.calendar.findEventState,
   extractDocNodeKeyState,
   fetchWithTimeout,
-  fieldByIdStmt: stmts.collections.findFieldById,
   fieldTypeSet,
-  fieldsByCollectionStmt: stmts.collections.listFields,
-  filesByProjectStmt: stmts.files.listForProject,
   findOrCreateEventsCollection,
-  insertAssetRootStmt: stmts.assetRoots.insert,
-  insertAssignmentStmt: stmts.tasks.insertAssignment,
-  insertAttachmentStmt: stmts.files.insertAttachment,
-  insertAutomationRuleStmt: stmts.automation.insertRule,
-  insertCommentAnchorStmt: stmts.commentAnchors.insert,
-  insertCommentStmt: stmts.comments.insert,
-  insertCollectionStmt: stmts.collections.insert,
-  insertDocStmt: stmts.docs.insert,
-  insertDocStorageStmt: stmts.docs.insertStorage,
-  insertProjectDefaultCollectionStmt: stmts.collections.insertMinimal,
-  insertEventParticipantStmt: stmts.calendar.insertParticipant,
-  insertFieldStmt: stmts.collections.insertField,
-  insertFileBlobStmt: stmts.files.insertBlob,
-  insertFileStmt: stmts.files.insert,
-  insertMatrixAccountStmt: stmts.chat.insertAccount,
-  insertPaneMemberStmt: stmts.paneMembers.insert,
-  insertPaneStmt: stmts.panes.insert,
-  insertPendingInviteStmt: stmts.projectMembers.insertInvite,
-  insertProjectMemberStmt: stmts.projectMembers.insert,
-  insertProjectStmt: stmts.projects.insert,
-  insertRecordCapabilityStmt: stmts.recordCapabilities.insertIgnore,
-  insertRecordStmt: stmts.records.insert,
-  insertChatSnapshotStmt: stmts.chat.insertSnapshot,
-  insertRelationStmt: stmts.recordRelations.insert,
-  insertReminderStmt: stmts.calendar.insertReminder,
-  insertViewStmt: stmts.views.insert,
   isPlainObject,
   issueHubLiveTicket,
   jsonResponse,
-  listProjectsForUserStmt: stmts.projects.listForUser,
-  markNotificationReadStmt: stmts.notifications.markRead,
   mapMentionRowToBacklink,
   materializeMentions,
   membershipRoleLabel,
   newId,
-  nextFieldSortStmt: stmts.collections.nextFieldSort,
   NEXTCLOUD_FETCH_TIMEOUT_MS,
   nextcloudAuthHeader,
   nextcloudUrl,
@@ -3060,55 +1740,21 @@ const routeDeps = {
   normalizeParticipants,
   normalizeProjectRole,
   notificationContextForSource,
-  notificationByIdStmt: stmts.notifications.findById,
   notificationRecord,
-  notificationsByUserStmt: stmts.notifications.listForUser,
   nowIso,
   okEnvelope,
-  paneByIdStmt: stmts.panes.findById,
-  paneMembersByPaneStmt: stmts.paneMembers.listUserIds,
-  deletePaneMembersByUserInProjectStmt: stmts.paneMembers.deleteByUserInProject,
-  paneListForUserByProjectStmt: stmts.panes.listForProject,
-  paneNextSortStmt: stmts.panes.nextSortOrder,
   paneSummary,
   parseBody,
   parseCursorOffset,
   parseJson,
   parseJsonObject,
-  matrixAccountByUserIdStmt: stmts.chat.findAccountByUserId,
-  deleteMatrixAccountStmt: stmts.chat.deleteAccount,
   decryptMatrixAccountSecret,
-  assignmentsByRecordStmt: stmts.tasks.listAssignments,
-  assignedTasksStmt: stmts.tasks.listAssignedForUser,
-  activePendingInviteByProjectAndEmailStmt: stmts.projectMembers.findPendingByEmail,
-  calendarRecordsByProjectStmt: stmts.calendar.listCalendarRecordsForProject,
-  chatSnapshotByIdStmt: stmts.chat.findSnapshotById,
-  chatSnapshotsPageStmt: stmts.chat.listSnapshotsByProject,
-  deleteChatSnapshotStmt: stmts.chat.deleteSnapshot,
-  deletePendingInviteStmt: stmts.projectMembers.deleteInvite,
-  participantsByRecordStmt: stmts.calendar.listParticipants,
-  pendingInviteByIdStmt: stmts.projectMembers.findInvite,
   pendingInviteRecord,
-  pendingInvitesByProjectStmt: stmts.projectMembers.listPendingInvites,
-  personalProjectByUserStmt: stmts.projects.findPersonalProject,
-  personalProjectsMissingRemindersCollectionIdStmt: stmts.projects.listPersonalMissingRemindersCollectionIds,
   personalProjectIdForUser,
-  projectByIdStmt: stmts.projects.findById,
-  projectForMemberStmt: stmts.projects.findByIdWithMembership,
-  projectMembershipExistsStmt: stmts.projectMembers.isMember,
-  projectMembershipRoleStmt: stmts.projectMembers.getRole,
-  projectMembershipsByUserStmt: stmts.projectMembers.listForUser,
-  projectMembersByProjectStmt: stmts.projectMembers.listWithUsers,
-  projectOwnerCountStmt: stmts.projectMembers.countOwners,
   projectRecord,
-  recordByIdStmt: stmts.records.findById,
   recordDetail,
   recordDetailForUser,
   recordSummary,
-  recordsByCollectionStmt: stmts.records.listForCollection,
-  relationByEdgeStmt: stmts.recordRelations.findDuplicate,
-  relationByIdStmt: stmts.recordRelations.findById,
-  relationSearchRecordsStmt: stmts.userSearch.searchRecordsExtended,
   relationTargetCollectionIdFromField,
   requireDocAccess,
   resolveMutationContextPaneId,
@@ -3120,70 +1766,19 @@ const routeDeps = {
   safeTuwunelConfig,
   send,
   isFetchTimeoutError,
-  eventParticipantByRecordAndUserStmt: stmts.calendar.findParticipantByRecordAndUser,
-  homeEventsByProjectStmt: stmts.calendar.listEventsForProject,
-  personalCapturesStmt: stmts.records.listPersonalCaptures,
-  getTaskStateStmt: stmts.tasks.findState,
   getOrCreateCalendarFeedToken,
-  subtasksByParentStmt: stmts.tasks.listSubtasksByParent,
-  subtaskCountByParentStmt: stmts.tasks.countSubtasksByParent,
-  taskStateByRecordStmt: stmts.tasks.findState,
-  timelineByProjectStmt: stmts.timeline.listForProject,
   timelineRecord,
   toJson,
   trackedFileRecord,
-  unreadNotificationsByUserStmt: stmts.notifications.listUnreadForUser,
-  updateProjectRemindersCollectionStmt: stmts.projects.updateRemindersCollection,
-  updateAutomationRuleStmt: stmts.automation.updateRule,
-  updateCommentStatusStmt: stmts.comments.updateStatus,
-  updateDocStorageStmt: stmts.docs.updateStorage,
-  updateDocTimestampStmt: stmts.docs.updateTimestamp,
-  updatePaneStmt: stmts.panes.update,
-  updatePendingInviteDecisionStmt: stmts.projectMembers.updateInvite,
-  updateRecordStmt: stmts.records.update,
-  updateUserStmt: stmts.users.update,
-  upsertDocPresenceStmt: stmts.docs.upsertPresence,
-  upsertEventStateStmt: stmts.calendar.upsertEventState,
-  upsertRecurrenceStmt: stmts.calendar.upsertRecurrence,
-  upsertRecordValueStmt: stmts.recordValues.upsert,
-  upsertTaskStateStmt: stmts.tasks.upsertState,
-  userByEmailStmt: stmts.users.findByEmail,
-  valuesByRecordStmt: stmts.recordValues.listForRecord,
-  viewByIdStmt: stmts.views.findById,
-  viewsByProjectStmt: stmts.views.listForProject,
   viewTypeSet,
-  visibleProjectTasksStmt: stmts.tasks.listVisibleForProject,
   withAuth,
   withDocPolicyGate,
   withPanePolicyGate,
   withPolicyGate,
   withProjectPolicyGate,
-  withTransaction: (fn) => withTransaction(db, fn),
-  clearAssignmentsStmt: stmts.tasks.deleteAssignments,
-  clearEventParticipantsStmt: stmts.calendar.deleteParticipants,
-  clearRemindersStmt: stmts.calendar.deleteReminders,
-  outgoingRelationsStmt: stmts.recordRelations.listForward,
-  incomingRelationsStmt: stmts.recordRelations.listReverse,
-  recordCapabilitiesByRecordStmt: stmts.recordCapabilities.listForRecord,
-  recurrenceByRecordStmt: stmts.calendar.findRecurrence,
-  remindersByRecordStmt: stmts.calendar.listReminders,
-  listRemindersForUserStmt: stmts.reminders.listForUser,
-  dismissReminderStmt: stmts.reminders.dismiss,
-  findReminderByIdStmt: stmts.reminders.findById,
-  insertStandaloneReminderStmt: stmts.reminders.insertStandalone,
-  attachmentsByEntityStmt: stmts.files.listAttachmentsForEntity,
-  commentsByTargetStmt: stmts.comments.listForEntity,
-  deleteAutomationRuleStmt: stmts.automation.deleteRule,
-  mentionsCountByTargetStmt: stmts.mentions.countForTarget,
-  mentionsByTargetStmt: stmts.mentions.listInboxForUser,
-  mentionSearchRecordsStmt: stmts.userSearch.searchRecords,
-  mentionSearchUsersStmt: stmts.userSearch.searchProjectMembers,
   ensureKeycloakInviteOnboarding,
-  updateMatrixAccountCredentialsStmt: stmts.chat.updateAccountCredentials,
   uploadToNextcloud,
-  updateMatrixAccountDeviceStmt: stmts.chat.updateAccountDevice,
-};
-
+});
 const userRoutes = createUserRoutes(routeDeps);
 const chatRoutes = createChatRoutes(routeDeps);
 const projectRoutes = createProjectRoutes(routeDeps);
@@ -3199,920 +1794,54 @@ const reminderRoutes = createReminderRoutes(routeDeps);
 const automationRoutes = createAutomationRoutes(routeDeps);
 const searchRoutes = createSearchRoutes(routeDeps);
 
-const fireDueReminders = () => {
-  try {
-    const firedAt = nowIso();
-    const dueReminders = dueRemindersStmt.all(firedAt);
-    for (const reminder of dueReminders) {
-      try {
-        const createdNotifications = [];
-        let claimed = false;
-        withTransaction(db, () => {
-          const claimResult = claimReminderFiredStmt.run(firedAt, reminder.reminder_id);
-          if (claimResult.changes === 0) {
-            return;
-          }
-          claimed = true;
-
-          const recipientUserIds = new Set(
-            assignmentsByRecordStmt
-              .all(reminder.record_id)
-              .map((row) => asText(row.user_id))
-              .filter(Boolean),
-          );
-          for (const participant of participantsByRecordStmt.all(reminder.record_id)) {
-            const participantUserId = asText(participant.user_id);
-            if (participantUserId) {
-              recipientUserIds.add(participantUserId);
-            }
-          }
-          if (recipientUserIds.size === 0) {
-            const record = recordByIdStmt.get(reminder.record_id);
-            const createdByUserId = asText(record?.created_by);
-            if (createdByUserId) {
-              recipientUserIds.add(createdByUserId);
-            }
-          }
-
-          const recordTitle = asText(reminder.record_title) || 'Untitled record';
-          for (const userId of recipientUserIds) {
-            const notificationId = newId('ntf');
-            const createdAt = nowIso();
-            const payload = buildNotificationPayload({
-              message: `Reminder: ${recordTitle}`,
-            });
-            const payloadJson = toJson(payload);
-            insertNotificationStmt.run(
-              notificationId,
-              reminder.project_id,
-              userId,
-              'reminder',
-              'record',
-              reminder.record_id,
-              payloadJson,
-              'network',
-              createdAt,
-            );
-            createdNotifications.push({
-              userId,
-              notification: notificationRecord({
-                notification_id: notificationId,
-                project_id: reminder.project_id,
-                user_id: userId,
-                reason: 'reminder',
-                entity_type: 'record',
-                entity_id: reminder.record_id,
-                payload_json: payloadJson,
-                notification_scope: 'network',
-                read_at: null,
-                created_at: createdAt,
-              }),
-            });
-          }
-        });
-
-        if (!claimed) {
-          continue;
-        }
-
-        for (const entry of createdNotifications) {
-          broadcastHubLiveToUser(entry.userId, {
-            type: 'notification.new',
-            notification: entry.notification,
-          });
-        }
-
-        systemLog.info('Reminder fired.', {
-          reminderId: reminder.reminder_id,
-          recordId: reminder.record_id,
-        });
-      } catch (error) {
-        systemLog.error('Failed to fire reminder.', {
-          reminderId: reminder.reminder_id,
-          recordId: reminder.record_id,
-          error,
-        });
-      }
-    }
-  } catch (error) {
-    systemLog.error('Reminder check loop tick failed.', { error });
-  }
-};
-
-const server = createServer(async (request, response) => {
-  applyRequestContext(request, response);
-
-  if (!request.url) {
-    request.log.error('Missing request URL.');
-    send(response, jsonResponse(400, errorEnvelope('bad_request', 'Missing request URL.')));
-    return;
-  }
-
-  const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
-  const pathname = requestUrl.pathname;
-
-  if (request.method === 'OPTIONS') {
-    send(response, jsonResponse(204, okEnvelope(null)));
-    return;
-  }
-
-  try {
-    if (request.method === 'GET' && pathname === '/api/health') {
-      send(
-        response,
-        jsonResponse(200, {
-          status: 'ok',
-          timestamp: nowIso(),
-          uptime: process.uptime(),
-          version: APP_VERSION,
-        }),
-      );
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/health') {
-      send(
-        response,
-        jsonResponse(
-          200,
-          okEnvelope({
-            schema_version: 1,
-            db_path: HUB_DB_PATH,
-            nextcloud_configured: safeNextcloudConfig(),
-            issuer: jwtVerifier.issuer,
-            audience: jwtVerifier.expectedAudiences,
-            jwks_url: jwtVerifier.jwksUrl,
-          }),
-        ),
-      );
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/me') {
-      await userRoutes.getSession({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/chat/provision') {
-      await chatRoutes.provision({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (pathname === '/api/hub/chat/snapshots' && request.method === 'POST') {
-      await chatRoutes.createSnapshot({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (pathname === '/api/hub/chat/snapshots' && request.method === 'GET') {
-      await chatRoutes.listSnapshots({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    const chatSnapshotItemMatch = pathMatch(pathname, /^\/api\/hub\/chat\/snapshots\/([^/]+)$/);
-    if (chatSnapshotItemMatch && request.method === 'DELETE') {
-      await chatRoutes.deleteSnapshot({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { snapshotId: decodeURIComponent(chatSnapshotItemMatch[1]) },
-      });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/home') {
-      await taskRoutes.getHubHome({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/search') {
-      await searchRoutes.globalSearch({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (pathname === '/api/hub/tasks' && request.method === 'GET') {
-      await taskRoutes.getHubTasks({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (pathname === '/api/hub/tasks' && request.method === 'POST') {
-      await taskRoutes.createHubTask({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (pathname === '/api/hub/reminders' && request.method === 'GET') {
-      await reminderRoutes.listReminders({ request, response, requestUrl, pathname, params: {} });
-      return;
-    }
-
-    if (pathname === '/api/hub/reminders' && request.method === 'POST') {
-      await reminderRoutes.createReminder({ request, response, requestUrl, pathname, params: {} });
-      return;
-    }
-
-    const reminderDismissMatch = pathMatch(pathname, /^\/api\/hub\/reminders\/([^/]+)\/dismiss$/);
-    if (reminderDismissMatch && request.method === 'POST') {
-      await reminderRoutes.dismissReminder({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { reminderId: decodeURIComponent(reminderDismissMatch[1]) },
-      });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/projects') {
-      await projectRoutes.listProjects({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/projects') {
-      await projectRoutes.createProject({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    const projectItemMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)$/);
-    if (request.method === 'GET' && projectItemMatch) {
-      await projectRoutes.getProject({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectItemMatch[1]) },
-      });
-      return;
-    }
-
-    const projectMembersMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/members$/);
-    if (projectMembersMatch && request.method === 'GET') {
-      await projectRoutes.listProjectMembers({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectMembersMatch[1]) },
-      });
-      return;
-    }
-
-    if (projectMembersMatch && request.method === 'POST') {
-      await projectRoutes.addProjectMember({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectMembersMatch[1]) },
-      });
-      return;
-    }
-
-    const projectInvitesMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/invites$/);
-    if (projectInvitesMatch && request.method === 'POST') {
-      await projectRoutes.createInvite({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectInvitesMatch[1]) },
-      });
-      return;
-    }
-
-    const projectInviteItemMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/invites\/([^/]+)$/);
-    if (projectInviteItemMatch && request.method === 'POST') {
-      await projectRoutes.reviewInvite({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: {
-          projectId: decodeURIComponent(projectInviteItemMatch[1]),
-          inviteRequestId: decodeURIComponent(projectInviteItemMatch[2]),
-        },
-      });
-      return;
-    }
-
-    const projectMemberItemMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/members\/([^/]+)$/);
-    if (projectMemberItemMatch && request.method === 'DELETE') {
-      await projectRoutes.removeProjectMember({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: {
-          projectId: decodeURIComponent(projectMemberItemMatch[1]),
-          targetUserId: decodeURIComponent(projectMemberItemMatch[2]),
-        },
-      });
-      return;
-    }
-
-    const projectPanesMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/panes$/);
-    if (projectPanesMatch && request.method === 'GET') {
-      await paneRoutes.listProjectPanes({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectPanesMatch[1]) },
-      });
-      return;
-    }
-
-    if (projectPanesMatch && request.method === 'POST') {
-      await paneRoutes.createProjectPane({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectPanesMatch[1]) },
-      });
-      return;
-    }
-
-    const projectTasksMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/tasks$/);
-    if (projectTasksMatch && request.method === 'GET') {
-      await taskRoutes.listProjectTasks({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectTasksMatch[1]) },
-      });
-      return;
-    }
-
-    const paneItemMatch = pathMatch(pathname, /^\/api\/hub\/panes\/([^/]+)$/);
-    if (paneItemMatch && request.method === 'PATCH') {
-      await paneRoutes.updatePane({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { paneId: decodeURIComponent(paneItemMatch[1]) },
-      });
-      return;
-    }
-
-    if (paneItemMatch && request.method === 'DELETE') {
-      await paneRoutes.deletePane({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { paneId: decodeURIComponent(paneItemMatch[1]) },
-      });
-      return;
-    }
-
-    const paneMembersMatch = pathMatch(pathname, /^\/api\/hub\/panes\/([^/]+)\/members$/);
-    if (paneMembersMatch && request.method === 'POST') {
-      await paneRoutes.addPaneMember({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { paneId: decodeURIComponent(paneMembersMatch[1]) },
-      });
-      return;
-    }
-
-    const paneMemberItemMatch = pathMatch(pathname, /^\/api\/hub\/panes\/([^/]+)\/members\/([^/]+)$/);
-    if (paneMemberItemMatch && request.method === 'DELETE') {
-      await paneRoutes.removePaneMember({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: {
-          paneId: decodeURIComponent(paneMemberItemMatch[1]),
-          userId: decodeURIComponent(paneMemberItemMatch[2]),
-        },
-      });
-      return;
-    }
-
-    const docItemMatch = pathMatch(pathname, /^\/api\/hub\/docs\/([^/]+)$/);
-    if (docItemMatch && request.method === 'GET') {
-      await docRoutes.getDoc({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { docId: decodeURIComponent(docItemMatch[1]) },
-      });
-      return;
-    }
-
-    if (docItemMatch && request.method === 'PUT') {
-      await docRoutes.updateDoc({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { docId: decodeURIComponent(docItemMatch[1]) },
-      });
-      return;
-    }
-
-    const docPresenceMatch = pathMatch(pathname, /^\/api\/hub\/docs\/([^/]+)\/presence$/);
-    if (docPresenceMatch && request.method === 'POST') {
-      await docRoutes.updateDocPresence({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { docId: decodeURIComponent(docPresenceMatch[1]) },
-      });
-      return;
-    }
-
-    const collectionsByProjectMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/collections$/);
-    if (collectionsByProjectMatch && request.method === 'GET') {
-      await collectionRoutes.listCollections({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(collectionsByProjectMatch[1]) },
-      });
-      return;
-    }
-
-    if (collectionsByProjectMatch && request.method === 'POST') {
-      await collectionRoutes.createCollection({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(collectionsByProjectMatch[1]) },
-      });
-      return;
-    }
-
-    const collectionFieldsMatch = pathMatch(pathname, /^\/api\/hub\/collections\/([^/]+)\/fields$/);
-    if (collectionFieldsMatch && request.method === 'GET') {
-      await collectionRoutes.listCollectionFields({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { collectionId: decodeURIComponent(collectionFieldsMatch[1]) },
-      });
-      return;
-    }
-
-    if (collectionFieldsMatch && request.method === 'POST') {
-      await collectionRoutes.createCollectionField({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { collectionId: decodeURIComponent(collectionFieldsMatch[1]) },
-      });
-      return;
-    }
-
-    const projectRecordsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/records$/);
-    if (projectRecordsMatch && request.method === 'POST') {
-      await recordRoutes.createRecord({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectRecordsMatch[1]) },
-      });
-      return;
-    }
-
-    const projectRecordSearchMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/records\/search$/);
-    if (projectRecordSearchMatch && request.method === 'GET') {
-      await recordRoutes.searchProjectRecords({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectRecordSearchMatch[1]) },
-      });
-      return;
-    }
-
-    const recordConvertMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/convert$/);
-    if (recordConvertMatch && request.method === 'POST') {
-      await recordRoutes.convertRecord({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { recordId: decodeURIComponent(recordConvertMatch[1]) },
-      });
-      return;
-    }
-
-    const recordSubtasksMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/subtasks$/);
-    if (recordSubtasksMatch && request.method === 'GET') {
-      await recordRoutes.listSubtasks({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { recordId: decodeURIComponent(recordSubtasksMatch[1]) },
-      });
-      return;
-    }
-
-    const recordItemMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)$/);
-    if (recordItemMatch && request.method === 'PATCH') {
-      await recordRoutes.updateRecord({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { recordId: decodeURIComponent(recordItemMatch[1]) },
-      });
-      return;
-    }
-
-    if (recordItemMatch && request.method === 'GET') {
-      await recordRoutes.getRecord({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { recordId: decodeURIComponent(recordItemMatch[1]) },
-      });
-      return;
-    }
-
-    const recordValuesMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/values$/);
-    if (recordValuesMatch && request.method === 'POST') {
-      await recordRoutes.updateRecordValues({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { recordId: decodeURIComponent(recordValuesMatch[1]) },
-      });
-      return;
-    }
-
-    const recordRelationsMatch = pathMatch(pathname, /^\/api\/hub\/records\/([^/]+)\/relations$/);
-    if (recordRelationsMatch && request.method === 'POST') {
-      await recordRoutes.createRecordRelation({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { recordId: decodeURIComponent(recordRelationsMatch[1]) },
-      });
-      return;
-    }
-
-    const relationItemMatch = pathMatch(pathname, /^\/api\/hub\/relations\/([^/]+)$/);
-    if (relationItemMatch && request.method === 'DELETE') {
-      await recordRoutes.deleteRelation({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { relationId: decodeURIComponent(relationItemMatch[1]) },
-      });
-      return;
-    }
-
-    const projectMentionSearchMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/mentions\/search$/);
-    if (projectMentionSearchMatch && request.method === 'GET') {
-      await collectionRoutes.searchMentions({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectMentionSearchMatch[1]) },
-      });
-      return;
-    }
-
-    const projectBacklinksMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/backlinks$/);
-    if (projectBacklinksMatch && request.method === 'GET') {
-      await collectionRoutes.listBacklinks({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectBacklinksMatch[1]) },
-      });
-      return;
-    }
-
-    const projectViewsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/views$/);
-    if (projectViewsMatch && request.method === 'GET') {
-      await viewRoutes.listViews({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectViewsMatch[1]) },
-      });
-      return;
-    }
-
-    if (projectViewsMatch && request.method === 'POST') {
-      await viewRoutes.createView({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectViewsMatch[1]) },
-      });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/views/query') {
-      await viewRoutes.queryView({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/calendar') {
-      await viewRoutes.listPersonalCalendar({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/calendar.ics') {
-      await viewRoutes.getCalendarFeed({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    const eventFromNlpMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/events\/from-nlp$/);
-    if (eventFromNlpMatch && request.method === 'POST') {
-      await viewRoutes.createEventFromNlp({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(eventFromNlpMatch[1]) },
-      });
-      return;
-    }
-
-    const projectCalendarMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/calendar$/);
-    if (projectCalendarMatch && request.method === 'GET') {
-      await viewRoutes.listProjectCalendar({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectCalendarMatch[1]) },
-      });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/comments') {
-      await docRoutes.createComment({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/comments/doc-anchor') {
-      await docRoutes.createDocAnchorComment({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    const commentStatusMatch = pathMatch(pathname, /^\/api\/hub\/comments\/([^/]+)\/status$/);
-    if (commentStatusMatch && request.method === 'POST') {
-      await docRoutes.updateCommentStatus({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { commentId: decodeURIComponent(commentStatusMatch[1]) },
-      });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/comments') {
-      await docRoutes.listComments({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/mentions/materialize') {
-      await docRoutes.materializeCommentMentions({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    const projectTimelineMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/timeline$/);
-    if (projectTimelineMatch && request.method === 'GET') {
-      await viewRoutes.listProjectTimeline({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectTimelineMatch[1]) },
-      });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/notifications') {
-      await notificationRoutes.listNotifications({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/live/authorize') {
-      await notificationRoutes.authorizeHubLive({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    const notificationReadMatch = pathMatch(pathname, /^\/api\/hub\/notifications\/([^/]+)\/read$/);
-    if (notificationReadMatch && request.method === 'POST') {
-      await notificationRoutes.markNotificationRead({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: {
-          notificationId: decodeURIComponent(notificationReadMatch[1]),
-        },
-      });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/files/upload') {
-      await fileRoutes.uploadFile({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/attachments') {
-      await fileRoutes.createAttachment({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    const attachmentItemMatch = pathMatch(pathname, /^\/api\/hub\/attachments\/([^/]+)$/);
-    if (attachmentItemMatch && request.method === 'DELETE') {
-      await fileRoutes.deleteAttachment({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { attachmentId: decodeURIComponent(attachmentItemMatch[1]) },
-      });
-      return;
-    }
-
-    const projectAssetRootsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/asset-roots$/);
-    if (projectAssetRootsMatch && request.method === 'GET') {
-      await fileRoutes.listAssetRoots({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectAssetRootsMatch[1]) },
-      });
-      return;
-    }
-
-    if (projectAssetRootsMatch && request.method === 'POST') {
-      await fileRoutes.createAssetRoot({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectAssetRootsMatch[1]) },
-      });
-      return;
-    }
-
-    const projectFilesMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/files$/);
-    if (projectFilesMatch && request.method === 'GET') {
-      await fileRoutes.listProjectFiles({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectFilesMatch[1]) },
-      });
-      return;
-    }
-
-    const projectAssetsListMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/assets\/list$/);
-    if (projectAssetsListMatch && request.method === 'GET') {
-      await fileRoutes.listAssets({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectAssetsListMatch[1]) },
-      });
-      return;
-    }
-
-    const projectAssetsUploadMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/assets\/upload$/);
-    if (projectAssetsUploadMatch && request.method === 'POST') {
-      await fileRoutes.uploadAsset({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectAssetsUploadMatch[1]) },
-      });
-      return;
-    }
-
-    const projectAssetsDeleteMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/assets\/delete$/);
-    if (projectAssetsDeleteMatch && request.method === 'DELETE') {
-      await fileRoutes.deleteAsset({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectAssetsDeleteMatch[1]) },
-      });
-      return;
-    }
-
-    const projectAssetsProxyMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/assets\/proxy$/);
-    if (projectAssetsProxyMatch && request.method === 'GET') {
-      await fileRoutes.proxyAsset({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectAssetsProxyMatch[1]) },
-      });
-      return;
-    }
-
-    const projectAutomationRulesMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/automation-rules$/);
-    if (projectAutomationRulesMatch && request.method === 'GET') {
-      await automationRoutes.listProjectAutomationRules({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectAutomationRulesMatch[1]) },
-      });
-      return;
-    }
-
-    if (projectAutomationRulesMatch && request.method === 'POST') {
-      await automationRoutes.createAutomationRule({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectAutomationRulesMatch[1]) },
-      });
-      return;
-    }
-
-    const automationRuleItemMatch = pathMatch(pathname, /^\/api\/hub\/automation-rules\/([^/]+)$/);
-    if (automationRuleItemMatch && request.method === 'PATCH') {
-      await automationRoutes.updateAutomationRule({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { ruleId: decodeURIComponent(automationRuleItemMatch[1]) },
-      });
-      return;
-    }
-
-    if (automationRuleItemMatch && request.method === 'DELETE') {
-      await automationRoutes.deleteAutomationRule({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { ruleId: decodeURIComponent(automationRuleItemMatch[1]) },
-      });
-      return;
-    }
-
-    const projectAutomationRunsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/automation-runs$/);
-    if (projectAutomationRunsMatch && request.method === 'GET') {
-      await automationRoutes.listAutomationRuns({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { projectId: decodeURIComponent(projectAutomationRunsMatch[1]) },
-      });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/api/hub/collab/authorize') {
-      await docRoutes.authorizeCollab({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    send(response, jsonResponse(404, errorEnvelope('not_found', 'Endpoint not found.')));
-  } catch (error) {
-    request.log.error('Unhandled request error.', { error });
-    send(
-      response,
-      jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')),
-    );
-  }
+const { startReminderScheduler } = createReminderScheduler({
+  REMINDER_CHECK_INTERVAL_MS,
+  nowIso,
+  asText,
+  db,
+  withTransaction,
+  dueRemindersStmt,
+  claimReminderFiredStmt,
+  assignmentsByRecordStmt,
+  participantsByRecordStmt,
+  recordByIdStmt,
+  newId,
+  buildNotificationPayload,
+  toJson,
+  insertNotificationStmt,
+  notificationRecord,
+  broadcastHubLiveToUser,
+  systemLog,
 });
+const requestRouter = createRequestRouter({
+  applyRequestContext,
+  send,
+  jsonResponse,
+  errorEnvelope,
+  okEnvelope,
+  nowIso,
+  APP_VERSION,
+  HUB_DB_PATH,
+  safeNextcloudConfig,
+  jwtVerifier,
+  pathMatch,
+  userRoutes,
+  chatRoutes,
+  taskRoutes,
+  searchRoutes,
+  reminderRoutes,
+  projectRoutes,
+  paneRoutes,
+  docRoutes,
+  collectionRoutes,
+  recordRoutes,
+  viewRoutes,
+  notificationRoutes,
+  fileRoutes,
+  automationRoutes,
+});
+
+const server = createServer(requestRouter);
 
 server.on('upgrade', (request, socket, head) => {
   const rejectUpgrade = (statusCode, reasonPhrase) => {
@@ -4157,6 +1886,5 @@ server.listen(PORT, '0.0.0.0', () => {
     routeCount: REGISTERED_ROUTE_COUNT,
     databasePath: HUB_DB_PATH,
   });
-  setInterval(fireDueReminders, REMINDER_CHECK_INTERVAL_MS);
-  systemLog.info('Reminder check loop started.', { intervalMs: REMINDER_CHECK_INTERVAL_MS });
+  startReminderScheduler();
 });
