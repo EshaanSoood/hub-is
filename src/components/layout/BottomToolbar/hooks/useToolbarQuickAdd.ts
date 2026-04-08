@@ -38,6 +38,33 @@ import type { ToolbarCaptureHomeData } from './useToolbarCapture';
 import { useQuickAddEffects } from './useQuickAddEffects';
 import { useQuickAddProjectRequestEffect } from './useQuickAddProjectRequestEffect';
 
+const getDefaultQuickAddProjectId = ({
+  projects,
+  preferredCaptureProjectId,
+  currentProjectId,
+  personalProjectId,
+}: {
+  projects: ProjectRecord[];
+  preferredCaptureProjectId: string | null;
+  currentProjectId: string | null;
+  personalProjectId: string | null;
+}): string => {
+  if (preferredCaptureProjectId && projects.some((project) => project.id === preferredCaptureProjectId)) {
+    return preferredCaptureProjectId;
+  }
+  if (currentProjectId && projects.some((project) => project.id === currentProjectId)) {
+    return currentProjectId;
+  }
+  if (personalProjectId && projects.some((project) => project.id === personalProjectId)) {
+    return personalProjectId;
+  }
+  const firstPersonalProjectId = projects.find((project) => project.isPersonal)?.id;
+  if (firstPersonalProjectId) {
+    return firstPersonalProjectId;
+  }
+  return projects[0]?.id || '';
+};
+
 interface UseToolbarQuickAddArgs {
   accessToken: string | null | undefined;
   projects: ProjectRecord[];
@@ -183,37 +210,21 @@ export const useToolbarQuickAdd = ({
   );
 
   const resolveDefaultQuickAddProjectId = useCallback((): string => {
-    if (preferredCaptureProjectId && projects.some((project) => project.id === preferredCaptureProjectId)) {
-      return preferredCaptureProjectId;
-    }
-    if (currentProjectId && projects.some((project) => project.id === currentProjectId)) {
-      return currentProjectId;
-    }
-    if (captureHomeData.personalProjectId && projects.some((project) => project.id === captureHomeData.personalProjectId)) {
-      return captureHomeData.personalProjectId;
-    }
-    const personalProjectId = projects.find((project) => project.isPersonal)?.id;
-    if (personalProjectId) {
-      return personalProjectId;
-    }
-    return projects[0]?.id || '';
+    return getDefaultQuickAddProjectId({
+      projects,
+      preferredCaptureProjectId,
+      currentProjectId,
+      personalProjectId: captureHomeData.personalProjectId,
+    });
   }, [captureHomeData.personalProjectId, currentProjectId, preferredCaptureProjectId, projects]);
 
   const resolveDefaultQuickAddProjectIdFromCapture = useCallback((nextCaptureHomeData: ToolbarCaptureHomeData): string => {
-    if (preferredCaptureProjectId && projects.some((project) => project.id === preferredCaptureProjectId)) {
-      return preferredCaptureProjectId;
-    }
-    if (currentProjectId && projects.some((project) => project.id === currentProjectId)) {
-      return currentProjectId;
-    }
-    if (nextCaptureHomeData.personalProjectId && projects.some((project) => project.id === nextCaptureHomeData.personalProjectId)) {
-      return nextCaptureHomeData.personalProjectId;
-    }
-    const personalProjectId = projects.find((project) => project.isPersonal)?.id;
-    if (personalProjectId) {
-      return personalProjectId;
-    }
-    return projects[0]?.id || '';
+    return getDefaultQuickAddProjectId({
+      projects,
+      preferredCaptureProjectId,
+      currentProjectId,
+      personalProjectId: nextCaptureHomeData.personalProjectId,
+    });
   }, [currentProjectId, preferredCaptureProjectId, projects]);
 
   const loadTaskProjectMembers = useCallback(async (projectId: string) => {
@@ -260,11 +271,17 @@ export const useToolbarQuickAdd = ({
 
       let defaultProjectId = resolveDefaultQuickAddProjectId();
       if (!defaultProjectId && accessToken) {
-        const nextCaptureHomeData = await refreshCaptureData();
-        if (quickAddOpenRequestRef.current !== requestVersion) {
-          return;
+        try {
+          const nextCaptureHomeData = await refreshCaptureData();
+          if (quickAddOpenRequestRef.current !== requestVersion) {
+            return;
+          }
+          defaultProjectId = resolveDefaultQuickAddProjectIdFromCapture(nextCaptureHomeData);
+        } catch {
+          if (quickAddOpenRequestRef.current !== requestVersion) {
+            return;
+          }
         }
-        defaultProjectId = resolveDefaultQuickAddProjectIdFromCapture(nextCaptureHomeData);
       }
       if (quickAddOpenRequestRef.current !== requestVersion) {
         return;
@@ -387,7 +404,7 @@ export const useToolbarQuickAdd = ({
         end_dt: endDate.toISOString(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
-      void refreshCaptureData();
+      void refreshCaptureData().catch(() => undefined);
       requestHubHomeRefresh();
       setQuickAddDialog(null);
     } catch (error) {
@@ -417,7 +434,7 @@ export const useToolbarQuickAdd = ({
     setReminderError(null);
     try {
       await createReminder(accessToken, payloadResult.payload);
-      void refreshCaptureData();
+      void refreshCaptureData().catch(() => undefined);
       requestHubHomeRefresh();
       setQuickAddDialog(null);
     } catch (error) {
