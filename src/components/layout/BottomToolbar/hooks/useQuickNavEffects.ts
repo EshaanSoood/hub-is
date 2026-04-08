@@ -101,7 +101,16 @@ export const useQuickNavEffects = ({
     return () => {
       document.removeEventListener('keydown', onQuickNavKeyDown);
     };
-  }, [closeQuickNav, navigate, normalizedQuickNavActiveIndex, quickNavItems, quickNavOpen]);
+  }, [
+    closeQuickNav,
+    navigate,
+    normalizedQuickNavActiveIndex,
+    quickNavItems,
+    quickNavOpen,
+    setQuickNavActiveIndex,
+    setQuickNavQuery,
+    skipQuickNavFocusRestoreRef,
+  ]);
 
   useEffect(() => {
     if (quickNavOpen) {

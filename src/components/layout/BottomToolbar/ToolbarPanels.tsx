@@ -24,7 +24,9 @@ export const ToolbarPanels = ({ toolbarDialog, openQuickNavPanel }: ToolbarPanel
           key={item.panel}
           type="button"
           aria-label={item.ariaLabel}
-          aria-pressed={active}
+          aria-haspopup="dialog"
+          aria-expanded={active}
+          aria-controls={`toolbar-${item.panel}-panel`}
           onClick={() => openQuickNavPanel(item.panel)}
           className={`flex h-7 w-7 items-center justify-center rounded-control border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             active ? 'border-primary bg-primary/10 text-primary' : 'border-border-muted text-muted'

@@ -114,13 +114,11 @@ const emptyPreview = (): CalendarParseResult => ({
   warnings: null,
 });
 
-export const hasMeaningfulCalendarPreview = (preview: CalendarParseResult): boolean =>
+export const hasMeaningfulCalendarPreview = (preview: CalendarNLFormPreview): boolean =>
   Boolean(
-    preview.fields.title
-    || preview.fields.date
-    || preview.fields.time
-    || preview.fields.end_time
-    || preview.fields.duration_minutes,
+    preview.title
+    || preview.startAt
+    || preview.endAt,
   );
 
 export const calendarPreviewToFormPreview = (preview: CalendarParseResult): CalendarNLFormPreview => {
@@ -258,6 +256,9 @@ export const useCalendarNLDraft = ({
     setLastParsedDraft('');
   };
 
+  const formPreview = useMemo(() => calendarPreviewToFormPreview(preview), [preview]);
+  const hasMeaningfulPreview = useMemo(() => hasMeaningfulCalendarPreview(formPreview), [formPreview]);
+
   return {
     draft,
     setDraft,
@@ -268,7 +269,7 @@ export const useCalendarNLDraft = ({
     parseNow,
     clear,
     lastParsedDraft,
-    formPreview: useMemo(() => calendarPreviewToFormPreview(preview), [preview]),
-    hasMeaningfulPreview: useMemo(() => hasMeaningfulCalendarPreview(preview), [preview]),
+    formPreview,
+    hasMeaningfulPreview,
   };
 };

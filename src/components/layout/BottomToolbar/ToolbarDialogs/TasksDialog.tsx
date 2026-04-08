@@ -33,7 +33,7 @@ export const TasksDialog = ({
     panelClassName="dialog-panel-wide-size !top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] flex flex-col overflow-hidden"
     contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
   >
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div id="toolbar-tasks-panel" className="flex min-h-0 flex-1 flex-col gap-3">
       {quickNavTasksError ? (
         <div className="rounded-panel border border-danger/30 bg-danger/5 p-3" role="alert">
           <p className="text-sm text-danger">{quickNavTasksError}</p>

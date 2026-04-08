@@ -21,6 +21,12 @@ export const useToolbarPaneName = ({ accessToken, projectId, paneId }: UseToolba
     }
 
     let cancelled = false;
+    const resetTimer = window.setTimeout(() => {
+      if (!cancelled) {
+        setPaneName(null);
+      }
+    }, 0);
+
     const loadPaneName = async () => {
       try {
         const panes = await listPanes(accessToken, projectId);
@@ -39,6 +45,7 @@ export const useToolbarPaneName = ({ accessToken, projectId, paneId }: UseToolba
     void loadPaneName();
     return () => {
       cancelled = true;
+      window.clearTimeout(resetTimer);
     };
   }, [accessToken, paneId, projectId]);
 

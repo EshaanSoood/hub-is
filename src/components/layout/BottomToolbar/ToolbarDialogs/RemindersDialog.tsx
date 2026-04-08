@@ -33,14 +33,16 @@ export const RemindersDialog = ({
     description="Your active reminders."
     panelClassName="dialog-panel-compact-size"
   >
-    <RemindersModuleSkin
-      sizeTier="L"
-      reminders={remindersRuntime.reminders}
-      loading={remindersRuntime.loading}
-      error={remindersRuntime.error}
-      onDismiss={remindersRuntime.dismiss}
-      onSnooze={onSnoozeReminderFromModule}
-      onCreate={onCreateReminderFromModule}
-    />
+    <div id="toolbar-reminders-panel">
+      <RemindersModuleSkin
+        sizeTier="L"
+        reminders={remindersRuntime.reminders}
+        loading={remindersRuntime.loading}
+        error={remindersRuntime.error}
+        onDismiss={remindersRuntime.dismiss}
+        onSnooze={onSnoozeReminderFromModule}
+        onCreate={onCreateReminderFromModule}
+      />
+    </div>
   </Dialog>
 );
