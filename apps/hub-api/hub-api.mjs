@@ -19,6 +19,8 @@ import { withTransaction } from './db/transaction.mjs';
 import { createRequestLogger } from './lib/logger.mjs';
 import { applyRequestContext } from './lib/requestContext.mjs';
 import { fetchWithTimeout, isFetchTimeoutError } from './lib/fetch-utils.mjs';
+import { createKeycloakIntegration } from './integrations/keycloak.mjs';
+import { createPostmarkIntegration } from './integrations/postmark.mjs';
 import { createAutomationRoutes } from './routes/automation.mjs';
 import { createChatRoutes } from './routes/chat.mjs';
 import { createCollectionRoutes } from './routes/collections.mjs';
@@ -33,7 +35,6 @@ import { createSearchRoutes } from './routes/search.mjs';
 import { createTaskRoutes } from './routes/tasks.mjs';
 import { createUserRoutes } from './routes/users.mjs';
 import { createViewRoutes } from './routes/views.mjs';
-import { HUB_POSTMARK_INVITE_TEMPLATE } from './emails/inviteTemplate.mjs';
 
 const PORT = Number(process.env.PORT || '3001');
 const HUB_DB_PATH = process.env.HUB_DB_PATH || '/data/hub.sqlite';
@@ -229,445 +230,38 @@ const parseUpstreamJson = async (response, requestLog = null, message = 'Failed 
   }
 };
 
-const safePostmarkConfig = () => Boolean(POSTMARK_SERVER_TOKEN && POSTMARK_FROM_EMAIL);
-const safeKeycloakInviteConfig = () =>
-  Boolean(
-    KEYCLOAK_URL
-    && KEYCLOAK_REALM
-    && KEYCLOAK_CLIENT_ID
-    && KEYCLOAK_ADMIN_USERNAME
-    && KEYCLOAK_ADMIN_PASSWORD,
-  );
-const escapeHtml = (value) =>
-  String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('\'', '&#39;');
+const {
+  ensureKeycloakInviteOnboarding,
+  cleanupKeycloakInviteOnboarding,
+} = createKeycloakIntegration({
+  KEYCLOAK_URL,
+  KEYCLOAK_REALM,
+  KEYCLOAK_CLIENT_ID,
+  KEYCLOAK_REDIRECT_URI,
+  KEYCLOAK_ADMIN_USERNAME,
+  KEYCLOAK_ADMIN_PASSWORD,
+  KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS,
+  KEYCLOAK_REQUIRED_INVITE_ACTIONS,
+  HUB_PUBLIC_APP_URL,
+  EXTERNAL_API_TIMEOUT_MS,
+  asText,
+  fetchWithTimeout,
+  isFetchTimeoutError,
+  parseUpstreamJson,
+});
 
-const renderHubPilotInviteHtml = ({ appUrl = HUB_PUBLIC_APP_URL, projectName = 'Pilot Party' } = {}) => {
-  const resolvedUrl = asText(appUrl) || 'https://eshaansood.org';
-  const resolvedProjectName = escapeHtml(asText(projectName) || 'Pilot Party');
-  return HUB_POSTMARK_INVITE_TEMPLATE
-    .replaceAll('{{APP_URL}}', resolvedUrl)
-    .replaceAll('{{PROJECT_NAME}}', resolvedProjectName);
-};
-
-const renderHubPilotInviteText = ({ appUrl = HUB_PUBLIC_APP_URL, projectName = 'Pilot Party' } = {}) => {
-  const resolvedUrl = asText(appUrl) || 'https://eshaansood.org';
-  const resolvedProjectName = asText(projectName) || 'Pilot Party';
-  return [
-    `You're invited to ${resolvedProjectName} on Hub OS.`,
-    'Well as you know I\'ve been working on this app pretty crazily for the last month. I think I\'m in a place where it\'s ready to be user tested.',
-    `I'm inviting you to a project called ${resolvedProjectName} where my hope is that we can use the app itself to track the user and bug testing to see what features it's missing.`,
-    'If you do not already have a Hub OS account, you should also receive a secure account setup email from Keycloak. Complete that first, then return to Hub OS.',
-    `Join the pilot: ${resolvedUrl}`,
-    'Looking forward to what you discover!',
-    'Warmly,',
-    'Eshaan',
-  ].join('\n\n');
-};
-
-const getKeycloakInviteRedirectUri = () => asText(KEYCLOAK_REDIRECT_URI) || `${HUB_PUBLIC_APP_URL}/`;
-
-const acquireKeycloakAdminToken = async (requestLog = null) => {
-  if (!safeKeycloakInviteConfig()) {
-    return {
-      error: {
-        status: 503,
-        code: 'keycloak_unavailable',
-        message: 'Keycloak invite provisioning is not configured.',
-      },
-    };
-  }
-
-  const form = new URLSearchParams({
-    grant_type: 'password',
-    client_id: 'admin-cli',
-    username: KEYCLOAK_ADMIN_USERNAME,
-    password: KEYCLOAK_ADMIN_PASSWORD,
-  });
-
-  let upstream;
-  try {
-    upstream = await fetchWithTimeout(
-      new URL('/realms/master/protocol/openid-connect/token', `${KEYCLOAK_URL}/`),
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: form,
-      },
-      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
-    );
-  } catch (error) {
-    requestLog?.error?.('Keycloak admin token request failed.', { error });
-    if (isFetchTimeoutError(error)) {
-      return {
-        error: {
-          status: 504,
-          code: 'upstream_timeout',
-          message: 'Keycloak admin token request timed out.',
-        },
-      };
-    }
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Keycloak admin token request failed.',
-      },
-    };
-  }
-
-  const body = await parseUpstreamJson(upstream, requestLog, 'Failed to parse Keycloak admin token response.');
-  if (!upstream.ok || !asText(body?.access_token)) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Unable to acquire Keycloak admin access token.',
-      },
-    };
-  }
-
-  return { data: { accessToken: asText(body.access_token) } };
-};
-
-const keycloakAdminRequest = async ({
-  path,
-  method = 'GET',
-  accessToken,
-  requestLog = null,
-  headers = {},
-  body = undefined,
-}) => {
-  let upstream;
-  try {
-    upstream = await fetchWithTimeout(
-      new URL(path, `${KEYCLOAK_URL}/`),
-      {
-        method,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          ...headers,
-        },
-        ...(body === undefined ? {} : { body }),
-      },
-      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
-    );
-  } catch (error) {
-    requestLog?.error?.('Keycloak admin request failed.', { path, method, error });
-    if (isFetchTimeoutError(error)) {
-      return {
-        error: {
-          status: 504,
-          code: 'upstream_timeout',
-          message: 'Keycloak admin request timed out.',
-        },
-      };
-    }
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Keycloak admin request failed.',
-      },
-    };
-  }
-
-  const parsedBody = upstream.status === 204
-    ? null
-    : await parseUpstreamJson(upstream, requestLog, 'Failed to parse Keycloak admin response.');
-  return { upstream, body: parsedBody };
-};
-
-const findKeycloakUserByEmail = async ({ accessToken, email, requestLog = null }) => {
-  const normalizedEmail = asText(email).toLowerCase();
-  if (!normalizedEmail) {
-    return { data: null };
-  }
-
-  const response = await keycloakAdminRequest({
-    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users?email=${encodeURIComponent(normalizedEmail)}&exact=true`,
-    accessToken,
-    requestLog,
-  });
-  if (response.error) {
-    return response;
-  }
-  if (!response.upstream.ok) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: `Keycloak user lookup failed (${response.upstream.status}).`,
-      },
-    };
-  }
-
-  const users = Array.isArray(response.body) ? response.body : [];
-  const match = users.find((user) => asText(user?.email).toLowerCase() === normalizedEmail) || null;
-  return { data: match };
-};
-
-const createKeycloakInviteUser = async ({ accessToken, email, requestLog = null }) => {
-  const normalizedEmail = asText(email).toLowerCase();
-  const localpart = normalizedEmail.split('@')[0] || 'hub-user';
-  const response = await keycloakAdminRequest({
-    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users`,
-    method: 'POST',
-    accessToken,
-    requestLog,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      username: normalizedEmail,
-      email: normalizedEmail,
-      firstName: localpart,
-      enabled: true,
-      emailVerified: false,
-      requiredActions: [...KEYCLOAK_REQUIRED_INVITE_ACTIONS],
-    }),
-  });
-  if (response.error) {
-    return response;
-  }
-  if (![201, 204, 409].includes(response.upstream.status)) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: `Keycloak user create failed (${response.upstream.status}).`,
-      },
-    };
-  }
-
-  return findKeycloakUserByEmail({ accessToken, email: normalizedEmail, requestLog });
-};
-
-const sendKeycloakInviteActionsEmail = async ({ accessToken, userId, requestLog = null }) => {
-  const query = new URLSearchParams({
-    client_id: KEYCLOAK_CLIENT_ID,
-    redirect_uri: getKeycloakInviteRedirectUri(),
-    lifespan: String(KEYCLOAK_INVITE_ACTION_LIFESPAN_SECONDS),
-  });
-  const response = await keycloakAdminRequest({
-    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users/${encodeURIComponent(userId)}/execute-actions-email?${query.toString()}`,
-    method: 'PUT',
-    accessToken,
-    requestLog,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify([...KEYCLOAK_REQUIRED_INVITE_ACTIONS]),
-  });
-  if (response.error) {
-    return response;
-  }
-  if (!response.upstream.ok) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: `Keycloak invite email failed (${response.upstream.status}).`,
-      },
-    };
-  }
-
-  return { data: { sent: true } };
-};
-
-const deleteKeycloakUser = async ({ accessToken, userId, requestLog = null }) => {
-  const response = await keycloakAdminRequest({
-    path: `/admin/realms/${encodeURIComponent(KEYCLOAK_REALM)}/users/${encodeURIComponent(userId)}`,
-    method: 'DELETE',
-    accessToken,
-    requestLog,
-  });
-  if (response.error) {
-    return response;
-  }
-  if (![204, 404].includes(response.upstream.status)) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: `Keycloak user delete failed (${response.upstream.status}).`,
-      },
-    };
-  }
-
-  return { data: { deleted: response.upstream.status === 204 } };
-};
-
-const ensureKeycloakInviteOnboarding = async ({ email, requestLog = null }) => {
-  const normalizedEmail = asText(email).toLowerCase();
-  if (!normalizedEmail) {
-    return {
-      error: {
-        status: 400,
-        code: 'invalid_input',
-        message: 'Invite email is required.',
-      },
-    };
-  }
-
-  const tokenResult = await acquireKeycloakAdminToken(requestLog);
-  if (tokenResult.error) {
-    return tokenResult;
-  }
-
-  const accessToken = tokenResult.data.accessToken;
-  const existingLookup = await findKeycloakUserByEmail({ accessToken, email: normalizedEmail, requestLog });
-  if (existingLookup.error) {
-    return existingLookup;
-  }
-
-  let user = existingLookup.data;
-  const createdUser = !existingLookup.data;
-  if (!user) {
-    const created = await createKeycloakInviteUser({ accessToken, email: normalizedEmail, requestLog });
-    if (created.error) {
-      return created;
-    }
-    user = created.data;
-  }
-  if (!user?.id) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Unable to resolve Keycloak user for invite.',
-      },
-    };
-  }
-
-  if (createdUser) {
-    const actionEmail = await sendKeycloakInviteActionsEmail({
-      accessToken,
-      userId: asText(user.id),
-      requestLog,
-    });
-    if (actionEmail.error) {
-      return actionEmail;
-    }
-  }
-
-  return {
-    data: {
-      userId: asText(user.id),
-      email: normalizedEmail,
-      created: createdUser,
-    },
-  };
-};
-
-const cleanupKeycloakInviteOnboarding = async ({ userId, requestLog = null }) => {
-  const normalizedUserId = asText(userId);
-  if (!normalizedUserId) {
-    return { data: { deleted: false } };
-  }
-
-  const tokenResult = await acquireKeycloakAdminToken(requestLog);
-  if (tokenResult.error) {
-    return tokenResult;
-  }
-
-  return deleteKeycloakUser({
-    accessToken: tokenResult.data.accessToken,
-    userId: normalizedUserId,
-    requestLog,
-  });
-};
-
-const sendPostmarkEmail = async ({
-  to,
-  subject,
-  htmlBody,
-  textBody,
-  tag = '',
-  requestLog = null,
-}) => {
-  if (!safePostmarkConfig()) {
-    return {
-      error: {
-        status: 503,
-        code: 'postmark_unavailable',
-        message: 'Postmark runtime credentials are not configured.',
-      },
-    };
-  }
-
-  let upstream;
-  try {
-    upstream = await fetchWithTimeout(
-      new URL('/email', `${POSTMARK_API_BASE_URL}/`),
-      {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Postmark-Server-Token': POSTMARK_SERVER_TOKEN,
-        },
-        body: JSON.stringify({
-          From: POSTMARK_FROM_EMAIL,
-          To: to,
-          Subject: subject,
-          HtmlBody: htmlBody,
-          TextBody: textBody,
-          MessageStream: POSTMARK_MESSAGE_STREAM,
-          ...(tag ? { Tag: tag } : {}),
-        }),
-      },
-      { timeoutMs: EXTERNAL_API_TIMEOUT_MS },
-    );
-  } catch (error) {
-    requestLog?.error?.('Postmark request failed.', { to, error });
-    if (isFetchTimeoutError(error)) {
-      return {
-        error: {
-          status: 504,
-          code: 'upstream_timeout',
-          message: 'Postmark invite email request timed out.',
-        },
-      };
-    }
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: 'Postmark invite email request failed.',
-      },
-    };
-  }
-
-  const body = await parseUpstreamJson(upstream, requestLog, 'Failed to parse Postmark JSON response.');
-  if (!upstream.ok) {
-    return {
-      error: {
-        status: 502,
-        code: 'upstream_error',
-        message: asText(body?.Message) || `Postmark invite email failed (${upstream.status}).`,
-      },
-    };
-  }
-
-  return { data: body };
-};
-
-const sendHubInviteEmail = async ({ to, projectName = 'Pilot Party', requestLog = null }) =>
-  sendPostmarkEmail({
-    to,
-    subject: "You're invited to Hub OS",
-    htmlBody: renderHubPilotInviteHtml({ appUrl: HUB_PUBLIC_APP_URL, projectName }),
-    textBody: renderHubPilotInviteText({ appUrl: HUB_PUBLIC_APP_URL, projectName }),
-    tag: 'hub-project-invite',
-    requestLog,
-  });
+const { sendHubInviteEmail } = createPostmarkIntegration({
+  POSTMARK_SERVER_TOKEN,
+  POSTMARK_FROM_EMAIL,
+  POSTMARK_MESSAGE_STREAM,
+  POSTMARK_API_BASE_URL,
+  EXTERNAL_API_TIMEOUT_MS,
+  HUB_PUBLIC_APP_URL,
+  asText,
+  fetchWithTimeout,
+  isFetchTimeoutError,
+  parseUpstreamJson,
+});
 
 const relationTargetCollectionIdFromField = (field) => {
   const config = parseJsonObject(field?.config, {});
