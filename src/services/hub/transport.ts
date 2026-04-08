@@ -47,6 +47,7 @@ const readHubEnvelopeJson = async (response: Response): Promise<HubEnvelope<unkn
   return parsedEnvelope.data;
 };
 
+// This helper validates the envelope contract only; callers are responsible for the inner data shape.
 const parseHubEnvelope = <T>(response: Response, envelope: HubEnvelope<unknown>): T => {
   if (!response.ok || !envelope.ok || envelope.data == null) {
     throw new HubRequestError(envelope.error?.message || `Request failed (${response.status}).`, response.status);
