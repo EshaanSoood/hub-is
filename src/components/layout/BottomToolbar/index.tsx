@@ -21,6 +21,7 @@ import { useToolbarQuickNav } from './hooks/useToolbarQuickNav';
 import { useToolbarSearch } from './hooks/useToolbarSearch';
 import { ToolbarNav } from './ToolbarNav';
 import { ToolbarNotifications } from './ToolbarNotifications';
+import { ToolbarPanels } from './ToolbarPanels';
 import { ToolbarProfile } from './ToolbarProfile';
 import { ToolbarQuickAdd } from './ToolbarQuickAdd';
 import { ToolbarSearch } from './ToolbarSearch';
@@ -301,6 +302,11 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
           normalizedQuickNavActiveIndex={quickNav.normalizedQuickNavActiveIndex}
           onSelectQuickNavItem={quickNav.onSelectQuickNavItem}
           quickNavDestinationItems={quickNav.quickNavDestinationItems}
+        />
+
+        <ToolbarPanels
+          toolbarDialog={quickNav.toolbarDialog}
+          openQuickNavPanel={openQuickNavPanel}
         />
 
         <ToolbarSearch

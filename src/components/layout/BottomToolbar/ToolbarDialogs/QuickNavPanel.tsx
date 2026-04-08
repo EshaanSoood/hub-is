@@ -1,6 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { Icon } from '../../../primitives';
-import { QUICK_NAV_FIXED_ITEMS, type QuickNavActionItem } from '../../appShellUtils';
+import type { QuickNavActionItem } from '../../appShellUtils';
 
 interface QuickNavPanelProps {
   quickNavInputRef: MutableRefObject<HTMLInputElement | null>;
@@ -39,32 +39,10 @@ export const QuickNavPanel = ({
       className="w-full border-b border-border-muted bg-transparent px-md py-sm text-sm text-text outline-none"
     />
     <ul className="max-h-72 overflow-y-auto py-1">
-      {QUICK_NAV_FIXED_ITEMS.map((item, index) => (
-        <li key={item.id}>
-          <button
-            type="button"
-            aria-label={`Open ${item.label.toLowerCase()}`}
-            className="flex w-full items-center gap-2 px-md py-sm text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            style={{
-              background:
-                normalizedQuickNavActiveIndex === index
-                  ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
-                  : 'transparent',
-            }}
-            onMouseEnter={() => setQuickNavActiveIndex(index)}
-            onClick={() => onSelectQuickNavItem(item)}
-          >
-            {item.iconName ? <Icon name={item.iconName} className="text-[13px] text-muted" /> : null}
-            <span className="truncate">{item.label}</span>
-          </button>
-        </li>
-      ))}
-      <li aria-hidden="true" className="my-1 border-t border-border-muted" />
       {quickNavDestinationItems.length === 0 ? (
         <li className="px-md py-sm text-sm text-muted">No matching destinations</li>
       ) : (
         quickNavDestinationItems.map((item, index) => {
-          const absoluteIndex = QUICK_NAV_FIXED_ITEMS.length + index;
           return (
             <li key={item.id}>
               <button
@@ -72,11 +50,11 @@ export const QuickNavPanel = ({
                 className="flex w-full items-center gap-2 px-md py-sm text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 style={{
                   background:
-                    normalizedQuickNavActiveIndex === absoluteIndex
+                    normalizedQuickNavActiveIndex === index
                       ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
                       : 'transparent',
                 }}
-                onMouseEnter={() => setQuickNavActiveIndex(absoluteIndex)}
+                onMouseEnter={() => setQuickNavActiveIndex(index)}
                 onClick={() => onSelectQuickNavItem(item)}
               >
                 {item.iconName ? <Icon name={item.iconName} className="text-[13px] text-muted" /> : null}

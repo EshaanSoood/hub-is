@@ -40,26 +40,13 @@ export type QuickAddOption = {
 };
 
 export type QuickNavActionItem =
-  | {
-      id: string;
-      label: string;
-      iconName: 'calendar' | 'tasks' | 'reminders';
-      action: 'panel';
-      panel: Exclude<ToolbarDialog, null>;
-    }
-  | {
+  {
       id: string;
       label: string;
       iconName?: 'menu';
       action: 'navigate';
       href: string;
     };
-
-export const QUICK_NAV_FIXED_ITEMS: QuickNavActionItem[] = [
-  { id: 'quick-nav-calendar', label: 'Calendar', iconName: 'calendar', action: 'panel', panel: 'calendar' },
-  { id: 'quick-nav-tasks', label: 'Tasks', iconName: 'tasks', action: 'panel', panel: 'tasks' },
-  { id: 'quick-nav-reminders', label: 'Reminders', iconName: 'reminders', action: 'panel', panel: 'reminders' },
-];
 
 export const QUICK_ADD_OPTIONS: QuickAddOption[] = [
   { key: 'task', label: 'Task', iconName: 'tasks' },
