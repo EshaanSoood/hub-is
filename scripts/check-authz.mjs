@@ -1,12 +1,44 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = process.cwd();
 
 const read = (relativePath) => readFile(path.join(root, relativePath), 'utf8');
 
+const collectSourceFiles = async (absoluteDir) => {
+  const entries = await readdir(absoluteDir, { withFileTypes: true });
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const absolutePath = path.join(absoluteDir, entry.name);
+      if (entry.isDirectory()) {
+        return collectSourceFiles(absolutePath);
+      }
+      return /\.(ts|tsx)$/.test(entry.name) ? [absolutePath] : [];
+    }),
+  );
+  return files.flat().sort();
+};
+
+const readModuleSource = async ({ flatFilePath, moduleDirPath }) => {
+  const absoluteModuleDir = path.join(root, moduleDirPath);
+  try {
+    const sourceFiles = await collectSourceFiles(absoluteModuleDir);
+    if (sourceFiles.length > 0) {
+      const sources = await Promise.all(sourceFiles.map((sourceFile) => readFile(sourceFile, 'utf8')));
+      return sources.join('\n');
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+
+  return read(flatFilePath);
+};
+
 const authzContext = await read('src/context/AuthzContext.tsx');
-const dashboardPanel = await read('src/features/PersonalizedDashboardPanel.tsx');
+const dashboardPanel = await readModuleSource({
+  flatFilePath: 'src/features/PersonalizedDashboardPanel.tsx',
+  moduleDirPath: 'src/features/PersonalizedDashboardPanel',
+});
 const dashboardCards = await read('src/lib/dashboardCards.ts');
 const profilePanel = await read('src/components/auth/ProfilePanel.tsx');
 const serverRoutes = await read('src/server/routes.ts');
