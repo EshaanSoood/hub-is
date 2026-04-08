@@ -5,7 +5,7 @@ import type { HubPaneSummary } from '../../../services/hub/types';
 import type { QuickThoughtsModuleContract } from '../moduleContracts';
 
 const QuickThoughtsModuleSkin = lazy(async () => {
-  const module = await import('../InboxCaptureModuleSkin');
+  const module = await import('../QuickThoughtsModuleSkin');
   return { default: module.QuickThoughtsModuleSkin };
 });
 

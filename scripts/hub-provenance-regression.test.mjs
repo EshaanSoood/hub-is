@@ -843,7 +843,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       assert.equal(
         ownerHome.home.tasks.some((task) => task.record_id === createdTask.record_id),
         true,
-        'Hub home should include the new personal task',
+        'myHub should include the new personal task',
       );
 
       const personalTaskDetail = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${createdTask.record_id}`, { method: 'GET' });
@@ -934,7 +934,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       assert.equal(
         homeAfterRemoval.home.tasks.some((task) => task.record_id === removedTaskId),
         false,
-        'Hub home should not include tasks from inactive project memberships',
+        'myHub should not include tasks from inactive project memberships',
       );
     });
 
@@ -1103,14 +1103,14 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       });
       const homeTask = readerHome.home.tasks.find((task) => task.record_id === taskRecordId);
       assert.ok(homeTask, 'Expected home task entry');
-      assert.equal(homeTask?.source_pane?.pane_id, fixture.paneId, 'Hub home tasks should preserve source pane');
+      assert.equal(homeTask?.source_pane?.pane_id, fixture.paneId, 'myHub tasks should preserve source pane');
       const homeEvent = readerHome.home.events.find((event) => event.record_id === eventRecordId);
       assert.ok(homeEvent, 'Expected home event entry');
-      assert.equal(homeEvent?.source_pane?.pane_id, fixture.paneId, 'Hub home events should preserve source pane');
+      assert.equal(homeEvent?.source_pane?.pane_id, fixture.paneId, 'myHub events should preserve source pane');
       assert.equal(
         readerHome.home.events.some((event) => event.title === 'Stale Event'),
         false,
-        'Hub home should prefer current/upcoming events over stale past ones',
+        'myHub should prefer current/upcoming events over stale past ones',
       );
 
       const deletedPane = await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${fixture.projectId}/panes`, {

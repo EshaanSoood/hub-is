@@ -31,7 +31,7 @@ Locations with unresolved/non-object style expressions (manual review): 1
 | src/components/project-space/FilesModuleSkin.tsx | 177 | `['--angle' as string]` | `sparkle.angle` | no token reference |
 | src/components/project-space/FilesModuleSkin.tsx | 177 | `['--travel' as string]` | `sparkle.travel` | no token reference |
 | src/components/project-space/FilesModuleSkin.tsx | 189 | `animation` | `'fade-in-out 1.5s ease forwards'` | no token reference |
-| src/components/project-space/InboxCaptureModuleSkin.tsx | 177 | `opacity` | `entry.archived ? 0.6 : 1` | no token reference |
+| src/components/project-space/QuickThoughtsModuleSkin.tsx | 197 | `opacity` | `entry.archived ? 0.6 : 1` | no token reference |
 | src/components/project-space/KanbanModuleSkin.tsx | 117 | `transform` | `CSS.Transform.toString(transform)` | no token reference |
 | src/components/project-space/KanbanModuleSkin.tsx | 117 | `opacity` | `isDragging ? 0.65 : 1` | no token reference |
 | src/components/project-space/RemindersModuleSkin.tsx | 469 | `width` | `\`${particle.size}px\`` | no token reference |

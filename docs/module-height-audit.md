@@ -174,7 +174,7 @@
 - no module-root vertical max-height/scroll cap.
 - Flex-grow/h-full: none.
 
-### `InboxCaptureModuleSkin` (`src/components/project-space/InboxCaptureModuleSkin.tsx`)
+### `QuickThoughtsModuleSkin` (`src/components/project-space/QuickThoughtsModuleSkin.tsx`)
 - Outer container: `<div className="rounded-panel border border-border-muted bg-surface-elevated p-sm">`.
 - Outer explicit height: none.
 - Overflow: no module-root scroll cap.

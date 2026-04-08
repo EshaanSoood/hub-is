@@ -543,5 +543,3 @@ export const QuickThoughtsModuleSkin = ({
     </div>
   );
 };
-
-export const InboxCaptureModuleSkin = QuickThoughtsModuleSkin;

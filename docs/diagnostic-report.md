@@ -111,7 +111,7 @@ return subscribeHubLive(accessToken, (message) => {
 });
 ```
 
-2. **Projects dashboard refetches Hub Home on every `task.changed`**
+2. **Projects dashboard refetches myHub on every `task.changed`**
 - **File/lines:** `src/pages/ProjectsPage.tsx:185-198`
 - **Dependency array:** `[accessToken, refreshHome, refreshSelectedRecord]`
 - **Pattern:** live callback always calls `refreshHome()` and conditionally `refreshSelectedRecord(...)`.

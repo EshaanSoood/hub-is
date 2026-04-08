@@ -4,7 +4,7 @@ import type { FullConfig, Reporter, Suite, TestCase, TestResult } from '@playwri
 
 const AREA_NAMES = [
   'Authentication & Session',
-  'Hub Home',
+  'myHub',
   'Projects',
   'Panes',
   'Document Editor (Collaborative Lexical Editor)',

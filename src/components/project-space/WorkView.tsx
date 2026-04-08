@@ -44,9 +44,6 @@ interface WorkViewProps {
 }
 
 const normalizeModuleType = (moduleType: unknown): string => {
-  if (moduleType === 'inbox') {
-    return 'quick_thoughts';
-  }
   return typeof moduleType === 'string' && moduleType ? moduleType : 'unknown';
 };
 

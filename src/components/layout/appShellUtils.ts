@@ -134,7 +134,7 @@ export const projectDotClassName = (projectId: string | null): string => {
 export const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; name: string }>): string[] => {
   const segments = pathname.split('/').filter(Boolean);
   if (segments.length === 0 || pathname === '/projects' || pathname === '/') {
-    return ['Hub Home'];
+    return ['myHub'];
   }
 
   if (segments[0] !== 'projects') {

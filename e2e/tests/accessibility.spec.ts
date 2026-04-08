@@ -86,7 +86,7 @@ test('thought pile opens and closes correctly', async ({ page }) => {
   await expect(trigger).toBeFocused();
 });
 
-test('Hub Home headings are correct level', async ({ page }) => {
+test('Hub headings are correct level', async ({ page }) => {
   await authenticateAsUserA(page);
   await openHubHome(page);
 
