@@ -4,9 +4,22 @@ import path from 'node:path';
 const root = process.cwd();
 
 const read = (relativePath) => readFile(path.join(root, relativePath), 'utf8');
+const readFirstExisting = async (relativePaths) => {
+  for (const relativePath of relativePaths) {
+    try {
+      return await read(relativePath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+  throw new Error(`Missing required file. Checked: ${relativePaths.join(', ')}`);
+};
 
 const authzContext = await read('src/context/AuthzContext.tsx');
-const dashboardPanel = await read('src/features/PersonalizedDashboardPanel.tsx');
+const dashboardPanel = await readFirstExisting([
+  'src/features/PersonalizedDashboardPanel.tsx',
+  'src/features/PersonalizedDashboardPanel/index.tsx',
+]);
 const dashboardCards = await read('src/lib/dashboardCards.ts');
 const profilePanel = await read('src/components/auth/ProfilePanel.tsx');
 const serverRoutes = await read('src/server/routes.ts');
