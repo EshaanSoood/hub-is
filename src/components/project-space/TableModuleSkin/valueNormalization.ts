@@ -201,7 +201,7 @@ export const buildFieldUpdateValue = (field: TableField | null, value: string): 
       return null;
     }
     const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : value;
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   return value;
