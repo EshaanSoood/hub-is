@@ -1,6 +1,8 @@
-import type { BottomToolbarProps } from './types';
-
-type ToolbarBreadcrumbProps = Pick<BottomToolbarProps, 'isOnHubHome' | 'navigate' | 'breadcrumb'>;
+interface ToolbarBreadcrumbProps {
+  isOnHubHome: boolean;
+  navigate: (to: string) => void;
+  breadcrumb: string[];
+}
 
 export const ToolbarBreadcrumb = ({ isOnHubHome, navigate, breadcrumb }: ToolbarBreadcrumbProps) => (
   <div className="mr-sm flex min-w-0 items-center gap-xs">

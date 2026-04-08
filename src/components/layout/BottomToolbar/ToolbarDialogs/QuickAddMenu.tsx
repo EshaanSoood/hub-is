@@ -1,9 +1,9 @@
 import { Icon } from '../../../primitives';
 import { QUICK_ADD_OPTIONS } from '../../appShellUtils';
-import type { BottomToolbarProps } from '../types';
+import type { UseToolbarQuickAddResult } from '../hooks/useToolbarQuickAdd';
 
 type QuickAddMenuProps = Pick<
-  BottomToolbarProps,
+  UseToolbarQuickAddResult,
   | 'quickAddItemRefs'
   | 'quickAddActiveIndex'
   | 'setQuickAddActiveIndex'

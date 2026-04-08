@@ -1,11 +1,22 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthz } from '../../../context/AuthzContext';
+import { useProjects } from '../../../context/ProjectsContext';
+import { usePersonalCalendarRuntime } from '../../../hooks/usePersonalCalendarRuntime';
+import { useRemindersRuntime } from '../../../hooks/useRemindersRuntime';
+import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
+import { createReminder, updateReminder, type CreateReminderPayload } from '../../../services/hub/reminders';
+import { buildBreadcrumb, tomorrowAtNineIso } from '../appShellUtils';
 import { CalendarDialog } from './ToolbarDialogs/CalendarDialog';
 import { QuickAddDialogs } from './ToolbarDialogs/QuickAddDialogs';
 import { RemindersDialog } from './ToolbarDialogs/RemindersDialog';
 import { TasksDialog } from './ToolbarDialogs/TasksDialog';
 import { ToolbarBreadcrumb } from './ToolbarBreadcrumb';
+import { useGlobalInteractionEffects } from './hooks/useGlobalInteractionEffects';
+import { useToolbarCapture } from './hooks/useToolbarCapture';
 import { useToolbarNotifications } from './hooks/useToolbarNotifications';
 import { useToolbarProfile } from './hooks/useToolbarProfile';
+import { useToolbarQuickAdd } from './hooks/useToolbarQuickAdd';
 import { useToolbarQuickNav } from './hooks/useToolbarQuickNav';
 import { useToolbarSearch } from './hooks/useToolbarSearch';
 import { ToolbarNav } from './ToolbarNav';
@@ -14,7 +25,12 @@ import { ToolbarProfile } from './ToolbarProfile';
 import { ToolbarQuickAdd } from './ToolbarQuickAdd';
 import { ToolbarSearch } from './ToolbarSearch';
 import { ToolbarThoughtPile } from './ToolbarThoughtPile';
-import type { BottomToolbarProps } from './types';
+import type {
+  BottomToolbarProps,
+  CloseNotificationsOptions,
+  CloseProfileOptions,
+  CloseQuickNavOptions,
+} from './types';
 
 export type {
   BottomToolbarProps,
@@ -24,68 +40,136 @@ export type {
   CloseQuickNavOptions,
 } from './types';
 
-export const BottomToolbar = (props: BottomToolbarProps) => {
-  const {
-    onSearchCloseAvailable,
-    onNotificationsCloseAvailable,
-    onQuickNavCloseAvailable,
-    onQuickNavPanelCloseAvailable,
-    onQuickNavPanelOpenAvailable,
-    onProfileCloseAvailable,
-  } = props;
+export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { sessionSummary, calendarFeedUrl, canGlobal, accessToken, signOut } = useAuthz();
+  const { projects, upsertProject } = useProjects();
+
+  const searchCloseRef = useRef<() => void>(() => {});
+  const notificationsCloseRef = useRef<(options?: CloseNotificationsOptions) => void>(() => {});
+  const quickNavCloseRef = useRef<(options?: CloseQuickNavOptions) => void>(() => {});
+  const quickNavPanelCloseRef = useRef<() => void>(() => {});
+  const profileCloseRef = useRef<(options?: CloseProfileOptions) => void>(() => {});
+
+  const closeToolbarSearch = useCallback(() => {
+    searchCloseRef.current();
+  }, []);
+
+  const closeToolbarNotifications = useCallback((options?: CloseNotificationsOptions) => {
+    notificationsCloseRef.current(options);
+  }, []);
+
+  const closeToolbarQuickNav = useCallback((options?: CloseQuickNavOptions) => {
+    quickNavCloseRef.current(options);
+  }, []);
+
+  const closeToolbarQuickNavPanel = useCallback(() => {
+    quickNavPanelCloseRef.current();
+  }, []);
+
+  const closeToolbarProfile = useCallback((options?: CloseProfileOptions) => {
+    profileCloseRef.current(options);
+  }, []);
+
+  const isOnHubHome = location.pathname === '/projects';
+  const currentProjectId = useMemo(() => {
+    const match = location.pathname.match(/^\/projects\/([^/]+)/);
+    if (!match || location.pathname === '/projects') {
+      return null;
+    }
+    return decodeURIComponent(match[1]);
+  }, [location.pathname]);
+  const breadcrumb = useMemo(
+    () => buildBreadcrumb(location.pathname, projects.map((project) => ({ id: project.id, name: project.name }))),
+    [location.pathname, projects],
+  );
+
+  const capture = useToolbarCapture({
+    accessToken,
+    projects,
+    currentProjectId,
+    setCaptureAnnouncement,
+  });
+
+  const quickAdd = useToolbarQuickAdd({
+    accessToken,
+    projects,
+    currentProjectId,
+    captureHomeData: capture.captureHomeData,
+    preferredCaptureProjectId: capture.preferredCaptureProjectId,
+    refreshCaptureData: capture.refreshCaptureData,
+    closeCapturePanel: capture.closeCapturePanel,
+    closeQuickNav: closeToolbarQuickNav,
+    closeQuickNavPanel: closeToolbarQuickNavPanel,
+    closeProfile: closeToolbarProfile,
+    closeSearch: closeToolbarSearch,
+    closeNotifications: closeToolbarNotifications,
+    captureOpen: capture.captureOpen,
+    navigate,
+    upsertProject,
+  });
 
   const profile = useToolbarProfile({
-    sessionSummary: props.sessionSummary,
-    calendarFeedUrl: props.calendarFeedUrl,
-    navigate: props.navigate,
-    signOut: props.signOut,
-    contextMenuOpen: props.contextMenuOpen,
-    captureOpen: props.captureOpen,
-    quickAddDialog: props.quickAddDialog,
+    sessionSummary,
+    calendarFeedUrl,
+    navigate,
+    signOut,
+    contextMenuOpen: quickAdd.contextMenuOpen,
+    captureOpen: capture.captureOpen,
+    quickAddDialog: quickAdd.quickAddDialog,
   });
 
   const quickNav = useToolbarQuickNav({
-    accessToken: props.accessToken,
-    canGlobal: props.canGlobal,
-    navigate: props.navigate,
-    projects: props.projects,
-    defaultTaskProjectId: props.defaultTaskProjectId,
+    accessToken,
+    canGlobal,
+    navigate,
+    projects,
+    defaultTaskProjectId: capture.defaultTaskProjectId,
     closeProfile: profile.closeProfile,
-    closeContextMenu: props.closeContextMenu,
-    closeCapturePanel: props.closeCapturePanel,
-    contextMenuOpen: props.contextMenuOpen,
+    closeContextMenu: quickAdd.closeContextMenu,
+    closeCapturePanel: capture.closeCapturePanel,
+    contextMenuOpen: quickAdd.contextMenuOpen,
     profileOpen: profile.profileOpen,
-    captureOpen: props.captureOpen,
-    quickAddDialog: props.quickAddDialog,
+    captureOpen: capture.captureOpen,
+    quickAddDialog: quickAdd.quickAddDialog,
   });
 
   const search = useToolbarSearch({
-    accessToken: props.accessToken,
-    navigate: props.navigate,
+    accessToken,
+    navigate,
     closeQuickNav: quickNav.closeQuickNav,
     closeQuickNavPanel: quickNav.closeQuickNavPanel,
     closeProfile: profile.closeProfile,
-    closeContextMenu: props.closeContextMenu,
-    closeCapturePanel: props.closeCapturePanel,
+    closeContextMenu: quickAdd.closeContextMenu,
+    closeCapturePanel: capture.closeCapturePanel,
   });
 
   const notifications = useToolbarNotifications({
-    accessToken: props.accessToken,
-    navigate: props.navigate,
+    accessToken,
+    navigate,
     closeSearch: search.closeSearch,
     closeQuickNav: quickNav.closeQuickNav,
     closeQuickNavPanel: quickNav.closeQuickNavPanel,
     closeProfile: profile.closeProfile,
-    closeContextMenu: props.closeContextMenu,
-    closeCapturePanel: props.closeCapturePanel,
+    closeContextMenu: quickAdd.closeContextMenu,
+    closeCapturePanel: capture.closeCapturePanel,
     quickNavOpen: quickNav.quickNavOpen,
     profileOpen: profile.profileOpen,
-    contextMenuOpen: props.contextMenuOpen,
-    captureOpen: props.captureOpen,
+    contextMenuOpen: quickAdd.contextMenuOpen,
+    captureOpen: capture.captureOpen,
     toolbarDialog: quickNav.toolbarDialog,
-    quickAddDialog: props.quickAddDialog,
+    quickAddDialog: quickAdd.quickAddDialog,
     searchOpen: search.searchOpen,
   });
+
+  useEffect(() => {
+    searchCloseRef.current = search.closeSearch;
+    notificationsCloseRef.current = notifications.closeNotifications;
+    quickNavCloseRef.current = quickNav.closeQuickNav;
+    quickNavPanelCloseRef.current = quickNav.closeQuickNavPanel;
+    profileCloseRef.current = profile.closeProfile;
+  }, [notifications.closeNotifications, profile.closeProfile, quickNav.closeQuickNav, quickNav.closeQuickNavPanel, search.closeSearch]);
 
   const openQuickNavPanel = useCallback((panel: 'calendar' | 'tasks' | 'reminders') => {
     search.closeSearch();
@@ -93,29 +177,97 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
     quickNav.openQuickNavPanel(panel);
   }, [notifications, quickNav, search]);
 
-  useEffect(() => {
-    onSearchCloseAvailable?.(search.closeSearch);
-  }, [onSearchCloseAvailable, search.closeSearch]);
+  const closeContextMenu = quickAdd.closeContextMenu;
+  const closeQuickNavPanel = quickNav.closeQuickNavPanel;
 
-  useEffect(() => {
-    onNotificationsCloseAvailable?.(notifications.closeNotifications);
-  }, [notifications.closeNotifications, onNotificationsCloseAvailable]);
+  const onQuickCapture = useCallback(() => {
+    if (capture.captureOpen && !capture.captureIntent) {
+      capture.closeCapturePanel();
+      return;
+    }
 
-  useEffect(() => {
-    onQuickNavCloseAvailable?.(quickNav.closeQuickNav);
-  }, [onQuickNavCloseAvailable, quickNav.closeQuickNav]);
+    closeToolbarSearch();
+    closeToolbarNotifications({ restoreFocus: false });
+    closeToolbarQuickNav({ restoreFocus: false });
+    closeToolbarQuickNavPanel();
+    closeToolbarProfile({ restoreFocus: false });
+    closeContextMenu({ restoreFocus: false });
+    capture.openCapturePanel(null, capture.captureTriggerRef.current);
+  }, [
+    capture,
+    closeToolbarNotifications,
+    closeToolbarProfile,
+    closeToolbarQuickNav,
+    closeToolbarQuickNavPanel,
+    closeToolbarSearch,
+    closeContextMenu,
+  ]);
 
-  useEffect(() => {
-    onQuickNavPanelCloseAvailable?.(quickNav.closeQuickNavPanel);
-  }, [onQuickNavPanelCloseAvailable, quickNav.closeQuickNavPanel]);
+  useGlobalInteractionEffects({
+    closeCapturePanel: capture.closeCapturePanel,
+    closeQuickNav: quickNav.closeQuickNav,
+    closeQuickNavPanel: quickNav.closeQuickNavPanel,
+    openQuickNavPanel,
+    closeProfile: profile.closeProfile,
+    closeSearch: search.closeSearch,
+    closeNotifications: notifications.closeNotifications,
+    closeContextMenu: quickAdd.closeContextMenu,
+    contextMenuOpen: quickAdd.contextMenuOpen,
+    contextMenuRef: quickAdd.contextMenuRef,
+    quickAddDialog: quickAdd.quickAddDialog,
+  });
 
-  useEffect(() => {
-    onQuickNavPanelOpenAvailable?.(openQuickNavPanel);
-  }, [onQuickNavPanelOpenAvailable, openQuickNavPanel]);
+  const {
+    calendarEvents: personalCalendarEvents,
+    calendarLoading: personalCalendarLoading,
+    calendarError: personalCalendarError,
+    calendarMode: personalCalendarMode,
+    setCalendarMode: setPersonalCalendarMode,
+    refreshCalendar: refreshPersonalCalendar,
+  } = usePersonalCalendarRuntime(accessToken ?? null, {
+    autoload: true,
+    subscribeToHomeRefresh: true,
+  });
 
-  useEffect(() => {
-    onProfileCloseAvailable?.(profile.closeProfile);
-  }, [onProfileCloseAvailable, profile.closeProfile]);
+  const remindersRuntime = useRemindersRuntime(accessToken ?? null, {
+    autoload: true,
+    subscribeToHomeRefresh: true,
+    subscribeToLive: true,
+  });
+  const refreshReminders = remindersRuntime.refresh;
+
+  const onOpenCalendarRecordFromDialog = useCallback((recordId: string) => {
+    const event = personalCalendarEvents.find((entry) => entry.record_id === recordId);
+    const targetProjectId = event?.project_id || currentProjectId || capture.captureHomeData.personalProjectId;
+    if (!targetProjectId) {
+      return;
+    }
+    closeQuickNavPanel();
+    navigate(`/projects/${encodeURIComponent(targetProjectId)}/work?record_id=${encodeURIComponent(recordId)}`);
+  }, [capture.captureHomeData.personalProjectId, closeQuickNavPanel, currentProjectId, navigate, personalCalendarEvents]);
+
+  const toolbarCalendarCreateProjectId =
+    capture.captureHomeData.personalProjectId
+    || projects.find((project) => project.isPersonal)?.id
+    || null;
+
+  const onCreateReminderFromModule = useCallback(async (payload: CreateReminderPayload) => {
+    if (!accessToken) {
+      throw new Error('An authenticated session is required.');
+    }
+    await createReminder(accessToken, payload);
+    requestHubHomeRefresh();
+    await refreshReminders();
+  }, [accessToken, refreshReminders]);
+
+  const onSnoozeReminderFromModule = useCallback(async (reminderId: string) => {
+    if (!accessToken) {
+      throw new Error('An authenticated session is required.');
+    }
+    await updateReminder(accessToken, reminderId, { remind_at: tomorrowAtNineIso() });
+    requestHubHomeRefresh();
+    await refreshReminders();
+  }, [accessToken, refreshReminders]);
 
   return (
     <footer aria-label="App toolbar">
@@ -124,9 +276,9 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
         className="relative flex h-12 shrink-0 items-center gap-sm border-t border-border-muted bg-surface-elevated px-md"
       >
         <ToolbarBreadcrumb
-          isOnHubHome={props.isOnHubHome}
-          navigate={props.navigate}
-          breadcrumb={props.breadcrumb}
+          isOnHubHome={isOnHubHome}
+          navigate={navigate}
+          breadcrumb={breadcrumb}
         />
 
         <ToolbarNav
@@ -140,9 +292,9 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
           closeSearch={search.closeSearch}
           closeProfile={profile.closeProfile}
           closeNotifications={notifications.closeNotifications}
-          closeContextMenu={props.closeContextMenu}
+          closeContextMenu={quickAdd.closeContextMenu}
           closeQuickNavPanel={quickNav.closeQuickNavPanel}
-          closeCapturePanel={props.closeCapturePanel}
+          closeCapturePanel={capture.closeCapturePanel}
           quickNavInputRef={quickNav.quickNavInputRef}
           quickNavQuery={quickNav.quickNavQuery}
           setQuickNavQuery={quickNav.setQuickNavQuery}
@@ -162,8 +314,8 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
           closeQuickNavPanel={quickNav.closeQuickNavPanel}
           closeProfile={profile.closeProfile}
           closeNotifications={notifications.closeNotifications}
-          closeContextMenu={props.closeContextMenu}
-          closeCapturePanel={props.closeCapturePanel}
+          closeContextMenu={quickAdd.closeContextMenu}
+          closeCapturePanel={capture.closeCapturePanel}
           searchOpen={search.searchOpen}
           searchLoading={search.searchLoading}
           normalizedSearchActiveIndex={search.normalizedSearchActiveIndex}
@@ -174,48 +326,48 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
         />
 
         <ToolbarQuickAdd
-          contextMenuRef={props.contextMenuRef}
-          contextMenuTriggerRef={props.contextMenuTriggerRef}
-          contextMenuOpen={props.contextMenuOpen}
-          toggleQuickAddMenu={props.toggleQuickAddMenu}
-          quickAddItemRefs={props.quickAddItemRefs}
-          quickAddActiveIndex={props.quickAddActiveIndex}
-          setQuickAddActiveIndex={props.setQuickAddActiveIndex}
-          onQuickAddMenuItemKeyDown={props.onQuickAddMenuItemKeyDown}
-          onSelectQuickAddOption={props.onSelectQuickAddOption}
+          contextMenuRef={quickAdd.contextMenuRef}
+          contextMenuTriggerRef={quickAdd.contextMenuTriggerRef}
+          contextMenuOpen={quickAdd.contextMenuOpen}
+          toggleQuickAddMenu={quickAdd.toggleQuickAddMenu}
+          quickAddItemRefs={quickAdd.quickAddItemRefs}
+          quickAddActiveIndex={quickAdd.quickAddActiveIndex}
+          setQuickAddActiveIndex={quickAdd.setQuickAddActiveIndex}
+          onQuickAddMenuItemKeyDown={quickAdd.onQuickAddMenuItemKeyDown}
+          onSelectQuickAddOption={quickAdd.onSelectQuickAddOption}
         />
 
         <ToolbarThoughtPile
-          captureOpen={props.captureOpen}
-          setCaptureOpen={props.setCaptureOpen}
-          captureTriggerRef={props.captureTriggerRef}
-          onQuickCapture={props.onQuickCapture}
-          skipCaptureFocusRestoreRef={props.skipCaptureFocusRestoreRef}
-          captureRestoreTargetRef={props.captureRestoreTargetRef}
-          accessToken={props.accessToken}
-          projects={props.projects}
-          captureHomeData={props.captureHomeData}
-          captureLoading={props.captureLoading}
-          refreshCaptureData={props.refreshCaptureData}
-          preferredCaptureProjectId={props.preferredCaptureProjectId}
-          captureIntent={props.captureIntent}
-          captureActivationKey={props.captureActivationKey}
-          closeCapturePanel={props.closeCapturePanel}
+          captureOpen={capture.captureOpen}
+          setCaptureOpen={capture.setCaptureOpen}
+          captureTriggerRef={capture.captureTriggerRef}
+          onQuickCapture={onQuickCapture}
+          skipCaptureFocusRestoreRef={capture.skipCaptureFocusRestoreRef}
+          captureRestoreTargetRef={capture.captureRestoreTargetRef}
+          accessToken={accessToken}
+          projects={projects}
+          captureHomeData={capture.captureHomeData}
+          captureLoading={capture.captureLoading}
+          refreshCaptureData={capture.refreshCaptureData}
+          preferredCaptureProjectId={capture.preferredCaptureProjectId}
+          captureIntent={capture.captureIntent}
+          captureActivationKey={capture.captureActivationKey}
+          closeCapturePanel={capture.closeCapturePanel}
         />
 
         <CalendarDialog
           toolbarDialog={quickNav.toolbarDialog}
           closeQuickNavPanel={quickNav.closeQuickNavPanel}
           quickNavTriggerRef={quickNav.quickNavTriggerRef}
-          personalCalendarError={props.personalCalendarError}
-          refreshPersonalCalendar={props.refreshPersonalCalendar}
-          personalCalendarEvents={props.personalCalendarEvents}
-          personalCalendarLoading={props.personalCalendarLoading}
-          personalCalendarMode={props.personalCalendarMode}
-          setPersonalCalendarMode={props.setPersonalCalendarMode}
-          onOpenCalendarRecordFromDialog={props.onOpenCalendarRecordFromDialog}
-          accessToken={props.accessToken}
-          toolbarCalendarCreateProjectId={props.toolbarCalendarCreateProjectId}
+          personalCalendarError={personalCalendarError}
+          refreshPersonalCalendar={refreshPersonalCalendar}
+          personalCalendarEvents={personalCalendarEvents}
+          personalCalendarLoading={personalCalendarLoading}
+          personalCalendarMode={personalCalendarMode}
+          setPersonalCalendarMode={setPersonalCalendarMode}
+          onOpenCalendarRecordFromDialog={onOpenCalendarRecordFromDialog}
+          accessToken={accessToken}
+          toolbarCalendarCreateProjectId={toolbarCalendarCreateProjectId}
         />
 
         <TasksDialog
@@ -233,48 +385,48 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
           toolbarDialog={quickNav.toolbarDialog}
           closeQuickNavPanel={quickNav.closeQuickNavPanel}
           quickNavTriggerRef={quickNav.quickNavTriggerRef}
-          remindersRuntime={props.remindersRuntime}
-          onSnoozeReminderFromModule={props.onSnoozeReminderFromModule}
-          onCreateReminderFromModule={props.onCreateReminderFromModule}
+          remindersRuntime={remindersRuntime}
+          onSnoozeReminderFromModule={onSnoozeReminderFromModule}
+          onCreateReminderFromModule={onCreateReminderFromModule}
         />
 
         <QuickAddDialogs
-          quickAddDialog={props.quickAddDialog}
-          closeQuickAddDialog={props.closeQuickAddDialog}
-          refreshCaptureData={props.refreshCaptureData}
-          accessToken={props.accessToken}
-          quickAddProjectId={props.quickAddProjectId}
-          selectedTaskProjectMembers={props.selectedTaskProjectMembers}
-          contextMenuTriggerRef={props.contextMenuTriggerRef}
-          quickAddProjectOptions={props.quickAddProjectOptions}
-          taskTitleInputRef={props.taskTitleInputRef}
-          setQuickAddProjectId={props.setQuickAddProjectId}
-          loadTaskProjectMembers={props.loadTaskProjectMembers}
-          onCreateQuickAddEvent={props.onCreateQuickAddEvent}
-          eventTitle={props.eventTitle}
-          setEventTitle={props.setEventTitle}
-          eventStartAt={props.eventStartAt}
-          setEventStartAt={props.setEventStartAt}
-          eventEndAt={props.eventEndAt}
-          setEventEndAt={props.setEventEndAt}
-          eventSubmitting={props.eventSubmitting}
-          eventError={props.eventError}
-          eventTitleInputRef={props.eventTitleInputRef}
-          reminderDraft={props.reminderDraft}
-          setReminderDraft={props.setReminderDraft}
-          reminderPreview={props.reminderPreview}
-          onCreateQuickAddReminder={props.onCreateQuickAddReminder}
-          reminderSubmitting={props.reminderSubmitting}
-          reminderError={props.reminderError}
-          setReminderError={props.setReminderError}
-          reminderInputRef={props.reminderInputRef}
-          personalReminderProjectLabel={props.personalReminderProjectLabel}
-          projectDialogName={props.projectDialogName}
-          setProjectDialogName={props.setProjectDialogName}
-          onCreateQuickAddProject={props.onCreateQuickAddProject}
-          projectDialogSubmitting={props.projectDialogSubmitting}
-          projectDialogError={props.projectDialogError}
-          projectNameInputRef={props.projectNameInputRef}
+          quickAddDialog={quickAdd.quickAddDialog}
+          closeQuickAddDialog={quickAdd.closeQuickAddDialog}
+          refreshCaptureData={capture.refreshCaptureData}
+          accessToken={accessToken}
+          quickAddProjectId={quickAdd.quickAddProjectId}
+          selectedTaskProjectMembers={quickAdd.selectedTaskProjectMembers}
+          contextMenuTriggerRef={quickAdd.contextMenuTriggerRef}
+          quickAddProjectOptions={quickAdd.quickAddProjectOptions}
+          taskTitleInputRef={quickAdd.taskTitleInputRef}
+          setQuickAddProjectId={quickAdd.setQuickAddProjectId}
+          loadTaskProjectMembers={quickAdd.loadTaskProjectMembers}
+          onCreateQuickAddEvent={quickAdd.onCreateQuickAddEvent}
+          eventTitle={quickAdd.eventTitle}
+          setEventTitle={quickAdd.setEventTitle}
+          eventStartAt={quickAdd.eventStartAt}
+          setEventStartAt={quickAdd.setEventStartAt}
+          eventEndAt={quickAdd.eventEndAt}
+          setEventEndAt={quickAdd.setEventEndAt}
+          eventSubmitting={quickAdd.eventSubmitting}
+          eventError={quickAdd.eventError}
+          eventTitleInputRef={quickAdd.eventTitleInputRef}
+          reminderDraft={quickAdd.reminderDraft}
+          setReminderDraft={quickAdd.setReminderDraft}
+          reminderPreview={quickAdd.reminderPreview}
+          onCreateQuickAddReminder={quickAdd.onCreateQuickAddReminder}
+          reminderSubmitting={quickAdd.reminderSubmitting}
+          reminderError={quickAdd.reminderError}
+          setReminderError={quickAdd.setReminderError}
+          reminderInputRef={quickAdd.reminderInputRef}
+          personalReminderProjectLabel={quickAdd.personalReminderProjectLabel}
+          projectDialogName={quickAdd.projectDialogName}
+          setProjectDialogName={quickAdd.setProjectDialogName}
+          onCreateQuickAddProject={quickAdd.onCreateQuickAddProject}
+          projectDialogSubmitting={quickAdd.projectDialogSubmitting}
+          projectDialogError={quickAdd.projectDialogError}
+          projectNameInputRef={quickAdd.projectNameInputRef}
         />
 
         <ToolbarNotifications
@@ -288,7 +440,7 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
           setNotifFilter={notifications.setNotifFilter}
           notifProjectFilter={notifications.notifProjectFilter}
           setNotifProjectFilter={notifications.setNotifProjectFilter}
-          projects={props.projects}
+          projects={projects}
           onNavigateNotification={notifications.onNavigateNotification}
           notificationsPanelRef={notifications.notificationsPanelRef}
         />
@@ -301,12 +453,12 @@ export const BottomToolbar = (props: BottomToolbarProps) => {
           closeSearch={search.closeSearch}
           closeQuickNav={quickNav.closeQuickNav}
           closeQuickNavPanel={quickNav.closeQuickNavPanel}
-          closeContextMenu={props.closeContextMenu}
-          closeCapturePanel={props.closeCapturePanel}
+          closeContextMenu={quickAdd.closeContextMenu}
+          closeCapturePanel={capture.closeCapturePanel}
           profileOpen={profile.profileOpen}
           avatarBroken={profile.avatarBroken}
           avatarUrl={profile.avatarUrl}
-          sessionSummary={props.sessionSummary}
+          sessionSummary={sessionSummary}
           setAvatarBroken={profile.setAvatarBroken}
           profileMenuRef={profile.profileMenuRef}
           hasCalendarFeedUrl={profile.hasCalendarFeedUrl}

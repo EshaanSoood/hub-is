@@ -1,13 +1,12 @@
 import { QuickCapturePanel } from '../../../../features/QuickCapture';
+import type { ProjectRecord } from '../../../../types/domain';
 import { PopoverContent } from '../../../primitives';
-import type { BottomToolbarProps } from '../types';
+import type { UseToolbarCaptureResult } from '../hooks/useToolbarCapture';
 
 type ThoughtPilePanelProps = Pick<
-  BottomToolbarProps,
+  UseToolbarCaptureResult,
   | 'skipCaptureFocusRestoreRef'
   | 'captureRestoreTargetRef'
-  | 'accessToken'
-  | 'projects'
   | 'captureHomeData'
   | 'captureLoading'
   | 'refreshCaptureData'
@@ -15,7 +14,10 @@ type ThoughtPilePanelProps = Pick<
   | 'captureIntent'
   | 'captureActivationKey'
   | 'closeCapturePanel'
->;
+> & {
+  accessToken: string | null | undefined;
+  projects: ProjectRecord[];
+};
 
 export const ThoughtPilePanel = ({
   skipCaptureFocusRestoreRef,

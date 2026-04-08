@@ -1,16 +1,16 @@
 import { useEffect, type MutableRefObject } from 'react';
-import type { CloseNotificationsOptions } from '../../BottomToolbar';
+import type { CloseContextMenuOptions, CloseNotificationsOptions, CloseProfileOptions, CloseQuickNavOptions } from '../types';
 import { isTextInputElement, type QuickAddDialog, type ToolbarDialog } from '../../appShellUtils';
 
 interface UseGlobalInteractionEffectsArgs {
   closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
-  closeQuickNav: () => void;
+  closeQuickNav: (options?: CloseQuickNavOptions) => void;
   closeQuickNavPanel: () => void;
   openQuickNavPanel: (panel: Exclude<ToolbarDialog, null>) => void;
-  closeProfile: () => void;
+  closeProfile: (options?: CloseProfileOptions) => void;
   closeSearch: () => void;
   closeNotifications: (options?: CloseNotificationsOptions) => void;
-  closeContextMenu: (options?: { restoreFocus?: boolean }) => void;
+  closeContextMenu: (options?: CloseContextMenuOptions) => void;
   contextMenuOpen: boolean;
   contextMenuRef: MutableRefObject<HTMLDivElement | null>;
   quickAddDialog: QuickAddDialog;

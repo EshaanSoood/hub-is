@@ -1,9 +1,9 @@
 import { Icon } from '../../primitives';
+import type { UseToolbarQuickAddResult } from './hooks/useToolbarQuickAdd';
 import { QuickAddMenu } from './ToolbarDialogs/QuickAddMenu';
-import type { BottomToolbarProps } from './types';
 
 type ToolbarQuickAddProps = Pick<
-  BottomToolbarProps,
+  UseToolbarQuickAddResult,
   | 'contextMenuRef'
   | 'contextMenuTriggerRef'
   | 'contextMenuOpen'

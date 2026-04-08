@@ -1,8 +1,8 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { ProjectRecord } from '../../../types/domain';
 import { Icon } from '../../primitives';
 import type { NotificationFilter, ToolbarNotification } from '../appShellUtils';
 import { NotificationsPanelDialog } from './ToolbarDialogs/NotificationsPanelDialog';
-import type { BottomToolbarProps } from './types';
 
 interface ToolbarNotificationsProps {
   notificationsRef: MutableRefObject<HTMLDivElement | null>;
@@ -15,7 +15,7 @@ interface ToolbarNotificationsProps {
   setNotifFilter: Dispatch<SetStateAction<NotificationFilter>>;
   notifProjectFilter: string | null;
   setNotifProjectFilter: Dispatch<SetStateAction<string | null>>;
-  projects: BottomToolbarProps['projects'];
+  projects: ProjectRecord[];
   onNavigateNotification: (notification: ToolbarNotification) => Promise<void>;
   notificationsPanelRef: MutableRefObject<HTMLDivElement | null>;
 }

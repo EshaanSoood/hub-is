@@ -5,7 +5,7 @@ import type {
   CloseNotificationsOptions,
   CloseProfileOptions,
   CloseQuickNavOptions,
-} from '../../BottomToolbar';
+} from '../types';
 import type { QuickAddDialog } from '../../appShellUtils';
 
 interface UseQuickAddProjectRequestEffectArgs {
