@@ -1,5 +1,6 @@
 import { QuickCapturePanel } from '../../../../features/QuickCapture';
 import type { ProjectRecord } from '../../../../types/domain';
+import { AnimatedSurface } from '../../../motion/AnimatedSurface';
 import { PopoverContent } from '../../../primitives';
 import type { UseToolbarCaptureResult } from '../hooks/useToolbarCapture';
 
@@ -33,12 +34,10 @@ export const ThoughtPilePanel = ({
   closeCapturePanel,
 }: ThoughtPilePanelProps) => (
   <PopoverContent
+    asChild
     side="top"
     align="center"
     sideOffset={8}
-    role="dialog"
-    aria-label="Thought Pile"
-    className="z-[120] w-[min(92vw,440px)] rounded-panel border border-border-muted bg-surface-elevated p-4 shadow-soft"
     onOpenAutoFocus={(event) => {
       event.preventDefault();
     }}
@@ -54,6 +53,12 @@ export const ThoughtPilePanel = ({
       }
     }}
   >
+    <AnimatedSurface
+      role="dialog"
+      ariaLabel="Thought Pile"
+      transformOrigin="bottom center"
+      className="z-[120] w-[min(92vw,440px)] rounded-panel border border-border-muted bg-surface-elevated p-4 shadow-soft"
+    >
     <QuickCapturePanel
       accessToken={accessToken ?? null}
       projects={projects}
@@ -66,5 +71,6 @@ export const ThoughtPilePanel = ({
       activationKey={captureActivationKey}
       onRequestClose={(options) => closeCapturePanel(options)}
     />
+    </AnimatedSurface>
   </PopoverContent>
 );

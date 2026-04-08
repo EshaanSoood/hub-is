@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
 import { AccessibleDialog, Icon, IconButton } from '../primitives';
@@ -24,8 +25,10 @@ import {
   TasksModule,
   TimelineModule,
 } from './modules';
+import { dialogLayoutIds } from '../../styles/motion';
 
 interface WorkViewProps {
+  layoutId?: string;
   pane: HubPaneSummary | null;
   accessDenied?: boolean;
   canEditPane?: boolean;
@@ -196,6 +199,7 @@ const EMPTY_REMINDERS_CONTRACT: RemindersModuleContract = {
 const DESKTOP_MEDIA_QUERY = '(min-width: 768px)';
 
 const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
+  const prefersReducedMotion = useReducedMotion();
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches : false,
@@ -228,22 +232,26 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
     return <div>{moduleGrid}</div>;
   }
 
+  const mobileModulesLayoutId = !prefersReducedMotion ? dialogLayoutIds.mobileModules : undefined;
+
   return (
     <>
-      <button
+      <motion.button
+        layoutId={mobileModulesLayoutId}
         ref={triggerRef}
         type="button"
         onClick={() => setOverlayOpen(true)}
         className="sticky top-0 z-20 w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-center text-sm font-semibold text-text md:hidden"
       >
         Modules
-      </button>
+      </motion.button>
 
       {overlayOpen ? (
         <AccessibleDialog
           open={overlayOpen}
           onClose={() => setOverlayOpen(false)}
           triggerRef={triggerRef}
+          layoutId={mobileModulesLayoutId}
           title="Modules"
           description="Manage and browse pane modules"
           hideHeader
@@ -263,6 +271,7 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
 };
 
 export const WorkView = ({
+  layoutId,
   pane,
   accessDenied = false,
   canEditPane = true,
@@ -284,14 +293,18 @@ export const WorkView = ({
   const [moduleError, setModuleError] = useState<string | null>(null);
 
   if (accessDenied) {
-    return <AccessDeniedView message="Project membership is required for this workspace." />;
+    return (
+      <motion.section layoutId={layoutId} className="space-y-4">
+        <AccessDeniedView message="Project membership is required for this workspace." />
+      </motion.section>
+    );
   }
 
   if (!pane) {
     return (
-      <section className="rounded-panel border border-subtle bg-elevated p-4">
+      <motion.section layoutId={layoutId} className="rounded-panel border border-subtle bg-elevated p-4">
         <p className="text-sm text-muted">No pane selected.</p>
-      </section>
+      </motion.section>
     );
   }
 
@@ -482,7 +495,7 @@ export const WorkView = ({
   );
 
   return (
-    <section className="space-y-4">
+    <motion.section layoutId={layoutId} className="space-y-4">
       <header className="rounded-panel border border-subtle bg-elevated p-4">
         <h2 className="heading-3 text-primary">{pane.name}</h2>
         {moduleError ? <p className="mt-2 text-xs text-danger">{moduleError}</p> : null}
@@ -505,6 +518,6 @@ export const WorkView = ({
           <p className="mt-1 text-sm text-muted">Doc ID: {pane.doc_id || 'missing'}</p>
         </section>
       ) : null}
-    </section>
+    </motion.section>
   );
 };

@@ -16,6 +16,7 @@ interface TaskCreateDialogProps {
   showRememberedParentNote?: boolean;
   onSwitchToStandaloneTask?: () => void;
   triggerRef?: RefObject<HTMLElement | null>;
+  layoutId?: string;
   projectOptions?: Array<{ value: string; label: string }>;
   selectedProjectId?: string;
   onSelectedProjectIdChange?: (projectId: string) => void;
@@ -81,6 +82,7 @@ export const TaskCreateDialog = ({
   showRememberedParentNote = false,
   onSwitchToStandaloneTask,
   triggerRef,
+  layoutId,
   projectOptions,
   selectedProjectId = '',
   onSelectedProjectIdChange,
@@ -263,6 +265,7 @@ export const TaskCreateDialog = ({
       description="Create a task from natural language or structured fields."
       onClose={handleClose}
       triggerRef={triggerRef}
+      layoutId={layoutId}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
         {projectOptions && onSelectedProjectIdChange ? (

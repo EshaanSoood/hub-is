@@ -1,4 +1,5 @@
 import { requestHubHomeRefresh } from '../../../../lib/hubHomeRefresh';
+import { dialogLayoutIds } from '../../../../styles/motion';
 import { TaskCreateDialog } from '../../../project-space/TaskCreateDialog';
 import { QuickAddEventDialog, QuickAddProjectDialog, QuickAddReminderDialog } from '../../QuickAddDialogs';
 import type { UseToolbarQuickAddResult } from '../hooks/useToolbarQuickAdd';
@@ -100,6 +101,7 @@ export const QuickAddDialogs = ({
     <TaskCreateDialog
       open={quickAddDialog === 'task'}
       onClose={closeQuickAddDialog}
+      layoutId={dialogLayoutIds.taskCreate}
       onCreated={() => {
         void refreshCaptureData();
         requestHubHomeRefresh();
@@ -124,6 +126,7 @@ export const QuickAddDialogs = ({
     <QuickAddEventDialog
       open={quickAddDialog === 'event'}
       onClose={closeQuickAddDialog}
+      layoutId={dialogLayoutIds.quickAddEvent}
       triggerRef={contextMenuTriggerRef}
       projectOptions={quickAddProjectOptions}
       selectedProjectId={quickAddProjectId}
@@ -150,6 +153,7 @@ export const QuickAddDialogs = ({
     <QuickAddReminderDialog
       open={quickAddDialog === 'reminder'}
       onClose={closeQuickAddDialog}
+      layoutId={dialogLayoutIds.quickAddReminder}
       triggerRef={contextMenuTriggerRef}
       draft={reminderDraft}
       onDraftChange={setReminderDraft}
@@ -165,6 +169,7 @@ export const QuickAddDialogs = ({
     <QuickAddProjectDialog
       open={quickAddDialog === 'project'}
       onClose={closeQuickAddDialog}
+      layoutId={dialogLayoutIds.quickAddProject}
       triggerRef={contextMenuTriggerRef}
       name={projectDialogName}
       onNameChange={setProjectDialogName}

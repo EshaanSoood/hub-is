@@ -1,5 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { cn } from '../../../lib/cn';
+import { AnimatedSurface } from '../../motion/AnimatedSurface';
 import { CalendarDayView } from '../CalendarDayView';
 import { CalendarWeekView } from '../CalendarWeekView';
 import { ModuleEmptyState } from '../ModuleFeedback';
@@ -333,13 +335,15 @@ export const CalendarLargeView = ({
                       </button>
                     ) : null}
                   </div>
-                  {overflowDay === cell.iso ? (
-                    <div
-                      ref={setOverflowPopoverNode}
-                      role="dialog"
-                      aria-label="All events this day"
-                      className="absolute left-0 top-full z-20 mt-1 w-56 rounded-control border border-border-muted bg-surface-elevated p-2 shadow-soft"
-                    >
+                  <AnimatePresence>
+                    {overflowDay === cell.iso ? (
+                      <AnimatedSurface
+                        ref={setOverflowPopoverNode}
+                        role="dialog"
+                        ariaLabel="All events this day"
+                        transformOrigin="top left"
+                        className="absolute left-0 top-full z-20 mt-1 w-56 rounded-control border border-border-muted bg-surface-elevated p-2 shadow-soft"
+                      >
                       <ul className="space-y-1">
                         {dayEvents.map((event) => {
                           const timeLabel = formatEventTime(event.event_state.start_dt);
@@ -361,8 +365,9 @@ export const CalendarLargeView = ({
                           );
                         })}
                       </ul>
-                    </div>
-                  ) : null}
+                      </AnimatedSurface>
+                    ) : null}
+                  </AnimatePresence>
                 </div>
               );
             })}

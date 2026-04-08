@@ -1,6 +1,8 @@
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { archiveRecord, updateRecord } from '../../services/hub/records';
 import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
+import { dialogLayoutIds } from '../../styles/motion';
 import { Button, Card, InlineNotice, TabButton, Tabs, TabsList } from '../primitives';
 import { CalendarTab, type CalendarEvent, type CalendarLensOption, type CalendarTimeView } from './CalendarTab';
 import { FilterBarOverlay, type FilterGroup } from './FilterBarOverlay';
@@ -77,6 +79,7 @@ export const OverviewView = ({
   onInviteSubmit,
   onDismissInviteFeedback,
 }: OverviewViewProps) => {
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const [titleDraft, setTitleDraft] = useState(projectName);
   const inviteInputId = useId();
   const inviteDescriptionId = useId();
@@ -413,7 +416,8 @@ export const OverviewView = ({
           <div id="overview-panel-tasks" role="tabpanel" aria-labelledby="overview-view-tasks" className="mt-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <button
+                <motion.button
+                  layoutId={!prefersReducedMotion && taskCreateOpen ? dialogLayoutIds.taskCreate : undefined}
                   type="button"
                   className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
                   onClick={() => {
@@ -430,7 +434,7 @@ export const OverviewView = ({
                   aria-label="New Task"
                 >
                   New Task
-                </button>
+                </motion.button>
               </div>
               {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}
               {tasksError ? (
@@ -469,6 +473,7 @@ export const OverviewView = ({
 
               <TaskCreateDialog
                 open={taskCreateOpen}
+                layoutId={dialogLayoutIds.taskCreate}
                 onClose={() => {
                   setTaskCreateOpen(false);
                   setSubtaskParent(null);

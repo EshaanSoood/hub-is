@@ -1,6 +1,10 @@
+import { Icon } from '../../primitives';
+
+import { withHubMotionState } from '../../../lib/hubMotionState';
+
 interface ToolbarBreadcrumbProps {
   isOnMyHub: boolean;
-  navigate: (to: string) => void;
+  navigate: (to: string, options?: { replace?: boolean; state?: unknown }) => void;
   breadcrumb: string[];
 }
 
@@ -9,13 +13,15 @@ export const ToolbarBreadcrumb = ({ isOnMyHub, navigate, breadcrumb }: ToolbarBr
     {!isOnMyHub ? (
       <button
         type="button"
-        onClick={() => navigate('/projects')}
+        onClick={() => navigate('/projects', {
+          state: withHubMotionState(undefined, {
+            hubAnnouncement: 'Back to myHub',
+          }),
+        })}
         aria-label="Go home"
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M2 7l6-5 6 5v7H10v-4H6v4H2V7z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
-        </svg>
+        <Icon name="back" className="h-4 w-4" />
       </button>
     ) : null}
 

@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { ProjectRecord } from '../../../types/domain';
 import { Icon } from '../../primitives';
@@ -56,17 +57,19 @@ export const ToolbarNotifications = ({
       ) : null}
     </button>
 
-    {notificationsOpen ? (
-      <NotificationsPanelDialog
-        notifications={notifications}
-        notifFilter={notifFilter}
-        setNotifFilter={setNotifFilter}
-        notifProjectFilter={notifProjectFilter}
-        setNotifProjectFilter={setNotifProjectFilter}
-        projects={projects}
-        onNavigateNotification={onNavigateNotification}
-        notificationsPanelRef={notificationsPanelRef}
-      />
-    ) : null}
+    <AnimatePresence>
+      {notificationsOpen ? (
+        <NotificationsPanelDialog
+          notifications={notifications}
+          notifFilter={notifFilter}
+          setNotifFilter={setNotifFilter}
+          notifProjectFilter={notifProjectFilter}
+          setNotifProjectFilter={setNotifProjectFilter}
+          projects={projects}
+          onNavigateNotification={onNavigateNotification}
+          notificationsPanelRef={notificationsPanelRef}
+        />
+      ) : null}
+    </AnimatePresence>
   </div>
 );

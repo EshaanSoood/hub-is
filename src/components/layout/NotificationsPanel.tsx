@@ -1,6 +1,7 @@
 import { type FC, type RefObject, useMemo } from 'react';
 import { relativeTimeLabel, type NotificationFilter, type ToolbarNotification } from './appShellUtils';
 import { cn } from '../../lib/cn';
+import { AnimatedSurface } from '../motion/AnimatedSurface';
 
 interface NotificationsPanelProps {
   notifications: ToolbarNotification[];
@@ -36,10 +37,11 @@ export const NotificationsPanel: FC<NotificationsPanelProps> = ({
   }, [filter, notifications, projectFilter]);
 
   return (
-    <div
+    <AnimatedSurface
       ref={panelRef}
       role="dialog"
-      aria-label="Notifications"
+      ariaLabel="Notifications"
+      transformOrigin="bottom right"
       className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-[360px] rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
     >
       <div className="flex items-center gap-sm border-b border-border-muted px-md py-sm">
@@ -132,6 +134,6 @@ export const NotificationsPanel: FC<NotificationsPanelProps> = ({
           ))
         )}
       </ul>
-    </div>
+    </AnimatedSurface>
   );
 };

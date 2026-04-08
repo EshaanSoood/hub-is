@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion';
 import type { MutableRefObject } from 'react';
 import { Icon } from '../../primitives';
 import { ProfileMenuDialog } from './ToolbarDialogs/ProfileMenuDialog';
@@ -86,19 +87,21 @@ export const ToolbarProfile = ({
       )}
     </button>
 
-    {profileOpen ? (
-      <ProfileMenuDialog
-        sessionSummary={sessionSummary}
-        avatarUrl={avatarUrl}
-        avatarBroken={avatarBroken}
-        profileMenuRef={profileMenuRef}
-        hasCalendarFeedUrl={hasCalendarFeedUrl}
-        onCopyCalendarLink={onCopyCalendarLink}
-        installMenuLabel={installMenuLabel}
-        onInstallHubOs={onInstallHubOs}
-        onNavigateProjectsFromProfileMenu={onNavigateProjectsFromProfileMenu}
-        onLogoutFromProfileMenu={onLogoutFromProfileMenu}
-      />
-    ) : null}
+    <AnimatePresence>
+      {profileOpen ? (
+        <ProfileMenuDialog
+          sessionSummary={sessionSummary}
+          avatarUrl={avatarUrl}
+          avatarBroken={avatarBroken}
+          profileMenuRef={profileMenuRef}
+          hasCalendarFeedUrl={hasCalendarFeedUrl}
+          onCopyCalendarLink={onCopyCalendarLink}
+          installMenuLabel={installMenuLabel}
+          onInstallHubOs={onInstallHubOs}
+          onNavigateProjectsFromProfileMenu={onNavigateProjectsFromProfileMenu}
+          onLogoutFromProfileMenu={onLogoutFromProfileMenu}
+        />
+      ) : null}
+    </AnimatePresence>
   </div>
 );

@@ -53,6 +53,9 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
   const quickNavCloseRef = useRef<(options?: CloseQuickNavOptions) => void>(() => {});
   const quickNavPanelCloseRef = useRef<() => void>(() => {});
   const profileCloseRef = useRef<(options?: CloseProfileOptions) => void>(() => {});
+  const calendarPanelTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const tasksPanelTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const remindersPanelTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const closeToolbarSearch = useCallback(() => {
     searchCloseRef.current();
@@ -335,6 +338,9 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
         <ToolbarPanels
           toolbarDialog={quickNav.toolbarDialog}
           openQuickNavPanel={openQuickNavPanel}
+          calendarTriggerRef={calendarPanelTriggerRef}
+          tasksTriggerRef={tasksPanelTriggerRef}
+          remindersTriggerRef={remindersPanelTriggerRef}
         />
 
         <ToolbarSearch
@@ -369,6 +375,7 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
           setQuickAddActiveIndex={quickAdd.setQuickAddActiveIndex}
           onQuickAddMenuItemKeyDown={quickAdd.onQuickAddMenuItemKeyDown}
           onSelectQuickAddOption={quickAdd.onSelectQuickAddOption}
+          quickAddDialog={quickAdd.quickAddDialog}
         />
 
         <ToolbarThoughtPile
@@ -392,7 +399,7 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
         <CalendarDialog
           toolbarDialog={quickNav.toolbarDialog}
           closeQuickNavPanel={quickNav.closeQuickNavPanel}
-          quickNavTriggerRef={quickNav.quickNavTriggerRef}
+          triggerRef={calendarPanelTriggerRef}
           personalCalendarError={personalCalendarError}
           refreshPersonalCalendar={refreshPersonalCalendar}
           personalCalendarEvents={personalCalendarEvents}
@@ -407,7 +414,7 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
         <TasksDialog
           toolbarDialog={quickNav.toolbarDialog}
           closeQuickNavPanel={quickNav.closeQuickNavPanel}
-          quickNavTriggerRef={quickNav.quickNavTriggerRef}
+          triggerRef={tasksPanelTriggerRef}
           quickNavTasksError={quickNav.quickNavTasksError}
           refreshQuickNavTasks={quickNav.refreshQuickNavTasks}
           adaptedTasks={quickNav.adaptedTasks}
@@ -418,7 +425,7 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
         <RemindersDialog
           toolbarDialog={quickNav.toolbarDialog}
           closeQuickNavPanel={quickNav.closeQuickNavPanel}
-          quickNavTriggerRef={quickNav.quickNavTriggerRef}
+          triggerRef={remindersPanelTriggerRef}
           remindersRuntime={remindersRuntime}
           onSnoozeReminderFromModule={onSnoozeReminderFromModule}
           onCreateReminderFromModule={onCreateReminderFromModule}

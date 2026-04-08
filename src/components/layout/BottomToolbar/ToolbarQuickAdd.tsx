@@ -1,4 +1,6 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Icon } from '../../primitives';
+import { dialogLayoutIds } from '../../../styles/motion';
 import type { UseToolbarQuickAddResult } from './hooks/useToolbarQuickAdd';
 import { QuickAddMenu } from './ToolbarDialogs/QuickAddMenu';
 
@@ -13,6 +15,7 @@ type ToolbarQuickAddProps = Pick<
   | 'setQuickAddActiveIndex'
   | 'onQuickAddMenuItemKeyDown'
   | 'onSelectQuickAddOption'
+  | 'quickAddDialog'
 >;
 
 export const ToolbarQuickAdd = ({
@@ -25,9 +28,23 @@ export const ToolbarQuickAdd = ({
   setQuickAddActiveIndex,
   onQuickAddMenuItemKeyDown,
   onSelectQuickAddOption,
-}: ToolbarQuickAddProps) => (
-  <div className="relative" ref={contextMenuRef}>
-    <button
+  quickAddDialog,
+}: ToolbarQuickAddProps) => {
+  const prefersReducedMotion = useReducedMotion() ?? false;
+  const quickAddDialogLayoutId = quickAddDialog === 'task'
+    ? dialogLayoutIds.taskCreate
+    : quickAddDialog === 'event'
+      ? dialogLayoutIds.quickAddEvent
+      : quickAddDialog === 'reminder'
+        ? dialogLayoutIds.quickAddReminder
+        : quickAddDialog === 'project'
+          ? dialogLayoutIds.quickAddProject
+          : undefined;
+
+  return (
+    <div className="relative" ref={contextMenuRef}>
+      <motion.button
+        layoutId={!prefersReducedMotion ? quickAddDialogLayoutId : undefined}
       ref={contextMenuTriggerRef}
       type="button"
       aria-label="Open quick add menu"
@@ -37,16 +54,19 @@ export const ToolbarQuickAdd = ({
       className="flex h-7 w-7 items-center justify-center rounded-control border border-border-muted text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
     >
       <Icon name="plus" className="text-[14px]" />
-    </button>
+      </motion.button>
 
-    {contextMenuOpen ? (
-      <QuickAddMenu
-        quickAddItemRefs={quickAddItemRefs}
-        quickAddActiveIndex={quickAddActiveIndex}
-        setQuickAddActiveIndex={setQuickAddActiveIndex}
-        onQuickAddMenuItemKeyDown={onQuickAddMenuItemKeyDown}
-        onSelectQuickAddOption={onSelectQuickAddOption}
-      />
-    ) : null}
-  </div>
-);
+      <AnimatePresence>
+        {contextMenuOpen ? (
+          <QuickAddMenu
+            quickAddItemRefs={quickAddItemRefs}
+            quickAddActiveIndex={quickAddActiveIndex}
+            setQuickAddActiveIndex={setQuickAddActiveIndex}
+            onQuickAddMenuItemKeyDown={onQuickAddMenuItemKeyDown}
+            onSelectQuickAddOption={onSelectQuickAddOption}
+          />
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+};

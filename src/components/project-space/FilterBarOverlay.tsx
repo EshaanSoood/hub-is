@@ -1,5 +1,7 @@
+import { AnimatePresence } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { cn } from '../../lib/cn';
+import { AnimatedSurface } from '../motion/AnimatedSurface';
 import type { PriorityLevel } from './designTokens';
 import { getPriorityClasses } from '../../lib/priorityStyles';
 
@@ -63,8 +65,9 @@ export const FilterBarOverlay = ({ groups, activeFilterIds, onToggleFilter, onCl
         ) : null}
       </div>
 
-      {expanded ? (
-        <>
+      <AnimatePresence>
+        {expanded ? (
+          <>
           <button
             type="button"
             aria-label="Close filters"
@@ -72,10 +75,11 @@ export const FilterBarOverlay = ({ groups, activeFilterIds, onToggleFilter, onCl
             className="fixed inset-0 z-40"
           />
 
-          <div
+          <AnimatedSurface
             id="filter-overlay-panel"
             role="region"
-            aria-label="Filters"
+            ariaLabel="Filters"
+            transformOrigin="top left"
             className="absolute left-0 top-[calc(100%+4px)] z-50 w-full max-w-xl space-y-4 rounded-panel border border-subtle bg-elevated p-4 shadow-soft"
           >
             <div className="flex items-center justify-between">
@@ -127,9 +131,10 @@ export const FilterBarOverlay = ({ groups, activeFilterIds, onToggleFilter, onCl
                 </div>
               </section>
             ))}
-          </div>
-        </>
-      ) : null}
+          </AnimatedSurface>
+          </>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 };
