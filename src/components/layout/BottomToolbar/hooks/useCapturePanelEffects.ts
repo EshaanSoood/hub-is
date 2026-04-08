@@ -2,7 +2,7 @@ import { useEffect, type Dispatch, type SetStateAction } from 'react';
 
 interface UseCapturePanelEffectsArgs {
   captureOpen: boolean;
-  refreshCaptureData: () => Promise<void>;
+  refreshCaptureData: () => Promise<unknown>;
   setCaptureAnnouncement: Dispatch<SetStateAction<string>>;
 }
 

@@ -224,7 +224,10 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
     calendarMode: personalCalendarMode,
     setCalendarMode: setPersonalCalendarMode,
     refreshCalendar: refreshPersonalCalendar,
-  } = usePersonalCalendarRuntime(accessToken ?? null, { autoload: true });
+  } = usePersonalCalendarRuntime(accessToken ?? null, {
+    autoload: true,
+    subscribeToHomeRefresh: true,
+  });
 
   const remindersRuntime = useRemindersRuntime(accessToken ?? null, {
     autoload: true,

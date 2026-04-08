@@ -40,7 +40,17 @@ export const ToolbarThoughtPile = ({
   captureActivationKey,
   closeCapturePanel,
 }: ToolbarThoughtPileProps) => (
-  <Popover open={captureOpen} onOpenChange={setCaptureOpen} modal>
+  <Popover
+    open={captureOpen}
+    onOpenChange={(open) => {
+      if (open) {
+        setCaptureOpen(true);
+        return;
+      }
+      closeCapturePanel();
+    }}
+    modal
+  >
     <PopoverAnchor asChild>
       <button
         ref={captureTriggerRef}

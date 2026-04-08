@@ -44,7 +44,7 @@ interface UseToolbarQuickAddArgs {
   currentProjectId: string | null;
   captureHomeData: ToolbarCaptureHomeData;
   preferredCaptureProjectId: string | null;
-  refreshCaptureData: () => Promise<void>;
+  refreshCaptureData: () => Promise<ToolbarCaptureHomeData>;
   closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
   closeQuickNav: (options?: CloseQuickNavOptions) => void;
   closeQuickNavPanel: () => void;
@@ -157,6 +157,11 @@ export const useToolbarQuickAdd = ({
   const contextMenuWasOpenRef = useRef(false);
   const skipContextMenuFocusRestoreRef = useRef(false);
 
+  useEffect(() => {
+    quickAddTaskMetadataRequestRef.current += 1;
+    setTaskProjectMembersById({});
+  }, [accessToken, currentProjectId, projects]);
+
   const quickAddProjectOptions = useMemo(
     () =>
       projects.map((project) => ({
@@ -192,6 +197,23 @@ export const useToolbarQuickAdd = ({
     }
     return projects[0]?.id || '';
   }, [captureHomeData.personalProjectId, currentProjectId, preferredCaptureProjectId, projects]);
+
+  const resolveDefaultQuickAddProjectIdFromCapture = useCallback((nextCaptureHomeData: ToolbarCaptureHomeData): string => {
+    if (preferredCaptureProjectId && projects.some((project) => project.id === preferredCaptureProjectId)) {
+      return preferredCaptureProjectId;
+    }
+    if (currentProjectId && projects.some((project) => project.id === currentProjectId)) {
+      return currentProjectId;
+    }
+    if (nextCaptureHomeData.personalProjectId && projects.some((project) => project.id === nextCaptureHomeData.personalProjectId)) {
+      return nextCaptureHomeData.personalProjectId;
+    }
+    const personalProjectId = projects.find((project) => project.isPersonal)?.id;
+    if (personalProjectId) {
+      return personalProjectId;
+    }
+    return projects[0]?.id || '';
+  }, [currentProjectId, preferredCaptureProjectId, projects]);
 
   const loadTaskProjectMembers = useCallback(async (projectId: string) => {
     if (!accessToken || !projectId) {
@@ -234,8 +256,8 @@ export const useToolbarQuickAdd = ({
 
       let defaultProjectId = resolveDefaultQuickAddProjectId();
       if (!defaultProjectId && accessToken) {
-        await refreshCaptureData();
-        defaultProjectId = resolveDefaultQuickAddProjectId();
+        const nextCaptureHomeData = await refreshCaptureData();
+        defaultProjectId = resolveDefaultQuickAddProjectIdFromCapture(nextCaptureHomeData);
       }
       setQuickAddProjectId(defaultProjectId);
 
@@ -255,7 +277,7 @@ export const useToolbarQuickAdd = ({
 
       setQuickAddDialog(dialogType);
     },
-    [accessToken, clearReminderDraft, loadTaskProjectMembers, refreshCaptureData, resolveDefaultQuickAddProjectId],
+    [accessToken, clearReminderDraft, loadTaskProjectMembers, refreshCaptureData, resolveDefaultQuickAddProjectId, resolveDefaultQuickAddProjectIdFromCapture],
   );
 
   const closeContextMenu = useCallback((options?: CloseContextMenuOptions) => {

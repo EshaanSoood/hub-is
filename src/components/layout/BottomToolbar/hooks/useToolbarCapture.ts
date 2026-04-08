@@ -1,11 +1,7 @@
-import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import { getHubHome } from '../../../../services/hub/records';
+import type { ProjectRecord } from '../../../../types/domain';
 import { useCapturePanelEffects } from './useCapturePanelEffects';
-
-interface ToolbarProject {
-  id: string;
-  isPersonal?: boolean;
-}
 
 interface CaptureHomeData {
   personalProjectId: string | null;
@@ -16,7 +12,7 @@ export type ToolbarCaptureHomeData = CaptureHomeData;
 
 interface UseToolbarCaptureArgs {
   accessToken: string | null | undefined;
-  projects: ToolbarProject[];
+  projects: ProjectRecord[];
   currentProjectId: string | null;
   setCaptureAnnouncement: Dispatch<SetStateAction<string>>;
 }
@@ -33,11 +29,16 @@ export interface UseToolbarCaptureResult {
   defaultTaskProjectId: string;
   captureIntent: string | null;
   captureActivationKey: number;
-  refreshCaptureData: () => Promise<void>;
+  refreshCaptureData: () => Promise<ToolbarCaptureHomeData>;
   closeCapturePanel: (options?: { restoreFocus?: boolean }) => void;
   openCapturePanel: (intent: string | null, restoreTarget?: HTMLElement | null) => void;
   onQuickCapture: () => void;
 }
+
+const EMPTY_CAPTURE_HOME_DATA: ToolbarCaptureHomeData = {
+  personalProjectId: null,
+  captures: [],
+};
 
 export const useToolbarCapture = ({
   accessToken,
@@ -48,16 +49,19 @@ export const useToolbarCapture = ({
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureIntent, setCaptureIntent] = useState<string | null>(null);
   const [captureActivationKey, setCaptureActivationKey] = useState(0);
-  const [captureHomeData, setCaptureHomeData] = useState<CaptureHomeData>({
-    personalProjectId: null,
-    captures: [],
-  });
+  const [captureHomeData, setCaptureHomeData] = useState<CaptureHomeData>(EMPTY_CAPTURE_HOME_DATA);
   const [captureLoading, setCaptureLoading] = useState(false);
 
   const captureTriggerRef = useRef<HTMLButtonElement | null>(null);
   const captureRestoreTargetRef = useRef<HTMLElement | null>(null);
   const skipCaptureFocusRestoreRef = useRef(false);
   const captureRequestVersionRef = useRef(0);
+  const captureHomeDataRef = useRef<ToolbarCaptureHomeData>(EMPTY_CAPTURE_HOME_DATA);
+
+  const setCaptureHomeDataWithRef = useCallback((next: ToolbarCaptureHomeData) => {
+    captureHomeDataRef.current = next;
+    setCaptureHomeData(next);
+  }, []);
 
   const preferredCaptureProjectId = useMemo(() => {
     if (!currentProjectId) {
@@ -81,12 +85,18 @@ export const useToolbarCapture = ({
     return projects[0]?.id || '';
   }, [captureHomeData.personalProjectId, currentProjectId, projects]);
 
-  const refreshCaptureData = useCallback(async () => {
+  useEffect(() => {
+    captureRequestVersionRef.current += 1;
+    setCaptureHomeDataWithRef(EMPTY_CAPTURE_HOME_DATA);
+    setCaptureLoading(false);
+  }, [accessToken, setCaptureHomeDataWithRef]);
+
+  const refreshCaptureData = useCallback(async (): Promise<ToolbarCaptureHomeData> => {
     if (!accessToken) {
       captureRequestVersionRef.current += 1;
-      setCaptureHomeData({ personalProjectId: null, captures: [] });
+      setCaptureHomeDataWithRef(EMPTY_CAPTURE_HOME_DATA);
       setCaptureLoading(false);
-      return;
+      return EMPTY_CAPTURE_HOME_DATA;
     }
     const requestVersion = captureRequestVersionRef.current + 1;
     captureRequestVersionRef.current = requestVersion;
@@ -99,23 +109,26 @@ export const useToolbarCapture = ({
         notifications_limit: 1,
       });
       if (captureRequestVersionRef.current !== requestVersion) {
-        return;
+        return captureHomeDataRef.current;
       }
-      setCaptureHomeData({
+      const nextHomeData: ToolbarCaptureHomeData = {
         personalProjectId: next.personal_project_id,
         captures: next.captures,
-      });
+      };
+      setCaptureHomeDataWithRef(nextHomeData);
+      return nextHomeData;
     } catch {
       if (captureRequestVersionRef.current !== requestVersion) {
-        return;
+        return captureHomeDataRef.current;
       }
       // Best-effort toolbar data.
+      return captureHomeDataRef.current;
     } finally {
       if (captureRequestVersionRef.current === requestVersion) {
         setCaptureLoading(false);
       }
     }
-  }, [accessToken]);
+  }, [accessToken, setCaptureHomeDataWithRef]);
 
   const closeCapturePanel = useCallback((options?: { restoreFocus?: boolean }) => {
     skipCaptureFocusRestoreRef.current = options?.restoreFocus === false;

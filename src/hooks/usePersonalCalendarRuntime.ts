@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { subscribeHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { queryPersonalCalendar } from '../services/hub/records';
 
 interface PersonalCalendarEventSummary {
@@ -19,15 +20,25 @@ interface PersonalCalendarEventSummary {
 
 interface PersonalCalendarRuntimeOptions {
   autoload?: boolean;
+  subscribeToHomeRefresh?: boolean;
 }
 
 export const usePersonalCalendarRuntime = (accessToken: string | null, options?: PersonalCalendarRuntimeOptions) => {
   const autoload = options?.autoload ?? true;
+  const subscribeToHomeRefresh = options?.subscribeToHomeRefresh ?? true;
   const [calendarMode, setCalendarMode] = useState<'relevant' | 'all'>('relevant');
   const [calendarEvents, setCalendarEvents] = useState<PersonalCalendarEventSummary[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const latestRequestRef = useRef(0);
+  const calendarRefreshTimerRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (calendarRefreshTimerRef.current !== null) {
+      window.clearTimeout(calendarRefreshTimerRef.current);
+      calendarRefreshTimerRef.current = null;
+    }
+  }, []);
 
   const refreshCalendar = useCallback(async () => {
     if (!accessToken) {
@@ -59,12 +70,26 @@ export const usePersonalCalendarRuntime = (accessToken: string | null, options?:
     }
   }, [accessToken, calendarMode]);
 
+  const refreshCalendarWithDebounce = useCallback(() => {
+    if (calendarRefreshTimerRef.current !== null) {
+      window.clearTimeout(calendarRefreshTimerRef.current);
+    }
+    calendarRefreshTimerRef.current = window.setTimeout(() => {
+      calendarRefreshTimerRef.current = null;
+      void refreshCalendar();
+    }, 500);
+  }, [refreshCalendar]);
+
   useEffect(() => {
     if (!accessToken) {
       latestRequestRef.current += 1;
       setCalendarEvents([]);
       setCalendarLoading(false);
       setCalendarError(null);
+    }
+    if (calendarRefreshTimerRef.current !== null) {
+      window.clearTimeout(calendarRefreshTimerRef.current);
+      calendarRefreshTimerRef.current = null;
     }
   }, [accessToken]);
 
@@ -74,6 +99,15 @@ export const usePersonalCalendarRuntime = (accessToken: string | null, options?:
     }
     void refreshCalendar();
   }, [autoload, refreshCalendar]);
+
+  useEffect(() => {
+    if (!subscribeToHomeRefresh) {
+      return;
+    }
+    return subscribeHubHomeRefresh(() => {
+      refreshCalendarWithDebounce();
+    });
+  }, [refreshCalendarWithDebounce, subscribeToHomeRefresh]);
 
   return {
     calendarEvents,

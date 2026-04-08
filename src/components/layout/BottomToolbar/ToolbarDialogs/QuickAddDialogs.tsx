@@ -41,7 +41,7 @@ type QuickAddDialogsProps = Pick<
   | 'projectNameInputRef'
 > & {
   accessToken: string | null | undefined;
-  refreshCaptureData: () => Promise<void>;
+  refreshCaptureData: () => Promise<unknown>;
 };
 
 export const QuickAddDialogs = ({
