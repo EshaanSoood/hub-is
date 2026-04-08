@@ -21,7 +21,7 @@ export const TasksModule = ({ module, contract, canEditPane }: Props) => (
         sizeTier={module.size_tier || 'M'}
         tasks={contract.items}
         tasksLoading={contract.loading}
-        onCreateTask={canEditPane ? contract.onCreateTask : async () => {}}
+        onCreateTask={canEditPane ? contract.onCreateTask : undefined}
         onUpdateTaskStatus={canEditPane ? contract.onUpdateTaskStatus : undefined}
         onUpdateTaskPriority={canEditPane ? contract.onUpdateTaskPriority : undefined}
         onUpdateTaskDueDate={canEditPane ? contract.onUpdateTaskDueDate : undefined}

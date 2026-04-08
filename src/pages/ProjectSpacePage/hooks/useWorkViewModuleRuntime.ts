@@ -248,8 +248,8 @@ export const useWorkViewModuleRuntime = ({
         loading: projectTasksLoading,
         onCreateTask: async (task) => {
           if (!taskCollectionId) {
-            console.error('onCreateTask: no task collection found for this project');
-            alert('No task collection found for this project. Create a task from a pane first.');
+            console.error('onCreateTask: no task collection found for this project', { projectId });
+            setRecordsError(`No task collection found for project ${projectId}. Create a task from a pane first.`);
             return;
           }
           if (!accessToken) {
@@ -318,8 +318,8 @@ export const useWorkViewModuleRuntime = ({
       timelineContract: {
         clusters: timelineClusters,
         activeFilters: timelineFilters,
-        loading: false,
-        hasMore: false,
+        loading: false, // Timeline currently refreshes via refreshProjectData, not incremental loading.
+        hasMore: false, // Pagination is intentionally not implemented for timeline yet.
         onFilterToggle: toggleTimelineFilter,
         onLoadMore: () => {
           void refreshProjectData();

@@ -58,6 +58,9 @@ import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
 // components/project-space/TopNavTabs
 // components/project-space/OverviewView
 // components/project-space/ToolsView
+// TODO(phase8-tech-debt): Split inspector dialog and workspace-doc runtime/UI into dedicated components.
+// Targets: Dialog/DialogContent/DialogHeader/DialogTitle, FileInspectorActionBar, CommentComposer,
+// CommentRail, MentionPicker, and useWorkspaceDocRuntime-related rendering.
 
 const KanbanModuleSkin = lazy(async () => {
   const module = await import('../../components/project-space/KanbanModuleSkin');
@@ -75,7 +78,16 @@ const CollaborativeLexicalEditor = lazy(async () => {
 });
 
 export type TopLevelProjectTab = 'overview' | 'work' | 'tools';
-type OverviewView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
+type OverviewSubView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
+
+interface TimelineEvent {
+  timeline_event_id: string;
+  event_type: string;
+  primary_entity_type: string;
+  primary_entity_id: string;
+  summary_json: Record<string, unknown>;
+  created_at: string;
+}
 
 const readPlainComment = (bodyJson: Record<string, unknown>): string => {
   const text = bodyJson.text;
@@ -90,11 +102,12 @@ const readPlainComment = (bodyJson: Record<string, unknown>): string => {
 };
 
 const paneCanEditForUser = (pane: HubPaneSummary | null | undefined, userId: string): boolean => {
+  // User-level pane permissions are not enforced yet; current gating is pane.can_edit.
   void userId;
   return pane?.can_edit === true;
 };
 
-function readOverviewView(searchParams: URLSearchParams): OverviewView {
+function readOverviewView(searchParams: URLSearchParams): OverviewSubView {
   const value = searchParams.get('view');
   if (value === 'calendar' || value === 'tasks' || value === 'kanban') {
     return value;
@@ -129,11 +142,12 @@ const relationFieldTargetCollectionId = (config: Record<string, unknown>): strin
 const toBase64 = async (file: File): Promise<string> => {
   const arrayBuffer = await file.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
-  let binary = '';
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
+  const chunkSize = 8192;
+  const chunks: string[] = [];
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    chunks.push(String.fromCharCode(...bytes.subarray(index, index + chunkSize)));
   }
-  return window.btoa(binary);
+  return window.btoa(chunks.join(''));
 };
 
 const readLayoutBool = (config: Record<string, unknown> | null | undefined, key: string, fallback: boolean): boolean => {
@@ -185,33 +199,15 @@ export const ProjectSpaceWorkspace = ({
   accessToken: string;
   sessionUserId: string;
   refreshProjectData: () => Promise<void>;
-  timeline: Array<{
-    timeline_event_id: string;
-    event_type: string;
-    primary_entity_type: string;
-    primary_entity_id: string;
-    summary_json: Record<string, unknown>;
-    created_at: string;
-  }>;
-  setTimeline: React.Dispatch<
-    React.SetStateAction<
-      Array<{
-        timeline_event_id: string;
-        event_type: string;
-        primary_entity_type: string;
-        primary_entity_id: string;
-        summary_json: Record<string, unknown>;
-        created_at: string;
-      }>
-    >
-  >;
+  timeline: TimelineEvent[];
+  setTimeline: React.Dispatch<React.SetStateAction<TimelineEvent[]>>;
 }) => {
   const { paneId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [overviewView, setOverviewView] = useState<OverviewView>(() => readOverviewView(searchParams));
+  const [overviewView, setOverviewView] = useState<OverviewSubView>(() => readOverviewView(searchParams));
 
   const [creatingPaneName, setCreatingPaneName] = useState('');
   const [showCreatePaneControl, setShowCreatePaneControl] = useState(false);

@@ -76,10 +76,10 @@ export const KanbanModule = ({
             wipLimits={viewData?.wipLimits}
             onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
             onMoveRecord={(recordId, nextGroup) => {
-                if (canEditPane && selectedViewId) {
+              if (canEditPane && selectedViewId) {
                 contract.onMoveRecord(selectedViewId, recordId, nextGroup);
-                }
-              }}
+              }
+            }}
             onCreateRecord={
               createRecord && selectedViewId
                 ? (payload) => createRecord(selectedViewId, payload)

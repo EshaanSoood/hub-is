@@ -23,15 +23,19 @@ export interface ModuleInsertState {
 export const useModuleInsertState = ({
   onInsertToEditor,
 }: UseModuleInsertStateOptions = {}): ModuleInsertState => {
+  const insertEnabled = Boolean(onInsertToEditor);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [activeItemType, setActiveItemType] = useState<ModuleInsertItemType>(null);
   const [activeItemTitle, setActiveItemTitle] = useState<string | null>(null);
 
   const setActiveItem = useCallback((id: string, type: ModuleInsertItemType, title: string) => {
+    if (!insertEnabled) {
+      return;
+    }
     setActiveItemId(id);
     setActiveItemType(type);
     setActiveItemTitle(title);
-  }, []);
+  }, [insertEnabled]);
 
   const clearActiveItem = useCallback(() => {
     setActiveItemId(null);
@@ -40,7 +44,7 @@ export const useModuleInsertState = ({
   }, []);
 
   useEffect(() => {
-    if (!activeItemId) {
+    if (!insertEnabled || !activeItemId) {
       return;
     }
 
@@ -58,12 +62,12 @@ export const useModuleInsertState = ({
       document.removeEventListener('mousedown', handleDocumentPress);
       document.removeEventListener('touchstart', handleDocumentPress);
     };
-  }, [activeItemId, clearActiveItem]);
+  }, [activeItemId, clearActiveItem, insertEnabled]);
 
   return {
-    activeItemId,
-    activeItemType,
-    activeItemTitle,
+    activeItemId: insertEnabled ? activeItemId : null,
+    activeItemType: insertEnabled ? activeItemType : null,
+    activeItemTitle: insertEnabled ? activeItemTitle : null,
     setActiveItem,
     clearActiveItem,
     onInsertToEditor,

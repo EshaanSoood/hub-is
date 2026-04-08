@@ -13,7 +13,7 @@ interface TasksModuleSkinProps {
   sizeTier: 'S' | 'M' | 'L';
   tasks: TaskItem[];
   tasksLoading: boolean;
-  onCreateTask: (task: {
+  onCreateTask?: (task: {
     title: string;
     priority: string | null;
     due_at: string | null;
@@ -225,10 +225,11 @@ const TasksModuleSmall = ({
   insertState: ModuleInsertState;
 }) => {
   const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks).slice(0, 3), [tasks]);
+  const canCreateTask = !readOnly && typeof onCreateTask === 'function';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {!readOnly ? (
+      {canCreateTask ? (
         <div className="shrink-0">
           <TaskComposer tasks={tasks} onCreateTask={onCreateTask} compact />
         </div>
@@ -291,7 +292,7 @@ const TasksModuleMedium = ({
           </button>
         </div>
       ) : null}
-      {!readOnly && composerOpen ? (
+      {canCreateTask && composerOpen ? (
         <TaskComposer
           tasks={tasks}
           onCreateTask={onCreateTask}
@@ -353,6 +354,7 @@ const TasksModuleLarge = ({
   );
   const visibleLargeTaskCount = useMemo(() => countLargeTaskSections(filteredTasks), [filteredTasks]);
   const hasDefaultLargeFilters = activeUserId === 'all' && activeCategoryId === 'all';
+  const canCreateTask = !readOnly && typeof onCreateTask === 'function';
 
   const collaboratorOptions = useMemo(
     () => {
@@ -404,7 +406,7 @@ const TasksModuleLarge = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3" aria-label="Tasks module">
-      {!readOnly ? (
+      {canCreateTask ? (
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
@@ -420,7 +422,7 @@ const TasksModuleLarge = ({
         <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p>
       ) : null}
 
-      {!readOnly && composerOpen ? (
+      {canCreateTask && composerOpen ? (
         <TaskComposer
           key={composerParentTask?.id ?? 'standalone'}
           tasks={tasks}
@@ -455,7 +457,7 @@ const TasksModuleLarge = ({
           onUserChange={setActiveUserId}
           onCategoryChange={setActiveCategoryId}
           onAddSubtask={
-            readOnly
+            !canCreateTask
               ? undefined
               : (task) => {
                   if (onAddSubtask) {

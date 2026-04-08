@@ -139,14 +139,14 @@ const EMPTY_KANBAN_CONTRACT: KanbanModuleContract = {
   views: [],
   defaultViewId: null,
   dataByViewId: {},
-  onMoveRecord: () => undefined,
+  onMoveRecord: () => {},
 };
 
 const EMPTY_CALENDAR_CONTRACT: CalendarModuleContract = {
   events: [],
   loading: false,
   scope: 'relevant',
-  onScopeChange: () => undefined,
+  onScopeChange: () => {},
   onCreateEvent: undefined,
   onRescheduleEvent: undefined,
 };
@@ -154,9 +154,9 @@ const EMPTY_CALENDAR_CONTRACT: CalendarModuleContract = {
 const EMPTY_FILES_CONTRACT: FilesModuleContract = {
   paneFiles: [],
   projectFiles: [],
-  onUploadPaneFiles: () => undefined,
-  onUploadProjectFiles: () => undefined,
-  onOpenFile: () => undefined,
+  onUploadPaneFiles: () => {},
+  onUploadProjectFiles: () => {},
+  onOpenFile: () => {},
   onInsertToEditor: undefined,
 };
 
@@ -170,10 +170,10 @@ const EMPTY_TASKS_CONTRACT: TasksModuleContract = {
   items: [],
   loading: false,
   onCreateTask: async () => {},
-  onUpdateTaskStatus: () => undefined,
-  onUpdateTaskPriority: () => undefined,
-  onUpdateTaskDueDate: () => undefined,
-  onDeleteTask: () => undefined,
+  onUpdateTaskStatus: () => {},
+  onUpdateTaskPriority: () => {},
+  onUpdateTaskDueDate: () => {},
+  onDeleteTask: () => {},
   onInsertToEditor: undefined,
 };
 
@@ -182,17 +182,17 @@ const EMPTY_TIMELINE_CONTRACT: TimelineModuleContract = {
   activeFilters: ['task', 'event', 'milestone', 'file', 'workspace'],
   loading: false,
   hasMore: false,
-  onFilterToggle: () => undefined,
-  onLoadMore: () => undefined,
-  onItemClick: () => undefined,
+  onFilterToggle: () => {},
+  onLoadMore: () => {},
+  onItemClick: () => {},
 };
 
 const EMPTY_REMINDERS_CONTRACT: RemindersModuleContract = {
   items: [],
   loading: false,
   error: null,
-  onDismiss: async () => undefined,
-  onCreate: async () => undefined,
+  onDismiss: async () => {},
+  onCreate: async () => {},
   onInsertToEditor: undefined,
 };
 
@@ -448,7 +448,7 @@ export const WorkView = ({
     }
 
     if (module.module_type === 'reminders') {
-      return <RemindersModule module={module} contract={resolvedRemindersContract} />;
+      return <RemindersModule module={module} contract={resolvedRemindersContract} canEditPane={canEditPane} />;
     }
 
     if (module.module_type === 'quick_thoughts') {
