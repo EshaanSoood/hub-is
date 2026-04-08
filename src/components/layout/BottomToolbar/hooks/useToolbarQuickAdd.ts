@@ -11,6 +11,7 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from 'react';
+import { useCalendarNLDraft } from '../../../../hooks/useCalendarNLDraft';
 import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../../../hooks/useReminderNLDraft';
 import { requestHubHomeRefresh } from '../../../../lib/hubHomeRefresh';
 import { createEventFromNlp } from '../../../../services/hub/records';
@@ -99,6 +100,7 @@ export interface UseToolbarQuickAddResult {
   selectedTaskProjectMembers: HubProjectMember[];
   quickAddProjectOptions: Array<{ value: string; label: string }>;
   taskTitleInputRef: MutableRefObject<HTMLInputElement | null>;
+  eventNLInputRef: MutableRefObject<HTMLInputElement | null>;
   eventTitleInputRef: MutableRefObject<HTMLInputElement | null>;
   reminderInputRef: MutableRefObject<HTMLInputElement | null>;
   projectNameInputRef: MutableRefObject<HTMLInputElement | null>;
@@ -106,6 +108,12 @@ export interface UseToolbarQuickAddResult {
   onSelectQuickAddOption: (option: QuickAddOption) => void;
   onQuickAddMenuItemKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => void;
   onCreateQuickAddEvent: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  eventNLDraft: string;
+  setEventNLDraft: (nextDraft: string) => void;
+  eventNLPreview: ReturnType<typeof useCalendarNLDraft>['preview'];
+  eventNLFormPreview: ReturnType<typeof useCalendarNLDraft>['formPreview'];
+  eventNLHasMeaningfulPreview: boolean;
+  eventNLError: string | null;
   eventTitle: string;
   setEventTitle: Dispatch<SetStateAction<string>>;
   eventStartAt: string;
@@ -163,6 +171,20 @@ export const useToolbarQuickAdd = ({
   const [projectDialogError, setProjectDialogError] = useState<string | null>(null);
 
   const {
+    draft: eventNLDraft,
+    setDraft: setEventNLDraft,
+    preview: eventNLPreview,
+    formPreview: eventNLFormPreview,
+    hasMeaningfulPreview: eventNLHasMeaningfulPreview,
+    error: eventNLError,
+    clear: clearEventNLDraft,
+    lastParsedDraft: lastParsedEventNLDraft,
+  } = useCalendarNLDraft({
+    enabled: quickAddDialog === 'event',
+    parseDelayMs: 250,
+  });
+
+  const {
     draft: reminderDraft,
     setDraft: setReminderDraft,
     preview: reminderPreview,
@@ -177,6 +199,7 @@ export const useToolbarQuickAdd = ({
   const contextMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const quickAddItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const taskTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const eventNLInputRef = useRef<HTMLInputElement | null>(null);
   const eventTitleInputRef = useRef<HTMLInputElement | null>(null);
   const reminderInputRef = useRef<HTMLInputElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -184,6 +207,7 @@ export const useToolbarQuickAdd = ({
   const quickAddOpenRequestRef = useRef(0);
   const contextMenuWasOpenRef = useRef(false);
   const skipContextMenuFocusRestoreRef = useRef(false);
+  const lastAppliedEventNLDraftRef = useRef('');
 
   useEffect(() => {
     quickAddTaskMetadataRequestRef.current += 1;
@@ -292,6 +316,8 @@ export const useToolbarQuickAdd = ({
         void loadTaskProjectMembers(defaultProjectId);
       }
       if (dialogType === 'event') {
+        clearEventNLDraft();
+        lastAppliedEventNLDraftRef.current = '';
         setEventTitle('');
         setEventStartAt(toDateTimeLocalInput(nowPlusHours(1)));
         setEventEndAt(toDateTimeLocalInput(nowPlusHours(2)));
@@ -307,7 +333,15 @@ export const useToolbarQuickAdd = ({
       }
       setQuickAddDialog(dialogType);
     },
-    [accessToken, clearReminderDraft, loadTaskProjectMembers, refreshCaptureData, resolveDefaultQuickAddProjectId, resolveDefaultQuickAddProjectIdFromCapture],
+    [
+      accessToken,
+      clearEventNLDraft,
+      clearReminderDraft,
+      loadTaskProjectMembers,
+      refreshCaptureData,
+      resolveDefaultQuickAddProjectId,
+      resolveDefaultQuickAddProjectIdFromCapture,
+    ],
   );
 
   const closeContextMenu = useCallback((options?: CloseContextMenuOptions) => {
@@ -481,12 +515,36 @@ export const useToolbarQuickAdd = ({
     }
   }, [accessToken, navigate, projectDialogName, upsertProject]);
 
+  useEffect(() => {
+    if (quickAddDialog !== 'event') {
+      lastAppliedEventNLDraftRef.current = '';
+      return;
+    }
+
+    const trimmedDraft = lastParsedEventNLDraft.trim();
+    if (!trimmedDraft || lastAppliedEventNLDraftRef.current === lastParsedEventNLDraft) {
+      return;
+    }
+
+    if (eventNLFormPreview.title !== null) {
+      setEventTitle(eventNLFormPreview.title);
+    }
+    if (eventNLFormPreview.startAt !== null) {
+      setEventStartAt(eventNLFormPreview.startAt);
+    }
+    if (eventNLFormPreview.endAt !== null) {
+      setEventEndAt(eventNLFormPreview.endAt);
+    }
+    lastAppliedEventNLDraftRef.current = lastParsedEventNLDraft;
+  }, [eventNLFormPreview, lastParsedEventNLDraft, quickAddDialog]);
+
   useQuickAddEffects({
     contextMenuOpen,
     setQuickAddActiveIndex,
     quickAddItemRefs,
     quickAddDialog,
     taskTitleInputRef,
+    eventNLInputRef,
     eventTitleInputRef,
     reminderInputRef,
     projectNameInputRef,
@@ -536,6 +594,7 @@ export const useToolbarQuickAdd = ({
     selectedTaskProjectMembers,
     quickAddProjectOptions,
     taskTitleInputRef,
+    eventNLInputRef,
     eventTitleInputRef,
     reminderInputRef,
     projectNameInputRef,
@@ -543,6 +602,12 @@ export const useToolbarQuickAdd = ({
     onSelectQuickAddOption,
     onQuickAddMenuItemKeyDown,
     onCreateQuickAddEvent,
+    eventNLDraft,
+    setEventNLDraft,
+    eventNLPreview,
+    eventNLFormPreview,
+    eventNLHasMeaningfulPreview,
+    eventNLError,
     eventTitle,
     setEventTitle,
     eventStartAt,

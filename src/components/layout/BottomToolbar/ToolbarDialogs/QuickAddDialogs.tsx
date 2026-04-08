@@ -12,9 +12,16 @@ type QuickAddDialogsProps = Pick<
   | 'contextMenuTriggerRef'
   | 'quickAddProjectOptions'
   | 'taskTitleInputRef'
+  | 'eventNLInputRef'
   | 'setQuickAddProjectId'
   | 'loadTaskProjectMembers'
   | 'onCreateQuickAddEvent'
+  | 'eventNLDraft'
+  | 'setEventNLDraft'
+  | 'eventNLPreview'
+  | 'eventNLFormPreview'
+  | 'eventNLHasMeaningfulPreview'
+  | 'eventNLError'
   | 'eventTitle'
   | 'setEventTitle'
   | 'eventStartAt'
@@ -54,9 +61,16 @@ export const QuickAddDialogs = ({
   contextMenuTriggerRef,
   quickAddProjectOptions,
   taskTitleInputRef,
+  eventNLInputRef,
   setQuickAddProjectId,
   loadTaskProjectMembers,
   onCreateQuickAddEvent,
+  eventNLDraft,
+  setEventNLDraft,
+  eventNLPreview,
+  eventNLFormPreview,
+  eventNLHasMeaningfulPreview,
+  eventNLError,
   eventTitle,
   setEventTitle,
   eventStartAt,
@@ -115,6 +129,13 @@ export const QuickAddDialogs = ({
       selectedProjectId={quickAddProjectId}
       onSelectedProjectIdChange={setQuickAddProjectId}
       onSubmit={onCreateQuickAddEvent}
+      nlDraft={eventNLDraft}
+      onNlDraftChange={setEventNLDraft}
+      nlPreview={eventNLPreview}
+      nlFormPreview={eventNLFormPreview}
+      nlHasMeaningfulPreview={eventNLHasMeaningfulPreview}
+      nlError={eventNLError}
+      nlInputRef={eventNLInputRef}
       title={eventTitle}
       onTitleChange={setEventTitle}
       startAt={eventStartAt}

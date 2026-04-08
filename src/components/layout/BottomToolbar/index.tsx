@@ -433,9 +433,16 @@ export const BottomToolbar = ({ setCaptureAnnouncement }: BottomToolbarProps) =>
           contextMenuTriggerRef={quickAdd.contextMenuTriggerRef}
           quickAddProjectOptions={quickAdd.quickAddProjectOptions}
           taskTitleInputRef={quickAdd.taskTitleInputRef}
+          eventNLInputRef={quickAdd.eventNLInputRef}
           setQuickAddProjectId={quickAdd.setQuickAddProjectId}
           loadTaskProjectMembers={quickAdd.loadTaskProjectMembers}
           onCreateQuickAddEvent={quickAdd.onCreateQuickAddEvent}
+          eventNLDraft={quickAdd.eventNLDraft}
+          setEventNLDraft={quickAdd.setEventNLDraft}
+          eventNLPreview={quickAdd.eventNLPreview}
+          eventNLFormPreview={quickAdd.eventNLFormPreview}
+          eventNLHasMeaningfulPreview={quickAdd.eventNLHasMeaningfulPreview}
+          eventNLError={quickAdd.eventNLError}
           eventTitle={quickAdd.eventTitle}
           setEventTitle={quickAdd.setEventTitle}
           eventStartAt={quickAdd.eventStartAt}
