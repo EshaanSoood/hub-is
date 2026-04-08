@@ -32,6 +32,7 @@ export const usePersonalCalendarRuntime = (accessToken: string | null, options?:
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const latestRequestRef = useRef(0);
   const calendarRefreshTimerRef = useRef<number | null>(null);
+  const refreshCalendarRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => () => {
     if (calendarRefreshTimerRef.current !== null) {
@@ -70,15 +71,19 @@ export const usePersonalCalendarRuntime = (accessToken: string | null, options?:
     }
   }, [accessToken, calendarMode]);
 
+  useEffect(() => {
+    refreshCalendarRef.current = refreshCalendar;
+  }, [refreshCalendar]);
+
   const refreshCalendarWithDebounce = useCallback(() => {
     if (calendarRefreshTimerRef.current !== null) {
       window.clearTimeout(calendarRefreshTimerRef.current);
     }
     calendarRefreshTimerRef.current = window.setTimeout(() => {
       calendarRefreshTimerRef.current = null;
-      void refreshCalendar();
+      void refreshCalendarRef.current();
     }, 500);
-  }, [refreshCalendar]);
+  }, []);
 
   useEffect(() => {
     if (!accessToken) {
@@ -102,11 +107,20 @@ export const usePersonalCalendarRuntime = (accessToken: string | null, options?:
 
   useEffect(() => {
     if (!subscribeToHomeRefresh) {
+      if (calendarRefreshTimerRef.current !== null) {
+        window.clearTimeout(calendarRefreshTimerRef.current);
+        calendarRefreshTimerRef.current = null;
+      }
       return;
     }
-    return subscribeHubHomeRefresh(() => {
-      refreshCalendarWithDebounce();
-    });
+    const unsubscribe = subscribeHubHomeRefresh(refreshCalendarWithDebounce);
+    return () => {
+      unsubscribe();
+      if (calendarRefreshTimerRef.current !== null) {
+        window.clearTimeout(calendarRefreshTimerRef.current);
+        calendarRefreshTimerRef.current = null;
+      }
+    };
   }, [refreshCalendarWithDebounce, subscribeToHomeRefresh]);
 
   return {

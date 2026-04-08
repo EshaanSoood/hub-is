@@ -154,6 +154,7 @@ export const useToolbarQuickAdd = ({
   const reminderInputRef = useRef<HTMLInputElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
   const quickAddTaskMetadataRequestRef = useRef(0);
+  const quickAddOpenRequestRef = useRef(0);
   const contextMenuWasOpenRef = useRef(false);
   const skipContextMenuFocusRestoreRef = useRef(false);
 
@@ -247,6 +248,9 @@ export const useToolbarQuickAdd = ({
 
   const openQuickAddDialog = useCallback(
     async (dialogType: Exclude<QuickAddDialog, null>) => {
+      const requestVersion = quickAddOpenRequestRef.current + 1;
+      quickAddOpenRequestRef.current = requestVersion;
+
       if (dialogType === 'project') {
         setProjectDialogName('');
         setProjectDialogError(null);
@@ -257,7 +261,13 @@ export const useToolbarQuickAdd = ({
       let defaultProjectId = resolveDefaultQuickAddProjectId();
       if (!defaultProjectId && accessToken) {
         const nextCaptureHomeData = await refreshCaptureData();
+        if (quickAddOpenRequestRef.current !== requestVersion) {
+          return;
+        }
         defaultProjectId = resolveDefaultQuickAddProjectIdFromCapture(nextCaptureHomeData);
+      }
+      if (quickAddOpenRequestRef.current !== requestVersion) {
+        return;
       }
       setQuickAddProjectId(defaultProjectId);
 
@@ -275,6 +285,9 @@ export const useToolbarQuickAdd = ({
         setReminderError(null);
       }
 
+      if (quickAddOpenRequestRef.current !== requestVersion) {
+        return;
+      }
       setQuickAddDialog(dialogType);
     },
     [accessToken, clearReminderDraft, loadTaskProjectMembers, refreshCaptureData, resolveDefaultQuickAddProjectId, resolveDefaultQuickAddProjectIdFromCapture],
