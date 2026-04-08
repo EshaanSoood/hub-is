@@ -1,12 +1,18 @@
 import { useEffect } from 'react';
 import { type NavigateFunction } from 'react-router-dom';
+import { z } from 'zod';
+
+const RouteStateSchema = z.object({
+  focusNodeKey: z.string().optional(),
+}).catchall(z.unknown());
 
 const readFocusNodeKeyFromLocationState = (state: unknown): string | null => {
-  if (!state || typeof state !== 'object') {
+  const parsedState = RouteStateSchema.safeParse(state);
+  if (!parsedState.success) {
     return null;
   }
-  const focusNodeKey = (state as { focusNodeKey?: unknown }).focusNodeKey;
-  if (typeof focusNodeKey !== 'string') {
+  const focusNodeKey = parsedState.data.focusNodeKey;
+  if (!focusNodeKey) {
     return null;
   }
   const trimmed = focusNodeKey.trim();
