@@ -36,14 +36,14 @@ export type ToolbarDialog = 'calendar' | 'tasks' | 'reminders' | null;
 export type QuickAddOption = {
   key: Exclude<QuickAddDialog, null>;
   label: string;
-  iconName: 'tasks' | 'calendar' | 'reminders' | 'menu';
+  iconName: 'tasks' | 'calendar' | 'reminders' | 'project-list';
 };
 
 export type QuickNavActionItem =
   {
       id: string;
       label: string;
-      iconName?: 'menu';
+      iconName?: 'project-list';
       action: 'navigate';
       href: string;
     };
@@ -52,7 +52,7 @@ export const QUICK_ADD_OPTIONS: QuickAddOption[] = [
   { key: 'task', label: 'Task', iconName: 'tasks' },
   { key: 'event', label: 'Calendar Event', iconName: 'calendar' },
   { key: 'reminder', label: 'Reminder', iconName: 'reminders' },
-  { key: 'project', label: 'Project', iconName: 'menu' },
+  { key: 'project', label: 'Project', iconName: 'project-list' },
 ];
 
 export const relativeTimeLabel = (iso: string): string => {

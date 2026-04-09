@@ -21,7 +21,7 @@ export const ToolbarBreadcrumb = ({ isOnMyHub, navigate, breadcrumb }: ToolbarBr
         aria-label="Go home"
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       >
-        <Icon name="back" className="h-4 w-4" />
+        <Icon name="home" className="h-4 w-4" />
       </button>
     ) : null}
 

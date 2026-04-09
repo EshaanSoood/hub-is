@@ -78,7 +78,7 @@ export const ToolbarNav = ({
         background: quickNavOpen ? 'color-mix(in srgb, var(--color-primary) 12%, transparent)' : 'transparent',
       }}
     >
-      <Icon name="menu" className="text-[14px]" />
+      <Icon name="nav" className="text-[14px]" />
       Nav
     </button>
 

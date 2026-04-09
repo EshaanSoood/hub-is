@@ -115,7 +115,7 @@ export const useToolbarQuickNav = ({
     const projectItems: QuickNavActionItem[] = projects.map((project) => ({
       id: `project-${project.id}`,
       label: project.name,
-      iconName: 'menu',
+      iconName: 'project-list',
       action: 'navigate',
       href: `/projects/${encodeURIComponent(project.id)}/overview`,
     }));

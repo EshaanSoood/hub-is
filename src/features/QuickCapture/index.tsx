@@ -510,7 +510,7 @@ export const QuickCapturePanel = ({
 
   const renderAssignmentIcon = (expanded: boolean) => (
     <Icon
-      name={expanded ? 'chevron-down' : 'menu'}
+      name={expanded ? 'chevron-down' : 'more'}
       className={expanded ? 'rotate-180 text-[14px] transition-transform' : 'text-[14px]'}
     />
   );
