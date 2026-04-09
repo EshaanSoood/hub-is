@@ -38,6 +38,19 @@ const buildStorageStateForToken = (baseUrl: string, accessToken: string) => ({
   ],
 });
 
+class HubRequestError extends Error {
+  readonly requestPath: string;
+
+  readonly status: number;
+
+  constructor(requestPath: string, status: number, detail?: string) {
+    super(`Request failed for ${requestPath} (${status})${detail ? `: ${detail}` : ''}.`);
+    this.name = 'HubRequestError';
+    this.requestPath = requestPath;
+    this.status = status;
+  }
+}
+
 const hubRequest = async <T>(
   baseUrl: string,
   accessToken: string,
@@ -70,17 +83,17 @@ const hubRequest = async <T>(
     payload = null;
   }
 
-  if (!response.ok || !payload) {
+  if (!response.ok || payload === null) {
     const detail = payload && typeof payload === 'object' && 'error' in payload
       ? payload.error?.message || responseText
       : responseText;
-    throw new Error(`Request failed for ${requestPath} (${response.status})${detail ? `: ${detail}` : ''}.`);
+    throw new HubRequestError(requestPath, response.status, detail);
   }
 
   if (typeof payload === 'object' && payload !== null && 'ok' in payload) {
     if (!payload.ok || payload.data === null || payload.data === undefined) {
       const detail = payload.error?.message || responseText;
-      throw new Error(`Request failed for ${requestPath} (${response.status})${detail ? `: ${detail}` : ''}.`);
+      throw new HubRequestError(requestPath, response.status, detail);
     }
     return payload.data as T;
   }
@@ -179,7 +192,11 @@ const resolveOwnerToken = async (apiBaseUrl: string): Promise<string> => {
       await loadSessionSummary(apiBaseUrl, ownerToken);
       return ownerToken;
     } catch (error) {
-      if (!(error instanceof Error) || !error.message.includes('/api/hub/me (401)')) {
+      if (
+        !(error instanceof HubRequestError)
+        || error.requestPath !== '/api/hub/me'
+        || ![401, 403].includes(error.status)
+      ) {
         throw error;
       }
     }

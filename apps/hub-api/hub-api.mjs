@@ -1036,18 +1036,23 @@ const reassignTasksForRemovedMember = ({ projectId, removedUserId, nextOwnerUser
 const resolveMutationContextPaneId = ({ body = null, requestUrl = null }) =>
   asText(body?.mutation_context_pane_id) || asText(requestUrl?.searchParams?.get('mutation_context_pane_id'));
 
-const sourcePaneContextForRecord = (record) => {
+const sourcePaneContextForRecord = (record, cache = null) => {
   const paneId = asNullableText(record?.source_pane_id);
   if (!paneId) {
     return null;
   }
+  if (cache?.has(paneId)) {
+    return cache.get(paneId);
+  }
   const pane = paneByIdStmt.get(paneId);
   const doc = paneDocByPaneStmt.get(paneId);
-  return {
+  const context = {
     pane_id: paneId,
     pane_name: asNullableText(pane?.name),
     doc_id: asNullableText(doc?.doc_id),
   };
+  cache?.set(paneId, context);
+  return context;
 };
 
 const trackedFileRecord = (row) => {
@@ -1093,7 +1098,7 @@ const resolveProjectContentWriteGate = ({ userId, projectId, paneId = '' }) => {
   return paneGate;
 };
 
-const buildProjectTaskSummary = (record) => {
+const buildProjectTaskSummary = (record, sourcePaneContextCache = null) => {
   const project = projectByIdStmt.get(record.project_id);
   const collection = collectionByIdStmt.get(record.collection_id);
   const task = taskStateByRecordStmt.get(record.record_id);
@@ -1130,7 +1135,7 @@ const buildProjectTaskSummary = (record) => {
     })),
     origin_kind: record.source_pane_id ? 'pane' : 'project',
     source_view_id: asNullableText(record.source_view_id),
-    source_pane: sourcePaneContextForRecord(record),
+    source_pane: sourcePaneContextForRecord(record, sourcePaneContextCache),
   };
 };
 
@@ -1167,10 +1172,10 @@ const buildPersonalTaskSummaryFromRecord = (record) => {
 
 const personalProjectIdForUser = (userId) => asNullableText(personalProjectByUserStmt.get(userId, userId)?.project_id);
 
-const buildTaskSummaryForUser = (record, personalProjectId) =>
+const buildTaskSummaryForUser = (record, personalProjectId, sourcePaneContextCache = null) =>
   record.project_id === personalProjectId
     ? buildPersonalTaskSummaryFromRecord(record)
-    : buildProjectTaskSummary(record);
+    : buildProjectTaskSummary(record, sourcePaneContextCache);
 
 const taskFieldMapForCollection = (collectionId) => {
   const fields = fieldsByCollectionStmt.all(collectionId);
@@ -1394,7 +1399,7 @@ const recordDetailForUser = (record, userId) => {
   };
 };
 
-const buildHomeEventSummary = (record) => {
+const buildHomeEventSummary = (record, sourcePaneContextCache = null) => {
   const project = projectByIdStmt.get(record.project_id);
   const collection = collectionByIdStmt.get(record.collection_id);
   const event = eventStateByRecordStmt.get(record.record_id);
@@ -1420,7 +1425,7 @@ const buildHomeEventSummary = (record) => {
       role: row.role,
       added_at: row.added_at,
     })),
-    source_pane: sourcePaneContextForRecord(record),
+    source_pane: sourcePaneContextForRecord(record, sourcePaneContextCache),
   };
 };
 

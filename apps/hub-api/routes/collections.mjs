@@ -753,7 +753,8 @@ export const createCollectionRoutes = (deps) => {
     }
 
     const personalProjectId = personalProjectIdForUser(auth.user.user_id);
-    const subtasks = subtasksByParentStmt.all(recordId).map((row) => buildTaskSummaryForUser(row, personalProjectId));
+    const sourcePaneContextCache = new Map();
+    const subtasks = subtasksByParentStmt.all(recordId).map((row) => buildTaskSummaryForUser(row, personalProjectId, sourcePaneContextCache));
 
     send(response, jsonResponse(200, okEnvelope({ subtasks })));
   };

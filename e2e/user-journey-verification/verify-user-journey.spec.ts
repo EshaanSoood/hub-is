@@ -120,11 +120,25 @@ const getCalendarModuleCard = (page: Page): Locator => {
     .first();
 };
 
+const expectCalendarEventVisible = async (page: Page, calendarTitle: string): Promise<void> => {
+  const calendarModule = getCalendarModuleCard(page);
+  let calendarEventButton = calendarModule.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
+  if (!(await calendarEventButton.isVisible({ timeout: 5_000 }).catch(() => false))) {
+    const dayViewButton = calendarModule.getByRole('button', { name: /^Day$/i }).first();
+    if (await dayViewButton.isVisible().catch(() => false)) {
+      await dayViewButton.click();
+    }
+    calendarEventButton = calendarModule.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
+  }
+  await expect(calendarEventButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+};
+
 const verifyPersistenceOnPage = async (
   page: Page,
   expected: {
     tableTitle: string;
     kanbanTitle: string;
+    calendarTitle: string;
     taskTitle: string;
     reminderToken: string;
     quickThoughtToken: string;
@@ -134,6 +148,7 @@ const verifyPersistenceOnPage = async (
 ): Promise<void> => {
   await expect(page.getByText(expected.tableTitle).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await expect(page.getByText(expected.kanbanTitle).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await expectCalendarEventVisible(page, expected.calendarTitle);
   await expect(page.getByText(expected.taskTitle).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await expect(page.getByText(new RegExp(escapeRegExp(expected.reminderToken), 'i')).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await expect(page.getByText(new RegExp(escapeRegExp(expected.quickThoughtToken), 'i')).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
@@ -437,6 +452,7 @@ test.describe('User Journey Verification', () => {
     await verifyPersistenceOnPage(page, {
       tableTitle,
       kanbanTitle,
+      calendarTitle,
       taskTitle,
       reminderToken: reminderTokenA,
       quickThoughtToken,
@@ -455,6 +471,7 @@ test.describe('User Journey Verification', () => {
       await verifyPersistenceOnPage(secondPage, {
         tableTitle,
         kanbanTitle,
+        calendarTitle,
         taskTitle,
         reminderToken: reminderTokenA,
         quickThoughtToken,
@@ -471,6 +488,7 @@ test.describe('User Journey Verification', () => {
         await verifyPersistenceOnPage(thirdPage, {
           tableTitle,
           kanbanTitle,
+          calendarTitle,
           taskTitle,
           reminderToken: reminderTokenA,
           quickThoughtToken,
@@ -509,10 +527,21 @@ test.describe('User Journey Verification', () => {
     if (await page.getByRole('button', { name: /^Modules$/i }).isVisible().catch(() => false)) {
       await page.getByRole('button', { name: /^Modules$/i }).click();
       await captureCheckpoint({ page, scenario, phase: 'checkpoint', state: 'dialog_open', viewport });
+      await page.keyboard.press('Escape');
     }
 
     const now = new Date();
     const localDateInput = toDateTimeLocalInput(now);
-    await expect(localDateInput.length).toBeGreaterThan(0);
+    const tasksModule = getTasksModule(page);
+    let newTaskInput = tasksModule.getByLabel('New task title').first();
+    if (!(await newTaskInput.isVisible().catch(() => false))) {
+      await tasksModule.getByRole('button', { name: /^New Task$/i }).first().click();
+      newTaskInput = tasksModule.getByLabel('New task title').first();
+    }
+    await expect(newTaskInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    const dueDateInput = tasksModule.getByLabel('Due Date').first();
+    await expect(dueDateInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await dueDateInput.fill(localDateInput);
+    await expect(dueDateInput).toHaveValue(localDateInput);
   });
 });
