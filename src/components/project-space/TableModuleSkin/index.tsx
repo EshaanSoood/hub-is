@@ -135,34 +135,36 @@ export const TableModuleSkin = ({
       if (!field) {
         if (canEditCells) {
           return (
-              <button
-                type="button"
-                className="truncate text-left font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                onClick={() => onOpenRecord(row.recordId)}
-                onDoubleClick={() =>
-                  setEditableCell({
-                    recordId: row.recordId,
-                    fieldId: 'title',
-                    value: row.title,
-                    baseline: row.title,
-                    error: null,
-                  })
-                }
-                aria-label={`Open record ${row.title}`}
-                data-testid={`open-record-button-${row.recordId}`}
-              >
-                {row.title}
-              </button>
+            <button
+              type="button"
+              className="block w-full min-w-0 max-w-full truncate text-left font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              onClick={() => onOpenRecord(row.recordId)}
+              onDoubleClick={() =>
+                setEditableCell({
+                  recordId: row.recordId,
+                  fieldId: 'title',
+                  value: row.title,
+                  baseline: row.title,
+                  error: null,
+                })
+              }
+              aria-label={`Open record ${row.title}`}
+              data-testid={`open-record-button-${row.recordId}`}
+              title={row.title}
+            >
+              {row.title}
+            </button>
           );
         }
 
         return (
           <button
             type="button"
-            className="truncate text-left font-semibold text-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="block w-full min-w-0 max-w-full truncate text-left font-semibold text-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             onClick={() => onOpenRecord(row.recordId)}
             aria-label={`Open record ${row.title}`}
             data-testid={`open-record-button-${row.recordId}`}
+            title={row.title}
           >
             {row.title}
           </button>

@@ -28,7 +28,7 @@ export const TableCell = ({
     <div
       role="gridcell"
       className={cn(
-        'min-w-0 border-r border-border-muted/50 px-3 py-2 last:border-r-0',
+        'min-w-0 overflow-hidden border-r border-border-muted/50 px-3 py-2 last:border-r-0',
         isEditing && 'rounded-control ring-2 ring-focus-ring bg-surface-elevated',
       )}
     >

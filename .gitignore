@@ -39,3 +39,4 @@ ed.hup
 playwright-results/
 .playwright/
 .artifacts/
+artifacts/table-overflow-check/
