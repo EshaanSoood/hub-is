@@ -1,5 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Icon } from '../primitives';
+import { dialogLayoutIds } from '../../styles/motion';
 import { AddModuleDialog } from './AddModuleDialog';
 import { ModuleShell } from './ModuleShell';
 
@@ -38,8 +40,10 @@ export const ModuleGrid = ({
   readOnlyState = false,
   renderModuleBody,
 }: ModuleGridProps) => {
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const addModuleLayoutId = !prefersReducedMotion ? dialogLayoutIds.addModule : undefined;
 
   const openAddDialog = () => {
     if (disableAdd) {
@@ -63,7 +67,8 @@ export const ModuleGrid = ({
               Add a first module to shape the pane, then keep building from there.
             </p>
             {showAddControls ? (
-              <button
+              <motion.button
+                layoutId={addModuleLayoutId}
                 ref={addButtonRef}
                 type="button"
                 disabled={disableAdd}
@@ -72,7 +77,7 @@ export const ModuleGrid = ({
               >
                 <Icon name="plus" className="text-[14px]" />
                 Add a module
-              </button>
+              </motion.button>
             ) : null}
           </div>
         </div>
@@ -81,6 +86,7 @@ export const ModuleGrid = ({
           onClose={closeAddDialog}
           onAddModule={onAddModule}
           triggerRef={addButtonRef}
+          layoutId={dialogLayoutIds.addModule}
         />
       </section>
     );
@@ -91,7 +97,8 @@ export const ModuleGrid = ({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Modules</p>
         {showAddControls ? (
-          <button
+          <motion.button
+            layoutId={addModuleLayoutId}
             ref={addButtonRef}
             type="button"
             disabled={disableAdd}
@@ -100,7 +107,7 @@ export const ModuleGrid = ({
           >
             <Icon name="plus" className="text-[14px]" />
             Add module
-          </button>
+          </motion.button>
         ) : null}
       </div>
 
@@ -123,6 +130,7 @@ export const ModuleGrid = ({
         onClose={closeAddDialog}
         onAddModule={onAddModule}
         triggerRef={addButtonRef}
+        layoutId={dialogLayoutIds.addModule}
       />
     </section>
   );

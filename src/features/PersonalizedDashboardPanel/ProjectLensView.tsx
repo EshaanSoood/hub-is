@@ -1,6 +1,8 @@
+import { motion, useReducedMotion } from 'framer-motion';
 import { useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../components/primitives';
+import { withHubMotionState } from '../../lib/hubMotionState';
 import { getProjectColor } from '../../lib/getProjectColor';
 import { requestQuickAddProject } from '../../lib/quickAddProjectRequest';
 import type { ProjectRecord } from '../../types/domain';
@@ -16,6 +18,7 @@ interface ProjectLensViewProps {
 }
 
 export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensViewProps) => {
+  const prefersReducedMotion = useReducedMotion();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [hiddenSections, setHiddenSections] = useState<Record<string, boolean>>({});
   const [filterOpen, setFilterOpen] = useState(false);
@@ -84,8 +87,9 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
       {visibleSections.map((section) => {
         const isExpanded = expandedSections[section.id] ?? section.items.length > 0;
         const sectionPanelId = `project-lens-section-panel-${section.id}`;
+        const projectLayoutId = section.id !== '__inbox__' && !prefersReducedMotion ? `project-${section.id}` : undefined;
         return (
-          <section key={section.id} className="rounded-panel border border-border-muted bg-surface">
+          <motion.section key={section.id} layoutId={projectLayoutId} className="rounded-panel border border-border-muted bg-surface">
             <div className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
               <div className="flex min-w-0 items-baseline gap-2">
                 <span
@@ -95,6 +99,9 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
                 {section.id !== '__inbox__' ? (
                   <Link
                     to={`/projects/${encodeURIComponent(section.id)}/overview`}
+                    state={withHubMotionState(undefined, {
+                      hubProjectName: section.name,
+                    })}
                     aria-label={`Go To Project ${section.name}`}
                     className="inline-flex items-baseline gap-1 rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary"
                   >
@@ -128,7 +135,7 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
                 )}
               </div>
             ) : null}
-          </section>
+          </motion.section>
         );
       })}
 

@@ -1,4 +1,5 @@
 import { FormEvent, Suspense, lazy, useCallback, useMemo, useRef, useState, type ReactElement } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   type HubBacklink,
@@ -53,6 +54,9 @@ import { AutomationBuilder } from '../../components/project-space/AutomationBuil
 import { FileInspectorActionBar } from '../../components/project-space/FileInspectorActionBar';
 import { WorkView } from '../../components/project-space/WorkView';
 import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
+import type { PaneLateralSource } from '../../components/motion/hubMotion';
+import { withHubMotionState } from '../../lib/hubMotionState';
+import { dialogLayoutIds } from '../../styles/motion';
 
 // Layout contract references:
 // components/project-space/TopNavTabs
@@ -179,6 +183,22 @@ const getActiveInspectorFocusTarget = (): HTMLElement | null => {
   return resolveInspectorFocusTarget(null);
 };
 
+const readElementRect = (element: HTMLElement | null): { top: number; left: number; width: number; height: number } | null => {
+  if (!element || !element.isConnected) {
+    return null;
+  }
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) {
+    return null;
+  }
+  return {
+    top: rect.top,
+    left: rect.left,
+    width: rect.width,
+    height: rect.height,
+  };
+};
+
 export const ProjectSpaceWorkspace = ({
   activeTab,
   project,
@@ -206,6 +226,7 @@ export const ProjectSpaceWorkspace = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
 
   const [overviewView, setOverviewView] = useState<OverviewSubView>(() => readOverviewView(searchParams));
 
@@ -215,6 +236,7 @@ export const ProjectSpaceWorkspace = ({
   const [showOtherPanes, setShowOtherPanes] = useState(false);
   const [otherPaneQuery, setOtherPaneQuery] = useState('');
   const [paneSettingsOpen, setPaneSettingsOpen] = useState(false);
+  const [inspectorTriggerRect, setInspectorTriggerRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const inspectorTriggerRef = useRef<HTMLElement | null>(null);
   const paneSettingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const paneSettingsNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -450,6 +472,7 @@ export const ProjectSpaceWorkspace = ({
   const openInspectorWithFocusRestore = useCallback(
     async (recordId: string, options?: { mutationPaneId?: string | null }) => {
       inspectorTriggerRef.current = getActiveInspectorFocusTarget();
+      setInspectorTriggerRect(readElementRect(inspectorTriggerRef.current));
       await openInspector(recordId, options);
     },
     [openInspector],
@@ -490,12 +513,53 @@ export const ProjectSpaceWorkspace = ({
     setSearchParams,
   });
 
+  const buildPaneNavigationState = useCallback(({
+    paneName,
+    paneSource,
+    extraState,
+  }: {
+    paneName?: string | null;
+    paneSource?: PaneLateralSource;
+    extraState?: unknown;
+  }) => withHubMotionState(extraState, {
+    hubProjectName: project.name,
+    hubPaneName: paneName ?? undefined,
+    hubPaneSource: paneSource,
+  }), [project.name]);
+
+  const navigateToPane = useCallback(({
+    paneId: nextPaneId,
+    paneName,
+    paneSource,
+    query,
+    extraState,
+  }: {
+    paneId: string;
+    paneName?: string | null;
+    paneSource?: PaneLateralSource;
+    query?: string;
+    extraState?: unknown;
+  }) => {
+    const nextHrefBase = buildProjectWorkHref(project.project_id, nextPaneId);
+    const nextHref = query ? `${nextHrefBase}?${query}` : nextHrefBase;
+    navigate(nextHref, {
+      state: buildPaneNavigationState({
+        paneName,
+        paneSource,
+        extraState,
+      }),
+    });
+  }, [buildPaneNavigationState, navigate, project.project_id]);
+
   const onOpenBacklink = (backlink: HubBacklink) => {
     if (!backlink.source.pane_id) {
       return;
     }
-    navigate(buildProjectWorkHref(project.project_id, backlink.source.pane_id), {
-      state: backlink.source.node_key ? { focusNodeKey: backlink.source.node_key } : null,
+    navigateToPane({
+      paneId: backlink.source.pane_id,
+      paneName: backlink.source.pane_name,
+      paneSource: 'click',
+      extraState: backlink.source.node_key ? { focusNodeKey: backlink.source.node_key } : undefined,
     });
   };
 
@@ -508,13 +572,21 @@ export const ProjectSpaceWorkspace = ({
 
     setCreatingPaneName('');
     setShowCreatePaneControl(false);
-    navigate(buildProjectWorkHref(project.project_id, nextPane.pane_id));
+    navigateToPane({
+      paneId: nextPane.pane_id,
+      paneName: nextPane.name,
+      paneSource: 'click',
+    });
   };
 
   const onDeletePaneWithNavigation = async (pane: HubPaneSummary) => {
     const nextPath = await onDeletePane(pane, activePane?.pane_id ?? null);
     if (nextPath) {
-      navigate(nextPath);
+      navigate(nextPath, {
+        state: withHubMotionState(undefined, {
+          hubProjectName: project.name,
+        }),
+      });
     }
   };
 
@@ -728,6 +800,8 @@ export const ProjectSpaceWorkspace = ({
     [projectMemberList],
   );
   const overviewClients = useMemo(() => [], []);
+  const projectLayoutId = !prefersReducedMotion ? `project-${project.project_id}` : undefined;
+  const workLayoutId = !prefersReducedMotion && activePane ? `pane-${activePane.pane_id}` : undefined;
 
   const paneNavigator = (
     <div className="rounded-panel border border-subtle bg-elevated p-3">
@@ -749,7 +823,12 @@ export const ProjectSpaceWorkspace = ({
       <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Project space tabs">
         <button
           type="button"
-          onClick={() => navigate(buildProjectOverviewHref(project.project_id))}
+          onClick={() => navigate(buildProjectOverviewHref(project.project_id), {
+            state: withHubMotionState(undefined, {
+              hubProjectName: project.name,
+              ...(activeTab === 'work' ? { hubAnnouncement: `Back to ${project.name}` } : {}),
+            }),
+          })}
           className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             activeTab === 'overview' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
           }`}
@@ -761,7 +840,21 @@ export const ProjectSpaceWorkspace = ({
         </button>
         <button
           type="button"
-          onClick={() => navigate(buildProjectWorkHref(project.project_id, activePane?.pane_id))}
+          onClick={() => {
+            if (!activePane?.pane_id) {
+              navigate(buildProjectWorkHref(project.project_id), {
+                state: withHubMotionState(undefined, {
+                  hubProjectName: project.name,
+                }),
+              });
+              return;
+            }
+            navigateToPane({
+              paneId: activePane.pane_id,
+              paneName: activePane.name,
+              paneSource: 'click',
+            });
+          }}
           className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             activeTab === 'work' && !openedFromPinned ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
           }`}
@@ -778,7 +871,14 @@ export const ProjectSpaceWorkspace = ({
             <button
               key={pane.pane_id}
               type="button"
-              onClick={() => navigate(`${buildProjectWorkHref(project.project_id, pane.pane_id)}?pinned=1`)}
+              onClick={() => {
+                navigateToPane({
+                  paneId: pane.pane_id,
+                  paneName: pane.name,
+                  paneSource: 'click',
+                  query: 'pinned=1',
+                });
+              }}
               className={`cursor-pointer rounded-panel border px-3 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
                 selected
                   ? 'border-primary bg-primary text-on-primary'
@@ -799,7 +899,11 @@ export const ProjectSpaceWorkspace = ({
 
         <button
           type="button"
-          onClick={() => navigate(buildProjectToolsHref(project.project_id))}
+          onClick={() => navigate(buildProjectToolsHref(project.project_id), {
+            state: withHubMotionState(undefined, {
+              hubProjectName: project.name,
+            }),
+          })}
           className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
             activeTab === 'tools' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
           }`}
@@ -814,7 +918,7 @@ export const ProjectSpaceWorkspace = ({
   );
 
   return (
-    <div className="space-y-4">
+    <motion.div layoutId={projectLayoutId} className="space-y-4">
       {paneNavigator}
 
       {activeTab === 'overview' ? (
@@ -886,8 +990,13 @@ export const ProjectSpaceWorkspace = ({
                         shortcutNumber: index + 1,
                       }))}
                       activePaneId={activePane?.pane_id ?? null}
-                      onPaneChange={(nextPaneId) => {
-                        navigate(buildProjectWorkHref(project.project_id, nextPaneId));
+                      onPaneChange={(nextPaneId, source) => {
+                        const nextPane = orderedEditablePanes.find((pane) => pane.pane_id === nextPaneId) || null;
+                        navigateToPane({
+                          paneId: nextPaneId,
+                          paneName: nextPane?.name,
+                          paneSource: source,
+                        });
                       }}
                       onMovePane={(paneIdToMove, direction) => {
                         const pane = panes.find((entry) => entry.pane_id === paneIdToMove);
@@ -912,18 +1021,23 @@ export const ProjectSpaceWorkspace = ({
                     <Icon name="plus" className="text-[14px]" />
                   </IconButton>
                 ) : null}
-                <IconButton
-                  ref={paneSettingsTriggerRef}
-                  type="button"
-                  size="sm"
-                  variant={paneSettingsOpen ? 'secondary' : 'ghost'}
-                  aria-label="Pane settings"
-                  aria-expanded={paneSettingsOpen}
-                  onClick={() => setPaneSettingsOpen(true)}
-                  disabled={!activePane}
+                <motion.div
+                  layoutId={!prefersReducedMotion && paneSettingsOpen ? dialogLayoutIds.paneSettings : undefined}
+                  className="inline-flex"
                 >
-                  <Icon name="settings" className="text-[14px]" />
-                </IconButton>
+                  <IconButton
+                    ref={paneSettingsTriggerRef}
+                    type="button"
+                    size="sm"
+                    variant={paneSettingsOpen ? 'secondary' : 'ghost'}
+                    aria-label="Pane settings"
+                    aria-expanded={paneSettingsOpen}
+                    onClick={() => setPaneSettingsOpen(true)}
+                    disabled={!activePane}
+                  >
+                    <Icon name="settings" className="text-[14px]" />
+                  </IconButton>
+                </motion.div>
               </div>
 
               {showCreatePaneControl && canWriteProject ? (
@@ -968,7 +1082,13 @@ export const ProjectSpaceWorkspace = ({
                         <button
                           key={pane.pane_id}
                           type="button"
-                          onClick={() => navigate(buildProjectWorkHref(project.project_id, pane.pane_id))}
+                          onClick={() => {
+                            navigateToPane({
+                              paneId: pane.pane_id,
+                              paneName: pane.name,
+                              paneSource: 'click',
+                            });
+                          }}
                           className="flex w-full items-center justify-between rounded-panel border border-border-muted px-3 py-2 text-left"
                         >
                           <span className="text-sm font-medium text-text">{pane.name}</span>
@@ -989,6 +1109,9 @@ export const ProjectSpaceWorkspace = ({
             {activePane ? (
               <Dialog open={paneSettingsOpen} onOpenChange={handlePaneSettingsOpenChange}>
                 <DialogContent
+                  open={paneSettingsOpen}
+                  animated
+                  layoutId={dialogLayoutIds.paneSettings}
                   onCloseAutoFocus={(event) => {
                     event.preventDefault();
                     paneSettingsTriggerRef.current?.focus();
@@ -1228,6 +1351,7 @@ export const ProjectSpaceWorkspace = ({
               ) : null}
 
               <WorkView
+                layoutId={workLayoutId}
                 pane={activePane ?? null}
                 canEditPane={activePaneCanEdit}
                 modulesEnabled={modulesEnabled}
@@ -1295,22 +1419,43 @@ export const ProjectSpaceWorkspace = ({
                           onOpenView: (viewId) => {
                             const targetView = views.find((view) => view.view_id === viewId);
                             if (!targetView) {
-                              navigate(buildProjectWorkHref(project.project_id, activePane.pane_id));
+                              navigateToPane({
+                                paneId: activePane.pane_id,
+                                paneName: activePane.name,
+                                paneSource: 'click',
+                              });
                               return;
                             }
                             if (targetView.type === 'kanban') {
-                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`);
+                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`, {
+                                state: withHubMotionState(undefined, {
+                                  hubProjectName: project.name,
+                                }),
+                              });
                               return;
                             }
                             if (targetView.type === 'calendar') {
-                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=calendar`);
+                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=calendar`, {
+                                state: withHubMotionState(undefined, {
+                                  hubProjectName: project.name,
+                                }),
+                              });
                               return;
                             }
                             if (targetView.type === 'timeline') {
-                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=timeline`);
+                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=timeline`, {
+                                state: withHubMotionState(undefined, {
+                                  hubProjectName: project.name,
+                                }),
+                              });
                               return;
                             }
-                            navigate(`${buildProjectWorkHref(project.project_id, activePane.pane_id)}?view_id=${encodeURIComponent(viewId)}`);
+                            navigateToPane({
+                              paneId: activePane.pane_id,
+                              paneName: activePane.name,
+                              paneSource: 'click',
+                              query: `view_id=${encodeURIComponent(viewId)}`,
+                            });
                           },
                         }}
                       />
@@ -1401,7 +1546,8 @@ export const ProjectSpaceWorkspace = ({
                   <p className="text-xs text-muted">
                     Selected block: <span className="font-semibold text-primary">{selectedDocNodeKey || 'none'}</span>
                   </p>
-                  <button
+                  <motion.button
+                    layoutId={!prefersReducedMotion && docCommentComposerOpen ? dialogLayoutIds.commentOnBlock : undefined}
                     ref={commentTriggerRef}
                     type="button"
                     className="rounded-panel border border-border-muted px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-60"
@@ -1410,7 +1556,7 @@ export const ProjectSpaceWorkspace = ({
                     aria-label="Comment on block"
                   >
                     Comment on block
-                  </button>
+                  </motion.button>
                 </div>
                   </div>
 
@@ -1426,7 +1572,7 @@ export const ProjectSpaceWorkspace = ({
                   />
 
                   <Dialog open={docCommentComposerOpen} onOpenChange={onDocCommentDialogOpenChange}>
-                <DialogContent>
+                <DialogContent open={docCommentComposerOpen} animated layoutId={dialogLayoutIds.commentOnBlock}>
                   <DialogHeader>
                     <DialogTitle>Comment on block</DialogTitle>
                     <DialogDescription className="sr-only">
@@ -1526,8 +1672,25 @@ export const ProjectSpaceWorkspace = ({
         </section>
       ) : null}
 
+      {!prefersReducedMotion && inspectorTriggerRect ? (
+        <motion.div
+          layoutId={dialogLayoutIds.recordInspector}
+          aria-hidden="true"
+          className="pointer-events-none fixed z-[299] opacity-0"
+          style={{
+            top: inspectorTriggerRect.top,
+            left: inspectorTriggerRect.left,
+            width: inspectorTriggerRect.width,
+            height: inspectorTriggerRect.height,
+          }}
+        />
+      ) : null}
+
       <Dialog open={Boolean(inspectorRecordId)} onOpenChange={(open) => (!open ? closeInspectorWithFocusRestore() : undefined)}>
         <DialogContent
+          open={Boolean(inspectorRecordId)}
+          animated
+          layoutId={dialogLayoutIds.recordInspector}
           className="dialog-panel-sheet-size !left-0 !top-0 h-screen !translate-x-0 !translate-y-0 overflow-y-auto rounded-none sm:!rounded-none border-r border-border-muted"
           onCloseAutoFocus={(event) => {
             if (inspectorTriggerRef.current) {
@@ -1562,13 +1725,18 @@ export const ProjectSpaceWorkspace = ({
                       type="button"
                       className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
                       onClick={() => {
-                        navigate(
-                          buildPaneContextHref({
-                            projectId: project.project_id,
-                            sourcePane: inspectorRecord.source_pane,
-                            fallbackHref: buildProjectWorkHref(project.project_id),
+                        const targetHref = buildPaneContextHref({
+                          projectId: project.project_id,
+                          sourcePane: inspectorRecord.source_pane,
+                          fallbackHref: buildProjectWorkHref(project.project_id),
+                        });
+                        navigate(targetHref, {
+                          state: withHubMotionState(undefined, {
+                            hubProjectName: project.name,
+                            hubPaneName: inspectorRecord.source_pane?.pane_name || inspectorRecord.source_pane?.pane_id || undefined,
+                            hubPaneSource: 'click',
                           }),
-                        );
+                        });
                       }}
                     >
                       Open source pane
@@ -1761,6 +1929,6 @@ export const ProjectSpaceWorkspace = ({
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 };

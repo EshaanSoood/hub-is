@@ -1,5 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { AlertDialog } from '../primitives';
+import { dialogLayoutIds } from '../../styles/motion';
 import { FileMovePopover } from './FileMovePopover';
 
 interface FileInspectorActionBarProps {
@@ -19,14 +21,17 @@ const ActionButton = ({
   danger = false,
   expanded,
   buttonRef,
+  layoutId,
 }: {
   label: string;
   onClick: () => void;
   danger?: boolean;
   expanded?: boolean;
   buttonRef?: RefObject<HTMLButtonElement | null>;
+  layoutId?: string;
 }) => (
-  <button
+  <motion.button
+    layoutId={layoutId}
     ref={buttonRef}
     type="button"
     aria-expanded={expanded}
@@ -38,7 +43,7 @@ const ActionButton = ({
     }}
   >
     {label}
-  </button>
+  </motion.button>
 );
 
 export const FileInspectorActionBar = ({
@@ -51,6 +56,7 @@ export const FileInspectorActionBar = ({
   onMove,
   onRemove,
 }: FileInspectorActionBarProps) => {
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const [copyLabel, setCopyLabel] = useState('Copy link');
   const [moveOpen, setMoveOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -233,17 +239,19 @@ export const FileInspectorActionBar = ({
                 }}
                 expanded={moveOpen}
               />
-              {moveOpen ? (
-                <FileMovePopover
-                  panes={panes}
-                  currentFileName={fileName}
-                  onSelect={(paneId) => {
-                    onMove(paneId);
-                    closeMove({ restoreFocus: true });
-                  }}
-                  onClose={(options) => closeMove(options)}
-                />
-              ) : null}
+              <AnimatePresence>
+                {moveOpen ? (
+                  <FileMovePopover
+                    panes={panes}
+                    currentFileName={fileName}
+                    onSelect={(paneId) => {
+                      onMove(paneId);
+                      closeMove({ restoreFocus: true });
+                    }}
+                    onClose={(options) => closeMove(options)}
+                  />
+                ) : null}
+              </AnimatePresence>
             </div>
             <div className="relative">
               <ActionButton
@@ -318,7 +326,13 @@ export const FileInspectorActionBar = ({
                 </form>
               ) : null}
             </div>
-            <ActionButton buttonRef={removeTriggerRef} label="Remove" onClick={() => setRemoveOpen(true)} danger />
+            <ActionButton
+              buttonRef={removeTriggerRef}
+              label="Remove"
+              onClick={() => setRemoveOpen(true)}
+              danger
+              layoutId={!prefersReducedMotion && removeOpen ? dialogLayoutIds.removeFile : undefined}
+            />
           </>
         ) : null}
       </div>
@@ -326,6 +340,7 @@ export const FileInspectorActionBar = ({
       <AlertDialog
         open={removeOpen}
         onOpenChange={setRemoveOpen}
+        layoutId={dialogLayoutIds.removeFile}
         title={`Remove "${fileName}"?`}
         description="This file will be detached from the record."
         confirmLabel="Remove file"

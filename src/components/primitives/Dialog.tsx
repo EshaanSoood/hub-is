@@ -24,6 +24,7 @@ export interface BaseDialogProps {
   onClose: () => void;
   children: React.ReactNode;
   triggerRef?: React.RefObject<HTMLElement | null>;
+  layoutId?: string;
   hideHeader?: boolean;
   panelClassName?: string;
   contentClassName?: string;
@@ -36,18 +37,22 @@ export const Dialog = ({
   onClose,
   children,
   triggerRef,
+  layoutId,
   hideHeader = false,
   panelClassName,
   contentClassName,
 }: BaseDialogProps) => (
   <DialogRoot open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
     <DialogContent
+      open={open}
       onCloseAutoFocus={(event) => {
         if (triggerRef?.current) {
           event.preventDefault();
           triggerRef.current.focus();
         }
       }}
+      animated={Boolean(layoutId)}
+      layoutId={layoutId}
       className={cn(panelClassName)}
     >
       <DialogHeader className={cn(hideHeader && 'sr-only')}>
@@ -68,6 +73,7 @@ export interface ConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   triggerRef?: React.RefObject<HTMLElement | null>;
+  layoutId?: string;
   confirmLabel?: string;
   cancelLabel?: string;
 }
@@ -79,11 +85,15 @@ export const AlertDialog = ({
   onOpenChange,
   onConfirm,
   triggerRef,
+  layoutId,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
 }: ConfirmDialogProps) => (
   <AlertDialogRoot open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent
+      open={open}
+      animated={Boolean(layoutId)}
+      layoutId={layoutId}
       onCloseAutoFocus={(event) => {
         if (triggerRef?.current) {
           event.preventDefault();

@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion';
 import { Icon, Popover, PopoverAnchor } from '../../primitives';
 import type { ProjectRecord } from '../../../types/domain';
 import type { UseToolbarCaptureResult } from './hooks/useToolbarCapture';
@@ -64,20 +65,22 @@ export const ToolbarThoughtPile = ({
       </button>
     </PopoverAnchor>
 
-    {captureOpen ? (
-      <ThoughtPilePanel
-        skipCaptureFocusRestoreRef={skipCaptureFocusRestoreRef}
-        captureRestoreTargetRef={captureRestoreTargetRef}
-        accessToken={accessToken}
-        projects={projects}
-        captureHomeData={captureHomeData}
-        captureLoading={captureLoading}
-        refreshCaptureData={refreshCaptureData}
-        preferredCaptureProjectId={preferredCaptureProjectId}
-        captureIntent={captureIntent}
-        captureActivationKey={captureActivationKey}
-        closeCapturePanel={closeCapturePanel}
-      />
-    ) : null}
+    <AnimatePresence>
+      {captureOpen ? (
+        <ThoughtPilePanel
+          skipCaptureFocusRestoreRef={skipCaptureFocusRestoreRef}
+          captureRestoreTargetRef={captureRestoreTargetRef}
+          accessToken={accessToken}
+          projects={projects}
+          captureHomeData={captureHomeData}
+          captureLoading={captureLoading}
+          refreshCaptureData={refreshCaptureData}
+          preferredCaptureProjectId={preferredCaptureProjectId}
+          captureIntent={captureIntent}
+          captureActivationKey={captureActivationKey}
+          closeCapturePanel={closeCapturePanel}
+        />
+      ) : null}
+    </AnimatePresence>
   </Popover>
 );

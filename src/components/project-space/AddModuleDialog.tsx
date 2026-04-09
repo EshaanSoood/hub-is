@@ -7,6 +7,7 @@ interface AddModuleDialogProps {
   onClose: () => void;
   onAddModule: (moduleType: string, sizeTier: ModuleSizeTier) => void;
   triggerRef?: RefObject<HTMLElement | null>;
+  layoutId?: string;
 }
 
 const SIZE_TIER_COPY: Record<ModuleSizeTier, { title: string; hint: string }> = {
@@ -29,6 +30,7 @@ export const AddModuleDialog = ({
   onClose,
   onAddModule,
   triggerRef,
+  layoutId,
 }: AddModuleDialogProps) => {
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const firstModuleButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -77,6 +79,7 @@ export const AddModuleDialog = ({
       title="Add Module"
       description="Choose a module, then choose the size to add to this pane."
       triggerRef={triggerRef}
+      layoutId={layoutId}
       panelClassName="max-h-[88vh] overflow-y-auto"
       contentClassName="pr-1"
     >

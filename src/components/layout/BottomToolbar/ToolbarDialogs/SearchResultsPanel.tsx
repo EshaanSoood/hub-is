@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { HubSearchResult } from '../../../../services/hub/search';
+import { AnimatedSurface } from '../../../motion/AnimatedSurface';
 import { buildSearchResultHref, SEARCH_RESULT_TYPE_LABELS } from '../../appShellUtils';
 
 interface SearchResultsPanelProps {
@@ -19,9 +20,10 @@ export const SearchResultsPanel = ({
   setSearchActiveIndex,
   onSelectSearchResult,
 }: SearchResultsPanelProps) => (
-  <div
+  <AnimatedSurface
     role="dialog"
-    aria-label="Global search results"
+    ariaLabel="Global search results"
+    transformOrigin="bottom center"
     className="absolute bottom-[calc(100%+8px)] left-0 z-[100] w-full overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
   >
     {searchLoading ? (
@@ -86,5 +88,5 @@ export const SearchResultsPanel = ({
         )}
       </ul>
     )}
-  </div>
+  </AnimatedSurface>
 );

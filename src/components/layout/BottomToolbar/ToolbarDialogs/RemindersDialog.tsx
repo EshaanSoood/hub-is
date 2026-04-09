@@ -1,4 +1,5 @@
 import type { ComponentProps, MutableRefObject } from 'react';
+import { dialogLayoutIds } from '../../../../styles/motion';
 import { RemindersModuleSkin } from '../../../project-space/RemindersModuleSkin';
 import { Dialog } from '../../../primitives';
 import type { ToolbarDialog } from '../../appShellUtils';
@@ -6,7 +7,7 @@ import type { ToolbarDialog } from '../../appShellUtils';
 interface RemindersDialogProps {
   toolbarDialog: ToolbarDialog;
   closeQuickNavPanel: () => void;
-  quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
+  triggerRef: MutableRefObject<HTMLButtonElement | null>;
   remindersRuntime: {
     reminders: ComponentProps<typeof RemindersModuleSkin>['reminders'];
     loading: ComponentProps<typeof RemindersModuleSkin>['loading'];
@@ -20,7 +21,7 @@ interface RemindersDialogProps {
 export const RemindersDialog = ({
   toolbarDialog,
   closeQuickNavPanel,
-  quickNavTriggerRef,
+  triggerRef,
   remindersRuntime,
   onSnoozeReminderFromModule,
   onCreateReminderFromModule,
@@ -28,7 +29,8 @@ export const RemindersDialog = ({
   <Dialog
     open={toolbarDialog === 'reminders'}
     onClose={closeQuickNavPanel}
-    triggerRef={quickNavTriggerRef}
+    triggerRef={triggerRef}
+    layoutId={dialogLayoutIds.toolbarReminders}
     title="Reminders"
     description="Your active reminders."
     panelClassName="dialog-panel-compact-size"

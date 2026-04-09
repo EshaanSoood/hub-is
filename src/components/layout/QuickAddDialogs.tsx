@@ -24,6 +24,7 @@ export const QuickAddEventDialog: FC<{
   open: boolean;
   onClose: () => void;
   triggerRef: RefObject<HTMLButtonElement | null>;
+  layoutId?: string;
   projectOptions: Array<{ value: string; label: string }>;
   selectedProjectId: string;
   onSelectedProjectIdChange: (id: string) => void;
@@ -48,6 +49,7 @@ export const QuickAddEventDialog: FC<{
   open,
   onClose,
   triggerRef,
+  layoutId,
   projectOptions,
   selectedProjectId,
   onSelectedProjectIdChange,
@@ -73,6 +75,7 @@ export const QuickAddEventDialog: FC<{
     open={open}
     onClose={onClose}
     triggerRef={triggerRef}
+    layoutId={layoutId}
     title="New Calendar Event"
     description="Create a calendar event."
     panelClassName="overflow-visible"
@@ -216,6 +219,7 @@ export const QuickAddReminderDialog: FC<{
   open: boolean;
   onClose: () => void;
   triggerRef: RefObject<HTMLButtonElement | null>;
+  layoutId?: string;
   draft: string;
   onDraftChange: (v: string) => void;
   preview: ReminderParseResult;
@@ -229,6 +233,7 @@ export const QuickAddReminderDialog: FC<{
   open,
   onClose,
   triggerRef,
+  layoutId,
   draft,
   onDraftChange,
   preview,
@@ -243,6 +248,7 @@ export const QuickAddReminderDialog: FC<{
     open={open}
     onClose={onClose}
     triggerRef={triggerRef}
+    layoutId={layoutId}
     title="New Reminder"
     description="Create a reminder from natural language."
   >
@@ -305,6 +311,7 @@ export const QuickAddProjectDialog: FC<{
   open: boolean;
   onClose: () => void;
   triggerRef: RefObject<HTMLButtonElement | null>;
+  layoutId?: string;
   name: string;
   onNameChange: (v: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
@@ -315,6 +322,7 @@ export const QuickAddProjectDialog: FC<{
   open,
   onClose,
   triggerRef,
+  layoutId,
   name,
   onNameChange,
   onSubmit,
@@ -326,6 +334,7 @@ export const QuickAddProjectDialog: FC<{
     open={open}
     onClose={onClose}
     triggerRef={triggerRef}
+    layoutId={layoutId}
     title="Create Project"
     description="Create a new project."
   >

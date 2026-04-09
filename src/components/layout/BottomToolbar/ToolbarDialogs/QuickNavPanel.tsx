@@ -1,5 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { Icon } from '../../../primitives';
+import { AnimatedSurface } from '../../../motion/AnimatedSurface';
 import type { QuickNavActionItem } from '../../appShellUtils';
 
 interface QuickNavPanelProps {
@@ -21,9 +22,10 @@ export const QuickNavPanel = ({
   onSelectQuickNavItem,
   quickNavDestinationItems,
 }: QuickNavPanelProps) => (
-  <div
+  <AnimatedSurface
     role="dialog"
-    aria-label="Quick navigation"
+    ariaLabel="Quick navigation"
+    transformOrigin="bottom left"
     className="absolute bottom-[calc(100%+8px)] left-0 z-[100] w-72 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
   >
     <input
@@ -65,5 +67,5 @@ export const QuickNavPanel = ({
         })
       )}
     </ul>
-  </div>
+  </AnimatedSurface>
 );

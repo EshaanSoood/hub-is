@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion';
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import type { HubSearchResult } from '../../../services/hub/search';
 import { SearchResultsPanel } from './ToolbarDialogs/SearchResultsPanel';
@@ -143,16 +144,18 @@ export const ToolbarSearch = ({
           {searchLoading ? 'Searching…' : ''}
         </div>
 
-        {searchOpen ? (
-          <SearchResultsPanel
-            searchLoading={searchLoading}
-            searchError={searchError}
-            searchResults={searchResults}
-            normalizedSearchActiveIndex={normalizedSearchActiveIndex}
-            setSearchActiveIndex={setSearchActiveIndex}
-            onSelectSearchResult={handleSelectSearchResult}
-          />
-        ) : null}
+        <AnimatePresence>
+          {searchOpen ? (
+            <SearchResultsPanel
+              searchLoading={searchLoading}
+              searchError={searchError}
+              searchResults={searchResults}
+              normalizedSearchActiveIndex={normalizedSearchActiveIndex}
+              setSearchActiveIndex={setSearchActiveIndex}
+              onSelectSearchResult={handleSelectSearchResult}
+            />
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
   );

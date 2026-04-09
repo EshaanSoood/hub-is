@@ -1,6 +1,7 @@
 import type { ComponentProps, MutableRefObject } from 'react';
 import { requestHubHomeRefresh } from '../../../../lib/hubHomeRefresh';
 import { createEventFromNlp } from '../../../../services/hub/records';
+import { dialogLayoutIds } from '../../../../styles/motion';
 import { CalendarModuleSkin } from '../../../project-space/CalendarModuleSkin';
 import { Dialog } from '../../../primitives';
 import type { ToolbarDialog } from '../../appShellUtils';
@@ -8,7 +9,7 @@ import type { ToolbarDialog } from '../../appShellUtils';
 interface CalendarDialogProps {
   toolbarDialog: ToolbarDialog;
   closeQuickNavPanel: () => void;
-  quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
+  triggerRef: MutableRefObject<HTMLButtonElement | null>;
   personalCalendarError: string | null;
   refreshPersonalCalendar: () => Promise<void>;
   personalCalendarEvents: ComponentProps<typeof CalendarModuleSkin>['events'];
@@ -23,7 +24,7 @@ interface CalendarDialogProps {
 export const CalendarDialog = ({
   toolbarDialog,
   closeQuickNavPanel,
-  quickNavTriggerRef,
+  triggerRef,
   personalCalendarError,
   refreshPersonalCalendar,
   personalCalendarEvents,
@@ -37,7 +38,8 @@ export const CalendarDialog = ({
   <Dialog
     open={toolbarDialog === 'calendar'}
     onClose={closeQuickNavPanel}
-    triggerRef={quickNavTriggerRef}
+    triggerRef={triggerRef}
+    layoutId={dialogLayoutIds.toolbarCalendar}
     title="Calendar"
     description="Your personal calendar across all projects."
     panelClassName="dialog-panel-expanded-size !top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] flex flex-col overflow-hidden"

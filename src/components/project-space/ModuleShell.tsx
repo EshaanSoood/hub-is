@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { useState, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 import {
   DropdownMenu,
@@ -7,6 +8,7 @@ import {
   DropdownMenuTrigger,
   IconButton,
 } from '../primitives';
+import { AnimatedSurface } from '../motion/AnimatedSurface';
 import { moduleLabel } from './moduleCatalog';
 
 type ModuleSizeTier = 'S' | 'M' | 'L';
@@ -40,6 +42,7 @@ export const ModuleShell = ({
   onRemove,
   children,
 }: ModuleShellProps) => {
+  const [actionsOpen, setActionsOpen] = useState(false);
   const label = moduleLabel(moduleType);
 
   return (
@@ -51,7 +54,7 @@ export const ModuleShell = ({
         sizeHeightClass[sizeTier],
       )}
     >
-      <DropdownMenu>
+      <DropdownMenu open={actionsOpen} onOpenChange={setActionsOpen}>
         <DropdownMenuTrigger asChild>
           <IconButton
             size="sm"
@@ -72,14 +75,25 @@ export const ModuleShell = ({
             </span>
           </IconButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-28 p-1">
-          <DropdownMenuItem
-            onSelect={onRemove}
-            className="justify-center text-sm font-medium text-danger focus:bg-danger-subtle focus:text-danger"
-          >
-            Remove
-          </DropdownMenuItem>
-        </DropdownMenuContent>
+        <AnimatePresence>
+          {actionsOpen ? (
+            <DropdownMenuContent align="end" sideOffset={8} asChild forceMount>
+              <AnimatedSurface
+                role="menu"
+                ariaLabel={`${label} module actions`}
+                transformOrigin="top right"
+                className="min-w-28 p-1"
+              >
+                <DropdownMenuItem
+                  onSelect={onRemove}
+                  className="justify-center text-sm font-medium text-danger focus:bg-danger-subtle focus:text-danger"
+                >
+                  Remove
+                </DropdownMenuItem>
+              </AnimatedSurface>
+            </DropdownMenuContent>
+          ) : null}
+        </AnimatePresence>
       </DropdownMenu>
 
       <div

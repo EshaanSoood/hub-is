@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { useMemo, useRef, useState } from 'react';
 import { AlertDialog, Icon } from '../primitives';
+import { dialogLayoutIds } from '../../styles/motion';
 
 type TriggerEvent =
   | 'record.created'
@@ -98,6 +100,8 @@ export const AutomationBuilder = ({
   onDeleteRule,
   onToggleRule,
 }: AutomationBuilderProps) => {
+  const prefersReducedMotion = useReducedMotion() ?? false;
+  const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
   const recordTypeOptions = useMemo(() => (availableRecordTypes.length > 0 ? availableRecordTypes : ['record']), [availableRecordTypes]);
   const [creating, setCreating] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
@@ -485,15 +489,23 @@ export const AutomationBuilder = ({
                           <Icon name="edit" className="text-[12px]" />
                           Edit
                         </button>
-                        <button
+                        <motion.button
+                          layoutId={
+                            !prefersReducedMotion && deleteTarget?.automation_rule_id === rule.automation_rule_id
+                              ? dialogLayoutIds.deleteAutomationRule
+                              : undefined
+                          }
                           type="button"
                           disabled={isBusy}
-                          onClick={() => setDeleteTarget(rule)}
+                          onClick={(event) => {
+                            deleteTriggerRef.current = event.currentTarget;
+                            setDeleteTarget(rule);
+                          }}
                           className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-1 text-xs text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-60"
                         >
                           <Icon name="trash" className="text-[12px]" />
                           Delete
-                        </button>
+                        </motion.button>
                       </div>
                     </div>
                   </div>
@@ -511,6 +523,8 @@ export const AutomationBuilder = ({
             setDeleteTarget(null);
           }
         }}
+        triggerRef={deleteTriggerRef}
+        layoutId={dialogLayoutIds.deleteAutomationRule}
         title={deleteTarget ? `Delete "${deleteTarget.name}"?` : 'Delete rule?'}
         description="This automation rule will stop running immediately."
         confirmLabel="Delete rule"

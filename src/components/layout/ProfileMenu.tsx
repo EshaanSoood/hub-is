@@ -1,5 +1,6 @@
 import type { FC, RefObject } from 'react';
 import { Icon } from '../primitives';
+import { AnimatedSurface } from '../motion/AnimatedSurface';
 
 interface ProfileMenuProps {
   name: string;
@@ -26,9 +27,10 @@ export const ProfileMenu: FC<ProfileMenuProps> = ({
   onNavigateProjects,
   onLogout,
 }) => (
-  <div
+  <AnimatedSurface
     ref={menuRef}
     role="menu"
+    transformOrigin="bottom right"
     className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-56 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
   >
     <div className="flex items-center gap-sm border-b border-border-muted px-md py-md">
@@ -86,5 +88,5 @@ export const ProfileMenu: FC<ProfileMenuProps> = ({
     >
       Log out
     </button>
-  </div>
+  </AnimatedSurface>
 );

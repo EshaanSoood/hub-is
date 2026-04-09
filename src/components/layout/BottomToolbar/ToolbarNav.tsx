@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { Icon } from '../../primitives';
 import type { QuickNavActionItem } from '../appShellUtils';
@@ -81,16 +82,18 @@ export const ToolbarNav = ({
       Nav
     </button>
 
-    {quickNavOpen ? (
-      <QuickNavPanel
-        quickNavInputRef={quickNavInputRef}
-        quickNavQuery={quickNavQuery}
-        setQuickNavQuery={setQuickNavQuery}
-        setQuickNavActiveIndex={setQuickNavActiveIndex}
-        normalizedQuickNavActiveIndex={normalizedQuickNavActiveIndex}
-        onSelectQuickNavItem={onSelectQuickNavItem}
-        quickNavDestinationItems={quickNavDestinationItems}
-      />
-    ) : null}
+    <AnimatePresence>
+      {quickNavOpen ? (
+        <QuickNavPanel
+          quickNavInputRef={quickNavInputRef}
+          quickNavQuery={quickNavQuery}
+          setQuickNavQuery={setQuickNavQuery}
+          setQuickNavActiveIndex={setQuickNavActiveIndex}
+          normalizedQuickNavActiveIndex={normalizedQuickNavActiveIndex}
+          onSelectQuickNavItem={onSelectQuickNavItem}
+          quickNavDestinationItems={quickNavDestinationItems}
+        />
+      ) : null}
+    </AnimatePresence>
   </div>
 );

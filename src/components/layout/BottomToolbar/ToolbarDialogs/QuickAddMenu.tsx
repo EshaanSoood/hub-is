@@ -1,4 +1,5 @@
 import { Icon } from '../../../primitives';
+import { AnimatedSurface } from '../../../motion/AnimatedSurface';
 import { QUICK_ADD_OPTIONS } from '../../appShellUtils';
 import type { UseToolbarQuickAddResult } from '../hooks/useToolbarQuickAdd';
 
@@ -18,9 +19,10 @@ export const QuickAddMenu = ({
   onQuickAddMenuItemKeyDown,
   onSelectQuickAddOption,
 }: QuickAddMenuProps) => (
-  <div
+  <AnimatedSurface
     role="menu"
-    aria-label="Quick add"
+    ariaLabel="Quick add"
+    transformOrigin="bottom left"
     className="absolute bottom-[calc(100%+8px)] left-0 z-[200] min-w-[220px] rounded-control border border-border-muted bg-surface-elevated py-1 shadow-soft"
   >
     {QUICK_ADD_OPTIONS.map((option, index) => (
@@ -45,5 +47,5 @@ export const QuickAddMenu = ({
         <span>{option.label}</span>
       </button>
     ))}
-  </div>
+  </AnimatedSurface>
 );

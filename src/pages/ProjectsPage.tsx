@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { useProjects } from '../context/ProjectsContext';
 import { useAuthz } from '../context/AuthzContext';
@@ -8,6 +9,7 @@ import { getHubHome, getRecordDetail } from '../services/hub/records';
 import type { HubRecordDetail } from '../services/hub/types';
 import { subscribeHubLive } from '../services/hubLive';
 import { subscribeHubHomeRefresh } from '../lib/hubHomeRefresh';
+import { dialogLayoutIds } from '../styles/motion';
 
 const resolveFocusRestoreTarget = (candidate: HTMLElement | null): HTMLElement | null => {
   if (candidate && candidate.isConnected) {
@@ -30,10 +32,27 @@ const getActiveFocusTarget = (): HTMLElement | null => {
   return resolveFocusRestoreTarget(null);
 };
 
+const readElementRect = (element: HTMLElement | null): { top: number; left: number; width: number; height: number } | null => {
+  if (!element || !element.isConnected) {
+    return null;
+  }
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) {
+    return null;
+  }
+  return {
+    top: rect.top,
+    left: rect.left,
+    width: rect.width,
+    height: rect.height,
+  };
+};
+
 const parseDashboardView = (raw: string | null): HubDashboardView =>
   raw === 'stream' || raw === 'project-lens' ? raw : 'project-lens';
 
 export const ProjectsPage = () => {
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const [searchParams, setSearchParams] = useSearchParams();
   const { projects } = useProjects();
   const { accessToken } = useAuthz();
@@ -60,6 +79,12 @@ export const ProjectsPage = () => {
   const [selectedHubRecord, setSelectedHubRecord] = useState<HubRecordDetail | null>(null);
   const [selectedHubRecordLoading, setSelectedHubRecordLoading] = useState(false);
   const [selectedHubRecordError, setSelectedHubRecordError] = useState<string | null>(null);
+  const [selectedHubRecordTriggerRect, setSelectedHubRecordTriggerRect] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   const selectedRecordAbortControllerRef = useRef<AbortController | null>(null);
   const selectedRecordRequestIdRef = useRef(0);
@@ -74,6 +99,7 @@ export const ProjectsPage = () => {
       return;
     }
     selectedHubRecordTriggerRef.current = getActiveFocusTarget();
+    setSelectedHubRecordTriggerRect(readElementRect(selectedHubRecordTriggerRef.current));
     selectedHubRecordIdRef.current = taskId;
     setSelectedHubRecordId(taskId);
 
@@ -219,6 +245,7 @@ export const ProjectsPage = () => {
 
   const onOpenHubRecord = useCallback((recordId: string) => {
     selectedHubRecordTriggerRef.current = getActiveFocusTarget();
+    setSelectedHubRecordTriggerRect(readElementRect(selectedHubRecordTriggerRef.current));
     selectedHubRecordIdRef.current = recordId;
     setSelectedHubRecordId(recordId);
   }, []);
@@ -245,6 +272,7 @@ export const ProjectsPage = () => {
 
   return (
     <div className="space-y-4">
+      <h1 className="sr-only">myHub</h1>
       <PersonalizedDashboardPanel
         homeData={homeData}
         homeLoading={homeLoading}
@@ -255,10 +283,25 @@ export const ProjectsPage = () => {
         onViewChange={onDashboardViewChange}
       />
 
+      {!prefersReducedMotion && selectedHubRecordTriggerRect ? (
+        <motion.div
+          layoutId={dialogLayoutIds.myHubRecordInspector}
+          aria-hidden="true"
+          className="pointer-events-none fixed z-[299] opacity-0"
+          style={{
+            top: selectedHubRecordTriggerRect.top,
+            left: selectedHubRecordTriggerRect.left,
+            width: selectedHubRecordTriggerRect.width,
+            height: selectedHubRecordTriggerRect.height,
+          }}
+        />
+      ) : null}
+
       <Dialog
         open={Boolean(selectedHubRecordId)}
         onClose={onCloseSelectedRecord}
         triggerRef={selectedHubRecordTriggerRef}
+        layoutId={dialogLayoutIds.myHubRecordInspector}
         title="Record Inspector"
         description="Review the selected Hub item without leaving the Hub."
       >

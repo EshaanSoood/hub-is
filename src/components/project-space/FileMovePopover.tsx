@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AnimatedSurface } from '../motion/AnimatedSurface';
 
 interface FileMovePopoverProps {
   panes: Array<{ id: string; name: string }>;
@@ -52,11 +53,12 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
   }, [pendingPaneId]);
 
   return (
-    <div
+    <AnimatedSurface
       ref={popoverRef}
       role="dialog"
       aria-modal="true"
-      aria-label={`Move ${currentFileName} to pane`}
+      ariaLabel={`Move ${currentFileName} to pane`}
+      transformOrigin="top left"
       className="absolute left-0 top-[calc(100%+4px)] z-[200] min-w-[220px] rounded-panel border border-border-muted bg-surface-elevated p-xs shadow-soft"
     >
       {pendingPaneId ? (
@@ -104,6 +106,6 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
           )}
         </ul>
       )}
-    </div>
+    </AnimatedSurface>
   );
 };

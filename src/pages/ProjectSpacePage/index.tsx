@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion';
 import type { ReactElement } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
@@ -10,6 +11,7 @@ interface ProjectSpacePageProps {
 }
 
 export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactElement => {
+  const prefersReducedMotion = useReducedMotion();
   const { projectId = '' } = useParams();
   const { accessToken, sessionSummary } = useAuthz();
   const { error, loading, panes, project, projectMembers, refreshProjectData, setPanes, setTimeline, timeline } =
@@ -32,10 +34,22 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactEle
 
   if (loading) {
     return (
-      <div className="rounded-panel border border-subtle bg-elevated p-4" role="status" aria-live="polite">
-        <p className="text-sm text-muted">Loading project space...</p>
-        <div className="mt-3 h-2 w-3/4 animate-pulse rounded-control bg-muted/30 motion-reduce:animate-none" aria-hidden="true" />
-      </div>
+      <motion.section
+        layoutId={!prefersReducedMotion ? `project-${projectId}` : undefined}
+        className="space-y-4"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="rounded-panel border border-subtle bg-elevated p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Project Space</p>
+          <h1 className="mt-1 text-base font-bold text-text">Loading project {projectId}</h1>
+        </div>
+        <div className="rounded-panel border border-subtle bg-elevated p-4">
+          <p className="text-sm text-muted">Loading project space...</p>
+          <div className="mt-3 h-2 w-3/4 animate-pulse rounded-control bg-muted/30 motion-reduce:animate-none" aria-hidden="true" />
+          <div className="mt-2 h-2 w-1/2 animate-pulse rounded-control bg-muted/20 motion-reduce:animate-none" aria-hidden="true" />
+        </div>
+      </motion.section>
     );
   }
 

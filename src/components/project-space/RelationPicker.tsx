@@ -1,6 +1,8 @@
+import { AnimatePresence } from 'framer-motion';
 import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { searchRelationRecords } from '../../services/hub/records';
 import type { HubRelationSearchRecord } from '../../services/hub/types';
+import { AnimatedSurface } from '../motion/AnimatedSurface';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 export interface RelationFieldOption {
@@ -160,7 +162,10 @@ export const RelationPicker = ({
           Add relation
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[min(34rem,90vw)] p-3">
+      <AnimatePresence>
+        {open ? (
+          <PopoverContent forceMount asChild align="start">
+            <AnimatedSurface transformOrigin="bottom left" className="w-[min(34rem,90vw)] p-3">
         <div className="space-y-3">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-primary" htmlFor="relation-field-select">
@@ -322,7 +327,10 @@ export const RelationPicker = ({
             </button>
           </div>
         </div>
-      </PopoverContent>
+            </AnimatedSurface>
+          </PopoverContent>
+        ) : null}
+      </AnimatePresence>
     </Popover>
   );
 };

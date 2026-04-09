@@ -1,7 +1,9 @@
+import { AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { cn } from '../../../lib/cn';
 import { useLongPress } from '../../../hooks/useLongPress';
 import { TaskCard } from '../../cards/TaskCard';
+import { AnimatedSurface } from '../../motion/AnimatedSurface';
 import type { PriorityLevel } from '../designTokens';
 import { getPriorityClasses } from '../../../lib/priorityStyles';
 import type { TaskItem, TaskPriorityValue, TaskStatus, TaskSubtask } from './index';
@@ -372,7 +374,7 @@ export const TaskRow = ({
               <button
                 ref={triggerRef}
                 type="button"
-                aria-haspopup="menu"
+                aria-haspopup="dialog"
                 aria-expanded={menuOpen}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -395,16 +397,18 @@ export const TaskRow = ({
                 ⋯
               </button>
 
-              {menuOpen ? (
-                <div
-                  ref={menuRef}
-                  role="menu"
-                  tabIndex={-1}
-                  aria-label={`Task actions for ${task.label}`}
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={handleMenuKeyDown}
-                  className="absolute right-0 top-full z-20 mt-1 w-72 rounded-panel border border-border-muted bg-surface p-3 shadow-lg"
-                >
+              <AnimatePresence>
+                {menuOpen ? (
+                  <AnimatedSurface
+                    ref={menuRef}
+                    role="dialog"
+                    tabIndex={-1}
+                    ariaLabel={`Task actions for ${task.label}`}
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={handleMenuKeyDown}
+                    transformOrigin="top right"
+                    className="absolute right-0 top-full z-20 mt-1 w-72 rounded-panel border border-border-muted bg-surface p-3 shadow-lg"
+                  >
                   <div className="space-y-2">
                     {onUpdateTaskPriority ? (
                       <div>
@@ -417,7 +421,6 @@ export const TaskRow = ({
                               <button
                                 key={option.label}
                                 type="button"
-                                role="menuitem"
                                 data-menu-item="true"
                                 onClick={() => runMenuAction(() => onUpdateTaskPriority(task.id, option.value))}
                                 className={cn(
@@ -451,7 +454,6 @@ export const TaskRow = ({
                           />
                           <button
                             type="button"
-                            role="menuitem"
                             data-menu-item="true"
                             onClick={() => runMenuAction(() => onUpdateTaskDueDate(task.id, null))}
                             className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -493,7 +495,6 @@ export const TaskRow = ({
                       {onUpdateTaskStatus ? (
                         <button
                           type="button"
-                          role="menuitem"
                           data-menu-item="true"
                           onClick={() => runMenuAction(() => onUpdateTaskStatus(task.id, status === 'cancelled' ? 'todo' : 'cancelled'))}
                           className="rounded-control px-2 py-1 text-left text-sm text-text hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -504,7 +505,6 @@ export const TaskRow = ({
                       {onDeleteTask ? (
                         <button
                           type="button"
-                          role="menuitem"
                           data-menu-item="true"
                           onClick={handleArchiveClick}
                           className="rounded-control px-2 py-1 text-left text-sm text-danger hover:bg-danger-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -514,8 +514,9 @@ export const TaskRow = ({
                       ) : null}
                     </div>
                   </div>
-                </div>
-              ) : null}
+                  </AnimatedSurface>
+                ) : null}
+              </AnimatePresence>
             </div>
           ) : null}
         </div>

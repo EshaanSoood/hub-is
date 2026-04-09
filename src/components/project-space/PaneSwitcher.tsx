@@ -1,5 +1,7 @@
+import { motion, useReducedMotion } from 'framer-motion';
 import { useMemo, useRef, useState } from 'react';
 import { cn } from '../../lib/cn';
+import type { PaneLateralSource } from '../motion/hubMotion';
 
 export interface PaneSwitcherPane {
   id: string;
@@ -12,11 +14,12 @@ interface PaneSwitcherProps {
   id?: string;
   panes: PaneSwitcherPane[];
   activePaneId: string | null;
-  onPaneChange: (paneId: string) => void;
+  onPaneChange: (paneId: string, source: PaneLateralSource) => void;
   onMovePane?: (paneId: string, direction: 'up' | 'down') => void;
 }
 
 export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane }: PaneSwitcherProps) => {
+  const prefersReducedMotion = useReducedMotion();
   const [hoveredPaneId, setHoveredPaneId] = useState<string | null>(null);
   const paneRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -45,7 +48,7 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
   return (
     <div id={id} role="toolbar" aria-label="Open panes" className="flex items-center gap-0.5 px-2 py-1">
       <span className="sr-only">
-        Use Left and Right arrows to move focus. Use Home and End to jump to first and last panes. Use Ctrl plus arrows to reorder panes.
+        Use Left and Right arrows to navigate between panes. Use Home and End to move focus to first and last panes. Use Ctrl plus arrows to reorder panes.
       </span>
       {panes.map((pane, index) => {
         const isActive = pane.id === activePaneId;
@@ -53,8 +56,9 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
         const revealLabel = isHovered || isActive;
 
         return (
-          <button
+          <motion.button
             key={pane.id}
+            layoutId={!prefersReducedMotion ? `pane-${pane.id}` : undefined}
             ref={(node) => {
               paneRefs.current[index] = node;
             }}
@@ -62,7 +66,7 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
             aria-pressed={isActive}
             aria-label={`${pane.label}${pane.shortcutNumber ? `, pane ${pane.shortcutNumber}` : ''}`}
             disabled={pane.disabled}
-            onClick={() => onPaneChange(pane.id)}
+            onClick={() => onPaneChange(pane.id, 'click')}
             aria-keyshortcuts={onMovePane ? 'Control+ArrowLeft Control+ArrowRight' : undefined}
             onMouseEnter={() => setHoveredPaneId(pane.id)}
             onMouseLeave={() => setHoveredPaneId((current) => (current === pane.id ? null : current))}
@@ -77,13 +81,20 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
 
               if (event.key === 'ArrowRight') {
                 event.preventDefault();
-                focusByIndex(index + 1);
+                const nextPane = panes[(index + 1) % panes.length];
+                if (nextPane) {
+                  onPaneChange(nextPane.id, 'arrow-right');
+                }
                 return;
               }
 
               if (event.key === 'ArrowLeft') {
                 event.preventDefault();
-                focusByIndex(index - 1);
+                const nextIndex = (index - 1 + panes.length) % panes.length;
+                const nextPane = panes[nextIndex];
+                if (nextPane) {
+                  onPaneChange(nextPane.id, 'arrow-left');
+                }
                 return;
               }
 
@@ -104,7 +115,7 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
                 const targetPane = paneByShortcut.get(shortcut);
                 if (targetPane) {
                   event.preventDefault();
-                  onPaneChange(targetPane.id);
+                  onPaneChange(targetPane.id, 'digit');
                 }
               }
             }}
@@ -141,7 +152,7 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
                 />
               )}
             </span>
-          </button>
+          </motion.button>
         );
       })}
     </div>

@@ -1,4 +1,5 @@
 import type { ComponentProps, MutableRefObject } from 'react';
+import { dialogLayoutIds } from '../../../../styles/motion';
 import { TasksModuleSkin } from '../../../project-space/TasksModuleSkin';
 import { Dialog } from '../../../primitives';
 import type { ToolbarDialog } from '../../appShellUtils';
@@ -6,7 +7,7 @@ import type { ToolbarDialog } from '../../appShellUtils';
 interface TasksDialogProps {
   toolbarDialog: ToolbarDialog;
   closeQuickNavPanel: () => void;
-  quickNavTriggerRef: MutableRefObject<HTMLButtonElement | null>;
+  triggerRef: MutableRefObject<HTMLButtonElement | null>;
   quickNavTasksError: string | null;
   refreshQuickNavTasks: () => Promise<void>;
   adaptedTasks: ComponentProps<typeof TasksModuleSkin>['tasks'];
@@ -17,7 +18,7 @@ interface TasksDialogProps {
 export const TasksDialog = ({
   toolbarDialog,
   closeQuickNavPanel,
-  quickNavTriggerRef,
+  triggerRef,
   quickNavTasksError,
   refreshQuickNavTasks,
   adaptedTasks,
@@ -27,7 +28,8 @@ export const TasksDialog = ({
   <Dialog
     open={toolbarDialog === 'tasks'}
     onClose={closeQuickNavPanel}
-    triggerRef={quickNavTriggerRef}
+    triggerRef={triggerRef}
+    layoutId={dialogLayoutIds.toolbarTasks}
     title="Tasks"
     description="All your tasks across projects."
     panelClassName="dialog-panel-wide-size !top-[calc(50%-1.5rem)] !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] flex flex-col overflow-hidden"

@@ -1,35 +1,84 @@
 import * as React from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { cn } from '../../lib/cn';
+import { dialogSurfaceVariants, routeFadeVariants } from '../motion/hubMotion';
 
 export const AlertDialog = AlertDialogPrimitive.Root;
 export const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 export const AlertDialogPortal = AlertDialogPrimitive.Portal;
+const ALERT_DIALOG_PANEL_BASE_CLASS =
+  'alert-dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft';
 
 export const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Overlay ref={ref} className={cn('fixed inset-0 z-[300] bg-overlay', className)} {...props} />
-));
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay> & { animated?: boolean }
+>(({ className, animated = false, ...props }, ref) => {
+  const prefersReducedMotion = useReducedMotion() ?? false;
+  if (!animated) {
+    return <AlertDialogPrimitive.Overlay ref={ref} className={cn('fixed inset-0 z-[300] bg-overlay', className)} {...props} />;
+  }
+  return (
+    <AlertDialogPrimitive.Overlay asChild {...props}>
+      <motion.div
+        ref={ref}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        variants={routeFadeVariants(prefersReducedMotion)}
+        className={cn('fixed inset-0 z-[300] bg-overlay', className)}
+      />
+    </AlertDialogPrimitive.Overlay>
+  );
+});
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
 export const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <AlertDialogPortal>
-    <AlertDialogOverlay />
-    <AlertDialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        'alert-dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
-        className,
-      )}
-      {...props}
-    />
-  </AlertDialogPortal>
-));
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & { layoutId?: string; animated?: boolean; open?: boolean }
+>(({ className, layoutId, animated = false, open, children, ...props }, ref) => {
+  const prefersReducedMotion = useReducedMotion() ?? false;
+  const canAnimateWithPresence = animated && typeof open === 'boolean';
+  if (canAnimateWithPresence) {
+    return (
+      <AlertDialogPortal forceMount>
+        <AnimatePresence>
+          {open ? (
+            <React.Fragment key="alert-dialog-content">
+              <AlertDialogOverlay animated forceMount />
+              <AlertDialogPrimitive.Content forceMount asChild {...props}>
+                <motion.div
+                  ref={ref}
+                  layoutId={!prefersReducedMotion ? layoutId : undefined}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={dialogSurfaceVariants(prefersReducedMotion)}
+                  className={cn(ALERT_DIALOG_PANEL_BASE_CLASS, className)}
+                >
+                  {children}
+                </motion.div>
+              </AlertDialogPrimitive.Content>
+            </React.Fragment>
+          ) : null}
+        </AnimatePresence>
+      </AlertDialogPortal>
+    );
+  }
+
+  return (
+    <AlertDialogPortal>
+      <AlertDialogOverlay />
+      <AlertDialogPrimitive.Content
+        ref={ref}
+        className={cn(ALERT_DIALOG_PANEL_BASE_CLASS, className)}
+        {...props}
+      >
+        {children}
+      </AlertDialogPrimitive.Content>
+    </AlertDialogPortal>
+  );
+});
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
 
 export const AlertDialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
