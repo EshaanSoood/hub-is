@@ -8,6 +8,8 @@ export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogPortal = DialogPrimitive.Portal;
 export const DialogClose = DialogPrimitive.Close;
+const DIALOG_PANEL_BASE_CLASS =
+  'dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft';
 
 export const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
@@ -37,7 +39,8 @@ export const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { layoutId?: string; animated?: boolean; open?: boolean }
 >(({ className, children, layoutId, animated = false, open, ...props }, ref) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
-  if (animated && typeof open === 'boolean') {
+  const canAnimateWithPresence = animated && typeof open === 'boolean';
+  if (canAnimateWithPresence) {
     return (
       <DialogPortal forceMount>
         <AnimatePresence>
@@ -52,10 +55,7 @@ export const DialogContent = React.forwardRef<
                   animate="animate"
                   exit="exit"
                   variants={dialogSurfaceVariants(prefersReducedMotion)}
-                  className={cn(
-                    'dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
-                    className,
-                  )}
+                  className={cn(DIALOG_PANEL_BASE_CLASS, className)}
                 >
                   {children}
                 </motion.div>
@@ -69,36 +69,14 @@ export const DialogContent = React.forwardRef<
 
   return (
     <DialogPortal>
-      <DialogOverlay animated={animated} />
-      {animated ? (
-        <DialogPrimitive.Content asChild {...props}>
-          <motion.div
-            ref={ref}
-            layoutId={!prefersReducedMotion ? layoutId : undefined}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={dialogSurfaceVariants(prefersReducedMotion)}
-            className={cn(
-              'dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
-              className,
-            )}
-          >
-            {children}
-          </motion.div>
-        </DialogPrimitive.Content>
-      ) : (
-        <DialogPrimitive.Content
-          ref={ref}
-          className={cn(
-            'dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
-            className,
-          )}
-          {...props}
-        >
-          {children}
-        </DialogPrimitive.Content>
-      )}
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(DIALOG_PANEL_BASE_CLASS, className)}
+        {...props}
+      >
+        {children}
+      </DialogPrimitive.Content>
     </DialogPortal>
   );
 });

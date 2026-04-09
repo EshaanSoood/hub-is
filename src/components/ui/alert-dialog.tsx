@@ -7,6 +7,8 @@ import { dialogSurfaceVariants, routeFadeVariants } from '../motion/hubMotion';
 export const AlertDialog = AlertDialogPrimitive.Root;
 export const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 export const AlertDialogPortal = AlertDialogPrimitive.Portal;
+const ALERT_DIALOG_PANEL_BASE_CLASS =
+  'alert-dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft';
 
 export const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
@@ -36,7 +38,8 @@ export const AlertDialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & { layoutId?: string; animated?: boolean; open?: boolean }
 >(({ className, layoutId, animated = false, open, children, ...props }, ref) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
-  if (animated && typeof open === 'boolean') {
+  const canAnimateWithPresence = animated && typeof open === 'boolean';
+  if (canAnimateWithPresence) {
     return (
       <AlertDialogPortal forceMount>
         <AnimatePresence>
@@ -51,10 +54,7 @@ export const AlertDialogContent = React.forwardRef<
                   animate="animate"
                   exit="exit"
                   variants={dialogSurfaceVariants(prefersReducedMotion)}
-                  className={cn(
-                    'alert-dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
-                    className,
-                  )}
+                  className={cn(ALERT_DIALOG_PANEL_BASE_CLASS, className)}
                 >
                   {children}
                 </motion.div>
@@ -68,36 +68,14 @@ export const AlertDialogContent = React.forwardRef<
 
   return (
     <AlertDialogPortal>
-      <AlertDialogOverlay animated={animated} />
-      {animated ? (
-        <AlertDialogPrimitive.Content asChild {...props}>
-          <motion.div
-            ref={ref}
-            layoutId={!prefersReducedMotion ? layoutId : undefined}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={dialogSurfaceVariants(prefersReducedMotion)}
-            className={cn(
-              'alert-dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
-              className,
-            )}
-          >
-            {children}
-          </motion.div>
-        </AlertDialogPrimitive.Content>
-      ) : (
-        <AlertDialogPrimitive.Content
-          ref={ref}
-          className={cn(
-            'alert-dialog-panel-size fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-subtle bg-elevated p-5 text-text shadow-soft',
-            className,
-          )}
-          {...props}
-        >
-          {children}
-        </AlertDialogPrimitive.Content>
-      )}
+      <AlertDialogOverlay />
+      <AlertDialogPrimitive.Content
+        ref={ref}
+        className={cn(ALERT_DIALOG_PANEL_BASE_CLASS, className)}
+        {...props}
+      >
+        {children}
+      </AlertDialogPrimitive.Content>
     </AlertDialogPortal>
   );
 });
