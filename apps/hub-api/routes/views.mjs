@@ -77,6 +77,7 @@ export const createViewRoutes = (deps) => {
     recordSummary,
     recordDetail,
     resolveProjectContentWriteGate,
+    resolveMutationContextPaneId,
     normalizeParticipants,
     findOrCreateEventsCollection,
     parseCursorOffset,
@@ -105,6 +106,7 @@ export const createViewRoutes = (deps) => {
     projectByIdStmt,
     timelineByProjectStmt,
     timelineRecord,
+    updateViewStmt,
   } = deps;
 
   const listViews = async ({ request, response, params }) => {
@@ -249,6 +251,63 @@ export const createViewRoutes = (deps) => {
             type: view.type,
             name: view.name,
             config: parseJsonObject(view.config, {}),
+          },
+        }),
+      ),
+    );
+  };
+
+  const updateView = async ({ request, response, requestUrl, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const viewId = params.viewId;
+    const view = viewByIdStmt.get(viewId);
+    if (!view) {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'View not found.')));
+      return;
+    }
+
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch (error) {
+      request.log.warn('Failed to parse request body for view update.', { error, viewId });
+      send(response, parseBody.errorResponse(error));
+      return;
+    }
+
+    const writeGate = resolveProjectContentWriteGate({
+      userId: auth.user.user_id,
+      projectId: view.project_id,
+      paneId: resolveMutationContextPaneId({ body, requestUrl }),
+    });
+    if (writeGate.error) {
+      send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
+      return;
+    }
+
+    const nextName = asText(body.name) || view.name;
+    const nextConfig = body.config !== undefined ? parseJsonObject(body.config, {}) : parseJsonObject(view.config, {});
+
+    updateViewStmt.run(nextName, toJson(nextConfig), nowIso(), viewId);
+    const updatedView = viewByIdStmt.get(viewId);
+
+    send(
+      response,
+      jsonResponse(
+        200,
+        okEnvelope({
+          view: {
+            view_id: updatedView.view_id,
+            project_id: updatedView.project_id,
+            collection_id: updatedView.collection_id,
+            type: updatedView.type,
+            name: updatedView.name,
+            config: parseJsonObject(updatedView.config, {}),
           },
         }),
       ),
@@ -611,5 +670,6 @@ export const createViewRoutes = (deps) => {
     listProjectTimeline,
     listViews,
     queryView,
+    updateView,
   };
 };

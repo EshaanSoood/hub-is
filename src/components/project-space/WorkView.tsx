@@ -93,13 +93,23 @@ const parseModules = (layoutConfig: Record<string, unknown> | null | undefined):
     const sizeTier = value.size_tier;
     const lens = value.lens;
     const rawBinding = value.binding;
-    const binding =
+    const binding: ContractModuleConfig['binding'] =
       rawBinding && typeof rawBinding === 'object' && !Array.isArray(rawBinding)
         ? {
             view_id:
               typeof (rawBinding as { view_id?: unknown }).view_id === 'string'
                 ? (rawBinding as { view_id: string }).view_id
                 : undefined,
+            owned_view_id:
+              typeof (rawBinding as { owned_view_id?: unknown }).owned_view_id === 'string'
+                ? (rawBinding as { owned_view_id: string }).owned_view_id
+                : undefined,
+            source_mode:
+              (rawBinding as { source_mode?: unknown }).source_mode === 'owned'
+                ? 'owned'
+                : (rawBinding as { source_mode?: unknown }).source_mode === 'linked'
+                  ? 'linked'
+                  : undefined,
           }
         : undefined;
 
@@ -126,7 +136,17 @@ const serializeModules = (modules: ContractModuleConfig[]): Array<Record<string,
     module_type: normalizeModuleType(module.module_type),
     size_tier: module.size_tier,
     lens: normalizeModuleLens(normalizeModuleType(module.module_type), module.lens),
-    ...(module.binding?.view_id ? { binding: { view_id: module.binding.view_id } } : {}),
+    ...(
+      module.binding?.view_id || module.binding?.owned_view_id || module.binding?.source_mode
+        ? {
+            binding: {
+              ...(module.binding?.view_id ? { view_id: module.binding.view_id } : {}),
+              ...(module.binding?.owned_view_id ? { owned_view_id: module.binding.owned_view_id } : {}),
+              ...(module.binding?.source_mode ? { source_mode: module.binding.source_mode } : {}),
+            },
+          }
+        : {}
+    ),
   }));
 
 const EMPTY_TABLE_CONTRACT: TableModuleContract = {
@@ -376,6 +396,7 @@ export const WorkView = ({
         module_type: normalizedModuleType,
         size_tier: clampModuleSizeTier(normalizedModuleType, sizeTier),
         lens: defaultModuleLens(normalizedModuleType),
+        binding: normalizedModuleType === 'kanban' ? { source_mode: 'owned' } : undefined,
       },
     ];
     void saveModules(nextModules);
@@ -410,12 +431,12 @@ export const WorkView = ({
     void saveModules(nextModules);
   };
 
-  const handleSetModuleBinding = (moduleInstanceId: string, viewId: string) => {
+  const handleSetModuleBinding = (moduleInstanceId: string, binding: ContractModuleConfig['binding']) => {
     const nextModules = modules.map((module) =>
       module.module_instance_id === moduleInstanceId
         ? {
             ...module,
-            binding: viewId ? { view_id: viewId } : undefined,
+            binding,
           }
         : module,
     );

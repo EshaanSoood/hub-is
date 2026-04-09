@@ -1,7 +1,8 @@
 import { queryView } from '../../services/hub/views';
-import type { HubCollectionField, HubRecordSummary } from '../../services/hub/types';
+import type { HubCollectionField, HubRecordSummary, HubView } from '../../services/hub/types';
 
 export const KANBAN_UNASSIGNED_ID = '__unassigned__';
+export const KANBAN_OWNED_VIEW_CONFIG_KEY = 'owned_by_module_instance_id';
 const MAX_VIEW_QUERY_PAGES = 250;
 
 export interface TableSchema {
@@ -24,6 +25,7 @@ export interface KanbanRuntimeState {
   groupingConfigured: boolean;
   groupingMessage: string;
   groupFieldId: string | null;
+  viewConfig: Record<string, unknown>;
   groupableFields?: Array<{ field_id: string; name: string }>;
   metadataFieldIds?: {
     priority?: string | null;
@@ -53,6 +55,7 @@ export const EMPTY_KANBAN_RUNTIME: KanbanRuntimeState = {
   groupingConfigured: false,
   groupingMessage: 'No kanban view found yet.',
   groupFieldId: null,
+  viewConfig: {},
   groupableFields: [],
   metadataFieldIds: {},
 };
@@ -125,10 +128,24 @@ const readOptionValues = (fieldConfig: Record<string, unknown> | undefined): Arr
   });
 };
 
+export const isKanbanGroupableField = (field: HubCollectionField): boolean => field.type === 'select';
+
+export const readOwnedKanbanModuleInstanceId = (config: Record<string, unknown> | null | undefined): string | null => {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return null;
+  }
+  const value = config[KANBAN_OWNED_VIEW_CONFIG_KEY];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+};
+
+export const isStandaloneKanbanView = (view: Pick<HubView, 'type' | 'config'>): boolean =>
+  view.type === 'kanban' && Boolean(readOwnedKanbanModuleInstanceId(view.config));
+
 const readGroupableFields = (
   schema: { fields: HubCollectionField[] } | null | undefined,
 ): Array<{ field_id: string; name: string }> =>
   (schema?.fields ?? [])
+    .filter((field) => isKanbanGroupableField(field))
     .map((field) => ({ field_id: field.field_id, name: field.name.trim() }))
     .filter((field) => field.name.length > 0);
 
@@ -168,17 +185,14 @@ export const buildKanbanRuntime = (query: ViewQueryResult): KanbanRuntimeState =
   if (!groupFieldId) {
     return {
       collectionId: query.view.collection_id ?? query.schema?.collection_id ?? null,
-      groups: [
-        {
-          id: KANBAN_UNASSIGNED_ID,
-          label: 'Ungrouped',
-          records: query.records,
-        },
-      ],
+      groups: [],
       groupOptions: [],
       groupingConfigured: false,
-      groupingMessage: 'No grouping field configured. Rendering all cards in a single ungrouped column.',
+      groupingMessage: groupableFields.length > 0
+        ? 'Choose a single-select field to turn this collection into a kanban board.'
+        : 'This collection has no single-select fields available for kanban grouping.',
       groupFieldId: null,
+      viewConfig: config,
       groupableFields,
       metadataFieldIds,
       wipLimits,
@@ -186,6 +200,22 @@ export const buildKanbanRuntime = (query: ViewQueryResult): KanbanRuntimeState =
   }
 
   const groupField = query.schema?.fields.find((field) => field.field_id === groupFieldId);
+  if (!groupField) {
+    return {
+      collectionId: query.view.collection_id ?? query.schema?.collection_id ?? null,
+      groups: [],
+      groupOptions: [],
+      groupingConfigured: false,
+      groupingMessage: groupableFields.length > 0
+        ? 'The configured grouping field is no longer available. Choose another single-select field.'
+        : 'This collection has no single-select fields available for kanban grouping.',
+      groupFieldId: null,
+      viewConfig: config,
+      groupableFields,
+      metadataFieldIds,
+      wipLimits,
+    };
+  }
   const configuredOptions = readOptionValues(groupField?.config);
   const optionLabelById = new Map(configuredOptions.map((option) => [option.id, option.label]));
 
@@ -232,6 +262,7 @@ export const buildKanbanRuntime = (query: ViewQueryResult): KanbanRuntimeState =
     groupingConfigured: true,
     groupingMessage: '',
     groupFieldId,
+    viewConfig: config,
     groupableFields,
     metadataFieldIds,
     wipLimits,

@@ -14,6 +14,8 @@ export interface ContractModuleConfig {
   lens: ContractModuleLens;
   binding?: {
     view_id?: string;
+    owned_view_id?: string;
+    source_mode?: 'owned' | 'linked';
   };
 }
 

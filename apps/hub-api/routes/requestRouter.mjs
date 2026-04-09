@@ -568,6 +568,18 @@ export const createRequestRouter = ({
       return;
     }
 
+    const viewItemMatch = pathMatch(pathname, /^\/api\/hub\/views\/([^/]+)$/);
+    if (viewItemMatch && request.method === 'PATCH') {
+      await viewRoutes.updateView({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { viewId: decodeURIComponent(viewItemMatch[1]) },
+      });
+      return;
+    }
+
     if (request.method === 'GET' && pathname === '/api/hub/calendar') {
       await viewRoutes.listPersonalCalendar({ request, response, requestUrl, pathname });
       return;

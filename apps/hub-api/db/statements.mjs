@@ -335,6 +335,11 @@ export const createStatements = (db) => ({
       INSERT INTO views (view_id, project_id, collection_id, type, name, config, created_by, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
+    update: db.prepare(`
+      UPDATE views
+      SET name = ?, config = ?, updated_at = ?
+      WHERE view_id = ?
+    `),
   },
   search: {},
   userSearch: {

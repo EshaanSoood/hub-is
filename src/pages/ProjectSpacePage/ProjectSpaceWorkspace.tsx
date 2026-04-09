@@ -26,6 +26,7 @@ import { useRecordInspector } from '../../hooks/useRecordInspector';
 import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { useTimelineRuntime } from '../../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../../hooks/useWorkspaceDocRuntime';
+import { isStandaloneKanbanView } from '../../hooks/projectViewsRuntime/shared';
 import { useFocusNodeQueryEffect } from './hooks/useFocusNodeQueryEffect';
 import { useOverviewViewFromSearchParams } from './hooks/useOverviewViewFromSearchParams';
 import { useOverviewViewQuerySyncEffect } from './hooks/useOverviewViewQuerySyncEffect';
@@ -132,6 +133,9 @@ const collectPaneTaskCollectionIds = (
   const viewById = new Map(availableViews.map((view) => [view.view_id, view]));
   const defaultViewByType = new Map<string, HubView>();
   for (const view of availableViews) {
+    if (view.type === 'kanban' && isStandaloneKanbanView(view)) {
+      continue;
+    }
     if (!defaultViewByType.has(view.type)) {
       defaultViewByType.set(view.type, view);
     }
@@ -155,7 +159,7 @@ const collectPaneTaskCollectionIds = (
         ? moduleConfig.binding.view_id
         : '';
     const resolvedView = (requestedViewId ? viewById.get(requestedViewId) : null) ?? defaultViewByType.get(moduleType) ?? null;
-    if (!resolvedView || collectionIds.includes(resolvedView.collection_id)) {
+    if (!resolvedView || (moduleType === 'kanban' && isStandaloneKanbanView(resolvedView)) || collectionIds.includes(resolvedView.collection_id)) {
       continue;
     }
     collectionIds.push(resolvedView.collection_id);
@@ -405,17 +409,20 @@ export const ProjectSpaceWorkspace = ({
     views,
     kanbanRuntimeDataByViewId,
     kanbanViews,
+    creatingKanbanViewByModuleId,
     focusedWorkView,
     focusedWorkViewData,
     focusedWorkViewError,
     focusedWorkViewId,
     focusedWorkViewLoading,
     onCreateKanbanRecord,
+    onConfigureKanbanGrouping,
     onCreateTableRecord,
     onDeleteKanbanRecord,
     onDeleteTableRecords,
     onBulkUpdateTableRecords,
     onMoveKanbanRecord,
+    onEnsureKanbanView,
     onUpdateKanbanRecord,
     onUpdateTableRecord,
     recordsError,
@@ -809,10 +816,13 @@ export const ProjectSpaceWorkspace = ({
     onBulkUpdateTableRecords,
     kanbanViews,
     kanbanRuntimeDataByViewId,
+    creatingKanbanViewByModuleId,
     onMoveKanbanRecord,
     onCreateKanbanRecord,
+    onConfigureKanbanGrouping,
     onUpdateKanbanRecord,
     onDeleteKanbanRecord,
+    onEnsureKanbanView,
     calendarEvents,
     calendarLoading,
     calendarMode,
@@ -1364,6 +1374,13 @@ export const ProjectSpaceWorkspace = ({
                             activePaneCanEdit
                               ? async (payload) => {
                                   await onCreateKanbanRecord(focusedWorkView.view_id, payload, activePane?.pane_id ?? null);
+                                }
+                              : undefined
+                          }
+                          onConfigureGrouping={
+                            activePaneCanEdit
+                              ? async (fieldId) => {
+                                  await onConfigureKanbanGrouping(focusedWorkView.view_id, fieldId, activePane?.pane_id ?? null);
                                 }
                               : undefined
                           }
