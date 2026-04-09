@@ -6,6 +6,7 @@ import {
   type HubPaneSummary,
   type HubProject,
   type HubProjectMember,
+  type HubView,
 } from '../../services/hub/types';
 import {
   buildPaneContextHref,
@@ -118,6 +119,50 @@ function readOverviewView(searchParams: URLSearchParams): OverviewSubView {
   }
   return 'timeline';
 }
+
+const collectPaneTaskCollectionIds = (
+  layoutConfig: Record<string, unknown> | null | undefined,
+  availableViews: HubView[],
+): string[] => {
+  if (!layoutConfig || typeof layoutConfig !== 'object' || Array.isArray(layoutConfig)) {
+    return [];
+  }
+
+  const rawModules = Array.isArray(layoutConfig.modules) ? layoutConfig.modules : [];
+  const viewById = new Map(availableViews.map((view) => [view.view_id, view]));
+  const defaultViewByType = new Map<string, HubView>();
+  for (const view of availableViews) {
+    if (!defaultViewByType.has(view.type)) {
+      defaultViewByType.set(view.type, view);
+    }
+  }
+
+  const collectionIds: string[] = [];
+  for (const candidate of rawModules) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      continue;
+    }
+
+    const moduleConfig = candidate as { module_type?: unknown; binding?: { view_id?: unknown } | null };
+    const moduleType = typeof moduleConfig.module_type === 'string' ? moduleConfig.module_type : '';
+    if (moduleType !== 'table' && moduleType !== 'kanban') {
+      continue;
+    }
+
+    const requestedViewId =
+      moduleConfig.binding && typeof moduleConfig.binding === 'object' && !Array.isArray(moduleConfig.binding)
+        && typeof moduleConfig.binding.view_id === 'string'
+        ? moduleConfig.binding.view_id
+        : '';
+    const resolvedView = (requestedViewId ? viewById.get(requestedViewId) : null) ?? defaultViewByType.get(moduleType) ?? null;
+    if (!resolvedView || collectionIds.includes(resolvedView.collection_id)) {
+      continue;
+    }
+    collectionIds.push(resolvedView.collection_id);
+  }
+
+  return collectionIds;
+};
 
 const relationFieldTargetCollectionId = (config: Record<string, unknown>): string | null => {
   const directTarget = config.target_collection_id;
@@ -708,6 +753,10 @@ export const ProjectSpaceWorkspace = ({
       workspaceEnabled,
     ],
   );
+  const paneTaskCollectionIds = useMemo(
+    () => collectPaneTaskCollectionIds(activePane?.layout_config, views),
+    [activePane?.layout_config, views],
+  );
   const paneTaskItems = useMemo(
     () =>
       adaptTaskSummaries(
@@ -727,7 +776,7 @@ export const ProjectSpaceWorkspace = ({
     searchParams,
     setSearchParams,
   });
-  const taskCollectionId = tasksOverviewRows[0]?.collection_id || null;
+  const taskCollectionId = paneTaskCollectionIds[0] || tasksOverviewRows[0]?.collection_id || null;
   const {
     tableContract,
     kanbanContract,

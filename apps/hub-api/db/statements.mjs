@@ -260,8 +260,20 @@ export const createStatements = (db) => ({
       LIMIT ?
     `),
     insert: db.prepare(`
-      INSERT INTO records (record_id, project_id, collection_id, title, created_by, created_at, updated_at, archived_at, parent_record_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)
+      INSERT INTO records (
+        record_id,
+        project_id,
+        collection_id,
+        title,
+        source_pane_id,
+        source_view_id,
+        created_by,
+        created_at,
+        updated_at,
+        archived_at,
+        parent_record_id
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
     `),
     update: db.prepare(`
       UPDATE records

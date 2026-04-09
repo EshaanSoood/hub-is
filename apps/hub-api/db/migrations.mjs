@@ -554,6 +554,9 @@ export const runMigrations = (db) => {
     }
   }
 
+  addColumnIfMissing('records', 'source_pane_id', 'TEXT REFERENCES panes(pane_id) ON DELETE SET NULL');
+  addColumnIfMissing('records', 'source_view_id', 'TEXT REFERENCES views(view_id) ON DELETE SET NULL');
+
   db.exec('BEGIN IMMEDIATE;');
   try {
     const taskStateDueAtColumn = db

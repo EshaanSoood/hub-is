@@ -310,7 +310,18 @@ export const createViewRoutes = (deps) => {
     const participantNotificationPayloads = [];
     try {
       withTransaction(() => {
-        insertRecordStmt.run(recordId, projectId, eventsCollection.collection_id, title, auth.user.user_id, timestamp, timestamp, null);
+        insertRecordStmt.run(
+          recordId,
+          projectId,
+          eventsCollection.collection_id,
+          title,
+          asText(validated.source_pane_id || validated.pane_id) || null,
+          null,
+          auth.user.user_id,
+          timestamp,
+          timestamp,
+          null,
+        );
         insertRecordCapabilityStmt.run(recordId, 'calendar_event', timestamp);
         upsertEventStateStmt.run(recordId, startDt, endDt, timezone, deps.asNullableText(validated.location || nlpFields.location), timestamp);
 

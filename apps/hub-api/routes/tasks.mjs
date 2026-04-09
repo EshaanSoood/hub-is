@@ -277,7 +277,7 @@ export const createTaskRoutes = (deps) => {
           insertCollectionStmt.run(collectionId, projectId, 'Tasks', null, null, timestamp, timestamp);
         }
 
-        insertRecordStmt.run(recordId, projectId, collectionId, title, auth.user.user_id, timestamp, timestamp, null);
+        insertRecordStmt.run(recordId, projectId, collectionId, title, null, null, auth.user.user_id, timestamp, timestamp, null);
         insertRecordCapabilityStmt.run(recordId, 'task', timestamp);
         upsertTaskStateStmt.run(
           recordId,

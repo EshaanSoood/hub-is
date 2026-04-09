@@ -343,7 +343,18 @@ export const createCollectionRoutes = (deps) => {
 
     try {
       withTransaction(() => {
-        insertRecordStmt.run(recordId, projectId, collectionId, title, auth.user.user_id, timestamp, timestamp, parentRecordId || null);
+        insertRecordStmt.run(
+          recordId,
+          projectId,
+          collectionId,
+          title,
+          asText(body.source_pane_id) || null,
+          asText(body.source_view_id) || null,
+          auth.user.user_id,
+          timestamp,
+          timestamp,
+          parentRecordId || null,
+        );
 
         const values = parseJsonObject(body.values, {});
         for (const [fieldId, value] of Object.entries(values)) {
@@ -846,7 +857,18 @@ export const createCollectionRoutes = (deps) => {
           }
 
           targetRecordId = newId('rec');
-          insertRecordStmt.run(targetRecordId, targetProjectId, targetCollectionId, title, auth.user.user_id, timestamp, timestamp, null);
+          insertRecordStmt.run(
+            targetRecordId,
+            targetProjectId,
+            targetCollectionId,
+            title,
+            null,
+            null,
+            auth.user.user_id,
+            timestamp,
+            timestamp,
+            null,
+          );
 
           if (mode === 'task') {
             insertRecordCapabilityStmt.run(targetRecordId, 'task', timestamp);

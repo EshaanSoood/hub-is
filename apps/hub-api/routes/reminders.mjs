@@ -231,9 +231,12 @@ export const createReminderRoutes = (deps) => {
           personalProject.project_id,
           collectionId,
           title,
+          null,
+          null,
           auth.user.user_id,
           timestamp,
           timestamp,
+          null,
         );
         insertRecordCapabilityStmt.run(recordId, 'remindable', timestamp);
         insertStandaloneReminderStmt.run(reminderId, recordId, remindAt, toJson(['in_app']), timestamp, recurrenceJson);

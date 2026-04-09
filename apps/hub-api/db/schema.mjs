@@ -254,6 +254,8 @@ const resetSchemaToContractV1 = (db) => {
         project_id TEXT NOT NULL,
         collection_id TEXT NOT NULL,
         title TEXT NOT NULL,
+        source_pane_id TEXT,
+        source_view_id TEXT,
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -261,6 +263,8 @@ const resetSchemaToContractV1 = (db) => {
         parent_record_id TEXT REFERENCES records(record_id),
         FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
         FOREIGN KEY(collection_id) REFERENCES collections(collection_id) ON DELETE CASCADE,
+        FOREIGN KEY(source_pane_id) REFERENCES panes(pane_id) ON DELETE SET NULL,
+        FOREIGN KEY(source_view_id) REFERENCES views(view_id) ON DELETE SET NULL,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
 

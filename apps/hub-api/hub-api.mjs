@@ -905,6 +905,9 @@ const recordDetail = (record) => {
     project_id: record.project_id,
     collection_id: record.collection_id,
     parent_record_id: record.parent_record_id || null,
+    origin_kind: record.source_pane_id ? 'pane' : 'project',
+    source_view_id: asNullableText(record.source_view_id),
+    source_pane: sourcePaneContextForRecord(record),
     subtask_count: subtaskCountByParentStmt.get(record.record_id)?.count ?? 0,
     title: record.title,
     schema,
@@ -1033,6 +1036,20 @@ const reassignTasksForRemovedMember = ({ projectId, removedUserId, nextOwnerUser
 const resolveMutationContextPaneId = ({ body = null, requestUrl = null }) =>
   asText(body?.mutation_context_pane_id) || asText(requestUrl?.searchParams?.get('mutation_context_pane_id'));
 
+const sourcePaneContextForRecord = (record) => {
+  const paneId = asNullableText(record?.source_pane_id);
+  if (!paneId) {
+    return null;
+  }
+  const pane = paneByIdStmt.get(paneId);
+  const doc = paneDocByPaneStmt.get(paneId);
+  return {
+    pane_id: paneId,
+    pane_name: asNullableText(pane?.name),
+    doc_id: asNullableText(doc?.doc_id),
+  };
+};
+
 const trackedFileRecord = (row) => {
   const metadata = parseJsonObject(row.metadata_json, {});
   const metadataPaneId = asNullableText(metadata.pane_id);
@@ -1111,9 +1128,9 @@ const buildProjectTaskSummary = (record) => {
       user_id: row.user_id,
       assigned_at: row.assigned_at,
     })),
-    origin_kind: 'project',
-    source_view_id: null,
-    source_pane: null,
+    origin_kind: record.source_pane_id ? 'pane' : 'project',
+    source_view_id: asNullableText(record.source_view_id),
+    source_pane: sourcePaneContextForRecord(record),
   };
 };
 
@@ -1186,7 +1203,7 @@ const createPersonalTaskRecord = ({
   const normalizedCategory = asNullableText(category);
   const fields = taskFieldMapForCollection(collectionId);
 
-  insertRecordStmt.run(recordId, projectId, collectionId, title, userId, timestampCreatedAt, timestampUpdatedAt, null);
+  insertRecordStmt.run(recordId, projectId, collectionId, title, null, null, userId, timestampCreatedAt, timestampUpdatedAt, null);
   insertRecordCapabilityStmt.run(recordId, 'task', timestampCreatedAt);
   upsertTaskStateStmt.run(
     recordId,
@@ -1403,7 +1420,7 @@ const buildHomeEventSummary = (record) => {
       role: row.role,
       added_at: row.added_at,
     })),
-    source_pane: null,
+    source_pane: sourcePaneContextForRecord(record),
   };
 };
 
