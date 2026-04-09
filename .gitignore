@@ -25,6 +25,7 @@ id_ed25519.pub
 working files/
 accessibility testing/
 bug audit/
+.local/
 *.zip
 *.tar.gz
 
@@ -35,15 +36,20 @@ e2e/.auth/
 e2e/E2E_FULL_REPORT.md
 e2e/module-verification/
 e2e/project-verification/
-e2e/user-journey-verification/report.json
-e2e/user-journey-verification/run-user-journey.sh
 e2e/user-journey-verification/runs/
+e2e/user-journey-verification/screenshots/
+e2e/user-journey-verification/test-results/
 e2e/user-journey-verification/test-results-local-baseline/
+e2e/user-journey-verification/.seed-context.json
+e2e/user-journey-verification/report.json
+e2e/user-journey-verification/network-coverage.json
+e2e/user-journey-verification/network-coverage.md
+e2e/user-journey-verification/motion-report.json
+e2e/user-journey-verification/visual-evaluation-*.json
+e2e/user-journey-verification/run-user-journey.sh
+e2e/user-journey-verification/e2e/user-journey-verification/
 ed.hup
 playwright-results/
 .playwright/
 .artifacts/
 artifacts/table-overflow-check/
-
-# Local machine state
-.local/

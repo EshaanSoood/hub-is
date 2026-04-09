@@ -219,8 +219,21 @@ const run = async () => {
       member_user_ids: [meB.user.user_id],
     },
   });
-  if (!requireSuccess('3. Project member can create pane', createPaneByBResponse, 201)) {
+  if (!requireErrorEnvelope('3. Project member cannot create pane', createPaneByBResponse, 403)) {
     failed = true;
+    return;
+  }
+
+  const createPaneByAResponse = await requestJson({
+    method: 'POST',
+    path: `/api/hub/projects/${encodeURIComponent(projectId)}/panes`,
+    token: tokenA,
+    body: {
+      name: 'Owner Project Pane',
+      member_user_ids: [meA.user.user_id],
+    },
+  });
+  if (!requireSuccess('Bootstrap owner pane', createPaneByAResponse, 201)) {
     return;
   }
 
@@ -260,21 +273,27 @@ const run = async () => {
     path: `/api/hub/docs/${encodeURIComponent(targetPane.doc_id)}`,
     token: tokenB,
   });
-  const deniedDocPass = requireErrorEnvelope('4. Non-pane-member cannot access doc snapshot', deniedDocResponse, 403);
-  if (!deniedDocPass) {
+  const nonPaneDoc = requireSuccess('4. Project member can access doc snapshot without pane edit rights', deniedDocResponse, 200);
+  if (!nonPaneDoc?.doc?.doc_id) {
     failed = true;
   }
 
   const deniedCollabAuth = await requestCollabAuthorization({ docId: targetPane.doc_id, token: tokenB });
-  const deniedCollabAuthPass = requireErrorEnvelope(
-    '5a. Non-pane-member cannot obtain collab ticket',
+  const nonPaneCollabAuth = requireSuccess(
+    '5a. Project member can obtain collab ticket without pane edit rights',
     deniedCollabAuth,
-    403,
+    200,
+  );
+  const nonPaneCollabReadOnly = Boolean(nonPaneCollabAuth?.authorization?.can_edit === false);
+  recordResult(
+    '5a2. Non-pane-member collab ticket is read-only',
+    nonPaneCollabReadOnly,
+    `can_edit=${String(nonPaneCollabAuth?.authorization?.can_edit)}`,
   );
   const forgedTicket = `wst_forged_${Date.now()}`;
   const wsDenied = await waitForWsDenied({ docId: targetPane.doc_id, wsTicket: forgedTicket });
   recordResult('5b. Non-pane-member cannot join collab room', wsDenied, wsDenied ? 'join denied' : 'unexpected room join');
-  if (!deniedCollabAuthPass || !wsDenied) {
+  if (!nonPaneCollabAuth || !nonPaneCollabReadOnly || !wsDenied) {
     failed = true;
   }
 
@@ -560,8 +579,8 @@ const run = async () => {
     failed = true;
   }
 
-  const envelopeCasePass = isErrorEnvelope(tamperedMe.payload) && isErrorEnvelope(deniedDocResponse.payload);
-  recordResult('8. Envelope correctness on failures', envelopeCasePass, 'checked tampered-token and denied-doc responses');
+  const envelopeCasePass = isErrorEnvelope(tamperedMe.payload) && isErrorEnvelope(createPaneByBResponse.payload);
+  recordResult('8. Envelope correctness on failures', envelopeCasePass, 'checked tampered-token and denied-pane-create responses');
   if (!envelopeCasePass) {
     failed = true;
   }
@@ -1052,8 +1071,8 @@ const run = async () => {
     path: `/api/hub/docs/${encodeURIComponent(docId)}`,
     token: tokenB,
   });
-  const viewRefDocGatePass = requireErrorEnvelope('13f. Non-pane-member remains blocked from ViewRef doc snapshot', deniedDocViewRef, 403);
-  if (!viewRefDocGatePass) {
+  const viewRefDocGatePass = requireSuccess('13f. Project member can read ViewRef doc snapshot without pane edit rights', deniedDocViewRef, 200);
+  if (!viewRefDocGatePass?.doc?.doc_id) {
     failed = true;
   }
 };

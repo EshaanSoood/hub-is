@@ -15,6 +15,7 @@ export default tseslint.config(
       'docs',
       'playwright-report',
       'test-results',
+      'e2e/user-journey-verification/runs/**',
       'e2e/scripts/**',
     ],
   },

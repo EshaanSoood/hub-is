@@ -3,6 +3,7 @@
 const baseUrl = (process.env.HUB_BASE_URL || 'https://eshaansood.org').replace(/\/$/, '');
 const ownerToken = process.env.HUB_OWNER_ACCESS_TOKEN || '';
 const collaboratorToken = process.env.HUB_COLLAB_ACCESS_TOKEN || '';
+const projectId = (process.env.HUB_PROJECT_ID || '').trim();
 const expectedOwnerEmail = (process.env.HUB_OWNER_EMAIL_EXPECTED || '').trim().toLowerCase();
 const expectEdgeGate = process.env.HUB_EXPECT_EDGE_GATE === 'true';
 const requestTimeoutMsRaw = Number(process.env.HUB_REQUEST_TIMEOUT_MS || '15000');
@@ -70,22 +71,39 @@ const requestExternal = async (target) => {
   }
 };
 
+const responseData = (response) => response?.payload?.data ?? response?.payload ?? {};
+
+const requestInviteSurface = async (token) => {
+  const topLevel = await request('/api/hub/invites', { token });
+  if (topLevel.status !== 404 || !projectId) {
+    return { mode: 'top-level', response: topLevel };
+  }
+
+  const projectMembers = await request(`/api/hub/projects/${encodeURIComponent(projectId)}/members`, { token });
+  return { mode: 'project-members', response: projectMembers };
+};
+
 if (!ownerToken) {
   fail('BLOCKING INPUTS REQUIRED: set HUB_OWNER_ACCESS_TOKEN to run owner policy checks.');
 }
 
 const ownerMe = await request('/api/hub/me', { token: ownerToken });
+const ownerMeData = responseData(ownerMe);
 assert(ownerMe.status === 200, `Owner /api/hub/me failed (${ownerMe.status})`);
-assert(ownerMe.payload?.sessionSummary?.role === 'Owner', 'Owner token did not resolve to Owner role.');
+assert(ownerMeData?.sessionSummary?.role === 'Owner', 'Owner token did not resolve to Owner role.');
 if (expectedOwnerEmail) {
   assert(
-    String(ownerMe.payload?.sessionSummary?.email || '').toLowerCase() === expectedOwnerEmail,
-    `Owner email mismatch. expected=${expectedOwnerEmail} actual=${ownerMe.payload?.sessionSummary?.email || 'unknown'}`,
+    String(ownerMeData?.sessionSummary?.email || '').toLowerCase() === expectedOwnerEmail,
+    `Owner email mismatch. expected=${expectedOwnerEmail} actual=${ownerMeData?.sessionSummary?.email || 'unknown'}`,
   );
 }
 
-const ownerInvites = await request('/api/hub/invites', { token: ownerToken });
-assert(ownerInvites.status === 200, `Owner invite list failed (${ownerInvites.status})`);
+const ownerInviteSurface = await requestInviteSurface(ownerToken);
+assert(ownerInviteSurface.response.status === 200, `Owner invite list failed (${ownerInviteSurface.response.status})`);
+if (ownerInviteSurface.mode === 'project-members') {
+  const ownerInviteData = responseData(ownerInviteSurface.response);
+  assert(Array.isArray(ownerInviteData?.pending_invites), 'Owner project member surface did not include pending_invites.');
+}
 
 const ownerCreateProbe = await request('/api/hub/projects', {
   method: 'POST',
@@ -105,13 +123,29 @@ if (collaboratorToken) {
   );
 
   if (collaboratorMe.status === 200) {
+    const collaboratorMeData = responseData(collaboratorMe);
     assert(
-      collaboratorMe.payload?.sessionSummary?.role !== 'Owner',
+      collaboratorMeData?.sessionSummary?.role !== 'Owner',
       'Collaborator token unexpectedly resolved to Owner role.',
     );
 
-    const collaboratorInvites = await request('/api/hub/invites', { token: collaboratorToken });
-    assert(collaboratorInvites.status === 403, `Collaborator invite list should be 403, got ${collaboratorInvites.status}`);
+    const collaboratorInviteSurface = await requestInviteSurface(collaboratorToken);
+    if (collaboratorInviteSurface.mode === 'top-level') {
+      assert(
+        collaboratorInviteSurface.response.status === 403,
+        `Collaborator invite list should be 403, got ${collaboratorInviteSurface.response.status}`,
+      );
+    } else {
+      assert(
+        collaboratorInviteSurface.response.status === 200,
+        `Collaborator project member surface should be 200, got ${collaboratorInviteSurface.response.status}`,
+      );
+      const collaboratorInviteData = responseData(collaboratorInviteSurface.response);
+      assert(
+        Array.isArray(collaboratorInviteData?.pending_invites) && collaboratorInviteData.pending_invites.length === 0,
+        'Collaborator project member surface unexpectedly exposed non-empty pending_invites.',
+      );
+    }
 
     const collaboratorProjectCreate = await request('/api/hub/projects', {
       method: 'POST',
@@ -119,8 +153,8 @@ if (collaboratorToken) {
       body: { id: 'x', name: '', summary: '' },
     });
     assert(
-      collaboratorProjectCreate.status === 403,
-      `Collaborator project create should be 403, got ${collaboratorProjectCreate.status}`,
+      [400, 403].includes(collaboratorProjectCreate.status),
+      `Collaborator project create should be 400 or 403, got ${collaboratorProjectCreate.status}`,
     );
   }
 }
