@@ -125,10 +125,10 @@ export const KanbanCard = ({
 }: KanbanCardProps) => {
   const editable = !readOnly && typeof onUpdateRecord === 'function';
   const deletable = !readOnly && typeof onDeleteRecord === 'function';
+  const showColumnSelector = canMove && !readOnly;
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const wasEditingRef = useRef(false);
-  const [moveExpanded, setMoveExpanded] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -509,25 +509,44 @@ export const KanbanCard = ({
               aria-label={`Open record: ${record.title}`}
             >
               <span className="line-clamp-2 block text-sm font-bold text-text">{record.title}</span>
-              <span className="mt-2 flex items-center gap-2">
-                {priority ? (
-                  <span
-                    className={cn('inline-block h-2 w-2 rounded-full', getPriorityClasses(priority).dot)}
-                    aria-label={`Priority: ${priority}`}
-                  />
-                ) : null}
-                {draft.assignee ? (
-                  <span
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border-muted bg-surface text-[10px] font-medium text-text-secondary"
-                    aria-label={draft.assignee}
-                    title={draft.assignee}
-                  >
-                    {draft.assignee.slice(0, 1).toUpperCase()}
-                  </span>
-                ) : null}
-                {dueDateLabel ? <span className="truncate text-[11px] text-text-secondary">{dueDateLabel}</span> : null}
-              </span>
             </button>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {priority ? (
+                <span
+                  className={cn('inline-block h-2 w-2 rounded-full', getPriorityClasses(priority).dot)}
+                  aria-label={`Priority: ${priority}`}
+                />
+              ) : null}
+              {draft.assignee ? (
+                <span
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border-muted bg-surface text-[10px] font-medium text-text-secondary"
+                  aria-label={draft.assignee}
+                  title={draft.assignee}
+                >
+                  {draft.assignee.slice(0, 1).toUpperCase()}
+                </span>
+              ) : null}
+              {dueDateLabel ? <span className="truncate text-[11px] text-text-secondary">{dueDateLabel}</span> : null}
+              {showColumnSelector ? (
+                <select
+                  value={currentGroupValue}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onTouchStart={(event) => event.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
+                  onChange={(event) => onMoveRecord(record.record_id, event.target.value)}
+                  className="w-full rounded-control border border-border-muted bg-surface px-1.5 py-0.5 text-[11px] text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring sm:ml-auto sm:w-auto sm:max-w-[11rem]"
+                  aria-label={`Column for ${record.title}`}
+                >
+                  <option value="">Unassigned</option>
+                  {groupOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+            </div>
 
             <div className="absolute right-0 top-0 flex items-start gap-1">
               {editable ? (
@@ -536,10 +555,7 @@ export const KanbanCard = ({
                   variant="ghost"
                   size="sm"
                   className="opacity-100 transition-opacity md:opacity-0 md:group-hover/card:opacity-100 md:group-focus-within/card:opacity-100"
-                  onClick={() => {
-                    setMoveExpanded(false);
-                    onStartEditing(record.record_id);
-                  }}
+                  onClick={() => onStartEditing(record.record_id)}
                 >
                   <Icon name="edit" className="h-3.5 w-3.5" />
                 </IconButton>
@@ -554,7 +570,6 @@ export const KanbanCard = ({
                   onClick={() => {
                     setShowDeleteConfirm(true);
                     setDeleteError(null);
-                    setMoveExpanded(false);
                   }}
                 >
                   <Icon name="trash" className="h-3.5 w-3.5" />
@@ -621,40 +636,6 @@ export const KanbanCard = ({
           </button>
         ) : null}
       </div>
-
-      {canMove ? (
-        <div className="mt-2 space-y-2">
-          <button
-            type="button"
-            onClick={() => setMoveExpanded((current) => !current)}
-            className="rounded-control px-1 py-0.5 text-[11px] font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          >
-            Move
-          </button>
-          {moveExpanded ? (
-            <label className="block text-[11px] text-muted">
-              <span className="sr-only">{`Move ${record.title}`}</span>
-              <select
-                value={currentGroupValue}
-                onClick={(event) => event.stopPropagation()}
-                onChange={(event) => {
-                  onMoveRecord(record.record_id, event.target.value);
-                  setMoveExpanded(false);
-                }}
-                className="w-full rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                aria-label={`Move ${record.title}`}
-              >
-                <option value="">Unassigned</option>
-                {groupOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 };
