@@ -35,8 +35,15 @@ e2e/.auth/
 e2e/E2E_FULL_REPORT.md
 e2e/module-verification/
 e2e/project-verification/
+e2e/user-journey-verification/report.json
+e2e/user-journey-verification/run-user-journey.sh
+e2e/user-journey-verification/runs/
+e2e/user-journey-verification/test-results-local-baseline/
 ed.hup
 playwright-results/
 .playwright/
 .artifacts/
 artifacts/table-overflow-check/
+
+# Local machine state
+.local/
