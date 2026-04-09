@@ -531,6 +531,8 @@ export const KanbanCard = ({
               {showColumnSelector ? (
                 <select
                   value={currentGroupValue}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onTouchStart={(event) => event.stopPropagation()}
                   onClick={(event) => event.stopPropagation()}
                   onChange={(event) => onMoveRecord(record.record_id, event.target.value)}
                   className="w-full rounded-control border border-border-muted bg-surface px-1.5 py-0.5 text-[11px] text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring sm:ml-auto sm:w-auto sm:max-w-[11rem]"

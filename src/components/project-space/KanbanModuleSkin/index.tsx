@@ -175,7 +175,10 @@ export const KanbanModuleSkin = ({
         const destinationGroupId = getGroupIdFromOverId(over ? String(over.id) : null);
         clearDragTracking(recordId);
 
-        if (!destinationGroupId || destinationGroupId === sourceGroupId) {
+        if (!destinationGroupId) {
+          return `Drag of ${getRecordTitle(recordId)} was cancelled. Returned to ${getColumnLabel(sourceGroupId)}.`;
+        }
+        if (destinationGroupId === sourceGroupId) {
           return undefined;
         }
 
