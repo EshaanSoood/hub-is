@@ -140,7 +140,7 @@ const verifyPersistenceOnPage = async (
     kanbanTitle: string;
     calendarTitle: string;
     taskTitle: string;
-    reminderToken: string;
+    reminderTokens: string[];
     quickThoughtToken: string;
     docToken: string;
     fileName: string;
@@ -150,7 +150,9 @@ const verifyPersistenceOnPage = async (
   await expect(page.getByText(expected.kanbanTitle).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await expectCalendarEventVisible(page, expected.calendarTitle);
   await expect(page.getByText(expected.taskTitle).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await expect(page.getByText(new RegExp(escapeRegExp(expected.reminderToken), 'i')).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  for (const reminderToken of expected.reminderTokens) {
+    await expect(page.getByText(new RegExp(escapeRegExp(reminderToken), 'i')).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  }
   await expect(page.getByText(new RegExp(escapeRegExp(expected.quickThoughtToken), 'i')).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await expect(page.getByLabel('Project note editor')).toContainText(expected.docToken, { timeout: LIVE_TIMEOUT_MS });
   await expect(page.getByText(expected.fileName).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
@@ -215,10 +217,12 @@ const withFreshContext = async (
   if (!browser) {
     throw new Error('Browser handle unavailable for persistence context creation.');
   }
+  const use = testInfo.project.use ?? {};
   const storageState = await browserContext.storageState();
   return browser.newContext({
+    baseURL: typeof use.baseURL === 'string' ? use.baseURL : undefined,
     storageState,
-    viewport: testInfo.project.use?.viewport,
+    viewport: use.viewport,
   });
 };
 
@@ -376,12 +380,16 @@ test.describe('User Journey Verification', () => {
     await createTaskButton.click();
     await expect(page.getByText(taskTitle).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
-    const taskToggleButton = tasksModule.getByRole('button', {
-      name: new RegExp(`^Mark ${escapeRegExp(taskTitle)} as`, 'i'),
+    const markInProgressButton = tasksModule.getByRole('button', {
+      name: new RegExp(`^Mark ${escapeRegExp(taskTitle)} as in progress$`, 'i'),
     }).first();
-    await expect(taskToggleButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-    await taskToggleButton.click();
-    await expect(taskToggleButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await expect(markInProgressButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await markInProgressButton.click();
+    await expect(
+      tasksModule.getByRole('button', {
+        name: new RegExp(`^Mark ${escapeRegExp(taskTitle)} as done$`, 'i'),
+      }).first(),
+    ).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await captureCheckpoint({ page, scenario, phase: 'tasks', state: 'post_submit', viewport });
 
     const reminderTokenA = withRunTag(context, `${scenario}-reminder-a`);
@@ -454,7 +462,7 @@ test.describe('User Journey Verification', () => {
       kanbanTitle,
       calendarTitle,
       taskTitle,
-      reminderToken: reminderTokenA,
+      reminderTokens: [reminderTokenA, reminderTokenB],
       quickThoughtToken,
       docToken,
       fileName: uploadFileName,
@@ -473,7 +481,7 @@ test.describe('User Journey Verification', () => {
         kanbanTitle,
         calendarTitle,
         taskTitle,
-        reminderToken: reminderTokenA,
+        reminderTokens: [reminderTokenA, reminderTokenB],
         quickThoughtToken,
         docToken,
         fileName: uploadFileName,
@@ -490,7 +498,7 @@ test.describe('User Journey Verification', () => {
           kanbanTitle,
           calendarTitle,
           taskTitle,
-          reminderToken: reminderTokenA,
+          reminderTokens: [reminderTokenA, reminderTokenB],
           quickThoughtToken,
           docToken,
           fileName: uploadFileName,
