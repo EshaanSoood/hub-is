@@ -508,6 +508,8 @@ export const createStatements = (db) => ({
     `),
     claimFired: db.prepare('UPDATE reminders SET fired_at = ? WHERE reminder_id = ? AND fired_at IS NULL'),
     listForUser: db.prepare(`
+      -- Parameter order: user_id, scope, personal_project_id, scope, project_id, pane_id, pane_id.
+      -- pane_id is bound twice to support (? = '' OR rec.source_pane_id = ?).
       SELECT r.*, rec.title AS record_title, rec.project_id
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id

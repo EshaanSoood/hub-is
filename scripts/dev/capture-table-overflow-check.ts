@@ -54,18 +54,33 @@ const hubRequest = async <T>(
     ...init,
     headers,
   });
-  const payload = (await response.json().catch(() => null)) as
+  const responseText = await response.text();
+  let payload = null as
     | { ok?: boolean; data?: T | null; error?: { message?: string } | null }
     | T
     | null;
+  try {
+    payload = responseText
+      ? (JSON.parse(responseText) as
+          | { ok?: boolean; data?: T | null; error?: { message?: string } | null }
+          | T
+          | null)
+      : null;
+  } catch {
+    payload = null;
+  }
 
   if (!response.ok || !payload) {
-    throw new Error(`Request failed for ${requestPath} (${response.status}).`);
+    const detail = payload && typeof payload === 'object' && 'error' in payload
+      ? payload.error?.message || responseText
+      : responseText;
+    throw new Error(`Request failed for ${requestPath} (${response.status})${detail ? `: ${detail}` : ''}.`);
   }
 
   if (typeof payload === 'object' && payload !== null && 'ok' in payload) {
     if (!payload.ok || payload.data === null || payload.data === undefined) {
-      throw new Error(payload.error?.message || `Request failed for ${requestPath} (${response.status}).`);
+      const detail = payload.error?.message || responseText;
+      throw new Error(`Request failed for ${requestPath} (${response.status})${detail ? `: ${detail}` : ''}.`);
     }
     return payload.data as T;
   }

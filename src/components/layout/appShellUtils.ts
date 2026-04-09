@@ -304,7 +304,7 @@ export const buildSearchResultHref = (result: HubSearchResult): string | null =>
 export const priorityBorderColor = (priority: string | null | undefined): string => {
   switch (priority) {
     case 'high':
-      return 'var(--color-danger)';
+      return 'var(--color-priority-high)';
     case 'medium':
       return 'var(--color-priority-medium)';
     case 'low':

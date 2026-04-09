@@ -291,18 +291,28 @@ export const validateCreateReminderRequest = (body) => {
     }
     request.scope = body.scope;
   }
+  const effectiveScope = request.scope || 'personal';
 
   const projectId = asOptionalString(body.project_id, 'project_id');
+  const paneId = asOptionalString(body.pane_id, 'pane_id');
+  const hasSourceViewId = typeof body.source_view_id !== 'undefined';
+
+  if (effectiveScope !== 'project' && (projectId || paneId || hasSourceViewId)) {
+    throw new Error('project_id, pane_id, and source_view_id are only allowed when scope is "project".');
+  }
+  if (effectiveScope === 'project' && !projectId) {
+    throw new Error('project_id is required when scope is "project".');
+  }
+
   if (projectId) {
     request.project_id = projectId;
   }
 
-  const paneId = asOptionalString(body.pane_id, 'pane_id');
   if (paneId) {
     request.pane_id = paneId;
   }
 
-  if (typeof body.source_view_id !== 'undefined') {
+  if (hasSourceViewId) {
     request.source_view_id = body.source_view_id === null ? null : asOptionalString(body.source_view_id, 'source_view_id') ?? null;
   }
 

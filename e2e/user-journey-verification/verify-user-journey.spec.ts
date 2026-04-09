@@ -296,6 +296,9 @@ test.describe('User Journey Verification', () => {
     await expect(columnSelect).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     const currentValue = await columnSelect.inputValue();
     const targetValue = await columnSelect.evaluate((node) => {
+      if (!(node instanceof HTMLSelectElement)) {
+        return node.getAttribute('value') || '';
+      }
       const options = Array.from(node.options).map((option) => option.value).filter(Boolean);
       return options.find((value) => value !== node.value) || node.value;
     });

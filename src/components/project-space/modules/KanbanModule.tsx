@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import type { ContractModuleConfig } from '../ModuleGrid';
 import { ModuleEmptyState, ModuleLoadingState } from '../ModuleFeedback';
 import type { KanbanModuleContract } from '../moduleContracts';
@@ -55,6 +55,37 @@ export const KanbanModule = ({
   const deleteRecord = canEditPane && selectedViewId ? contract.onDeleteRecord : undefined;
   const canEnsureView = canEditPane && typeof contract.onEnsureView === 'function';
   const needsStandaloneBoard = !selectedViewId && (isOwnedMode || contract.views.length === 0);
+  const acquireAutoEnsureLock = useCallback(() => {
+    if (isCreatingView || autoEnsureAttemptedRef.current) {
+      return false;
+    }
+    autoEnsureAttemptedRef.current = true;
+    return true;
+  }, [isCreatingView]);
+  const handleEnsureView = useCallback(async () => {
+    if (!contract.onEnsureView || !acquireAutoEnsureLock()) {
+      return;
+    }
+
+    setSetupError(null);
+    try {
+      const viewId = await contract.onEnsureView(module.module_instance_id, ownedViewId);
+      if (viewId) {
+        onSetModuleBinding(module.module_instance_id, {
+          ...module.binding,
+          source_mode: 'owned',
+          owned_view_id: viewId,
+          view_id: viewId,
+        });
+        return;
+      }
+      setSetupError('Unable to create a kanban view for this project.');
+      autoEnsureAttemptedRef.current = false;
+    } catch (error) {
+      setSetupError(error instanceof Error ? error.message : 'Failed to create a kanban view.');
+      autoEnsureAttemptedRef.current = false;
+    }
+  }, [acquireAutoEnsureLock, contract, module, onSetModuleBinding, ownedViewId]);
 
   useEffect(() => {
     if (!needsStandaloneBoard) {
@@ -62,31 +93,13 @@ export const KanbanModule = ({
       return;
     }
 
-    if (!canEnsureView || !contract.onEnsureView || isCreatingView || autoEnsureAttemptedRef.current) {
+    if (!canEnsureView) {
       return;
     }
-
-    autoEnsureAttemptedRef.current = true;
-    void contract.onEnsureView(module.module_instance_id, ownedViewId)
-      .then((viewId) => {
-        if (viewId) {
-          setSetupError(null);
-          onSetModuleBinding(module.module_instance_id, {
-            ...module.binding,
-            source_mode: 'owned',
-            owned_view_id: viewId,
-            view_id: viewId,
-          });
-          return;
-        }
-        setSetupError('Unable to create a kanban view for this project.');
-        autoEnsureAttemptedRef.current = false;
-      })
-      .catch((error) => {
-        setSetupError(error instanceof Error ? error.message : 'Failed to create a kanban view.');
-        autoEnsureAttemptedRef.current = false;
-      });
-  }, [canEnsureView, contract, isCreatingView, module, needsStandaloneBoard, onSetModuleBinding, ownedViewId]);
+    queueMicrotask(() => {
+      void handleEnsureView();
+    });
+  }, [canEnsureView, handleEnsureView, needsStandaloneBoard]);
 
   if (needsStandaloneBoard) {
     if (isCreatingView) {
@@ -100,35 +113,7 @@ export const KanbanModule = ({
           iconName="kanban"
           description={canEditPane ? 'Create a starter kanban board for this pane.' : 'Open an editable pane to create a kanban board.'}
           ctaLabel={canEnsureView ? 'Create kanban view' : undefined}
-          onCta={
-            canEnsureView
-              ? () => {
-                  if (!contract.onEnsureView) {
-                    return;
-                  }
-                  setSetupError(null);
-                  autoEnsureAttemptedRef.current = true;
-                  void contract.onEnsureView(module.module_instance_id, ownedViewId)
-                    .then((viewId) => {
-                      if (viewId) {
-                        onSetModuleBinding(module.module_instance_id, {
-                          ...module.binding,
-                          source_mode: 'owned',
-                          owned_view_id: viewId,
-                          view_id: viewId,
-                        });
-                        return;
-                      }
-                      setSetupError('Unable to create a kanban view for this project.');
-                      autoEnsureAttemptedRef.current = false;
-                    })
-                    .catch((error) => {
-                      setSetupError(error instanceof Error ? error.message : 'Failed to create a kanban view.');
-                      autoEnsureAttemptedRef.current = false;
-                    });
-                }
-              : undefined
-          }
+          onCta={canEnsureView ? () => { void handleEnsureView(); } : undefined}
           sizeTier={module.size_tier}
         />
         {setupError ? <p className="text-xs text-danger">{setupError}</p> : null}

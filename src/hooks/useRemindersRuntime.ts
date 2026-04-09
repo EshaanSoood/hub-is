@@ -59,16 +59,22 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       }
       return;
     }
+    if (reminderScope === 'project' && !projectId) {
+      if (mountedRef.current && sequence === refreshSequenceRef.current) {
+        setReminders([]);
+        setLoading(false);
+        setError('Project reminders are unavailable without a project id.');
+      }
+      return;
+    }
 
     setLoading(true);
     setError(null);
     try {
-      const data = await listReminders(
-        accessToken,
-        reminderScope === 'project'
-          ? { scope: 'project', projectId, paneId }
-          : undefined,
-      );
+      const reminderOptions: ListRemindersOptions | undefined = reminderScope === 'project' && projectId
+        ? { scope: 'project', projectId, paneId }
+        : undefined;
+      const data = await listReminders(accessToken, reminderOptions);
       if (mountedRef.current && sequence === refreshSequenceRef.current) {
         setReminders(data);
       }
@@ -154,19 +160,22 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
     if (!accessToken) {
       return;
     }
+    if (reminderScope === 'project' && !projectId) {
+      setError('Project reminders are unavailable without a project id.');
+      return;
+    }
 
-    await createReminder(
-      accessToken,
-      reminderScope === 'project'
-        ? {
-            ...payload,
-            scope: 'project',
-            project_id: projectId,
-            ...(paneId ? { pane_id: paneId } : {}),
-            ...(sourceViewId ? { source_view_id: sourceViewId } : {}),
-          }
-        : payload,
-    );
+    const requestPayload = reminderScope === 'project'
+      ? {
+          ...payload,
+          scope: 'project' as const,
+          project_id: projectId,
+          ...(paneId ? { pane_id: paneId } : {}),
+          ...(sourceViewId ? { source_view_id: sourceViewId } : {}),
+        }
+      : payload;
+
+    await createReminder(accessToken, requestPayload);
     await refresh();
   }, [accessToken, paneId, projectId, refresh, reminderScope, sourceViewId]);
 

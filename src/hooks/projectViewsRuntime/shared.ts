@@ -200,7 +200,7 @@ export const buildKanbanRuntime = (query: ViewQueryResult): KanbanRuntimeState =
   }
 
   const groupField = query.schema?.fields.find((field) => field.field_id === groupFieldId);
-  if (!groupField) {
+  if (!groupField || !isKanbanGroupableField(groupField)) {
     return {
       collectionId: query.view.collection_id ?? query.schema?.collection_id ?? null,
       groups: [],

@@ -9,11 +9,15 @@ import type {
 
 export type HubReminderSummary = ReminderSummary;
 export type CreateReminderPayload = CreateReminderRequest;
-export interface ListRemindersOptions {
-  scope?: ReminderScope;
-  projectId?: string;
-  paneId?: string | null;
-}
+export type ListRemindersOptions =
+  | {
+      scope?: Exclude<ReminderScope, 'project'>;
+    }
+  | {
+      scope: 'project';
+      projectId: string;
+      paneId?: string | null;
+    };
 export type UpdateReminderPayload = {
   remind_at?: string;
   recurrence_json?: CreateReminderRequest['recurrence_json'] | null;
@@ -23,9 +27,7 @@ export const listReminders = async (accessToken: string, options?: ListReminders
   const params = new URLSearchParams();
   if (options?.scope === 'project') {
     params.set('scope', 'project');
-    if (options.projectId) {
-      params.set('project_id', options.projectId);
-    }
+    params.set('project_id', options.projectId);
     if (options.paneId) {
       params.set('pane_id', options.paneId);
     }

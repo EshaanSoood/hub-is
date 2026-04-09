@@ -119,6 +119,7 @@ export const createReminderRoutes = (deps) => {
       }
     }
 
+    // Keep this argument order aligned with statements.mjs:listForUser, including the duplicated paneId binding.
     const rows = listRemindersForUserStmt.all(auth.user.user_id, scope, personalProject.project_id, scope, projectId, paneId, paneId);
     request.log.debug('Reminder listing query completed.', { durationMs: elapsedMs(listQueryStartedAt) });
     const now = nowIso();

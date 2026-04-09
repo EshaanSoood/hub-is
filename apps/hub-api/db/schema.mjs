@@ -656,6 +656,8 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_panes_project_sort ON panes(project_id, sort_order);
       CREATE UNIQUE INDEX idx_docs_pane_unique ON docs(pane_id);
       CREATE INDEX idx_records_project_collection_updated ON records(project_id, collection_id, updated_at DESC);
+      CREATE INDEX idx_records_project_source_pane ON records(project_id, source_pane_id);
+      CREATE INDEX idx_records_project_source_view ON records(project_id, source_view_id);
       CREATE INDEX IF NOT EXISTS idx_records_parent ON records(parent_record_id);
       CREATE INDEX idx_record_values_field_record ON record_values(field_id, record_id);
       CREATE INDEX idx_record_values_record_field ON record_values(record_id, field_id);

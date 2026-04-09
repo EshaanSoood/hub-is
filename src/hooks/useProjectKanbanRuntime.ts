@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefO
 
 import { createCollection, createCollectionField } from '../services/hub/collections';
 import { archiveRecord, createRecord, listTimeline, setRecordValues, updateRecord } from '../services/hub/records';
-import { createView, updateView } from '../services/hub/views';
+import { createView, listViews, updateView } from '../services/hub/views';
 import type { HubPaneSummary, HubView } from '../services/hub/types';
 import {
   EMPTY_KANBAN_RUNTIME,
@@ -296,6 +296,10 @@ export const useProjectKanbanRuntime = ({
         setRecordsError('Cannot configure kanban grouping: view is unavailable.');
         return;
       }
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before configuring kanban grouping.');
+      if (!mutationPane) {
+        return;
+      }
 
       try {
         await updateView(accessToken, viewId, {
@@ -303,14 +307,14 @@ export const useProjectKanbanRuntime = ({
             ...(existingView?.config ?? runtime?.viewConfig ?? {}),
             group_by_field_id: fieldId,
           },
-          mutation_context_pane_id: mutationPaneId,
+          mutation_context_pane_id: mutationPane.pane_id,
         });
         await refreshViewsAndRecordsRef.current();
       } catch (error) {
         setRecordsError(error instanceof Error ? error.message : 'Failed to configure kanban grouping.');
       }
     },
-    [accessToken, kanbanRuntimeByViewId, refreshViewsAndRecordsRef, setRecordsError, views],
+    [accessToken, kanbanRuntimeByViewId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, views],
   );
 
   const onEnsureKanbanView = useCallback(
@@ -319,8 +323,12 @@ export const useProjectKanbanRuntime = ({
       if (pending) {
         return pending;
       }
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before creating a kanban board.');
+      if (!mutationPane) {
+        throw new Error('Open an editable pane before creating a kanban board.');
+      }
 
-      const paneName = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId)?.name.trim() || '' : '';
+      const paneName = mutationPane.name.trim();
       const boardName = paneName ? `${paneName} Board` : 'Kanban Board';
       const findOwnedView = (candidateViews: HubView[]) => {
         if (ownedViewId) {
@@ -339,6 +347,12 @@ export const useProjectKanbanRuntime = ({
           if (existingView) {
             await refreshViewsAndRecordsRef.current();
             return existingView.view_id;
+          }
+          const latestViews = await listViews(accessToken, projectId);
+          const latestExistingView = findOwnedView(latestViews);
+          if (latestExistingView) {
+            await refreshViewsAndRecordsRef.current();
+            return latestExistingView.view_id;
           }
 
           const createdCollection = await createCollection(accessToken, projectId, {
@@ -387,7 +401,7 @@ export const useProjectKanbanRuntime = ({
               due_date_field_id: dueDateField.field_id,
               [KANBAN_OWNED_VIEW_CONFIG_KEY]: moduleInstanceId,
             },
-            mutation_context_pane_id: mutationPaneId,
+            mutation_context_pane_id: mutationPane.pane_id,
           });
           await refreshViewsAndRecordsRef.current();
           return createdView.view_id;
@@ -400,7 +414,7 @@ export const useProjectKanbanRuntime = ({
       ensureKanbanViewRef.current.set(moduleInstanceId, ensurePromise);
       return ensurePromise;
     },
-    [accessToken, panes, projectId, refreshViewsAndRecordsRef, setCreatingKanbanView, views],
+    [accessToken, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setCreatingKanbanView, views],
   );
 
   const kanbanRuntimeDataByViewId = useMemo(
