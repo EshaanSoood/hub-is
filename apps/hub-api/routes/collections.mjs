@@ -84,6 +84,7 @@ export const createCollectionRoutes = (deps) => {
     mentionsCountByTargetStmt,
     mentionsByTargetStmt,
     personalProjectByUserStmt,
+    viewByIdStmt,
   } = deps;
 
   const captureConversionModes = new Set(['thought', 'task']);
@@ -333,9 +334,18 @@ export const createCollectionRoutes = (deps) => {
     const recordId = newId('rec');
     const title = asText(body.title) || 'Untitled Record';
     const timestamp = nowIso();
+    const sourcePaneId = asText(body.source_pane_id) || null;
+    let sourceViewId = asText(body.source_view_id) || null;
+    if (sourceViewId) {
+      const sourceView = viewByIdStmt.get(sourceViewId);
+      if (!sourceView || sourceView.project_id !== projectId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'source_view_id must belong to project.')));
+        return;
+      }
+    }
     const notificationContext = buildNotificationRouteContext({
       projectId,
-      sourcePaneId: body.source_pane_id,
+      sourcePaneId,
       sourceDocId: body.source_doc_id,
       sourceNodeKey: body.source_node_key,
     });
@@ -343,7 +353,18 @@ export const createCollectionRoutes = (deps) => {
 
     try {
       withTransaction(() => {
-        insertRecordStmt.run(recordId, projectId, collectionId, title, auth.user.user_id, timestamp, timestamp, parentRecordId || null);
+        insertRecordStmt.run(
+          recordId,
+          projectId,
+          collectionId,
+          title,
+          sourcePaneId,
+          sourceViewId,
+          auth.user.user_id,
+          timestamp,
+          timestamp,
+          parentRecordId || null,
+        );
 
         const values = parseJsonObject(body.values, {});
         for (const [fieldId, value] of Object.entries(values)) {
@@ -732,7 +753,8 @@ export const createCollectionRoutes = (deps) => {
     }
 
     const personalProjectId = personalProjectIdForUser(auth.user.user_id);
-    const subtasks = subtasksByParentStmt.all(recordId).map((row) => buildTaskSummaryForUser(row, personalProjectId));
+    const sourcePaneContextCache = new Map();
+    const subtasks = subtasksByParentStmt.all(recordId).map((row) => buildTaskSummaryForUser(row, personalProjectId, sourcePaneContextCache));
 
     send(response, jsonResponse(200, okEnvelope({ subtasks })));
   };
@@ -846,7 +868,20 @@ export const createCollectionRoutes = (deps) => {
           }
 
           targetRecordId = newId('rec');
-          insertRecordStmt.run(targetRecordId, targetProjectId, targetCollectionId, title, auth.user.user_id, timestamp, timestamp, null);
+          const nextSourcePaneId = targetProjectId === sourceRecord.project_id ? sourceRecord.source_pane_id || null : null;
+          const nextSourceViewId = targetProjectId === sourceRecord.project_id ? sourceRecord.source_view_id || null : null;
+          insertRecordStmt.run(
+            targetRecordId,
+            targetProjectId,
+            targetCollectionId,
+            title,
+            nextSourcePaneId,
+            nextSourceViewId,
+            auth.user.user_id,
+            timestamp,
+            timestamp,
+            null,
+          );
 
           if (mode === 'task') {
             insertRecordCapabilityStmt.run(targetRecordId, 'task', timestamp);

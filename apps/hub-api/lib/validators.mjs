@@ -285,6 +285,37 @@ export const validateCreateReminderRequest = (body) => {
     request.recurrence_json = body.recurrence_json === null ? null : validateReminderRecurrence(body.recurrence_json);
   }
 
+  if (typeof body.scope !== 'undefined') {
+    if (body.scope !== 'personal' && body.scope !== 'project') {
+      throw new Error('scope must be either "personal" or "project" when provided.');
+    }
+    request.scope = body.scope;
+  }
+  const effectiveScope = request.scope || 'personal';
+
+  const projectId = asOptionalString(body.project_id, 'project_id');
+  const paneId = asOptionalString(body.pane_id, 'pane_id');
+  const hasSourceViewId = typeof body.source_view_id !== 'undefined';
+
+  if (effectiveScope !== 'project' && (projectId || paneId || hasSourceViewId)) {
+    throw new Error('project_id, pane_id, and source_view_id are only allowed when scope is "project".');
+  }
+  if (effectiveScope === 'project' && !projectId) {
+    throw new Error('project_id is required when scope is "project".');
+  }
+
+  if (projectId) {
+    request.project_id = projectId;
+  }
+
+  if (paneId) {
+    request.pane_id = paneId;
+  }
+
+  if (hasSourceViewId) {
+    request.source_view_id = body.source_view_id === null ? null : asOptionalString(body.source_view_id, 'source_view_id') ?? null;
+  }
+
   return request;
 };
 

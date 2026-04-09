@@ -50,6 +50,12 @@ type CreateKanbanRecord = (
   sourcePaneId: string | null,
 ) => Promise<void>;
 
+type ConfigureKanbanGrouping = (
+  viewId: string,
+  fieldId: string,
+  sourcePaneId: string | null,
+) => Promise<void>;
+
 type UpdateKanbanRecord = (
   viewId: string,
   recordId: string,
@@ -58,6 +64,7 @@ type UpdateKanbanRecord = (
 ) => Promise<void>;
 
 type DeleteKanbanRecord = (recordId: string, sourcePaneId: string | null) => Promise<void>;
+type EnsureKanbanView = (moduleInstanceId: string, ownedViewId: string | null | undefined, sourcePaneId: string | null) => Promise<string | null>;
 
 interface UseWorkViewModuleRuntimeParams {
   activePaneId: string | null;
@@ -76,10 +83,13 @@ interface UseWorkViewModuleRuntimeParams {
 
   kanbanViews: KanbanModuleContract['views'];
   kanbanRuntimeDataByViewId: KanbanModuleContract['dataByViewId'];
+  creatingKanbanViewByModuleId: Record<string, boolean>;
   onMoveKanbanRecord: MoveKanbanRecord;
   onCreateKanbanRecord: CreateKanbanRecord;
+  onConfigureKanbanGrouping: ConfigureKanbanGrouping;
   onUpdateKanbanRecord: UpdateKanbanRecord;
   onDeleteKanbanRecord: DeleteKanbanRecord;
+  onEnsureKanbanView: EnsureKanbanView;
 
   calendarEvents: CalendarModuleContract['events'];
   calendarLoading: boolean;
@@ -126,10 +136,13 @@ export const useWorkViewModuleRuntime = ({
   onBulkUpdateTableRecords,
   kanbanViews,
   kanbanRuntimeDataByViewId,
+  creatingKanbanViewByModuleId,
   onMoveKanbanRecord,
   onCreateKanbanRecord,
+  onConfigureKanbanGrouping,
   onUpdateKanbanRecord,
   onDeleteKanbanRecord,
+  onEnsureKanbanView,
   calendarEvents,
   calendarLoading,
   calendarMode,
@@ -178,12 +191,17 @@ export const useWorkViewModuleRuntime = ({
         views: kanbanViews,
         defaultViewId: kanbanViews[0]?.view_id || null,
         dataByViewId: kanbanRuntimeDataByViewId,
+        creatingViewByModuleId: creatingKanbanViewByModuleId,
         onCreateRecord: async (viewId, payload) => {
           await onCreateKanbanRecord(viewId, payload, activePaneId);
+        },
+        onConfigureGrouping: async (viewId, fieldId) => {
+          await onConfigureKanbanGrouping(viewId, fieldId, activePaneId);
         },
         onDeleteRecord: async (_viewId, recordId) => {
           await onDeleteKanbanRecord(recordId, activePaneId);
         },
+        onEnsureView: async (moduleInstanceId, ownedViewId) => onEnsureKanbanView(moduleInstanceId, ownedViewId, activePaneId),
         onMoveRecord: (viewId, recordId, nextGroup) => {
           void onMoveKanbanRecord(viewId, recordId, nextGroup, activePaneId);
         },
@@ -352,8 +370,11 @@ export const useWorkViewModuleRuntime = ({
       activePaneId,
       kanbanViews,
       kanbanRuntimeDataByViewId,
+      creatingKanbanViewByModuleId,
       onCreateKanbanRecord,
+      onConfigureKanbanGrouping,
       onDeleteKanbanRecord,
+      onEnsureKanbanView,
       onMoveKanbanRecord,
       onUpdateKanbanRecord,
       calendarEvents,

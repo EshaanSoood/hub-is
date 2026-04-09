@@ -13,7 +13,7 @@ interface Props {
   contract: TableModuleContract;
   canEditPane: boolean;
   onOpenRecord?: (recordId: string) => void;
-  onSetModuleBinding: (moduleInstanceId: string, viewId: string) => void;
+  onSetModuleBinding: (moduleInstanceId: string, binding: ContractModuleConfig['binding']) => void;
 }
 
 const resolveBoundViewId = (
@@ -50,7 +50,10 @@ export const TableModule = ({
           <select
             value={selectedViewId || ''}
             disabled={!canEditPane}
-            onChange={(event) => onSetModuleBinding(module.module_instance_id, event.target.value)}
+            onChange={(event) => onSetModuleBinding(
+              module.module_instance_id,
+              event.target.value ? { view_id: event.target.value } : undefined,
+            )}
             className="mt-1 w-full rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs text-text"
           >
             {contract.views.map((view) => (

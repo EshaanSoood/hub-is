@@ -77,6 +77,9 @@ export const usePaneMutations = ({
                 module_type: 'kanban',
                 size_tier: 'L',
                 lens: 'project',
+                binding: {
+                  source_mode: 'owned',
+                },
               },
               {
                 module_type: 'calendar',

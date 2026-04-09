@@ -1,6 +1,6 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import type { ContractModuleConfig } from '../ModuleGrid';
-import { ModuleLoadingState } from '../ModuleFeedback';
+import { ModuleEmptyState, ModuleLoadingState } from '../ModuleFeedback';
 import type { KanbanModuleContract } from '../moduleContracts';
 
 const KanbanModuleSkin = lazy(async () => {
@@ -13,7 +13,7 @@ interface Props {
   contract: KanbanModuleContract;
   canEditPane: boolean;
   onOpenRecord?: (recordId: string) => void;
-  onSetModuleBinding: (moduleInstanceId: string, viewId: string) => void;
+  onSetModuleBinding: (moduleInstanceId: string, binding: ContractModuleConfig['binding']) => void;
 }
 
 const resolveBoundViewId = (
@@ -25,6 +25,13 @@ const resolveBoundViewId = (
   if (requested && views.some((view) => view.view_id === requested)) {
     return requested;
   }
+  const ownedViewId = module.binding?.owned_view_id;
+  if (ownedViewId && views.some((view) => view.view_id === ownedViewId)) {
+    return ownedViewId;
+  }
+  if (module.binding?.source_mode === 'owned') {
+    return null;
+  }
   return defaultViewId;
 };
 
@@ -35,12 +42,84 @@ export const KanbanModule = ({
   onOpenRecord,
   onSetModuleBinding,
 }: Props) => {
+  const autoEnsureAttemptedRef = useRef(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const isOwnedMode = module.binding?.source_mode === 'owned';
+  const ownedViewId = module.binding?.owned_view_id ?? null;
+  const isCreatingView = Boolean(contract.creatingViewByModuleId?.[module.module_instance_id]);
   const selectedViewId = resolveBoundViewId(module, contract.views, contract.defaultViewId);
   const viewData = selectedViewId ? contract.dataByViewId[selectedViewId] : undefined;
   const createRecord = canEditPane && selectedViewId ? contract.onCreateRecord : undefined;
   const configureGrouping = canEditPane && selectedViewId ? contract.onConfigureGrouping : undefined;
   const updateRecord = canEditPane && selectedViewId ? contract.onUpdateRecord : undefined;
   const deleteRecord = canEditPane && selectedViewId ? contract.onDeleteRecord : undefined;
+  const canEnsureView = canEditPane && typeof contract.onEnsureView === 'function';
+  const needsStandaloneBoard = !selectedViewId && (isOwnedMode || contract.views.length === 0);
+  const acquireAutoEnsureLock = useCallback(() => {
+    if (isCreatingView || autoEnsureAttemptedRef.current) {
+      return false;
+    }
+    autoEnsureAttemptedRef.current = true;
+    return true;
+  }, [isCreatingView]);
+  const handleEnsureView = useCallback(async () => {
+    if (!contract.onEnsureView || !acquireAutoEnsureLock()) {
+      return;
+    }
+
+    setSetupError(null);
+    try {
+      const viewId = await contract.onEnsureView(module.module_instance_id, ownedViewId);
+      if (viewId) {
+        onSetModuleBinding(module.module_instance_id, {
+          ...module.binding,
+          source_mode: 'owned',
+          owned_view_id: viewId,
+          view_id: viewId,
+        });
+        return;
+      }
+      setSetupError('Unable to create a kanban view for this project.');
+      autoEnsureAttemptedRef.current = false;
+    } catch (error) {
+      setSetupError(error instanceof Error ? error.message : 'Failed to create a kanban view.');
+      autoEnsureAttemptedRef.current = false;
+    }
+  }, [acquireAutoEnsureLock, contract, module, onSetModuleBinding, ownedViewId]);
+
+  useEffect(() => {
+    if (!needsStandaloneBoard) {
+      autoEnsureAttemptedRef.current = false;
+      return;
+    }
+
+    if (!canEnsureView) {
+      return;
+    }
+    queueMicrotask(() => {
+      void handleEnsureView();
+    });
+  }, [canEnsureView, handleEnsureView, needsStandaloneBoard]);
+
+  if (needsStandaloneBoard) {
+    if (isCreatingView) {
+      return <ModuleLoadingState label="Preparing kanban module" visibleLabel="Preparing kanban board" rows={4} />;
+    }
+
+    return (
+      <div className="space-y-3">
+        <ModuleEmptyState
+          title="No kanban view found yet."
+          iconName="kanban"
+          description={canEditPane ? 'Create a starter kanban board for this pane.' : 'Open an editable pane to create a kanban board.'}
+          ctaLabel={canEnsureView ? 'Create kanban view' : undefined}
+          onCta={canEnsureView ? () => { void handleEnsureView(); } : undefined}
+          sizeTier={module.size_tier}
+        />
+        {setupError ? <p className="text-xs text-danger">{setupError}</p> : null}
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
@@ -50,7 +129,10 @@ export const KanbanModule = ({
           <select
             value={selectedViewId || ''}
             disabled={!canEditPane}
-            onChange={(event) => onSetModuleBinding(module.module_instance_id, event.target.value)}
+            onChange={(event) => onSetModuleBinding(module.module_instance_id, {
+              ...module.binding,
+              view_id: event.target.value,
+            })}
             className="mt-1 w-full rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs text-text"
           >
             {contract.views.map((view) => (

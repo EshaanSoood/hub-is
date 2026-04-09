@@ -1,12 +1,16 @@
-import { useCallback, useMemo, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 
+import { createCollection, createCollectionField } from '../services/hub/collections';
 import { archiveRecord, createRecord, listTimeline, setRecordValues, updateRecord } from '../services/hub/records';
+import { createView, listViews, updateView } from '../services/hub/views';
 import type { HubPaneSummary, HubView } from '../services/hub/types';
 import {
   EMPTY_KANBAN_RUNTIME,
+  KANBAN_OWNED_VIEW_CONFIG_KEY,
   KANBAN_UNASSIGNED_ID,
   buildKanbanRuntime,
   loadCompleteViewQuery,
+  readOwnedKanbanModuleInstanceId,
   type KanbanRuntimeState,
   type ProjectTimelineItem,
 } from './projectViewsRuntime/shared';
@@ -15,6 +19,7 @@ interface UseProjectKanbanRuntimeParams {
   accessToken: string;
   projectId: string;
   panes: HubPaneSummary[];
+  views: HubView[];
   sessionUserId: string;
   setTimeline: Dispatch<SetStateAction<ProjectTimelineItem[]>>;
   paneCanEditForUser: (pane: HubPaneSummary | null | undefined, userId: string) => boolean;
@@ -26,6 +31,7 @@ export const useProjectKanbanRuntime = ({
   accessToken,
   projectId,
   panes,
+  views,
   sessionUserId,
   setTimeline,
   paneCanEditForUser,
@@ -34,6 +40,22 @@ export const useProjectKanbanRuntime = ({
 }: UseProjectKanbanRuntimeParams) => {
   const [kanbanRuntimeByViewId, setKanbanRuntimeByViewId] = useState<Record<string, KanbanRuntimeState>>({});
   const [kanbanLoading, setKanbanLoading] = useState(false);
+  const [creatingKanbanViewByModuleId, setCreatingKanbanViewByModuleId] = useState<Record<string, boolean>>({});
+  const ensureKanbanViewRef = useRef(new Map<string, Promise<string | null>>());
+
+  const setCreatingKanbanView = useCallback((moduleInstanceId: string, creating: boolean) => {
+    setCreatingKanbanViewByModuleId((current) => {
+      if (creating) {
+        return { ...current, [moduleInstanceId]: true };
+      }
+      if (!current[moduleInstanceId]) {
+        return current;
+      }
+      const next = { ...current };
+      delete next[moduleInstanceId];
+      return next;
+    });
+  }, []);
 
   const refreshKanbanRuntime = useCallback(
     async (nextViews: HubView[]) => {
@@ -76,6 +98,8 @@ export const useProjectKanbanRuntime = ({
   const clearKanbanRuntime = useCallback(() => {
     setKanbanRuntimeByViewId({});
     setKanbanLoading(false);
+    setCreatingKanbanViewByModuleId({});
+    ensureKanbanViewRef.current.clear();
   }, []);
 
   const resolveEditableMutationPane = useCallback(
@@ -264,6 +288,135 @@ export const useProjectKanbanRuntime = ({
     [accessToken, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
   );
 
+  const onConfigureKanbanGrouping = useCallback(
+    async (viewId: string, fieldId: string, mutationPaneId: string | null) => {
+      const runtime = kanbanRuntimeByViewId[viewId];
+      const existingView = views.find((view) => view.view_id === viewId) || null;
+      if (!runtime && !existingView) {
+        setRecordsError('Cannot configure kanban grouping: view is unavailable.');
+        return;
+      }
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before configuring kanban grouping.');
+      if (!mutationPane) {
+        return;
+      }
+
+      try {
+        await updateView(accessToken, viewId, {
+          config: {
+            ...(existingView?.config ?? runtime?.viewConfig ?? {}),
+            group_by_field_id: fieldId,
+          },
+          mutation_context_pane_id: mutationPane.pane_id,
+        });
+        await refreshViewsAndRecordsRef.current();
+      } catch (error) {
+        setRecordsError(error instanceof Error ? error.message : 'Failed to configure kanban grouping.');
+      }
+    },
+    [accessToken, kanbanRuntimeByViewId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, views],
+  );
+
+  const onEnsureKanbanView = useCallback(
+    async (moduleInstanceId: string, ownedViewId: string | null | undefined, mutationPaneId: string | null): Promise<string | null> => {
+      const pending = ensureKanbanViewRef.current.get(moduleInstanceId);
+      if (pending) {
+        return pending;
+      }
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before creating a kanban board.');
+      if (!mutationPane) {
+        throw new Error('Open an editable pane before creating a kanban board.');
+      }
+
+      const paneName = mutationPane.name.trim();
+      const boardName = paneName ? `${paneName} Board` : 'Kanban Board';
+      const findOwnedView = (candidateViews: HubView[]) => {
+        if (ownedViewId) {
+          const matchedById = candidateViews.find((view) => view.view_id === ownedViewId && view.type === 'kanban') || null;
+          if (matchedById) {
+            return matchedById;
+          }
+        }
+        return candidateViews.find((view) => readOwnedKanbanModuleInstanceId(view.config) === moduleInstanceId) || null;
+      };
+
+      const ensurePromise = (async () => {
+        setCreatingKanbanView(moduleInstanceId, true);
+        try {
+          const existingView = findOwnedView(views);
+          if (existingView) {
+            await refreshViewsAndRecordsRef.current();
+            return existingView.view_id;
+          }
+          const latestViews = await listViews(accessToken, projectId);
+          const latestExistingView = findOwnedView(latestViews);
+          if (latestExistingView) {
+            await refreshViewsAndRecordsRef.current();
+            return latestExistingView.view_id;
+          }
+
+          const createdCollection = await createCollection(accessToken, projectId, {
+            name: boardName,
+          });
+
+          const statusField = await createCollectionField(accessToken, createdCollection.collection_id, {
+            name: 'Status',
+            type: 'select',
+            sort_order: 0,
+            config: {
+              required: true,
+              options: [
+                { value: 'backlog', label: 'Backlog' },
+                { value: 'in_progress', label: 'In Progress' },
+                { value: 'done', label: 'Done' },
+              ],
+            },
+          });
+          const priorityField = await createCollectionField(accessToken, createdCollection.collection_id, {
+            name: 'Priority',
+            type: 'select',
+            sort_order: 1,
+            config: {
+              options: [
+                { value: 'low', label: 'Low' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'high', label: 'High' },
+              ],
+            },
+          });
+          const dueDateField = await createCollectionField(accessToken, createdCollection.collection_id, {
+            name: 'Due date',
+            type: 'date',
+            sort_order: 2,
+            config: {},
+          });
+
+          const createdView = await createView(accessToken, projectId, {
+            collection_id: createdCollection.collection_id,
+            type: 'kanban',
+            name: boardName,
+            config: {
+              group_by_field_id: statusField.field_id,
+              priority_field_id: priorityField.field_id,
+              due_date_field_id: dueDateField.field_id,
+              [KANBAN_OWNED_VIEW_CONFIG_KEY]: moduleInstanceId,
+            },
+            mutation_context_pane_id: mutationPane.pane_id,
+          });
+          await refreshViewsAndRecordsRef.current();
+          return createdView.view_id;
+        } finally {
+          ensureKanbanViewRef.current.delete(moduleInstanceId);
+          setCreatingKanbanView(moduleInstanceId, false);
+        }
+      })();
+
+      ensureKanbanViewRef.current.set(moduleInstanceId, ensurePromise);
+      return ensurePromise;
+    },
+    [accessToken, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setCreatingKanbanView, views],
+  );
+
   const kanbanRuntimeDataByViewId = useMemo(
     () =>
       Object.fromEntries(
@@ -281,12 +434,15 @@ export const useProjectKanbanRuntime = ({
   return {
     kanbanRuntimeByViewId,
     kanbanLoading,
+    creatingKanbanViewByModuleId,
     refreshKanbanRuntime,
     clearKanbanRuntime,
     onMoveKanbanRecord,
     onCreateKanbanRecord,
+    onConfigureKanbanGrouping,
     onUpdateKanbanRecord,
     onDeleteKanbanRecord,
+    onEnsureKanbanView,
     kanbanRuntimeDataByViewId,
   };
 };

@@ -230,12 +230,24 @@ export const KanbanModuleSkin = ({
 
   if (groups.length === 0) {
     if (!groupableFields?.length) {
-      return <ModuleEmptyState title="No kanban grouping configured yet." iconName="kanban" description="Can You Kanban?" sizeTier={sizeTier} />;
+      return (
+        <ModuleEmptyState
+          title="No kanban grouping field is available yet."
+          iconName="kanban"
+          description={groupingStatusMessage}
+          sizeTier={sizeTier}
+        />
+      );
     }
 
     return (
       <div className="space-y-3">
-        <ModuleEmptyState title="No kanban grouping configured yet." iconName="kanban" description="Can You Kanban?" sizeTier={sizeTier} />
+        <ModuleEmptyState
+          title="No kanban grouping configured yet."
+          iconName="kanban"
+          description={groupingStatusMessage}
+          sizeTier={sizeTier}
+        />
         <div className="mx-auto max-w-sm">
           <label className="block text-sm text-text">
             Group by field

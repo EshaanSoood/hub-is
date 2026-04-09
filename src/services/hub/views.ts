@@ -12,10 +12,31 @@ export const listViews = async (accessToken: string, projectId: string): Promise
 export const createView = async (
   accessToken: string,
   projectId: string,
-  payload: { collection_id: string; type: string; name: string; config?: Record<string, unknown> },
+  payload: {
+    collection_id: string;
+    type: string;
+    name: string;
+    config?: Record<string, unknown>;
+    mutation_context_pane_id?: string | null;
+  },
 ): Promise<{ view_id: string }> => {
   return hubRequest<{ view_id: string }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/views`, {
     method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateView = async (
+  accessToken: string,
+  viewId: string,
+  payload: {
+    name?: string;
+    config?: Record<string, unknown>;
+    mutation_context_pane_id?: string | null;
+  },
+): Promise<{ view: HubView }> => {
+  return hubRequest<{ view: HubView }>(accessToken, `/api/hub/views/${encodeURIComponent(viewId)}`, {
+    method: 'PATCH',
     body: JSON.stringify(payload),
   });
 };

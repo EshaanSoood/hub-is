@@ -64,6 +64,7 @@ export const createTaskRoutes = (deps) => {
   const listVisibleProjectTasksForUser = ({ userId, projectId = '' }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
     const personalProjectId = personalProjectIdForUser(userId);
+    const sourcePaneContextCache = new Map();
     const tasks = [];
     for (const visibleProjectId of visibleProjectIds) {
       if (projectId && visibleProjectId !== projectId) {
@@ -71,7 +72,7 @@ export const createTaskRoutes = (deps) => {
       }
       const records = visibleProjectTasksStmt.all(visibleProjectId);
       for (const record of records) {
-        tasks.push(buildTaskSummaryForUser(record, personalProjectId));
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
       }
     }
     return tasks.sort(compareTasksByUpdatedAt);
@@ -93,6 +94,7 @@ export const createTaskRoutes = (deps) => {
 
   const listAssignedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
     const personalProjectId = personalProjectIdForUser(userId);
+    const sourcePaneContextCache = new Map();
     const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
     const assignedRecordIds = new Set(
       assignedTasksStmt
@@ -107,7 +109,7 @@ export const createTaskRoutes = (deps) => {
         if (!assignedRecordIds.has(record.record_id)) {
           continue;
         }
-        tasks.push(buildTaskSummaryForUser(record, personalProjectId));
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
       }
     }
     return tasks.sort(compareTasksByUpdatedAt);
@@ -115,6 +117,7 @@ export const createTaskRoutes = (deps) => {
 
   const listCreatedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
     const personalProjectId = personalProjectIdForUser(userId);
+    const sourcePaneContextCache = new Map();
     const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
     const tasks = [];
     for (const visibleProjectId of visibleProjectIds) {
@@ -123,7 +126,7 @@ export const createTaskRoutes = (deps) => {
         if (record.created_by !== userId) {
           continue;
         }
-        tasks.push(buildTaskSummaryForUser(record, personalProjectId));
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
       }
     }
     return tasks;
@@ -154,6 +157,7 @@ export const createTaskRoutes = (deps) => {
 
   const listHomeEventsForUser = ({ userId, limit }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
+    const sourcePaneContextCache = new Map();
     const rows = [];
     for (const projectId of visibleProjectIds) {
       const projectRows = homeEventsByProjectStmt.all(projectId);
@@ -168,7 +172,7 @@ export const createTaskRoutes = (deps) => {
         return leftStart - rightStart;
       })
       .slice(0, limit)
-      .map(buildHomeEventSummary);
+      .map((row) => buildHomeEventSummary(row, sourcePaneContextCache));
   };
 
   const listPersonalCapturesForUser = ({ projectId, limit }) =>
@@ -277,7 +281,7 @@ export const createTaskRoutes = (deps) => {
           insertCollectionStmt.run(collectionId, projectId, 'Tasks', null, null, timestamp, timestamp);
         }
 
-        insertRecordStmt.run(recordId, projectId, collectionId, title, auth.user.user_id, timestamp, timestamp, null);
+        insertRecordStmt.run(recordId, projectId, collectionId, title, null, null, auth.user.user_id, timestamp, timestamp, null);
         insertRecordCapabilityStmt.run(recordId, 'task', timestamp);
         upsertTaskStateStmt.run(
           recordId,

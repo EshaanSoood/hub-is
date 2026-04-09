@@ -6,6 +6,7 @@ import {
   type HubPaneSummary,
   type HubProject,
   type HubProjectMember,
+  type HubView,
 } from '../../services/hub/types';
 import {
   buildPaneContextHref,
@@ -25,6 +26,7 @@ import { useRecordInspector } from '../../hooks/useRecordInspector';
 import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { useTimelineRuntime } from '../../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../../hooks/useWorkspaceDocRuntime';
+import { isStandaloneKanbanView } from '../../hooks/projectViewsRuntime/shared';
 import { useFocusNodeQueryEffect } from './hooks/useFocusNodeQueryEffect';
 import { useOverviewViewFromSearchParams } from './hooks/useOverviewViewFromSearchParams';
 import { useOverviewViewQuerySyncEffect } from './hooks/useOverviewViewQuerySyncEffect';
@@ -118,6 +120,53 @@ function readOverviewView(searchParams: URLSearchParams): OverviewSubView {
   }
   return 'timeline';
 }
+
+const collectPaneTaskCollectionIds = (
+  layoutConfig: Record<string, unknown> | null | undefined,
+  availableViews: HubView[],
+): string[] => {
+  if (!layoutConfig || typeof layoutConfig !== 'object' || Array.isArray(layoutConfig)) {
+    return [];
+  }
+
+  const rawModules = Array.isArray(layoutConfig.modules) ? layoutConfig.modules : [];
+  const viewById = new Map(availableViews.map((view) => [view.view_id, view]));
+  const defaultViewByType = new Map<string, HubView>();
+  for (const view of availableViews) {
+    if (view.type === 'kanban' && isStandaloneKanbanView(view)) {
+      continue;
+    }
+    if (!defaultViewByType.has(view.type)) {
+      defaultViewByType.set(view.type, view);
+    }
+  }
+
+  const collectionIds: string[] = [];
+  for (const candidate of rawModules) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      continue;
+    }
+
+    const moduleConfig = candidate as { module_type?: unknown; binding?: { view_id?: unknown } | null };
+    const moduleType = typeof moduleConfig.module_type === 'string' ? moduleConfig.module_type : '';
+    if (moduleType !== 'table' && moduleType !== 'kanban') {
+      continue;
+    }
+
+    const requestedViewId =
+      moduleConfig.binding && typeof moduleConfig.binding === 'object' && !Array.isArray(moduleConfig.binding)
+        && typeof moduleConfig.binding.view_id === 'string'
+        ? moduleConfig.binding.view_id
+        : '';
+    const resolvedView = (requestedViewId ? viewById.get(requestedViewId) : null) ?? defaultViewByType.get(moduleType) ?? null;
+    if (!resolvedView || (moduleType === 'kanban' && isStandaloneKanbanView(resolvedView)) || collectionIds.includes(resolvedView.collection_id)) {
+      continue;
+    }
+    collectionIds.push(resolvedView.collection_id);
+  }
+
+  return collectionIds;
+};
 
 const relationFieldTargetCollectionId = (config: Record<string, unknown>): string | null => {
   const directTarget = config.target_collection_id;
@@ -360,17 +409,20 @@ export const ProjectSpaceWorkspace = ({
     views,
     kanbanRuntimeDataByViewId,
     kanbanViews,
+    creatingKanbanViewByModuleId,
     focusedWorkView,
     focusedWorkViewData,
     focusedWorkViewError,
     focusedWorkViewId,
     focusedWorkViewLoading,
     onCreateKanbanRecord,
+    onConfigureKanbanGrouping,
     onCreateTableRecord,
     onDeleteKanbanRecord,
     onDeleteTableRecords,
     onBulkUpdateTableRecords,
     onMoveKanbanRecord,
+    onEnsureKanbanView,
     onUpdateKanbanRecord,
     onUpdateTableRecord,
     recordsError,
@@ -451,7 +503,15 @@ export const ProjectSpaceWorkspace = ({
     timeline,
     setTimeline,
   });
-  const remindersRuntime = useRemindersRuntime(accessToken);
+  const remindersRuntime = useRemindersRuntime(accessToken, {
+    autoload: activeTab === 'work' && Boolean(activePane?.pane_id),
+    subscribeToHomeRefresh: activeTab === 'work' && Boolean(activePane?.pane_id),
+    subscribeToLive: activeTab === 'work' && Boolean(activePane?.pane_id),
+    scope: 'project',
+    projectId: project.project_id,
+    paneId: activeTab === 'work' ? activePane?.pane_id ?? null : null,
+    sourceViewId: activeTab === 'work' ? focusedWorkViewId || null : null,
+  });
 
   usePaneControlEffects({
     openedFromPinned,
@@ -708,6 +768,10 @@ export const ProjectSpaceWorkspace = ({
       workspaceEnabled,
     ],
   );
+  const paneTaskCollectionIds = useMemo(
+    () => collectPaneTaskCollectionIds(activePane?.layout_config, views),
+    [activePane?.layout_config, views],
+  );
   const paneTaskItems = useMemo(
     () =>
       adaptTaskSummaries(
@@ -727,7 +791,7 @@ export const ProjectSpaceWorkspace = ({
     searchParams,
     setSearchParams,
   });
-  const taskCollectionId = tasksOverviewRows[0]?.collection_id || null;
+  const taskCollectionId = paneTaskCollectionIds[0] || tasksOverviewRows[0]?.collection_id || null;
   const {
     tableContract,
     kanbanContract,
@@ -752,10 +816,13 @@ export const ProjectSpaceWorkspace = ({
     onBulkUpdateTableRecords,
     kanbanViews,
     kanbanRuntimeDataByViewId,
+    creatingKanbanViewByModuleId,
     onMoveKanbanRecord,
     onCreateKanbanRecord,
+    onConfigureKanbanGrouping,
     onUpdateKanbanRecord,
     onDeleteKanbanRecord,
+    onEnsureKanbanView,
     calendarEvents,
     calendarLoading,
     calendarMode,
@@ -1307,6 +1374,13 @@ export const ProjectSpaceWorkspace = ({
                             activePaneCanEdit
                               ? async (payload) => {
                                   await onCreateKanbanRecord(focusedWorkView.view_id, payload, activePane?.pane_id ?? null);
+                                }
+                              : undefined
+                          }
+                          onConfigureGrouping={
+                            activePaneCanEdit
+                              ? async (fieldId) => {
+                                  await onConfigureKanbanGrouping(focusedWorkView.view_id, fieldId, activePane?.pane_id ?? null);
                                 }
                               : undefined
                           }

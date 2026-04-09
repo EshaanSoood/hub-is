@@ -260,8 +260,20 @@ export const createStatements = (db) => ({
       LIMIT ?
     `),
     insert: db.prepare(`
-      INSERT INTO records (record_id, project_id, collection_id, title, created_by, created_at, updated_at, archived_at, parent_record_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)
+      INSERT INTO records (
+        record_id,
+        project_id,
+        collection_id,
+        title,
+        source_pane_id,
+        source_view_id,
+        created_by,
+        created_at,
+        updated_at,
+        archived_at,
+        parent_record_id
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
     `),
     update: db.prepare(`
       UPDATE records
@@ -322,6 +334,11 @@ export const createStatements = (db) => ({
     insert: db.prepare(`
       INSERT INTO views (view_id, project_id, collection_id, type, name, config, created_by, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    update: db.prepare(`
+      UPDATE views
+      SET name = ?, config = ?, updated_at = ?
+      WHERE view_id = ?
     `),
   },
   search: {},
@@ -491,11 +508,22 @@ export const createStatements = (db) => ({
     `),
     claimFired: db.prepare('UPDATE reminders SET fired_at = ? WHERE reminder_id = ? AND fired_at IS NULL'),
     listForUser: db.prepare(`
+      -- Parameter order: user_id, scope, personal_project_id, scope, project_id, pane_id, pane_id.
+      -- pane_id is bound twice to support (? = '' OR rec.source_pane_id = ?).
       SELECT r.*, rec.title AS record_title, rec.project_id
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
       JOIN project_members pm ON pm.project_id = rec.project_id AND pm.user_id = ?
-      WHERE r.dismissed_at IS NULL AND rec.archived_at IS NULL
+      WHERE r.dismissed_at IS NULL
+        AND rec.archived_at IS NULL
+        AND (
+          (? = 'personal' AND rec.project_id = ?)
+          OR (
+            ? = 'project'
+            AND rec.project_id = ?
+            AND (? = '' OR rec.source_pane_id = ?)
+          )
+        )
       ORDER BY r.remind_at ASC
     `),
     dismiss: db.prepare(`

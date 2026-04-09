@@ -37,6 +37,7 @@ export interface TasksModuleContract {
 export interface KanbanModuleContract {
   views: BoundViewSummary[];
   defaultViewId: string | null;
+  creatingViewByModuleId?: Record<string, boolean>;
   dataByViewId: Record<
     string,
     {
@@ -58,9 +59,10 @@ export interface KanbanModuleContract {
   >;
   onMoveRecord: (viewId: string, recordId: string, nextGroup: string) => void;
   onCreateRecord?: (viewId: string, payload: { title: string; groupFieldValue: string }) => Promise<void>;
-  onConfigureGrouping?: (viewId: string, fieldId: string) => void;
+  onConfigureGrouping?: (viewId: string, fieldId: string) => Promise<void>;
   onUpdateRecord?: (viewId: string, recordId: string, fields: Record<string, unknown>) => Promise<void>;
   onDeleteRecord?: (viewId: string, recordId: string) => Promise<void>;
+  onEnsureView?: (moduleInstanceId: string, ownedViewId?: string | null) => Promise<string | null>;
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
 }
 
