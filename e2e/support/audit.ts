@@ -1,8 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import type { Browser, BrowserContextOptions, Page, TestInfo } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { buildStorageStateForToken } from '../utils/auth';
-import { AUDIT_FIXTURE_PATH, OWNER_STORAGE_STATE_PATH, PLAYWRIGHT_STATE_DIR, VIEWER_STORAGE_STATE_PATH } from './paths';
+import { buildStorageStateForToken } from '../utils/auth.ts';
+import { AUDIT_FIXTURE_PATH, OWNER_STORAGE_STATE_PATH, PLAYWRIGHT_STATE_DIR, VIEWER_STORAGE_STATE_PATH } from './paths.ts';
 
 export interface AuditSessionSummary {
   userId: string;
@@ -427,14 +427,56 @@ export const openAuditedPage = async (
 
 export const gotoReady = async (page: Page, path: string): Promise<void> => {
   await page.goto(path, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => !document.body.innerText.includes('Initializing secure session...'), null, {
-    timeout: 30_000,
-  });
+  await page.waitForFunction(
+    () => {
+      const body = document.body;
+      return Boolean(body) && !body.innerText.includes('Initializing secure session...');
+    },
+    null,
+    { timeout: 30_000 },
+  );
 };
 
 export const waitForHubHome = async (page: Page): Promise<void> => {
-  await expect(page.locator('main h1').filter({ hasText: /^Hub$/ }).first()).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Project list' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Go To Project /i }).first()).toBeVisible({ timeout: 30_000 });
+};
+
+const isAuthPage = async (page: Page): Promise<boolean> => {
+  const hostname = (() => {
+    try {
+      return new URL(page.url()).hostname;
+    } catch {
+      return '';
+    }
+  })();
+
+  if (/auth\.eshaansood\.org$/i.test(hostname)) {
+    return true;
+  }
+
+  return page.getByRole('heading', { name: /Sign in to your account/i }).first().isVisible().catch(() => false);
+};
+
+const submitKeycloakCredentials = async (
+  page: Page,
+  account: { email: string; password: string },
+): Promise<boolean> => {
+  const usernameInput = page.locator('input[name="username"], input#username').first();
+  if (!(await usernameInput.isVisible({ timeout: 30_000 }).catch(() => false))) {
+    return false;
+  }
+
+  await usernameInput.fill(account.email);
+  const passwordInput = page.locator('input[name="password"], input#password').first();
+  await passwordInput.fill(account.password);
+  const submitButton = page.locator('input#kc-login, button#kc-login, button[type="submit"], input[type="submit"]').first();
+
+  await Promise.all([
+    page.waitForURL((url) => !/auth\.eshaansood\.org$/i.test(url.hostname), { timeout: 60_000 }).catch(() => undefined),
+    submitButton.click(),
+  ]);
+
+  return true;
 };
 
 export const loginThroughKeycloak = async (
@@ -447,16 +489,14 @@ export const loginThroughKeycloak = async (
     await loginButton.click();
   }
 
-  const usernameInput = page.locator('input[name="username"], input#username').first();
-  if (await usernameInput.isVisible({ timeout: 30_000 }).catch(() => false)) {
-    await usernameInput.fill(account.email);
-    const passwordInput = page.locator('input[name="password"], input#password').first();
-    await passwordInput.fill(account.password);
-    const submitButton = page.locator('input#kc-login, button#kc-login, button[type="submit"], input[type="submit"]').first();
-    await Promise.all([
-      page.waitForURL((url) => !/auth\.eshaansood\.org$/i.test(url.hostname), { timeout: 60_000 }),
-      submitButton.click(),
-    ]);
+  if (await submitKeycloakCredentials(page, account)) {
+    await gotoReady(page, '/projects');
+  }
+
+  if (await isAuthPage(page)) {
+    if (!(await submitKeycloakCredentials(page, account))) {
+      throw new Error(`Keycloak sign-in page remained active and credentials could not be submitted. Current URL: ${page.url()}`);
+    }
   }
 
   await gotoReady(page, '/projects');

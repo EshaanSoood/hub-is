@@ -100,6 +100,28 @@ Access is invite-only at the hub policy layer.
 - Workflow suite (extra explicit opt-in because it mints auth tokens):
   - `PLAYWRIGHT_E2E_ENABLED=true PLAYWRIGHT_WORKFLOW_ENABLED=true BASE_URL=http://127.0.0.1:5173 npm run test:e2e:workflow`
 
+## Secure Local Full-Stack Dev
+
+Use the secure local stack when you need to verify frontend, API, auth, and collab behavior without deploying.
+
+- `npm run dev:secure:bootstrap`
+  - Generates gitignored local env files with synthetic users, random local-only passwords, and localhost-only service bindings.
+- `npm run dev:secure`
+  - Starts local Keycloak, provisions the synthetic users, then runs Vite, `hub-api`, and `hub-collab`.
+- `npm run dev:secure:verify`
+  - Mints local test tokens, ensures the local fixture project and memberships exist, and runs the local authz/policy/collab smoke checks against the running stack.
+- `npm run dev:secure:auth:down`
+  - Stops the local Keycloak container when you are done.
+
+Security properties of this workflow:
+
+- Local Keycloak binds only to `127.0.0.1`.
+- Generated env files remain gitignored.
+- The local stack uses synthetic users and a local SQLite database under `.local/`.
+- External integrations are not pointed at production by default, so missing integration env stays fail-closed instead of falling through to prod.
+
+Local credentials are written to `.env.local.users.local`. Local smoke tokens are written to `.env.local.tokens.local`.
+
 ## Change Log Policy
 
 - For any task that touches more than one file, add a short summary entry to `working files/change-log.md`.
