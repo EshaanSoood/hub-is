@@ -15,7 +15,9 @@ if (missingFiles.length > 0) {
   process.exit(1);
 }
 
-const run = (label, command, args, env) =>
+const STEP_TIMEOUT_MS = Number(process.env.LOCAL_VERIFY_STEP_TIMEOUT_MS || 120_000);
+
+const run = (label, command, args, env, timeoutMs = STEP_TIMEOUT_MS) =>
   new Promise((resolve, reject) => {
     console.log(`\n== ${label} ==`);
     const child = spawn(command, args, {
@@ -23,14 +25,26 @@ const run = (label, command, args, env) =>
       stdio: 'inherit',
       env,
     });
+    const timeoutId = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error(`${label} timed out after ${String(timeoutMs)}ms.`));
+    }, timeoutMs);
 
-    child.on('error', reject);
-    child.on('exit', (code) => {
+    child.on('error', (error) => {
+      clearTimeout(timeoutId);
+      reject(error);
+    });
+    child.on('exit', (code, signal) => {
+      clearTimeout(timeoutId);
       if (code === 0) {
         resolve();
         return;
       }
-      reject(new Error(`${label} failed with exit code ${String(code ?? 'unknown')}.`));
+      reject(
+        new Error(
+          `${label} failed with exit code ${String(code ?? 'unknown')}${signal ? ` (signal: ${signal})` : ''}.`,
+        ),
+      );
     });
   });
 

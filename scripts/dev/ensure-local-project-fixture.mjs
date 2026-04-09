@@ -17,8 +17,8 @@ const projectName = String(process.env.LOCAL_PROJECT_NAME || 'Local Secure Dev')
 const memberEmail = String(process.env.LOCAL_MEMBER_EMAIL || '').trim().toLowerCase();
 const collabEmail = String(process.env.LOCAL_COLLAB_EMAIL || '').trim().toLowerCase();
 
-if (!ownerToken || !memberToken || !collabToken) {
-  console.error('Missing local tokens. Run npm run dev:secure:tokens first.');
+if (!ownerToken || !memberToken || !collabToken || !memberEmail || !collabEmail) {
+  console.error('Missing local tokens or secondary-account emails. Run npm run dev:secure:tokens first.');
   process.exit(1);
 }
 
@@ -40,6 +40,11 @@ const fail = (message) => {
   console.error(message);
   process.exit(1);
 };
+
+const getSessionEmail = (payload) => String(payload?.data?.user?.email || '').trim().toLowerCase();
+const hasProjectMembership = (payload) =>
+  Array.isArray(payload?.data?.memberships)
+  && payload.data.memberships.some((membership) => String(membership?.project_id || '').trim() === projectId);
 
 const ownerMe = await requestJson('/api/hub/me', { token: ownerToken });
 if (ownerMe.status !== 200) {
@@ -97,10 +102,22 @@ const memberMe = await requestJson('/api/hub/me', { token: memberToken });
 if (memberMe.status !== 200) {
   fail(`Member /api/hub/me failed (${memberMe.status}).`);
 }
+if (getSessionEmail(memberMe.payload) !== memberEmail) {
+  fail(`Member /api/hub/me returned ${getSessionEmail(memberMe.payload) || 'no email'}, expected ${memberEmail}.`);
+}
+if (!hasProjectMembership(memberMe.payload)) {
+  fail(`Member /api/hub/me does not include membership for ${projectId}.`);
+}
 
 const collabMe = await requestJson('/api/hub/me', { token: collabToken });
 if (collabMe.status !== 200) {
   fail(`Collaborator /api/hub/me failed (${collabMe.status}).`);
+}
+if (getSessionEmail(collabMe.payload) !== collabEmail) {
+  fail(`Collaborator /api/hub/me returned ${getSessionEmail(collabMe.payload) || 'no email'}, expected ${collabEmail}.`);
+}
+if (!hasProjectMembership(collabMe.payload)) {
+  fail(`Collaborator /api/hub/me does not include membership for ${projectId}.`);
 }
 
 console.log(`Local fixture ready: ${projectId}`);

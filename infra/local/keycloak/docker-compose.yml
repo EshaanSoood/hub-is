@@ -6,8 +6,8 @@ services:
       - start-dev
       - --import-realm
     environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USERNAME:-hub-local-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-hub-local-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME_STRICT: "false"

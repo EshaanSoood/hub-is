@@ -6,6 +6,8 @@ import { resolveLinkedTestAccounts } from '../../utils/tokenMint.ts';
 import { readJourneyContext, withRunTag } from '../utils/stateTags.ts';
 
 const LIVE_TIMEOUT_MS = 20_000;
+const RAW_CAPTURE_REDACTED = '[redacted; set ENABLE_RAW_CAPTURE=true to include raw capture]';
+const RAW_CAPTURE_ENABLED = /^(1|true|yes)$/i.test(String(process.env.ENABLE_RAW_CAPTURE || '').trim());
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -21,6 +23,19 @@ const toRepoRelativePath = (absolutePath: string): string => {
 };
 
 const timestampLabel = (): string => new Date().toISOString().replace(/[:.]/g, '-');
+
+const captureRawValue = (value: string | null | undefined, maxLength: number): string | null => {
+  const normalized = normalizeWhitespace(value || '');
+  if (!normalized) {
+    return null;
+  }
+
+  if (!RAW_CAPTURE_ENABLED) {
+    return RAW_CAPTURE_REDACTED;
+  }
+
+  return normalized.slice(0, maxLength);
+};
 
 interface PhaseDump {
   status: 'passed' | 'failed' | 'skipped';
@@ -105,7 +120,11 @@ const snapshotLocator = async (locator: Locator, payload: Record<string, unknown
   }
 
   try {
-    return await target.evaluate((node, data) => {
+    return await target.evaluate((node, options: {
+      payload: Record<string, unknown>;
+      rawCaptureEnabled: boolean;
+      redactedValue: string;
+    }) => {
       const root = node as HTMLElement;
       const normalize = (value: string): string => value.replace(/\s+/g, ' ').trim();
       const getButtonState = (button: Element) => ({
@@ -130,10 +149,14 @@ const snapshotLocator = async (locator: Locator, payload: Record<string, unknown
         buttons: Array.from(root.querySelectorAll('button')).slice(0, 30).map(getButtonState),
         inputs: Array.from(root.querySelectorAll('input, textarea, select')).slice(0, 30).map(getInputState),
         alerts: Array.from(root.querySelectorAll('[role="alert"]')).map((element) => normalize(element.textContent || '')),
-        html: root.outerHTML,
-        payload: data,
+        html: options.rawCaptureEnabled ? root.outerHTML.slice(0, 100_000) : options.redactedValue,
+        payload: options.payload,
       };
-    }, payload);
+    }, {
+      payload,
+      rawCaptureEnabled: RAW_CAPTURE_ENABLED,
+      redactedValue: RAW_CAPTURE_REDACTED,
+    });
   } catch (error) {
     return {
       missing: true,
@@ -146,11 +169,15 @@ const snapshotLocator = async (locator: Locator, payload: Record<string, unknown
 const snapshotPage = async (page: Page): Promise<Record<string, unknown>> => {
   const bodyHtml = await page.locator('body').evaluate((node) => (node as HTMLElement).outerHTML).catch(() => null);
   const bodyText = await page.locator('body').innerText().catch(() => '');
+  const normalizedBodyText = normalizeWhitespace(bodyText);
+  const normalizedBodyHtml = bodyHtml ? normalizeWhitespace(bodyHtml) : '';
 
   return {
     url: page.url(),
-    bodyText: normalizeWhitespace(bodyText).slice(0, 30_000),
-    bodyHtml: bodyHtml ? normalizeWhitespace(bodyHtml).slice(0, 100_000) : null,
+    bodyText: captureRawValue(normalizedBodyText, 30_000),
+    bodyTextLength: normalizedBodyText.length,
+    bodyHtml: captureRawValue(normalizedBodyHtml, 100_000),
+    bodyHtmlLength: normalizedBodyHtml.length,
   };
 };
 
@@ -177,8 +204,10 @@ const recordRelevantResponse = async (response: Response) => {
     url,
     method: request.method(),
     status: response.status(),
-    requestBody: normalizeWhitespace(request.postData() || '').slice(0, 2_000) || null,
-    responseBody: normalizeWhitespace(bodySnippet || '').slice(0, 4_000) || null,
+    requestBody: captureRawValue(request.postData(), 2_000),
+    requestBodyLength: normalizeWhitespace(request.postData() || '').length,
+    responseBody: captureRawValue(bodySnippet, 4_000),
+    responseBodyLength: normalizeWhitespace(bodySnippet || '').length,
   };
 };
 
@@ -292,19 +321,12 @@ const main = async (): Promise<void> => {
   const outputPath = path.join(outputDir, `${context.scenario}-live-contracts.json`);
 
   await mkdir(outputDir, { recursive: true });
-
-  const browser = await chromium.launch({ headless: true });
-  const desktopContext = await createResponsiveContext(browser, { ...devices['Desktop Chrome'] });
-  const page = await desktopContext.newPage();
-  const responses: Array<Awaited<ReturnType<typeof recordRelevantResponse>>> = [];
-
-  page.on('response', (response) => {
-    void recordRelevantResponse(response).then((entry) => {
-      if (entry) {
-        responses.push(entry);
-      }
-    });
-  });
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
+  let desktopContext: BrowserContext | null = null;
+  let page: Page | null = null;
+  const responses: Array<Record<string, unknown>> = [];
+  const responseCaptureTasks: Array<Promise<void>> = [];
+  let responseListener: ((response: Response) => void) | null = null;
 
   const report: InspectionReport = {
     runId,
@@ -334,48 +356,64 @@ const main = async (): Promise<void> => {
   await writeFile(uploadFilePath, `journey upload ${context.runId}\n`, 'utf8');
 
   try {
+    browser = await chromium.launch({ headless: true });
+    desktopContext = await createResponsiveContext(browser, { ...devices['Desktop Chrome'] });
+    const desktopPage = await desktopContext.newPage();
+    page = desktopPage;
+
+    responseListener = (response: Response) => {
+      responseCaptureTasks.push(
+        recordRelevantResponse(response).then((entry) => {
+          if (entry) {
+            responses.push(entry);
+          }
+        }),
+      );
+    };
+    desktopPage.on('response', responseListener);
+
     const { accountA } = await resolveLinkedTestAccounts();
 
-    await runPhase(report, page, 'navigation', async () => {
-      await loginThroughKeycloak(page, accountA);
-      await navigateToSeededPane(page, context);
+    await runPhase(report, desktopPage, 'navigation', async () => {
+      await loginThroughKeycloak(desktopPage, accountA);
+      await navigateToSeededPane(desktopPage, context);
       return {
-        toolbar: await snapshotLocator(page.getByRole('toolbar', { name: 'Open panes' })),
-        pageHeader: await snapshotLocator(page.getByRole('heading', { name: new RegExp(`^${escapeRegExp(context.project.name)}$`, 'i') })),
+        toolbar: await snapshotLocator(desktopPage.getByRole('toolbar', { name: 'Open panes' })),
+        pageHeader: await snapshotLocator(desktopPage.getByRole('heading', { name: new RegExp(`^${escapeRegExp(context.project.name)}$`, 'i') })),
       };
     });
 
-    await runPhase(report, page, 'modules', async () => {
-      await ensureModuleAdded(page, 'Files', 'S', getFilesModule(page));
-      await ensureModuleAdded(page, 'Table', 'M', getTableModule(page));
-      await ensureModuleAdded(page, 'Kanban', 'M', getKanbanModuleCard(page));
-      await ensureModuleAdded(page, 'Calendar', 'L', getCalendarModuleCard(page));
-      await ensureModuleAdded(page, 'Tasks', 'M', getTasksModule(page));
-      await ensureModuleAdded(page, 'Reminders', 'M', getRemindersModule(page));
-      await ensureModuleAdded(page, 'Quick Thoughts', 'M', page.getByLabel('Quick Thought editor').first());
+    await runPhase(report, desktopPage, 'modules', async () => {
+      await ensureModuleAdded(desktopPage, 'Files', 'S', getFilesModule(desktopPage));
+      await ensureModuleAdded(desktopPage, 'Table', 'M', getTableModule(desktopPage));
+      await ensureModuleAdded(desktopPage, 'Kanban', 'M', getKanbanModuleCard(desktopPage));
+      await ensureModuleAdded(desktopPage, 'Calendar', 'L', getCalendarModuleCard(desktopPage));
+      await ensureModuleAdded(desktopPage, 'Tasks', 'M', getTasksModule(desktopPage));
+      await ensureModuleAdded(desktopPage, 'Reminders', 'M', getRemindersModule(desktopPage));
+      await ensureModuleAdded(desktopPage, 'Quick Thoughts', 'M', desktopPage.getByLabel('Quick Thought editor').first());
 
       return {
-        files: await snapshotLocator(getFilesModule(page)),
-        table: await snapshotLocator(getTableModule(page)),
-        kanban: await snapshotLocator(getKanbanModuleCard(page)),
-        calendar: await snapshotLocator(getCalendarModuleCard(page)),
-        tasks: await snapshotLocator(getTasksModule(page)),
-        reminders: await snapshotLocator(getRemindersModule(page)),
-        quickThought: await snapshotLocator(page.getByLabel('Quick Thought editor').first()),
-        workspaceDoc: await snapshotLocator(page.getByLabel('Project note editor').first()),
+        files: await snapshotLocator(getFilesModule(desktopPage)),
+        table: await snapshotLocator(getTableModule(desktopPage)),
+        kanban: await snapshotLocator(getKanbanModuleCard(desktopPage)),
+        calendar: await snapshotLocator(getCalendarModuleCard(desktopPage)),
+        tasks: await snapshotLocator(getTasksModule(desktopPage)),
+        reminders: await snapshotLocator(getRemindersModule(desktopPage)),
+        quickThought: await snapshotLocator(desktopPage.getByLabel('Quick Thought editor').first()),
+        workspaceDoc: await snapshotLocator(desktopPage.getByLabel('Project note editor').first()),
       };
     });
 
-    await runPhase(report, page, 'motion_targets', async () => {
-      await openAddModuleDialog(page);
-      const dialogSnapshot = await snapshotLocator(page.getByRole('dialog').first());
-      await page.keyboard.press('Escape');
+    await runPhase(report, desktopPage, 'motion_targets', async () => {
+      await openAddModuleDialog(desktopPage);
+      const dialogSnapshot = await snapshotLocator(desktopPage.getByRole('dialog').first());
+      await desktopPage.keyboard.press('Escape');
 
-      const tableActionsButton = page.getByRole('button', { name: /Open Table module actions/i }).first();
+      const tableActionsButton = desktopPage.getByRole('button', { name: /Open Table module actions/i }).first();
       await expect(tableActionsButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await tableActionsButton.click();
-      const menuSnapshot = await snapshotLocator(page.getByRole('menu').first());
-      await page.keyboard.press('Escape');
+      const menuSnapshot = await snapshotLocator(desktopPage.getByRole('menu').first());
+      await desktopPage.keyboard.press('Escape');
 
       return {
         addModuleDialog: dialogSnapshot,
@@ -383,8 +421,8 @@ const main = async (): Promise<void> => {
       };
     });
 
-    await runPhase(report, page, 'table', async () => {
-      const tableModule = getTableModule(page);
+    await runPhase(report, desktopPage, 'table', async () => {
+      const tableModule = getTableModule(desktopPage);
       const createRowInput = tableModule.getByRole('textbox', { name: 'New record...' }).first();
       await expect(createRowInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await createRowInput.fill(artifacts.tableTitle);
@@ -396,10 +434,10 @@ const main = async (): Promise<void> => {
       await expect(openRecordButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await openRecordButton.click();
 
-      const inspector = page.getByRole('dialog', { name: 'Record Inspector' });
+      const inspector = desktopPage.getByRole('dialog', { name: 'Record Inspector' });
       await expect(inspector).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       const inspectorSnapshot = await snapshotLocator(inspector);
-      await page.keyboard.press('Escape');
+      await desktopPage.keyboard.press('Escape');
 
       return {
         table: await snapshotLocator(tableModule, { tableTitle: artifacts.tableTitle }),
@@ -407,8 +445,8 @@ const main = async (): Promise<void> => {
       };
     });
 
-    await runPhase(report, page, 'kanban', async () => {
-      const kanbanModule = getKanbanModuleCard(page);
+    await runPhase(report, desktopPage, 'kanban', async () => {
+      const kanbanModule = getKanbanModuleCard(desktopPage);
       const firstColumn = kanbanModule.locator('section[aria-label$=" column"]').first();
       await expect(firstColumn).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await firstColumn.getByRole('button', { name: /^Create card$/i }).click();
@@ -423,11 +461,11 @@ const main = async (): Promise<void> => {
       }).first();
       await expect(openRecordButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await openRecordButton.focus();
-      await page.keyboard.press('Enter');
-      const inspector = page.getByRole('dialog', { name: 'Record Inspector' });
+      await desktopPage.keyboard.press('Enter');
+      const inspector = desktopPage.getByRole('dialog', { name: 'Record Inspector' });
       await expect(inspector).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       const inspectorSnapshot = await snapshotLocator(inspector);
-      await page.keyboard.press('Escape');
+      await desktopPage.keyboard.press('Escape');
 
       const columnSelect = kanbanModule.getByLabel(`Column for ${artifacts.kanbanTitle}`).first();
       await expect(columnSelect).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
@@ -438,8 +476,8 @@ const main = async (): Promise<void> => {
       };
     });
 
-    await runPhase(report, page, 'calendar', async () => {
-      const calendarModule = getCalendarModuleCard(page);
+    await runPhase(report, desktopPage, 'calendar', async () => {
+      const calendarModule = getCalendarModuleCard(desktopPage);
       await ensureCalendarReadyForCreate(calendarModule);
 
       let newEventButton = calendarModule.getByRole('button', { name: /^New Event$/i }).first();
@@ -455,7 +493,7 @@ const main = async (): Promise<void> => {
       await calendarModule.getByLabel('Start time').first().fill('09:30');
       await calendarModule.getByLabel('End time').first().fill('10:30');
       await calendarModule.getByRole('button', { name: /^Create$/i }).first().click();
-      await page.waitForTimeout(3_000);
+      await desktopPage.waitForTimeout(3_000);
 
       return {
         calendar: await snapshotLocator(calendarModule, { calendarTitle: artifacts.calendarTitle }),
@@ -465,8 +503,8 @@ const main = async (): Promise<void> => {
       };
     });
 
-    await runPhase(report, page, 'tasks', async () => {
-      const tasksModule = getTasksModule(page);
+    await runPhase(report, desktopPage, 'tasks', async () => {
+      const tasksModule = getTasksModule(desktopPage);
       let titleInput = tasksModule.getByLabel('New task title').first();
       if (!(await titleInput.isVisible().catch(() => false))) {
         const openComposerButton = tasksModule.getByRole('button', { name: /^New Task$/i }).first();
@@ -477,7 +515,7 @@ const main = async (): Promise<void> => {
       await expect(titleInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await titleInput.fill(artifacts.taskTitle);
       await tasksModule.getByRole('button', { name: /^(Add|Create task|Create)$/i }).first().click();
-      await page.waitForTimeout(3_000);
+      await desktopPage.waitForTimeout(3_000);
 
       const toggleButton = tasksModule.getByRole('button', {
         name: new RegExp(`^Mark ${escapeRegExp(artifacts.taskTitle)} as`, 'i'),
@@ -485,46 +523,46 @@ const main = async (): Promise<void> => {
 
       return {
         tasks: await snapshotLocator(tasksModule, { taskTitle: artifacts.taskTitle }),
-        matchingTexts: await page.getByText(artifacts.taskTitle, { exact: false }).allTextContents(),
-        matchingButtons: await page.getByRole('button', {
+        matchingTexts: await desktopPage.getByText(artifacts.taskTitle, { exact: false }).allTextContents(),
+        matchingButtons: await desktopPage.getByRole('button', {
           name: new RegExp(escapeRegExp(artifacts.taskTitle), 'i'),
         }).allTextContents(),
         toggleButtonVisible: await toggleButton.isVisible().catch(() => false),
-        globalAlerts: (await page.locator('[role="alert"]').allTextContents()).map((entry) => normalizeWhitespace(entry)),
+        globalAlerts: (await desktopPage.locator('[role="alert"]').allTextContents()).map((entry) => normalizeWhitespace(entry)),
       };
     });
 
-    await runPhase(report, page, 'reminders', async () => {
-      const remindersModule = getRemindersModule(page);
+    await runPhase(report, desktopPage, 'reminders', async () => {
+      const remindersModule = getRemindersModule(desktopPage);
       const input = remindersModule.getByLabel('Add a reminder').first();
       await expect(input).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await input.fill(`${artifacts.reminderTokenA} tomorrow at 9am`);
       await remindersModule.getByRole('button', { name: /^Add$/i }).first().click();
       await input.fill(`${artifacts.reminderTokenB} next friday at 2pm`);
       await remindersModule.getByRole('button', { name: /^Add$/i }).first().click();
-      await page.waitForTimeout(3_000);
+      await desktopPage.waitForTimeout(3_000);
 
       return {
         reminders: await snapshotLocator(remindersModule, {
           reminderTokenA: artifacts.reminderTokenA,
           reminderTokenB: artifacts.reminderTokenB,
         }),
-        matchingTexts: await page.getByText(new RegExp(escapeRegExp(artifacts.reminderTokenA), 'i')).allTextContents(),
+        matchingTexts: await desktopPage.getByText(new RegExp(escapeRegExp(artifacts.reminderTokenA), 'i')).allTextContents(),
       };
     });
 
-    await runPhase(report, page, 'files', async () => {
-      const filesModule = getFilesModule(page);
+    await runPhase(report, desktopPage, 'files', async () => {
+      const filesModule = getFilesModule(desktopPage);
       const input = filesModule.locator('input[type="file"]').first();
       await input.setInputFiles(uploadFilePath);
-      await page.waitForTimeout(3_000);
+      await desktopPage.waitForTimeout(3_000);
 
       let popupOpened = false;
       const openButton = filesModule.getByRole('button', {
         name: new RegExp(`^Open ${escapeRegExp(artifacts.uploadFileName)}$`, 'i'),
       }).first();
       if (await openButton.isVisible().catch(() => false)) {
-        const popupPromise = page.waitForEvent('popup', { timeout: 15_000 }).catch(() => null);
+        const popupPromise = desktopPage.waitForEvent('popup', { timeout: 15_000 }).catch(() => null);
         await openButton.click();
         const popup = await popupPromise;
         if (popup) {
@@ -540,44 +578,44 @@ const main = async (): Promise<void> => {
       };
     });
 
-    await runPhase(report, page, 'quick_thoughts', async () => {
-      const input = page.getByLabel('Quick Thought editor').first();
+    await runPhase(report, desktopPage, 'quick_thoughts', async () => {
+      const input = desktopPage.getByLabel('Quick Thought editor').first();
       await expect(input).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await input.fill(artifacts.quickThoughtText);
-      await page.getByRole('button', { name: /^Save Thought$/i }).first().click();
-      await page.waitForTimeout(2_000);
+      await desktopPage.getByRole('button', { name: /^Save Thought$/i }).first().click();
+      await desktopPage.waitForTimeout(2_000);
 
       return {
         quickThought: await snapshotLocator(input, { quickThoughtText: artifacts.quickThoughtText }),
-        matchingTexts: await page.getByText(new RegExp(escapeRegExp(artifacts.quickThoughtText), 'i')).allTextContents(),
+        matchingTexts: await desktopPage.getByText(new RegExp(escapeRegExp(artifacts.quickThoughtText), 'i')).allTextContents(),
       };
     });
 
-    await runPhase(report, page, 'workspace_doc', async () => {
-      const editor = page.getByLabel('Project note editor').first();
+    await runPhase(report, desktopPage, 'workspace_doc', async () => {
+      const editor = desktopPage.getByLabel('Project note editor').first();
       await expect(editor).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await editor.click();
-      await page.keyboard.type(` ${artifacts.workspaceDocText}`);
-      await page.waitForTimeout(1_500);
+      await desktopPage.keyboard.type(` ${artifacts.workspaceDocText}`);
+      await desktopPage.waitForTimeout(1_500);
 
       return {
         workspaceDoc: await snapshotLocator(editor, { workspaceDocText: artifacts.workspaceDocText }),
       };
     });
 
-    await runPhase(report, page, 'persistence_reload', async () => {
-      await page.reload({ waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
-      await expect(page.getByRole('toolbar', { name: 'Open panes' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await runPhase(report, desktopPage, 'persistence_reload', async () => {
+      await desktopPage.reload({ waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
+      await expect(desktopPage.getByRole('toolbar', { name: 'Open panes' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       return {
         matches: {
-          table: await page.getByText(artifacts.tableTitle).allTextContents(),
-          kanban: await page.getByText(artifacts.kanbanTitle).allTextContents(),
-          task: await page.getByText(artifacts.taskTitle).allTextContents(),
-          reminder: await page.getByText(new RegExp(escapeRegExp(artifacts.reminderTokenA), 'i')).allTextContents(),
-          quickThought: await page.getByText(new RegExp(escapeRegExp(artifacts.quickThoughtText), 'i')).allTextContents(),
-          file: await page.getByText(artifacts.uploadFileName).allTextContents(),
+          table: await desktopPage.getByText(artifacts.tableTitle).allTextContents(),
+          kanban: await desktopPage.getByText(artifacts.kanbanTitle).allTextContents(),
+          task: await desktopPage.getByText(artifacts.taskTitle).allTextContents(),
+          reminder: await desktopPage.getByText(new RegExp(escapeRegExp(artifacts.reminderTokenA), 'i')).allTextContents(),
+          quickThought: await desktopPage.getByText(new RegExp(escapeRegExp(artifacts.quickThoughtText), 'i')).allTextContents(),
+          file: await desktopPage.getByText(artifacts.uploadFileName).allTextContents(),
         },
-        workspaceDoc: await snapshotLocator(page.getByLabel('Project note editor').first()),
+        workspaceDoc: await snapshotLocator(desktopPage.getByLabel('Project note editor').first()),
       };
     });
 
@@ -621,10 +659,15 @@ const main = async (): Promise<void> => {
       }
     }
   } finally {
-    report.network.relevantResponses = responses.filter(Boolean) as Array<Record<string, unknown>>;
+    if (page && responseListener) {
+      page.off('response', responseListener);
+    }
+    await Promise.allSettled(responseCaptureTasks);
+    report.network.relevantResponses = responses;
     await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-    await desktopContext.close();
-    await browser.close();
+    await page?.close().catch(() => undefined);
+    await desktopContext?.close().catch(() => undefined);
+    await browser?.close().catch(() => undefined);
   }
 
   process.stdout.write(`${toRepoRelativePath(outputPath)}\n`);

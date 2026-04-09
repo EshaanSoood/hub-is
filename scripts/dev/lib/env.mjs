@@ -31,10 +31,13 @@ export const parseEnvLine = (line) => {
   const key = trimmed.slice(0, equalsIndex).trim();
   let value = trimmed.slice(equalsIndex + 1).trim();
 
-  if (
-    (value.startsWith('"') && value.endsWith('"'))
-    || (value.startsWith("'") && value.endsWith("'"))
-  ) {
+  if (value.startsWith('"') && value.endsWith('"')) {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      value = value.slice(1, -1);
+    }
+  } else if (value.startsWith("'") && value.endsWith("'")) {
     value = value.slice(1, -1);
   }
 

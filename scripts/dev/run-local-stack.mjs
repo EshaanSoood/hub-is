@@ -22,6 +22,8 @@ await loadEnvFilesIntoProcess(['.env.keycloak.local'], { override: true });
 
 const keycloakPort = String(process.env.KEYCLOAK_PORT || '8081').trim();
 const keycloakRealm = String(process.env.KEYCLOAK_REALM || 'hub-os-local').trim();
+let keycloakStarted = false;
+let keycloakStopped = false;
 
 const runCommand = (command, args, { env = process.env } = {}) =>
   new Promise((resolve, reject) => {
@@ -57,23 +59,27 @@ const waitForHttp = async (url, { timeoutMs = 60_000 } = {}) => {
   throw new Error(`Timed out waiting for ${url}`);
 };
 
-await runCommand('docker', [
-  'compose',
-  '-f',
-  'infra/local/keycloak/docker-compose.yml',
-  '--env-file',
-  '.env.keycloak.local',
-  'up',
-  '-d',
-]);
-
-await waitForHttp(`http://127.0.0.1:${keycloakPort}/realms/${keycloakRealm}/.well-known/openid-configuration`);
-await runCommand('node', ['scripts/dev/ensure-local-users.mjs']);
+const stopKeycloak = async () => {
+  if (!keycloakStarted || keycloakStopped) {
+    return;
+  }
+  keycloakStopped = true;
+  await runCommand('docker', [
+    'compose',
+    '-f',
+    'infra/local/keycloak/docker-compose.yml',
+    '--env-file',
+    '.env.keycloak.local',
+    'down',
+  ]).catch((error) => {
+    console.error(error.message);
+  });
+};
 
 const childProcesses = [];
 let shuttingDown = false;
 
-const stopChildren = () => {
+const stopChildren = async () => {
   if (shuttingDown) {
     return;
   }
@@ -83,6 +89,7 @@ const stopChildren = () => {
       child.kill('SIGINT');
     }
   }
+  await stopKeycloak();
 };
 
 const spawnLongRunning = (command, args) => {
@@ -95,30 +102,53 @@ const spawnLongRunning = (command, args) => {
   child.on('exit', (code, signal) => {
     if (!shuttingDown && (code !== 0 || signal)) {
       console.error(`${command} ${args.join(' ')} exited unexpectedly.`);
-      stopChildren();
+      void stopChildren();
       process.exitCode = code ?? 1;
     }
   });
   return child;
 };
 
-process.on('SIGINT', stopChildren);
-process.on('SIGTERM', stopChildren);
+process.on('SIGINT', () => {
+  void stopChildren();
+});
+process.on('SIGTERM', () => {
+  void stopChildren();
+});
 
-spawnLongRunning('node', ['--env-file=.env.hub-api.local', 'apps/hub-api/hub-api.mjs']);
-spawnLongRunning('node', ['--env-file=.env.hub-collab.local', 'apps/hub-collab/collab-server.mjs']);
-spawnLongRunning('npm', ['run', 'dev', '--', '--host', '127.0.0.1']);
+try {
+  await runCommand('docker', [
+    'compose',
+    '-f',
+    'infra/local/keycloak/docker-compose.yml',
+    '--env-file',
+    '.env.keycloak.local',
+    'up',
+    '-d',
+  ]);
+  keycloakStarted = true;
 
-await waitForHttp('http://127.0.0.1:3001/api/hub/health');
-await waitForHttp('http://127.0.0.1:1234/readyz');
-await runCommand('node', ['scripts/dev/mint-local-tokens.mjs']);
-await runCommand('node', ['scripts/dev/ensure-local-project-fixture.mjs']);
+  await waitForHttp(`http://127.0.0.1:${keycloakPort}/realms/${keycloakRealm}/.well-known/openid-configuration`);
+  await runCommand('node', ['scripts/dev/ensure-local-users.mjs']);
 
-console.log('');
-console.log('Secure local stack is ready.');
-console.log('- App: http://127.0.0.1:5173');
-console.log('- Keycloak: http://127.0.0.1:8081');
-console.log('- Users: .env.local.users.local');
-console.log('- Tokens: .env.local.tokens.local');
+  spawnLongRunning('node', ['--env-file=.env.hub-api.local', 'apps/hub-api/hub-api.mjs']);
+  spawnLongRunning('node', ['--env-file=.env.hub-collab.local', 'apps/hub-collab/collab-server.mjs']);
+  spawnLongRunning('npm', ['run', 'dev', '--', '--host', '127.0.0.1']);
 
-await new Promise(() => {});
+  await waitForHttp('http://127.0.0.1:3001/api/hub/health');
+  await waitForHttp('http://127.0.0.1:1234/readyz');
+  await runCommand('node', ['scripts/dev/mint-local-tokens.mjs']);
+  await runCommand('node', ['scripts/dev/ensure-local-project-fixture.mjs']);
+
+  console.log('');
+  console.log('Secure local stack is ready.');
+  console.log('- App: http://127.0.0.1:5173');
+  console.log('- Keycloak: http://127.0.0.1:8081');
+  console.log('- Users: .env.local.users.local');
+  console.log('- Tokens: .env.local.tokens.local');
+
+  await new Promise(() => {});
+} catch (error) {
+  await stopKeycloak();
+  throw error;
+}
