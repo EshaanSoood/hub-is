@@ -1,5 +1,6 @@
 /** Supported recurrence frequencies for standalone reminders. */
 export type ReminderFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type ReminderScope = 'personal' | 'project';
 
 export interface ReminderRecurrence {
   /** ISO 8601 datetime string for an explicit next reminder occurrence. */
@@ -47,6 +48,14 @@ export interface CreateReminderRequest {
   remind_at: string;
   /** Optional recurrence descriptor; null disables recurrence. */
   recurrence_json?: ReminderRecurrence | null;
+  /** Optional reminder storage scope. Defaults to `personal` when omitted. */
+  scope?: ReminderScope;
+  /** Required for project-scoped reminders. */
+  project_id?: string;
+  /** Optional pane binding for pane-scoped project reminders. */
+  pane_id?: string;
+  /** Optional source view binding for traceability. */
+  source_view_id?: string | null;
 }
 
 export interface CreateReminderResponse {

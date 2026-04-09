@@ -48,6 +48,8 @@ const nextReminderAtForFrequency = (isoValue, frequency, interval = 1) => {
   return date.toISOString();
 };
 
+const reminderScopeFromValue = (value) => (value === 'project' ? 'project' : 'personal');
+
 export const createReminderRoutes = (deps) => {
   const {
     withPolicyGate,
@@ -63,6 +65,11 @@ export const createReminderRoutes = (deps) => {
     toJson,
     withTransaction,
     broadcastReminderChanged,
+    collectionByNameStmt,
+    insertCollectionStmt,
+    projectByIdStmt,
+    paneByIdStmt,
+    viewByIdStmt,
     personalProjectByUserStmt,
     insertRecordStmt,
     insertRecordCapabilityStmt,
@@ -70,11 +77,49 @@ export const createReminderRoutes = (deps) => {
     dismissReminderStmt,
     findReminderByIdStmt,
     insertStandaloneReminderStmt,
+    updateProjectRemindersCollectionStmt,
   } = deps;
 
-  const listReminders = withPolicyGate('hub.view', async ({ request, response, auth }) => {
+  const listReminders = withPolicyGate('hub.view', async ({ request, response, requestUrl, auth }) => {
     const listQueryStartedAt = performance.now();
-    const rows = listRemindersForUserStmt.all(auth.user.user_id);
+    const scope = reminderScopeFromValue(asText(requestUrl.searchParams.get('scope')));
+    const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
+    if (!personalProject) {
+      request.log.error('Personal project is unavailable during reminder listing.', { userId: auth.user.user_id });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
+      return;
+    }
+
+    let projectId = personalProject.project_id;
+    let paneId = '';
+    if (scope === 'project') {
+      projectId = asText(requestUrl.searchParams.get('project_id'));
+      if (!projectId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for project-scoped reminders.')));
+        return;
+      }
+
+      const projectGate = withProjectPolicyGate({
+        userId: auth.user.user_id,
+        projectId,
+        requiredCapability: 'view',
+      });
+      if (projectGate.error) {
+        send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+        return;
+      }
+
+      paneId = asText(requestUrl.searchParams.get('pane_id'));
+      if (paneId) {
+        const pane = paneByIdStmt.get(paneId);
+        if (!pane || pane.project_id !== projectId) {
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested project.')));
+          return;
+        }
+      }
+    }
+
+    const rows = listRemindersForUserStmt.all(auth.user.user_id, scope, personalProject.project_id, scope, projectId, paneId, paneId);
     request.log.debug('Reminder listing query completed.', { durationMs: elapsedMs(listQueryStartedAt) });
     const now = nowIso();
 
@@ -204,35 +249,83 @@ export const createReminderRoutes = (deps) => {
     const title = validated.title;
     const remindAt = validated.remind_at;
     const recurrenceJson = validated.recurrence_json ? toJson(validated.recurrence_json) : null;
+    const scope = reminderScopeFromValue(validated.scope);
+    const paneId = asText(validated.pane_id) || null;
+    const sourceViewId = typeof validated.source_view_id === 'string' && validated.source_view_id ? validated.source_view_id : null;
 
-    const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
-    if (!personalProject) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'No personal project found for user.')));
-      return;
-    }
+    let targetProject;
+    if (scope === 'project') {
+      const projectId = asText(validated.project_id);
+      if (!projectId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for project-scoped reminders.')));
+        return;
+      }
 
-    const collectionId = asText(personalProject.reminders_collection_id);
-    if (!collectionId) {
-      request.log.error('Personal reminders collection is unavailable during reminder creation.', {
+      const projectGate = withProjectPolicyGate({
         userId: auth.user.user_id,
+        projectId,
+        requiredCapability: 'write',
       });
-      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
-      return;
+      if (projectGate.error) {
+        send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+        return;
+      }
+
+      targetProject = projectByIdStmt.get(projectId);
+      if (!targetProject) {
+        send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found.')));
+        return;
+      }
+
+      if (paneId) {
+        const pane = paneByIdStmt.get(paneId);
+        if (!pane || pane.project_id !== projectId) {
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested project.')));
+          return;
+        }
+      }
+
+      if (sourceViewId) {
+        const view = viewByIdStmt.get(sourceViewId);
+        if (!view || view.project_id !== projectId) {
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'source_view_id must belong to the requested project.')));
+          return;
+        }
+      }
+    } else {
+      targetProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
+      if (!targetProject) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'No personal project found for user.')));
+        return;
+      }
     }
 
     const timestamp = nowIso();
     const recordId = newId('rec');
     const reminderId = newId('rem');
+    let collectionId = asText(targetProject.reminders_collection_id);
 
     try {
       withTransaction(() => {
+        if (!collectionId) {
+          const existingCollection = collectionByNameStmt.get(targetProject.project_id, 'Reminders');
+          if (existingCollection?.collection_id) {
+            collectionId = existingCollection.collection_id;
+            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.project_id);
+          } else {
+            collectionId = newId('col');
+            insertCollectionStmt.run(collectionId, targetProject.project_id, 'Reminders', null, null, timestamp, timestamp);
+            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.project_id);
+          }
+        }
+
         insertRecordStmt.run(
           recordId,
-          personalProject.project_id,
+          targetProject.project_id,
           collectionId,
           title,
-          null,
-          null,
+          paneId,
+          sourceViewId,
           auth.user.user_id,
           timestamp,
           timestamp,
@@ -252,7 +345,7 @@ export const createReminderRoutes = (deps) => {
         {
           reminder_id: reminderId,
           record_id: recordId,
-          project_id: personalProject.project_id,
+          project_id: targetProject.project_id,
           action: 'created',
         },
         auth.user.user_id,
@@ -274,7 +367,7 @@ export const createReminderRoutes = (deps) => {
             reminder_id: reminderId,
             record_id: recordId,
             record_title: title,
-            project_id: personalProject.project_id,
+            project_id: targetProject.project_id,
             remind_at: remindAt,
             channels: ['in_app'],
             recurrence_json: validated.recurrence_json ?? null,

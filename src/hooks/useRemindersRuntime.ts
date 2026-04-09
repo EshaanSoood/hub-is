@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CreateReminderPayload, HubReminderSummary } from '../services/hub/reminders.ts';
+import type { CreateReminderPayload, HubReminderSummary, ListRemindersOptions } from '../services/hub/reminders.ts';
 import { createReminder, dismissReminder, listReminders } from '../services/hub/reminders.ts';
 import { subscribeHubHomeRefresh } from '../lib/hubHomeRefresh.ts';
 import { subscribeHubLive } from '../services/hubLive.ts';
@@ -17,12 +17,20 @@ interface UseRemindersRuntimeOptions {
   autoload?: boolean;
   subscribeToHomeRefresh?: boolean;
   subscribeToLive?: boolean;
+  scope?: ListRemindersOptions['scope'];
+  projectId?: string;
+  paneId?: string | null;
+  sourceViewId?: string | null;
 }
 
 export const useRemindersRuntime = (accessToken: string | null, options?: UseRemindersRuntimeOptions): RemindersRuntime => {
   const autoload = options?.autoload ?? true;
   const subscribeToHomeRefresh = options?.subscribeToHomeRefresh ?? true;
   const subscribeToLive = options?.subscribeToLive ?? true;
+  const reminderScope = options?.scope ?? 'personal';
+  const projectId = options?.projectId;
+  const paneId = options?.paneId ?? null;
+  const sourceViewId = options?.sourceViewId ?? null;
   const [reminders, setReminders] = useState<HubReminderSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +63,12 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
     setLoading(true);
     setError(null);
     try {
-      const data = await listReminders(accessToken);
+      const data = await listReminders(
+        accessToken,
+        reminderScope === 'project'
+          ? { scope: 'project', projectId, paneId }
+          : undefined,
+      );
       if (mountedRef.current && sequence === refreshSequenceRef.current) {
         setReminders(data);
       }
@@ -68,7 +81,7 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
         setLoading(false);
       }
     }
-  }, [accessToken]);
+  }, [accessToken, paneId, projectId, reminderScope]);
 
   const refreshWithDebounce = useCallback(() => {
     if (reminderRefreshTimerRef.current !== null) {
@@ -92,7 +105,7 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       setLoading(false);
       setError(null);
     }
-  }, [accessToken]);
+  }, [accessToken, paneId, projectId, reminderScope]);
 
   useEffect(() => {
     if (!autoload) {
@@ -142,9 +155,20 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       return;
     }
 
-    await createReminder(accessToken, payload);
+    await createReminder(
+      accessToken,
+      reminderScope === 'project'
+        ? {
+            ...payload,
+            scope: 'project',
+            project_id: projectId,
+            ...(paneId ? { pane_id: paneId } : {}),
+            ...(sourceViewId ? { source_view_id: sourceViewId } : {}),
+          }
+        : payload,
+    );
     await refresh();
-  }, [accessToken, refresh]);
+  }, [accessToken, paneId, projectId, refresh, reminderScope, sourceViewId]);
 
   return { reminders, loading, error, refresh, dismiss, create };
 };

@@ -1,5 +1,5 @@
 import type { CreateEventRequest } from './events';
-import type { CreateReminderRequest, ReminderFrequency, ReminderRecurrence } from './reminders';
+import type { CreateReminderRequest, ReminderFrequency, ReminderRecurrence, ReminderScope } from './reminders';
 import type { CreateTaskRequest, TaskPriority, TaskStatus } from './tasks';
 
 const TASK_STATUSES: TaskStatus[] = ['todo', 'in_progress', 'done', 'cancelled'];
@@ -147,6 +147,13 @@ const validateReminderRecurrence = (value: unknown): ReminderRecurrence => {
   return recurrence;
 };
 
+const validateReminderScope = (value: unknown): ReminderScope => {
+  if (value === 'personal' || value === 'project') {
+    return value;
+  }
+  throw new Error('scope must be either "personal" or "project" when provided.');
+};
+
 export const validateCreateReminderRequest = (body: unknown): CreateReminderRequest => {
   if (!isRecord(body)) {
     throw new Error('Request body must be a JSON object.');
@@ -159,6 +166,24 @@ export const validateCreateReminderRequest = (body: unknown): CreateReminderRequ
 
   if (typeof body.recurrence_json !== 'undefined') {
     request.recurrence_json = body.recurrence_json === null ? null : validateReminderRecurrence(body.recurrence_json);
+  }
+
+  if (typeof body.scope !== 'undefined') {
+    request.scope = validateReminderScope(body.scope);
+  }
+
+  const projectId = asOptionalString(body.project_id, 'project_id');
+  if (projectId) {
+    request.project_id = projectId;
+  }
+
+  const paneId = asOptionalString(body.pane_id, 'pane_id');
+  if (paneId) {
+    request.pane_id = paneId;
+  }
+
+  if (typeof body.source_view_id !== 'undefined') {
+    request.source_view_id = body.source_view_id === null ? null : asOptionalString(body.source_view_id, 'source_view_id') ?? null;
   }
 
   return request;

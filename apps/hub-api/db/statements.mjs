@@ -507,7 +507,16 @@ export const createStatements = (db) => ({
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
       JOIN project_members pm ON pm.project_id = rec.project_id AND pm.user_id = ?
-      WHERE r.dismissed_at IS NULL AND rec.archived_at IS NULL
+      WHERE r.dismissed_at IS NULL
+        AND rec.archived_at IS NULL
+        AND (
+          (? = 'personal' AND rec.project_id = ?)
+          OR (
+            ? = 'project'
+            AND rec.project_id = ?
+            AND (? = '' OR rec.source_pane_id = ?)
+          )
+        )
       ORDER BY r.remind_at ASC
     `),
     dismiss: db.prepare(`

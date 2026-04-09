@@ -496,7 +496,15 @@ export const ProjectSpaceWorkspace = ({
     timeline,
     setTimeline,
   });
-  const remindersRuntime = useRemindersRuntime(accessToken);
+  const remindersRuntime = useRemindersRuntime(accessToken, {
+    autoload: activeTab === 'work' && Boolean(activePane?.pane_id),
+    subscribeToHomeRefresh: activeTab === 'work' && Boolean(activePane?.pane_id),
+    subscribeToLive: activeTab === 'work' && Boolean(activePane?.pane_id),
+    scope: 'project',
+    projectId: project.project_id,
+    paneId: activeTab === 'work' ? activePane?.pane_id ?? null : null,
+    sourceViewId: activeTab === 'work' ? focusedWorkViewId || null : null,
+  });
 
   usePaneControlEffects({
     openedFromPinned,

@@ -285,6 +285,27 @@ export const validateCreateReminderRequest = (body) => {
     request.recurrence_json = body.recurrence_json === null ? null : validateReminderRecurrence(body.recurrence_json);
   }
 
+  if (typeof body.scope !== 'undefined') {
+    if (body.scope !== 'personal' && body.scope !== 'project') {
+      throw new Error('scope must be either "personal" or "project" when provided.');
+    }
+    request.scope = body.scope;
+  }
+
+  const projectId = asOptionalString(body.project_id, 'project_id');
+  if (projectId) {
+    request.project_id = projectId;
+  }
+
+  const paneId = asOptionalString(body.pane_id, 'pane_id');
+  if (paneId) {
+    request.pane_id = paneId;
+  }
+
+  if (typeof body.source_view_id !== 'undefined') {
+    request.source_view_id = body.source_view_id === null ? null : asOptionalString(body.source_view_id, 'source_view_id') ?? null;
+  }
+
   return request;
 };
 

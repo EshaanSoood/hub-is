@@ -58,7 +58,7 @@ const defaultModuleLens = (moduleType: string): 'project' | 'pane' | 'pane_scrat
     return 'pane';
   }
   if (moduleType === 'reminders') {
-    return 'project';
+    return 'pane';
   }
   return 'project';
 };
@@ -71,7 +71,7 @@ const normalizeModuleLens = (moduleType: string, lens: unknown): 'project' | 'pa
     return lens === 'project' ? 'project' : 'pane';
   }
   if (moduleType === 'reminders') {
-    return 'project';
+    return 'pane';
   }
   return lens === 'pane_scratch' ? 'pane_scratch' : 'project';
 };
