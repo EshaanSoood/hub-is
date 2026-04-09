@@ -13,6 +13,7 @@ const __dirname = dirname(__filename);
 const repoRoot = resolve(__dirname, '..', '..');
 const mintScriptPath = resolve(repoRoot, 'scripts/mint-contract-smoke-tokens.mjs');
 const smokeUsersEnvFile = resolve(repoRoot, '.env.contract-smoke.users.local');
+const e2eSmokeUsersEnvFile = resolve(repoRoot, 'e2e', '.env.users.local');
 
 const redactSecrets = (value: string, secrets: string[] = []): string => {
   let output = value.replace(JWT_PATTERN, '[REDACTED_JWT]');
@@ -76,30 +77,43 @@ interface TestAccount {
 }
 
 export const resolveLinkedTestAccounts = async (): Promise<{ accountA: TestAccount; accountB: TestAccount }> => {
-  const fileEnv = await readOptionalEnvFile(smokeUsersEnvFile);
+  const rootFileEnv = await readOptionalEnvFile(smokeUsersEnvFile);
+  const e2eFileEnv = await readOptionalEnvFile(e2eSmokeUsersEnvFile);
 
   const accountA = {
     email: firstNonEmpty(
       process.env.TEST_EMAIL_A,
       process.env.HUB_SMOKE_USER_A_USERNAME,
-      fileEnv.HUB_SMOKE_USER_A_USERNAME,
+      e2eFileEnv.TEST_EMAIL_A,
+      e2eFileEnv.HUB_SMOKE_USER_A_USERNAME,
+      rootFileEnv.TEST_EMAIL_A,
+      rootFileEnv.HUB_SMOKE_USER_A_USERNAME,
     ),
     password: firstNonEmpty(
       process.env.TEST_PASSWORD_A,
       process.env.HUB_SMOKE_USER_A_PASSWORD,
-      fileEnv.HUB_SMOKE_USER_A_PASSWORD,
+      e2eFileEnv.TEST_PASSWORD_A,
+      e2eFileEnv.HUB_SMOKE_USER_A_PASSWORD,
+      rootFileEnv.TEST_PASSWORD_A,
+      rootFileEnv.HUB_SMOKE_USER_A_PASSWORD,
     ),
   };
   const accountB = {
     email: firstNonEmpty(
       process.env.TEST_EMAIL_B,
       process.env.HUB_SMOKE_USER_B_USERNAME,
-      fileEnv.HUB_SMOKE_USER_B_USERNAME,
+      e2eFileEnv.TEST_EMAIL_B,
+      e2eFileEnv.HUB_SMOKE_USER_B_USERNAME,
+      rootFileEnv.TEST_EMAIL_B,
+      rootFileEnv.HUB_SMOKE_USER_B_USERNAME,
     ),
     password: firstNonEmpty(
       process.env.TEST_PASSWORD_B,
       process.env.HUB_SMOKE_USER_B_PASSWORD,
-      fileEnv.HUB_SMOKE_USER_B_PASSWORD,
+      e2eFileEnv.TEST_PASSWORD_B,
+      e2eFileEnv.HUB_SMOKE_USER_B_PASSWORD,
+      rootFileEnv.TEST_PASSWORD_B,
+      rootFileEnv.HUB_SMOKE_USER_B_PASSWORD,
     ),
   };
 
@@ -119,7 +133,7 @@ export const resolveLinkedTestAccounts = async (): Promise<{ accountA: TestAccou
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing account credentials: ${missing.join(', ')}. You can set TEST_* vars, HUB_SMOKE_USER_* vars, or populate ${smokeUsersEnvFile}.`,
+      `Missing account credentials: ${missing.join(', ')}. You can set TEST_* vars, HUB_SMOKE_USER_* vars, or populate .env.contract-smoke.users.local or e2e/.env.users.local.`,
     );
   }
 
