@@ -13,19 +13,19 @@
   /* Text & Accents */
   --color-text: rgb(240 244 248);
   --color-text-secondary: rgb(192 204 218);
-  --color-primary: rgb(255 163 205);
-  --color-primary-strong: rgb(255 122 181);
+  --color-primary: rgb(232 92 153);
+  --color-primary-strong: rgb(200 58 124);
   --color-on-primary: rgb(28 36 48);
 
   /* Warnings (Keeping the reds, removing green) */
   --color-danger: rgb(220 53 69);
   --color-danger-subtle: rgb(220 53 69 / 0.15);
-  --color-priority-high: var(--color-danger);
-  --color-priority-high-tint: var(--color-danger-subtle);
-  --color-priority-medium: rgb(245 168 80);
-  --color-priority-medium-tint: rgb(245 168 80 / 0.15);
-  --color-priority-low: rgb(132 156 178);
-  --color-priority-low-tint: rgb(132 156 178 / 0.15);
+  --color-priority-high: rgb(210 70 85);
+  --color-priority-high-tint: rgb(210 70 85 / 0.15);
+  --color-priority-medium: rgb(230 140 75);
+  --color-priority-medium-tint: rgb(230 140 75 / 0.15);
+  --color-priority-low: rgb(212 170 88);
+  --color-priority-low-tint: rgb(212 170 88 / 0.15);
   --color-priority-none: var(--color-muted);
   --color-priority-none-tint: var(--color-muted-subtle);
   --color-warning-subtle: rgb(255 193 7 / 0.15);
@@ -37,14 +37,14 @@
   --color-capture-rail: hsl(174 60% 45%);
   --color-capture-rail-actioned: var(--color-primary);
   --color-muted-subtle: var(--color-surface-elevated);
-  --color-border-muted: rgb(51 65 85);
+  --color-border-muted: rgb(65 82 105);
   --color-border-primary: var(--color-border-muted);
   --color-overlay: rgb(15 23 42 / 0.6);
   --color-elevated: var(--color-surface-elevated);
   --color-subtle: var(--color-muted-subtle);
   --color-accent: var(--color-primary);
   --color-border-subtle: var(--color-border-muted);
-  --color-focus-ring: var(--color-accent);
+  --color-focus-ring: rgb(90 160 255);
   --color-time-band-overlay: 180 194 210;
   --time-band-night: rgba(var(--color-time-band-overlay), 0);
   --time-band-dawn: rgba(var(--color-time-band-overlay), 0.04);
