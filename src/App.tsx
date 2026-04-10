@@ -1,10 +1,11 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { ProjectRouteGuard } from './components/auth/ProjectRouteGuard';
 import { useAuthz } from './context/AuthzContext';
 import { ProjectRouteRedirect } from './components/auth/ProjectRouteRedirect';
+import { buildCurrentAuthRedirectUri } from './services/authRedirect';
 
 const ProjectsPage = lazy(async () => {
   const module = await import('./pages/ProjectsPage');
@@ -29,10 +30,34 @@ const RouteLoadingState = ({ label = 'Loading route...' }: { label?: string }) =
 
 const App = () => {
   const { signedIn, authReady, signIn } = useAuthz();
+  const location = useLocation();
+  const navigate = useNavigate();
   const signInCalledRef = useRef(false);
   const previousSignedInRef = useRef(signedIn);
   const signInTimeoutRef = useRef<number | null>(null);
   const [signInError, setSignInError] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
+    const cleanedUrl = new URL(buildCurrentAuthRedirectUri({
+      origin: window.location.origin,
+      pathname: location.pathname,
+      search: location.search,
+      hash: location.hash,
+    }));
+    if (
+      cleanedUrl.pathname === location.pathname
+      && cleanedUrl.search === location.search
+      && cleanedUrl.hash === location.hash
+    ) {
+      return;
+    }
+
+    navigate(`${cleanedUrl.pathname}${cleanedUrl.search}${cleanedUrl.hash}`, { replace: true });
+  }, [authReady, location.hash, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (previousSignedInRef.current && !signedIn) {
