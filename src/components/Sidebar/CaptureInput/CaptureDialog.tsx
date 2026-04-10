@@ -1,3 +1,4 @@
+import { AnimatePresence, useReducedMotion } from 'framer-motion';
 import { startTransition, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { parseTaskInput } from '../../../lib/nlp/task-parser';
@@ -8,7 +9,9 @@ import { createEventFromNlp, createPersonalTask, createRecord } from '../../../s
 import { createReminder } from '../../../services/hub/reminders';
 import type { ProjectRecord } from '../../../types/domain';
 import { buildProjectWorkHref } from '../../../lib/hubRoutes';
-import { Dialog, Select } from '../../primitives';
+import { AnimatedSurface } from '../../motion/AnimatedSurface';
+import { Select } from '../../primitives';
+import { sidebarMotionLayoutIds } from '../motion/sidebarMotion';
 import type { CaptureDestination, CaptureKind, DestinationKind } from './shared';
 import {
   createQuickThoughtEntry,
@@ -19,6 +22,7 @@ import {
 
 interface CaptureDialogProps {
   accessToken: string | null | undefined;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   destinations: CaptureDestination[];
   draft: string;
   captureKind: CaptureKind;
@@ -32,6 +36,7 @@ interface CaptureDialogProps {
 
 export const CaptureDialog = ({
   accessToken,
+  containerRef,
   destinations,
   draft,
   captureKind,
@@ -43,6 +48,8 @@ export const CaptureDialog = ({
   onSaved,
 }: CaptureDialogProps) => {
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion() ?? false;
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [destinationValue, setDestinationValue] = useState<DestinationKind>('hub');
   const [eventTitle, setEventTitle] = useState('');
   const [eventStartAt, setEventStartAt] = useState('');
@@ -97,6 +104,33 @@ export const CaptureDialog = ({
     }
     lastAppliedEventDraftRef.current = calendar.lastParsedDraft;
   }, [calendar.formPreview.endAt, calendar.formPreview.startAt, calendar.formPreview.title, calendar.lastParsedDraft, captureKind, open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (panelRef.current?.contains(target) || containerRef.current?.contains(target)) {
+        return;
+      }
+      onClose();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [containerRef, onClose, open]);
 
   const submitCapture = async () => {
     const trimmedDraft = draft.trim();
@@ -243,117 +277,125 @@ export const CaptureDialog = ({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      triggerRef={triggerRef}
-      title={`Confirm ${labelForCaptureKind[captureKind]}`}
-      description={`Review this ${labelForCaptureKind[captureKind].toLowerCase()} before saving it.`}
-    >
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Type</p>
-          <p className="text-sm font-semibold text-text">{labelForCaptureKind[captureKind]}</p>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Add to</p>
-          <Select
-            value={destinationValue}
-            onValueChange={(value) => setDestinationValue(value as DestinationKind)}
-            ariaLabel="Capture destination"
-            options={destinations.map((destination) => ({
-              value: destination.kind,
-              label: destination.label,
-            }))}
-            triggerClassName="w-full"
-          />
-        </div>
-
-        {captureKind === 'event' ? (
-          <>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted">Describe event</span>
-              <input
-                type="text"
-                value={calendar.draft}
-                onChange={(event) => {
-                  calendar.setDraft(event.target.value);
-                  setDraft(event.target.value);
-                }}
-                className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted">Event title</span>
-              <input
-                type="text"
-                value={eventTitle}
-                onChange={(event) => setEventTitle(event.target.value)}
-                className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-              />
-            </label>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-muted">Start</span>
-                <input
-                  type="datetime-local"
-                  value={eventStartAt}
-                  onChange={(event) => setEventStartAt(event.target.value)}
-                  className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-muted">End</span>
-                <input
-                  type="datetime-local"
-                  value={eventEndAt}
-                  onChange={(event) => setEventEndAt(event.target.value)}
-                  className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                />
-              </label>
+    <AnimatePresence initial={false}>
+      {open ? (
+        <AnimatedSurface
+          ref={panelRef}
+          layoutId={prefersReducedMotion ? undefined : sidebarMotionLayoutIds.captureSurface}
+          variant="dialog"
+          role="dialog"
+          ariaLabel={`Confirm ${labelForCaptureKind[captureKind]}`}
+          className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[130] rounded-panel border border-border-muted bg-surface-elevated p-4 shadow-soft"
+        >
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Type</p>
+              <p className="text-sm font-semibold text-text">{labelForCaptureKind[captureKind]}</p>
             </div>
-          </>
-        ) : (
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted">
-              {captureKind === 'thought' ? 'Thought' : labelForCaptureKind[captureKind]}
-            </span>
-            <input
-              type="text"
-              value={draft}
-              onChange={(event) => {
-                setDraft(event.target.value);
-                reminder.setDraft(event.target.value);
-                calendar.setDraft(event.target.value);
-              }}
-              className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-            />
-          </label>
-        )}
 
-        {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Add to</p>
+              <Select
+                value={destinationValue}
+                onValueChange={(value) => setDestinationValue(value as DestinationKind)}
+                ariaLabel="Capture destination"
+                options={destinations.map((destination) => ({
+                  value: destination.kind,
+                  label: destination.label,
+                }))}
+                triggerClassName="w-full"
+              />
+            </div>
 
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            className="interactive interactive-subtle rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-text"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={submitting}
-            className="interactive rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={() => {
-              void submitCapture();
-            }}
-          >
-            {submitting ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-      </div>
-    </Dialog>
+            {captureKind === 'event' ? (
+              <>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted">Describe event</span>
+                  <input
+                    type="text"
+                    value={calendar.draft}
+                    onChange={(event) => {
+                      calendar.setDraft(event.target.value);
+                      setDraft(event.target.value);
+                    }}
+                    className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted">Event title</span>
+                  <input
+                    type="text"
+                    value={eventTitle}
+                    onChange={(event) => setEventTitle(event.target.value)}
+                    className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-medium uppercase tracking-wide text-muted">Start</span>
+                    <input
+                      type="datetime-local"
+                      value={eventStartAt}
+                      onChange={(event) => setEventStartAt(event.target.value)}
+                      className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-medium uppercase tracking-wide text-muted">End</span>
+                    <input
+                      type="datetime-local"
+                      value={eventEndAt}
+                      onChange={(event) => setEventEndAt(event.target.value)}
+                      className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                    />
+                  </label>
+                </div>
+              </>
+            ) : (
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted">
+                  {captureKind === 'thought' ? 'Thought' : labelForCaptureKind[captureKind]}
+                </span>
+                <input
+                  type="text"
+                  value={draft}
+                  onChange={(event) => {
+                    setDraft(event.target.value);
+                    reminder.setDraft(event.target.value);
+                    calendar.setDraft(event.target.value);
+                  }}
+                  className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                />
+              </label>
+            )}
+
+            {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="interactive interactive-subtle rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-text"
+                onClick={() => {
+                  onClose();
+                  triggerRef.current?.focus();
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                className="interactive rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => {
+                  void submitCapture();
+                }}
+              >
+                {submitting ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </AnimatedSurface>
+      ) : null}
+    </AnimatePresence>
   );
 };

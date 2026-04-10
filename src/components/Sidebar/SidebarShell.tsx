@@ -1,11 +1,14 @@
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjects } from '../../context/ProjectsContext';
 import { cn } from '../../lib/cn';
+import { fadeThroughVariants } from '../motion/hubMotion';
 import { listPanes } from '../../services/hub/panes';
 import type { HubPaneSummary } from '../../services/hub/types';
 import { CaptureInput } from './CaptureInput';
+import { sidebarMotionDurations, sidebarShellVariants } from './motion/sidebarMotion';
 import { ProjectsTree } from './ProjectsTree';
 import { ProfileBadge } from './ProfileBadge';
 import { RecentPanes } from './RecentPanes';
@@ -28,6 +31,7 @@ const decodePathSegment = (value: string | null): string | null => {
 export const SidebarShell = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const { accessToken } = useAuthz();
   const { projects } = useProjects();
   const { collapseSidebar, expandSidebar, isCollapsed } = useSidebarCollapse();
@@ -35,6 +39,8 @@ export const SidebarShell = () => {
   const [searchAutoFocusKey, setSearchAutoFocusKey] = useState(0);
   const [captureAutoFocusKey, setCaptureAutoFocusKey] = useState(0);
   const [profileAutoOpenKey, setProfileAutoOpenKey] = useState(0);
+  const [visualCollapsed, setVisualCollapsed] = useState(isCollapsed);
+  const [showLabels, setShowLabels] = useState(!isCollapsed);
 
   const normalizedPathname = location.pathname.replace(/\/+$/, '') || '/';
   const isOnHome = normalizedPathname === '/projects';
@@ -47,6 +53,10 @@ export const SidebarShell = () => {
   const currentProject = useMemo(
     () => projects.find((project) => project.id === currentProjectId) || null,
     [currentProjectId, projects],
+  );
+  const currentPaneId = useMemo(
+    () => decodePathSegment(normalizedPathname.match(/^\/projects\/[^/]+\/work\/([^/]+)/)?.[1] || null),
+    [normalizedPathname],
   );
   const activeCurrentProjectPanes = currentProjectId ? currentProjectPanes : [];
   const currentSurface = useMemo<SidebarSurfaceId | null>(() => {
@@ -77,6 +87,44 @@ export const SidebarShell = () => {
     () => projects.find((project) => project.isPersonal) || null,
     [projects],
   );
+  const resolvedVisualCollapsed = prefersReducedMotion ? isCollapsed : visualCollapsed;
+  const resolvedShowLabels = prefersReducedMotion ? !isCollapsed : showLabels;
+  const sidebarContextKey = currentPaneId
+    ? `pane:${currentPaneId}`
+    : currentProjectId
+      ? `project:${currentProjectId}`
+      : `hub:${currentSurface ?? 'home'}`;
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    const timeoutMs = isCollapsed
+      ? sidebarMotionDurations.labelFade * 1000
+      : sidebarMotionDurations.shellExpandDelay * 1000;
+
+    const phaseTimerId = window.setTimeout(() => {
+      if (isCollapsed) {
+        setShowLabels(false);
+        return;
+      }
+      setVisualCollapsed(false);
+    }, 0);
+
+    const timeoutId = window.setTimeout(() => {
+      if (isCollapsed) {
+        setVisualCollapsed(true);
+        return;
+      }
+      setShowLabels(true);
+    }, timeoutMs);
+
+    return () => {
+      window.clearTimeout(phaseTimerId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [isCollapsed, prefersReducedMotion]);
 
   useEffect(() => {
     if (!accessToken || !currentProjectId) {
@@ -125,67 +173,92 @@ export const SidebarShell = () => {
   }, [expandSidebar, navigate]);
 
   return (
-    <nav
-      aria-label="Primary workspace navigation"
-      className={cn(
-        'sidebar-shell-transition flex h-screen shrink-0 flex-col border-r border-border-muted bg-surface px-2 py-3',
-        isCollapsed ? 'sidebar-shell-collapsed items-center gap-2' : 'sidebar-shell-expanded gap-3',
-      )}
-    >
-      <WorkspaceHeader
-        isCollapsed={isCollapsed}
-        onCollapseSidebar={collapseSidebar}
-        onOpenHome={openHome}
-      />
-
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-        <SearchButton
-          accessToken={accessToken}
-          autoFocusKey={searchAutoFocusKey}
-          isCollapsed={isCollapsed}
-          onOpenSearch={openSearch}
-          routeKey={`${location.pathname}${location.search}`}
+    <LayoutGroup id="sidebar-shell-layout">
+      <motion.nav
+        aria-label="Primary workspace navigation"
+        initial={false}
+        animate={resolvedVisualCollapsed ? 'collapsed' : 'expanded'}
+        variants={sidebarShellVariants(prefersReducedMotion)}
+        className={cn(
+          'flex h-screen shrink-0 flex-col overflow-hidden border-r border-border-muted bg-surface px-2 py-3',
+          resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3',
+        )}
+      >
+        <WorkspaceHeader
+          isCollapsed={resolvedVisualCollapsed}
+          onCollapseSidebar={collapseSidebar}
+          onOpenHome={openHome}
+          showLabels={resolvedShowLabels}
         />
 
-        <CaptureInput
-          key={`capture:${location.pathname}${location.search}`}
-          accessToken={accessToken}
-          autoFocusKey={captureAutoFocusKey}
-          currentProject={currentProject}
-          currentProjectPanes={activeCurrentProjectPanes}
-          currentSurfaceLabel={currentSurfaceLabel}
-          isCollapsed={isCollapsed}
-          onOpenCapture={openCapture}
-          personalProject={personalProject}
-        />
+        <div className={cn('flex min-h-0 flex-1 flex-col', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}>
+          <SearchButton
+            accessToken={accessToken}
+            autoFocusKey={searchAutoFocusKey}
+            isCollapsed={resolvedVisualCollapsed}
+            onOpenSearch={openSearch}
+            routeKey={`${location.pathname}${location.search}`}
+            showLabels={resolvedShowLabels}
+          />
 
-        <Surfaces
-          activeSurface={currentSurface}
-          isCollapsed={isCollapsed}
-          onSelectSurface={onSelectSurface}
-        />
+          <CaptureInput
+            key={`capture:${location.pathname}${location.search}`}
+            accessToken={accessToken}
+            autoFocusKey={captureAutoFocusKey}
+            currentProject={currentProject}
+            currentProjectPanes={activeCurrentProjectPanes}
+            currentSurfaceLabel={currentSurfaceLabel}
+            isCollapsed={resolvedVisualCollapsed}
+            onOpenCapture={openCapture}
+            personalProject={personalProject}
+            showLabels={resolvedShowLabels}
+          />
 
-        <RecentPanes
-          currentProject={currentProject}
-          currentProjectPanes={activeCurrentProjectPanes}
-          isCollapsed={isCollapsed}
-          onExpandSidebar={expandSidebar}
-        />
+          <div className="min-h-0 flex-1">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={sidebarContextKey}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={fadeThroughVariants(prefersReducedMotion)}
+                className={cn('flex min-h-0 flex-1 flex-col', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}
+              >
+                <Surfaces
+                  activeSurface={currentSurface}
+                  isCollapsed={resolvedVisualCollapsed}
+                  onSelectSurface={onSelectSurface}
+                  showLabels={resolvedShowLabels}
+                />
 
-        <ProjectsTree
-          currentProject={currentProject}
-          currentProjectPanes={activeCurrentProjectPanes}
-          isCollapsed={isCollapsed}
-          onExpandSidebar={expandSidebar}
-        />
-      </div>
+                <RecentPanes
+                  currentProject={currentProject}
+                  currentProjectPanes={activeCurrentProjectPanes}
+                  isCollapsed={resolvedVisualCollapsed}
+                  onExpandSidebar={expandSidebar}
+                  showLabels={resolvedShowLabels}
+                />
 
-      <ProfileBadge
-        key={`profile:${profileAutoOpenKey}`}
-        autoOpenKey={profileAutoOpenKey}
-        isCollapsed={isCollapsed}
-        onOpenProfile={openProfile}
-      />
-    </nav>
+                <ProjectsTree
+                  currentProject={currentProject}
+                  currentProjectPanes={activeCurrentProjectPanes}
+                  isCollapsed={resolvedVisualCollapsed}
+                  onExpandSidebar={expandSidebar}
+                  showLabels={resolvedShowLabels}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        <ProfileBadge
+          key={`profile:${profileAutoOpenKey}`}
+          autoOpenKey={profileAutoOpenKey}
+          isCollapsed={resolvedVisualCollapsed}
+          onOpenProfile={openProfile}
+          showLabels={resolvedShowLabels}
+        />
+      </motion.nav>
+    </LayoutGroup>
   );
 };

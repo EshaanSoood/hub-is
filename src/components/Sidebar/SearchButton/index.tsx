@@ -1,6 +1,13 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { buildSearchResultHref, SEARCH_RESULT_TYPE_LABELS } from '../../layout/appShellUtils';
+import { SidebarLabel } from '../motion/SidebarLabel';
+import {
+  sidebarSearchOverlayVariants,
+  sidebarSearchResultVariants,
+  sidebarSearchResultsVariants,
+} from '../motion/sidebarMotion';
 import { Icon } from '../../primitives/Icon';
 import { searchHub, type HubSearchResult } from '../../../services/hub/search';
 
@@ -10,6 +17,7 @@ interface SearchButtonProps {
   isCollapsed: boolean;
   onOpenSearch: () => void;
   routeKey: string;
+  showLabels: boolean;
 }
 
 export const SearchButton = ({
@@ -18,8 +26,10 @@ export const SearchButton = ({
   isCollapsed,
   onOpenSearch,
   routeKey,
+  showLabels,
 }: SearchButtonProps) => {
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const [isActive, setIsActive] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<HubSearchResult[]>([]);
@@ -156,10 +166,14 @@ export const SearchButton = ({
           >
             <Icon name="search" size={16} />
           </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">Search</span>
-          <span className="rounded-control border border-subtle bg-surface px-2 py-1 text-[11px] uppercase tracking-[0.12em] text-muted">
-            ⌘K
-          </span>
+          <SidebarLabel show={showLabels} className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">Search</span>
+          </SidebarLabel>
+          <SidebarLabel show={showLabels}>
+            <span className="rounded-control border border-subtle bg-surface px-2 py-1 text-[11px] uppercase tracking-[0.12em] text-muted">
+              ⌘K
+            </span>
+          </SidebarLabel>
         </button>
       ) : (
         <div className="rounded-panel border border-subtle bg-surface px-3 py-2">
@@ -170,120 +184,141 @@ export const SearchButton = ({
             >
               <Icon name="search" size={16} />
             </span>
-            <input
-              ref={inputRef}
-              type="search"
-              role="combobox"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'ArrowDown') {
-                  event.preventDefault();
-                  setActiveIndex((current) => {
-                    if (results.length === 0) {
-                      return -1;
-                    }
-                    return current < 0 || current + 1 >= results.length ? 0 : current + 1;
-                  });
-                  return;
-                }
-                if (event.key === 'ArrowUp') {
-                  event.preventDefault();
-                  setActiveIndex((current) => {
-                    if (results.length === 0) {
-                      return -1;
-                    }
-                    return current <= 0 ? results.length - 1 : current - 1;
-                  });
-                  return;
-                }
-                if (event.key === 'Enter' && normalizedActiveIndex >= 0 && results[normalizedActiveIndex]) {
-                  event.preventDefault();
-                  const href = buildSearchResultHref(results[normalizedActiveIndex]);
-                  if (!href) {
+            <SidebarLabel show={showLabels} className="min-w-0 flex flex-1 items-center gap-2">
+              <input
+                ref={inputRef}
+                type="search"
+                role="combobox"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    setActiveIndex((current) => {
+                      if (results.length === 0) {
+                        return -1;
+                      }
+                      return current < 0 || current + 1 >= results.length ? 0 : current + 1;
+                    });
                     return;
                   }
-                  navigate(href);
-                  closeSearch();
-                  return;
-                }
-                if (event.key === 'Escape') {
-                  event.preventDefault();
-                  closeSearch();
-                }
-              }}
-              placeholder="Search"
-              aria-label="Search across Hub OS"
-              aria-controls="sidebar-search-results"
-              aria-expanded={hasOverlay}
-              aria-activedescendant={normalizedActiveIndex >= 0 ? `sidebar-search-result-${normalizedActiveIndex}` : undefined}
-              className="min-w-0 flex-1 border-0 bg-transparent text-sm text-text outline-none placeholder:text-text-secondary"
-            />
-            <button
-              type="button"
-              aria-label="Close search"
-              className="interactive interactive-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              onClick={closeSearch}
-            >
-              <Icon name="close" size={14} />
-            </button>
+                  if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    setActiveIndex((current) => {
+                      if (results.length === 0) {
+                        return -1;
+                      }
+                      return current <= 0 ? results.length - 1 : current - 1;
+                    });
+                    return;
+                  }
+                  if (event.key === 'Enter' && normalizedActiveIndex >= 0 && results[normalizedActiveIndex]) {
+                    event.preventDefault();
+                    const href = buildSearchResultHref(results[normalizedActiveIndex]);
+                    if (!href) {
+                      return;
+                    }
+                    navigate(href);
+                    closeSearch();
+                    return;
+                  }
+                  if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closeSearch();
+                  }
+                }}
+                placeholder="Search"
+                aria-label="Search across Hub OS"
+                aria-controls="sidebar-search-results"
+                aria-expanded={hasOverlay}
+                aria-activedescendant={normalizedActiveIndex >= 0 ? `sidebar-search-result-${normalizedActiveIndex}` : undefined}
+                className="min-w-0 flex-1 border-0 bg-transparent text-sm text-text outline-none placeholder:text-text-secondary"
+              />
+              <button
+                type="button"
+                aria-label="Close search"
+                className="interactive interactive-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                onClick={closeSearch}
+              >
+                <Icon name="close" size={14} />
+              </button>
+            </SidebarLabel>
           </div>
         </div>
       )}
 
-      {hasOverlay ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[120] overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft">
-          {loading ? (
-            <p className="px-3 py-3 text-sm text-muted">Searching…</p>
-          ) : error ? (
-            <p className="px-3 py-3 text-sm text-danger" role="alert">{error}</p>
-          ) : results.length === 0 ? (
-            <p className="px-3 py-3 text-sm text-muted">No results</p>
-          ) : (
-            <ul id="sidebar-search-results" role="listbox" className="max-h-72 overflow-y-auto py-1">
-              {results.map((result, index) => {
-                const href = buildSearchResultHref(result);
-                const isSelected = normalizedActiveIndex === index;
-                return (
-                  <li
-                    key={`${result.type}:${result.id}`}
-                    id={`sidebar-search-result-${index}`}
-                    role="option"
-                    aria-selected={isSelected}
-                  >
-                    <button
-                      type="button"
-                      disabled={!href}
-                      aria-disabled={!href}
-                      className={`interactive interactive-subtle flex w-full flex-col gap-1 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60 ${
-                        isSelected ? 'bg-elevated' : 'bg-transparent hover:bg-elevated'
-                      }`}
-                      onMouseEnter={() => setActiveIndex(index)}
-                      onClick={() => {
-                        if (!href) {
-                          return;
-                        }
-                        navigate(href);
-                        closeSearch();
-                      }}
+      <AnimatePresence initial={false}>
+        {hasOverlay ? (
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={sidebarSearchOverlayVariants(prefersReducedMotion)}
+            className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[120] overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
+          >
+            {loading ? (
+              <p className="px-3 py-3 text-sm text-muted">Searching…</p>
+            ) : error ? (
+              <p className="px-3 py-3 text-sm text-danger" role="alert">{error}</p>
+            ) : results.length === 0 ? (
+              <p className="px-3 py-3 text-sm text-muted">No results</p>
+            ) : (
+              <motion.ul
+                id="sidebar-search-results"
+                role="listbox"
+                initial={false}
+                animate="animate"
+                variants={sidebarSearchResultsVariants(prefersReducedMotion)}
+                className="max-h-72 overflow-y-auto py-1"
+              >
+                {results.map((result, index) => {
+                  const href = buildSearchResultHref(result);
+                  const isSelected = normalizedActiveIndex === index;
+                  return (
+                    <motion.li
+                      key={`${result.type}:${result.id}`}
+                      id={`sidebar-search-result-${index}`}
+                      role="option"
+                      aria-selected={isSelected}
+                      variants={sidebarSearchResultVariants(prefersReducedMotion)}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-control border border-subtle bg-surface px-2 py-[2px] text-[10px] uppercase tracking-[0.12em] text-muted">
-                          {SEARCH_RESULT_TYPE_LABELS[result.type]}
-                        </span>
-                        <span className="min-w-0 truncate text-sm font-medium text-text">{result.title}</span>
-                      </div>
-                      {result.project_name ? (
-                        <span className="text-xs text-muted">{result.project_name}</span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      ) : null}
+                      <button
+                        type="button"
+                        disabled={!href}
+                        aria-disabled={!href}
+                        className={`interactive interactive-subtle flex w-full flex-col gap-1 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60 ${
+                          isSelected ? 'bg-elevated' : 'bg-transparent hover:bg-elevated'
+                        }`}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={() => {
+                          if (!href) {
+                            return;
+                          }
+                          navigate(href);
+                          closeSearch();
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-control border border-subtle bg-surface px-2 py-[2px] text-[10px] uppercase tracking-[0.12em] text-muted">
+                            {SEARCH_RESULT_TYPE_LABELS[result.type]}
+                          </span>
+                          <span className="min-w-0 truncate text-sm font-medium text-text">{result.title}</span>
+                        </div>
+                        {result.project_name ? (
+                          <span className="text-xs text-muted">{result.project_name}</span>
+                        ) : null}
+                      </button>
+                    </motion.li>
+                  );
+                })}
+              </motion.ul>
+            )}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 };

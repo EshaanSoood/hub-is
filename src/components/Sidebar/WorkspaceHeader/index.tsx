@@ -1,16 +1,19 @@
 import { Link } from 'react-router-dom';
+import { SidebarLabel } from '../motion/SidebarLabel';
 import { Icon } from '../../primitives/Icon';
 
 interface WorkspaceHeaderProps {
   isCollapsed: boolean;
   onCollapseSidebar: () => void;
   onOpenHome: () => void;
+  showLabels: boolean;
 }
 
 export const WorkspaceHeader = ({
   isCollapsed,
   onCollapseSidebar,
   onOpenHome,
+  showLabels,
 }: WorkspaceHeaderProps) => {
   if (isCollapsed) {
     return (
@@ -37,7 +40,9 @@ export const WorkspaceHeader = ({
         >
           <Icon name="home" size={16} />
         </span>
-        <span className="min-w-0 truncate text-sm font-semibold tracking-[0.01em]">myHub</span>
+        <SidebarLabel show={showLabels} className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold tracking-[0.01em]">myHub</span>
+        </SidebarLabel>
       </Link>
 
       <button

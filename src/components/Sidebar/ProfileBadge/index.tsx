@@ -1,5 +1,8 @@
+import { motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthz } from '../../../context/AuthzContext';
+import { SidebarLabel } from '../motion/SidebarLabel';
+import { sidebarChevronVariants } from '../motion/sidebarMotion';
 import { Icon } from '../../primitives/Icon';
 import { ProfileMenu } from './ProfileMenu';
 
@@ -15,14 +18,17 @@ interface ProfileBadgeProps {
   autoOpenKey: number;
   isCollapsed: boolean;
   onOpenProfile: () => void;
+  showLabels: boolean;
 }
 
 export const ProfileBadge = ({
   autoOpenKey,
   isCollapsed,
   onOpenProfile,
+  showLabels,
 }: ProfileBadgeProps) => {
   const { sessionSummary } = useAuthz();
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(() => autoOpenKey > 0);
   const initials = useMemo(() => sessionInitials(sessionSummary.name), [sessionSummary.name]);
@@ -77,20 +83,26 @@ export const ProfileBadge = ({
           {initials}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-text">{sessionSummary.name}</p>
-          <button
-            type="button"
-            aria-expanded={menuOpen}
-            className="interactive interactive-subtle mt-1 inline-flex items-center gap-1 rounded-control px-2 py-1 text-xs font-medium text-text-secondary hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            onClick={() => setMenuOpen((current) => !current)}
-          >
-            <span>Menu</span>
-            <Icon
-              name="chevron-down"
-              size={12}
-              className={menuOpen ? 'rotate-0 transition-transform' : '-rotate-90 transition-transform'}
-            />
-          </button>
+          <SidebarLabel show={showLabels} className="min-w-0">
+            <p className="truncate text-sm font-semibold text-text">{sessionSummary.name}</p>
+          </SidebarLabel>
+          <SidebarLabel show={showLabels}>
+            <button
+              type="button"
+              aria-expanded={menuOpen}
+              className="interactive interactive-subtle mt-1 inline-flex items-center gap-1 rounded-control px-2 py-1 text-xs font-medium text-text-secondary hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              onClick={() => setMenuOpen((current) => !current)}
+            >
+              <span>Menu</span>
+              <motion.span
+                initial={false}
+                animate={menuOpen ? 'expanded' : 'collapsed'}
+                variants={sidebarChevronVariants(prefersReducedMotion)}
+              >
+                <Icon name="chevron-down" size={12} />
+              </motion.span>
+            </button>
+          </SidebarLabel>
         </div>
       </div>
     </div>

@@ -20,12 +20,14 @@ interface SurfacesProps {
   activeSurface: SidebarSurfaceId | null;
   isCollapsed: boolean;
   onSelectSurface: (surfaceId: SidebarSurfaceId) => void;
+  showLabels: boolean;
 }
 
 export const Surfaces = ({
   activeSurface,
   isCollapsed,
   onSelectSurface,
+  showLabels,
 }: SurfacesProps) => (
   <div className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'flex-col gap-1'}`}>
     {SURFACE_ITEMS.map((surface) => (
@@ -36,6 +38,7 @@ export const Surfaces = ({
         isCollapsed={isCollapsed}
         label={surface.label}
         onClick={() => onSelectSurface(surface.id)}
+        showLabels={showLabels}
       />
     ))}
   </div>

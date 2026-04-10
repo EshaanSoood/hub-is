@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { buildProjectWorkHref } from '../../../lib/hubRoutes';
 import type { HubPaneSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
+import { SidebarLabel } from '../motion/SidebarLabel';
 import { Icon } from '../../primitives/Icon';
 import { RecentPaneItem } from './RecentPaneItem';
 
@@ -49,6 +50,7 @@ interface RecentPanesProps {
   currentProjectPanes: HubPaneSummary[];
   isCollapsed: boolean;
   onExpandSidebar: () => void;
+  showLabels: boolean;
 }
 
 export const RecentPanes = ({
@@ -56,6 +58,7 @@ export const RecentPanes = ({
   currentProjectPanes,
   isCollapsed,
   onExpandSidebar,
+  showLabels,
 }: RecentPanesProps) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -118,19 +121,23 @@ export const RecentPanes = ({
     <section className="rounded-panel border border-subtle bg-surface px-2 py-2">
       <div className="flex items-center gap-2 px-2 py-2 text-sm font-semibold text-text-secondary">
         <Icon name="timeline" size={14} />
-        <span>Recent Panes</span>
+        <SidebarLabel show={showLabels}>
+          <span>Recent Panes</span>
+        </SidebarLabel>
       </div>
 
-      <div className="space-y-1">
-        {recentPanes.map((entry) => (
-          <RecentPaneItem
-            key={`${entry.projectId}:${entry.paneId}`}
-            label={entry.paneName}
-            projectName={entry.projectName}
-            onClick={() => navigate(buildProjectWorkHref(entry.projectId, entry.paneId))}
-          />
-        ))}
-      </div>
+      <SidebarLabel show={showLabels}>
+        <div className="space-y-1">
+          {recentPanes.map((entry) => (
+            <RecentPaneItem
+              key={`${entry.projectId}:${entry.paneId}`}
+              label={entry.paneName}
+              projectName={entry.projectName}
+              onClick={() => navigate(buildProjectWorkHref(entry.projectId, entry.paneId))}
+            />
+          ))}
+        </div>
+      </SidebarLabel>
     </section>
   );
 };

@@ -147,7 +147,7 @@ and read the matching section only.
 - VoiceOver reference: `docs/voiceover-accessibility-codex-reference.md`
 - Route definitions: `src/App.tsx`
 - App shell: `src/components/layout/AppShell/index.tsx`
-- Bottom toolbar: `src/components/layout/BottomToolbar/index.tsx`
+- Sidebar shell: `src/components/Sidebar/SidebarShell.tsx`
 
 ## Section 5 - Codex prompt conventions
 

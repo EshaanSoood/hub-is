@@ -18,7 +18,7 @@ For an example of this pattern, see [src/hooks/useProjectTasksRuntime.ts](../src
 ## 4. State Ownership: Hooks Own State, Parents Call Hooks
 Phase 5 replaced the previous 800-line `AppShell` ownership model with hook-owned state domains. In the current pattern, parent components orchestrate by calling hooks and wiring outputs into presentational children. Each hook owns one domain (search, notifications, quick add, etc.), which reduces hidden coupling and keeps parent files readable even when UI behavior is rich.
 
-For an example of this pattern, see [src/components/layout/BottomToolbar/index.tsx](../src/components/layout/BottomToolbar/index.tsx).
+For an example of this pattern, see [src/components/Sidebar/SidebarShell.tsx](../src/components/Sidebar/SidebarShell.tsx).
 
 ## 5. Per-Module Contracts: Typed Props Per Module Type
 Phase 7 replaced generic context-driven module insertion plumbing (including the deleted `ModuleInsertContext`) with explicit typed contracts per module type. Each module receives a contract that matches its own capabilities (`TableModuleContract`, `KanbanModuleContract`, etc.), so type checking catches cross-module mismatches early and module wrappers stay honest about what they need.
