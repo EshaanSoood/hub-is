@@ -75,6 +75,15 @@
   --dialog-panel-wide-max-w: 64rem;
   --dialog-panel-expanded-max-w: 96rem;
   --alert-dialog-panel-max-w: 36rem;
+  --sidebar-width-expanded: 15.5rem;
+  --sidebar-width-collapsed: 3.5rem;
+  --sidebar-collapse-duration: 180ms;
+  --sidebar-collapse-ease: cubic-bezier(0.2, 0, 0, 1);
+  --press-scale: 0.97;
+  --press-duration: 80ms;
+  --press-ease: cubic-bezier(0.2, 0, 0, 1);
+  --hover-duration: 120ms;
+  --hover-delay: 40ms;
 
   --radius-panel: 0.75rem;
   --radius-control: 0.625rem;
@@ -237,6 +246,58 @@
   width: min(calc(100vw - (var(--dialog-panel-inline-gap) * 2)), var(--alert-dialog-panel-max-w));
   min-width: min(var(--dialog-panel-min-w), calc(100vw - (var(--dialog-panel-inline-gap) * 2)));
   max-width: var(--alert-dialog-panel-max-w);
+}
+
+.interactive {
+  transition:
+    transform var(--press-duration) var(--press-ease),
+    background-color var(--hover-duration) var(--press-ease);
+  transition-delay: 0ms, var(--hover-delay);
+  will-change: transform;
+}
+
+.interactive:hover,
+.interactive:focus-visible {
+  transition-delay: 0ms;
+}
+
+.interactive:active {
+  transform: scale(var(--press-scale));
+  transition-delay: 0ms, 0ms;
+}
+
+.interactive-subtle {
+  --press-scale: 0.98;
+}
+
+.interactive-strong {
+  --press-scale: 0.94;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive {
+    transition: background-color var(--hover-duration) var(--press-ease);
+  }
+
+  .interactive:active {
+    transform: none;
+  }
+}
+
+@utility sidebar-shell-expanded {
+  width: var(--sidebar-width-expanded);
+  min-width: var(--sidebar-width-expanded);
+}
+
+@utility sidebar-shell-collapsed {
+  width: var(--sidebar-width-collapsed);
+  min-width: var(--sidebar-width-collapsed);
+}
+
+@utility sidebar-shell-transition {
+  transition:
+    width var(--sidebar-collapse-duration) var(--sidebar-collapse-ease),
+    background-color var(--hover-duration) var(--press-ease);
 }
 
 @utility heading-2 {

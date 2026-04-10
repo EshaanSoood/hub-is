@@ -4,12 +4,11 @@ import { useLocation, useNavigationType } from 'react-router-dom';
 import { useProjects } from '../../../context/ProjectsContext';
 import { useRouteFocusReset } from '../../../hooks/useRouteFocusReset';
 import { LiveRegion } from '../../primitives';
+import { SidebarShell } from '../../Sidebar';
 import { fadeThroughVariants, routeFadeVariants, sharedAxisXVariants } from '../../motion/hubMotion';
 import { decideRouteTransition } from './routeMotion';
-import { BottomToolbar } from '../BottomToolbar';
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
-  const [captureAnnouncement, setCaptureAnnouncement] = useState('');
   const location = useLocation();
   const navigationType = useNavigationType();
   const prefersReducedMotion = useReducedMotion() ?? false;
@@ -51,7 +50,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const routeTransitionKey = location.pathname;
 
   return (
-    <div className="flex h-screen flex-col bg-surface text-text">
+    <div className="flex h-screen bg-surface text-text">
       <header className="sr-only">
         <h1>Hub workspace</h1>
       </header>
@@ -63,7 +62,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         Skip to main content
       </a>
 
-      <main id="main-content" className="flex-1 overflow-y-auto">
+      <SidebarShell />
+
+      <main id="main-content" className="min-w-0 flex-1 overflow-y-auto bg-surface-elevated">
         <LayoutGroup id="hub-route-layout">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -80,10 +81,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </LayoutGroup>
       </main>
 
-      <BottomToolbar setCaptureAnnouncement={setCaptureAnnouncement} />
-
       <LiveRegion message={transitionDecision.announcement} role="status" ariaLive="polite" />
-      <LiveRegion message={captureAnnouncement} ariaLive="polite" />
     </div>
   );
 };
