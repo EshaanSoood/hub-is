@@ -5,9 +5,10 @@ import { useProjects } from '../../context/ProjectsContext';
 import { cn } from '../../lib/cn';
 import { listPanes } from '../../services/hub/panes';
 import type { HubPaneSummary } from '../../services/hub/types';
-import { Icon } from '../primitives/Icon';
 import { CaptureInput } from './CaptureInput';
 import { ProjectsTree } from './ProjectsTree';
+import { ProfileBadge } from './ProfileBadge';
+import { RecentPanes } from './RecentPanes';
 import { SearchButton } from './SearchButton';
 import { Surfaces, buildSurfaceHref, type SidebarSurfaceId } from './Surfaces';
 import { useSidebarCollapse } from './hooks/useSidebarCollapse';
@@ -24,53 +25,6 @@ const decodePathSegment = (value: string | null): string | null => {
   }
 };
 
-const PlaceholderSection = ({
-  iconName,
-  isBottom = false,
-  isCollapsed,
-  label,
-  onExpand,
-}: {
-  iconName: 'timeline' | 'project-list' | 'user';
-  isBottom?: boolean;
-  isCollapsed: boolean;
-  label: string;
-  onExpand: () => void;
-}) => {
-  if (isCollapsed) {
-    return (
-      <button
-        type="button"
-        aria-label={`Expand sidebar from ${label}`}
-        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-        onClick={onExpand}
-      >
-        <Icon name={iconName} size={16} />
-      </button>
-    );
-  }
-
-  return (
-    <div
-      className={`rounded-panel border border-subtle px-3 py-2 ${
-        isBottom ? 'bg-elevated text-text' : 'bg-surface text-text-secondary'
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle ${
-            isBottom ? 'bg-surface text-text' : 'bg-elevated text-text-secondary'
-          }`}
-        >
-          <Icon name={iconName} size={16} />
-        </span>
-        <span className="min-w-0 truncate text-sm font-medium">{label}</span>
-      </div>
-    </div>
-  );
-};
-
 export const SidebarShell = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -80,6 +34,7 @@ export const SidebarShell = () => {
   const [currentProjectPanes, setCurrentProjectPanes] = useState<HubPaneSummary[]>([]);
   const [searchAutoFocusKey, setSearchAutoFocusKey] = useState(0);
   const [captureAutoFocusKey, setCaptureAutoFocusKey] = useState(0);
+  const [profileAutoOpenKey, setProfileAutoOpenKey] = useState(0);
 
   const normalizedPathname = location.pathname.replace(/\/+$/, '') || '/';
   const isOnHome = normalizedPathname === '/projects';
@@ -159,6 +114,11 @@ export const SidebarShell = () => {
     navigate('/projects');
   }, [expandSidebar, navigate]);
 
+  const openProfile = useCallback(() => {
+    expandSidebar();
+    setProfileAutoOpenKey((current) => current + 1);
+  }, [expandSidebar]);
+
   const onSelectSurface = useCallback((surfaceId: SidebarSurfaceId) => {
     expandSidebar();
     navigate(buildSurfaceHref(surfaceId));
@@ -205,11 +165,11 @@ export const SidebarShell = () => {
           onSelectSurface={onSelectSurface}
         />
 
-        <PlaceholderSection
-          iconName="timeline"
+        <RecentPanes
+          currentProject={currentProject}
+          currentProjectPanes={activeCurrentProjectPanes}
           isCollapsed={isCollapsed}
-          label="Recent Panes"
-          onExpand={expandSidebar}
+          onExpandSidebar={expandSidebar}
         />
 
         <ProjectsTree
@@ -220,12 +180,11 @@ export const SidebarShell = () => {
         />
       </div>
 
-      <PlaceholderSection
-        iconName="user"
-        isBottom
+      <ProfileBadge
+        key={`profile:${profileAutoOpenKey}`}
+        autoOpenKey={profileAutoOpenKey}
         isCollapsed={isCollapsed}
-        label="Profile"
-        onExpand={expandSidebar}
+        onOpenProfile={openProfile}
       />
     </nav>
   );
