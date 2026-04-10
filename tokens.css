@@ -75,11 +75,21 @@
   --dialog-panel-wide-max-w: 64rem;
   --dialog-panel-expanded-max-w: 96rem;
   --alert-dialog-panel-max-w: 36rem;
+  --sidebar-width-expanded: 15.5rem;
+  --sidebar-width-collapsed: 3.5rem;
+  --sidebar-collapse-duration: 180ms;
+  --sidebar-collapse-ease: cubic-bezier(0.2, 0, 0, 1);
+  --press-scale: 0.97;
+  --press-duration: 80ms;
+  --press-ease: cubic-bezier(0.2, 0, 0, 1);
+  --hover-duration: 120ms;
+  --hover-delay: 40ms;
 
   --radius-panel: 0.75rem;
   --radius-control: 0.625rem;
 
   --space-2xs: 0.25rem;
+  --space-3xs: 0.125rem;
   --space-xs: 0.5rem;
   --space-sm: 0.75rem;
   --space-md: 1rem;
@@ -94,6 +104,10 @@
   --text-heading-2: 1.5rem;
   --text-heading-3: 1.25rem;
   --text-heading-4: 1rem;
+  --text-label-sm: 0.6875rem;
+  --text-label-xs: 0.625rem;
+  --tracking-sidebar-kicker: 0.12em;
+  --sidebar-flyout-offset: calc(100% + 0.5rem);
 
   /* Weight scale reference */
   /* 700 — module headings, card titles, column headers, record names */
@@ -172,6 +186,7 @@
 
   --radius-panel: var(--radius-panel);
   --radius-control: var(--radius-control);
+  --spacing-3xs: var(--space-3xs);
   --spacing-2xs: var(--space-2xs);
   --spacing-xs: var(--space-xs);
   --spacing-sm: var(--space-sm);
@@ -239,11 +254,85 @@
   max-width: var(--alert-dialog-panel-max-w);
 }
 
+.interactive {
+  transition:
+    transform var(--press-duration) var(--press-ease),
+    background-color var(--hover-duration) var(--press-ease);
+  transition-delay: 0ms, var(--hover-delay);
+  will-change: transform;
+}
+
+.interactive:hover,
+.interactive:focus-visible {
+  transition-delay: 0ms;
+}
+
+.interactive:active {
+  transform: scale(var(--press-scale));
+  transition-delay: 0ms, 0ms;
+}
+
+.interactive-subtle {
+  --press-scale: 0.98;
+}
+
+.interactive-strong {
+  --press-scale: 0.94;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive {
+    transition: background-color var(--hover-duration) var(--press-ease);
+  }
+
+  .interactive:active {
+    transform: none;
+  }
+}
+
+@utility sidebar-shell-expanded {
+  width: var(--sidebar-width-expanded);
+  min-width: var(--sidebar-width-expanded);
+}
+
+@utility sidebar-shell-collapsed {
+  width: var(--sidebar-width-collapsed);
+  min-width: var(--sidebar-width-collapsed);
+}
+
+@utility sidebar-shell-transition {
+  transition:
+    width var(--sidebar-collapse-duration) var(--sidebar-collapse-ease),
+    background-color var(--hover-duration) var(--press-ease);
+}
+
+@utility sidebar-flyout-offset {
+  top: var(--sidebar-flyout-offset);
+}
+
+@utility sidebar-flyout-above {
+  bottom: var(--sidebar-flyout-offset);
+}
+
 @utility heading-2 {
   font-family: var(--font-heading);
   font-size: var(--text-heading-2);
   line-height: 1.25;
   font-weight: 700;
+}
+
+@utility text-label-sm {
+  font-size: var(--text-label-sm);
+  line-height: 1rem;
+}
+
+@utility text-label-xs {
+  font-size: var(--text-label-xs);
+  line-height: 0.875rem;
+}
+
+@utility tracking-sidebar-kicker {
+  letter-spacing: var(--tracking-sidebar-kicker);
 }
 
 @utility heading-3 {

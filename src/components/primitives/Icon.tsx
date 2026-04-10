@@ -17,6 +17,7 @@ import {
   Kanban,
   Lightbulb,
   ListChecks,
+  MagnifyingGlass,
   PencilSimple,
   Plus,
   PushPin,
@@ -75,6 +76,7 @@ export const TableIcon = createPhosphorIcon(Table);
 export const UserIcon = createPhosphorIcon(UserCircle);
 export const NavIcon = createPhosphorIcon(Compass);
 export const FilterIcon = createPhosphorIcon(Binoculars);
+export const SearchIcon = createPhosphorIcon(MagnifyingGlass);
 export const ProjectListIcon = createPhosphorIcon(Cube);
 export const MoreIcon = createPhosphorIcon(DotsThree);
 export const MenuIcon = NavIcon;
@@ -179,7 +181,8 @@ export type IconName =
   | 'pin'
   | 'edit'
   | 'home'
-  | 'focus';
+  | 'focus'
+  | 'search';
 
 export const ICON_MAP: Record<IconName, IconComponent> = {
   checkmark: CheckmarkIcon,
@@ -209,6 +212,7 @@ export const ICON_MAP: Record<IconName, IconComponent> = {
   edit: EditIcon,
   home: HomeIcon,
   focus: FocusIcon,
+  search: SearchIcon,
 };
 
 interface IconProps extends BaseIconProps {
