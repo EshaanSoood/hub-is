@@ -50,6 +50,7 @@ export const createProjectRoutes = (deps) => {
     deletePaneMembersByUserInProjectStmt,
     assignedTaskListForUser,
     reassignTasksForRemovedMember,
+    updateProjectPositionStmt,
   } = deps;
 
   const isPersonalProject = (projectId) => {
@@ -105,6 +106,7 @@ export const createProjectRoutes = (deps) => {
         projectId,
         'Main Work',
         1,
+        1,
         0,
         toJson({ modules: [], doc_binding_mode: 'owned' }),
         auth.user.user_id,
@@ -145,6 +147,57 @@ export const createProjectRoutes = (deps) => {
     }
 
     const project = projectForMemberStmt.get(params.projectId, auth.user.user_id);
+    if (!project) {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found.')));
+      return;
+    }
+
+    send(response, jsonResponse(200, okEnvelope({ project: projectRecord(project) })));
+  };
+
+  const updateProject = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const projectId = params.projectId;
+    const projectGate = withProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId,
+      requiredCapability: 'write',
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch (error) {
+      request.log.warn('Failed to parse request body for project update.', { error });
+      send(response, parseBody.errorResponse(error));
+      return;
+    }
+
+    const position = body.position === null ? null : Number.isInteger(body.position) ? body.position : null;
+    if (body.position !== undefined && body.position !== null && position === null) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'position must be an integer or null.')));
+      return;
+    }
+
+    if (typeof position === 'number' && position < 0) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'position must be zero or greater.')));
+      return;
+    }
+
+    if (body.position !== undefined) {
+      updateProjectPositionStmt.run(position, nowIso(), projectId);
+    }
+
+    const project = projectForMemberStmt.get(projectId, auth.user.user_id);
     if (!project) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found.')));
       return;
@@ -585,5 +638,6 @@ export const createProjectRoutes = (deps) => {
     listProjects,
     removeProjectMember,
     reviewInvite,
+    updateProject,
   };
 };

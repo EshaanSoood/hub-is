@@ -56,6 +56,7 @@ export interface HubPaneSummary {
   project_id: string;
   name: string;
   sort_order: number;
+  position: number | null;
   pinned: boolean;
   layout_config: Record<string, unknown>;
   doc_id: string | null;

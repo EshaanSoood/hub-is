@@ -7,6 +7,7 @@ import { listPanes } from '../../services/hub/panes';
 import type { HubPaneSummary } from '../../services/hub/types';
 import { Icon } from '../primitives/Icon';
 import { CaptureInput } from './CaptureInput';
+import { ProjectsTree } from './ProjectsTree';
 import { SearchButton } from './SearchButton';
 import { Surfaces, buildSurfaceHref, type SidebarSurfaceId } from './Surfaces';
 import { useSidebarCollapse } from './hooks/useSidebarCollapse';
@@ -92,6 +93,7 @@ export const SidebarShell = () => {
     () => projects.find((project) => project.id === currentProjectId) || null,
     [currentProjectId, projects],
   );
+  const activeCurrentProjectPanes = currentProjectId ? currentProjectPanes : [];
   const currentSurface = useMemo<SidebarSurfaceId | null>(() => {
     if (!isOnHome) {
       return null;
@@ -190,7 +192,7 @@ export const SidebarShell = () => {
           accessToken={accessToken}
           autoFocusKey={captureAutoFocusKey}
           currentProject={currentProject}
-          currentProjectPanes={currentProjectPanes}
+          currentProjectPanes={activeCurrentProjectPanes}
           currentSurfaceLabel={currentSurfaceLabel}
           isCollapsed={isCollapsed}
           onOpenCapture={openCapture}
@@ -210,11 +212,11 @@ export const SidebarShell = () => {
           onExpand={expandSidebar}
         />
 
-        <PlaceholderSection
-          iconName="project-list"
+        <ProjectsTree
+          currentProject={currentProject}
+          currentProjectPanes={activeCurrentProjectPanes}
           isCollapsed={isCollapsed}
-          label="Projects"
-          onExpand={expandSidebar}
+          onExpandSidebar={expandSidebar}
         />
       </div>
 

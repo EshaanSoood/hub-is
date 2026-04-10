@@ -8,6 +8,7 @@ import {
   removePaneMember,
   updatePane,
 } from '../services/hub/panes';
+import { buildDefaultPaneCreatePayload } from '../lib/paneTemplates';
 import { listTimeline } from '../services/hub/records';
 import type { HubPaneSummary } from '../services/hub/types';
 
@@ -58,40 +59,21 @@ export const usePaneMutations = ({
 
       setPaneMutationError(null);
       try {
-        const nextSortOrder = panes.reduce((max, pane) => Math.max(max, pane.sort_order ?? 0), 0) + 1;
-        const nextPane = await createPane(accessToken, projectId, {
-          name: trimmed,
-          sort_order: nextSortOrder,
-          pinned: false,
-          layout_config: {
-            modules_enabled: true,
-            workspace_enabled: true,
-            doc_binding_mode: 'owned',
-            modules: [
-              {
-                module_type: 'table',
-                size_tier: 'L',
-                lens: 'project',
-              },
-              {
-                module_type: 'kanban',
-                size_tier: 'L',
-                lens: 'project',
-                binding: {
-                  source_mode: 'owned',
-                },
-              },
-              {
-                module_type: 'calendar',
-                size_tier: 'M',
-                lens: 'project',
-              },
-            ],
-          },
-          member_user_ids: [sessionUserId],
-        });
+        const nextPane = await createPane(
+          accessToken,
+          projectId,
+          buildDefaultPaneCreatePayload({
+            existingPanes: panes,
+            name: trimmed,
+            sessionUserId,
+          }),
+        );
 
-        setPanes((current) => [...current, nextPane].sort((a, b) => a.sort_order - b.sort_order));
+        setPanes((current) =>
+          [...current, nextPane].sort(
+            (left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order),
+          ),
+        );
         try {
           await refreshProjectData();
           const nextTimeline = await listTimeline(accessToken, projectId);
@@ -133,7 +115,9 @@ export const usePaneMutations = ({
 
   const onMovePane = useCallback(
     async (pane: HubPaneSummary, direction: 'up' | 'down') => {
-      const ordered = [...panes].sort((a, b) => a.sort_order - b.sort_order);
+      const ordered = [...panes].sort(
+        (left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order),
+      );
       const index = ordered.findIndex((entry) => entry.pane_id === pane.pane_id);
       if (index < 0) {
         return;
@@ -145,15 +129,15 @@ export const usePaneMutations = ({
       }
 
       const target = ordered[nextIndex];
-      const originalSortOrder = pane.sort_order;
-      const targetSortOrder = target.sort_order;
+      const originalOrder = pane.position ?? pane.sort_order;
+      const targetOrder = target.position ?? target.sort_order;
       try {
-        await updatePane(accessToken, pane.pane_id, { sort_order: targetSortOrder });
+        await updatePane(accessToken, pane.pane_id, { sort_order: targetOrder, position: targetOrder });
         try {
-          await updatePane(accessToken, target.pane_id, { sort_order: originalSortOrder });
+          await updatePane(accessToken, target.pane_id, { sort_order: originalOrder, position: originalOrder });
         } catch (error) {
           try {
-            await updatePane(accessToken, pane.pane_id, { sort_order: originalSortOrder });
+            await updatePane(accessToken, pane.pane_id, { sort_order: originalOrder, position: originalOrder });
           } catch {
             // best-effort rollback
           }
@@ -218,7 +202,11 @@ export const usePaneMutations = ({
         }
 
         const refreshed = await listPanes(accessToken, projectId);
-        setPanes([...refreshed].sort((a, b) => a.sort_order - b.sort_order));
+        setPanes(
+          [...refreshed].sort(
+            (left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order),
+          ),
+        );
       } catch (error) {
         setPaneMutationError(error instanceof Error ? error.message : 'Failed to update pane members.');
       }
@@ -229,7 +217,7 @@ export const usePaneMutations = ({
   const onUpdatePaneFromWorkView = useCallback(
     async (
       paneIdToUpdate: string,
-      payload: { name?: string; pinned?: boolean; sort_order?: number; layout_config?: Record<string, unknown> },
+      payload: { name?: string; pinned?: boolean; sort_order?: number; position?: number | null; layout_config?: Record<string, unknown> },
     ) => {
       setPaneMutationError(null);
       try {

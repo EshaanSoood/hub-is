@@ -49,6 +49,9 @@ export const runMigrations = (db) => {
     }
   };
 
+  addColumnIfMissing('projects', 'position', 'INTEGER');
+  addColumnIfMissing('panes', 'position', 'INTEGER');
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS calendar_feed_tokens (
       token TEXT PRIMARY KEY,

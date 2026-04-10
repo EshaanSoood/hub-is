@@ -178,6 +178,17 @@ export const createRequestRouter = ({
       return;
     }
 
+    if (request.method === 'PATCH' && projectItemMatch) {
+      await projectRoutes.updateProject({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { projectId: decodeURIComponent(projectItemMatch[1]) },
+      });
+      return;
+    }
+
     const projectMembersMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/members$/);
     if (projectMembersMatch && request.method === 'GET') {
       await projectRoutes.listProjectMembers({

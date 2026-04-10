@@ -66,7 +66,11 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
     }
 
     setProject(nextProject);
-    setPanes(nextPanes.sort((a, b) => a.sort_order - b.sort_order));
+    setPanes(
+      nextPanes.sort(
+        (left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order),
+      ),
+    );
     setProjectMembers(nextMembersResult.members);
     setTimeline(nextTimeline);
 

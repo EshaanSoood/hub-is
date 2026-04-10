@@ -80,7 +80,16 @@ export const createStatements = (db) => ({
       FROM projects p
       JOIN project_members pm ON pm.project_id = p.project_id
       WHERE pm.user_id = ?
-      ORDER BY p.updated_at DESC
+      ORDER BY
+        CASE WHEN p.position IS NULL THEN 1 ELSE 0 END ASC,
+        p.position ASC,
+        p.created_at DESC,
+        p.project_id DESC
+    `),
+    updatePosition: db.prepare(`
+      UPDATE projects
+      SET position = ?, updated_at = ?
+      WHERE project_id = ?
     `),
     insert: db.prepare(`
       INSERT INTO projects (project_id, name, created_by, created_at, updated_at)
@@ -169,16 +178,20 @@ export const createStatements = (db) => ({
       SELECT p.*
       FROM panes p
       WHERE p.project_id = ?
-      ORDER BY p.sort_order ASC, p.created_at ASC
+      ORDER BY
+        CASE WHEN p.position IS NULL THEN 1 ELSE 0 END ASC,
+        p.position ASC,
+        p.sort_order ASC,
+        p.created_at ASC
     `),
     nextSortOrder: db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM panes WHERE project_id = ?'),
     insert: db.prepare(`
-      INSERT INTO panes (pane_id, project_id, name, sort_order, pinned, layout_config, created_by, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO panes (pane_id, project_id, name, sort_order, position, pinned, layout_config, created_by, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     update: db.prepare(`
       UPDATE panes
-      SET name = ?, sort_order = ?, pinned = ?, layout_config = ?, updated_at = ?
+      SET name = ?, sort_order = ?, position = ?, pinned = ?, layout_config = ?, updated_at = ?
       WHERE pane_id = ?
     `),
     delete: db.prepare('DELETE FROM panes WHERE pane_id = ?'),

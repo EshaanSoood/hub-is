@@ -776,6 +776,7 @@ const projectRecord = (row) => ({
   created_by: row.created_by,
   created_at: row.created_at,
   updated_at: row.updated_at,
+  position: typeof row.position === 'number' ? row.position : null,
   is_personal: Number(row.is_personal || 0) === 1 || asText(row.project_type).toLowerCase() === 'personal',
   membership_role: row.membership_role || null,
 });
@@ -965,6 +966,7 @@ const paneSummary = (pane, userId = '') => {
     project_id: pane.project_id,
     name: pane.name,
     sort_order: pane.sort_order,
+    position: typeof pane.position === 'number' ? pane.position : null,
     pinned: pane.pinned === 1,
     layout_config: parseJsonObject(pane.layout_config, {}),
     doc_id: doc?.doc_id || null,
@@ -1253,6 +1255,7 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
     paneId,
     projectId,
     'Notes',
+    1,
     1,
     0,
     toJson({ modules: [], doc_binding_mode: 'owned' }),

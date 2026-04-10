@@ -34,6 +34,22 @@ export const getProject = async (accessToken: string, projectId: string): Promis
   return data.project;
 };
 
+export const updateProject = async (
+  accessToken: string,
+  projectId: string,
+  payload: { position?: number | null },
+): Promise<ProjectSummary> => {
+  const data = await hubRequest<{ project: ProjectSummary }>(
+    accessToken,
+    `/api/hub/projects/${encodeURIComponent(projectId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+  );
+  return data.project;
+};
+
 export const listProjectMembers = async (accessToken: string, projectId: string): Promise<HubProjectMember[]> => {
   const data = await hubRequest<{ members: HubProjectMember[] }>(
     accessToken,

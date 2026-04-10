@@ -89,6 +89,7 @@ export const createPaneRoutes = (deps) => {
     const pinned = asBoolean(body.pinned, false);
     const layoutConfig = parseJsonObject(body.layout_config, {});
     const nextSort = asInteger(body.sort_order, Number(paneNextSortStmt.get(projectId)?.max_sort || 0) + 1, 0, 100000);
+    const nextPosition = asInteger(body.position, nextSort, 0, 100000);
 
     const paneId = newId('pan');
     const docId = newId('doc');
@@ -105,7 +106,18 @@ export const createPaneRoutes = (deps) => {
     }
 
     withTransaction(() => {
-      insertPaneStmt.run(paneId, projectId, name, nextSort, pinned ? 1 : 0, toJson(layoutConfig), auth.user.user_id, now, now);
+      insertPaneStmt.run(
+        paneId,
+        projectId,
+        name,
+        nextSort,
+        nextPosition,
+        pinned ? 1 : 0,
+        toJson(layoutConfig),
+        auth.user.user_id,
+        now,
+        now,
+      );
       insertDocStmt.run(docId, paneId, now, now);
       insertDocStorageStmt.run(docId, 0, toJson({}), now);
 
@@ -185,10 +197,13 @@ export const createPaneRoutes = (deps) => {
 
     const name = asText(body.name) || pane.name;
     const sortOrder = asInteger(body.sort_order, pane.sort_order, 0, 100000);
+    const position = body.position === null
+      ? null
+      : asInteger(body.position, typeof pane.position === 'number' ? pane.position : pane.sort_order, 0, 100000);
     const pinned = asBoolean(body.pinned, pane.pinned === 1);
     const layoutConfig = body.layout_config !== undefined ? parseJsonObject(body.layout_config, {}) : parseJsonObject(pane.layout_config, {});
 
-    updatePaneStmt.run(name, sortOrder, pinned ? 1 : 0, toJson(layoutConfig), nowIso(), paneId);
+    updatePaneStmt.run(name, sortOrder, position, pinned ? 1 : 0, toJson(layoutConfig), nowIso(), paneId);
     const updated = paneByIdStmt.get(paneId);
 
     emitTimelineEvent({

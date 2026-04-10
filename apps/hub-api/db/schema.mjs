@@ -158,6 +158,7 @@ const resetSchemaToContractV1 = (db) => {
         project_type TEXT NOT NULL DEFAULT 'team' CHECK (project_type IN ('team', 'personal')),
         tasks_collection_id TEXT,
         reminders_collection_id TEXT,
+        position INTEGER,
         CHECK (
           (is_personal = 0 AND project_type = 'team')
           OR (is_personal = 1 AND project_type = 'personal')
@@ -182,6 +183,7 @@ const resetSchemaToContractV1 = (db) => {
         project_id TEXT NOT NULL,
         name TEXT NOT NULL,
         sort_order INTEGER NOT NULL,
+        position INTEGER,
         pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
         layout_config TEXT NOT NULL,
         created_by TEXT NOT NULL,

@@ -19,6 +19,7 @@ export const createPane = async (
   payload: {
     name: string;
     sort_order?: number;
+    position?: number | null;
     pinned?: boolean;
     layout_config?: Record<string, unknown>;
     member_user_ids?: string[];
@@ -38,7 +39,7 @@ export const createPane = async (
 export const updatePane = async (
   accessToken: string,
   paneId: string,
-  payload: { name?: string; sort_order?: number; pinned?: boolean; layout_config?: Record<string, unknown> },
+  payload: { name?: string; sort_order?: number; position?: number | null; pinned?: boolean; layout_config?: Record<string, unknown> },
 ): Promise<HubPaneSummary> => {
   const data = await hubRequest<{ pane: HubPaneSummary }>(accessToken, `/api/hub/panes/${encodeURIComponent(paneId)}`, {
     method: 'PATCH',

@@ -12,6 +12,8 @@ export interface ProjectSummary {
   created_at: string;
   /** ISO 8601 timestamp for the last project update. */
   updated_at: string;
+  /** Manual sidebar ordering position. */
+  position: number | null;
   /** True when this is a user-scoped personal project. */
   is_personal: boolean;
   /** Current user membership role; null when not available. */
@@ -57,4 +59,6 @@ export interface ProjectRecord {
   isPersonal: boolean;
   /** Membership role for the signed-in user. */
   membershipRole: ProjectMembershipRole;
+  /** Manual sidebar ordering position. */
+  position: number | null;
 }
