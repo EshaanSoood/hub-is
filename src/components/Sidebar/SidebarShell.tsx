@@ -1,94 +1,166 @@
-import type { IconName } from '../primitives/Icon';
-import { Icon } from '../primitives/Icon';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthz } from '../../context/AuthzContext';
+import { useProjects } from '../../context/ProjectsContext';
 import { cn } from '../../lib/cn';
+import { listPanes } from '../../services/hub/panes';
+import type { HubPaneSummary } from '../../services/hub/types';
+import { Icon } from '../primitives/Icon';
+import { CaptureInput } from './CaptureInput';
+import { SearchButton } from './SearchButton';
+import { Surfaces, buildSurfaceHref, type SidebarSurfaceId } from './Surfaces';
 import { useSidebarCollapse } from './hooks/useSidebarCollapse';
+import { WorkspaceHeader } from './WorkspaceHeader';
 
-interface SidebarSection {
-  iconName: IconName;
-  id: string;
-  label: string;
-}
+const decodePathSegment = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
 
-const SIDEBAR_SECTIONS: SidebarSection[] = [
-  { id: 'workspace-header', label: 'Workspace Header', iconName: 'home' },
-  { id: 'search', label: 'Search', iconName: 'filter' },
-  { id: 'capture', label: 'Capture', iconName: 'plus' },
-  { id: 'surfaces', label: 'Surfaces', iconName: 'kanban' },
-  { id: 'recent-panes', label: 'Recent Panes', iconName: 'timeline' },
-  { id: 'projects', label: 'Projects', iconName: 'project-list' },
-  { id: 'profile', label: 'Profile', iconName: 'user' },
-];
-
-const SidebarRailSection = ({
-  id,
+const PlaceholderSection = ({
+  iconName,
+  isBottom = false,
+  isCollapsed,
   label,
   onExpand,
 }: {
-  id: string;
+  iconName: 'timeline' | 'project-list' | 'user';
+  isBottom?: boolean;
+  isCollapsed: boolean;
   label: string;
   onExpand: () => void;
-}) => (
-  <div data-sidebar-section={id}>
-    <button
-      type="button"
-      aria-label={`Expand sidebar from ${label}`}
-      className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-      onClick={onExpand}
-    >
-      <span aria-hidden="true" className="h-3 w-3 rounded-[999px] border border-border-muted bg-elevated" />
-      <span className="sr-only">{label}</span>
-    </button>
-  </div>
-);
-
-const SidebarExpandedSection = ({
-  iconName,
-  id,
-  label,
-  onCollapse,
-}: SidebarSection & {
-  onCollapse: () => void;
 }) => {
-  const isWorkspaceHeader = id === 'workspace-header';
+  if (isCollapsed) {
+    return (
+      <button
+        type="button"
+        aria-label={`Expand sidebar from ${label}`}
+        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        onClick={onExpand}
+      >
+        <Icon name={iconName} size={16} />
+      </button>
+    );
+  }
 
   return (
     <div
-      data-sidebar-section={id}
-      className={cn(
-        'flex min-h-11 items-center gap-3 rounded-panel border border-subtle px-3 py-2.5',
-        isWorkspaceHeader
-          ? 'bg-elevated text-text'
-          : 'bg-surface text-text-secondary',
-      )}
+      className={`rounded-panel border border-subtle px-3 py-2 ${
+        isBottom ? 'bg-elevated text-text' : 'bg-surface text-text-secondary'
+      }`}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle',
-          isWorkspaceHeader ? 'bg-surface text-text' : 'bg-elevated text-text-secondary',
-        )}
-      >
-        <Icon name={iconName} size={16} />
-      </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
-      {isWorkspaceHeader ? (
-        <button
-          type="button"
-          aria-label="Collapse sidebar"
-          className="interactive interactive-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          onClick={onCollapse}
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle ${
+            isBottom ? 'bg-surface text-text' : 'bg-elevated text-text-secondary'
+          }`}
         >
-          <Icon name="back" size={16} />
-        </button>
-      ) : null}
+          <Icon name={iconName} size={16} />
+        </span>
+        <span className="min-w-0 truncate text-sm font-medium">{label}</span>
+      </div>
     </div>
   );
 };
 
 export const SidebarShell = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { accessToken } = useAuthz();
+  const { projects } = useProjects();
   const { collapseSidebar, expandSidebar, isCollapsed } = useSidebarCollapse();
-  const profileSection = SIDEBAR_SECTIONS[SIDEBAR_SECTIONS.length - 1];
-  const mainSections = SIDEBAR_SECTIONS.slice(0, -1);
+  const [currentProjectPanes, setCurrentProjectPanes] = useState<HubPaneSummary[]>([]);
+  const [searchAutoFocusKey, setSearchAutoFocusKey] = useState(0);
+  const [captureAutoFocusKey, setCaptureAutoFocusKey] = useState(0);
+
+  const normalizedPathname = location.pathname.replace(/\/+$/, '') || '/';
+  const isOnHome = normalizedPathname === '/projects';
+  const currentProjectId = useMemo(() => {
+    if (normalizedPathname === '/projects') {
+      return null;
+    }
+    return decodePathSegment(normalizedPathname.match(/^\/projects\/([^/]+)/)?.[1] || null);
+  }, [normalizedPathname]);
+  const currentProject = useMemo(
+    () => projects.find((project) => project.id === currentProjectId) || null,
+    [currentProjectId, projects],
+  );
+  const currentSurface = useMemo<SidebarSurfaceId | null>(() => {
+    if (!isOnHome) {
+      return null;
+    }
+    const candidate = new URLSearchParams(location.search).get('surface');
+    return candidate === 'tasks' || candidate === 'calendar' || candidate === 'reminders' || candidate === 'thoughts'
+      ? candidate
+      : null;
+  }, [isOnHome, location.search]);
+  const currentSurfaceLabel = useMemo(() => {
+    if (currentSurface === 'tasks') {
+      return 'Tasks';
+    }
+    if (currentSurface === 'calendar') {
+      return 'Calendar';
+    }
+    if (currentSurface === 'reminders') {
+      return 'Reminders';
+    }
+    if (currentSurface === 'thoughts') {
+      return 'Quick Thoughts';
+    }
+    return null;
+  }, [currentSurface]);
+  const personalProject = useMemo(
+    () => projects.find((project) => project.isPersonal) || null,
+    [projects],
+  );
+
+  useEffect(() => {
+    if (!accessToken || !currentProjectId) {
+      return;
+    }
+    let cancelled = false;
+    void listPanes(accessToken, currentProjectId)
+      .then((panes) => {
+        if (!cancelled) {
+          setCurrentProjectPanes(panes);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCurrentProjectPanes([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, currentProjectId]);
+
+  const openSearch = useCallback(() => {
+    expandSidebar();
+    setSearchAutoFocusKey((current) => current + 1);
+  }, [expandSidebar]);
+
+  const openCapture = useCallback(() => {
+    expandSidebar();
+    setCaptureAutoFocusKey((current) => current + 1);
+  }, [expandSidebar]);
+
+  const openHome = useCallback(() => {
+    expandSidebar();
+    navigate('/projects');
+  }, [expandSidebar, navigate]);
+
+  const onSelectSurface = useCallback((surfaceId: SidebarSurfaceId) => {
+    expandSidebar();
+    navigate(buildSurfaceHref(surfaceId));
+  }, [expandSidebar, navigate]);
 
   return (
     <nav
@@ -98,41 +170,61 @@ export const SidebarShell = () => {
         isCollapsed ? 'sidebar-shell-collapsed items-center gap-2' : 'sidebar-shell-expanded gap-3',
       )}
     >
-      <div className="flex flex-1 flex-col gap-2">
-        {mainSections.map((section) => (
-          isCollapsed ? (
-            <SidebarRailSection
-              key={section.id}
-              id={section.id}
-              label={section.label}
-              onExpand={expandSidebar}
-            />
-          ) : (
-            <SidebarExpandedSection
-              key={section.id}
-              {...section}
-              onCollapse={collapseSidebar}
-            />
-          )
-        ))}
+      <WorkspaceHeader
+        isCollapsed={isCollapsed}
+        onCollapseSidebar={collapseSidebar}
+        onOpenHome={openHome}
+      />
+
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+        <SearchButton
+          accessToken={accessToken}
+          autoFocusKey={searchAutoFocusKey}
+          isCollapsed={isCollapsed}
+          onOpenSearch={openSearch}
+          routeKey={`${location.pathname}${location.search}`}
+        />
+
+        <CaptureInput
+          key={`capture:${location.pathname}${location.search}`}
+          accessToken={accessToken}
+          autoFocusKey={captureAutoFocusKey}
+          currentProject={currentProject}
+          currentProjectPanes={currentProjectPanes}
+          currentSurfaceLabel={currentSurfaceLabel}
+          isCollapsed={isCollapsed}
+          onOpenCapture={openCapture}
+          personalProject={personalProject}
+        />
+
+        <Surfaces
+          activeSurface={currentSurface}
+          isCollapsed={isCollapsed}
+          onSelectSurface={onSelectSurface}
+        />
+
+        <PlaceholderSection
+          iconName="timeline"
+          isCollapsed={isCollapsed}
+          label="Recent Panes"
+          onExpand={expandSidebar}
+        />
+
+        <PlaceholderSection
+          iconName="project-list"
+          isCollapsed={isCollapsed}
+          label="Projects"
+          onExpand={expandSidebar}
+        />
       </div>
 
-      {profileSection ? (
-        isCollapsed ? (
-          <SidebarRailSection
-            id={profileSection.id}
-            key={profileSection.id}
-            label={profileSection.label}
-            onExpand={expandSidebar}
-          />
-        ) : (
-          <SidebarExpandedSection
-            {...profileSection}
-            key={profileSection.id}
-            onCollapse={collapseSidebar}
-          />
-        )
-      ) : null}
+      <PlaceholderSection
+        iconName="user"
+        isBottom
+        isCollapsed={isCollapsed}
+        label="Profile"
+        onExpand={expandSidebar}
+      />
     </nav>
   );
 };
