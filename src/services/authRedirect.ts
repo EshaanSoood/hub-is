@@ -5,6 +5,16 @@ const KEYCLOAK_CALLBACK_QUERY_KEYS = [
   'iss',
   'error',
   'error_description',
+  'error_uri',
+];
+
+const KEYCLOAK_CALLBACK_SENTINEL_QUERY_KEYS = [
+  'code',
+  'error',
+  'session_state',
+  'iss',
+  'error_description',
+  'error_uri',
 ];
 
 interface RedirectLocationLike {
@@ -16,6 +26,10 @@ interface RedirectLocationLike {
 
 export const buildCurrentAuthRedirectUri = (location: RedirectLocationLike): string => {
   const redirectUri = new URL(`${location.pathname}${location.search}${location.hash}`, location.origin);
+  const hasAuthCallbackSentinel = KEYCLOAK_CALLBACK_SENTINEL_QUERY_KEYS.some((key) => redirectUri.searchParams.has(key));
+  if (!hasAuthCallbackSentinel) {
+    return redirectUri.toString();
+  }
   for (const key of KEYCLOAK_CALLBACK_QUERY_KEYS) {
     redirectUri.searchParams.delete(key);
   }

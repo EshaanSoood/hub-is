@@ -33,6 +33,34 @@ describe('buildCurrentAuthRedirectUri', () => {
     );
   });
 
+  test('keeps a normal app state query param when there is no auth callback sentinel', () => {
+    const redirectUri = buildCurrentAuthRedirectUri({
+      origin: 'https://hub.example.com',
+      pathname: '/projects/project-1/overview',
+      search: '?state=kanban&view=timeline',
+      hash: '',
+    });
+
+    assert.equal(
+      redirectUri,
+      'https://hub.example.com/projects/project-1/overview?state=kanban&view=timeline',
+    );
+  });
+
+  test('removes oauth error callback params including error_uri and state', () => {
+    const redirectUri = buildCurrentAuthRedirectUri({
+      origin: 'https://hub.example.com',
+      pathname: '/projects/project-1/overview',
+      search: '?error=access_denied&error_description=Denied&error_uri=https%3A%2F%2Fauth.example.com%2Ferrors%2Fdenied&state=oidc-state&view=timeline',
+      hash: '',
+    });
+
+    assert.equal(
+      redirectUri,
+      'https://hub.example.com/projects/project-1/overview?view=timeline',
+    );
+  });
+
   test('replaces the current url when keycloak callback params are present', () => {
     let replacedUrl = '';
     const changed = replaceAuthCallbackUrlIfNeeded(
