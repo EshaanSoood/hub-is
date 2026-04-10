@@ -344,7 +344,15 @@ export const ProjectSpaceWorkspace = ({
     [panes, sessionUserId],
   );
   const orderedEditablePanes = useMemo(
-    () => [...editablePanes].sort((left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order)),
+    () =>
+      [...editablePanes].sort((left, right) => {
+        const leftPosition = left.position ?? Number.MAX_SAFE_INTEGER;
+        const rightPosition = right.position ?? Number.MAX_SAFE_INTEGER;
+        if (leftPosition !== rightPosition) {
+          return leftPosition - rightPosition;
+        }
+        return (left.sort_order ?? Number.MAX_SAFE_INTEGER) - (right.sort_order ?? Number.MAX_SAFE_INTEGER);
+      }),
     [editablePanes],
   );
   const readOnlyPanes = useMemo(

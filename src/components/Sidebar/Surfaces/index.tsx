@@ -1,3 +1,4 @@
+import type { IconName } from '../../primitives/Icon';
 import { SurfaceItem } from './SurfaceItem';
 
 export type SidebarSurfaceId = 'tasks' | 'calendar' | 'reminders' | 'thoughts';
@@ -7,7 +8,7 @@ export const buildSurfaceHref = (surfaceId: SidebarSurfaceId): string =>
 
 const SURFACE_ITEMS: Array<{
   id: SidebarSurfaceId;
-  iconName: 'tasks' | 'calendar' | 'reminders' | 'thought-pile';
+  iconName: IconName;
   label: string;
 }> = [
   { id: 'tasks', iconName: 'tasks', label: 'Tasks' },

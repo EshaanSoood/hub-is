@@ -31,6 +31,15 @@ interface UsePaneMutationsParams {
   setTimeline: Dispatch<SetStateAction<ProjectTimelineItem[]>>;
 }
 
+const comparePanesBySidebarOrder = (left: HubPaneSummary, right: HubPaneSummary) => {
+  const leftPosition = left.position ?? Number.MAX_SAFE_INTEGER;
+  const rightPosition = right.position ?? Number.MAX_SAFE_INTEGER;
+  if (leftPosition !== rightPosition) {
+    return leftPosition - rightPosition;
+  }
+  return (left.sort_order ?? Number.MAX_SAFE_INTEGER) - (right.sort_order ?? Number.MAX_SAFE_INTEGER);
+};
+
 export const usePaneMutations = ({
   accessToken,
   projectId,
@@ -70,9 +79,7 @@ export const usePaneMutations = ({
         );
 
         setPanes((current) =>
-          [...current, nextPane].sort(
-            (left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order),
-          ),
+          [...current, nextPane].sort(comparePanesBySidebarOrder),
         );
         try {
           await refreshProjectData();
@@ -116,7 +123,7 @@ export const usePaneMutations = ({
   const onMovePane = useCallback(
     async (pane: HubPaneSummary, direction: 'up' | 'down') => {
       const ordered = [...panes].sort(
-        (left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order),
+        comparePanesBySidebarOrder,
       );
       const index = ordered.findIndex((entry) => entry.pane_id === pane.pane_id);
       if (index < 0) {
@@ -202,11 +209,7 @@ export const usePaneMutations = ({
         }
 
         const refreshed = await listPanes(accessToken, projectId);
-        setPanes(
-          [...refreshed].sort(
-            (left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order),
-          ),
-        );
+        setPanes([...refreshed].sort(comparePanesBySidebarOrder));
       } catch (error) {
         setPaneMutationError(error instanceof Error ? error.message : 'Failed to update pane members.');
       }

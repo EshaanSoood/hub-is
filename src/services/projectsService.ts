@@ -75,20 +75,30 @@ const parseResponse = async <T>(
   return { data: value };
 };
 
-const toProjectRecord = (project: HubProject): ProjectRecord => ({
-  id: project.project_id,
-  name: project.name,
-  status: 'active',
-  summary: '',
-  openProjectProjectId: null,
-  nextcloudFolder: null,
-  isPersonal: project.is_personal,
-  position: typeof project.position === 'number' ? project.position : null,
-  membershipRole:
-    project.membership_role === 'owner' || project.membership_role === 'member'
-      ? project.membership_role
-      : 'member',
-});
+const toProjectRecord = (project: HubProject): ProjectRecord => {
+  const normalizedPosition =
+    typeof project.position === 'number' &&
+    Number.isFinite(project.position) &&
+    Number.isInteger(project.position) &&
+    project.position >= 0
+      ? project.position
+      : null;
+
+  return {
+    id: project.project_id,
+    name: project.name,
+    status: 'active',
+    summary: '',
+    openProjectProjectId: null,
+    nextcloudFolder: null,
+    isPersonal: project.is_personal,
+    position: normalizedPosition,
+    membershipRole:
+      project.membership_role === 'owner' || project.membership_role === 'member'
+        ? project.membership_role
+        : 'member',
+  };
+};
 
 export const listHubProjects = async (accessToken: string): Promise<IntegrationOutcome<ProjectRecord[]>> => {
   try {

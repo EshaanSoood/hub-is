@@ -206,6 +206,6 @@ export const sidebarSearchResultVariants = (reducedMotion: boolean): Variants =>
   exit: {
     opacity: 0,
     y: reducedMotion ? 0 : -2,
-    transition: reducedMotion ? transitionReduced : transitionReduced,
+    transition: reducedMotion ? transitionReduced : accordionSpring,
   },
 });

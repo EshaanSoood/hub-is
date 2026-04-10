@@ -193,15 +193,19 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
+    const existingProject = projectForMemberStmt.get(projectId, auth.user.user_id);
+    if (!existingProject) {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found.')));
+      return;
+    }
+
     if (body.position !== undefined) {
       updateProjectPositionStmt.run(position, nowIso(), projectId);
     }
 
-    const project = projectForMemberStmt.get(projectId, auth.user.user_id);
-    if (!project) {
-      send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found.')));
-      return;
-    }
+    const project = body.position !== undefined
+      ? projectForMemberStmt.get(projectId, auth.user.user_id) || existingProject
+      : existingProject;
 
     send(response, jsonResponse(200, okEnvelope({ project: projectRecord(project) })));
   };

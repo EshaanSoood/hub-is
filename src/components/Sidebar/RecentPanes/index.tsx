@@ -35,7 +35,11 @@ const writeRecentPanes = (entries: StoredRecentPane[]) => {
   if (typeof window === 'undefined') {
     return;
   }
-  window.localStorage.setItem(RECENT_PANES_STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_RECENT_PANES)));
+  try {
+    window.localStorage.setItem(RECENT_PANES_STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_RECENT_PANES)));
+  } catch {
+    // Ignore storage failures so recent panes remain non-blocking.
+  }
 };
 
 const mergeRecentPaneVisit = (currentEntries: StoredRecentPane[], nextEntry: StoredRecentPane): StoredRecentPane[] => [

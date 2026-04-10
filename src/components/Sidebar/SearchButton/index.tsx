@@ -170,7 +170,7 @@ export const SearchButton = ({
             <span className="block truncate text-sm font-medium">Search</span>
           </SidebarLabel>
           <SidebarLabel show={showLabels}>
-            <span className="rounded-control border border-subtle bg-surface px-2 py-1 text-[11px] uppercase tracking-[0.12em] text-muted">
+            <span className="text-label-sm tracking-sidebar-kicker rounded-control border border-subtle bg-surface px-2 py-1 uppercase text-muted">
               ⌘K
             </span>
           </SidebarLabel>
@@ -254,7 +254,7 @@ export const SearchButton = ({
             animate="animate"
             exit="exit"
             variants={sidebarSearchOverlayVariants(prefersReducedMotion)}
-            className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[120] max-h-72 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
+            className="sidebar-flyout-offset absolute left-0 right-0 z-[120] max-h-72 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
           >
             {loading ? (
               <p className="px-3 py-3 text-sm text-muted">Searching…</p>
@@ -302,7 +302,7 @@ export const SearchButton = ({
                         }}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="rounded-control border border-subtle bg-surface px-2 py-[2px] text-[10px] uppercase tracking-[0.12em] text-muted">
+                          <span className="text-label-xs tracking-sidebar-kicker rounded-control border border-subtle bg-surface px-2 py-3xs uppercase text-muted">
                             {SEARCH_RESULT_TYPE_LABELS[result.type]}
                           </span>
                           <span className="min-w-0 truncate text-sm font-medium text-text">{result.title}</span>

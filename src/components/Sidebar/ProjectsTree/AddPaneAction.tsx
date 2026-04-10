@@ -1,4 +1,4 @@
-import { startTransition, useRef, useState, type FormEvent } from 'react';
+import { startTransition, useId, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../../context/AuthzContext';
 import { buildProjectWorkHref } from '../../../lib/hubRoutes';
@@ -22,6 +22,8 @@ export const AddPaneAction = ({
   const { accessToken, sessionSummary } = useAuthz();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const nameInputId = useId();
+  const errorId = `${nameInputId}-error`;
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -37,6 +39,7 @@ export const AddPaneAction = ({
     const trimmedName = name.trim();
     if (!trimmedName) {
       setError('Pane name is required.');
+      nameInputRef.current?.focus();
       return;
     }
 
@@ -94,16 +97,20 @@ export const AddPaneAction = ({
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium uppercase tracking-wide text-muted">Pane name</span>
             <input
+              id={nameInputId}
               ref={nameInputRef}
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="New pane"
+              aria-describedby={error ? errorId : undefined}
+              aria-errormessage={error ? errorId : undefined}
+              aria-invalid={error ? 'true' : undefined}
               className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
             />
           </label>
 
-          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          {error ? <p id={errorId} role="alert" className="text-sm text-danger">{error}</p> : null}
 
           <div className="flex justify-end gap-2">
             <button

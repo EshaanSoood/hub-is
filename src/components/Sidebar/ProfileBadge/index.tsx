@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAuthz } from '../../../context/AuthzContext';
 import { SidebarLabel } from '../motion/SidebarLabel';
 import { sidebarChevronVariants } from '../motion/sidebarMotion';
@@ -30,8 +30,21 @@ export const ProfileBadge = ({
   const { sessionSummary } = useAuthz();
   const prefersReducedMotion = useReducedMotion() ?? false;
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(() => autoOpenKey > 0);
   const initials = useMemo(() => sessionInitials(sessionSummary.name), [sessionSummary.name]);
+  const menuId = useId();
+
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+  }, []);
+
+  const closeMenuAndRestoreFocus = useCallback(() => {
+    setMenuOpen(false);
+    requestAnimationFrame(() => {
+      menuButtonRef.current?.focus();
+    });
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -40,13 +53,13 @@ export const ProfileBadge = ({
 
     const onMouseDown = (event: MouseEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) {
-        setMenuOpen(false);
+        closeMenu();
       }
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setMenuOpen(false);
+        closeMenuAndRestoreFocus();
       }
     };
 
@@ -56,7 +69,7 @@ export const ProfileBadge = ({
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [menuOpen]);
+  }, [closeMenu, closeMenuAndRestoreFocus, menuOpen]);
 
   if (isCollapsed) {
     return (
@@ -73,7 +86,12 @@ export const ProfileBadge = ({
 
   return (
     <div ref={containerRef} className="relative z-[1] rounded-panel border border-subtle bg-elevated px-3 py-3">
-      {menuOpen ? <ProfileMenu onClose={() => setMenuOpen(false)} /> : null}
+      {menuOpen ? (
+        <ProfileMenu
+          id={menuId}
+          onCloseAndRestoreFocus={closeMenuAndRestoreFocus}
+        />
+      ) : null}
 
       <div className="flex items-center gap-3">
         <span
@@ -88,8 +106,11 @@ export const ProfileBadge = ({
           </SidebarLabel>
           <SidebarLabel show={showLabels}>
             <button
+              ref={menuButtonRef}
               type="button"
+              aria-controls={menuOpen ? menuId : undefined}
               aria-expanded={menuOpen}
+              aria-haspopup="menu"
               className="interactive interactive-subtle mt-1 inline-flex items-center gap-1 rounded-control px-2 py-1 text-xs font-medium text-text-secondary hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onClick={() => setMenuOpen((current) => !current)}
             >

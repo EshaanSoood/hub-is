@@ -35,6 +35,7 @@ export const SidebarShell = () => {
   const { accessToken } = useAuthz();
   const { projects } = useProjects();
   const { collapseSidebar, expandSidebar, isCollapsed } = useSidebarCollapse();
+  const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
   const [currentProjectPanes, setCurrentProjectPanes] = useState<HubPaneSummary[]>([]);
   const [searchAutoFocusKey, setSearchAutoFocusKey] = useState(0);
   const [captureAutoFocusKey, setCaptureAutoFocusKey] = useState(0);
@@ -58,7 +59,8 @@ export const SidebarShell = () => {
     () => decodePathSegment(normalizedPathname.match(/^\/projects\/[^/]+\/work\/([^/]+)/)?.[1] || null),
     [normalizedPathname],
   );
-  const activeCurrentProjectPanes = currentProjectId ? currentProjectPanes : [];
+  const activeCurrentProjectPanes =
+    currentProjectId && loadedProjectId === currentProjectId ? currentProjectPanes : [];
   const currentSurface = useMemo<SidebarSurfaceId | null>(() => {
     if (!isOnHome) {
       return null;
@@ -134,11 +136,13 @@ export const SidebarShell = () => {
     void listPanes(accessToken, currentProjectId)
       .then((panes) => {
         if (!cancelled) {
+          setLoadedProjectId(currentProjectId);
           setCurrentProjectPanes(panes);
         }
       })
       .catch(() => {
         if (!cancelled) {
+          setLoadedProjectId(currentProjectId);
           setCurrentProjectPanes([]);
         }
       });

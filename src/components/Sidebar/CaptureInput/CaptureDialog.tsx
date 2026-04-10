@@ -110,17 +110,28 @@ export const CaptureDialog = ({
       return;
     }
 
+    const restoreTriggerFocus = () => {
+      requestAnimationFrame(() => {
+        const activeElement = document.activeElement;
+        if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
+          triggerRef.current?.focus();
+        }
+      });
+    };
+
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
       if (panelRef.current?.contains(target) || containerRef.current?.contains(target)) {
         return;
       }
       onClose();
+      restoreTriggerFocus();
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
+        restoreTriggerFocus();
       }
     };
 
@@ -130,7 +141,7 @@ export const CaptureDialog = ({
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [containerRef, onClose, open]);
+  }, [containerRef, onClose, open, triggerRef]);
 
   const submitCapture = async () => {
     const trimmedDraft = draft.trim();
@@ -285,7 +296,7 @@ export const CaptureDialog = ({
           variant="dialog"
           role="dialog"
           ariaLabel={`Confirm ${labelForCaptureKind[captureKind]}`}
-          className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[130] rounded-panel border border-border-muted bg-surface-elevated p-4 shadow-soft"
+          className="sidebar-flyout-offset absolute left-0 right-0 z-[130] rounded-panel border border-border-muted bg-surface-elevated p-4 shadow-soft"
         >
           <div className="space-y-4">
             <div className="space-y-1">

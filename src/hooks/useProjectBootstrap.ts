@@ -21,6 +21,15 @@ interface UseProjectBootstrapParams {
   projectId: string;
 }
 
+const comparePanesBySidebarOrder = (left: HubPaneSummary, right: HubPaneSummary) => {
+  const leftPosition = left.position ?? Number.MAX_SAFE_INTEGER;
+  const rightPosition = right.position ?? Number.MAX_SAFE_INTEGER;
+  if (leftPosition !== rightPosition) {
+    return leftPosition - rightPosition;
+  }
+  return (left.sort_order ?? Number.MAX_SAFE_INTEGER) - (right.sort_order ?? Number.MAX_SAFE_INTEGER);
+};
+
 export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootstrapParams) => {
   const { refreshProjects } = useProjects();
   const [project, setProject] = useState<HubProject | null>(null);
@@ -66,11 +75,7 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
     }
 
     setProject(nextProject);
-    setPanes(
-      nextPanes.sort(
-        (left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order),
-      ),
-    );
+    setPanes(nextPanes.sort(comparePanesBySidebarOrder));
     setProjectMembers(nextMembersResult.members);
     setTimeline(nextTimeline);
 
