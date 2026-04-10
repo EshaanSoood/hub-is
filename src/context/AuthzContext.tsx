@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { anonymousUser } from '../data/authzData';
 import { getKeycloak, isKeycloakConfigured } from '../lib/keycloak';
 import { getMembershipForProject, hasGlobalCapability } from '../lib/policy';
+import { buildCurrentAuthRedirectUri, replaceAuthCallbackUrlIfNeeded } from '../services/authRedirect';
 import { fetchSessionSummary } from '../services/sessionService';
 import type {
   GlobalCapability,
@@ -129,6 +130,8 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     let cancelled = false;
+    const authRedirectUri = buildCurrentAuthRedirectUri(window.location);
+    const silentCheckSsoRedirectUri = `${window.location.origin}/silent-check-sso.html`;
 
     void keycloak
       .init({
@@ -136,11 +139,16 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
         checkLoginIframe: false,
         pkceMethod: 'S256',
         responseMode: 'query',
-        redirectUri: window.location.origin,
+        redirectUri: authRedirectUri,
+        silentCheckSsoRedirectUri,
       })
       .then(async (authenticated) => {
         if (cancelled) {
           return;
+        }
+
+        if (replaceAuthCallbackUrlIfNeeded(window.history, window.location)) {
+          window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
         }
 
         if (!authenticated || !keycloak.token) {
@@ -307,7 +315,7 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         await keycloak.login({
-          redirectUri: window.location.origin,
+          redirectUri: buildCurrentAuthRedirectUri(window.location),
         });
       },
       signOut: async () => {
