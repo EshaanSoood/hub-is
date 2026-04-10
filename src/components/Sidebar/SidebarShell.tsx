@@ -184,37 +184,43 @@ export const SidebarShell = () => {
           resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3',
         )}
       >
-        <WorkspaceHeader
-          isCollapsed={resolvedVisualCollapsed}
-          onCollapseSidebar={collapseSidebar}
-          onOpenHome={openHome}
-          showLabels={resolvedShowLabels}
-        />
-
-        <div className={cn('flex min-h-0 flex-1 flex-col', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}>
-          <SearchButton
-            accessToken={accessToken}
-            autoFocusKey={searchAutoFocusKey}
+        <div className="shrink-0">
+          <WorkspaceHeader
             isCollapsed={resolvedVisualCollapsed}
-            onOpenSearch={openSearch}
-            routeKey={`${location.pathname}${location.search}`}
+            onCollapseSidebar={collapseSidebar}
+            onOpenHome={openHome}
             showLabels={resolvedShowLabels}
           />
+        </div>
 
-          <CaptureInput
-            key={`capture:${location.pathname}${location.search}`}
-            accessToken={accessToken}
-            autoFocusKey={captureAutoFocusKey}
-            currentProject={currentProject}
-            currentProjectPanes={activeCurrentProjectPanes}
-            currentSurfaceLabel={currentSurfaceLabel}
-            isCollapsed={resolvedVisualCollapsed}
-            onOpenCapture={openCapture}
-            personalProject={personalProject}
-            showLabels={resolvedShowLabels}
-          />
+        <div className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}>
+          <div className="shrink-0">
+            <SearchButton
+              accessToken={accessToken}
+              autoFocusKey={searchAutoFocusKey}
+              isCollapsed={resolvedVisualCollapsed}
+              onOpenSearch={openSearch}
+              routeKey={`${location.pathname}${location.search}`}
+              showLabels={resolvedShowLabels}
+            />
+          </div>
 
-          <div className="min-h-0 flex-1">
+          <div className="shrink-0">
+            <CaptureInput
+              key={`capture:${location.pathname}${location.search}`}
+              accessToken={accessToken}
+              autoFocusKey={captureAutoFocusKey}
+              currentProject={currentProject}
+              currentProjectPanes={activeCurrentProjectPanes}
+              currentSurfaceLabel={currentSurfaceLabel}
+              isCollapsed={resolvedVisualCollapsed}
+              onOpenCapture={openCapture}
+              personalProject={personalProject}
+              showLabels={resolvedShowLabels}
+            />
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={sidebarContextKey}
@@ -222,42 +228,50 @@ export const SidebarShell = () => {
                 animate="animate"
                 exit="exit"
                 variants={fadeThroughVariants(prefersReducedMotion)}
-                className={cn('flex min-h-0 flex-1 flex-col', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}
+                className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}
               >
-                <Surfaces
-                  activeSurface={currentSurface}
-                  isCollapsed={resolvedVisualCollapsed}
-                  onSelectSurface={onSelectSurface}
-                  showLabels={resolvedShowLabels}
-                />
+                <div className="shrink-0">
+                  <Surfaces
+                    activeSurface={currentSurface}
+                    isCollapsed={resolvedVisualCollapsed}
+                    onSelectSurface={onSelectSurface}
+                    showLabels={resolvedShowLabels}
+                  />
+                </div>
 
-                <RecentPanes
-                  currentProject={currentProject}
-                  currentProjectPanes={activeCurrentProjectPanes}
-                  isCollapsed={resolvedVisualCollapsed}
-                  onExpandSidebar={expandSidebar}
-                  showLabels={resolvedShowLabels}
-                />
+                <div className="shrink-0">
+                  <RecentPanes
+                    currentProject={currentProject}
+                    currentProjectPanes={activeCurrentProjectPanes}
+                    isCollapsed={resolvedVisualCollapsed}
+                    onExpandSidebar={expandSidebar}
+                    showLabels={resolvedShowLabels}
+                  />
+                </div>
 
-                <ProjectsTree
-                  currentProject={currentProject}
-                  currentProjectPanes={activeCurrentProjectPanes}
-                  isCollapsed={resolvedVisualCollapsed}
-                  onExpandSidebar={expandSidebar}
-                  showLabels={resolvedShowLabels}
-                />
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  <ProjectsTree
+                    currentProject={currentProject}
+                    currentProjectPanes={activeCurrentProjectPanes}
+                    isCollapsed={resolvedVisualCollapsed}
+                    onExpandSidebar={expandSidebar}
+                    showLabels={resolvedShowLabels}
+                  />
+                </div>
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
 
-        <ProfileBadge
-          key={`profile:${profileAutoOpenKey}`}
-          autoOpenKey={profileAutoOpenKey}
-          isCollapsed={resolvedVisualCollapsed}
-          onOpenProfile={openProfile}
-          showLabels={resolvedShowLabels}
-        />
+        <div className="shrink-0">
+          <ProfileBadge
+            key={`profile:${profileAutoOpenKey}`}
+            autoOpenKey={profileAutoOpenKey}
+            isCollapsed={resolvedVisualCollapsed}
+            onOpenProfile={openProfile}
+            showLabels={resolvedShowLabels}
+          />
+        </div>
       </motion.nav>
     </LayoutGroup>
   );

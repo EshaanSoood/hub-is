@@ -72,7 +72,7 @@ export const ProfileBadge = ({
   }
 
   return (
-    <div ref={containerRef} className="relative rounded-panel border border-subtle bg-elevated px-3 py-3">
+    <div ref={containerRef} className="relative z-[1] rounded-panel border border-subtle bg-elevated px-3 py-3">
       {menuOpen ? <ProfileMenu onClose={() => setMenuOpen(false)} /> : null}
 
       <div className="flex items-center gap-3">

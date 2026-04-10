@@ -187,7 +187,7 @@ export const SearchButton = ({
             <SidebarLabel show={showLabels} className="min-w-0 flex flex-1 items-center gap-2">
               <input
                 ref={inputRef}
-                type="search"
+                type="text"
                 role="combobox"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -254,7 +254,7 @@ export const SearchButton = ({
             animate="animate"
             exit="exit"
             variants={sidebarSearchOverlayVariants(prefersReducedMotion)}
-            className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[120] overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
+            className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[120] max-h-72 overflow-hidden rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
           >
             {loading ? (
               <p className="px-3 py-3 text-sm text-muted">Searching…</p>
@@ -269,7 +269,7 @@ export const SearchButton = ({
                 initial={false}
                 animate="animate"
                 variants={sidebarSearchResultsVariants(prefersReducedMotion)}
-                className="max-h-72 overflow-y-auto py-1"
+                className="overflow-y-auto py-1"
               >
                 {results.map((result, index) => {
                   const href = buildSearchResultHref(result);
