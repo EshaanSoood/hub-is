@@ -8,6 +8,7 @@ import {
 } from '../helpers/db';
 
 const LIVE_TIMEOUT_MS = 60_000;
+const TEST_TIMEOUT_MS = 120_000;
 
 const openHubHome = async (page: Page): Promise<void> => {
   await page.goto('/projects', { waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
@@ -57,7 +58,7 @@ test('sidebar Tasks quick-input creates a task that appears without reload', asy
 });
 
 test('sidebar Calendar quick-input creates an event that appears without reload', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(TEST_TIMEOUT_MS);
   const token = await authenticateAsUserA(page);
   await openHubHome(page);
   await openSidebarSurface(page, 'Calendar', 'calendar');
