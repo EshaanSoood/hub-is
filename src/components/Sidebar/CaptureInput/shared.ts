@@ -1,9 +1,11 @@
 import { listCollections } from '../../../services/hub/collections';
 import type { HubPaneSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
+import type { SidebarSurfaceId } from '../Surfaces';
 
 export type CaptureKind = 'thought' | 'task' | 'event' | 'reminder';
 export type DestinationKind = 'hub' | 'pane';
+export type SidebarCaptureSurface = SidebarSurfaceId | null;
 
 export interface CaptureDestination {
   kind: DestinationKind;
@@ -24,6 +26,13 @@ export const labelForCaptureKind: Record<CaptureKind, string> = {
   task: 'Task',
   event: 'Calendar Event',
   reminder: 'Reminder',
+};
+
+export const captureKindBySidebarSurface: Record<Exclude<SidebarCaptureSurface, null>, CaptureKind> = {
+  tasks: 'task',
+  calendar: 'event',
+  reminders: 'reminder',
+  thoughts: 'thought',
 };
 
 export const readPaneHasModuleType = (pane: HubPaneSummary, moduleType: string): boolean => {

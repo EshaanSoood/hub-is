@@ -5,6 +5,7 @@ import {
   createRecord,
   updateRecord,
 } from '../../../services/hub/records';
+import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
 import type {
   CalendarModuleContract,
   FilesModuleContract,
@@ -223,6 +224,7 @@ export const useWorkViewModuleRuntime = ({
                   return;
                 }
                 await createEventFromNlp(accessToken, projectId, payload);
+                requestHubHomeRefresh();
                 await refreshCalendar();
               }
             : undefined,
@@ -288,6 +290,7 @@ export const useWorkViewModuleRuntime = ({
             parent_record_id: task.parent_record_id || null,
             source_pane_id: activePaneId ?? undefined,
           });
+          requestHubHomeRefresh();
           await loadProjectTaskPage();
         },
         onUpdateTaskStatus: async (taskId, status) => {

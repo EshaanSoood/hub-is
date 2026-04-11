@@ -95,10 +95,23 @@ const pageAudits = new WeakMap<Page, PageAudit>();
 const normalizeUrl = (value: string): string => value.trim().replace(/\/+$/, '');
 
 export const resolveAppBaseUrl = (): string =>
-  normalizeUrl(process.env.BASE_URL || process.env.HUB_BASE_URL || 'https://eshaansood.org');
+  normalizeUrl(
+    process.env.E2E_BASE_URL
+    || process.env.PLAYWRIGHT_BASE_URL
+    || process.env.BASE_URL
+    || process.env.HUB_BASE_URL
+    || 'https://eshaansood.org',
+  );
 
 export const resolveApiBaseUrl = (): string =>
-  normalizeUrl(process.env.HUB_API_BASE_URL || process.env.HUB_BASE_URL || process.env.BASE_URL || 'https://eshaansood.org');
+  normalizeUrl(
+    process.env.HUB_API_BASE_URL
+    || process.env.E2E_BASE_URL
+    || process.env.PLAYWRIGHT_BASE_URL
+    || process.env.HUB_BASE_URL
+    || process.env.BASE_URL
+    || 'https://eshaansood.org',
+  );
 
 const parseJson = <T>(raw: string): T | null => {
   try {

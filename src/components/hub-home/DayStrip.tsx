@@ -7,8 +7,12 @@ import type {
   TimelineTypeFilter,
 } from './types';
 import { HUB_BACKLOG_DRAG_MIME } from './types';
+import {
+  DAY_STRIP_FORWARD_WINDOW_MS,
+  DAY_STRIP_HOUR_MS,
+  DAY_STRIP_KEYBOARD_SLOT_MS,
+} from './dayStripWindow';
 
-const HOUR_MS = 60 * 60 * 1000;
 const ITEM_MIN_WIDTH_PX = 180;
 const ITEM_TITLE_MAX_CHARS = 30;
 
@@ -87,6 +91,12 @@ export const DayStrip = ({
   typeFilter,
   onOpenRecord,
   onDropFromBacklog,
+  showEmptyTimeline = false,
+  keyboardDragItem = null,
+  onKeyboardDragAnnouncement,
+  onKeyboardDrop,
+  onKeyboardCancel,
+  focusViewportKey = 0,
 }: {
   className?: string;
   events: DayStripEventItem[];
@@ -95,11 +105,20 @@ export const DayStrip = ({
   typeFilter: TimelineTypeFilter;
   onOpenRecord: (recordId: string) => void;
   onDropFromBacklog?: (payload: BacklogDragPayload, assignedAt: Date) => void | Promise<void>;
+  showEmptyTimeline?: boolean;
+  keyboardDragItem?: { title: string } | null;
+  onKeyboardDragAnnouncement?: (message: string) => void;
+  onKeyboardDrop?: (assignedAt: Date) => void | Promise<void>;
+  onKeyboardCancel?: () => void;
+  focusViewportKey?: number;
 }) => {
   const [now, setNow] = useState(() => new Date());
+  const [dragOver, setDragOver] = useState(false);
+  const [keyboardTargetIndexOverride, setKeyboardTargetIndexOverride] = useState<number | null>(null);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const nowNeedleRef = useRef<HTMLDivElement | null>(null);
+  const keyboardSlotRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const autoScrollKeyRef = useRef<string>('');
   const stripId = useId();
@@ -185,7 +204,7 @@ export const DayStrip = ({
   const range = useMemo(() => {
     const nowMs = now.getTime();
     const defaultStart = nowMs;
-    const defaultEnd = nowMs + 12 * HOUR_MS;
+    const defaultEnd = nowMs + DAY_STRIP_FORWARD_WINDOW_MS;
     if (timelineItems.length === 0) {
       return { startMs: defaultStart, endMs: defaultEnd };
     }
@@ -200,16 +219,17 @@ export const DayStrip = ({
       return Math.max(acc, next);
     }, Number.NEGATIVE_INFINITY);
 
-    const startMs = earliest < nowMs ? Math.min(defaultStart, earliest - HOUR_MS) : defaultStart;
-    const endMs = latest > defaultEnd ? latest + HOUR_MS : defaultEnd;
+    const startMs = earliest < nowMs ? Math.min(defaultStart, earliest - DAY_STRIP_HOUR_MS) : defaultStart;
+    const endMs = latest > defaultEnd ? latest + DAY_STRIP_HOUR_MS : defaultEnd;
     return { startMs, endMs };
   }, [now, timelineItems]);
 
-  const totalMs = Math.max(HOUR_MS, range.endMs - range.startMs);
+  const totalMs = Math.max(DAY_STRIP_HOUR_MS, range.endMs - range.startMs);
   const nowPercent = clamp(((now.getTime() - range.startMs) / totalMs) * 100, 0, 100);
-  const spanHours = totalMs / HOUR_MS;
+  const spanHours = totalMs / DAY_STRIP_HOUR_MS;
   const baseWidthPx = Math.max(720, Math.ceil(spanHours * 90));
   const widthPx = baseWidthPx;
+  const showTimeline = showEmptyTimeline || timelineItems.length > 0;
 
   const ticks = useMemo(() => {
     const first = new Date(range.startMs);
@@ -281,6 +301,49 @@ export const DayStrip = ({
     };
   }, [hasNoScheduledItems, nowPercent, range.endMs, range.startMs, timelineItems.length, widthPx]);
 
+  const keyboardSlots = useMemo(() => {
+    const slotCount = Math.max(1, Math.floor(totalMs / DAY_STRIP_KEYBOARD_SLOT_MS) + 1);
+    return Array.from({ length: slotCount }, (_, index) => {
+      const ms = clamp(range.startMs + index * DAY_STRIP_KEYBOARD_SLOT_MS, range.startMs, range.endMs);
+      return {
+        index,
+        ms,
+        label: formatTimeLabel(new Date(ms)),
+      };
+    });
+  }, [range.endMs, range.startMs, totalMs]);
+
+  const keyboardDefaultIndex = useMemo(() => {
+    if (keyboardSlots.length === 0) {
+      return 0;
+    }
+    return keyboardSlots.reduce((closestIndex, slot, index, allSlots) => {
+      const currentDistance = Math.abs(slot.ms - now.getTime());
+      const closestSlotMs = allSlots[closestIndex]?.ms ?? slot.ms;
+      const closestDistance = Math.abs(closestSlotMs - now.getTime());
+      return currentDistance < closestDistance ? index : closestIndex;
+    }, 0);
+  }, [keyboardSlots, now]);
+
+  const keyboardTargetIndex = keyboardTargetIndexOverride ?? keyboardDefaultIndex;
+
+  useEffect(() => {
+    if (keyboardDragItem) {
+      keyboardSlotRefs.current[keyboardTargetIndex]?.focus();
+      const activeSlot = keyboardSlots[keyboardTargetIndex];
+      if (activeSlot) {
+        onKeyboardDragAnnouncement?.(activeSlot.label);
+      }
+    }
+  }, [keyboardDragItem, keyboardSlots, keyboardTargetIndex, onKeyboardDragAnnouncement]);
+
+  useEffect(() => {
+    if (focusViewportKey <= 0) {
+      return;
+    }
+    scrollViewportRef.current?.focus();
+  }, [focusViewportKey]);
+
   const handleItemKeyDown = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
       return;
@@ -306,6 +369,7 @@ export const DayStrip = ({
       return;
     }
     event.preventDefault();
+    setDragOver(false);
     const payloadRaw = event.dataTransfer.getData(HUB_BACKLOG_DRAG_MIME);
     if (!payloadRaw) {
       return;
@@ -324,6 +388,49 @@ export const DayStrip = ({
     const ratio = bounds.width > 0 ? relativeX / bounds.width : 0;
     const assignedAt = new Date(range.startMs + ratio * totalMs);
     void onDropFromBacklog(payloadParsed, assignedAt);
+  };
+
+  const updateKeyboardTargetIndex = (nextIndex: number) => {
+    const clampedIndex = clamp(nextIndex, 0, keyboardSlots.length - 1);
+    setKeyboardTargetIndexOverride(clampedIndex);
+  };
+
+  const handleKeyboardSlotKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (!keyboardDragItem) {
+      return;
+    }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      updateKeyboardTargetIndex(keyboardTargetIndex + 1);
+      return;
+    }
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      updateKeyboardTargetIndex(keyboardTargetIndex - 1);
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      updateKeyboardTargetIndex(keyboardTargetIndex + 4);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      updateKeyboardTargetIndex(keyboardTargetIndex - 4);
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      const slot = keyboardSlots[keyboardTargetIndex];
+      if (slot) {
+        void onKeyboardDrop?.(new Date(slot.ms));
+      }
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onKeyboardCancel?.();
+    }
   };
 
   const nowMs = now.getTime();
@@ -446,7 +553,7 @@ export const DayStrip = ({
 
   return (
     <div className={`rounded-panel border border-border-muted bg-[color:var(--color-surface)] p-2 [box-shadow:inset_0_0_12px_2px_rgb(38_48_64_/_0.5)] ${className ?? ''}`}>
-      {hasNoScheduledItems ? (
+      {!showTimeline ? (
         <div className="flex h-20 items-center justify-center rounded-control border border-border-muted bg-surface-elevated px-4 text-center">
           <p className="text-[15px] italic text-text-secondary">
             The day is your oyster. Or carrot. Or something… — Shakespeare
@@ -460,6 +567,7 @@ export const DayStrip = ({
         >
           <div
             ref={timelineRef}
+            data-testid="daily-brief-timeline"
             className="relative h-[146px] min-w-full select-none"
             style={{ width: `${widthPx}px` }}
             onDragOver={(event) => {
@@ -467,11 +575,21 @@ export const DayStrip = ({
                 return;
               }
               event.preventDefault();
+              setDragOver(true);
               event.dataTransfer.dropEffect = 'move';
+            }}
+            onDragLeave={() => {
+              setDragOver(false);
             }}
             onDrop={handleDrop}
           >
-            <div className="absolute inset-x-0 top-10 h-12 rounded-control border border-border-muted bg-surface-elevated/70" />
+            <div
+              className={`absolute inset-x-0 top-10 h-12 rounded-control border bg-surface-elevated/70 transition-colors ${
+                dragOver
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border-muted'
+              }`}
+            />
             <div className="absolute bottom-7 left-0 right-0 border-t border-border-muted" />
             <div
               ref={nowNeedleRef}
@@ -504,6 +622,52 @@ export const DayStrip = ({
             <div aria-labelledby={upcomingLabelId}>
               {upcomingItems.map((item) => renderTimelineItem(item))}
             </div>
+
+            {keyboardDragItem ? (
+              <div
+                aria-label={`Schedule ${keyboardDragItem.title}`}
+                className="absolute inset-x-0 top-10 h-12"
+                data-testid="daily-brief-keyboard-dropzone"
+                role="group"
+              >
+                <div className="flex h-full">
+                  {keyboardSlots.map((slot, index) => {
+                    const active = index === keyboardTargetIndex;
+                    return (
+                      <button
+                        key={slot.ms}
+                        ref={(node) => {
+                          keyboardSlotRefs.current[index] = node;
+                        }}
+                        type="button"
+                        tabIndex={active ? 0 : -1}
+                        aria-label={`Choose ${slot.label}`}
+                        aria-current={active ? 'true' : undefined}
+                        className={`relative h-full flex-1 border-r border-border-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                          active ? 'bg-primary/12' : 'bg-transparent'
+                        }`}
+                        onFocus={() => {
+                          setKeyboardTargetIndexOverride(index);
+                        }}
+                        onKeyDown={handleKeyboardSlotKeyDown}
+                        onClick={() => {
+                          void onKeyboardDrop?.(new Date(slot.ms));
+                        }}
+                      >
+                        {active ? (
+                          <>
+                            <span aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-primary" />
+                            <span className="absolute -top-7 left-1/2 -translate-x-1/2 rounded-control border border-border-muted bg-surface px-2 py-0.5 text-[11px] text-text">
+                              {slot.label}
+                            </span>
+                          </>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}

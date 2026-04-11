@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Dialog } from '../primitives/Dialog';
 import { classifyIntent, type IntentResult } from '../../lib/nlp/intent';
+import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { parseTaskInput, type TaskParseResult } from '../../lib/nlp/task-parser';
 import { createTask } from '../../services/hub/records';
 
@@ -248,6 +249,7 @@ export const TaskCreateDialog = ({
         category: categoryValue.trim() || null,
         assignee_user_ids: effectiveAssigneeValue ? [effectiveAssigneeValue] : [],
       });
+      requestHubHomeRefresh();
       onCreated();
       handleClose();
     } catch (error) {

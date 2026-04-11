@@ -1,4 +1,5 @@
 import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
+import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { createRecord } from '../services/hub/records';
 import type { HubCollection, HubPaneSummary } from '../services/hub/types';
 
@@ -140,6 +141,9 @@ export const useQuickCapture = ({
               }
             : {}),
         });
+        if (intent === 'project-task') {
+          requestHubHomeRefresh();
+        }
       } catch (error) {
         quickCaptureInFlightRef.current = false;
         setPaneMutationError(error instanceof Error ? error.message : 'Failed to create quick capture record.');

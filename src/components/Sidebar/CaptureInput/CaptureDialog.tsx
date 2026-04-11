@@ -1,10 +1,10 @@
 import { AnimatePresence, useReducedMotion } from 'framer-motion';
 import { startTransition, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { parseTaskInput } from '../../../lib/nlp/task-parser';
 import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
 import { useCalendarNLDraft } from '../../../hooks/useCalendarNLDraft';
-import { buildReminderCreatePayload, mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../../hooks/useReminderNLDraft';
+import { useReminderNLDraft } from '../../../hooks/useReminderNLDraft';
+import { useTaskNLDraft } from '../../../hooks/useTaskNLDraft';
 import { createEventFromNlp, createPersonalTask, createRecord } from '../../../services/hub/records';
 import { createReminder } from '../../../services/hub/reminders';
 import type { ProjectRecord } from '../../../types/domain';
@@ -19,6 +19,8 @@ import {
   readQuickThoughtStorageKey,
   selectCollectionId,
 } from './shared';
+
+type TaskPriorityValue = '' | 'low' | 'medium' | 'high';
 
 interface CaptureDialogProps {
   accessToken: string | null | undefined;
@@ -51,11 +53,20 @@ export const CaptureDialog = ({
   const prefersReducedMotion = useReducedMotion() ?? false;
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [destinationValue, setDestinationValue] = useState<DestinationKind>('hub');
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDueAt, setTaskDueAt] = useState('');
+  const [taskPriority, setTaskPriority] = useState<TaskPriorityValue>('');
+  const [reminderTitle, setReminderTitle] = useState('');
+  const [reminderAt, setReminderAt] = useState('');
   const [eventTitle, setEventTitle] = useState('');
   const [eventStartAt, setEventStartAt] = useState('');
   const [eventEndAt, setEventEndAt] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const task = useTaskNLDraft({
+    initialDraft: draft,
+    enabled: open && captureKind === 'task',
+  });
   const calendar = useCalendarNLDraft({
     initialDraft: draft,
     enabled: open && captureKind === 'event',
@@ -64,25 +75,74 @@ export const CaptureDialog = ({
     initialDraft: draft,
     enabled: open && captureKind === 'reminder',
   });
+  const lastAppliedTaskDraftRef = useRef('');
+  const taskTouchedFieldsRef = useRef<Set<'title' | 'dueAt' | 'priority'>>(new Set());
+  const lastAppliedReminderDraftRef = useRef('');
+  const reminderTouchedFieldsRef = useRef<Set<'title' | 'remindAt'>>(new Set());
   const lastAppliedEventDraftRef = useRef('');
+  const initializedOpenRef = useRef(false);
+  const setTaskDraft = task.setDraft;
+  const setCalendarDraft = calendar.setDraft;
+  const setReminderDraft = reminder.setDraft;
 
   useEffect(() => {
     if (!open) {
+      initializedOpenRef.current = false;
+      lastAppliedTaskDraftRef.current = '';
+      lastAppliedReminderDraftRef.current = '';
+      lastAppliedEventDraftRef.current = '';
+      taskTouchedFieldsRef.current.clear();
+      reminderTouchedFieldsRef.current.clear();
       return;
     }
+    if (initializedOpenRef.current) {
+      return;
+    }
+    initializedOpenRef.current = true;
     setDestinationValue('hub');
     setError(null);
     setSubmitting(false);
+    if (captureKind === 'task') {
+      taskTouchedFieldsRef.current.clear();
+      setTaskTitle(draft.trim());
+      setTaskDueAt('');
+      setTaskPriority('');
+      setTaskDraft(draft);
+    }
     if (captureKind === 'event') {
       setEventTitle(draft.trim());
       setEventStartAt('');
       setEventEndAt('');
-      calendar.setDraft(draft);
+      setCalendarDraft(draft);
     }
     if (captureKind === 'reminder') {
-      reminder.setDraft(draft);
+      reminderTouchedFieldsRef.current.clear();
+      setReminderTitle(draft.trim());
+      setReminderAt('');
+      setReminderDraft(draft);
     }
-  }, [calendar, captureKind, draft, open, reminder]);
+  }, [captureKind, draft, open, setCalendarDraft, setReminderDraft, setTaskDraft]);
+
+  useEffect(() => {
+    if (!open || captureKind !== 'task') {
+      lastAppliedTaskDraftRef.current = '';
+      return;
+    }
+    const parsedDraft = task.lastParsedDraft.trim();
+    if (!parsedDraft || lastAppliedTaskDraftRef.current === task.lastParsedDraft) {
+      return;
+    }
+    if (!taskTouchedFieldsRef.current.has('title') && task.formPreview.title !== null) {
+      setTaskTitle(task.formPreview.title);
+    }
+    if (!taskTouchedFieldsRef.current.has('dueAt') && task.formPreview.dueAt !== null) {
+      setTaskDueAt(task.formPreview.dueAt);
+    }
+    if (!taskTouchedFieldsRef.current.has('priority')) {
+      setTaskPriority(task.formPreview.priority || '');
+    }
+    lastAppliedTaskDraftRef.current = task.lastParsedDraft;
+  }, [captureKind, open, task.formPreview.dueAt, task.formPreview.priority, task.formPreview.title, task.lastParsedDraft]);
 
   useEffect(() => {
     if (!open || captureKind !== 'event') {
@@ -104,6 +164,24 @@ export const CaptureDialog = ({
     }
     lastAppliedEventDraftRef.current = calendar.lastParsedDraft;
   }, [calendar.formPreview.endAt, calendar.formPreview.startAt, calendar.formPreview.title, calendar.lastParsedDraft, captureKind, open]);
+
+  useEffect(() => {
+    if (!open || captureKind !== 'reminder') {
+      lastAppliedReminderDraftRef.current = '';
+      return;
+    }
+    const parsedDraft = reminder.lastParsedDraft.trim();
+    if (!parsedDraft || lastAppliedReminderDraftRef.current === reminder.lastParsedDraft) {
+      return;
+    }
+    if (!reminderTouchedFieldsRef.current.has('title') && reminder.formPreview.title !== null) {
+      setReminderTitle(reminder.formPreview.title);
+    }
+    if (!reminderTouchedFieldsRef.current.has('remindAt') && reminder.formPreview.remindAt !== null) {
+      setReminderAt(reminder.formPreview.remindAt);
+    }
+    lastAppliedReminderDraftRef.current = reminder.lastParsedDraft;
+  }, [captureKind, open, reminder.formPreview.remindAt, reminder.formPreview.title, reminder.lastParsedDraft]);
 
   useEffect(() => {
     if (!open) {
@@ -145,7 +223,7 @@ export const CaptureDialog = ({
 
   const submitCapture = async () => {
     const trimmedDraft = draft.trim();
-    if (!trimmedDraft) {
+    if (captureKind === 'thought' && !trimmedDraft) {
       setError('Capture text is required.');
       return;
     }
@@ -191,24 +269,33 @@ export const CaptureDialog = ({
       }
 
       if (captureKind === 'task') {
+        const normalizedTaskTitle = taskTitle.trim();
+        const dueAtDate = taskDueAt ? new Date(taskDueAt) : null;
+        if (!normalizedTaskTitle) {
+          throw new Error('Task title is required.');
+        }
+        if (dueAtDate && Number.isNaN(dueAtDate.getTime())) {
+          throw new Error('Task due date is invalid.');
+        }
+
         if (destination.kind === 'pane' && destination.pane) {
           const pane = destination.pane;
           const collectionId = await selectCollectionId(accessToken, pane.project_id, ['task', 'todo']);
           if (!collectionId) {
             throw new Error('No task collection is available for this pane.');
           }
-          const taskPreview = parseTaskInput(trimmedDraft, { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
           await createRecord(accessToken, pane.project_id, {
             collection_id: collectionId,
-            title: taskPreview.fields.title.trim() || trimmedDraft,
+            title: normalizedTaskTitle,
             capability_types: ['task'],
             task_state: {
               status: 'todo',
-              priority: taskPreview.fields.priority ?? null,
-              due_at: taskPreview.fields.due_at ?? null,
+              priority: taskPriority || null,
+              due_at: dueAtDate ? dueAtDate.toISOString() : null,
             },
             source_pane_id: pane.pane_id,
           });
+          requestHubHomeRefresh();
           startTransition(() => {
             navigate(buildProjectWorkHref(pane.project_id, pane.pane_id));
           });
@@ -218,23 +305,28 @@ export const CaptureDialog = ({
           }
           await createPersonalTask(accessToken, {
             project_id: personalProject.id,
-            title: parseTaskInput(trimmedDraft, { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }).fields.title.trim() || trimmedDraft,
+            title: normalizedTaskTitle,
+            priority: taskPriority || null,
+            due_at: dueAtDate ? dueAtDate.toISOString() : null,
           });
           requestHubHomeRefresh();
         }
       }
 
       if (captureKind === 'reminder') {
-        const reminderPayload = buildReminderCreatePayload({
-          preview: reminder.parseNow(),
-          draft: trimmedDraft,
-          fallbackTitleFromDraft: true,
-        });
-        if (!reminderPayload.payload) {
-          throw new Error(mapReminderFailureReasonToMessage(reminderPayload.failureReason));
+        const parsedReminder = reminder.parseNow();
+        const normalizedReminderTitle = reminderTitle.trim();
+        const remindAtDate = reminderAt ? new Date(reminderAt) : null;
+        if (!normalizedReminderTitle || !reminderAt) {
+          throw new Error('Add a title and time to create a reminder.');
+        }
+        if (!remindAtDate || Number.isNaN(remindAtDate.getTime())) {
+          throw new Error('Reminder time is invalid.');
         }
         await createReminder(accessToken, {
-          ...reminderPayload.payload,
+          title: normalizedReminderTitle,
+          remind_at: remindAtDate.toISOString(),
+          recurrence_json: parsedReminder.fields.recurrence ? { ...parsedReminder.fields.recurrence } : null,
           ...(destination.kind === 'pane' && destination.pane
             ? {
                 scope: 'project',
@@ -318,7 +410,63 @@ export const CaptureDialog = ({
               />
             </div>
 
-            {captureKind === 'event' ? (
+            {captureKind === 'task' ? (
+              <>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted">Describe task</span>
+                  <input
+                    type="text"
+                    value={task.draft}
+                    onChange={(event) => {
+                      setTaskDraft(event.target.value);
+                    }}
+                    className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted">Task title</span>
+                  <input
+                    type="text"
+                    value={taskTitle}
+                    onChange={(event) => {
+                      taskTouchedFieldsRef.current.add('title');
+                      setTaskTitle(event.target.value);
+                    }}
+                    className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-medium uppercase tracking-wide text-muted">Due</span>
+                    <input
+                      type="datetime-local"
+                      value={taskDueAt}
+                      onChange={(event) => {
+                        taskTouchedFieldsRef.current.add('dueAt');
+                        setTaskDueAt(event.target.value);
+                      }}
+                      className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-medium uppercase tracking-wide text-muted">Priority</span>
+                    <select
+                      value={taskPriority}
+                      onChange={(event) => {
+                        taskTouchedFieldsRef.current.add('priority');
+                        setTaskPriority(event.target.value as TaskPriorityValue);
+                      }}
+                      className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                    >
+                      <option value="">None</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </label>
+                </div>
+              </>
+            ) : captureKind === 'event' ? (
               <>
                 <label className="flex flex-col gap-1">
                   <span className="text-xs font-medium uppercase tracking-wide text-muted">Describe event</span>
@@ -362,6 +510,49 @@ export const CaptureDialog = ({
                   </label>
                 </div>
               </>
+            ) : captureKind === 'reminder' ? (
+              <>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted">Describe reminder</span>
+                  <input
+                    type="text"
+                    value={reminder.draft}
+                    onChange={(event) => {
+                      setReminderDraft(event.target.value);
+                    }}
+                    className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted">Reminder title</span>
+                  <input
+                    type="text"
+                    value={reminderTitle}
+                    onChange={(event) => {
+                      reminderTouchedFieldsRef.current.add('title');
+                      setReminderTitle(event.target.value);
+                    }}
+                    className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted">Remind at</span>
+                  <input
+                    type="datetime-local"
+                    value={reminderAt}
+                    onChange={(event) => {
+                      reminderTouchedFieldsRef.current.add('remindAt');
+                      setReminderAt(event.target.value);
+                    }}
+                    className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                {reminder.preview.fields.recurrence ? (
+                  <p className="rounded-control border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
+                    Recurs: {reminder.preview.fields.recurrence.frequency}
+                  </p>
+                ) : null}
+              </>
             ) : (
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium uppercase tracking-wide text-muted">
@@ -372,6 +563,7 @@ export const CaptureDialog = ({
                   value={draft}
                   onChange={(event) => {
                     setDraft(event.target.value);
+                    setTaskDraft(event.target.value);
                     reminder.setDraft(event.target.value);
                     calendar.setDraft(event.target.value);
                   }}

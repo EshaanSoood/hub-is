@@ -43,6 +43,13 @@ interface HubCollection {
   name: string;
 }
 
+interface HubPaneSummary {
+  pane_id: string;
+  project_id: string;
+  name: string;
+  layout_config: Record<string, unknown>;
+}
+
 interface HubHomeResponse {
   home: {
     personal_project_id: string | null;
@@ -266,4 +273,118 @@ export const archiveMostRecentTaskByTitleIncludes = async (token: string, needle
   if (found?.record_id) {
     await archiveRecordViaApi(token, found.record_id);
   }
+};
+
+export const createProjectViaApi = async (token: string, name: string): Promise<{ project_id: string; name: string }> => {
+  const data = await apiRequest<{ project: { project_id: string; name: string } }>(
+    token,
+    '/api/hub/projects',
+    {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    },
+  );
+  return data.project;
+};
+
+export const deleteProjectViaApi = async (token: string, projectId: string): Promise<void> => {
+  await apiRequest(
+    token,
+    `/api/hub/projects/${encodeURIComponent(projectId)}`,
+    {
+      method: 'DELETE',
+    },
+  );
+};
+
+export const createPaneViaApi = async (
+  token: string,
+  projectId: string,
+  payload: {
+    name: string;
+    member_user_ids?: string[];
+    layout_config: Record<string, unknown>;
+  },
+): Promise<HubPaneSummary> => {
+  const data = await apiRequest<{ pane: HubPaneSummary }>(
+    token,
+    `/api/hub/projects/${encodeURIComponent(projectId)}/panes`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  );
+  return data.pane;
+};
+
+const waitForHomeMatch = async <T>(
+  readItems: () => Promise<T[]>,
+  predicate: (item: T) => boolean,
+  timeoutMs = 15_000,
+): Promise<T | null> => {
+  const deadline = Date.now() + timeoutMs;
+  let lastError: unknown = null;
+  while (Date.now() < deadline) {
+    try {
+      const items = await readItems();
+      const found = items.find(predicate) || null;
+      if (found) {
+        return found;
+      }
+      lastError = null;
+    } catch (error) {
+      lastError = error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  if (lastError) {
+    throw new Error(
+      `Polling failed before timeout due to repeated read errors: ${
+        lastError instanceof Error ? lastError.message : String(lastError)
+      }`,
+    );
+  }
+  return null;
+};
+
+export const waitForHomeTaskByTitleIncludes = async (
+  token: string,
+  needle: string,
+  timeoutMs = 15_000,
+): Promise<HubTaskSummary | null> => {
+  const lowerNeedle = needle.toLowerCase();
+  return waitForHomeMatch(
+    async () => getLatestTasks(token, 50),
+    (task) => task.title.toLowerCase().includes(lowerNeedle),
+    timeoutMs,
+  );
+};
+
+export const waitForHomeEventByTitleIncludes = async (
+  token: string,
+  needle: string,
+  timeoutMs = 15_000,
+): Promise<Record<string, unknown> | null> => {
+  const lowerNeedle = needle.toLowerCase();
+  return waitForHomeMatch(
+    async () => {
+      const home = await getHubHome(token, { events_limit: 50, tasks_limit: 5, captures_limit: 5, notifications_limit: 5 });
+      return home.events;
+    },
+    (event) => String((event as { title?: unknown }).title || '').toLowerCase().includes(lowerNeedle),
+    timeoutMs,
+  );
+};
+
+export const waitForReminderByTitleIncludes = async (
+  token: string,
+  needle: string,
+  timeoutMs = 15_000,
+): Promise<HubReminderSummary | null> => {
+  const lowerNeedle = needle.toLowerCase();
+  return waitForHomeMatch(
+    async () => getLatestReminders(token, 50),
+    (reminder) => reminder.record_title.toLowerCase().includes(lowerNeedle),
+    timeoutMs,
+  );
 };

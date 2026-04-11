@@ -68,6 +68,7 @@
   --module-card-max-h-m: 28rem;
   --module-card-min-h-l: 24rem;
   --module-card-max-h-l: 40rem;
+  --daily-brief-collapsed-height: 12rem;
   --dialog-panel-inline-gap: 1rem;
   --dialog-panel-min-w: 20rem;
   --dialog-panel-max-w: 42rem;

@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon, IconButton, Select } from '../../components/primitives';
 import { focusWhenReady } from '../../lib/focusWhenReady';
+import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { listCollections } from '../../services/hub/collections';
 import { convertRecord, createPersonalTask, createRecord } from '../../services/hub/records';
 import type { HubCollection, HubHomeCapture } from '../../services/hub/types';
@@ -366,6 +367,7 @@ export const QuickCapturePanel = ({
             return;
           }
           await createPersonalTask(accessToken, { project_id: personalProjectId, title: trimmed });
+          requestHubHomeRefresh();
           await onCaptureComplete();
           setCaptureNotice('Saved');
           setCaptureText('');

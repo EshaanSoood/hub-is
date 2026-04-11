@@ -54,6 +54,22 @@ interface UseReminderNLDraftArgs {
   enabled?: boolean;
 }
 
+export interface ReminderNLFormPreview {
+  title: string | null;
+  remindAt: string | null;
+}
+
+const toDateTimeLocalInput = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+};
+
 export const useReminderNLDraft = ({
   initialDraft = '',
   parseDelayMs = 250,
@@ -61,11 +77,13 @@ export const useReminderNLDraft = ({
 }: UseReminderNLDraftArgs = {}) => {
   const [draft, setDraft] = useState(initialDraft);
   const [preview, setPreview] = useState<ReminderParseResult>(() => emptyReminderPreview());
+  const [lastParsedDraft, setLastParsedDraft] = useState('');
 
   useEffect(() => {
     if (!enabled) {
       const timer = window.setTimeout(() => {
         setPreview(emptyReminderPreview());
+        setLastParsedDraft('');
       }, 0);
       return () => {
         window.clearTimeout(timer);
@@ -73,7 +91,14 @@ export const useReminderNLDraft = ({
     }
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const timer = window.setTimeout(() => {
-      setPreview(draft.trim() ? parseReminderInput(draft, { timezone }) : emptyReminderPreview());
+      const trimmedDraft = draft.trim();
+      if (!trimmedDraft) {
+        setPreview(emptyReminderPreview());
+        setLastParsedDraft('');
+        return;
+      }
+      setPreview(parseReminderInput(draft, { timezone }));
+      setLastParsedDraft(draft);
     }, parseDelayMs);
     return () => {
       window.clearTimeout(timer);
@@ -84,11 +109,14 @@ export const useReminderNLDraft = ({
     if (!enabled) {
       const empty = emptyReminderPreview();
       setPreview(empty);
+      setLastParsedDraft('');
       return empty;
     }
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const nextPreview = draft.trim() ? parseReminderInput(draft, { timezone }) : emptyReminderPreview();
+    const trimmedDraft = draft.trim();
+    const nextPreview = trimmedDraft ? parseReminderInput(draft, { timezone }) : emptyReminderPreview();
     setPreview(nextPreview);
+    setLastParsedDraft(trimmedDraft ? draft : '');
     return nextPreview;
   };
 
@@ -109,7 +137,13 @@ export const useReminderNLDraft = ({
   const clear = () => {
     setDraft('');
     setPreview(emptyReminderPreview());
+    setLastParsedDraft('');
   };
+
+  const formPreview = useMemo<ReminderNLFormPreview>(() => ({
+    title: preview.fields.title.trim() || null,
+    remindAt: toDateTimeLocalInput(preview.fields.remind_at),
+  }), [preview.fields.remind_at, preview.fields.title]);
 
   return {
     draft,
@@ -119,6 +153,8 @@ export const useReminderNLDraft = ({
     parseNow,
     clear,
     createPayload,
+    lastParsedDraft,
+    formPreview,
     hasMeaningfulPreview: useMemo(() => hasMeaningfulReminderPreview(preview), [preview]),
   };
 };

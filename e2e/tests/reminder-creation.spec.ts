@@ -1,95 +1,84 @@
 import { expect, test, type Page } from '@playwright/test';
 import { authenticateAsUserA } from '../helpers/auth';
-import { dismissReminderViaApi, getLatestReminders } from '../helpers/db';
+import { dismissReminderViaApi, waitForReminderByTitleIncludes } from '../helpers/db';
 
 const LIVE_TIMEOUT_MS = 60_000;
 
 const openHubHome = async (page: Page): Promise<void> => {
   await page.goto('/projects', { waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
   await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
-  await expect(page.getByRole('heading', { name: /^Hub$/i }).first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: /^(Hub|myHub)$/i }).first()).toBeVisible({ timeout: 15_000 });
 };
 
-const openReminderDialog = async (page: Page) => {
-  await page.getByRole('button', { name: /Open quick add menu/i }).click();
-  await page.getByRole('menuitem', { name: /^Reminder$/i }).click();
-
-  const dialog = page
-    .locator('[role="dialog"]:visible')
-    .filter({ has: page.locator('#quick-add-reminder-input:visible') })
-    .first();
-  await expect(dialog).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await expect(dialog.locator('#quick-add-reminder-input:visible')).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  return dialog;
+const openSidebarSurface = async (page: Page, label: 'Reminders', queryValue: 'reminders') => {
+  const primaryNav = page.getByRole('navigation', { name: /^Primary$/i });
+  const trigger = primaryNav.getByRole('button', { name: new RegExp(`^${label}$`, 'i') });
+  await expect(trigger).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await trigger.click();
+  await expect(page).toHaveURL(new RegExp(`/projects\\?surface=${queryValue}(?:&|$)`), { timeout: LIVE_TIMEOUT_MS });
 };
 
-test('create reminder from quick-add menu', async ({ page }) => {
+test('sidebar Reminders quick-input shows parsed preview and creates without reload', async ({ page }) => {
+  test.setTimeout(LIVE_TIMEOUT_MS);
   const token = await authenticateAsUserA(page);
   await openHubHome(page);
+  await openSidebarSurface(page, 'Reminders', 'reminders');
 
   const uniqueToken = Math.random().toString(36).replace(/[^a-z]+/g, '').slice(0, 8);
-  const reminderText = `reminder smoke ${uniqueToken} tonight at 8pm`;
+  const captureInput = page.getByPlaceholder(/Capture for reminders/i);
+  await expect(captureInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await captureInput.fill(`reminder smoke ${uniqueToken} tomorrow at 8pm`);
+  await captureInput.press('Enter');
 
-  const dialog = await openReminderDialog(page);
-  const reminderInput = dialog.locator('#quick-add-reminder-input:visible');
-  await reminderInput.click();
-  await expect(reminderInput).toBeFocused();
-  await reminderInput.fill(reminderText);
+  const dialog = page.getByRole('dialog', { name: /Confirm Reminder/i });
+  await expect(dialog).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await expect(dialog.getByLabel(/^Reminder title$/i)).toHaveValue(new RegExp(uniqueToken, 'i'), { timeout: LIVE_TIMEOUT_MS });
+  await expect(dialog.getByLabel(/^Remind at$/i)).not.toHaveValue('', { timeout: LIVE_TIMEOUT_MS });
 
-  const createRequest = page.waitForResponse(
-    (response) => response.url().includes('/api/hub/reminders') && response.request().method() === 'POST',
-    { timeout: LIVE_TIMEOUT_MS },
-  );
-  await dialog.getByRole('button', { name: /^Add$/i }).click();
-  const createResponse = await createRequest;
-  expect([200, 201]).toContain(createResponse.status());
-  const createdPayload = await createResponse.json().catch(() => null);
-  const createdReminderId: string | undefined =
-    createdPayload?.data?.reminder?.reminder_id || createdPayload?.data?.reminder_id || undefined;
-  const createdTitle: string | undefined =
-    createdPayload?.data?.reminder?.record_title || createdPayload?.data?.record_title || createdPayload?.data?.title || undefined;
-  await expect(dialog).toBeHidden({ timeout: LIVE_TIMEOUT_MS });
-  await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
-  await page.waitForTimeout(2_000);
+  let createdReminderId: string | null = null;
 
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
+  try {
+    const createRequest = page.waitForResponse(
+      (response) => response.url().includes('/api/hub/reminders') && response.request().method() === 'POST',
+      { timeout: LIVE_TIMEOUT_MS },
+    );
+    await dialog.getByRole('button', { name: /^Save$/i }).click({ force: true });
+    const createResponse = await createRequest;
+    const createPayload = await createResponse.json().catch(() => null);
+    createdReminderId = createPayload?.data?.reminder?.reminder_id || createPayload?.data?.reminder_id || null;
 
-  const visibilityPattern = createdTitle ? new RegExp(createdTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : new RegExp(uniqueToken, 'i');
-  await expect(page.getByText(visibilityPattern).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    expect([200, 201]).toContain(createResponse.status());
+    await expect(dialog).toBeHidden({ timeout: LIVE_TIMEOUT_MS });
 
-  if (createdReminderId) {
-    await dismissReminderViaApi(token, createdReminderId).catch(() => undefined);
-  } else {
-    const reminders = await getLatestReminders(token, 30);
-    const created = reminders.find((entry) => entry.record_title.toLowerCase().includes(uniqueToken.toLowerCase()));
-    if (created) {
-      await dismissReminderViaApi(token, created.reminder_id).catch(() => undefined);
+    if (!createdReminderId) {
+      const createdReminder = await waitForReminderByTitleIncludes(token, uniqueToken, LIVE_TIMEOUT_MS);
+      expect(createdReminder).not.toBeNull();
+      createdReminderId = createdReminder?.reminder_id || null;
+    }
+  } finally {
+    if (createdReminderId) {
+      await dismissReminderViaApi(token, createdReminderId).catch(() => undefined);
     }
   }
 });
 
-test('reminder blocks creation without time', async ({ page }) => {
+test('sidebar Reminders quick-input keeps the parsed form open when time is missing', async ({ page }) => {
+  test.setTimeout(LIVE_TIMEOUT_MS);
   await authenticateAsUserA(page);
   await openHubHome(page);
+  await openSidebarSurface(page, 'Reminders', 'reminders');
 
-  const dialog = await openReminderDialog(page);
-  const reminderInput = dialog.locator('#quick-add-reminder-input:visible');
-  await reminderInput.fill('just some text no time');
+  const captureInput = page.getByPlaceholder(/Capture for reminders/i);
+  await expect(captureInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await captureInput.fill('just some text no time');
+  await captureInput.press('Enter');
 
-  await dialog.getByRole('button', { name: /^Add$/i }).click();
-  await page.waitForTimeout(500);
-
+  const dialog = page.getByRole('dialog', { name: /Confirm Reminder/i });
   await expect(dialog).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  const hasVisibleValidation = await dialog
-    .locator('p:visible')
-    .filter({ hasText: /title and time|time/i })
-    .first()
-    .isVisible()
-    .catch(() => false);
-  if (!hasVisibleValidation) {
-    // Current live behavior can vary between explicit validation copy and silent inline invalid state.
-    await expect(dialog).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  }
-  await expect(reminderInput).toHaveValue('just some text no time');
+  await expect(dialog.getByLabel(/^Reminder title$/i)).toHaveValue(/just some text no time/i);
+  await expect(dialog.getByLabel(/^Remind at$/i)).toHaveValue('');
+
+  await dialog.getByRole('button', { name: /^Save$/i }).click({ force: true });
+  await expect(dialog.getByRole('alert')).toContainText(/title and time|time is invalid/i, { timeout: LIVE_TIMEOUT_MS });
+  await expect(dialog).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 });

@@ -31,12 +31,12 @@ export const SurfaceItem = ({
     onClick={onClick}
   >
     {active ? <SidebarSelectionMarker /> : null}
-    <span className="relative z-[1] flex shrink-0">
+    <span className="relative z-[1] flex h-4 w-4 shrink-0 items-center justify-center self-center">
       <Icon name={iconName} size={16} />
     </span>
     {!isCollapsed ? (
       <SidebarLabel show={showLabels} className="relative z-[1] min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{label}</span>
+        <span className="block truncate text-sm font-medium leading-none">{label}</span>
       </SidebarLabel>
     ) : null}
   </button>
