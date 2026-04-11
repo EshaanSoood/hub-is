@@ -1,12 +1,12 @@
 import { type DragEvent, type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type {
+  BacklogDragPayload,
   DayStripEventItem,
   DayStripReminderItem,
   DayStripTaskItem,
   TimelineTypeFilter,
-  TriageDragPayload,
 } from './types';
-import { HUB_TRIAGE_DRAG_MIME } from './types';
+import { HUB_BACKLOG_DRAG_MIME } from './types';
 
 const HOUR_MS = 60 * 60 * 1000;
 const ITEM_MIN_WIDTH_PX = 180;
@@ -65,7 +65,7 @@ type TimelineReminder = {
 
 type TimelineItem = TimelineEvent | TimelineTask | TimelineReminder;
 
-const isValidDragPayload = (value: unknown): value is TriageDragPayload => {
+const isValidDragPayload = (value: unknown): value is BacklogDragPayload => {
   if (!value || typeof value !== 'object') {
     return false;
   }
@@ -86,7 +86,7 @@ export const DayStrip = ({
   reminders,
   typeFilter,
   onOpenRecord,
-  onDropFromTriage,
+  onDropFromBacklog,
 }: {
   className?: string;
   events: DayStripEventItem[];
@@ -94,7 +94,7 @@ export const DayStrip = ({
   reminders: DayStripReminderItem[];
   typeFilter: TimelineTypeFilter;
   onOpenRecord: (recordId: string) => void;
-  onDropFromTriage?: (payload: TriageDragPayload, assignedAt: Date) => void | Promise<void>;
+  onDropFromBacklog?: (payload: BacklogDragPayload, assignedAt: Date) => void | Promise<void>;
 }) => {
   const [now, setNow] = useState(() => new Date());
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
@@ -302,11 +302,11 @@ export const DayStrip = ({
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    if (!onDropFromTriage || !timelineRef.current) {
+    if (!onDropFromBacklog || !timelineRef.current) {
       return;
     }
     event.preventDefault();
-    const payloadRaw = event.dataTransfer.getData(HUB_TRIAGE_DRAG_MIME);
+    const payloadRaw = event.dataTransfer.getData(HUB_BACKLOG_DRAG_MIME);
     if (!payloadRaw) {
       return;
     }
@@ -323,7 +323,7 @@ export const DayStrip = ({
     const relativeX = clamp(event.clientX - bounds.left, 0, bounds.width);
     const ratio = bounds.width > 0 ? relativeX / bounds.width : 0;
     const assignedAt = new Date(range.startMs + ratio * totalMs);
-    void onDropFromTriage(payloadParsed, assignedAt);
+    void onDropFromBacklog(payloadParsed, assignedAt);
   };
 
   const nowMs = now.getTime();
@@ -349,6 +349,7 @@ export const DayStrip = ({
             itemRefs.current[item.id] = node;
           }}
           type="button"
+          tabIndex={-1}
           aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
           className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium ${
             inPast
@@ -386,6 +387,7 @@ export const DayStrip = ({
               itemRefs.current[item.id] = node;
             }}
             type="button"
+            tabIndex={-1}
             aria-label={`Task: ${item.title} at ${timeLabel}`}
             className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 p-0 [border-radius:9999px] ${
               overdue
@@ -418,6 +420,7 @@ export const DayStrip = ({
             itemRefs.current[item.id] = node;
           }}
           type="button"
+          tabIndex={-1}
           aria-label={`Reminder: ${item.title} at ${timeLabel}`}
           className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rotate-45 border-2 ${
             settledDismissed
@@ -442,11 +445,7 @@ export const DayStrip = ({
   };
 
   return (
-    <div
-      role="region"
-      aria-label="Today's timeline"
-      className={`rounded-panel border border-border-muted bg-[color:var(--color-surface)] p-2 [box-shadow:inset_0_0_12px_2px_rgb(38_48_64_/_0.5)] ${className ?? ''}`}
-    >
+    <div className={`rounded-panel border border-border-muted bg-[color:var(--color-surface)] p-2 [box-shadow:inset_0_0_12px_2px_rgb(38_48_64_/_0.5)] ${className ?? ''}`}>
       {hasNoScheduledItems ? (
         <div className="flex h-20 items-center justify-center rounded-control border border-border-muted bg-surface-elevated px-4 text-center">
           <p className="text-[15px] italic text-text-secondary">
@@ -456,6 +455,7 @@ export const DayStrip = ({
       ) : (
         <div
           ref={scrollViewportRef}
+          tabIndex={-1}
           className="overflow-x-auto px-[96px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <div
@@ -463,7 +463,7 @@ export const DayStrip = ({
             className="relative h-[146px] min-w-full select-none"
             style={{ width: `${widthPx}px` }}
             onDragOver={(event) => {
-              if (!onDropFromTriage) {
+              if (!onDropFromBacklog) {
                 return;
               }
               event.preventDefault();
@@ -497,13 +497,13 @@ export const DayStrip = ({
             })}
 
             <h3 id={earlierLabelId} className="sr-only">Earlier today</h3>
-            <section aria-labelledby={earlierLabelId}>
+            <div aria-labelledby={earlierLabelId}>
               {earlierItems.map((item) => renderTimelineItem(item))}
-            </section>
+            </div>
             <h3 id={upcomingLabelId} className="sr-only">Upcoming</h3>
-            <section aria-labelledby={upcomingLabelId}>
+            <div aria-labelledby={upcomingLabelId}>
               {upcomingItems.map((item) => renderTimelineItem(item))}
-            </section>
+            </div>
           </div>
         </div>
       )}

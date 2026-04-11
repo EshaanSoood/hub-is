@@ -54,11 +54,11 @@ export const useProjectLens = ({ dailyData, projects }: UseProjectLensParams): U
     const events = filteredDailyData.dayEvents.length;
     const tasks = filteredDailyData.timedTasks.length + filteredDailyData.untimedTasks.length;
     const reminders = filteredDailyData.timedReminders.length;
-    const triage =
+    const backlog =
       filteredDailyData.overdueTasks.length
       + filteredDailyData.untimedTasks.length
       + filteredDailyData.missedReminders.length;
-    return { events, tasks, reminders, triage };
+    return { events, tasks, reminders, backlog };
   }, [filteredDailyData]);
 
   return {

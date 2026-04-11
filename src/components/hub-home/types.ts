@@ -33,7 +33,7 @@ export interface DayStripReminderItem {
   dismissed: boolean;
 }
 
-export interface TriageTaskItem {
+export interface BacklogTaskItem {
   id: string;
   recordId: string;
   projectId: string | null;
@@ -43,7 +43,7 @@ export interface TriageTaskItem {
   priority: TaskPriority | null;
 }
 
-export interface TriageReminderItem {
+export interface BacklogReminderItem {
   id: string;
   reminderId: string;
   recordId: string;
@@ -53,8 +53,8 @@ export interface TriageReminderItem {
   remindAtIso: string;
 }
 
-export type TriageDragPayload =
+export type BacklogDragPayload =
   | { kind: 'task'; recordId: string }
   | { kind: 'reminder'; reminderId: string };
 
-export const HUB_TRIAGE_DRAG_MIME = 'application/x-hub-triage-item';
+export const HUB_BACKLOG_DRAG_MIME = 'application/x-hub-backlog-item';

@@ -179,7 +179,7 @@ export const SidebarShell = () => {
   return (
     <LayoutGroup id="sidebar-shell-layout">
       <motion.nav
-        aria-label="Primary workspace navigation"
+        aria-label="Primary"
         initial={false}
         animate={resolvedVisualCollapsed ? 'collapsed' : 'expanded'}
         variants={sidebarShellVariants(prefersReducedMotion)}
@@ -198,31 +198,45 @@ export const SidebarShell = () => {
         </div>
 
         <div className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}>
-          <div className="shrink-0">
-            <SearchButton
-              accessToken={accessToken}
-              autoFocusKey={searchAutoFocusKey}
-              isCollapsed={resolvedVisualCollapsed}
-              onOpenSearch={openSearch}
-              routeKey={`${location.pathname}${location.search}`}
-              showLabels={resolvedShowLabels}
-            />
-          </div>
+          <section
+            aria-label="Quick access"
+            className={cn('shrink-0', resolvedVisualCollapsed ? 'w-full' : 'space-y-3')}
+          >
+            <div className="shrink-0">
+              <SearchButton
+                accessToken={accessToken}
+                autoFocusKey={searchAutoFocusKey}
+                isCollapsed={resolvedVisualCollapsed}
+                onOpenSearch={openSearch}
+                routeKey={`${location.pathname}${location.search}`}
+                showLabels={resolvedShowLabels}
+              />
+            </div>
 
-          <div className="shrink-0">
-            <CaptureInput
-              key={`capture:${location.pathname}${location.search}`}
-              accessToken={accessToken}
-              autoFocusKey={captureAutoFocusKey}
-              currentProject={currentProject}
-              currentProjectPanes={activeCurrentProjectPanes}
-              currentSurfaceLabel={currentSurfaceLabel}
-              isCollapsed={resolvedVisualCollapsed}
-              onOpenCapture={openCapture}
-              personalProject={personalProject}
-              showLabels={resolvedShowLabels}
-            />
-          </div>
+            <div className="shrink-0">
+              <CaptureInput
+                key={`capture:${location.pathname}${location.search}`}
+                accessToken={accessToken}
+                autoFocusKey={captureAutoFocusKey}
+                currentProject={currentProject}
+                currentProjectPanes={activeCurrentProjectPanes}
+                currentSurfaceLabel={currentSurfaceLabel}
+                isCollapsed={resolvedVisualCollapsed}
+                onOpenCapture={openCapture}
+                personalProject={personalProject}
+                showLabels={resolvedShowLabels}
+              />
+            </div>
+
+            <div className="shrink-0">
+              <Surfaces
+                activeSurface={currentSurface}
+                isCollapsed={resolvedVisualCollapsed}
+                onSelectSurface={onSelectSurface}
+                showLabels={resolvedShowLabels}
+              />
+            </div>
+          </section>
 
           <div className="min-h-0 flex-1 overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
@@ -234,15 +248,6 @@ export const SidebarShell = () => {
                 variants={fadeThroughVariants(prefersReducedMotion)}
                 className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}
               >
-                <div className="shrink-0">
-                  <Surfaces
-                    activeSurface={currentSurface}
-                    isCollapsed={resolvedVisualCollapsed}
-                    onSelectSurface={onSelectSurface}
-                    showLabels={resolvedShowLabels}
-                  />
-                </div>
-
                 <div className="shrink-0">
                   <RecentPanes
                     currentProject={currentProject}

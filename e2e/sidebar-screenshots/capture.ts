@@ -21,7 +21,7 @@ const readRequiredEnv = (name: string): string => {
   return value;
 };
 
-const navigation = (page: Page): Locator => page.locator('nav[aria-label="Primary workspace navigation"]');
+const navigation = (page: Page): Locator => page.locator('nav[aria-label="Primary"]');
 
 const waitForShell = async (page: Page): Promise<void> => {
   await navigation(page).waitFor({ state: 'visible', timeout: 60_000 });
@@ -101,7 +101,7 @@ const ensureProjectsExpanded = async (page: Page): Promise<void> => {
   await toggle.click();
   await page.waitForFunction(
     () =>
-      Array.from(document.querySelectorAll('nav[aria-label="Primary workspace navigation"] button[aria-label]'))
+      Array.from(document.querySelectorAll('nav[aria-label="Primary"] button[aria-label]'))
         .map((element) => String(element.getAttribute('aria-label') || '').trim())
         .some((label) => /^(Expand|Collapse) [A-Z]/.test(label)),
     null,

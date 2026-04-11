@@ -101,7 +101,7 @@ export const useDashboardAggregation = ({
       }
       if (dueAt && dueAt < todayStart) {
         overdueTasks.push({
-          id: `triage-overdue:${task.record_id}`,
+          id: `backlog-overdue:${task.record_id}`,
           recordId: task.record_id,
           projectId: task.project_id,
           projectName: task.project_name,
@@ -117,7 +117,7 @@ export const useDashboardAggregation = ({
 
       if (isMidnightLocal(dueAt)) {
         untimedTasks.push({
-          id: `triage-untimed:${task.record_id}`,
+          id: `backlog-untimed:${task.record_id}`,
           recordId: task.record_id,
           projectId: task.project_id,
           projectName: task.project_name,
@@ -160,7 +160,7 @@ export const useDashboardAggregation = ({
         });
       } else if (remindAt < now) {
         missedReminders.push({
-          id: `triage-reminder:${reminder.reminder_id}`,
+          id: `backlog-reminder:${reminder.reminder_id}`,
           reminderId: reminder.reminder_id,
           recordId: reminder.record_id,
           projectId: reminder.project_id,

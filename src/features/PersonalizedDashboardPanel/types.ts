@@ -1,9 +1,9 @@
 import type {
+  BacklogReminderItem,
+  BacklogTaskItem,
   DayStripEventItem,
   DayStripReminderItem,
   DayStripTaskItem,
-  TriageReminderItem,
-  TriageTaskItem,
 } from '../../components/hub-home/types';
 import type { EventSummary, HubHomeResponse, TaskSummary } from '../../shared/api-types';
 
@@ -54,17 +54,17 @@ export type HubDashboardItem =
 export interface DashboardDailyData {
   dayEvents: DayStripEventItem[];
   timedTasks: DayStripTaskItem[];
-  untimedTasks: TriageTaskItem[];
-  overdueTasks: TriageTaskItem[];
+  untimedTasks: BacklogTaskItem[];
+  overdueTasks: BacklogTaskItem[];
   timedReminders: DayStripReminderItem[];
-  missedReminders: TriageReminderItem[];
+  missedReminders: BacklogReminderItem[];
 }
 
 export interface DashboardDayCounts {
   events: number;
   tasks: number;
   reminders: number;
-  triage: number;
+  backlog: number;
 }
 
 export interface DashboardPipCounts {

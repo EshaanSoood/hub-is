@@ -1,18 +1,21 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { ContextBar } from '../../components/hub-home/ContextBar';
 import { DayStrip } from '../../components/hub-home/DayStrip';
-import { TriagePanel } from '../../components/hub-home/TriagePanel';
-import type { TimelineTypeFilter, TriageDragPayload } from '../../components/hub-home/types';
+import { BacklogPanel } from '../../components/hub-home/BacklogPanel';
+import type { BacklogDragPayload } from '../../components/hub-home/types';
 import type { DashboardDailyData, DashboardDayCounts, ProjectOption } from './types';
 
 interface DayStripSectionProps {
+  countReady: boolean;
+  greeting: string;
+  now: Date;
   filteredDailyData: DashboardDailyData;
   dayCounts: DashboardDayCounts;
   activeProjectFilter: string;
   projectOptions: ProjectOption[];
   onProjectFilterChange: (value: string) => void;
   onOpenRecord: (recordId: string) => void;
-  onDropFromTriage: (payload: TriageDragPayload, assignedAt: Date) => Promise<void>;
+  onDropFromBacklog: (payload: BacklogDragPayload, assignedAt: Date) => Promise<void>;
   onCompleteTask: (recordId: string) => Promise<void>;
   onRescheduleTask: (recordId: string, dueAtIso: string) => Promise<void>;
   onSnoozeTask: (recordId: string) => Promise<void>;
@@ -21,33 +24,46 @@ interface DayStripSectionProps {
 }
 
 export const DayStripSection = ({
+  countReady,
+  greeting,
+  now,
   filteredDailyData,
   dayCounts,
   activeProjectFilter,
   projectOptions,
   onProjectFilterChange,
   onOpenRecord,
-  onDropFromTriage,
+  onDropFromBacklog,
   onCompleteTask,
   onRescheduleTask,
   onSnoozeTask,
   onDismissReminder,
   onSnoozeReminder,
 }: DayStripSectionProps) => {
-  const [timelineTypeFilter, setTimelineTypeFilter] = useState<TimelineTypeFilter>('all');
-  const [triageOpen, setTriageOpen] = useState(false);
+  const dateLabel = useMemo(
+    () => new Intl.DateTimeFormat([], { weekday: 'long', month: 'long', day: 'numeric' }).format(now),
+    [now],
+  );
 
   return (
-    <>
-      <h2 className="sr-only">Timeline</h2>
+    <section aria-labelledby="daily-brief-heading" className="mt-4 rounded-panel border border-border-muted bg-surface p-4">
+      <h2 id="daily-brief-heading" className="font-serif text-xl font-semibold text-text">Daily Brief</h2>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-text">{greeting}</p>
+          <p className="text-xs text-muted">{dateLabel}</p>
+        </div>
+      </div>
+
       <DayStrip
         className="mt-3"
         events={filteredDailyData.dayEvents}
         tasks={filteredDailyData.timedTasks}
         reminders={filteredDailyData.timedReminders}
-        typeFilter={timelineTypeFilter}
+        typeFilter="all"
         onOpenRecord={onOpenRecord}
-        onDropFromTriage={onDropFromTriage}
+        onDropFromBacklog={onDropFromBacklog}
       />
 
       <ContextBar
@@ -58,22 +74,16 @@ export const DayStripSection = ({
         eventCount={dayCounts.events}
         taskCount={dayCounts.tasks}
         reminderCount={dayCounts.reminders}
-        triageCount={dayCounts.triage}
-        timelineTypeFilter={timelineTypeFilter}
-        onToggleTimelineType={(type) => {
-          setTimelineTypeFilter((current) => (current === type ? 'all' : type));
-        }}
-        onToggleTriagePanel={() => setTriageOpen((current) => !current)}
-        triageOpen={triageOpen}
+        backlogCount={dayCounts.backlog}
       />
 
-      {triageOpen ? <h2 className="sr-only">Triage</h2> : null}
-      <TriagePanel
+      <BacklogPanel
         className="mt-3"
-        open={triageOpen}
+        countReady={countReady}
         overdueTasks={filteredDailyData.overdueTasks}
         untimedTasks={filteredDailyData.untimedTasks}
         missedReminders={filteredDailyData.missedReminders}
+        onOpenRecord={onOpenRecord}
         onCompleteTask={onCompleteTask}
         onRescheduleTask={onRescheduleTask}
         onSnoozeTask={onSnoozeTask}
@@ -81,6 +91,6 @@ export const DayStripSection = ({
         onDismissReminder={onDismissReminder}
         onSnoozeReminder={onSnoozeReminder}
       />
-    </>
+    </section>
   );
 };

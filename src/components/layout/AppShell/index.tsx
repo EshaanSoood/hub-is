@@ -51,10 +51,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="flex h-screen bg-surface text-text">
-      <header className="sr-only">
-        <h1>Hub workspace</h1>
-      </header>
-
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[200] focus:rounded-control focus:bg-surface-elevated focus:px-md focus:py-sm focus:text-text focus:ring-2 focus:ring-focus-ring"

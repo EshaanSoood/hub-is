@@ -58,6 +58,7 @@ export const ProjectsPage = () => {
   const { accessToken } = useAuthz();
 
   const [homeLoading, setHomeLoading] = useState(false);
+  const [homeReady, setHomeReady] = useState(false);
   const [homeError, setHomeError] = useState<string | null>(null);
   const [homeData, setHomeData] = useState<{
     personal_project_id: Awaited<ReturnType<typeof getHubHome>>['personal_project_id'];
@@ -115,6 +116,7 @@ export const ProjectsPage = () => {
       setHomeData({ personal_project_id: null, tasks: [], tasks_next_cursor: null, captures: [], events: [], notifications: [] });
       setHomeError(null);
       setHomeLoading(false);
+      setHomeReady(false);
       return;
     }
 
@@ -128,8 +130,10 @@ export const ProjectsPage = () => {
       });
       setHomeData(next);
       setHomeError(null);
+      setHomeReady(true);
     } catch (error) {
       setHomeError(error instanceof Error ? error.message : 'Failed to load myHub.');
+      setHomeReady(true);
     } finally {
       setHomeLoading(false);
     }
@@ -276,6 +280,7 @@ export const ProjectsPage = () => {
       <PersonalizedDashboardPanel
         homeData={homeData}
         homeLoading={homeLoading}
+        homeReady={homeReady}
         homeError={homeError}
         projects={projects}
         onOpenRecord={onOpenHubRecord}
