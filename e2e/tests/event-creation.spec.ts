@@ -1,86 +1,129 @@
 import { expect, test, type Page } from '@playwright/test';
 import { authenticateAsUserA } from '../helpers/auth';
-import { getHubHome } from '../helpers/db';
+import {
+  archiveRecordViaApi,
+  createPaneViaApi,
+  createProjectViaApi,
+  waitForHomeEventByTitleIncludes,
+} from '../helpers/db';
 
 const LIVE_TIMEOUT_MS = 60_000;
 
-const openHubHome = async (page: Page): Promise<void> => {
-  await page.goto('/projects', { waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
-  await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
-  await expect(page.getByRole('heading', { name: /^Hub$/i }).first()).toBeVisible({ timeout: 15_000 });
-};
-
-const hhmm = (date: Date): string => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms);
+const openCalendarWorkPane = async (
+  page: Page,
+  token: string,
+): Promise<{ projectId: string; paneId: string }> => {
+  const runId = `calendar-e2e-${Date.now().toString(36)}`;
+  const project = await createProjectViaApi(token, `Calendar Submit ${runId}`);
+  const pane = await createPaneViaApi(token, project.project_id, {
+    name: 'Calendar Pane',
+    member_user_ids: [],
+    layout_config: {
+      modules_enabled: true,
+      workspace_enabled: false,
+      doc_binding_mode: 'owned',
+      modules: [
+        {
+          module_instance_id: `calendar-${runId}`,
+          module_type: 'calendar',
+          size_tier: 'M',
+          lens: 'project',
+        },
+      ],
+    },
   });
 
-const openCalendarEventDialog = async (page: Page) => {
-  await page.getByRole('button', { name: /Open quick add menu/i }).click();
-  await page.getByRole('menuitem', { name: /^Calendar Event$/i }).click();
-  const dialog = page
-    .locator('[role="dialog"]:visible')
-    .filter({ has: page.locator('#quick-add-event-title:visible') })
-    .first();
-  await expect(dialog).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await expect(dialog.locator('#quick-add-event-title:visible')).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  return dialog;
+  await page.goto(`/projects/${encodeURIComponent(project.project_id)}/work/${encodeURIComponent(pane.pane_id)}`, {
+    waitUntil: 'domcontentloaded',
+    timeout: LIVE_TIMEOUT_MS,
+  });
+  await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
+  await expect(page.getByRole('button', { name: /^New Event$/i }).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+
+  return {
+    projectId: project.project_id,
+    paneId: pane.pane_id,
+  };
 };
 
-test('create event from quick-add menu', async ({ page }) => {
+test('calendar inline create submits from the Create button', async ({ page }) => {
   const token = await authenticateAsUserA(page);
-  await openHubHome(page);
+  await openCalendarWorkPane(page, token);
 
   const uniqueToken = Math.random().toString(36).replace(/[^a-z]+/g, '').slice(0, 8);
-  const eventTitle = `event smoke ${uniqueToken} team meeting`;
+  const eventTitle = `inline click ${uniqueToken}`;
+  let createdRecordId: string | null = null;
 
-  const dialog = await openCalendarEventDialog(page);
-  const titleInput = dialog.locator('#quick-add-event-title:visible');
-  await titleInput.click();
-  await titleInput.fill(eventTitle);
+  try {
+    await page.getByRole('button', { name: /^New Event$/i }).first().click();
 
-  const start = new Date();
-  start.setHours(start.getHours() + 1, 0, 0, 0);
-  const end = new Date();
-  end.setHours(end.getHours() + 2, 0, 0, 0);
+    const titleInput = page.getByLabel(/^Event title$/i).last();
+    await expect(titleInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await titleInput.fill(eventTitle);
+    await page.getByLabel(/^Start time$/i).last().fill('09:00');
+    await page.getByLabel(/^End time$/i).last().fill('10:00');
 
-  const startInput = dialog.locator('#quick-add-event-start:visible');
-  const endInput = dialog.locator('#quick-add-event-end:visible');
-  const eventDate = isoDate(start);
-  await startInput.fill(`${eventDate}T${hhmm(start)}`);
-  await endInput.fill(`${eventDate}T${hhmm(end)}`);
+    const createRequest = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/hub/projects/')
+        && response.url().includes('/events/from-nlp')
+        && response.request().method() === 'POST',
+      { timeout: LIVE_TIMEOUT_MS },
+    );
+    await page.getByRole('button', { name: /^Create$/i }).last().click();
+    const createResponse = await createRequest;
+    const createPayload = await createResponse.json().catch(() => null);
+    createdRecordId = createPayload?.data?.record?.record_id || createPayload?.data?.record_id || null;
 
-  const createRequest = page.waitForResponse(
-    (response) => response.url().includes('/api/hub/projects/') && response.url().includes('/events/from-nlp') && response.request().method() === 'POST',
-    { timeout: LIVE_TIMEOUT_MS },
-  );
-  await dialog.getByRole('button', { name: /^Create$/i }).click();
-  const createResponse = await createRequest;
-  const createPayload = await createResponse.json().catch(() => null);
-  const createdRecordId: string | undefined = createPayload?.data?.record?.record_id || createPayload?.data?.record_id || undefined;
-  await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
-
-  await expect(dialog).toBeHidden({ timeout: LIVE_TIMEOUT_MS });
-
-  if (createdRecordId) {
-    let found = false;
-    for (let attempt = 0; attempt < 8; attempt += 1) {
-      const home = await getHubHome(token, { events_limit: 50, tasks_limit: 5, captures_limit: 5, notifications_limit: 5 });
-      found = home.events.some((event) => {
-        const withId = event as { record_id?: unknown };
-        return typeof withId.record_id === 'string' && withId.record_id === createdRecordId;
-      });
-      if (found) {
-        break;
-      }
-      await sleep(300);
+    expect(createResponse.ok()).toBeTruthy();
+    if (!createdRecordId) {
+      const createdEvent = await waitForHomeEventByTitleIncludes(token, uniqueToken, LIVE_TIMEOUT_MS);
+      expect(createdEvent).not.toBeNull();
     }
-    expect(found).toBeTruthy();
-  } else {
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle', { timeout: LIVE_TIMEOUT_MS }).catch(() => undefined);
-    await expect(page.getByText(new RegExp(uniqueToken, 'i')).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  } finally {
+    if (createdRecordId) {
+      await archiveRecordViaApi(token, createdRecordId).catch(() => undefined);
+    }
+  }
+});
+
+test('calendar inline create submits when Enter is pressed in the form', async ({ page }) => {
+  const token = await authenticateAsUserA(page);
+  await openCalendarWorkPane(page, token);
+
+  const uniqueToken = Math.random().toString(36).replace(/[^a-z]+/g, '').slice(0, 8);
+  const eventTitle = `inline enter ${uniqueToken}`;
+  let createdRecordId: string | null = null;
+
+  try {
+    await page.getByRole('button', { name: /^New Event$/i }).first().click();
+
+    const titleInput = page.getByLabel(/^Event title$/i).last();
+    await expect(titleInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await titleInput.fill(eventTitle);
+    await page.getByLabel(/^Start time$/i).last().fill('11:00');
+    await page.getByLabel(/^End time$/i).last().fill('12:00');
+
+    const createRequest = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/hub/projects/')
+        && response.url().includes('/events/from-nlp')
+        && response.request().method() === 'POST',
+      { timeout: LIVE_TIMEOUT_MS },
+    );
+    await titleInput.press('Enter');
+    const createResponse = await createRequest;
+    const createPayload = await createResponse.json().catch(() => null);
+    createdRecordId = createPayload?.data?.record?.record_id || createPayload?.data?.record_id || null;
+
+    expect(createResponse.ok()).toBeTruthy();
+    if (!createdRecordId) {
+      const createdEvent = await waitForHomeEventByTitleIncludes(token, uniqueToken, LIVE_TIMEOUT_MS);
+      expect(createdEvent).not.toBeNull();
+    }
+  } finally {
+    if (createdRecordId) {
+      await archiveRecordViaApi(token, createdRecordId).catch(() => undefined);
+    }
   }
 });

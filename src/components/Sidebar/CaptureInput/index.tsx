@@ -13,6 +13,8 @@ import { CaptureDialog } from './CaptureDialog';
 import {
   type CaptureDestination,
   type CaptureKind,
+  type SidebarCaptureSurface,
+  captureKindBySidebarSurface,
   moduleTypesByCaptureKind,
   readPaneHasModuleType,
 } from './shared';
@@ -22,6 +24,7 @@ interface CaptureInputProps {
   autoFocusKey: number;
   currentProject: ProjectRecord | null;
   currentProjectPanes: HubPaneSummary[];
+  currentSurface: SidebarCaptureSurface;
   currentSurfaceLabel: string | null;
   isCollapsed: boolean;
   onOpenCapture: () => void;
@@ -29,7 +32,10 @@ interface CaptureInputProps {
   showLabels: boolean;
 }
 
-const resolveCaptureKind = (draft: string): CaptureKind => {
+const resolveCaptureKind = (draft: string, currentSurface: SidebarCaptureSurface): CaptureKind => {
+  if (currentSurface) {
+    return captureKindBySidebarSurface[currentSurface];
+  }
   const intent = classifyIntent(draft);
   if (intent.intent === 'task') {
     return 'task';
@@ -48,6 +54,7 @@ export const CaptureInput = ({
   autoFocusKey,
   currentProject,
   currentProjectPanes,
+  currentSurface,
   currentSurfaceLabel,
   isCollapsed,
   onOpenCapture,
@@ -100,7 +107,7 @@ export const CaptureInput = ({
       inputRef.current?.focus();
       return;
     }
-    setCaptureKind(resolveCaptureKind(draft));
+    setCaptureKind(resolveCaptureKind(draft, currentSurface));
     setDialogOpen(true);
   };
 

@@ -220,6 +220,7 @@ export const SidebarShell = () => {
                 autoFocusKey={captureAutoFocusKey}
                 currentProject={currentProject}
                 currentProjectPanes={activeCurrentProjectPanes}
+                currentSurface={currentSurface}
                 currentSurfaceLabel={currentSurfaceLabel}
                 isCollapsed={resolvedVisualCollapsed}
                 onOpenCapture={openCapture}

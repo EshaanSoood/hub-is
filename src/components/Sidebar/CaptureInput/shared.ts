@@ -4,6 +4,7 @@ import type { ProjectRecord } from '../../../types/domain';
 
 export type CaptureKind = 'thought' | 'task' | 'event' | 'reminder';
 export type DestinationKind = 'hub' | 'pane';
+export type SidebarCaptureSurface = 'tasks' | 'calendar' | 'reminders' | 'thoughts' | null;
 
 export interface CaptureDestination {
   kind: DestinationKind;
@@ -24,6 +25,13 @@ export const labelForCaptureKind: Record<CaptureKind, string> = {
   task: 'Task',
   event: 'Calendar Event',
   reminder: 'Reminder',
+};
+
+export const captureKindBySidebarSurface: Record<Exclude<SidebarCaptureSurface, null>, CaptureKind> = {
+  tasks: 'task',
+  calendar: 'event',
+  reminders: 'reminder',
+  thoughts: 'thought',
 };
 
 export const readPaneHasModuleType = (pane: HubPaneSummary, moduleType: string): boolean => {

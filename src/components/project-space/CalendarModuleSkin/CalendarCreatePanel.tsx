@@ -34,7 +34,13 @@ export const CalendarCreatePanel = ({
   }
 
   return (
-    <section className="space-y-3 rounded-panel border border-subtle bg-surface-elevated p-4">
+    <form
+      className="space-y-3 rounded-panel border border-subtle bg-surface-elevated p-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void onSubmit();
+      }}
+    >
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-text">{asDateLabel(fromLocalDateKey(draftDay))}</h3>
       </div>
@@ -85,16 +91,13 @@ export const CalendarCreatePanel = ({
           Cancel
         </button>
         <button
-          type="button"
+          type="submit"
           disabled={draftTitle.trim().length === 0 || isCreatingEvent}
-          onClick={() => {
-            void onSubmit();
-          }}
           className="rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isCreatingEvent ? 'Creating...' : 'Create'}
         </button>
       </div>
-    </section>
+    </form>
   );
 };
