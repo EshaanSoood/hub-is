@@ -63,10 +63,18 @@ const ensureFreshLocalDevTokens = (): void => {
     // Refresh below.
   }
 
-  execFileSync('node', [localTokenMintScriptPath], {
-    cwd: repoRoot,
-    stdio: 'ignore',
-  });
+  try {
+    execFileSync('node', [localTokenMintScriptPath], {
+      cwd: repoRoot,
+      stdio: 'ignore',
+    });
+  } catch (error) {
+    throw new Error(
+      `Failed to refresh local dev tokens via ${localTokenMintScriptPath} from ${repoRoot}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 };
 
 const readTokenFromFile = (tokenKey: 'TOKEN_A' | 'TOKEN_B'): string => {

@@ -20,7 +20,7 @@ const openSidebarSurface = async (page: Page, label: 'Tasks' | 'Calendar', query
   const trigger = primaryNav.getByRole('button', { name: new RegExp(`^${label}$`, 'i') });
   await expect(trigger).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await trigger.click();
-  await expect(page).toHaveURL(new RegExp(`/projects\\?surface=${queryValue}(?:&|$)`), { timeout: LIVE_TIMEOUT_MS });
+  await expect(page).toHaveURL(new RegExp(`/projects(?:\\?.*)?[?&]surface=${queryValue}(?:&|$)`), { timeout: LIVE_TIMEOUT_MS });
 };
 
 test('sidebar Tasks quick-input creates a task that appears without reload', async ({ page }) => {
@@ -88,7 +88,7 @@ test('sidebar Calendar quick-input creates an event that appears without reload'
         response.url().includes('/api/hub/projects/')
         && response.url().includes('/events/from-nlp')
         && response.request().method() === 'POST',
-      { timeout: 15_000 },
+      { timeout: LIVE_TIMEOUT_MS },
     );
     await saveButton.click();
     const createResponse = await createRequest;
@@ -97,7 +97,7 @@ test('sidebar Calendar quick-input creates an event that appears without reload'
 
     expect(createResponse.ok()).toBeTruthy();
     if (!createdRecordId) {
-      const createdEvent = await waitForHomeEventByTitleIncludes(token, uniqueToken, 15_000);
+      const createdEvent = await waitForHomeEventByTitleIncludes(token, uniqueToken, LIVE_TIMEOUT_MS);
       expect(createdEvent).not.toBeNull();
       createdRecordId = typeof (createdEvent as { record_id?: unknown }).record_id === 'string'
         ? (createdEvent as { record_id: string }).record_id

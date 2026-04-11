@@ -6,6 +6,7 @@ if (!rawApiBaseUrl) {
 }
 
 const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
+const API_REQUEST_TIMEOUT_MS = 15_000;
 
 interface HubEnvelope<T> {
   ok: boolean;
@@ -49,15 +50,31 @@ const apiRequest = async <T>(
     body?: string;
   },
 ): Promise<T> => {
-  const response = await fetch(toUrl(path), {
-    method: init?.method || 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    ...(init?.body ? { body: init.body } : {}),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, API_REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(toUrl(path), {
+      method: init?.method || 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(init?.body ? { body: init.body } : {}),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(`API request timed out after ${API_REQUEST_TIMEOUT_MS}ms for ${path}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     throw await toError(response);

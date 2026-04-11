@@ -4,6 +4,7 @@ import {
   archiveRecordViaApi,
   createPaneViaApi,
   createProjectViaApi,
+  deleteProjectViaApi,
   waitForHomeEventByTitleIncludes,
 } from '../helpers/db';
 
@@ -50,7 +51,7 @@ const openCalendarWorkPane = async (
 test('calendar inline create submits from the Create button', async ({ page }) => {
   test.setTimeout(TEST_TIMEOUT_MS);
   const token = await authenticateAsUserA(page);
-  await openCalendarWorkPane(page, token);
+  const { projectId } = await openCalendarWorkPane(page, token);
 
   const uniqueToken = Math.random().toString(36).replace(/[^a-z]+/g, '').slice(0, 8);
   const eventTitle = `inline click ${uniqueToken}`;
@@ -86,13 +87,14 @@ test('calendar inline create submits from the Create button', async ({ page }) =
     if (createdRecordId) {
       await archiveRecordViaApi(token, createdRecordId).catch(() => undefined);
     }
+    await deleteProjectViaApi(token, projectId).catch(() => undefined);
   }
 });
 
 test('calendar inline create submits when Enter is pressed in the form', async ({ page }) => {
   test.setTimeout(TEST_TIMEOUT_MS);
   const token = await authenticateAsUserA(page);
-  await openCalendarWorkPane(page, token);
+  const { projectId } = await openCalendarWorkPane(page, token);
 
   const uniqueToken = Math.random().toString(36).replace(/[^a-z]+/g, '').slice(0, 8);
   const eventTitle = `inline enter ${uniqueToken}`;
@@ -128,5 +130,6 @@ test('calendar inline create submits when Enter is pressed in the form', async (
     if (createdRecordId) {
       await archiveRecordViaApi(token, createdRecordId).catch(() => undefined);
     }
+    await deleteProjectViaApi(token, projectId).catch(() => undefined);
   }
 });
