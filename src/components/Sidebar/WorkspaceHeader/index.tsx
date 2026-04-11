@@ -1,3 +1,4 @@
+import type { DragEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { SidebarLabel } from '../motion/SidebarLabel';
 import { Icon } from '../../primitives/Icon';
@@ -15,6 +16,10 @@ export const WorkspaceHeader = ({
   onOpenHome,
   showLabels,
 }: WorkspaceHeaderProps) => {
+  const preventNativeDrag = (event: DragEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+  };
+
   if (isCollapsed) {
     return (
       <button
@@ -32,7 +37,9 @@ export const WorkspaceHeader = ({
     <div className="flex items-center gap-2">
       <Link
         to="/projects"
+        draggable={false}
         className="interactive interactive-subtle flex min-w-0 flex-1 items-center gap-3 rounded-panel border border-subtle bg-elevated px-3 py-2 text-text hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        onDragStart={preventNativeDrag}
       >
         <span
           aria-hidden="true"

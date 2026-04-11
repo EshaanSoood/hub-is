@@ -3,7 +3,7 @@ import type { ProjectRecord } from '../../../types/domain';
 import type { HubReminderSummary } from '../../../services/hub/reminders';
 import { buildEventDestinationHref, buildTaskDestinationHref } from '../../../lib/hubRoutes';
 import type { DashboardPipCounts, HubDashboardItem, HubHomeData, HubTask, DashboardDailyData } from '../types';
-import { isMidnightLocal, isSameCalendarDay, isTaskComplete, parseIso, startOfDay } from '../utils';
+import { isMidnightLocal, isSameCalendarDay, isTaskComplete, parseIso } from '../utils';
 
 export const buildTaskItems = (tasks: HubTask[]): HubDashboardItem[] =>
   tasks.map((task) => ({
@@ -70,8 +70,6 @@ export const useDashboardAggregation = ({
   }, [projects]);
 
   const dailyData = useMemo<DashboardDailyData>(() => {
-    const todayStart = startOfDay(now);
-
     const dayEvents = homeData.events.flatMap((event) => {
       const startAt = parseIso(event.event_state.start_dt);
       const endAt = parseIso(event.event_state.end_dt);
@@ -99,7 +97,7 @@ export const useDashboardAggregation = ({
       if (complete) {
         continue;
       }
-      if (dueAt && dueAt < todayStart) {
+      if (dueAt && dueAt < now) {
         overdueTasks.push({
           id: `backlog-overdue:${task.record_id}`,
           recordId: task.record_id,
@@ -147,6 +145,18 @@ export const useDashboardAggregation = ({
         continue;
       }
       const projectName = projectNameById.get(reminder.project_id) || null;
+      if (remindAt < now) {
+        missedReminders.push({
+          id: `backlog-reminder:${reminder.reminder_id}`,
+          reminderId: reminder.reminder_id,
+          recordId: reminder.record_id,
+          projectId: reminder.project_id,
+          projectName,
+          title: reminder.record_title || 'Untitled reminder',
+          remindAtIso: remindAt.toISOString(),
+        });
+      }
+
       if (isSameCalendarDay(remindAt, now)) {
         timedReminders.push({
           id: `reminder:${reminder.reminder_id}`,
@@ -157,16 +167,6 @@ export const useDashboardAggregation = ({
           title: reminder.record_title || 'Untitled reminder',
           remindAtIso: remindAt.toISOString(),
           dismissed: false,
-        });
-      } else if (remindAt < now) {
-        missedReminders.push({
-          id: `backlog-reminder:${reminder.reminder_id}`,
-          reminderId: reminder.reminder_id,
-          recordId: reminder.record_id,
-          projectId: reminder.project_id,
-          projectName,
-          title: reminder.record_title || 'Untitled reminder',
-          remindAtIso: remindAt.toISOString(),
         });
       }
     }

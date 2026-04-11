@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { notifyError } from '../primitives';
 import { HUB_BACKLOG_DRAG_MIME } from './types';
-import type { BacklogReminderItem, BacklogTaskItem } from './types';
+import type { BacklogDragPayload, BacklogReminderItem, BacklogTaskItem } from './types';
 
 const BACKLOG_COLLAPSED_STORAGE_KEY = 'hubHome.backlog.collapsed';
 
@@ -148,6 +148,11 @@ export const BacklogPanel = ({
   onAssignTaskTime,
   onDismissReminder,
   onSnoozeReminder,
+  dragToTimelineEnabled = false,
+  activeKeyboardDragItemId = null,
+  restoreFocusItemId = null,
+  onRestoreFocusHandled,
+  onBeginKeyboardDrag,
 }: {
   className?: string;
   countReady: boolean;
@@ -161,6 +166,11 @@ export const BacklogPanel = ({
   onAssignTaskTime: (recordId: string, dueAtIso: string) => Promise<void>;
   onDismissReminder: (reminderId: string) => Promise<void>;
   onSnoozeReminder: (reminderId: string, remindAtIso: string) => Promise<void>;
+  dragToTimelineEnabled?: boolean;
+  activeKeyboardDragItemId?: string | null;
+  restoreFocusItemId?: string | null;
+  onRestoreFocusHandled?: () => void;
+  onBeginKeyboardDrag?: (item: { id: string; title: string; payload: BacklogDragPayload }) => void;
 }) => {
   const [rescheduleOpenId, setRescheduleOpenId] = useState<string | null>(null);
   const [rescheduleDrafts, setRescheduleDrafts] = useState<Record<string, string>>({});
@@ -173,6 +183,7 @@ export const BacklogPanel = ({
   const [activeIndex, setActiveIndex] = useState(0);
 
   const listId = useId();
+  const dragInstructionsId = useId();
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const storedCollapsedRef = useRef<boolean | null>(readStoredBacklogCollapsed());
   const hasInitializedRef = useRef(false);
@@ -242,6 +253,18 @@ export const BacklogPanel = ({
     setActiveIndex((current) => Math.min(current, backlogItems.length - 1));
   }, [backlogItems.length]);
 
+  useEffect(() => {
+    if (!restoreFocusItemId) {
+      return;
+    }
+    const targetIndex = backlogItems.findIndex((item) => item.id === restoreFocusItemId);
+    if (targetIndex >= 0) {
+      setActiveIndex(targetIndex);
+      itemRefs.current[restoreFocusItemId]?.focus();
+    }
+    onRestoreFocusHandled?.();
+  }, [backlogItems, onRestoreFocusHandled, restoreFocusItemId]);
+
   const persistCollapsed = (nextCollapsed: boolean) => {
     storedCollapsedRef.current = nextCollapsed;
     try {
@@ -305,7 +328,16 @@ export const BacklogPanel = ({
   };
 
   return (
-    <section aria-labelledby="backlog-heading" className={`rounded-panel border border-border-muted bg-surface p-3 ${className ?? ''}`}>
+    <section
+      aria-labelledby="backlog-heading"
+      className={`rounded-panel border border-border-muted bg-surface p-3 ${className ?? ''}`}
+      data-testid="daily-brief-backlog"
+    >
+      {dragToTimelineEnabled ? (
+        <p id={dragInstructionsId} className="sr-only">
+          Press Enter or Space to pick up an item and schedule it on the timeline.
+        </p>
+      ) : null}
       <button
         id="backlog-toggle"
         type="button"
@@ -351,7 +383,8 @@ export const BacklogPanel = ({
                       }}
                       type="button"
                       tabIndex={index === activeIndex ? 0 : -1}
-                      draggable
+                      draggable={dragToTimelineEnabled}
+                      aria-describedby={dragToTimelineEnabled ? dragInstructionsId : undefined}
                       onDragStart={(event) => {
                         event.dataTransfer.effectAllowed = 'move';
                         event.dataTransfer.setData(HUB_BACKLOG_DRAG_MIME, JSON.stringify(item.dragPayload));
@@ -361,11 +394,22 @@ export const BacklogPanel = ({
                       }}
                       onKeyDown={(event) => {
                         handleRovingKeyDown(event, index);
+                        if (!dragToTimelineEnabled || (event.key !== 'Enter' && event.key !== ' ')) {
+                          return;
+                        }
+                        event.preventDefault();
+                        onBeginKeyboardDrag?.({
+                          id: item.id,
+                          title: task.title,
+                          payload: item.dragPayload,
+                        });
                       }}
                       onClick={() => {
                         onOpenRecord(task.recordId);
                       }}
-                      className="w-full rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      className={`w-full rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                        activeKeyboardDragItemId === item.id ? 'ring-2 ring-focus-ring' : ''
+                      }`}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0">
@@ -518,7 +562,8 @@ export const BacklogPanel = ({
                     }}
                     type="button"
                     tabIndex={index === activeIndex ? 0 : -1}
-                    draggable
+                    draggable={dragToTimelineEnabled}
+                    aria-describedby={dragToTimelineEnabled ? dragInstructionsId : undefined}
                     onDragStart={(event) => {
                       event.dataTransfer.effectAllowed = 'move';
                       event.dataTransfer.setData(HUB_BACKLOG_DRAG_MIME, JSON.stringify(item.dragPayload));
@@ -528,11 +573,22 @@ export const BacklogPanel = ({
                     }}
                     onKeyDown={(event) => {
                       handleRovingKeyDown(event, index);
+                      if (!dragToTimelineEnabled || (event.key !== 'Enter' && event.key !== ' ')) {
+                        return;
+                      }
+                      event.preventDefault();
+                      onBeginKeyboardDrag?.({
+                        id: item.id,
+                        title: reminder.title,
+                        payload: item.dragPayload,
+                      });
                     }}
                     onClick={() => {
                       onOpenRecord(reminder.recordId);
                     }}
-                    className="w-full rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                    className={`w-full rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                      activeKeyboardDragItemId === item.id ? 'ring-2 ring-focus-ring' : ''
+                    }`}
                   >
                     <div className="min-w-0">
                       <span className="rounded-control border border-border-muted bg-surface px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
