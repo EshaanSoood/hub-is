@@ -8,6 +8,7 @@ import type { DashboardDailyData, DashboardDayCounts, ProjectOption } from './ty
 interface DayStripSectionProps {
   countReady: boolean;
   greeting: string;
+  now: Date;
   filteredDailyData: DashboardDailyData;
   dayCounts: DashboardDayCounts;
   activeProjectFilter: string;
@@ -25,6 +26,7 @@ interface DayStripSectionProps {
 export const DayStripSection = ({
   countReady,
   greeting,
+  now,
   filteredDailyData,
   dayCounts,
   activeProjectFilter,
@@ -39,8 +41,8 @@ export const DayStripSection = ({
   onSnoozeReminder,
 }: DayStripSectionProps) => {
   const dateLabel = useMemo(
-    () => new Intl.DateTimeFormat([], { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()),
-    [],
+    () => new Intl.DateTimeFormat([], { weekday: 'long', month: 'long', day: 'numeric' }).format(now),
+    [now],
   );
 
   return (

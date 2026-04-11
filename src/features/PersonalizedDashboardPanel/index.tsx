@@ -115,6 +115,7 @@ export const PersonalizedDashboardPanel = ({
       <DayStripSection
         countReady={homeReady}
         greeting={`${greeting} · ${formatCountLabel(totalPipCounts.events, 'event')}, ${formatCountLabel(totalPipCounts.tasks, 'task')}, ${formatCountLabel(totalPipCounts.reminders, 'reminder')}`}
+        now={now}
         filteredDailyData={filteredDailyData}
         dayCounts={dayCounts}
         activeProjectFilter={activeProjectFilter}
