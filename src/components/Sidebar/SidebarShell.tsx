@@ -185,7 +185,7 @@ export const SidebarShell = () => {
         variants={sidebarShellVariants(prefersReducedMotion)}
         className={cn(
           'flex h-screen shrink-0 flex-col overflow-hidden border-r border-border-muted bg-surface px-2 py-3',
-          resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3',
+          resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-2',
         )}
       >
         <div className="shrink-0">
@@ -197,10 +197,10 @@ export const SidebarShell = () => {
           />
         </div>
 
-        <div className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}>
+        <div className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-2')}>
           <section
             aria-label="Quick access"
-            className={cn('shrink-0', resolvedVisualCollapsed ? 'w-full' : 'space-y-3')}
+            className={cn('shrink-0', resolvedVisualCollapsed ? 'w-full' : 'space-y-2')}
           >
             <div className="shrink-0">
               <SearchButton
@@ -246,17 +246,15 @@ export const SidebarShell = () => {
                 animate="animate"
                 exit="exit"
                 variants={fadeThroughVariants(prefersReducedMotion)}
-                className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-3')}
+                className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-2')}
               >
-                <div className="shrink-0">
-                  <RecentPanes
-                    currentProject={currentProject}
-                    currentProjectPanes={activeCurrentProjectPanes}
-                    isCollapsed={resolvedVisualCollapsed}
-                    onExpandSidebar={expandSidebar}
-                    showLabels={resolvedShowLabels}
-                  />
-                </div>
+                <RecentPanes
+                  currentProject={currentProject}
+                  currentProjectPanes={activeCurrentProjectPanes}
+                  isCollapsed={resolvedVisualCollapsed}
+                  onExpandSidebar={expandSidebar}
+                  showLabels={resolvedShowLabels}
+                />
 
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <ProjectsTree

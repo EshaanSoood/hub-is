@@ -85,7 +85,7 @@ export const ProfileBadge = ({
   }
 
   return (
-    <div ref={containerRef} className="relative z-[1] rounded-panel border border-subtle bg-elevated px-3 py-3">
+    <div ref={containerRef} className="relative z-[1] rounded-panel border border-subtle bg-elevated pl-4 pr-3 py-3">
       {menuOpen ? (
         <ProfileMenu
           id={menuId}

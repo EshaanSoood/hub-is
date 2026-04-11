@@ -158,7 +158,7 @@ export const CaptureInput = ({
                 }
               }}
               placeholder={currentSurfaceLabel ? `Capture for ${currentSurfaceLabel.toLowerCase()}…` : 'Capture anything…'}
-              className="min-w-0 flex-1 border-0 bg-transparent text-sm text-text outline-none placeholder:text-text-secondary"
+              className="h-8 min-w-0 flex-1 border-0 bg-transparent text-sm leading-none text-text outline-none placeholder:text-text-secondary"
             />
             <button
               ref={triggerRef}

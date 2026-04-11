@@ -32,7 +32,7 @@ export const ProjectLensFilter = ({
         type="button"
         aria-haspopup="dialog"
         aria-expanded={filterOpen}
-        className="inline-flex items-center justify-center gap-2 rounded-control border border-border-muted bg-surface px-3 py-1.5 text-xs font-medium text-text"
+        className="inline-flex h-8 items-center justify-center gap-2 rounded-control border border-border-muted bg-surface px-3 text-xs font-medium text-text"
       >
         <Icon name="filter" className="text-[12px]" />
         <span>{filterLabel}</span>

@@ -53,7 +53,7 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
 
   return (
     <section aria-labelledby="project-lens-heading" className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
         <h2 id="project-lens-heading" className="font-serif text-base font-semibold text-text">Project Lens</h2>
         <ProjectLensFilter
           sections={filterableSections}
@@ -74,13 +74,13 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
             });
           }}
         />
-        <div className="sm:justify-self-end">
+        <div className="flex items-center sm:justify-self-end">
           <button
             type="button"
             onClick={() => {
               requestQuickAddProject();
             }}
-            className="inline-flex items-center gap-2 rounded-control border border-border-muted bg-surface px-3 py-1.5 text-xs font-medium text-text"
+            className="inline-flex h-8 items-center justify-center gap-2 rounded-control border border-border-muted bg-surface px-3 text-xs font-medium text-text"
           >
             <Icon name="plus" className="text-[12px]" />
             <span>New Project</span>
@@ -106,7 +106,7 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
                   className={`inline-block h-2.5 w-2.5 rounded-full ${getProjectColor(section.id === '__inbox__' ? null : section.id)}`}
                   aria-hidden="true"
                 />
-                <h3 id={headingId} className="truncate text-sm font-semibold text-text">
+                <h3 id={headingId} className="min-w-0 truncate text-sm font-semibold text-text">
                   {section.id === '__inbox__' ? (
                     section.name
                   ) : (
@@ -115,7 +115,7 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
                       state={withHubMotionState(undefined, {
                         hubProjectName: section.name,
                       })}
-                      className="truncate text-text underline-offset-2 hover:underline focus-visible:underline"
+                      className="block truncate text-text underline-offset-2 hover:underline focus-visible:underline"
                     >
                       {section.name}
                     </Link>

@@ -37,7 +37,7 @@ export const ContextBar = ({
   const backlogNoun = nounForCount(backlogCount, 'item', 'items');
 
   return (
-    <div className={`rounded-panel border border-border-muted bg-surface px-3 py-2 ${className ?? ''}`}>
+    <div className={`rounded-panel border border-border-muted bg-surface px-3 py-3 ${className ?? ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="shrink-0">
           <Select

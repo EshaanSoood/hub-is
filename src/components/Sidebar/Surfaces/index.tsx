@@ -30,7 +30,7 @@ export const Surfaces = ({
   onSelectSurface,
   showLabels,
 }: SurfacesProps) => (
-  <div className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'flex-col gap-1'}`}>
+  <div className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'flex-col gap-2'}`}>
     {SURFACE_ITEMS.map((surface) => (
       <SurfaceItem
         key={surface.id}

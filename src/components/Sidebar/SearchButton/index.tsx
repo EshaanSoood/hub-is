@@ -166,11 +166,11 @@ export const SearchButton = ({
           >
             <Icon name="search" size={16} />
           </span>
-          <SidebarLabel show={showLabels} className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">Search</span>
+          <SidebarLabel show={showLabels} className="min-w-0 flex flex-1 items-center">
+            <span className="flex min-h-8 items-center truncate text-sm font-medium leading-none">Search</span>
           </SidebarLabel>
           <SidebarLabel show={showLabels}>
-            <span className="text-label-sm tracking-sidebar-kicker rounded-control border border-subtle bg-surface px-2 py-1 uppercase text-muted">
+            <span className="text-label-sm tracking-sidebar-kicker rounded-control border border-subtle bg-surface px-2 py-1 uppercase leading-none text-muted">
               ⌘K
             </span>
           </SidebarLabel>
@@ -232,7 +232,7 @@ export const SearchButton = ({
                 aria-controls="sidebar-search-results"
                 aria-expanded={hasOverlay}
                 aria-activedescendant={normalizedActiveIndex >= 0 ? `sidebar-search-result-${normalizedActiveIndex}` : undefined}
-                className="min-w-0 flex-1 border-0 bg-transparent text-sm text-text outline-none placeholder:text-text-secondary"
+                className="h-8 min-w-0 flex-1 border-0 bg-transparent text-sm leading-none text-text outline-none placeholder:text-text-secondary"
               />
               <button
                 type="button"
