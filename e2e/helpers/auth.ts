@@ -15,7 +15,13 @@ const localTokenMintScriptPath = resolve(repoRoot, 'scripts', 'dev', 'mint-local
 const E2E_ACCESS_TOKEN_KEY = 'hub:e2e:access-token';
 const LOCAL_TOKEN_REFRESH_LEEWAY_MS = 30_000;
 const readBaseUrl = (): string =>
-  String(process.env.E2E_BASE_URL || process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || '').trim();
+  String(
+    process.env.E2E_BASE_URL
+    || process.env.PLAYWRIGHT_BASE_URL
+    || process.env.BASE_URL
+    || process.env.HUB_BASE_URL
+    || '',
+  ).trim();
 
 const shouldUseLocalDevTokens = (): boolean => {
   const baseUrl = readBaseUrl();

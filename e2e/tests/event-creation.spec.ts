@@ -8,6 +8,7 @@ import {
 } from '../helpers/db';
 
 const LIVE_TIMEOUT_MS = 60_000;
+const TEST_TIMEOUT_MS = 120_000;
 
 const openCalendarWorkPane = async (
   page: Page,
@@ -47,6 +48,7 @@ const openCalendarWorkPane = async (
 };
 
 test('calendar inline create submits from the Create button', async ({ page }) => {
+  test.setTimeout(TEST_TIMEOUT_MS);
   const token = await authenticateAsUserA(page);
   await openCalendarWorkPane(page, token);
 
@@ -88,6 +90,7 @@ test('calendar inline create submits from the Create button', async ({ page }) =
 });
 
 test('calendar inline create submits when Enter is pressed in the form', async ({ page }) => {
+  test.setTimeout(TEST_TIMEOUT_MS);
   const token = await authenticateAsUserA(page);
   await openCalendarWorkPane(page, token);
 

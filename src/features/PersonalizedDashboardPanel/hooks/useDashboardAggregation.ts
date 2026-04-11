@@ -97,7 +97,8 @@ export const useDashboardAggregation = ({
       if (complete) {
         continue;
       }
-      if (dueAt && dueAt < now) {
+      const isUntimedToday = dueAt ? isSameCalendarDay(dueAt, now) && isMidnightLocal(dueAt) : false;
+      if (dueAt && dueAt < now && !isUntimedToday) {
         overdueTasks.push({
           id: `backlog-overdue:${task.record_id}`,
           recordId: task.record_id,
@@ -113,7 +114,7 @@ export const useDashboardAggregation = ({
         continue;
       }
 
-      if (isMidnightLocal(dueAt)) {
+      if (isUntimedToday) {
         untimedTasks.push({
           id: `backlog-untimed:${task.record_id}`,
           recordId: task.record_id,
@@ -155,6 +156,7 @@ export const useDashboardAggregation = ({
           title: reminder.record_title || 'Untitled reminder',
           remindAtIso: remindAt.toISOString(),
         });
+        continue;
       }
 
       if (isSameCalendarDay(remindAt, now)) {

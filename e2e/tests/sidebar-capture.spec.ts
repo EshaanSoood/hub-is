@@ -38,11 +38,14 @@ test('sidebar Tasks quick-input creates a task that appears without reload', asy
   await expect(dialog).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
   try {
+    const saveButton = dialog.getByRole('button', { name: /^Save$/i });
+    await expect(saveButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await expect(saveButton).toBeEnabled({ timeout: LIVE_TIMEOUT_MS });
     const createRequest = page.waitForResponse(
       (response) => response.url().includes('/api/hub/tasks') && response.request().method() === 'POST',
       { timeout: LIVE_TIMEOUT_MS },
     );
-    await dialog.getByRole('button', { name: /^Save$/i }).click({ force: true });
+    await saveButton.click();
     await createRequest;
 
     await expect(dialog).toBeHidden({ timeout: LIVE_TIMEOUT_MS });
@@ -77,6 +80,9 @@ test('sidebar Calendar quick-input creates an event that appears without reload'
     await expect(endInput).not.toHaveValue('', { timeout: LIVE_TIMEOUT_MS });
     await dialog.getByLabel(/^Event title$/i).fill(`sidebar calendar ${uniqueToken}`);
 
+    const saveButton = dialog.getByRole('button', { name: /^Save$/i });
+    await expect(saveButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await expect(saveButton).toBeEnabled({ timeout: LIVE_TIMEOUT_MS });
     const createRequest = page.waitForResponse(
       (response) =>
         response.url().includes('/api/hub/projects/')
@@ -84,7 +90,7 @@ test('sidebar Calendar quick-input creates an event that appears without reload'
         && response.request().method() === 'POST',
       { timeout: 15_000 },
     );
-    await dialog.getByRole('button', { name: /^Save$/i }).dispatchEvent('click');
+    await saveButton.click();
     const createResponse = await createRequest;
     const createPayload = await createResponse.json().catch(() => null);
     createdRecordId = createPayload?.data?.record?.record_id || createPayload?.data?.record_id || null;

@@ -44,12 +44,16 @@ test('sidebar Tasks quick-input creates a task and updates home state without re
   await expect(dialog.getByLabel(/^Due$/i)).not.toHaveValue('', { timeout: LIVE_TIMEOUT_MS });
 
   try {
+    const saveButton = dialog.getByRole('button', { name: /^Save$/i });
+    await expect(saveButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await expect(saveButton).toBeEnabled({ timeout: LIVE_TIMEOUT_MS });
     const createRequest = page.waitForResponse(
       (response) => response.url().includes('/api/hub/tasks') && response.request().method() === 'POST',
       { timeout: LIVE_TIMEOUT_MS },
     );
-    await dialog.getByRole('button', { name: /^Save$/i }).click({ force: true });
-    await createRequest;
+    await saveButton.click();
+    const createResponse = await createRequest;
+    expect(createResponse.ok()).toBeTruthy();
     await expect(dialog).toBeHidden({ timeout: LIVE_TIMEOUT_MS });
 
     const createdTask = await waitForHomeTaskByTitleIncludes(token, uniqueToken, LIVE_TIMEOUT_MS);

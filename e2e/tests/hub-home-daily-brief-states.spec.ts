@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { authenticateAsUserA, readTokenAFromFile } from '../helpers/auth';
-import { archiveRecordViaApi, createProjectViaApi, waitForHomeTaskByTitleIncludes } from '../helpers/db';
+import { archiveRecordViaApi, createProjectViaApi, deleteProjectViaApi, waitForHomeTaskByTitleIncludes } from '../helpers/db';
 import { createTaskInProject } from '../helpers/hub-home-daily-brief';
 
 const LIVE_TIMEOUT_MS = 45_000;
@@ -36,11 +36,13 @@ const dailyBrief = (page: Page): Locator => page.getByTestId('daily-brief');
 test.describe.serial('Hub Home Daily Brief states', () => {
   const token = readTokenAFromFile();
   const createdRecordIds: string[] = [];
+  const createdProjectIds: string[] = [];
   const runTag = `daily-brief-${Date.now()}`;
   test.setTimeout(60_000);
 
   test.beforeAll(async () => {
     const anchorProject = await createProjectViaApi(token, `${runTag}-anchor`);
+    createdProjectIds.push(anchorProject.project_id);
     const anchorTask = await createTaskInProject(token, anchorProject.project_id, {
       title: `${runTag} anchor task`,
       due_at: isoFromNow(2 * HOUR_MS),
@@ -54,6 +56,11 @@ test.describe.serial('Hub Home Daily Brief states', () => {
         await archiveRecordViaApi(token, recordId);
       }),
     );
+    await Promise.all(
+      createdProjectIds.map(async (projectId) => {
+        await deleteProjectViaApi(token, projectId).catch(() => undefined);
+      }),
+    );
   });
 
   test('renders Active Day, Empty+Backlog, and True Zero with the correct structure and collapsed height', async ({ page }) => {
@@ -61,6 +68,7 @@ test.describe.serial('Hub Home Daily Brief states', () => {
     const activeProject = await createProjectViaApi(token, `${testTag}-active-state`);
     const backlogProject = await createProjectViaApi(token, `${testTag}-backlog-state`);
     const zeroProject = await createProjectViaApi(token, `${testTag}-zero-state`);
+    createdProjectIds.push(activeProject.project_id, backlogProject.project_id, zeroProject.project_id);
     const activeTitle = `${testTag} active task`;
     const backlogTitle = `${testTag} overdue task`;
 
@@ -108,6 +116,7 @@ test.describe.serial('Hub Home Daily Brief states', () => {
   test('reactively transitions from True Zero to Active Day when a task enters the forward window', async ({ page }) => {
     const testTag = `${runTag}-zero-active-${Date.now()}`;
     const targetProject = await createProjectViaApi(token, `${testTag}-project`);
+    createdProjectIds.push(targetProject.project_id);
     const taskTitle = `${testTag} transition active task`;
 
     await openHubHome(page);
@@ -129,6 +138,7 @@ test.describe.serial('Hub Home Daily Brief states', () => {
   test('reactively transitions from Empty+Backlog to Active Day when a backlog item is dropped onto the timeline', async ({ page }) => {
     const testTag = `${runTag}-drop-${Date.now()}`;
     const targetProject = await createProjectViaApi(token, `${testTag}-project`);
+    createdProjectIds.push(targetProject.project_id);
     const taskTitle = `${testTag} drag task`;
     const createdTask = await createTaskInProject(token, targetProject.project_id, {
       title: taskTitle,
@@ -157,6 +167,7 @@ test.describe.serial('Hub Home Daily Brief states', () => {
   test('supports keyboard pickup, timeline movement, and drop for backlog scheduling', async ({ page }) => {
     const testTag = `${runTag}-keyboard-${Date.now()}`;
     const targetProject = await createProjectViaApi(token, `${testTag}-project`);
+    createdProjectIds.push(targetProject.project_id);
     const taskTitle = `${testTag} keyboard task`;
     const createdTask = await createTaskInProject(token, targetProject.project_id, {
       title: taskTitle,

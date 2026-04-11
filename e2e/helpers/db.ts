@@ -287,6 +287,16 @@ export const createProjectViaApi = async (token: string, name: string): Promise<
   return data.project;
 };
 
+export const deleteProjectViaApi = async (token: string, projectId: string): Promise<void> => {
+  await apiRequest(
+    token,
+    `/api/hub/projects/${encodeURIComponent(projectId)}`,
+    {
+      method: 'DELETE',
+    },
+  );
+};
+
 export const createPaneViaApi = async (
   token: string,
   projectId: string,
@@ -313,13 +323,26 @@ const waitForHomeMatch = async <T>(
   timeoutMs = 15_000,
 ): Promise<T | null> => {
   const deadline = Date.now() + timeoutMs;
+  let lastError: unknown = null;
   while (Date.now() < deadline) {
-    const items = await readItems();
-    const found = items.find(predicate) || null;
-    if (found) {
-      return found;
+    try {
+      const items = await readItems();
+      const found = items.find(predicate) || null;
+      if (found) {
+        return found;
+      }
+      lastError = null;
+    } catch (error) {
+      lastError = error;
     }
     await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  if (lastError) {
+    throw new Error(
+      `Polling failed before timeout due to repeated read errors: ${
+        lastError instanceof Error ? lastError.message : String(lastError)
+      }`,
+    );
   }
   return null;
 };

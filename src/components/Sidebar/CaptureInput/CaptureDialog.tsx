@@ -223,7 +223,7 @@ export const CaptureDialog = ({
 
   const submitCapture = async () => {
     const trimmedDraft = draft.trim();
-    if (!trimmedDraft) {
+    if (captureKind === 'thought' && !trimmedDraft) {
       setError('Capture text is required.');
       return;
     }
@@ -419,7 +419,6 @@ export const CaptureDialog = ({
                     value={task.draft}
                     onChange={(event) => {
                       setTaskDraft(event.target.value);
-                      setDraft(event.target.value);
                     }}
                     className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
                   />
@@ -520,7 +519,6 @@ export const CaptureDialog = ({
                     value={reminder.draft}
                     onChange={(event) => {
                       setReminderDraft(event.target.value);
-                      setDraft(event.target.value);
                     }}
                     className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
                   />

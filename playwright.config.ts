@@ -1,13 +1,15 @@
 import { defineConfig } from '@playwright/test';
 import { OWNER_STORAGE_STATE_PATH } from './e2e/support/paths';
 
-const baseURL = (
+const rawBaseUrl = String(
   process.env.E2E_BASE_URL
   || process.env.PLAYWRIGHT_BASE_URL
   || process.env.BASE_URL
   || process.env.HUB_BASE_URL
-  || 'https://eshaansood.org'
-).trim().replace(/\/+$/, '');
+  || '',
+);
+const trimmedBaseUrl = rawBaseUrl.trim();
+const baseURL = (trimmedBaseUrl || 'https://eshaansood.org').replace(/\/+$/, '');
 
 export default defineConfig({
   testDir: './e2e',

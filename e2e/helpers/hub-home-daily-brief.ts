@@ -23,9 +23,16 @@ interface HubCollection {
 
 const toUrl = (path: string): string => `${API_BASE_URL}${path}`;
 
-const pickTaskCollection = (collections: HubCollection[]): HubCollection | null => {
+const pickTaskCollection = (collections: HubCollection[]): HubCollection => {
   const ranked = collections.find((collection) => /task|todo/i.test(`${collection.name} ${collection.collection_id}`));
-  return ranked || collections[0] || null;
+  if (ranked) {
+    return ranked;
+  }
+  throw new Error(
+    `No task/todo collection found in project collections: ${
+      collections.map((collection) => `${collection.name}:${collection.collection_id}`).join(', ') || '<none>'
+    }`,
+  );
 };
 
 const toError = async (response: Response): Promise<Error> => {
@@ -88,9 +95,6 @@ export const createTaskInProject = async (
 ): Promise<{ record_id: string; project_id: string }> => {
   const collections = await listProjectCollections(token, projectId);
   const taskCollection = pickTaskCollection(collections);
-  if (!taskCollection) {
-    throw new Error(`No collections found in project ${projectId}`);
-  }
 
   const created = await apiRequest<{ record_id: string }>(
     token,

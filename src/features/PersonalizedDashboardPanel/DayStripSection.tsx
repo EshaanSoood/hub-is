@@ -24,12 +24,21 @@ const hasActiveScheduledTime = (value: string, nowMs: number, windowEndMs: numbe
   return scheduledMs >= nowMs && scheduledMs <= windowEndMs;
 };
 
+const hasActiveEventTime = (startValue: string, endValue: string, nowMs: number, windowEndMs: number): boolean => {
+  const start = parseIso(startValue);
+  const end = parseIso(endValue);
+  if (!start || !end) {
+    return false;
+  }
+  return end.getTime() >= nowMs && start.getTime() <= windowEndMs;
+};
+
 const resolveDailyBriefState = (dailyData: DashboardDailyData, now: Date): DailyBriefState => {
   const nowMs = now.getTime();
   const windowEndMs = nowMs + DAY_STRIP_FORWARD_WINDOW_MS;
 
   const hasActiveDay =
-    dailyData.dayEvents.some((event) => hasActiveScheduledTime(event.startAtIso, nowMs, windowEndMs))
+    dailyData.dayEvents.some((event) => hasActiveEventTime(event.startAtIso, event.endAtIso, nowMs, windowEndMs))
     || dailyData.timedTasks.some((task) => hasActiveScheduledTime(task.dueAtIso, nowMs, windowEndMs))
     || dailyData.timedReminders.some((reminder) => hasActiveScheduledTime(reminder.remindAtIso, nowMs, windowEndMs));
 
@@ -118,12 +127,16 @@ export const DayStripSection = ({
     if (!keyboardDragItem) {
       return;
     }
-    const title = keyboardDragItem.title;
-    const payload = keyboardDragItem.payload;
-    setKeyboardDragItem(null);
-    setFocusViewportKey((current) => current + 1);
-    announce(`Dropped ${title} at ${assignedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`);
-    await onDropFromBacklog(payload, assignedAt);
+    const { id, title, payload } = keyboardDragItem;
+    try {
+      await onDropFromBacklog(payload, assignedAt);
+      setKeyboardDragItem(null);
+      setFocusViewportKey((current) => current + 1);
+      announce(`Dropped ${title} at ${assignedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`);
+    } catch {
+      setRestoreFocusItemId(id);
+      announce(`Could not schedule ${title}.`);
+    }
   }, [announce, keyboardDragItem, onDropFromBacklog]);
 
   return (

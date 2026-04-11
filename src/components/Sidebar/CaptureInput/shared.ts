@@ -1,10 +1,11 @@
 import { listCollections } from '../../../services/hub/collections';
 import type { HubPaneSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
+import type { SidebarSurfaceId } from '../Surfaces';
 
 export type CaptureKind = 'thought' | 'task' | 'event' | 'reminder';
 export type DestinationKind = 'hub' | 'pane';
-export type SidebarCaptureSurface = 'tasks' | 'calendar' | 'reminders' | 'thoughts' | null;
+export type SidebarCaptureSurface = SidebarSurfaceId | null;
 
 export interface CaptureDestination {
   kind: DestinationKind;
