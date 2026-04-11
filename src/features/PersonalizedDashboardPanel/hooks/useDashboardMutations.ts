@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { TriageDragPayload } from '../../../components/hub-home/types';
+import type { BacklogDragPayload } from '../../../components/hub-home/types';
 import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
 import { updateRecord } from '../../../services/hub/records';
 import { dismissReminder, updateReminder } from '../../../services/hub/reminders';
@@ -56,7 +56,7 @@ export const useDashboardMutations = ({ accessToken, refreshReminders }: UseDash
     await refreshAfterMutation();
   }, [accessToken, refreshAfterMutation]);
 
-  const onDropFromTriage = useCallback(async (payload: TriageDragPayload, assignedAt: Date) => {
+  const onDropFromBacklog = useCallback(async (payload: BacklogDragPayload, assignedAt: Date) => {
     if (!accessToken) {
       return;
     }
@@ -75,6 +75,6 @@ export const useDashboardMutations = ({ accessToken, refreshReminders }: UseDash
     onSnoozeTask,
     onDismissReminder,
     onSnoozeReminder,
-    onDropFromTriage,
+    onDropFromBacklog,
   };
 };

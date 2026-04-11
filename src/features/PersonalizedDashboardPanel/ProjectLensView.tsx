@@ -11,6 +11,9 @@ import { ProjectLensFilter } from './ProjectLensFilter';
 import type { HubDashboardItem } from './types';
 import { sortByDueThenUpdated } from './utils';
 
+const toHeadingId = (sectionId: string): string =>
+  `project-lens-section-${sectionId.replace(/[^a-zA-Z0-9_-]/g, '-')}-heading`;
+
 interface ProjectLensViewProps {
   items: HubDashboardItem[];
   projects: ProjectRecord[];
@@ -42,17 +45,18 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
     })),
   ];
 
-  const visibleSections = sections.filter((section) => !hiddenSections[section.id]);
-  const filterLabel = visibleSections.length === sections.length
-    ? 'All sections'
-    : `${visibleSections.length} of ${sections.length} sections`;
+  const filterableSections = sections.filter((section) => section.items.length > 0);
+  const visibleSections = filterableSections.filter((section) => !hiddenSections[section.id]);
+  const filterLabel = visibleSections.length === filterableSections.length
+    ? 'Active sections'
+    : `${visibleSections.length} of ${filterableSections.length} sections`;
 
   return (
-    <div className="space-y-4">
+    <section aria-labelledby="project-lens-heading" className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-        <h2 className="font-serif text-base font-semibold text-text">Project Lens</h2>
+        <h2 id="project-lens-heading" className="font-serif text-base font-semibold text-text">Project Lens</h2>
         <ProjectLensFilter
-          sections={sections}
+          sections={filterableSections}
           hiddenSections={hiddenSections}
           filterOpen={filterOpen}
           filterListId={filterListId}
@@ -85,30 +89,38 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
       </div>
 
       {visibleSections.map((section) => {
-        const isExpanded = expandedSections[section.id] ?? section.items.length > 0;
+        const isExpanded = expandedSections[section.id] ?? false;
         const sectionPanelId = `project-lens-section-panel-${section.id}`;
+        const headingId = toHeadingId(section.id);
         const projectLayoutId = section.id !== '__inbox__' && !prefersReducedMotion ? `project-${section.id}` : undefined;
         return (
-          <motion.section key={section.id} layoutId={projectLayoutId} className="rounded-panel border border-border-muted bg-surface">
+          <motion.section
+            key={section.id}
+            aria-labelledby={headingId}
+            layoutId={projectLayoutId}
+            className="rounded-panel border border-border-muted bg-surface"
+          >
             <div className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
               <div className="flex min-w-0 items-baseline gap-2">
                 <span
                   className={`inline-block h-2.5 w-2.5 rounded-full ${getProjectColor(section.id === '__inbox__' ? null : section.id)}`}
+                  aria-hidden="true"
                 />
-                <h3 className="truncate text-sm font-semibold text-text">{section.name}</h3>
-                {section.id !== '__inbox__' ? (
-                  <Link
-                    to={`/projects/${encodeURIComponent(section.id)}/overview`}
-                    state={withHubMotionState(undefined, {
-                      hubProjectName: section.name,
-                    })}
-                    aria-label={`Go To Project ${section.name}`}
-                    className="inline-flex items-baseline gap-1 rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary"
-                  >
-                    <span>Go To Project</span>
-                    <Icon name="back" className="rotate-180 text-[10px]" />
-                  </Link>
-                ) : null}
+                <h3 id={headingId} className="truncate text-sm font-semibold text-text">
+                  {section.id === '__inbox__' ? (
+                    section.name
+                  ) : (
+                    <Link
+                      to={`/projects/${encodeURIComponent(section.id)}/overview`}
+                      state={withHubMotionState(undefined, {
+                        hubProjectName: section.name,
+                      })}
+                      className="truncate text-text underline-offset-2 hover:underline focus-visible:underline"
+                    >
+                      {section.name}
+                    </Link>
+                  )}
+                </h3>
               </div>
               <button
                 type="button"
@@ -149,6 +161,6 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
           No projects yet.
         </p>
       ) : null}
-    </div>
+    </section>
   );
 };
