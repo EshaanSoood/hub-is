@@ -2,19 +2,15 @@ import { mockFiles, nowIso } from '../data/mockData';
 import { env } from '../lib/env';
 import type { HubFile, IntegrationOutcome } from '../types/domain';
 
+const browserNextcloudIntegrationBlocked =
+  'Browser Nextcloud integration is disabled. Route file operations through hub-api or the desktop bridge.';
+
 export const listRecentFiles = async (): Promise<IntegrationOutcome<HubFile[]>> => {
   if (env.useMocks) {
     return { data: mockFiles };
   }
 
-  if (!env.nextcloudBaseUrl || !env.nextcloudUser || !env.nextcloudAppPassword) {
-    return {
-      blockedReason:
-        'Set VITE_NEXTCLOUD_BASE_URL, VITE_NEXTCLOUD_USER, and VITE_NEXTCLOUD_APP_PASSWORD for Nextcloud APIs.',
-    };
-  }
-
-  return { data: mockFiles };
+  return { blockedReason: browserNextcloudIntegrationBlocked };
 };
 
 export const createFolder = async (
@@ -24,14 +20,7 @@ export const createFolder = async (
     return { data: { folderName } };
   }
 
-  if (!env.nextcloudBaseUrl || !env.nextcloudUser || !env.nextcloudAppPassword) {
-    return {
-      blockedReason:
-        'Set Nextcloud credentials to create folders in the live environment.',
-    };
-  }
-
-  return { data: { folderName } };
+  return { blockedReason: browserNextcloudIntegrationBlocked };
 };
 
 export const generateShareLink = async (
@@ -46,19 +35,7 @@ export const generateShareLink = async (
     };
   }
 
-  if (!env.nextcloudBaseUrl || !env.nextcloudUser || !env.nextcloudAppPassword) {
-    return {
-      blockedReason:
-        'Set Nextcloud credentials to generate secure share links.',
-    };
-  }
-
-  return {
-    data: {
-      fileId,
-      shareUrl: `${env.nextcloudBaseUrl}/s/${fileId}`,
-    },
-  };
+  return { blockedReason: browserNextcloudIntegrationBlocked };
 };
 
 export const requestDownloadBundle = async (): Promise<IntegrationOutcome<{ createdAt: string }>> => {
@@ -89,12 +66,5 @@ export const uploadFile = async (
     return { data: uploaded };
   }
 
-  if (!env.nextcloudBaseUrl || !env.nextcloudUser || !env.nextcloudAppPassword) {
-    return {
-      blockedReason:
-        'Set Nextcloud credentials to upload files in the live environment.',
-    };
-  }
-
-  return { data: uploaded };
+  return { blockedReason: browserNextcloudIntegrationBlocked };
 };
