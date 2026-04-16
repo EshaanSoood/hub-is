@@ -22,7 +22,7 @@ export const LinkButton = ({
       target={target}
       rel={resolvedRel}
       className={cn(
-        'inline-flex items-center gap-1 rounded-control px-1 py-0.5 text-sm font-semibold text-primary underline underline-offset-2 hover:text-primary-strong',
+        'inline-flex items-center gap-1 rounded-control px-1 py-0.5 text-sm font-semibold text-secondary underline underline-offset-2 hover:text-secondary-strong',
         className,
       )}
     >

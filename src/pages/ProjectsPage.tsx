@@ -307,6 +307,7 @@ export const ProjectsPage = () => {
         onClose={onCloseSelectedRecord}
         triggerRef={selectedHubRecordTriggerRef}
         layoutId={dialogLayoutIds.myHubRecordInspector}
+        motionVariant="fold-sheet"
         title="Record Inspector"
         description="Review the selected Hub item without leaving the Hub."
       >

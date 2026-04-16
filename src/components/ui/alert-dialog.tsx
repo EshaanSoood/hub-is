@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { cn } from '../../lib/cn';
-import { dialogSurfaceVariants, routeFadeVariants } from '../motion/hubMotion';
+import { dialogSurfaceVariants, routeFadeVariants, type DialogSurfaceMotionVariant } from '../motion/hubMotion';
 
 export const AlertDialog = AlertDialogPrimitive.Root;
 export const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
@@ -35,8 +35,13 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
 export const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & { layoutId?: string; animated?: boolean; open?: boolean }
->(({ className, layoutId, animated = false, open, children, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & {
+    layoutId?: string;
+    animated?: boolean;
+    open?: boolean;
+    motionVariant?: DialogSurfaceMotionVariant;
+  }
+>(({ className, layoutId, animated = false, open, children, motionVariant = 'dialog', ...props }, ref) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const canAnimateWithPresence = animated && typeof open === 'boolean';
   if (canAnimateWithPresence) {
@@ -53,7 +58,7 @@ export const AlertDialogContent = React.forwardRef<
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  variants={dialogSurfaceVariants(prefersReducedMotion)}
+                  variants={dialogSurfaceVariants(prefersReducedMotion, motionVariant)}
                   className={cn(ALERT_DIALOG_PANEL_BASE_CLASS, className)}
                 >
                   {children}
@@ -112,7 +117,7 @@ export const AlertDialogAction = React.forwardRef<
   <AlertDialogPrimitive.Action
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center rounded-control border border-subtle bg-accent px-3 py-2 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-[color:var(--color-border-primary)] focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
+      'interactive interactive-fold inline-flex items-center justify-center rounded-control border border-subtle bg-accent px-3 py-2 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-[color:var(--color-border-primary)] focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
       className,
     )}
     {...props}
@@ -127,7 +132,7 @@ export const AlertDialogCancel = React.forwardRef<
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center rounded-control border border-subtle bg-surface px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-elevated focus-visible:outline-2 focus-visible:outline-[color:var(--color-border-primary)] focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
+      'inline-flex items-center justify-center rounded-control border border-secondary/30 bg-surface px-3 py-2 text-sm font-semibold text-secondary transition-colors hover:border-secondary/45 hover:bg-secondary/10 hover:text-secondary-strong focus-visible:outline-2 focus-visible:outline-[color:var(--color-border-primary)] focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
       className,
     )}
     {...props}

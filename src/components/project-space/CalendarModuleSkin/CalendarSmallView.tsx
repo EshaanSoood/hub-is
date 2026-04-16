@@ -54,7 +54,7 @@ export const CalendarSmallView = ({
           disabled={!onCreateEvent}
           onClick={() => openCreatePanel(selectedDateKey)}
           aria-label={`Create event for ${compactDateLabel}`}
-          className="rounded-control border border-primary bg-primary px-2.5 py-1 text-sm font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="interactive interactive-fold rounded-control border border-primary bg-primary px-2.5 py-1 text-sm font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
         >
           +
         </button>

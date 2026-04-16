@@ -199,14 +199,14 @@ export const QuickAddEventDialog: FC<{
         <button
           type="button"
           onClick={onClose}
-          className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
+          className="rounded-control border border-secondary/30 px-3 py-2 text-sm font-medium text-secondary hover:border-secondary/45 hover:bg-secondary/10 hover:text-secondary-strong"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+          className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? 'Creating...' : 'Create'}
         </button>
@@ -291,14 +291,14 @@ export const QuickAddReminderDialog: FC<{
         <button
           type="button"
           onClick={onClose}
-          className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
+          className="rounded-control border border-secondary/30 px-3 py-2 text-sm font-medium text-secondary hover:border-secondary/45 hover:bg-secondary/10 hover:text-secondary-strong"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+          className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? 'Adding...' : 'Add'}
         </button>
@@ -360,14 +360,14 @@ export const QuickAddProjectDialog: FC<{
         <button
           type="button"
           onClick={onClose}
-          className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
+          className="rounded-control border border-secondary/30 px-3 py-2 text-sm font-medium text-secondary hover:border-secondary/45 hover:bg-secondary/10 hover:text-secondary-strong"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+          className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? 'Creating...' : 'Create'}
         </button>

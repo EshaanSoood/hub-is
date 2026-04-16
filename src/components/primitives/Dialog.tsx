@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
+import type { DialogSurfaceMotionVariant } from '../motion/hubMotion';
 
 export interface BaseDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ export interface BaseDialogProps {
   hideHeader?: boolean;
   panelClassName?: string;
   contentClassName?: string;
+  motionVariant?: DialogSurfaceMotionVariant;
 }
 
 export const Dialog = ({
@@ -41,6 +43,7 @@ export const Dialog = ({
   hideHeader = false,
   panelClassName,
   contentClassName,
+  motionVariant = 'dialog',
 }: BaseDialogProps) => (
   <DialogRoot open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
     <DialogContent
@@ -53,6 +56,7 @@ export const Dialog = ({
       }}
       animated={Boolean(layoutId)}
       layoutId={layoutId}
+      motionVariant={motionVariant}
       className={cn(panelClassName)}
     >
       <DialogHeader className={cn(hideHeader && 'sr-only')}>
@@ -76,6 +80,7 @@ export interface ConfirmDialogProps {
   layoutId?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  motionVariant?: DialogSurfaceMotionVariant;
 }
 
 export const AlertDialog = ({
@@ -88,12 +93,14 @@ export const AlertDialog = ({
   layoutId,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
+  motionVariant = 'dialog',
 }: ConfirmDialogProps) => (
   <AlertDialogRoot open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent
       open={open}
       animated={Boolean(layoutId)}
       layoutId={layoutId}
+      motionVariant={motionVariant}
       onCloseAutoFocus={(event) => {
         if (triggerRef?.current) {
           event.preventDefault();

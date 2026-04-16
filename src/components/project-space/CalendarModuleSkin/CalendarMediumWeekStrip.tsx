@@ -105,7 +105,7 @@ export const CalendarMediumWeekStrip = ({
                 <button
                   type="button"
                   onClick={() => onCreateEvent(selectedDay.key)}
-                  className="shrink-0 rounded-control border border-primary bg-primary px-2.5 py-1.5 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="interactive interactive-fold shrink-0 rounded-control border border-primary bg-primary px-2.5 py-1.5 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
                   New Event
                 </button>

@@ -310,7 +310,7 @@ export const FileInspectorActionBar = ({
                     <button
                       type="submit"
                       disabled={renaming}
-                      className="flex-1 rounded-control bg-primary px-sm py-xs text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      className="interactive interactive-fold flex-1 rounded-control bg-primary px-sm py-xs text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                     >
                       {renaming ? 'Saving...' : 'Save'}
                     </button>

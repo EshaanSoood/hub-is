@@ -110,3 +110,25 @@ export const moduleDefaultSize = (moduleType: string): ModuleSizeTier =>
 
 export const clampModuleSizeTier = (moduleType: string, sizeTier: ModuleSizeTier): ModuleSizeTier =>
   moduleAllowedSizeTiers(moduleType).includes(sizeTier) ? sizeTier : moduleDefaultSize(moduleType);
+
+export const moduleAccentClassName = (moduleType: string): string => {
+  if (moduleType === 'tasks') {
+    return 'module-accent-tasks';
+  }
+  if (moduleType === 'calendar') {
+    return 'module-accent-calendar';
+  }
+  if (moduleType === 'quick_thoughts' || moduleType === 'notes') {
+    return 'module-accent-notes';
+  }
+  if (moduleType === 'timeline' || moduleType === 'stream') {
+    return 'module-accent-stream';
+  }
+  if (moduleType === 'files') {
+    return 'module-accent-files';
+  }
+  if (moduleType === 'reminders') {
+    return 'module-accent-reminders';
+  }
+  return '';
+};

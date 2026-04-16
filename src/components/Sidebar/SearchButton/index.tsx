@@ -157,7 +157,7 @@ export const SearchButton = ({
       {!isActive ? (
         <button
           type="button"
-          className="interactive interactive-subtle flex w-full items-center gap-3 rounded-panel border border-subtle bg-surface px-3 py-2 text-left text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          className="interactive interactive-subtle interactive-fold flex w-full items-center gap-3 rounded-panel border border-subtle bg-surface px-3 py-2 text-left text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           onClick={focusSearchInput}
         >
           <span

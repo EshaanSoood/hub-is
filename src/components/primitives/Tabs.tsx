@@ -57,8 +57,8 @@ export const TabButton = forwardRef<React.ElementRef<typeof TabsTrigger>, TabBut
       ref={ref}
       className={cn(
         tabButtonClass[variant],
-        selected && 'bg-accent text-on-primary',
-        'data-[state=inactive]:bg-surface data-[state=inactive]:text-primary data-[state=active]:bg-accent data-[state=active]:text-on-primary',
+        selected && 'border-secondary/40 bg-secondary text-on-secondary',
+        'data-[state=inactive]:border-secondary/30 data-[state=inactive]:bg-surface data-[state=inactive]:text-secondary data-[state=inactive]:hover:border-secondary/45 data-[state=inactive]:hover:bg-secondary/10 data-[state=inactive]:hover:text-secondary-strong data-[state=active]:border-secondary/40 data-[state=active]:bg-secondary data-[state=active]:text-on-secondary',
         className,
       )}
       {...props}

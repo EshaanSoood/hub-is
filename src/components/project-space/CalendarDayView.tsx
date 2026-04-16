@@ -730,7 +730,7 @@ export const CalendarDayView = ({
               <button
                 type="button"
                 onClick={() => createAtMinute(9 * 60)}
-                className="rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                className="interactive interactive-fold rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               >
                 Create event
               </button>

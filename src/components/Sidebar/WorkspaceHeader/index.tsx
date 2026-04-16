@@ -38,7 +38,7 @@ export const WorkspaceHeader = ({
       <Link
         to="/projects"
         draggable={false}
-        className="interactive interactive-subtle flex min-w-0 flex-1 items-center gap-3 rounded-panel border border-subtle bg-elevated px-3 py-2 text-text hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle interactive-fold flex min-w-0 flex-1 items-center gap-3 rounded-panel border border-subtle bg-elevated px-3 py-2 text-text hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onDragStart={preventNativeDrag}
       >
         <span

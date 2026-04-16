@@ -1,31 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Outfit:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Newsreader:ital,opsz,wght@0,6..72,500..700;1,6..72,500..700&display=swap');
 @config "./tailwind.config.js";
 @import "tailwindcss";
 
+/* Facets token system — provisional color values pending designer review.
+   Values chosen for HSL coherence: warm dye register (20-60% saturation),
+   laddered lightnesses, non-colliding hue separations. Structural relationships
+   (which color does which job) are locked; exact RGB values may be tuned
+   by a designer before public launch. */
 :root {
   --leading-normal: 1.5;
 
   /* Base Dark Denim Backgrounds */
-  --color-bg: rgb(28 36 48);
-  --color-surface: rgb(28 36 48);
-  --color-surface-elevated: rgb(38 48 64);
+  --color-bg: rgb(26 22 20);
+  --color-surface: rgb(26 22 20);
+  --color-surface-elevated: rgb(38 32 28);
 
   /* Text & Accents */
-  --color-text: rgb(240 244 248);
-  --color-text-secondary: rgb(192 204 218);
-  --color-primary: rgb(232 92 153);
-  --color-primary-strong: rgb(200 58 124);
-  --color-on-primary: rgb(28 36 48);
+  --color-text: rgb(240 232 220);
+  --color-text-secondary: rgb(185 172 155);
+  --color-primary: rgb(207 92 60);
+  --color-primary-strong: rgb(180 72 45);
+  --color-on-primary: rgb(28 22 18);
+  --color-secondary: rgb(72 88 150);
+  --color-secondary-strong: rgb(58 72 128);
+  --color-on-secondary: rgb(240 232 220);
+  --facet-persimmon: var(--color-primary);
+  --facet-plum: rgb(130 72 110);
+  --facet-indigo: var(--color-secondary);
+  --facet-teal: var(--color-capture-rail);
+  --facet-moss: rgb(95 118 78);
+  --facet-ochre: rgb(195 155 70);
 
   /* Warnings (Keeping the reds, removing green) */
-  --color-danger: rgb(220 53 69);
-  --color-danger-subtle: rgb(220 53 69 / 0.15);
-  --color-priority-high: rgb(210 70 85);
-  --color-priority-high-tint: rgb(210 70 85 / 0.15);
-  --color-priority-medium: rgb(230 140 75);
-  --color-priority-medium-tint: rgb(230 140 75 / 0.15);
-  --color-priority-low: rgb(212 170 88);
-  --color-priority-low-tint: rgb(212 170 88 / 0.15);
+  --color-danger: rgb(148 35 58);
+  --color-danger-subtle: rgb(148 35 58 / 0.15);
+  --color-priority-high: rgb(140 58 48);
+  --color-priority-high-tint: rgb(140 58 48 / 0.15);
+  --color-priority-medium: rgb(170 115 85);
+  --color-priority-medium-tint: rgb(170 115 85 / 0.15);
+  --color-priority-low: rgb(195 170 135);
+  --color-priority-low-tint: rgb(195 170 135 / 0.15);
   --color-priority-none: var(--color-muted);
   --color-priority-none-tint: var(--color-muted-subtle);
   --color-warning-subtle: rgb(255 193 7 / 0.15);
@@ -33,19 +47,21 @@
   --color-success-subtle: var(--color-muted-subtle);
 
   /* UI Elements */
-  --color-muted: rgb(141 155 176);
-  --color-capture-rail: hsl(174 60% 45%);
+  --color-muted: rgb(130 118 105);
+  --color-capture-rail: rgb(72 130 130);
   --color-capture-rail-actioned: var(--color-primary);
   --color-muted-subtle: var(--color-surface-elevated);
-  --color-border-muted: rgb(65 82 105);
+  --color-border-muted: rgb(68 58 50);
   --color-border-primary: var(--color-border-muted);
-  --color-overlay: rgb(15 23 42 / 0.6);
+  --color-overlay: rgb(18 14 12 / 0.65);
+  --shadow-button-rest: 0 1px 2px rgb(10 6 4 / 0.4), inset 0 1px 0 rgb(255 248 240 / 0.06);
+  --shadow-button-press: 0 0.5px 1px rgb(10 6 4 / 0.6), inset 0 1px 0 rgb(255 248 240 / 0.02);
   --color-elevated: var(--color-surface-elevated);
   --color-subtle: var(--color-muted-subtle);
   --color-accent: var(--color-primary);
   --color-border-subtle: var(--color-border-muted);
-  --color-focus-ring: rgb(90 160 255);
-  --color-time-band-overlay: 180 194 210;
+  --color-focus-ring: rgb(130 148 220);
+  --color-time-band-overlay: 200 190 175;
   --time-band-night: rgba(var(--color-time-band-overlay), 0);
   --time-band-dawn: rgba(var(--color-time-band-overlay), 0.04);
   --time-band-midday: rgba(var(--color-time-band-overlay), 0.08);
@@ -81,13 +97,15 @@
   --sidebar-collapse-duration: 180ms;
   --sidebar-collapse-ease: cubic-bezier(0.2, 0, 0, 1);
   --press-scale: 0.97;
+  --press-rotate: 0.5deg;
+  --press-translate-y: 1px;
   --press-duration: 80ms;
   --press-ease: cubic-bezier(0.2, 0, 0, 1);
   --hover-duration: 120ms;
   --hover-delay: 40ms;
 
-  --radius-panel: 0.75rem;
-  --radius-control: 0.625rem;
+  --radius-panel: 0.5rem;
+  --radius-control: 0.375rem;
 
   --space-2xs: 0.25rem;
   --space-3xs: 0.125rem;
@@ -98,8 +116,8 @@
   --space-xl: 2rem;
 
   --font-body: 'DM Sans', sans-serif;
-  --font-heading: 'Outfit', sans-serif;
-  --font-logo: 'Outfit', sans-serif;
+  --font-heading: 'Newsreader', serif;
+  --font-logo: 'Newsreader', serif;
 
   --text-heading-1: 2rem;
   --text-heading-2: 1.5rem;
@@ -118,23 +136,28 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --color-bg: rgb(244 247 250);
-    --color-surface: rgb(244 247 250);
-    --color-surface-elevated: rgb(255 255 255);
-    --color-text: rgb(28 36 48);
-    --color-text-secondary: rgb(70 88 115);
-    --color-muted: rgb(86 106 127);
-    --color-primary: rgb(184 24 99);
-    --color-primary-strong: rgb(148 16 78);
-    --color-on-primary: rgb(255 255 255);
-    --color-border-muted: rgb(203 213 225);
-    --color-priority-medium: rgb(230 140 75);
-    --color-priority-medium-tint: rgb(230 140 75 / 0.15);
-    --color-priority-low: rgb(212 170 88);
-    --color-priority-low-tint: rgb(212 170 88 / 0.15);
-    --color-focus-ring: rgb(37 99 235);
+    --color-bg: rgb(245 240 232);
+    --color-surface: rgb(245 240 232);
+    --color-surface-elevated: rgb(255 252 246);
+    --color-text: rgb(30 24 20);
+    --color-text-secondary: rgb(85 72 60);
+    --color-muted: rgb(115 100 85);
+    --color-primary: rgb(190 75 45);
+    --color-primary-strong: rgb(165 60 35);
+    --color-on-primary: rgb(255 248 242);
+    --color-secondary: rgb(60 76 135);
+    --color-secondary-strong: rgb(48 62 115);
+    --color-on-secondary: rgb(30 24 20);
+    --color-border-muted: rgb(210 200 185);
+    --color-priority-medium: rgb(155 100 72);
+    --color-priority-medium-tint: rgb(155 100 72 / 0.15);
+    --color-priority-low: rgb(175 150 115);
+    --color-priority-low-tint: rgb(175 150 115 / 0.15);
+    --color-focus-ring: rgb(95 115 195);
     --color-border-primary: var(--color-border-muted);
-    --color-time-band-overlay: 80 100 124;
+    --shadow-button-rest: 0 1px 2px rgb(50 30 20 / 0.1), 0 1px 3px rgb(50 30 20 / 0.05);
+    --shadow-button-press: 0 0.5px 1px rgb(50 30 20 / 0.15);
+    --color-time-band-overlay: 90 78 65;
     --time-band-night: rgba(var(--color-time-band-overlay), 0);
     --time-band-dawn: rgba(var(--color-time-band-overlay), 0.04);
     --time-band-midday: rgba(var(--color-time-band-overlay), 0.08);
@@ -155,6 +178,9 @@
   --color-primary: var(--color-primary);
   --color-primary-strong: var(--color-primary-strong);
   --color-on-primary: var(--color-on-primary);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-strong: var(--color-secondary-strong);
+  --color-on-secondary: var(--color-on-secondary);
   --color-danger: var(--color-danger);
   --color-priority-high: var(--color-priority-high);
   --color-priority-high-tint: var(--color-priority-high-tint);
@@ -172,6 +198,12 @@
   --color-muted-subtle: var(--color-muted-subtle);
   --color-capture-rail: var(--color-capture-rail);
   --color-capture-rail-actioned: var(--color-capture-rail-actioned);
+  --facet-persimmon: var(--facet-persimmon);
+  --facet-plum: var(--facet-plum);
+  --facet-indigo: var(--facet-indigo);
+  --facet-teal: var(--facet-teal);
+  --facet-moss: var(--facet-moss);
+  --facet-ochre: var(--facet-ochre);
   --color-border-muted: var(--color-border-muted);
   --color-border-primary: var(--color-border-primary);
   --color-overlay: var(--color-overlay);
@@ -195,7 +227,12 @@
   --spacing-lg: var(--space-lg);
   --spacing-xl: var(--space-xl);
 
-  --shadow-soft: 0 0.25rem 0.75rem rgb(18 42 92 / 0.1);
+  --shadow-soft:
+    0 1px 2px rgb(10 6 4 / 0.5),
+    0 3px 6px rgb(10 6 4 / 0.25),
+    inset 0 1px 0 rgb(255 248 240 / 0.04);
+  --shadow-button-rest: var(--shadow-button-rest);
+  --shadow-button-press: var(--shadow-button-press);
   --shadow-wireframe: 0 0 0 1px rgb(255 255 255 / 0.08);
   --shadow-focus-ring: 0 0 0 2px var(--color-focus-ring);
 }
@@ -220,6 +257,36 @@
 @utility module-card-l {
   min-height: var(--module-card-min-h-l);
   max-height: var(--module-card-max-h-l);
+}
+
+@utility module-accent-tasks {
+  border-left-width: 3px;
+  border-left-color: var(--facet-persimmon);
+}
+
+@utility module-accent-calendar {
+  border-left-width: 3px;
+  border-left-color: var(--facet-indigo);
+}
+
+@utility module-accent-notes {
+  border-left-width: 3px;
+  border-left-color: var(--facet-plum);
+}
+
+@utility module-accent-stream {
+  border-left-width: 3px;
+  border-left-color: var(--facet-teal);
+}
+
+@utility module-accent-files {
+  border-left-width: 3px;
+  border-left-color: var(--facet-ochre);
+}
+
+@utility module-accent-reminders {
+  border-left-width: 3px;
+  border-left-color: var(--facet-moss);
 }
 
 @utility dialog-panel-size {
@@ -281,6 +348,26 @@
   --press-scale: 0.94;
 }
 
+.interactive-fold {
+  box-shadow: var(--shadow-button-rest);
+  transition:
+    transform var(--press-duration) var(--press-ease),
+    box-shadow var(--press-duration) var(--press-ease),
+    background-color var(--hover-duration) var(--press-ease);
+  transition-delay: 0ms, 0ms, var(--hover-delay);
+}
+
+.interactive-fold:hover,
+.interactive-fold:focus-visible {
+  transition-delay: 0ms, 0ms, 0ms;
+}
+
+.interactive-fold:active {
+  transform: scale(var(--press-scale)) rotate(var(--press-rotate)) translateY(var(--press-translate-y));
+  box-shadow: var(--shadow-button-press);
+  transition-delay: 0ms, 0ms, 0ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .interactive {
     transition: background-color var(--hover-duration) var(--press-ease);
@@ -288,6 +375,18 @@
 
   .interactive:active {
     transform: none;
+  }
+
+  .interactive-fold {
+    transition:
+      transform var(--press-duration) var(--press-ease),
+      box-shadow var(--press-duration) var(--press-ease),
+      background-color var(--hover-duration) var(--press-ease);
+    transition-delay: 0ms, 0ms, var(--hover-delay);
+  }
+
+  .interactive-fold:active {
+    transform: scale(var(--press-scale));
   }
 }
 

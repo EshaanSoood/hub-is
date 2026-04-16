@@ -577,7 +577,7 @@ export const CaptureDialog = ({
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className="interactive interactive-subtle rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-text"
+                className="interactive interactive-subtle rounded-control border border-secondary/30 px-3 py-2 text-sm font-medium text-secondary hover:border-secondary/45 hover:bg-secondary/10 hover:text-secondary-strong"
                 onClick={() => {
                   onClose();
                   triggerRef.current?.focus();
@@ -588,7 +588,7 @@ export const CaptureDialog = ({
               <button
                 type="button"
                 disabled={submitting}
-                className="interactive rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => {
                   void submitCapture();
                 }}

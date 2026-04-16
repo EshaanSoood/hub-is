@@ -7,6 +7,9 @@ export const motionDurations = {
   lateral: 0.3,
   fade: 0.2,
   reduced: 0.12,
+  foldEnter: 0.35,
+  foldExit: 0.25,
+  foldReduced: 0.14,
 } as const;
 
 export const motionDistances = {
@@ -16,6 +19,9 @@ export const motionDistances = {
   reducedOffset: 8,
   popoverScaleStart: 0.95,
   fadeThroughScaleStart: 0.98,
+  foldRotationDegrees: 6,
+  foldScaleStart: 0.97,
+  foldDepthOffset: 16,
 } as const;
 
 export const motionEasings = {
@@ -27,6 +33,8 @@ export const motionEasings = {
   lateral: [0.2, 0, 0, 1] as const,
   // Material linear
   fade: [0, 0, 1, 1] as const,
+  foldEnter: [0.2, 0.8, 0.2, 1] as const,
+  foldExit: [0.4, 0, 0.6, 1] as const,
 } as const;
 
 export const motionDirection = {

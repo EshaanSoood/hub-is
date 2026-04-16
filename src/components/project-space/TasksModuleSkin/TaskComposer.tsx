@@ -127,7 +127,7 @@ export const TaskComposer = ({
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-control bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+          className="interactive interactive-fold rounded-control bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitLabel}
         </button>

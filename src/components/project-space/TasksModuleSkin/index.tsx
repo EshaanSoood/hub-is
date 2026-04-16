@@ -286,7 +286,7 @@ const TasksModuleMedium = ({
           <button
             type="button"
             onClick={() => setComposerOpen(true)}
-            className="rounded-control border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="interactive interactive-fold rounded-control border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             New Task
           </button>
@@ -411,7 +411,7 @@ const TasksModuleLarge = ({
           <button
             type="button"
             onClick={() => handleOpenComposer(null)}
-            className="inline-flex items-center gap-2 rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary"
+            className="interactive interactive-fold inline-flex items-center gap-2 rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary"
           >
             <Icon name="plus" className="text-[14px]" />
             New Task

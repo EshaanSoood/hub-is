@@ -80,6 +80,7 @@ export const AddModuleDialog = ({
       description="Choose a module, then choose the size to add to this pane."
       triggerRef={triggerRef}
       layoutId={layoutId}
+      motionVariant="fold-dialog"
       panelClassName="max-h-[88vh] overflow-y-auto"
       contentClassName="pr-1"
     >

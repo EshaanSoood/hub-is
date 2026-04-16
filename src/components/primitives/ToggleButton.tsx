@@ -10,9 +10,9 @@ const variantClassByState: Record<ToggleVariant, string> = {
   primary:
     'data-[state=off]:border-subtle data-[state=off]:bg-accent data-[state=off]:text-on-primary data-[state=off]:hover:bg-primary-strong data-[state=on]:border-subtle data-[state=on]:bg-primary-strong data-[state=on]:text-on-primary',
   secondary:
-    'data-[state=off]:border-subtle data-[state=off]:bg-surface data-[state=off]:text-primary data-[state=off]:hover:bg-elevated data-[state=on]:border-subtle data-[state=on]:bg-accent data-[state=on]:text-on-primary',
+    'data-[state=off]:border-secondary/30 data-[state=off]:bg-surface data-[state=off]:text-secondary data-[state=off]:hover:border-secondary/45 data-[state=off]:hover:bg-secondary/10 data-[state=off]:hover:text-secondary-strong data-[state=on]:border-secondary/40 data-[state=on]:bg-secondary data-[state=on]:text-on-secondary',
   ghost:
-    'data-[state=off]:border-transparent data-[state=off]:bg-transparent data-[state=off]:text-primary data-[state=off]:hover:bg-subtle data-[state=on]:border-subtle data-[state=on]:bg-elevated data-[state=on]:text-primary',
+    'data-[state=off]:border-transparent data-[state=off]:bg-transparent data-[state=off]:text-secondary data-[state=off]:hover:bg-secondary/10 data-[state=off]:hover:text-secondary-strong data-[state=on]:border-secondary/30 data-[state=on]:bg-secondary/12 data-[state=on]:text-secondary-strong',
 };
 
 interface ToggleButtonProps extends Omit<ComponentPropsWithoutRef<typeof Toggle>, 'pressed' | 'onPressedChange' | 'children'> {

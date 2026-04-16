@@ -189,7 +189,7 @@ const DayPanelContent = ({
           onClick={() => {
             void onCreateEvent(createAtNinePayload(day.date, timezone));
           }}
-          className="h-6 w-6 rounded-control border border-primary bg-primary text-sm font-semibold leading-none text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          className="interactive interactive-fold h-6 w-6 rounded-control border border-primary bg-primary text-sm font-semibold leading-none text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           aria-label={`Create event for ${day.dayName} ${day.dateNumber}`}
         >
           +

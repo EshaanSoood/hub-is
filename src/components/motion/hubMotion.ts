@@ -28,6 +28,21 @@ export const transitionReduced: Transition = {
   ease: motionEasings.fade,
 };
 
+export const transitionFoldEnter: Transition = {
+  duration: motionDurations.foldEnter,
+  ease: motionEasings.foldEnter,
+};
+
+export const transitionFoldExit: Transition = {
+  duration: motionDurations.foldExit,
+  ease: motionEasings.foldExit,
+};
+
+export const transitionFoldReduced: Transition = {
+  duration: motionDurations.foldReduced,
+  ease: motionEasings.fade,
+};
+
 export const popoverVariants = (reducedMotion: boolean): Variants => ({
   initial: reducedMotion
     ? { opacity: 0 }
@@ -38,25 +53,90 @@ export const popoverVariants = (reducedMotion: boolean): Variants => ({
     : { opacity: 0, scale: motionDistances.popoverScaleStart, transition: transitionFade },
 });
 
-export const dialogSurfaceVariants = (reducedMotion: boolean): Variants => ({
-  initial: reducedMotion
-    ? { opacity: 0 }
-    : { opacity: 0, y: motionDistances.depthEnter, scale: motionDistances.fadeThroughScaleStart },
-  animate: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: reducedMotion ? transitionReduced : transitionEnter,
-  },
-  exit: reducedMotion
-    ? { opacity: 0, transition: transitionReduced }
-    : {
-        opacity: 0,
-        y: -motionDistances.depthExit,
-        scale: motionDistances.fadeThroughScaleStart,
-        transition: transitionExit,
+export type DialogSurfaceMotionVariant = 'dialog' | 'fold-dialog' | 'fold-sheet';
+
+export const dialogSurfaceVariants = (
+  reducedMotion: boolean,
+  motionVariant: DialogSurfaceMotionVariant = 'dialog',
+): Variants => {
+  if (motionVariant === 'fold-dialog') {
+    return {
+      initial: reducedMotion
+        ? { opacity: 0 }
+        : {
+            opacity: 0,
+            y: motionDistances.foldDepthOffset,
+            scale: motionDistances.foldScaleStart,
+            rotateX: -motionDistances.foldRotationDegrees,
+          },
+      animate: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        rotateX: 0,
+        transition: reducedMotion ? transitionFoldReduced : transitionFoldEnter,
       },
-});
+      exit: reducedMotion
+        ? { opacity: 0, transition: transitionFoldReduced }
+        : {
+            opacity: 0,
+            y: -motionDistances.foldDepthOffset,
+            scale: motionDistances.foldScaleStart,
+            rotateX: motionDistances.foldRotationDegrees,
+            transition: transitionFoldExit,
+          },
+    };
+  }
+
+  if (motionVariant === 'fold-sheet') {
+    return {
+      initial: reducedMotion
+        ? { opacity: 0 }
+        : {
+            opacity: 0,
+            x: -motionDistances.foldDepthOffset,
+            scale: motionDistances.foldScaleStart,
+            rotateY: -motionDistances.foldRotationDegrees,
+          },
+      animate: {
+        opacity: 1,
+        x: 0,
+        scale: 1,
+        rotateY: 0,
+        transition: reducedMotion ? transitionFoldReduced : transitionFoldEnter,
+      },
+      exit: reducedMotion
+        ? { opacity: 0, transition: transitionFoldReduced }
+        : {
+            opacity: 0,
+            x: -motionDistances.foldDepthOffset,
+            scale: motionDistances.foldScaleStart,
+            rotateY: -motionDistances.foldRotationDegrees,
+            transition: transitionFoldExit,
+          },
+    };
+  }
+
+  return {
+    initial: reducedMotion
+      ? { opacity: 0 }
+      : { opacity: 0, y: motionDistances.depthEnter, scale: motionDistances.fadeThroughScaleStart },
+    animate: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: reducedMotion ? transitionReduced : transitionEnter,
+    },
+    exit: reducedMotion
+      ? { opacity: 0, transition: transitionReduced }
+      : {
+          opacity: 0,
+          y: -motionDistances.depthExit,
+          scale: motionDistances.fadeThroughScaleStart,
+          transition: transitionExit,
+        },
+  };
+};
 
 export const routeFadeVariants = (reducedMotion: boolean): Variants => ({
   initial: { opacity: 0 },

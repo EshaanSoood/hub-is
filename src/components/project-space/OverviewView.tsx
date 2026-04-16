@@ -419,7 +419,7 @@ export const OverviewView = ({
                 <motion.button
                   layoutId={!prefersReducedMotion && taskCreateOpen ? dialogLayoutIds.taskCreate : undefined}
                   type="button"
-                  className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
                   onClick={() => {
                     const rememberedParent = lastSubtaskParentRef.current;
                     if (rememberedParent && Date.now() - rememberedParent.at < 300000) {

@@ -71,7 +71,7 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
               type="button"
               autoFocus
               onClick={() => onSelect(pendingPaneId)}
-              className="flex-1 rounded-control bg-primary px-sm py-xs text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="interactive interactive-fold flex-1 rounded-control bg-primary px-sm py-xs text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               Move
             </button>

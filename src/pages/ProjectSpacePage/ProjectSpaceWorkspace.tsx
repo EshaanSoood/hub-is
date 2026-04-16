@@ -1773,6 +1773,7 @@ export const ProjectSpaceWorkspace = ({
           open={Boolean(inspectorRecordId)}
           animated
           layoutId={dialogLayoutIds.recordInspector}
+          motionVariant="fold-sheet"
           className="dialog-panel-sheet-size !left-0 !top-0 h-screen !translate-x-0 !translate-y-0 overflow-y-auto rounded-none sm:!rounded-none border-r border-border-muted"
           onCloseAutoFocus={(event) => {
             if (inspectorTriggerRef.current) {

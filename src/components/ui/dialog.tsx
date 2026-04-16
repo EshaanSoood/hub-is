@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { cn } from '../../lib/cn';
-import { dialogSurfaceVariants, routeFadeVariants } from '../motion/hubMotion';
+import { dialogSurfaceVariants, routeFadeVariants, type DialogSurfaceMotionVariant } from '../motion/hubMotion';
 
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
@@ -36,8 +36,13 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 export const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { layoutId?: string; animated?: boolean; open?: boolean }
->(({ className, children, layoutId, animated = false, open, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    layoutId?: string;
+    animated?: boolean;
+    open?: boolean;
+    motionVariant?: DialogSurfaceMotionVariant;
+  }
+>(({ className, children, layoutId, animated = false, open, motionVariant = 'dialog', ...props }, ref) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const canAnimateWithPresence = animated && typeof open === 'boolean';
   if (canAnimateWithPresence) {
@@ -54,7 +59,7 @@ export const DialogContent = React.forwardRef<
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  variants={dialogSurfaceVariants(prefersReducedMotion)}
+                  variants={dialogSurfaceVariants(prefersReducedMotion, motionVariant)}
                   className={cn(DIALOG_PANEL_BASE_CLASS, className)}
                 >
                   {children}

@@ -93,7 +93,7 @@ export const CalendarCreatePanel = ({
         <button
           type="submit"
           disabled={draftTitle.trim().length === 0 || isCreatingEvent}
-          className="rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="interactive interactive-fold rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isCreatingEvent ? 'Creating...' : 'Create'}
         </button>

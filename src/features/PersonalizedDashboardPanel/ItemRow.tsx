@@ -59,7 +59,7 @@ export const ItemRow = ({ item, onOpen }: ItemRowProps) => {
             }
           : undefined
       }
-      className={`block rounded-panel border p-3 ${item.unread ? 'border-primary/40' : 'border-border-muted'} bg-surface`}
+      className={`interactive interactive-fold block rounded-panel border bg-surface p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${item.unread ? 'border-primary/40' : 'border-border-muted'}`}
     >
       {content}
     </a>

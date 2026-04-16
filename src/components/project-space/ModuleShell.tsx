@@ -9,7 +9,7 @@ import {
   IconButton,
 } from '../primitives';
 import { AnimatedSurface } from '../motion/AnimatedSurface';
-import { moduleLabel } from './moduleCatalog';
+import { moduleAccentClassName, moduleLabel } from './moduleCatalog';
 
 type ModuleSizeTier = 'S' | 'M' | 'L';
 
@@ -44,12 +44,14 @@ export const ModuleShell = ({
 }: ModuleShellProps) => {
   const [actionsOpen, setActionsOpen] = useState(false);
   const label = moduleLabel(moduleType);
+  const accentClassName = moduleAccentClassName(moduleType);
 
   return (
     <article
       data-testid="module-card"
       className={cn(
         'relative flex flex-col overflow-hidden rounded-panel border border-subtle bg-elevated p-3',
+        accentClassName,
         sizeClass[sizeTier],
         sizeHeightClass[sizeTier],
       )}

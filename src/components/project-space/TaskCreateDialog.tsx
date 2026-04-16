@@ -441,7 +441,7 @@ export const TaskCreateDialog = ({
           <button
             type="button"
             onClick={handleClose}
-            className="rounded-control border border-border-muted px-3 py-2 text-sm font-medium text-primary"
+            className="rounded-control border border-secondary/30 px-3 py-2 text-sm font-medium text-secondary hover:border-secondary/45 hover:bg-secondary/10 hover:text-secondary-strong"
             disabled={submitting}
           >
             Cancel
@@ -449,7 +449,7 @@ export const TaskCreateDialog = ({
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+            className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? 'Creating...' : submitLabel}
           </button>

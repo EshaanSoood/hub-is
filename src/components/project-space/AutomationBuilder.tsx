@@ -379,7 +379,7 @@ export const AutomationBuilder = ({
             onClick={() => {
               void saveRule();
             }}
-            className="rounded-control bg-primary px-md py-xs text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-60"
+            className="interactive interactive-fold rounded-control bg-primary px-md py-xs text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-60"
           >
             {submitting ? 'Saving...' : editingRule ? 'Save changes' : 'Create rule'}
           </button>
@@ -396,7 +396,7 @@ export const AutomationBuilder = ({
           <button
             type="button"
             onClick={openCreateEditor}
-            className="rounded-control bg-primary px-sm py-xs text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="interactive interactive-fold rounded-control bg-primary px-sm py-xs text-sm font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             New rule
           </button>

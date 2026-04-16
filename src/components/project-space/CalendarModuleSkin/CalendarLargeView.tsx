@@ -213,7 +213,7 @@ export const CalendarLargeView = ({
               setView('month');
               openCreatePanelAndCloseOverflow(todayKey);
             }}
-            className="ml-auto shrink-0 rounded-control border border-primary bg-primary px-2.5 py-1.5 text-xs font-medium leading-[1.2] text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="interactive interactive-fold ml-auto shrink-0 rounded-control border border-primary bg-primary px-2.5 py-1.5 text-xs font-medium leading-[1.2] text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             New Event
           </button>

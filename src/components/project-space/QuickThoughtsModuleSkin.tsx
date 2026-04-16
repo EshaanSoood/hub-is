@@ -138,7 +138,7 @@ const QuickThoughtEditor = ({
         type="button"
         disabled={readOnly}
         onClick={onSave}
-        className="rounded-control bg-primary px-sm py-1 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-fold rounded-control bg-primary px-sm py-1 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       >
         {saveLabel}
       </button>
