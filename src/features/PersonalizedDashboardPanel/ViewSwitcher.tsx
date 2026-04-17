@@ -97,7 +97,7 @@ export const ViewSwitcher = ({ selectedView, availableViewIds, onSelectView }: V
   };
 
   return (
-    <>
+    <div className="relative">
       <h2 className="sr-only">Views</h2>
       <Popover open={viewMenuOpen} onOpenChange={handleViewMenuOpenChange}>
         <PopoverTrigger asChild>
@@ -181,6 +181,6 @@ export const ViewSwitcher = ({ selectedView, availableViewIds, onSelectView }: V
           ) : null}
         </AnimatePresence>
       </Popover>
-    </>
+    </div>
   );
 };

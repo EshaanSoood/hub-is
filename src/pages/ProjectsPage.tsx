@@ -275,7 +275,7 @@ export const ProjectsPage = () => {
   }, [setSearchParams]);
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4">
       <h1 className="sr-only">myHub</h1>
       <PersonalizedDashboardPanel
         homeData={homeData}
