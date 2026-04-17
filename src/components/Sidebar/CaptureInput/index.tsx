@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { classifyIntent } from '../../../lib/nlp/intent';
 import type { HubPaneSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
@@ -9,7 +9,6 @@ import {
   sidebarMotionLayoutIds,
 } from '../motion/sidebarMotion';
 import { Icon } from '../../primitives/Icon';
-import { CaptureDialog } from './CaptureDialog';
 import {
   type CaptureDestination,
   type CaptureKind,
@@ -18,6 +17,11 @@ import {
   moduleTypesByCaptureKind,
   readPaneHasModuleType,
 } from './shared';
+
+const CaptureDialog = lazy(async () => {
+  const module = await import('./CaptureDialog');
+  return { default: module.CaptureDialog };
+});
 
 interface CaptureInputProps {
   accessToken: string | null | undefined;
@@ -180,22 +184,26 @@ export const CaptureInput = ({
         </div>
       </motion.div>
 
-      <CaptureDialog
-        accessToken={accessToken}
-        captureKind={captureKind}
-        containerRef={containerRef}
-        destinations={destinations}
-        draft={draft}
-        open={dialogOpen && !isCollapsed}
-        personalProject={personalProject}
-        setDraft={setDraft}
-        triggerRef={triggerRef}
-        onClose={() => setDialogOpen(false)}
-        onSaved={() => {
-          setDraft('');
-          setDialogOpen(false);
-        }}
-      />
+      {dialogOpen && !isCollapsed ? (
+        <Suspense fallback={null}>
+          <CaptureDialog
+            accessToken={accessToken}
+            captureKind={captureKind}
+            containerRef={containerRef}
+            destinations={destinations}
+            draft={draft}
+            open
+            personalProject={personalProject}
+            setDraft={setDraft}
+            triggerRef={triggerRef}
+            onClose={() => setDialogOpen(false)}
+            onSaved={() => {
+              setDraft('');
+              setDialogOpen(false);
+            }}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 };
