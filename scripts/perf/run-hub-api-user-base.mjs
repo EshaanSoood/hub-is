@@ -326,6 +326,8 @@ const artilleryBinary = () => {
   return resolveRepoPath(`node_modules/.bin/artillery${suffix}`);
 };
 
+const ensureJsonReportPath = (value) => (/\.json$/i.test(value) ? value : `${value}.json`);
+
 const main = async () => {
   await loadEnvFilesIntoProcess(['.env.local', '.env'], { override: false });
   await loadEnvFilesIntoProcess(['.env.local.tokens.local'], { override: true });
@@ -349,9 +351,10 @@ const main = async () => {
 
   ensureRepoDir('artifacts/perf');
   const runId = new Date().toISOString().replace(/[:.]/g, '-');
-  const reportPath = resolveRepoPath(args.reportPath || `artifacts/perf/hub-api-user-base-${runId}.json`);
-  const summaryJsonPath = reportPath.replace(/\.json$/i, '.summary.json');
-  const summaryMarkdownPath = reportPath.replace(/\.json$/i, '.summary.md');
+  const reportPath = resolveRepoPath(ensureJsonReportPath(args.reportPath || `artifacts/perf/hub-api-user-base-${runId}.json`));
+  const reportPathBase = reportPath.replace(/\.json$/i, '');
+  const summaryJsonPath = `${reportPathBase}.summary.json`;
+  const summaryMarkdownPath = `${reportPathBase}.summary.md`;
   const tempDir = await mkdtemp(resolve(tmpdir(), 'hub-api-perf-'));
   const scriptPath = resolve(tempDir, 'hub-api-user-base.artillery.yml');
   const processorPath = resolveRepoPath('scripts/perf/hub-api-user-base-processor.mjs');

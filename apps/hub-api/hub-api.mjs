@@ -45,6 +45,7 @@ import { buildRouteDeps } from './routeDeps.mjs';
 const PORT = Number(process.env.PORT || '3001');
 const HUB_DB_PATH = process.env.HUB_DB_PATH || '/data/hub.sqlite';
 const HUB_API_BASE_URL = (process.env.HUB_API_BASE_URL || '').trim().replace(/\/+$/, '');
+const HUB_PUBLIC_BUG_SCREENSHOT_DIR = (process.env.HUB_PUBLIC_BUG_SCREENSHOT_DIR || '').trim();
 const ALLOWED_ORIGIN = process.env.POSTMARK_ALLOWED_ORIGIN || '*';
 const KEYCLOAK_ISSUER = (process.env.KEYCLOAK_ISSUER || '').trim();
 const KEYCLOAK_AUDIENCE = (process.env.KEYCLOAK_AUDIENCE || '').trim();
@@ -83,7 +84,6 @@ const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
 const REGISTERED_ROUTE_COUNT = 82;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
-const publicBugScreenshotDir = path.join(path.dirname(HUB_DB_PATH), 'public', 'bug-report-screenshots');
 
 const {
   nowIso,
@@ -106,6 +106,12 @@ const {
   HUB_API_LARGE_BODY_MAX_BYTES_RAW,
   systemLog,
 });
+const HUB_API_TRUST_PROXY = asBoolean(process.env.HUB_API_TRUST_PROXY, false);
+const publicBugScreenshotDir = HUB_PUBLIC_BUG_SCREENSHOT_DIR || path.join(path.dirname(HUB_DB_PATH), 'public', 'bug-report-screenshots');
+
+if (!HUB_API_BASE_URL) {
+  throw new Error('HUB_API_BASE_URL must be configured.');
+}
 
 
 const safeTuwunelConfig = () =>
@@ -1721,6 +1727,7 @@ const routeDeps = buildRouteDeps({
   withTransaction,
   ALLOWED_ORIGIN,
   HUB_API_BASE_URL,
+  HUB_API_TRUST_PROXY,
   NEXTCLOUD_USER,
   MATRIX_HOMESERVER_URL,
   MATRIX_SERVER_NAME,

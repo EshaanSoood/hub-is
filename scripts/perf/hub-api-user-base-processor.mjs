@@ -57,7 +57,7 @@ const pickProject = (projects, fixedProjectId) => {
     return projects.find((project) => String(project.id || project.project_id || '') === fixedProjectId) || null;
   }
 
-  const nonPersonal = projects.filter((project) => project?.isPersonal !== true);
+  const nonPersonal = projects.filter((project) => project?.is_personal !== true);
   if (nonPersonal.length > 0) {
     return randomFrom(nonPersonal);
   }
@@ -77,7 +77,8 @@ export const seedSessionState = async (context) => {
   const token = randomFrom(tokenPool);
   const fixedProjectId = String(process.env.HUB_PERF_FIXED_PROJECT_ID || process.env.HUB_PROJECT_ID || '').trim();
   const thinkMinMs = Number(process.env.HUB_PERF_THINK_MIN_MS || '100');
-  const thinkMaxMs = Number(process.env.HUB_PERF_THINK_MAX_MS || '500');
+  // Keep randomFloat ranges valid even if HUB_PERF_THINK_MAX_MS is misconfigured below HUB_PERF_THINK_MIN_MS.
+  const thinkMaxMs = Math.max(thinkMinMs, Number(process.env.HUB_PERF_THINK_MAX_MS || '500'));
 
   context.vars.authHeader = `Bearer ${token}`;
   context.vars.searchTerm = randomFrom(SEARCH_TERMS);

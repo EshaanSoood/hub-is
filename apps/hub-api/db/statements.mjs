@@ -554,6 +554,7 @@ export const createStatements = (db) => ({
     `),
   },
   bugReports: {
+    // Intentionally rely on table defaults so new submissions stay private until triaged.
     insert: db.prepare(`
       INSERT INTO bug_reports (
         id,
@@ -568,7 +569,13 @@ export const createStatements = (db) => ({
       SELECT id, created_at, description, status
       FROM bug_reports
       WHERE "public" = 1
+        AND (
+          ? = ''
+          OR created_at < ?
+          OR (created_at = ? AND id < ?)
+        )
       ORDER BY created_at DESC, id DESC
+      LIMIT ?
     `),
   },
   files: {

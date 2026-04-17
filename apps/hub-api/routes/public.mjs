@@ -7,6 +7,8 @@ const { RateLimiterMemory } = rateLimiterFlexible;
 
 const PUBLIC_BUG_ALLOWED_STATUSES = new Set(['new', 'open', 'in_progress', 'fixed', 'wont_fix']);
 const PUBLIC_BUG_SCREENSHOT_ROUTE_PREFIX = '/public/bug-report-screenshots/';
+const PUBLIC_BUG_DEFAULT_LIMIT = 25;
+const PUBLIC_BUG_MAX_LIMIT = 100;
 const MAX_DESCRIPTION_LENGTH = 10_000;
 const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
 const MAX_NAME_LENGTH = 200;
@@ -46,26 +48,54 @@ const parseAllowedOrigins = (value) => {
 
 const forwardedHeaderValue = (value) => String(value || '').split(',')[0].trim();
 
-const normalizeClientIp = (request) => {
-  const forwarded = forwardedHeaderValue(request.headers['x-forwarded-for']);
-  if (forwarded) {
-    return forwarded;
+const normalizeClientIp = (request, trustProxy) => {
+  if (trustProxy) {
+    const forwarded = forwardedHeaderValue(request.headers['x-forwarded-for']);
+    if (forwarded) {
+      return forwarded;
+    }
   }
   return String(request.socket?.remoteAddress || 'unknown').trim() || 'unknown';
 };
 
-const requestOrigin = (request) => {
-  const forwardedProto = forwardedHeaderValue(request.headers['x-forwarded-proto']);
-  const forwardedHost = forwardedHeaderValue(request.headers['x-forwarded-host']);
-  const host = forwardedHost || forwardedHeaderValue(request.headers.host);
-  if (!host) {
-    return '';
+const stripTrailingSlash = (value) => String(value || '').trim().replace(/\/+$/, '');
+
+const encodePublicBugCursor = ({ createdAt, id }) =>
+  Buffer.from(JSON.stringify({ created_at: createdAt, id }), 'utf8').toString('base64url');
+
+const decodePublicBugCursor = (value) => {
+  const raw = stripTrailingSlash(value);
+  if (!raw) {
+    return { createdAt: '', id: '' };
   }
-  const proto = forwardedProto || 'http';
-  return `${proto}://${host}`.replace(/\/+$/, '');
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+    const createdAt = sanitizeTextField(parsed?.created_at);
+    const id = sanitizeTextField(parsed?.id);
+    if (!createdAt || !id) {
+      return null;
+    }
+    return { createdAt, id };
+  } catch (error) {
+    return null;
+  }
 };
 
-const stripTrailingSlash = (value) => String(value || '').trim().replace(/\/+$/, '');
+const publicScreenshotUrl = (baseUrl, fileName) =>
+  `${stripTrailingSlash(baseUrl)}${PUBLIC_BUG_SCREENSHOT_ROUTE_PREFIX}${encodeURIComponent(fileName)}`;
+
+const isRateLimitRejection = (value) =>
+  value && typeof value === 'object' && Number.isFinite(Number(value.msBeforeNext));
+
+const rateLimitErrorResponse = (request, publicJsonResponse, errorEnvelope, rateLimitResult) => {
+  const retryAfterSeconds = Math.max(1, Math.ceil(Number(rateLimitResult?.msBeforeNext || 0) / 1000));
+  return publicJsonResponse(
+    request,
+    429,
+    errorEnvelope('rate_limited', 'Too many bug report submissions. Please try again later.'),
+    { headers: { 'Retry-After': String(retryAfterSeconds) } },
+  );
+};
 
 const publicScreenshotMimeType = (filePath) =>
   SCREENSHOT_MIME_BY_EXTENSION[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
@@ -176,7 +206,11 @@ const parseMultipartBugReport = async (request) => new Promise((resolve, reject)
       parseError = { status: 413, code: 'payload_too_large', message: 'screenshot must be 5MB or smaller.' };
     });
     stream.on('end', () => {
-      if (parseError || sizeBytes === 0) {
+      if (parseError) {
+        return;
+      }
+      if (sizeBytes === 0) {
+        parseError = { status: 400, code: 'invalid_input', message: 'screenshot must not be empty.' };
         return;
       }
       screenshot = {
@@ -218,10 +252,12 @@ export const createPublicRoutes = (deps) => {
   const {
     ALLOWED_ORIGIN,
     HUB_API_BASE_URL,
+    HUB_API_TRUST_PROXY,
     publicBugScreenshotDir,
     send,
     errorEnvelope,
     okEnvelope,
+    asInteger,
     nowIso,
     newId,
     sendPublicBugReportEmail,
@@ -259,16 +295,26 @@ export const createPublicRoutes = (deps) => {
 
   const successEnvelope = () => okEnvelope({ submitted: true });
 
-  const publicBugReportUrl = (request, fileName) => {
-    const baseUrl = stripTrailingSlash(HUB_API_BASE_URL) || requestOrigin(request);
-    return `${baseUrl}${PUBLIC_BUG_SCREENSHOT_ROUTE_PREFIX}${encodeURIComponent(fileName)}`;
-  };
+  const publicBugReportUrl = (fileName) => publicScreenshotUrl(HUB_API_BASE_URL, fileName);
 
   const optionsPublic = async ({ request, response }) => {
     send(response, publicJsonResponse(request, 204, okEnvelope(null)));
   };
 
   const submitBugReport = async ({ request, response }) => {
+    const clientIp = normalizeClientIp(request, HUB_API_TRUST_PROXY);
+    try {
+      await PUBLIC_BUG_RATE_LIMIT.consume(clientIp);
+    } catch (rateLimitResult) {
+      if (isRateLimitRejection(rateLimitResult)) {
+        send(response, rateLimitErrorResponse(request, publicJsonResponse, errorEnvelope, rateLimitResult));
+        return;
+      }
+      request.log.error('Failed to enforce public bug report rate limit.', { error: rateLimitResult, clientIp });
+      send(response, publicJsonResponse(request, 500, errorEnvelope('internal_error', 'Internal server error.')));
+      return;
+    }
+
     const contentType = sanitizeTextField(request.headers['content-type']).toLowerCase();
     if (!contentType.startsWith('multipart/form-data')) {
       send(response, publicJsonResponse(
@@ -331,19 +377,6 @@ export const createPublicRoutes = (deps) => {
       return;
     }
 
-    try {
-      await PUBLIC_BUG_RATE_LIMIT.consume(normalizeClientIp(request));
-    } catch (rateLimitResult) {
-      const retryAfterSeconds = Math.max(1, Math.ceil(Number(rateLimitResult?.msBeforeNext || 0) / 1000));
-      send(response, publicJsonResponse(
-        request,
-        429,
-        errorEnvelope('rate_limited', 'Too many bug report submissions. Please try again later.'),
-        { headers: { 'Retry-After': String(retryAfterSeconds) } },
-      ));
-      return;
-    }
-
     const bugReportId = newId('bug');
     const createdAt = nowIso();
     let screenshotPath = null;
@@ -359,7 +392,7 @@ export const createPublicRoutes = (deps) => {
         send(response, publicJsonResponse(request, 500, errorEnvelope('internal_error', 'Failed to save screenshot.')));
         return;
       }
-      screenshotPath = publicBugReportUrl(request, fileName);
+      screenshotPath = publicBugReportUrl(fileName);
     }
 
     try {
@@ -395,9 +428,23 @@ export const createPublicRoutes = (deps) => {
     send(response, publicJsonResponse(request, 200, successEnvelope()));
   };
 
-  const listPublicBugs = async ({ request, response }) => {
-    const rows = publicBugReportsStmt.all();
-    const bugs = rows
+  const listPublicBugs = async ({ request, response, requestUrl }) => {
+    const limit = asInteger(requestUrl.searchParams.get('limit'), PUBLIC_BUG_DEFAULT_LIMIT, 1, PUBLIC_BUG_MAX_LIMIT);
+    const cursor = decodePublicBugCursor(requestUrl.searchParams.get('cursor'));
+    if (!cursor) {
+      send(response, publicJsonResponse(request, 400, errorEnvelope('invalid_input', 'cursor must be a valid paging token.'), { methods: 'GET,OPTIONS' }));
+      return;
+    }
+
+    const rows = publicBugReportsStmt.all(
+      cursor.createdAt,
+      cursor.createdAt,
+      cursor.createdAt,
+      cursor.id,
+      limit + 1,
+    );
+    const pageRows = rows.slice(0, limit);
+    const bugs = pageRows
       .filter((row) => PUBLIC_BUG_ALLOWED_STATUSES.has(String(row.status || '')))
       .map((row) => ({
         id: row.id,
@@ -405,11 +452,23 @@ export const createPublicRoutes = (deps) => {
         description: row.description,
         status: row.status,
       }));
+    const hasMore = rows.length > limit;
+    const lastRow = pageRows[pageRows.length - 1];
+    const nextCursor = hasMore && lastRow
+      ? encodePublicBugCursor({ createdAt: lastRow.created_at, id: lastRow.id })
+      : null;
 
     send(response, publicJsonResponse(
       request,
       200,
-      okEnvelope({ bugs }),
+      okEnvelope({
+        bugs,
+        page: {
+          limit,
+          has_more: hasMore,
+          next_cursor: nextCursor,
+        },
+      }),
       { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300' }, methods: 'GET,OPTIONS' },
     ));
   };

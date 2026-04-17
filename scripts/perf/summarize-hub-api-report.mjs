@@ -15,7 +15,7 @@ const tryParseJson = async (path) => {
   return JSON.parse(raw);
 };
 
-const findSummaries = (candidate) => {
+const findDensestByKey = (candidate, key) => {
   const visited = new Set();
   const queue = [candidate];
   let best = null;
@@ -30,10 +30,10 @@ const findSummaries = (candidate) => {
     }
     visited.add(current);
 
-    if (current.summaries && typeof current.summaries === 'object') {
-      const size = Object.keys(current.summaries).length;
+    if (current[key] && typeof current[key] === 'object') {
+      const size = Object.keys(current[key]).length;
       if (!best || size > Object.keys(best).length) {
-        best = current.summaries;
+        best = current[key];
       }
     }
 
@@ -47,37 +47,8 @@ const findSummaries = (candidate) => {
   return best;
 };
 
-const findCounters = (candidate) => {
-  const visited = new Set();
-  const queue = [candidate];
-  let best = null;
-
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current || typeof current !== 'object') {
-      continue;
-    }
-    if (visited.has(current)) {
-      continue;
-    }
-    visited.add(current);
-
-    if (current.counters && typeof current.counters === 'object') {
-      const size = Object.keys(current.counters).length;
-      if (!best || size > Object.keys(best).length) {
-        best = current.counters;
-      }
-    }
-
-    for (const value of Object.values(current)) {
-      if (value && typeof value === 'object') {
-        queue.push(value);
-      }
-    }
-  }
-
-  return best;
-};
+const findSummaries = (candidate) => findDensestByKey(candidate, 'summaries');
+const findCounters = (candidate) => findDensestByKey(candidate, 'counters');
 
 const normalizeHistogram = (metricName, metric) => ({
   metricName,

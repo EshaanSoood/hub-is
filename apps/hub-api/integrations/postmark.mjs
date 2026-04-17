@@ -14,6 +14,7 @@ export const createPostmarkIntegration = ({
   parseUpstreamJson,
 }) => {
   const safePostmarkConfig = () => Boolean(POSTMARK_SERVER_TOKEN && POSTMARK_FROM_EMAIL);
+  const looksLikeEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(asText(value));
 
   const escapeHtml = (value) =>
     String(value ?? '')
@@ -97,6 +98,7 @@ export const createPostmarkIntegration = ({
     subject,
     htmlBody,
     textBody,
+    replyTo = '',
     tag = '',
     requestLog = null,
   }) => {
@@ -127,6 +129,7 @@ export const createPostmarkIntegration = ({
             Subject: subject,
             HtmlBody: htmlBody,
             TextBody: textBody,
+            ...(replyTo ? { ReplyTo: replyTo } : {}),
             MessageStream: POSTMARK_MESSAGE_STREAM,
             ...(tag ? { Tag: tag } : {}),
           }),
@@ -185,7 +188,7 @@ export const createPostmarkIntegration = ({
     screenshotUrl = '',
     requestLog = null,
   }) => {
-    const to = asText(HUB_OWNER_EMAIL) || asText(POSTMARK_FROM_EMAIL);
+    const to = asText(HUB_OWNER_EMAIL);
     if (!to) {
       return {
         error: {
@@ -213,6 +216,7 @@ export const createPostmarkIntegration = ({
         description,
         screenshotUrl,
       }),
+      replyTo: looksLikeEmail(reporterEmail) ? asText(reporterEmail) : '',
       tag: 'facets-bug-report',
       requestLog,
     });
