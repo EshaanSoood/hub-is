@@ -553,6 +553,24 @@ export const createStatements = (db) => ({
       WHERE r.reminder_id = ?
     `),
   },
+  bugReports: {
+    insert: db.prepare(`
+      INSERT INTO bug_reports (
+        id,
+        created_at,
+        reporter_name,
+        reporter_email,
+        description,
+        screenshot_path
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `),
+    listPublic: db.prepare(`
+      SELECT id, created_at, description, status
+      FROM bug_reports
+      WHERE "public" = 1
+      ORDER BY created_at DESC, id DESC
+    `),
+  },
   files: {
     insert: db.prepare(`
       INSERT INTO files (file_id, project_id, asset_root_id, provider, provider_path, name, mime_type, size_bytes, hash, metadata_json, created_by, created_at)

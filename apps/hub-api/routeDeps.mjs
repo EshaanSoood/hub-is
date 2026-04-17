@@ -130,6 +130,8 @@ export const buildRouteDeps = ({ db, stmts, withTransaction, ...deps }) => ({
   dismissReminderStmt: stmts.reminders.dismiss,
   findReminderByIdStmt: stmts.reminders.findById,
   insertStandaloneReminderStmt: stmts.reminders.insertStandalone,
+  insertBugReportStmt: stmts.bugReports.insert,
+  publicBugReportsStmt: stmts.bugReports.listPublic,
   attachmentsByEntityStmt: stmts.files.listAttachmentsForEntity,
   commentsByTargetStmt: stmts.comments.listForEntity,
   deleteAutomationRuleStmt: stmts.automation.deleteRule,
