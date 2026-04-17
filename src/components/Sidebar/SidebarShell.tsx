@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjects } from '../../context/ProjectsContext';
+import { QuickCapturePanel } from '../../features/QuickCapture';
 import { cn } from '../../lib/cn';
 import { fadeThroughVariants } from '../motion/hubMotion';
 import { listPanes } from '../../services/hub/panes';
@@ -13,8 +14,9 @@ import { ProjectsTree } from './ProjectsTree';
 import { ProfileBadge } from './ProfileBadge';
 import { RecentPanes } from './RecentPanes';
 import { SearchButton } from './SearchButton';
-import { Surfaces, buildSurfaceHref, type SidebarSurfaceId } from './Surfaces';
+import { Surfaces, buildSurfaceHref, parseSidebarSurfaceId, type SidebarSurfaceId } from './Surfaces';
 import { useSidebarCollapse } from './hooks/useSidebarCollapse';
+import { useThoughtPileRuntime } from './hooks/useThoughtPileRuntime';
 import { WorkspaceHeader } from './WorkspaceHeader';
 
 const decodePathSegment = (value: string | null): string | null => {
@@ -40,6 +42,7 @@ export const SidebarShell = () => {
   const [searchAutoFocusKey, setSearchAutoFocusKey] = useState(0);
   const [captureAutoFocusKey, setCaptureAutoFocusKey] = useState(0);
   const [profileAutoOpenKey, setProfileAutoOpenKey] = useState(0);
+  const [thoughtPileActivationKey, setThoughtPileActivationKey] = useState(0);
   const [visualCollapsed, setVisualCollapsed] = useState(isCollapsed);
   const [showLabels, setShowLabels] = useState(!isCollapsed);
 
@@ -65,10 +68,7 @@ export const SidebarShell = () => {
     if (!isOnHome) {
       return null;
     }
-    const candidate = new URLSearchParams(location.search).get('surface');
-    return candidate === 'tasks' || candidate === 'calendar' || candidate === 'reminders' || candidate === 'thoughts'
-      ? candidate
-      : null;
+    return parseSidebarSurfaceId(new URLSearchParams(location.search).get('surface'));
   }, [isOnHome, location.search]);
   const currentSurfaceLabel = useMemo(() => {
     if (currentSurface === 'tasks') {
@@ -89,6 +89,10 @@ export const SidebarShell = () => {
     () => projects.find((project) => project.isPersonal) || null,
     [projects],
   );
+  const thoughtPileRuntime = useThoughtPileRuntime({
+    accessToken,
+    enabled: isOnHome && currentSurface === 'thoughts',
+  });
   const resolvedVisualCollapsed = prefersReducedMotion ? isCollapsed : visualCollapsed;
   const resolvedShowLabels = prefersReducedMotion ? !isCollapsed : showLabels;
   const sidebarContextKey = currentPaneId
@@ -173,6 +177,9 @@ export const SidebarShell = () => {
 
   const onSelectSurface = useCallback((surfaceId: SidebarSurfaceId) => {
     expandSidebar();
+    if (surfaceId === 'thoughts') {
+      setThoughtPileActivationKey((current) => current + 1);
+    }
     navigate(buildSurfaceHref(surfaceId));
   }, [expandSidebar, navigate]);
 
@@ -249,23 +256,44 @@ export const SidebarShell = () => {
                 variants={fadeThroughVariants(prefersReducedMotion)}
                 className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-2')}
               >
-                <RecentPanes
-                  currentProject={currentProject}
-                  currentProjectPanes={activeCurrentProjectPanes}
-                  isCollapsed={resolvedVisualCollapsed}
-                  onExpandSidebar={expandSidebar}
-                  showLabels={resolvedShowLabels}
-                />
+                {isOnHome && currentSurface === 'thoughts' ? (
+                  <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-panel border border-subtle bg-surface px-2 py-2">
+                    <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                      <QuickCapturePanel
+                        accessToken={accessToken ?? null}
+                        projects={projects}
+                        personalProjectId={personalProject?.id ?? null}
+                        captures={thoughtPileRuntime.captures}
+                        capturesLoading={thoughtPileRuntime.loading}
+                        onCaptureComplete={thoughtPileRuntime.refresh}
+                        activationKey={thoughtPileActivationKey}
+                        onRequestClose={() => {
+                          navigate('/projects', { replace: true });
+                        }}
+                      />
+                    </div>
+                  </section>
+                ) : (
+                  <>
+                    <RecentPanes
+                      currentProject={currentProject}
+                      currentProjectPanes={activeCurrentProjectPanes}
+                      isCollapsed={resolvedVisualCollapsed}
+                      onExpandSidebar={expandSidebar}
+                      showLabels={resolvedShowLabels}
+                    />
 
-                <div className="min-h-0 flex-1 overflow-hidden">
-                  <ProjectsTree
-                    currentProject={currentProject}
-                    currentProjectPanes={activeCurrentProjectPanes}
-                    isCollapsed={resolvedVisualCollapsed}
-                    onExpandSidebar={expandSidebar}
-                    showLabels={resolvedShowLabels}
-                  />
-                </div>
+                    <div className="min-h-0 flex-1 overflow-hidden">
+                      <ProjectsTree
+                        currentProject={currentProject}
+                        currentProjectPanes={activeCurrentProjectPanes}
+                        isCollapsed={resolvedVisualCollapsed}
+                        onExpandSidebar={expandSidebar}
+                        showLabels={resolvedShowLabels}
+                      />
+                    </div>
+                  </>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
