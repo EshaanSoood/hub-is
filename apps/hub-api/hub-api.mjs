@@ -6,6 +6,7 @@ import {
   randomUUID,
 } from 'node:crypto';
 import { createServer } from 'node:http';
+import path from 'node:path';
 import { URL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { createJwksVerifier } from '../shared/jwksVerifier.mjs';
@@ -30,6 +31,7 @@ import { createFileRoutes } from './routes/files.mjs';
 import { createNotificationRoutes } from './routes/notifications.mjs';
 import { createPaneRoutes } from './routes/panes.mjs';
 import { createProjectRoutes } from './routes/projects.mjs';
+import { createPublicRoutes } from './routes/public.mjs';
 import { createRecordRoutes } from './routes/records.mjs';
 import { createReminderRoutes } from './routes/reminders.mjs';
 import { createRequestRouter } from './routes/requestRouter.mjs';
@@ -42,6 +44,8 @@ import { buildRouteDeps } from './routeDeps.mjs';
 
 const PORT = Number(process.env.PORT || '3001');
 const HUB_DB_PATH = process.env.HUB_DB_PATH || '/data/hub.sqlite';
+const HUB_API_BASE_URL = (process.env.HUB_API_BASE_URL || '').trim().replace(/\/+$/, '');
+const HUB_PUBLIC_BUG_SCREENSHOT_DIR = (process.env.HUB_PUBLIC_BUG_SCREENSHOT_DIR || '').trim();
 const ALLOWED_ORIGIN = process.env.POSTMARK_ALLOWED_ORIGIN || '*';
 const KEYCLOAK_ISSUER = (process.env.KEYCLOAK_ISSUER || '').trim();
 const KEYCLOAK_AUDIENCE = (process.env.KEYCLOAK_AUDIENCE || '').trim();
@@ -59,6 +63,7 @@ const HUB_API_MAX_BODY_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_MA
 const HUB_API_LARGE_BODY_MAX_BYTES_RAW = Number.parseInt(String(process.env.HUB_API_LARGE_BODY_MAX_BYTES || '52428800'), 10);
 const POSTMARK_SERVER_TOKEN = (process.env.POSTMARK_SERVER_TOKEN || '').trim();
 const POSTMARK_FROM_EMAIL = (process.env.POSTMARK_FROM_EMAIL || process.env.VITE_POSTMARK_FROM_EMAIL || '').trim();
+const HUB_OWNER_EMAIL = (process.env.HUB_OWNER_EMAIL || '').trim();
 const POSTMARK_MESSAGE_STREAM = (process.env.POSTMARK_MESSAGE_STREAM || 'outbound').trim() || 'outbound';
 const POSTMARK_API_BASE_URL = (process.env.POSTMARK_API_BASE_URL || 'https://api.postmarkapp.com').trim().replace(/\/+$/, '');
 const EXTERNAL_API_TIMEOUT_MS_RAW = Number.parseInt(String(process.env.POSTMARK_REQUEST_TIMEOUT_MS || '15000'), 10);
@@ -77,7 +82,7 @@ const REMINDER_CHECK_INTERVAL_MS = 30_000;
 const HUB_PUBLIC_APP_URL = (process.env.HUB_PUBLIC_APP_URL || 'https://eshaansood.org').trim().replace(/\/+$/, '');
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
-const REGISTERED_ROUTE_COUNT = 79;
+const REGISTERED_ROUTE_COUNT = 82;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const {
@@ -101,6 +106,12 @@ const {
   HUB_API_LARGE_BODY_MAX_BYTES_RAW,
   systemLog,
 });
+const HUB_API_TRUST_PROXY = asBoolean(process.env.HUB_API_TRUST_PROXY, false);
+const publicBugScreenshotDir = HUB_PUBLIC_BUG_SCREENSHOT_DIR || path.join(path.dirname(HUB_DB_PATH), 'public', 'bug-report-screenshots');
+
+if (!HUB_API_BASE_URL) {
+  throw new Error('HUB_API_BASE_URL must be configured.');
+}
 
 
 const safeTuwunelConfig = () =>
@@ -185,9 +196,10 @@ const {
   parseUpstreamJson,
 });
 
-const { sendHubInviteEmail } = createPostmarkIntegration({
+const { sendHubInviteEmail, sendPublicBugReportEmail } = createPostmarkIntegration({
   POSTMARK_SERVER_TOKEN,
   POSTMARK_FROM_EMAIL,
+  HUB_OWNER_EMAIL,
   POSTMARK_MESSAGE_STREAM,
   POSTMARK_API_BASE_URL,
   EXTERNAL_API_TIMEOUT_MS,
@@ -1714,6 +1726,8 @@ const routeDeps = buildRouteDeps({
   stmts,
   withTransaction,
   ALLOWED_ORIGIN,
+  HUB_API_BASE_URL,
+  HUB_API_TRUST_PROXY,
   NEXTCLOUD_USER,
   MATRIX_HOMESERVER_URL,
   MATRIX_SERVER_NAME,
@@ -1789,10 +1803,12 @@ const routeDeps = buildRouteDeps({
   reassignTasksForRemovedMember,
   safeNextcloudConfig,
   sendHubInviteEmail,
+  sendPublicBugReportEmail,
   safeTuwunelConfig,
   send,
   isFetchTimeoutError,
   getOrCreateCalendarFeedToken,
+  publicBugScreenshotDir,
   timelineRecord,
   toJson,
   trackedFileRecord,
@@ -1819,6 +1835,7 @@ const taskRoutes = createTaskRoutes(routeDeps);
 const reminderRoutes = createReminderRoutes(routeDeps);
 const automationRoutes = createAutomationRoutes(routeDeps);
 const searchRoutes = createSearchRoutes(routeDeps);
+const publicRoutes = createPublicRoutes(routeDeps);
 
 const { startReminderScheduler } = createReminderScheduler({
   REMINDER_CHECK_INTERVAL_MS,
@@ -1865,6 +1882,7 @@ const requestRouter = createRequestRouter({
   notificationRoutes,
   fileRoutes,
   automationRoutes,
+  publicRoutes,
 });
 
 const server = createServer(requestRouter);

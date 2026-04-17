@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { classifyIntent } from '../../../lib/nlp/intent';
 import type { HubPaneSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
@@ -9,7 +9,6 @@ import {
   sidebarMotionLayoutIds,
 } from '../motion/sidebarMotion';
 import { Icon } from '../../primitives/Icon';
-import { CaptureDialog } from './CaptureDialog';
 import {
   type CaptureDestination,
   type CaptureKind,
@@ -18,6 +17,12 @@ import {
   moduleTypesByCaptureKind,
   readPaneHasModuleType,
 } from './shared';
+
+const importCaptureDialog = () => import('./CaptureDialog');
+const CaptureDialog = lazy(async () => {
+  const module = await importCaptureDialog();
+  return { default: module.CaptureDialog };
+});
 
 interface CaptureInputProps {
   accessToken: string | null | undefined;
@@ -64,6 +69,7 @@ export const CaptureInput = ({
   const prefersReducedMotion = useReducedMotion() ?? false;
   const [draft, setDraft] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [hasOpenedDialog, setHasOpenedDialog] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [captureKind, setCaptureKind] = useState<CaptureKind>('thought');
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -107,6 +113,7 @@ export const CaptureInput = ({
       inputRef.current?.focus();
       return;
     }
+    setHasOpenedDialog(true);
     setCaptureKind(resolveCaptureKind(draft, currentSurface));
     setDialogOpen(true);
   };
@@ -157,8 +164,12 @@ export const CaptureInput = ({
               ref={inputRef}
               type="text"
               value={draft}
+              onFocus={() => {
+                void importCaptureDialog();
+              }}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
+                void importCaptureDialog();
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
                   openDialog();
@@ -172,6 +183,9 @@ export const CaptureInput = ({
               type="button"
               aria-label="Open capture confirmation"
               className="interactive interactive-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              onMouseEnter={() => {
+                void importCaptureDialog();
+              }}
               onClick={openDialog}
             >
               <Icon name="plus" size={14} />
@@ -180,22 +194,26 @@ export const CaptureInput = ({
         </div>
       </motion.div>
 
-      <CaptureDialog
-        accessToken={accessToken}
-        captureKind={captureKind}
-        containerRef={containerRef}
-        destinations={destinations}
-        draft={draft}
-        open={dialogOpen && !isCollapsed}
-        personalProject={personalProject}
-        setDraft={setDraft}
-        triggerRef={triggerRef}
-        onClose={() => setDialogOpen(false)}
-        onSaved={() => {
-          setDraft('');
-          setDialogOpen(false);
-        }}
-      />
+      {hasOpenedDialog && !isCollapsed ? (
+        <Suspense fallback={null}>
+          <CaptureDialog
+            accessToken={accessToken}
+            captureKind={captureKind}
+            containerRef={containerRef}
+            destinations={destinations}
+            draft={draft}
+            open={dialogOpen}
+            personalProject={personalProject}
+            setDraft={setDraft}
+            triggerRef={triggerRef}
+            onClose={() => setDialogOpen(false)}
+            onSaved={() => {
+              setDraft('');
+              setDialogOpen(false);
+            }}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 };

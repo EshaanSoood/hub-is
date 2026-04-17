@@ -3,6 +3,7 @@ import { HUB_POSTMARK_INVITE_TEMPLATE } from '../emails/inviteTemplate.mjs';
 export const createPostmarkIntegration = ({
   POSTMARK_SERVER_TOKEN,
   POSTMARK_FROM_EMAIL,
+  HUB_OWNER_EMAIL,
   POSTMARK_MESSAGE_STREAM,
   POSTMARK_API_BASE_URL,
   EXTERNAL_API_TIMEOUT_MS,
@@ -13,6 +14,7 @@ export const createPostmarkIntegration = ({
   parseUpstreamJson,
 }) => {
   const safePostmarkConfig = () => Boolean(POSTMARK_SERVER_TOKEN && POSTMARK_FROM_EMAIL);
+  const looksLikeEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(asText(value));
 
   const escapeHtml = (value) =>
     String(value ?? '')
@@ -45,11 +47,58 @@ export const createPostmarkIntegration = ({
     ].join('\n\n');
   };
 
+  const renderPublicBugReportHtml = ({
+    bugReportId,
+    reporterName,
+    reporterEmail,
+    description,
+    screenshotUrl = '',
+  }) => {
+    const safeReporterName = escapeHtml(asText(reporterName) || 'Anonymous');
+    const safeReporterEmail = escapeHtml(asText(reporterEmail) || 'not provided');
+    const safeDescription = escapeHtml(asText(description)).replace(/\r?\n/g, '<br />');
+    const safeScreenshotUrl = escapeHtml(asText(screenshotUrl));
+    const safeBugReportId = escapeHtml(asText(bugReportId));
+
+    return [
+      '<!doctype html>',
+      '<html lang="en">',
+      '<body style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">',
+      '<h1 style="font-size: 20px; margin-bottom: 16px;">New Facets bug report</h1>',
+      `<p><strong>Bug report ID:</strong> ${safeBugReportId}</p>`,
+      `<p><strong>Reporter name:</strong> ${safeReporterName}</p>`,
+      `<p><strong>Reporter email:</strong> ${safeReporterEmail}</p>`,
+      `<p><strong>Description:</strong><br />${safeDescription}</p>`,
+      safeScreenshotUrl
+        ? `<p><strong>Screenshot:</strong> <a href="${safeScreenshotUrl}">${safeScreenshotUrl}</a></p>`
+        : '<p><strong>Screenshot:</strong> not provided</p>',
+      '</body>',
+      '</html>',
+    ].join('');
+  };
+
+  const renderPublicBugReportText = ({
+    bugReportId,
+    reporterName,
+    reporterEmail,
+    description,
+    screenshotUrl = '',
+  }) => [
+    'New Facets bug report',
+    `Bug report ID: ${asText(bugReportId)}`,
+    `Reporter name: ${asText(reporterName) || 'Anonymous'}`,
+    `Reporter email: ${asText(reporterEmail) || 'not provided'}`,
+    'Description:',
+    asText(description),
+    `Screenshot: ${asText(screenshotUrl) || 'not provided'}`,
+  ].join('\n\n');
+
   const sendPostmarkEmail = async ({
     to,
     subject,
     htmlBody,
     textBody,
+    replyTo = '',
     tag = '',
     requestLog = null,
   }) => {
@@ -80,6 +129,7 @@ export const createPostmarkIntegration = ({
             Subject: subject,
             HtmlBody: htmlBody,
             TextBody: textBody,
+            ...(replyTo ? { ReplyTo: replyTo } : {}),
             MessageStream: POSTMARK_MESSAGE_STREAM,
             ...(tag ? { Tag: tag } : {}),
           }),
@@ -130,11 +180,56 @@ export const createPostmarkIntegration = ({
       requestLog,
     });
 
+  const sendPublicBugReportEmail = async ({
+    bugReportId,
+    reporterName = '',
+    reporterEmail = '',
+    description = '',
+    screenshotUrl = '',
+    requestLog = null,
+  }) => {
+    const to = asText(HUB_OWNER_EMAIL);
+    if (!to) {
+      return {
+        error: {
+          status: 503,
+          code: 'postmark_unavailable',
+          message: 'Bug report notification recipient is not configured.',
+        },
+      };
+    }
+
+    return sendPostmarkEmail({
+      to,
+      subject: `New Facets bug report (${asText(bugReportId)})`,
+      htmlBody: renderPublicBugReportHtml({
+        bugReportId,
+        reporterName,
+        reporterEmail,
+        description,
+        screenshotUrl,
+      }),
+      textBody: renderPublicBugReportText({
+        bugReportId,
+        reporterName,
+        reporterEmail,
+        description,
+        screenshotUrl,
+      }),
+      replyTo: looksLikeEmail(reporterEmail) ? asText(reporterEmail) : '',
+      tag: 'facets-bug-report',
+      requestLog,
+    });
+  };
+
   return {
     safePostmarkConfig,
     renderHubPilotInviteHtml,
     renderHubPilotInviteText,
+    renderPublicBugReportHtml,
+    renderPublicBugReportText,
     sendPostmarkEmail,
     sendHubInviteEmail,
+    sendPublicBugReportEmail,
   };
 };

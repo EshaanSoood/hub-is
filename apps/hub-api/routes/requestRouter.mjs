@@ -26,6 +26,7 @@ export const createRequestRouter = ({
   notificationRoutes,
   fileRoutes,
   automationRoutes,
+  publicRoutes,
 }) => async (request, response) => {
   applyRequestContext(request, response);
 
@@ -45,12 +46,40 @@ export const createRequestRouter = ({
   }
   const pathname = requestUrl.pathname;
 
+  const publicBugScreenshotMatch = pathMatch(pathname, /^\/public\/bug-report-screenshots\/([^/]+)$/);
+
+  if (request.method === 'OPTIONS' && (pathname === '/public/bug-reports' || pathname === '/public/bugs' || publicBugScreenshotMatch)) {
+    await publicRoutes.optionsPublic({ request, response, requestUrl, pathname });
+    return;
+  }
+
   if (request.method === 'OPTIONS') {
     send(response, jsonResponse(204, okEnvelope(null)));
     return;
   }
 
   try {
+    if (request.method === 'POST' && pathname === '/public/bug-reports') {
+      await publicRoutes.submitBugReport({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (request.method === 'GET' && pathname === '/public/bugs') {
+      await publicRoutes.listPublicBugs({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (request.method === 'GET' && publicBugScreenshotMatch) {
+      await publicRoutes.serveBugReportScreenshot({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { fileName: decodeURIComponent(publicBugScreenshotMatch[1]) },
+      });
+      return;
+    }
+
     if (request.method === 'GET' && pathname === '/api/health') {
       send(
         response,

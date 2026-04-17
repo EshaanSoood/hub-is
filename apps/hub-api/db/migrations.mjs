@@ -215,6 +215,22 @@ export const runMigrations = (db) => {
     );
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bug_reports (
+      id TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      reporter_name TEXT,
+      reporter_email TEXT,
+      description TEXT NOT NULL,
+      screenshot_path TEXT,
+      status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'open', 'in_progress', 'fixed', 'wont_fix')),
+      "public" INTEGER NOT NULL DEFAULT 0 CHECK ("public" IN (0, 1)),
+      notes TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_bug_reports_public_created
+      ON bug_reports("public", created_at DESC, id DESC);
+  `);
+
   const matrixPasswordColumn = db
     .prepare("SELECT 1 AS ok FROM pragma_table_info('matrix_accounts') WHERE name = 'matrix_password_encrypted' LIMIT 1")
     .get();

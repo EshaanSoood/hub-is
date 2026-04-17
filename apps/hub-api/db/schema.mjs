@@ -46,6 +46,7 @@ const CONTRACT_TABLES = [
   'notifications',
   'automation_rules',
   'automation_runs',
+  'bug_reports',
 ];
 
 const CONTRACT_TRIGGERS = [
@@ -85,6 +86,7 @@ const CONTRACT_INDEXES = [
   'idx_notifications_user_unread_created',
   'idx_automation_runs_rule_started',
   'idx_projects_personal_owner',
+  'idx_bug_reports_public_created',
 ];
 
 const nowIso = () => new Date().toISOString();
@@ -159,12 +161,12 @@ const resetSchemaToContractV1 = (db) => {
         tasks_collection_id TEXT,
         reminders_collection_id TEXT,
         position INTEGER,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
         CHECK (
           (is_personal = 0 AND project_type = 'team')
           OR (is_personal = 1 AND project_type = 'personal')
         ),
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
 
@@ -527,6 +529,18 @@ const resetSchemaToContractV1 = (db) => {
         FOREIGN KEY(automation_rule_id) REFERENCES automation_rules(automation_rule_id) ON DELETE CASCADE
       );
 
+      CREATE TABLE bug_reports (
+        id TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        reporter_name TEXT,
+        reporter_email TEXT,
+        description TEXT NOT NULL,
+        screenshot_path TEXT,
+        status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'open', 'in_progress', 'fixed', 'wont_fix')),
+        "public" INTEGER NOT NULL DEFAULT 0 CHECK ("public" IN (0, 1)),
+        notes TEXT
+      );
+
       CREATE TRIGGER pane_members_must_be_project_members
       BEFORE INSERT ON pane_members
       FOR EACH ROW
@@ -684,6 +698,7 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_automation_runs_rule_started ON automation_runs(automation_rule_id, started_at DESC);
       CREATE UNIQUE INDEX idx_projects_personal_owner ON projects(created_by)
         WHERE project_type = 'personal';
+      CREATE INDEX idx_bug_reports_public_created ON bug_reports("public", created_at DESC, id DESC);
     `);
 
     db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 1, ?)').run(nowIso());
