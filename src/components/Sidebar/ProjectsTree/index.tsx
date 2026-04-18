@@ -261,7 +261,7 @@ export const ProjectsTree = ({
                     to="/projects"
                     className="interactive interactive-subtle rounded-control px-1 py-0.5 text-muted hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   >
-                    myHub
+                    Home
                   </Link>
                   <span>/</span>
                   <Link

@@ -101,7 +101,7 @@ export const PersonalizedDashboardPanel = ({
     <div className="relative rounded-panel border border-subtle bg-elevated p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div aria-hidden="true" className="shrink-0 text-text">
-          <HubOsWordmark className="block h-auto w-[116px]" width={116} />
+          <HubOsWordmark className="block text-text" width={116} />
         </div>
         {homeLoading ? <span className="text-xs text-muted">Refreshing…</span> : null}
       </div>

@@ -12,7 +12,7 @@ export interface AppTab {
 }
 
 export const appTabs: AppTab[] = [
-  { to: '/', label: 'Hub', capability: 'hub.view' },
+  { to: '/', label: 'Home', capability: 'hub.view' },
   { to: '/projects', label: 'Projects', capability: 'projects.view' },
 ];
 

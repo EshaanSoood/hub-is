@@ -1717,7 +1717,7 @@ export const ProjectSpaceWorkspace = ({
                 value={newAssetRootPath}
                 onChange={(event) => setNewAssetRootPath(event.target.value)}
                 className="rounded-panel border border-border-muted bg-surface px-3 py-1.5 text-sm text-text"
-                placeholder="/Projects/Hub"
+                placeholder="/Projects/Home"
                 aria-label="Asset root path"
               />
               <button type="submit" className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary">

@@ -179,7 +179,7 @@ export const CaptureInput = ({
 
   const destinations = useMemo<CaptureDestination[]>(
     () => [
-      { kind: 'hub', label: 'myHub', project: personalProject, pane: null },
+      { kind: 'hub', label: 'Home', project: personalProject, pane: null },
       ...(paneDestination ? [paneDestination] : []),
     ],
     [paneDestination, personalProject],
@@ -219,7 +219,7 @@ export const CaptureInput = ({
 
     const destination = currentProject
       ? paneDestinations[resolvedCaptureKind]
-      : { kind: 'hub', label: 'myHub', project: personalProject, pane: null } satisfies CaptureDestination;
+      : { kind: 'hub', label: 'Home', project: personalProject, pane: null } satisfies CaptureDestination;
     if (!destination) {
       return false;
     }
