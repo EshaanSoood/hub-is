@@ -75,7 +75,7 @@ export const OverviewHeader = ({
             setIsEditingTitle(true);
           }}
           className="w-full rounded-control px-1 py-0.5 text-left text-xl font-bold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          aria-label="Edit project title"
+          aria-label={`Edit project title: ${title || 'Untitled project'}`}
         >
           {title}
         </button>

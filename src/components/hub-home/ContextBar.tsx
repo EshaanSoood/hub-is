@@ -24,6 +24,7 @@ const CountPill = ({
 }) => (
   <span
     className="inline-flex items-center gap-1.5 rounded-control border border-border-muted bg-surface-elevated px-2.5 py-1 text-xs font-medium text-text"
+    role="img"
     aria-label={`${count} ${label}`}
   >
     <Icon name={iconName} className="text-[12px]" />

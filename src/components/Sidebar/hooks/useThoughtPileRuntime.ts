@@ -25,6 +25,10 @@ export const useThoughtPileRuntime = ({ accessToken, enabled }: UseThoughtPileRu
     const refreshSequence = refreshSequenceRef.current + 1;
     refreshSequenceRef.current = refreshSequence;
 
+    if (!mountedRef.current) {
+      return;
+    }
+
     if (!enabled || !accessToken) {
       if (mountedRef.current && refreshSequence === refreshSequenceRef.current) {
         setCaptures([]);
@@ -33,7 +37,9 @@ export const useThoughtPileRuntime = ({ accessToken, enabled }: UseThoughtPileRu
       return;
     }
 
-    setLoading(true);
+    if (mountedRef.current && refreshSequence === refreshSequenceRef.current) {
+      setLoading(true);
+    }
     try {
       const homeData = await getHubHome(accessToken, {
         tasks_limit: 1,

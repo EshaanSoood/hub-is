@@ -40,6 +40,7 @@ export const Surfaces = ({
       <SurfaceItem
         key={surface.id}
         active={activeSurface === surface.id}
+        id={surface.id}
         iconName={surface.iconName}
         isCollapsed={isCollapsed}
         label={surface.label}

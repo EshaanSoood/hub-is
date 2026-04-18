@@ -90,7 +90,13 @@ export const useProjectTasksRuntime = ({
   }, [activeTab, hasTaskData, loadProjectTaskPage, overviewView]);
 
   useEffect(() => {
-    if (activeTab !== 'overview' || overviewView !== 'tasks' || !projectTasks.next_cursor || projectTasksLoading || projectTasksLoadingMore) {
+    if (
+      activeTab !== 'overview'
+      || (overviewView !== 'tasks' && overviewView !== 'kanban')
+      || !projectTasks.next_cursor
+      || projectTasksLoading
+      || projectTasksLoadingMore
+    ) {
       return;
     }
     const sentinel = projectTasksSentinelRef.current;

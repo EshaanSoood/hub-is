@@ -268,8 +268,13 @@ export const SidebarShell = () => {
                         capturesLoading={thoughtPileRuntime.loading}
                         onCaptureComplete={thoughtPileRuntime.refresh}
                         activationKey={thoughtPileActivationKey}
-                        onRequestClose={() => {
+                        onRequestClose={(options) => {
                           navigate('/projects', { replace: true });
+                          if (options?.restoreFocus !== false) {
+                            requestAnimationFrame(() => {
+                              document.querySelector<HTMLElement>('[data-sidebar-surface="thoughts"]')?.focus();
+                            });
+                          }
                         }}
                       />
                     </div>

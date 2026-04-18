@@ -4,6 +4,7 @@ import { Icon, type IconName } from '../../primitives/Icon';
 
 interface SurfaceItemProps {
   active: boolean;
+  id: string;
   iconName: IconName;
   isCollapsed: boolean;
   label: string;
@@ -13,6 +14,7 @@ interface SurfaceItemProps {
 
 export const SurfaceItem = ({
   active,
+  id,
   iconName,
   isCollapsed,
   label,
@@ -21,6 +23,7 @@ export const SurfaceItem = ({
 }: SurfaceItemProps) => (
   <button
     type="button"
+    data-sidebar-surface={id}
     aria-current={active ? 'page' : undefined}
     aria-label={isCollapsed ? label : undefined}
     className={`interactive interactive-subtle relative flex items-center gap-3 overflow-hidden rounded-control border px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${

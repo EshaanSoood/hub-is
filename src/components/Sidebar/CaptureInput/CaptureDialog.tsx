@@ -101,7 +101,10 @@ export const CaptureDialog = ({
       return;
     }
     initializedOpenRef.current = true;
-    setDestinationValue(defaultDestinationValue);
+    const nextDestinationValue = destinations.some((destination) => destination.kind === defaultDestinationValue)
+      ? defaultDestinationValue
+      : destinations[0]?.kind ?? 'hub';
+    setDestinationValue(nextDestinationValue);
     setError(null);
     setSubmitting(false);
     if (captureKind === 'task') {
@@ -123,7 +126,7 @@ export const CaptureDialog = ({
       setReminderAt('');
       setReminderDraft(draft);
     }
-  }, [captureKind, defaultDestinationValue, draft, open, setCalendarDraft, setReminderDraft, setTaskDraft]);
+  }, [captureKind, defaultDestinationValue, destinations, draft, open, setCalendarDraft, setReminderDraft, setTaskDraft]);
 
   useEffect(() => {
     if (!open || captureKind !== 'task') {

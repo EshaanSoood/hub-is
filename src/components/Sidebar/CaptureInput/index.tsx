@@ -80,18 +80,34 @@ const parseEventPreview = async (
   return new Promise((resolve) => {
     const worker = new Worker(new URL('../../../workers/calendarNlpWorker.js', import.meta.url), { type: 'module' });
     const requestId = Date.now();
+    let settled = false;
+    let timeoutId: number | null = null;
+
+    const finish = (preview: ReturnType<typeof calendarPreviewToFormPreview> | null) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      worker.terminate();
+      resolve(preview);
+    };
+
+    timeoutId = window.setTimeout(() => {
+      finish(null);
+    }, 5000);
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
       if (event.data?.requestId !== requestId) {
         return;
       }
-      worker.terminate();
-      resolve(event.data.error ? null : calendarPreviewToFormPreview(event.data.preview));
+      finish(event.data.error ? null : calendarPreviewToFormPreview(event.data.preview));
     };
 
     worker.onerror = () => {
-      worker.terminate();
-      resolve(null);
+      finish(null);
     };
 
     worker.postMessage({ requestId, draft, timezone });
@@ -121,6 +137,7 @@ export const CaptureInput = ({
   const [captureKind, setCaptureKind] = useState<CaptureKind>('thought');
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const isSubmittingRef = useRef(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const paneDestinations = useMemo<Record<CaptureKind, CaptureDestination | null>>(() => {
@@ -182,7 +199,7 @@ export const CaptureInput = ({
   }, [autoFocusKey]);
 
   const openDialog = () => {
-    if (!draft.trim()) {
+    if (isSubmittingRef.current || !draft.trim()) {
       inputRef.current?.focus();
       return;
     }
@@ -193,8 +210,11 @@ export const CaptureInput = ({
 
   const submitDirectCapture = async (resolvedCaptureKind: CaptureKind): Promise<boolean> => {
     const trimmedDraft = draft.trim();
-    if (!trimmedDraft || !accessToken || isSubmitting) {
+    if (!trimmedDraft || !accessToken) {
       return false;
+    }
+    if (isSubmittingRef.current) {
+      return true;
     }
 
     const destination = currentProject
@@ -204,6 +224,7 @@ export const CaptureInput = ({
       return false;
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
       if (resolvedCaptureKind === 'thought') {
@@ -351,6 +372,7 @@ export const CaptureInput = ({
     } catch {
       return false;
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -401,14 +423,18 @@ export const CaptureInput = ({
               ref={inputRef}
               type="text"
               value={draft}
+              aria-busy={isSubmitting}
               onFocus={() => {
                 void importCaptureDialog();
               }}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
                 void importCaptureDialog();
-                if (event.key === 'Enter' && !event.shiftKey && !isSubmitting) {
+                if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
+                  if (isSubmittingRef.current) {
+                    return;
+                  }
                   const resolvedCaptureKind = resolveCaptureKind(draft, currentSurface);
                   void submitDirectCapture(resolvedCaptureKind).then((didSubmit) => {
                     if (!didSubmit) {
@@ -423,6 +449,7 @@ export const CaptureInput = ({
             <button
               ref={triggerRef}
               type="button"
+              disabled={isSubmitting}
               aria-label="Open capture confirmation"
               className="interactive interactive-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onMouseEnter={() => {

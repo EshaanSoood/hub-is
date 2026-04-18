@@ -200,7 +200,11 @@ export const createTaskRoutes = (deps) => {
     const offset = parseCursorOffset(requestUrl.searchParams.get('cursor'));
 
     let tasks = [];
-    if (lens === 'pane' && projectId && paneId) {
+    if (lens === 'pane') {
+      if (!projectId || !paneId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane lens requires project_id and pane_id.')));
+        return;
+      }
       const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'view' });
       if (projectGate.error) {
         send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
