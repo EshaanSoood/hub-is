@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Icon, Popover, PopoverContent, PopoverTrigger } from '../primitives';
 import type { ClientReference, Collaborator } from './types';
 import { COLLABORATOR_TONES } from './designTokens';
@@ -22,6 +22,9 @@ export const OverviewHeader = ({
   onInvite,
 }: OverviewHeaderProps) => {
   const [refsOpen, setRefsOpen] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleBeforeEdit, setTitleBeforeEdit] = useState(title);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
 
   const collaboratorBadges = useMemo(
     () => collaborators.map((collaborator, index) => ({
@@ -31,15 +34,52 @@ export const OverviewHeader = ({
     [collaborators],
   );
 
+  useEffect(() => {
+    if (!isEditingTitle) {
+      return;
+    }
+    titleInputRef.current?.focus();
+    titleInputRef.current?.select();
+  }, [isEditingTitle]);
+
   return (
     <header className="rounded-panel border border-subtle bg-elevated p-4">
-      <input
-        type="text"
-        value={title}
-        onChange={(event) => onTitleChange(event.target.value)}
-        aria-label="Project title"
-        className="w-full rounded-control border border-transparent bg-transparent px-1 py-0.5 text-xl font-bold text-text"
-      />
+      {isEditingTitle ? (
+        <input
+          ref={titleInputRef}
+          type="text"
+          value={title}
+          onChange={(event) => onTitleChange(event.target.value)}
+          onBlur={() => setIsEditingTitle(false)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              setIsEditingTitle(false);
+              event.currentTarget.blur();
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              onTitleChange(titleBeforeEdit);
+              setIsEditingTitle(false);
+              event.currentTarget.blur();
+            }
+          }}
+          aria-label="Project title"
+          className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-xl font-bold text-text"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setTitleBeforeEdit(title);
+            setIsEditingTitle(true);
+          }}
+          className="w-full rounded-control px-1 py-0.5 text-left text-xl font-bold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          aria-label={`Edit project title: ${title || 'Untitled project'}`}
+        >
+          {title}
+        </button>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <span className="inline-flex items-center gap-1 text-xs text-muted">

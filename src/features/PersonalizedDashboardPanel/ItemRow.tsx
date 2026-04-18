@@ -1,4 +1,4 @@
-import { Chip } from '../../components/primitives';
+import { Chip, Icon, type IconName } from '../../components/primitives';
 import { EventCard } from '../../components/cards/EventCard';
 import { TaskCard } from '../../components/cards/TaskCard';
 import type { HubDashboardItem } from './types';
@@ -11,10 +11,12 @@ interface ItemRowProps {
 
 export const ItemRow = ({ item, onOpen }: ItemRowProps) => {
   const canOpen = Boolean(item.recordId);
+  const badgeIconName: IconName = item.kind === 'task' ? 'tasks' : 'calendar';
   const content = (
     <div className="flex min-w-0 items-start gap-3">
-      <Chip variant="neutral" className="shrink-0">
-        {item.badgeLabel}
+      <Chip variant="neutral" className="shrink-0 gap-1.5 px-2.5">
+        <Icon name={badgeIconName} className="text-[12px]" />
+        <span className="sr-only">{item.badgeLabel}</span>
       </Chip>
       {item.kind === 'task' ? (
         <TaskCard

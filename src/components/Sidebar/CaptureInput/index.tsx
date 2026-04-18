@@ -1,6 +1,15 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, startTransition, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { buildReminderCreatePayload } from '../../../hooks/useReminderNLDraft';
+import { calendarPreviewToFormPreview, type CalendarParseResult } from '../../../hooks/useCalendarNLDraft';
+import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
+import { buildProjectWorkHref } from '../../../lib/hubRoutes';
 import { classifyIntent } from '../../../lib/nlp/intent';
+import { parseReminderInput } from '../../../lib/nlp/reminder-parser';
+import { parseTaskInput } from '../../../lib/nlp/task-parser';
+import { createEventFromNlp, createPersonalTask, createRecord } from '../../../services/hub/records';
+import { createReminder } from '../../../services/hub/reminders';
 import type { HubPaneSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
 import { SidebarLabel } from '../motion/SidebarLabel';
@@ -14,8 +23,11 @@ import {
   type CaptureKind,
   type SidebarCaptureSurface,
   captureKindBySidebarSurface,
+  createQuickThoughtEntry,
   moduleTypesByCaptureKind,
+  readQuickThoughtStorageKey,
   readPaneHasModuleType,
+  selectCollectionId,
 } from './shared';
 
 const importCaptureDialog = () => import('./CaptureDialog');
@@ -27,6 +39,7 @@ const CaptureDialog = lazy(async () => {
 interface CaptureInputProps {
   accessToken: string | null | undefined;
   autoFocusKey: number;
+  currentPaneId: string | null;
   currentProject: ProjectRecord | null;
   currentProjectPanes: HubPaneSummary[];
   currentSurface: SidebarCaptureSurface;
@@ -54,9 +67,57 @@ const resolveCaptureKind = (draft: string, currentSurface: SidebarCaptureSurface
   return 'thought';
 };
 
+const parseEventPreview = async (
+  draft: string,
+  timezone: string,
+): Promise<ReturnType<typeof calendarPreviewToFormPreview> | null> => {
+  type WorkerResponse = {
+    requestId: number;
+    preview: CalendarParseResult;
+    error: string | null;
+  };
+
+  return new Promise((resolve) => {
+    const worker = new Worker(new URL('../../../workers/calendarNlpWorker.js', import.meta.url), { type: 'module' });
+    const requestId = Date.now();
+    let settled = false;
+    let timeoutId: number | null = null;
+
+    const finish = (preview: ReturnType<typeof calendarPreviewToFormPreview> | null) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      worker.terminate();
+      resolve(preview);
+    };
+
+    timeoutId = window.setTimeout(() => {
+      finish(null);
+    }, 5000);
+
+    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      if (event.data?.requestId !== requestId) {
+        return;
+      }
+      finish(event.data.error ? null : calendarPreviewToFormPreview(event.data.preview));
+    };
+
+    worker.onerror = () => {
+      finish(null);
+    };
+
+    worker.postMessage({ requestId, draft, timezone });
+  });
+};
+
 export const CaptureInput = ({
   accessToken,
   autoFocusKey,
+  currentPaneId,
   currentProject,
   currentProjectPanes,
   currentSurface,
@@ -66,31 +127,55 @@ export const CaptureInput = ({
   personalProject,
   showLabels,
 }: CaptureInputProps) => {
+  const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion() ?? false;
   const [draft, setDraft] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [hasOpenedDialog, setHasOpenedDialog] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [captureKind, setCaptureKind] = useState<CaptureKind>('thought');
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const isSubmittingRef = useRef(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const paneDestination = useMemo<CaptureDestination | null>(() => {
+  const paneDestinations = useMemo<Record<CaptureKind, CaptureDestination | null>>(() => {
     if (!currentProject) {
-      return null;
+      return {
+        thought: null,
+        task: null,
+        event: null,
+        reminder: null,
+      };
     }
-    const matchingPane = currentProjectPanes.find((pane) => readPaneHasModuleType(pane, moduleTypesByCaptureKind[captureKind])) || null;
-    if (!matchingPane) {
-      return null;
-    }
-    return {
-      kind: 'pane',
-      label: `${currentProject.name} / ${matchingPane.name}`,
-      pane: matchingPane,
-      project: currentProject,
+    const activePane = currentPaneId
+      ? currentProjectPanes.find((pane) => pane.pane_id === currentPaneId) || null
+      : null;
+    const resolvePaneDestination = (kind: CaptureKind): CaptureDestination | null => {
+      const requiredModuleType = moduleTypesByCaptureKind[kind];
+      const matchingPane = activePane && readPaneHasModuleType(activePane, requiredModuleType)
+        ? activePane
+        : currentProjectPanes.find((pane) => readPaneHasModuleType(pane, requiredModuleType)) || null;
+      if (!matchingPane) {
+        return null;
+      }
+      return {
+        kind: 'pane',
+        label: `${currentProject.name} / ${matchingPane.name}`,
+        pane: matchingPane,
+        project: currentProject,
+      };
     };
-  }, [captureKind, currentProject, currentProjectPanes]);
+    return {
+      thought: resolvePaneDestination('thought'),
+      task: resolvePaneDestination('task'),
+      event: resolvePaneDestination('event'),
+      reminder: resolvePaneDestination('reminder'),
+    };
+  }, [currentPaneId, currentProject, currentProjectPanes]);
+
+  const paneDestination = paneDestinations[captureKind];
 
   const destinations = useMemo<CaptureDestination[]>(
     () => [
@@ -98,6 +183,11 @@ export const CaptureInput = ({
       ...(paneDestination ? [paneDestination] : []),
     ],
     [paneDestination, personalProject],
+  );
+
+  const defaultDestinationValue = useMemo<'hub' | 'pane'>(
+    () => (currentProject && paneDestination ? 'pane' : 'hub'),
+    [currentProject, paneDestination],
   );
 
   useEffect(() => {
@@ -109,13 +199,182 @@ export const CaptureInput = ({
   }, [autoFocusKey]);
 
   const openDialog = () => {
-    if (!draft.trim()) {
+    if (isSubmittingRef.current || !draft.trim()) {
       inputRef.current?.focus();
       return;
     }
     setHasOpenedDialog(true);
     setCaptureKind(resolveCaptureKind(draft, currentSurface));
     setDialogOpen(true);
+  };
+
+  const submitDirectCapture = async (resolvedCaptureKind: CaptureKind): Promise<boolean> => {
+    const trimmedDraft = draft.trim();
+    if (!trimmedDraft || !accessToken) {
+      return false;
+    }
+    if (isSubmittingRef.current) {
+      return true;
+    }
+
+    const destination = currentProject
+      ? paneDestinations[resolvedCaptureKind]
+      : { kind: 'hub', label: 'myHub', project: personalProject, pane: null } satisfies CaptureDestination;
+    if (!destination) {
+      return false;
+    }
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      if (resolvedCaptureKind === 'thought') {
+        if (destination.kind === 'pane' && destination.pane) {
+          const pane = destination.pane;
+          const storageKey = readQuickThoughtStorageKey(pane);
+          if (!storageKey) {
+            return false;
+          }
+          createQuickThoughtEntry(storageKey, trimmedDraft);
+          startTransition(() => {
+            navigate(buildProjectWorkHref(pane.project_id, pane.pane_id));
+          });
+        } else {
+          if (!personalProject?.id) {
+            return false;
+          }
+          const collectionId = await selectCollectionId(accessToken, personalProject.id, ['inbox', 'capture', 'note', 'journal']);
+          if (!collectionId) {
+            return false;
+          }
+          await createRecord(accessToken, personalProject.id, {
+            collection_id: collectionId,
+            title: trimmedDraft,
+          });
+          requestHubHomeRefresh();
+        }
+      }
+
+      if (resolvedCaptureKind === 'task') {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const parsedTask = parseTaskInput(trimmedDraft, { timezone });
+        const normalizedTaskTitle = parsedTask.fields.title.trim();
+        const dueAtDate = parsedTask.fields.due_at ? new Date(parsedTask.fields.due_at) : null;
+        if (!normalizedTaskTitle || (dueAtDate && Number.isNaN(dueAtDate.getTime()))) {
+          return false;
+        }
+
+        if (destination.kind === 'pane' && destination.pane) {
+          const pane = destination.pane;
+          const collectionId = await selectCollectionId(accessToken, pane.project_id, ['task', 'todo']);
+          if (!collectionId) {
+            return false;
+          }
+          await createRecord(accessToken, pane.project_id, {
+            collection_id: collectionId,
+            title: normalizedTaskTitle,
+            capability_types: ['task'],
+            task_state: {
+              status: 'todo',
+              priority: parsedTask.fields.priority,
+              due_at: dueAtDate ? dueAtDate.toISOString() : null,
+            },
+            source_pane_id: pane.pane_id,
+          });
+          requestHubHomeRefresh();
+          startTransition(() => {
+            navigate(buildProjectWorkHref(pane.project_id, pane.pane_id));
+          });
+        } else {
+          if (!personalProject?.id) {
+            return false;
+          }
+          await createPersonalTask(accessToken, {
+            project_id: personalProject.id,
+            title: normalizedTaskTitle,
+            priority: parsedTask.fields.priority,
+            due_at: dueAtDate ? dueAtDate.toISOString() : null,
+          });
+          requestHubHomeRefresh();
+        }
+      }
+
+      if (resolvedCaptureKind === 'reminder') {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const parsedReminder = parseReminderInput(trimmedDraft, { timezone });
+        const reminderPayload = buildReminderCreatePayload({
+          preview: parsedReminder,
+          draft: trimmedDraft,
+          fallbackTitleFromDraft: true,
+        });
+        if (!reminderPayload.payload) {
+          return false;
+        }
+        await createReminder(accessToken, {
+          ...reminderPayload.payload,
+          ...(destination.kind === 'pane' && destination.pane
+            ? {
+                scope: 'project',
+                project_id: destination.pane.project_id,
+                pane_id: destination.pane.pane_id,
+              }
+            : {
+                scope: 'personal',
+              }),
+        });
+        requestHubHomeRefresh();
+      }
+
+      if (resolvedCaptureKind === 'event') {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const eventPreview = await parseEventPreview(trimmedDraft, timezone);
+        if (!eventPreview) {
+          return false;
+        }
+        const startDate = eventPreview.startAt ? new Date(eventPreview.startAt) : null;
+        const endDate = eventPreview.endAt ? new Date(eventPreview.endAt) : null;
+        if (!eventPreview.title || !startDate || !endDate) {
+          return false;
+        }
+        if (
+          Number.isNaN(startDate.getTime())
+          || Number.isNaN(endDate.getTime())
+          || endDate.getTime() <= startDate.getTime()
+        ) {
+          return false;
+        }
+
+        const projectId = destination.kind === 'pane' && destination.pane
+          ? destination.pane.project_id
+          : personalProject?.id;
+        if (!projectId) {
+          return false;
+        }
+        await createEventFromNlp(accessToken, projectId, {
+          title: eventPreview.title,
+          start_dt: startDate.toISOString(),
+          end_dt: endDate.toISOString(),
+          timezone,
+          ...(destination.kind === 'pane' && destination.pane
+            ? {
+                pane_id: destination.pane.pane_id,
+                source_pane_id: destination.pane.pane_id,
+              }
+            : {}),
+        });
+        requestHubHomeRefresh();
+      }
+
+      setDraft('');
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+      return true;
+    } catch {
+      return false;
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   if (isCollapsed) {
@@ -164,6 +423,7 @@ export const CaptureInput = ({
               ref={inputRef}
               type="text"
               value={draft}
+              aria-busy={isSubmitting}
               onFocus={() => {
                 void importCaptureDialog();
               }}
@@ -172,7 +432,15 @@ export const CaptureInput = ({
                 void importCaptureDialog();
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
-                  openDialog();
+                  if (isSubmittingRef.current) {
+                    return;
+                  }
+                  const resolvedCaptureKind = resolveCaptureKind(draft, currentSurface);
+                  void submitDirectCapture(resolvedCaptureKind).then((didSubmit) => {
+                    if (!didSubmit) {
+                      openDialog();
+                    }
+                  });
                 }
               }}
               placeholder={currentSurfaceLabel ? `Capture for ${currentSurfaceLabel.toLowerCase()}…` : 'Capture anything…'}
@@ -181,6 +449,7 @@ export const CaptureInput = ({
             <button
               ref={triggerRef}
               type="button"
+              disabled={isSubmitting}
               aria-label="Open capture confirmation"
               className="interactive interactive-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onMouseEnter={() => {
@@ -200,6 +469,7 @@ export const CaptureInput = ({
             accessToken={accessToken}
             captureKind={captureKind}
             containerRef={containerRef}
+            defaultDestinationValue={defaultDestinationValue}
             destinations={destinations}
             draft={draft}
             open={dialogOpen}

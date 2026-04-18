@@ -3,6 +3,11 @@ import { SurfaceItem } from './SurfaceItem';
 
 export type SidebarSurfaceId = 'tasks' | 'calendar' | 'reminders' | 'thoughts';
 
+export const parseSidebarSurfaceId = (value: string | null): SidebarSurfaceId | null =>
+  value === 'tasks' || value === 'calendar' || value === 'reminders' || value === 'thoughts'
+    ? value
+    : null;
+
 export const buildSurfaceHref = (surfaceId: SidebarSurfaceId): string =>
   `/projects?surface=${encodeURIComponent(surfaceId)}`;
 
@@ -35,6 +40,7 @@ export const Surfaces = ({
       <SurfaceItem
         key={surface.id}
         active={activeSurface === surface.id}
+        id={surface.id}
         iconName={surface.iconName}
         isCollapsed={isCollapsed}
         label={surface.label}

@@ -57,6 +57,7 @@ interface TasksTabProps {
   onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
   onUpdateTaskCategory?: (taskId: string, category: string | null) => void | Promise<void>;
   onDeleteTask?: (taskId: string) => void | Promise<void>;
+  onOpenRecord?: (recordId: string) => void;
   activeItemId?: string | null;
   activeItemType?: ModuleInsertItemType;
   setActiveItem?: (id: string, type: ModuleInsertItemType, title: string) => void;
@@ -81,6 +82,7 @@ export const TasksTab = ({
   onUpdateTaskDueDate,
   onUpdateTaskCategory,
   onDeleteTask,
+  onOpenRecord,
   activeItemId = null,
   activeItemType = null,
   setActiveItem,
@@ -225,6 +227,7 @@ export const TasksTab = ({
                       onUpdateTaskDueDate={onUpdateTaskDueDate}
                       onUpdateTaskCategory={onUpdateTaskCategory}
                       onDeleteTask={onDeleteTask}
+                      onOpenRecord={onOpenRecord}
                       activeItemId={activeItemId}
                       activeItemType={activeItemType}
                       setActiveItem={setActiveItem}

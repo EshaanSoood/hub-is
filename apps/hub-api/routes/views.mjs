@@ -78,6 +78,7 @@ export const createViewRoutes = (deps) => {
     recordDetail,
     resolveProjectContentWriteGate,
     resolveMutationContextPaneId,
+    sourcePaneContextForRecord,
     normalizeParticipants,
     findOrCreateEventsCollection,
     parseCursorOffset,
@@ -497,11 +498,13 @@ export const createViewRoutes = (deps) => {
       });
     }
 
+    const sourcePaneContextCache = new Map();
     const events = filtered.map((record) => ({
       record_id: record.record_id,
       title: record.title,
       event_state: eventStateByRecordStmt.get(record.record_id),
       participants: participantsByRecordStmt.all(record.record_id).map((row) => ({ user_id: row.user_id, role: row.role })),
+      source_pane: sourcePaneContextForRecord(record, sourcePaneContextCache),
     }));
 
     send(response, jsonResponse(200, okEnvelope({ mode, events })));

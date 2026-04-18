@@ -70,7 +70,7 @@ export const StreamView = ({ items, projects, onOpenRecord, now }: StreamViewPro
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4">
       <h2 className="sr-only">Stream</h2>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap gap-2">

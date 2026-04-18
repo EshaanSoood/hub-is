@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { notifyError } from '../primitives';
+import { Icon, notifyError } from '../primitives';
 import { HUB_BACKLOG_DRAG_MIME } from './types';
 import type { BacklogDragPayload, BacklogReminderItem, BacklogTaskItem } from './types';
 
@@ -350,7 +350,13 @@ export const BacklogPanel = ({
         <span id="backlog-heading" role="heading" aria-level={3} className="text-sm font-semibold text-text">
           Backlog
         </span>
-        <span className="text-xs text-muted">{totalItemCount} items</span>
+        <span className="flex items-center gap-2 text-xs text-muted">
+          <span>{totalItemCount} items</span>
+          <Icon
+            name="chevron-down"
+            className={`text-[12px] transition-transform ${isCollapsed ? '-rotate-90' : 'rotate-0'}`}
+          />
+        </span>
       </button>
 
       <div id={listId} hidden={isCollapsed} className="mt-3">

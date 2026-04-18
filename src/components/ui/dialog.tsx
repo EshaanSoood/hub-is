@@ -42,9 +42,13 @@ export const DialogContent = React.forwardRef<
     open?: boolean;
     motionVariant?: DialogSurfaceMotionVariant;
   }
->(({ className, children, layoutId, animated = false, open, motionVariant = 'dialog', ...props }, ref) => {
+>(({ className, children, layoutId, animated = false, open, motionVariant = 'dialog', onEscapeKeyDown, ...props }, ref) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const canAnimateWithPresence = animated && typeof open === 'boolean';
+  const handleEscapeKeyDown: NonNullable<React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>['onEscapeKeyDown']> = (event) => {
+    event.stopPropagation();
+    onEscapeKeyDown?.(event);
+  };
   if (canAnimateWithPresence) {
     return (
       <DialogPortal forceMount>
@@ -52,7 +56,7 @@ export const DialogContent = React.forwardRef<
           {open ? (
             <React.Fragment key="dialog-content">
               <DialogOverlay animated forceMount />
-              <DialogPrimitive.Content forceMount asChild {...props}>
+              <DialogPrimitive.Content forceMount asChild onEscapeKeyDown={handleEscapeKeyDown} {...props}>
                 <motion.div
                   ref={ref}
                   layoutId={!prefersReducedMotion ? layoutId : undefined}
@@ -78,6 +82,7 @@ export const DialogContent = React.forwardRef<
       <DialogPrimitive.Content
         ref={ref}
         className={cn(DIALOG_PANEL_BASE_CLASS, className)}
+        onEscapeKeyDown={handleEscapeKeyDown}
         {...props}
       >
         {children}

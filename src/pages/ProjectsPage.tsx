@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
+import { z } from 'zod';
 import { useProjects } from '../context/ProjectsContext';
 import { useAuthz } from '../context/AuthzContext';
+import { CalendarModuleSkin, type CalendarScope } from '../components/project-space/CalendarModuleSkin';
+import { RemindersModuleSkin } from '../components/project-space/RemindersModuleSkin';
+import { TasksModuleSkin } from '../components/project-space/TasksModuleSkin';
+import { adaptTaskSummaries } from '../components/project-space/taskAdapter';
 import { Dialog } from '../components/primitives';
 import { PersonalizedDashboardPanel, type HubDashboardView } from '../features/PersonalizedDashboardPanel';
+import { useDashboardMutations } from '../features/PersonalizedDashboardPanel/hooks/useDashboardMutations';
+import { useRemindersRuntime } from '../hooks/useRemindersRuntime';
 import { getHubHome, getRecordDetail } from '../services/hub/records';
 import type { HubRecordDetail } from '../services/hub/types';
 import { subscribeHubLive } from '../services/hubLive';
@@ -51,11 +58,24 @@ const readElementRect = (element: HTMLElement | null): { top: number; left: numb
 const parseDashboardView = (raw: string | null): HubDashboardView =>
   raw === 'stream' || raw === 'project-lens' ? raw : 'project-lens';
 
+const SurfaceSchema = z.enum(['tasks', 'calendar', 'reminders', 'thoughts']);
+type ProjectsPageSurface = z.infer<typeof SurfaceSchema>;
+
+const parseProjectsPageSurface = (raw: string | null): ProjectsPageSurface | null => {
+  const result = SurfaceSchema.safeParse(raw);
+  return result.success ? result.data : null;
+};
+
 export const ProjectsPage = () => {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const [searchParams, setSearchParams] = useSearchParams();
   const { projects } = useProjects();
   const { accessToken } = useAuthz();
+  const selectedSurface = parseProjectsPageSurface(searchParams.get('surface'));
+  const fullPageSurface = selectedSurface === 'tasks' || selectedSurface === 'calendar' || selectedSurface === 'reminders'
+    ? selectedSurface
+    : null;
+  const [calendarScope, setCalendarScope] = useState<CalendarScope>('relevant');
 
   const [homeLoading, setHomeLoading] = useState(false);
   const [homeReady, setHomeReady] = useState(false);
@@ -93,6 +113,14 @@ export const ProjectsPage = () => {
   const selectedHubRecordTriggerRef = useRef<HTMLElement | null>(null);
   const liveRefreshHomeTimeoutRef = useRef<number | null>(null);
   const dashboardView = parseDashboardView(searchParams.get('view'));
+  const remindersRuntime = useRemindersRuntime(
+    fullPageSurface === 'reminders' ? accessToken ?? null : null,
+    { autoload: fullPageSurface === 'reminders' },
+  );
+  const { onDismissReminder, onSnoozeReminder } = useDashboardMutations({
+    accessToken,
+    refreshReminders: remindersRuntime.refresh,
+  });
 
   useEffect(() => {
     const taskId = searchParams.get('task_id');
@@ -123,9 +151,9 @@ export const ProjectsPage = () => {
     setHomeLoading(true);
     try {
       const next = await getHubHome(accessToken, {
-        tasks_limit: 8,
-        events_limit: 8,
-        captures_limit: 20,
+        tasks_limit: fullPageSurface === 'tasks' ? 50 : 8,
+        events_limit: fullPageSurface === 'calendar' ? 50 : 8,
+        captures_limit: selectedSurface === 'thoughts' ? 50 : 20,
         unread: true,
       });
       setHomeData(next);
@@ -137,7 +165,7 @@ export const ProjectsPage = () => {
     } finally {
       setHomeLoading(false);
     }
-  }, [accessToken]);
+  }, [accessToken, fullPageSurface, selectedSurface]);
 
   const refreshSelectedRecord = useCallback(
     async (recordId: string | null) => {
@@ -274,19 +302,105 @@ export const ProjectsPage = () => {
     }, { replace: true });
   }, [setSearchParams]);
 
+  const clearSurface = useCallback(() => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('surface');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const filteredCalendarEvents = useMemo(() => {
+    if (calendarScope === 'all') {
+      return homeData.events;
+    }
+    const now = new Date();
+    const windowStart = now.getTime() - (24 * 60 * 60 * 1000);
+    const windowEnd = now.getTime() + (14 * 24 * 60 * 60 * 1000);
+    return homeData.events.filter((event) => {
+      const startTime = new Date(event.event_state.start_dt).getTime();
+      return Number.isFinite(startTime) && startTime >= windowStart && startTime <= windowEnd;
+    });
+  }, [calendarScope, homeData.events]);
+
+  const fullPageTitle = fullPageSurface === 'tasks'
+    ? 'Tasks'
+    : fullPageSurface === 'calendar'
+      ? 'Calendar'
+      : fullPageSurface === 'reminders'
+        ? 'Reminders'
+        : 'myHub';
+
   return (
-    <div className="space-y-4">
-      <h1 className="sr-only">myHub</h1>
-      <PersonalizedDashboardPanel
-        homeData={homeData}
-        homeLoading={homeLoading}
-        homeReady={homeReady}
-        homeError={homeError}
-        projects={projects}
-        onOpenRecord={onOpenHubRecord}
-        initialView={dashboardView}
-        onViewChange={onDashboardViewChange}
-      />
+    <div className="relative space-y-4">
+      <h1 className="sr-only">{fullPageTitle}</h1>
+      {fullPageSurface ? (
+        <section className="space-y-4">
+          <header className="flex flex-wrap items-start justify-between gap-3 rounded-panel border border-subtle bg-elevated p-4">
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">myHub</p>
+              <h2 className="text-lg font-semibold text-text">{fullPageTitle}</h2>
+            </div>
+            <button
+              type="button"
+              onClick={clearSurface}
+              className="rounded-control border border-border-muted bg-surface px-3 py-1.5 text-sm font-medium text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            >
+              Back to Dashboard
+            </button>
+          </header>
+
+          {homeError && fullPageSurface !== 'reminders' ? (
+            <p className="rounded-panel border border-danger bg-danger-subtle px-4 py-3 text-sm text-danger" role="alert">
+              {homeError}
+            </p>
+          ) : null}
+
+          <section className="rounded-panel border border-subtle bg-elevated p-4">
+            {fullPageSurface === 'tasks' ? (
+              <TasksModuleSkin
+                sizeTier="L"
+                tasks={adaptTaskSummaries(homeData.tasks)}
+                tasksLoading={homeLoading}
+                onOpenRecord={onOpenHubRecord}
+                readOnly
+              />
+            ) : null}
+            {fullPageSurface === 'calendar' ? (
+              <CalendarModuleSkin
+                sizeTier="L"
+                events={filteredCalendarEvents}
+                loading={homeLoading}
+                scope={calendarScope}
+                onScopeChange={setCalendarScope}
+                onOpenRecord={onOpenHubRecord}
+              />
+            ) : null}
+            {fullPageSurface === 'reminders' ? (
+              <RemindersModuleSkin
+                sizeTier="L"
+                reminders={remindersRuntime.reminders}
+                loading={remindersRuntime.loading}
+                error={remindersRuntime.error}
+                onDismiss={onDismissReminder}
+                onSnooze={(reminderId) => onSnoozeReminder(reminderId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())}
+                onCreate={remindersRuntime.create}
+              />
+            ) : null}
+          </section>
+        </section>
+      ) : (
+        <PersonalizedDashboardPanel
+          homeData={homeData}
+          homeLoading={homeLoading}
+          homeReady={homeReady}
+          homeError={homeError}
+          projects={projects}
+          onOpenRecord={onOpenHubRecord}
+          initialView={dashboardView}
+          onViewChange={onDashboardViewChange}
+        />
+      )}
 
       {!prefersReducedMotion && selectedHubRecordTriggerRect ? (
         <motion.div

@@ -45,7 +45,7 @@ export const ProjectLensView = ({ items, projects, onOpenRecord }: ProjectLensVi
     })),
   ];
 
-  const filterableSections = sections.filter((section) => section.items.length > 0);
+  const filterableSections = sections;
   const visibleSections = filterableSections.filter((section) => !hiddenSections[section.id]);
   const filterLabel = visibleSections.length === filterableSections.length
     ? 'Active sections'

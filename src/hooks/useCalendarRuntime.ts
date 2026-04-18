@@ -18,10 +18,11 @@ interface CalendarEventSummary {
 interface UseCalendarRuntimeParams {
   accessToken: string;
   projectId: string;
+  initialMode?: 'relevant' | 'all';
 }
 
-export const useCalendarRuntime = ({ accessToken, projectId }: UseCalendarRuntimeParams) => {
-  const [calendarMode, setCalendarMode] = useState<'relevant' | 'all'>('relevant');
+export const useCalendarRuntime = ({ accessToken, projectId, initialMode = 'all' }: UseCalendarRuntimeParams) => {
+  const [calendarMode, setCalendarMode] = useState<'relevant' | 'all'>(initialMode);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventSummary[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);

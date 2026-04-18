@@ -25,6 +25,7 @@ type TaskPriorityValue = '' | 'low' | 'medium' | 'high';
 interface CaptureDialogProps {
   accessToken: string | null | undefined;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  defaultDestinationValue: DestinationKind;
   destinations: CaptureDestination[];
   draft: string;
   captureKind: CaptureKind;
@@ -39,6 +40,7 @@ interface CaptureDialogProps {
 export const CaptureDialog = ({
   accessToken,
   containerRef,
+  defaultDestinationValue,
   destinations,
   draft,
   captureKind,
@@ -99,7 +101,10 @@ export const CaptureDialog = ({
       return;
     }
     initializedOpenRef.current = true;
-    setDestinationValue('hub');
+    const nextDestinationValue = destinations.some((destination) => destination.kind === defaultDestinationValue)
+      ? defaultDestinationValue
+      : destinations[0]?.kind ?? 'hub';
+    setDestinationValue(nextDestinationValue);
     setError(null);
     setSubmitting(false);
     if (captureKind === 'task') {
@@ -121,7 +126,7 @@ export const CaptureDialog = ({
       setReminderAt('');
       setReminderDraft(draft);
     }
-  }, [captureKind, draft, open, setCalendarDraft, setReminderDraft, setTaskDraft]);
+  }, [captureKind, defaultDestinationValue, destinations, draft, open, setCalendarDraft, setReminderDraft, setTaskDraft]);
 
   useEffect(() => {
     if (!open || captureKind !== 'task') {

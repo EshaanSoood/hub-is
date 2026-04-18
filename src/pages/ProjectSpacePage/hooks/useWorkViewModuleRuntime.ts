@@ -223,7 +223,10 @@ export const useWorkViewModuleRuntime = ({
                 if (!accessToken) {
                   return;
                 }
-                await createEventFromNlp(accessToken, projectId, payload);
+                await createEventFromNlp(accessToken, projectId, {
+                  ...payload,
+                  source_pane_id: activePaneId ?? undefined,
+                });
                 requestHubHomeRefresh();
                 await refreshCalendar();
               }
