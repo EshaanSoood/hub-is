@@ -225,6 +225,7 @@ export const SidebarShell = () => {
                 key={`capture:${location.pathname}${location.search}`}
                 accessToken={accessToken}
                 autoFocusKey={captureAutoFocusKey}
+                currentPaneId={currentPaneId}
                 currentProject={currentProject}
                 currentProjectPanes={activeCurrentProjectPanes}
                 currentSurface={currentSurface}

@@ -81,7 +81,8 @@ export const useProjectTasksRuntime = ({
   );
 
   useEffect(() => {
-    const shouldLoadTasks = !hasTaskData && (activeTab === 'work' || (activeTab === 'overview' && overviewView === 'tasks'));
+    const shouldLoadTasks =
+      !hasTaskData && (activeTab === 'work' || (activeTab === 'overview' && (overviewView === 'tasks' || overviewView === 'kanban')));
     if (!shouldLoadTasks) {
       return;
     }

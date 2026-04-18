@@ -155,6 +155,14 @@ export const createTaskRoutes = (deps) => {
     return [...byRecordId.values()];
   };
 
+  const filterTasksByPane = (tasks, paneId = '') => {
+    const normalizedPaneId = asText(paneId);
+    if (!normalizedPaneId) {
+      return tasks;
+    }
+    return tasks.filter((task) => asText(task?.source_pane?.pane_id) === normalizedPaneId);
+  };
+
   const listHomeEventsForUser = ({ userId, limit }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
     const sourcePaneContextCache = new Map();
@@ -187,27 +195,41 @@ export const createTaskRoutes = (deps) => {
   const getHubTasks = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
     const lens = asText(requestUrl.searchParams.get('lens')).toLowerCase() || 'assigned';
     const projectId = asText(requestUrl.searchParams.get('project_id'));
+    const paneId = asText(requestUrl.searchParams.get('pane_id') || requestUrl.searchParams.get('source_pane_id'));
     const limit = asInteger(requestUrl.searchParams.get('limit'), 50, 1, 200);
     const offset = parseCursorOffset(requestUrl.searchParams.get('cursor'));
-    const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
-    if (!personalProject) {
-      request.log.error('Personal project is unavailable during task listing.', { userId: auth.user.user_id });
-      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
-      return;
-    }
 
     let tasks = [];
-    if (lens === 'project' && projectId) {
+    if (lens === 'pane' && projectId && paneId) {
       const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'view' });
       if (projectGate.error) {
         send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
         return;
       }
-      tasks = listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId });
+      tasks = filterTasksByPane(
+        listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
+        paneId,
+      );
+    } else if (lens === 'project' && projectId) {
+      const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'view' });
+      if (projectGate.error) {
+        send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+        return;
+      }
+      tasks = filterTasksByPane(
+        listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
+        paneId,
+      );
     } else if (lens === 'assigned') {
-      tasks = listAssignedTasksForUser({ userId: auth.user.user_id, projectId });
+      tasks = filterTasksByPane(
+        listAssignedTasksForUser({ userId: auth.user.user_id, projectId }),
+        paneId,
+      );
     } else {
-      tasks = listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId });
+      tasks = filterTasksByPane(
+        listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
+        paneId,
+      );
     }
 
     const page = tasks.slice(offset, offset + limit);

@@ -13,6 +13,7 @@ interface TasksModuleSkinProps {
   sizeTier: 'S' | 'M' | 'L';
   tasks: TaskItem[];
   tasksLoading: boolean;
+  onOpenRecord?: (recordId: string) => void;
   onCreateTask?: (task: {
     title: string;
     priority: string | null;
@@ -337,6 +338,7 @@ const TasksModuleLarge = ({
   onUpdateTaskPriority,
   onUpdateTaskDueDate,
   onDeleteTask,
+  onOpenRecord,
   onAddSubtask,
   insertState,
   readOnly = false,
@@ -471,6 +473,7 @@ const TasksModuleLarge = ({
           onUpdateTaskPriority={readOnly ? undefined : onUpdateTaskPriority}
           onUpdateTaskDueDate={readOnly ? undefined : onUpdateTaskDueDate}
           onDeleteTask={readOnly ? undefined : onDeleteTask}
+          onOpenRecord={onOpenRecord}
           activeItemId={insertState.activeItemId}
           activeItemType={insertState.activeItemType}
           setActiveItem={insertState.setActiveItem}

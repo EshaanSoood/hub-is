@@ -362,6 +362,7 @@ export const ProjectsPage = () => {
                 sizeTier="L"
                 tasks={adaptTaskSummaries(homeData.tasks)}
                 tasksLoading={homeLoading}
+                onOpenRecord={onOpenHubRecord}
                 readOnly
               />
             ) : null}

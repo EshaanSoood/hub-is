@@ -296,6 +296,7 @@ export const ProjectSpaceWorkspace = ({
   const { calendarEvents, calendarLoading, calendarMode, refreshCalendar, setCalendarMode } = useCalendarRuntime({
     accessToken,
     projectId: project.project_id,
+    initialMode: 'all',
   });
   const {
     loadProjectTaskPage,
@@ -1004,8 +1005,21 @@ export const ProjectSpaceWorkspace = ({
           clients={overviewClients}
           activeView={overviewView}
           onSelectView={setOverviewView}
+          timelineClusters={timelineClusters}
+          timelineFilters={timelineFilters}
+          onTimelineFilterToggle={toggleTimelineFilter}
+          onOpenTimelineRecord={(recordId) => {
+            void openInspectorWithFocusRestore(recordId);
+          }}
           accessToken={accessToken}
           projectId={project.project_id}
+          calendarEvents={calendarEvents}
+          calendarLoading={calendarLoading}
+          calendarScope={calendarMode}
+          onCalendarScopeChange={setCalendarMode}
+          onOpenCalendarRecord={(recordId) => {
+            void openInspectorWithFocusRestore(recordId);
+          }}
           tasks={tasksOverviewRows}
           tasksLoading={projectTasksLoading}
           tasksError={projectTasksError}
@@ -1782,12 +1796,20 @@ export const ProjectSpaceWorkspace = ({
             }
           }}
         >
-          <DialogHeader>
-            <DialogTitle>Record Inspector</DialogTitle>
-            <DialogDescription className="sr-only">
-              Quick dismissible inspector. Press Escape or close to return focus to the invoking control.
-            </DialogDescription>
-          </DialogHeader>
+          <div className="flex items-start justify-between gap-3">
+            <DialogHeader className="min-w-0 flex-1">
+              <DialogTitle>Record Inspector</DialogTitle>
+              <DialogDescription className="sr-only">
+                Quick dismissible inspector. Press Escape or close to return focus to the invoking control.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogClose
+              aria-label="Close inspector"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-panel border border-border-muted text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            >
+              <Icon name="close" className="h-4 w-4" />
+            </DialogClose>
+          </div>
 
           {inspectorLoading ? <p className="mt-3 text-sm text-muted">Loading record...</p> : null}
           {inspectorError ? (

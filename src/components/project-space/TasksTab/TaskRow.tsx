@@ -150,6 +150,7 @@ interface TaskRowProps {
   onUpdateTaskDueDate?: (taskId: string, dueAt: string | null) => void | Promise<void>;
   onUpdateTaskCategory?: (taskId: string, category: string | null) => void | Promise<void>;
   onDeleteTask?: (taskId: string) => void | Promise<void>;
+  onOpenRecord?: (recordId: string) => void;
   activeItemId?: string | null;
   activeItemType?: ModuleInsertItemType;
   setActiveItem?: (id: string, type: ModuleInsertItemType, title: string) => void;
@@ -167,6 +168,7 @@ export const TaskRow = ({
   onUpdateTaskDueDate,
   onUpdateTaskCategory,
   onDeleteTask,
+  onOpenRecord,
   activeItemId = null,
   activeItemType = null,
   setActiveItem,
@@ -366,6 +368,24 @@ export const TaskRow = ({
               aria-label={`Add subtask to ${task.label}`}
             >
               + Subtask
+            </button>
+          ) : null}
+
+          {onOpenRecord ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenRecord(task.id);
+              }}
+              className={cn(
+                'rounded-control border border-border-muted px-2 py-1 text-[10px] text-muted transition-opacity hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                !hasMenuActions && !onAddSubtask ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
+                menuOpen && 'opacity-100',
+              )}
+              aria-label={`Open record inspector for ${task.label}`}
+            >
+              Inspect
             </button>
           ) : null}
 

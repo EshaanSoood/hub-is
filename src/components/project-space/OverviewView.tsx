@@ -3,14 +3,13 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { archiveRecord, updateRecord } from '../../services/hub/records';
 import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
 import { dialogLayoutIds } from '../../styles/motion';
+import { CalendarModuleSkin } from './CalendarModuleSkin';
+import type { CalendarEventSummary, CalendarScope } from './CalendarModuleSkin/types';
 import { Button, Card, InlineNotice, TabButton, Tabs, TabsList } from '../primitives';
-import { CalendarTab, type CalendarEvent, type CalendarLensOption, type CalendarTimeView } from './CalendarTab';
-import { FilterBarOverlay, type FilterGroup } from './FilterBarOverlay';
-import { ModuleEmptyState } from './ModuleFeedback';
 import { OverviewHeader } from './OverviewHeader';
 import { TaskCreateDialog } from './TaskCreateDialog';
 import { TasksTab, type SortChain } from './TasksTab';
-import { TimelineTab, type TimelineCluster } from './TimelineTab';
+import { TimelineFeed, type TimelineCluster, type TimelineEventType } from './TimelineFeed';
 import { adaptTaskSummaries } from './taskAdapter';
 import type { ClientReference, Collaborator, OverviewViewId } from './types';
 
@@ -21,8 +20,17 @@ interface OverviewViewProps {
   clients: ClientReference[];
   activeView: OverviewViewId;
   onSelectView: (viewId: OverviewViewId) => void;
+  timelineClusters: TimelineCluster[];
+  timelineFilters: TimelineEventType[];
+  onTimelineFilterToggle: (type: TimelineEventType) => void;
+  onOpenTimelineRecord: (recordId: string) => void;
   accessToken: string;
   projectId: string;
+  calendarEvents: CalendarEventSummary[];
+  calendarLoading: boolean;
+  calendarScope: CalendarScope;
+  onCalendarScopeChange: (scope: CalendarScope) => void;
+  onOpenCalendarRecord: (recordId: string) => void;
   tasks: HubTaskSummary[];
   tasksLoading: boolean;
   tasksError: string | null;
@@ -45,10 +53,6 @@ const overviewViews: Array<{ id: OverviewViewId; label: string }> = [
   { id: 'kanban', label: 'Kanban' },
 ];
 
-const categoryOptions: CalendarLensOption[] = [
-  { id: 'all', label: 'All' },
-];
-
 const toCategoryLabel = (categoryId: string) =>
   categoryId
     .split(/[-_]/g)
@@ -63,8 +67,17 @@ export const OverviewView = ({
   clients,
   activeView,
   onSelectView,
+  timelineClusters,
+  timelineFilters,
+  onTimelineFilterToggle,
+  onOpenTimelineRecord,
   accessToken,
   projectId,
+  calendarEvents,
+  calendarLoading,
+  calendarScope,
+  onCalendarScopeChange,
+  onOpenCalendarRecord,
   tasks,
   tasksLoading,
   tasksError,
@@ -90,17 +103,6 @@ export const OverviewView = ({
   const [subtaskParent, setSubtaskParent] = useState<{ id: string; title: string } | null>(null);
   const [subtaskParentRemembered, setSubtaskParentRemembered] = useState(false);
 
-  const calendarCollaboratorOptions: CalendarLensOption[] = useMemo(
-    () => [
-      { id: 'all', label: 'All' },
-      ...collaborators.map((member) => ({
-        id: member.id,
-        label: member.name,
-      })),
-    ],
-    [collaborators],
-  );
-
   const taskCollaboratorOptions = useMemo(
     () => [
       { id: 'all', label: 'All' },
@@ -112,55 +114,10 @@ export const OverviewView = ({
     [projectMembers],
   );
 
-  const [calendarTimeView, setCalendarTimeView] = useState<CalendarTimeView>('month');
-  const [calendarUserId, setCalendarUserId] = useState('all');
-  const [calendarCategoryId, setCalendarCategoryId] = useState('all');
-
   const [sortChain, setSortChain] = useState<SortChain>(['date', 'priority', 'category']);
   const [tasksUserId, setTasksUserId] = useState('all');
   const [tasksCategoryId, setTasksCategoryId] = useState('all');
 
-  const [timelineFilters, setTimelineFilters] = useState<string[]>([]);
-  // TODO(phase1): replace placeholder with real timeline data source.
-  const timelineClusters = useMemo<TimelineCluster[]>(() => [], []);
-
-  const timelineFilterGroups: FilterGroup[] = [
-    {
-      id: 'priority',
-      label: 'Priority',
-      options: [
-        { id: 'high', label: 'High' },
-        { id: 'medium', label: 'Medium' },
-        { id: 'low', label: 'Low' },
-      ],
-    },
-    {
-      id: 'type',
-      label: 'Type',
-      options: [
-        { id: 'event', label: 'Event' },
-        { id: 'task', label: 'Task' },
-        { id: 'milestone', label: 'Milestone' },
-      ],
-    },
-  ];
-
-  const filteredTimelineClusters = useMemo(() => {
-    if (timelineFilters.length === 0) {
-      return timelineClusters;
-    }
-
-    const active = new Set(timelineFilters);
-    return timelineClusters
-      .map((cluster) => ({
-        ...cluster,
-        items: cluster.items.filter((item) => active.has(item.priority) || active.has(item.type)),
-      }))
-      .filter((cluster) => cluster.items.length > 0);
-  }, [timelineClusters, timelineFilters]);
-
-  // TODO(phase1): replace placeholder with real calendar event data source.
-  const calendarEvents = useMemo<CalendarEvent[]>(() => [], []);
   const adaptedTasks = useMemo(() => adaptTaskSummaries(tasks), [tasks]);
   const taskCategoryOptions = useMemo(() => {
     const ids = [...new Set(adaptedTasks.map((task) => task.categoryId).filter((categoryId) => categoryId !== ''))];
@@ -365,50 +322,30 @@ export const OverviewView = ({
 
         {activeView === 'timeline' ? (
           <div id="overview-panel-timeline" role="tabpanel" aria-labelledby="overview-view-timeline" className="mt-4 space-y-3">
-            <FilterBarOverlay
-              groups={timelineFilterGroups}
-              activeFilterIds={timelineFilters}
-              onToggleFilter={(filterId) => {
-                setTimelineFilters((current) =>
-                  current.includes(filterId) ? current.filter((entry) => entry !== filterId) : [...current, filterId],
-                );
-              }}
-              onClearAll={() => setTimelineFilters([])}
+            <TimelineFeed
+              clusters={timelineClusters}
+              activeFilters={timelineFilters}
+              isLoading={false}
+              hasMore={false}
+              onFilterToggle={onTimelineFilterToggle}
+              onLoadMore={() => {}}
+              onItemClick={(recordId) => onOpenTimelineRecord(recordId)}
             />
-            {filteredTimelineClusters.length === 0 ? (
-              <ModuleEmptyState
-                title="No timeline activity yet."
-                description="Project updates will appear here."
-                sizeTier="M"
-              />
-            ) : (
-              <TimelineTab clusters={filteredTimelineClusters} />
-            )}
           </div>
         ) : null}
 
         {activeView === 'calendar' ? (
           <div id="overview-panel-calendar" role="tabpanel" aria-labelledby="overview-view-calendar" className="mt-4">
-            {calendarEvents.length === 0 ? (
-              <ModuleEmptyState
-                iconName="calendar"
-                title="No project events yet."
-                description="Create an event to populate this calendar."
-                sizeTier="M"
-              />
-            ) : (
-              <CalendarTab
+            <div className="min-h-[32rem]">
+              <CalendarModuleSkin
+                sizeTier="L"
                 events={calendarEvents}
-                collaborators={calendarCollaboratorOptions}
-                categories={categoryOptions}
-                timeView={calendarTimeView}
-                activeUserId={calendarUserId}
-                activeCategoryId={calendarCategoryId}
-                onTimeViewChange={setCalendarTimeView}
-                onUserChange={setCalendarUserId}
-                onCategoryChange={setCalendarCategoryId}
+                loading={calendarLoading}
+                scope={calendarScope}
+                onScopeChange={onCalendarScopeChange}
+                onOpenRecord={onOpenCalendarRecord}
               />
-            )}
+            </div>
           </div>
         ) : null}
 
