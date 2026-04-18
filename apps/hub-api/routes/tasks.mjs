@@ -214,7 +214,11 @@ export const createTaskRoutes = (deps) => {
         listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
         paneId,
       );
-    } else if (lens === 'project' && projectId) {
+    } else if (lens === 'project') {
+      if (!projectId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project lens requires project_id.')));
+        return;
+      }
       const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'view' });
       if (projectGate.error) {
         send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));

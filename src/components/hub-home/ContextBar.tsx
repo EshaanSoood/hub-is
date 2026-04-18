@@ -27,7 +27,7 @@ const CountPill = ({
     role="img"
     aria-label={`${count} ${label}`}
   >
-    <Icon name={iconName} className="text-[12px]" />
+    <Icon name={iconName} className="shrink-0" />
     <span aria-hidden="true">{count}</span>
   </span>
 );
@@ -66,7 +66,7 @@ export const ContextBar = ({
             ariaLabel="Filter timeline by project"
             triggerClassName="min-w-44"
           />
-          <div className="flex flex-wrap items-center gap-2" aria-label="Daily brief totals">
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Daily brief totals">
             <CountPill count={eventCount} iconName="calendar" label={nounForCount(eventCount, 'event', 'events')} />
             <CountPill count={taskCount} iconName="tasks" label={nounForCount(taskCount, 'task', 'tasks')} />
             <CountPill count={reminderCount} iconName="reminders" label={nounForCount(reminderCount, 'reminder', 'reminders')} />
