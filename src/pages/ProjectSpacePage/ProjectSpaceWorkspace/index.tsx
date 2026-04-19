@@ -26,12 +26,12 @@ import { useRemindersRuntime } from '../../../hooks/useRemindersRuntime';
 import { useTimelineRuntime } from '../../../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../../../hooks/useWorkspaceDocRuntime';
 import { useFocusNodeQueryEffect } from '../hooks/useFocusNodeQueryEffect';
-import { useOverviewViewFromSearchParams } from '../hooks/useOverviewViewFromSearchParams';
-import { useOverviewViewQuerySyncEffect } from '../hooks/useOverviewViewQuerySyncEffect';
 import { usePaneControlEffects } from '../hooks/usePaneControlEffects';
 import { useQuickCaptureQueryIntentEffect } from '../hooks/useQuickCaptureQueryIntentEffect';
 import { useWorkViewModuleRuntime } from '../hooks/useWorkViewModuleRuntime';
 import { useWorkRouteAndInspectorQueryEffects } from '../hooks/useWorkRouteAndInspectorQueryEffects';
+import { ProjectSpaceOverviewSurface } from './ProjectSpaceOverviewSurface';
+import { useProjectSpaceOverviewState } from './hooks/useProjectSpaceOverviewState';
 import { AccessDeniedView } from '../../../components/auth/AccessDeniedView';
 import {
   Dialog,
@@ -47,7 +47,6 @@ import { CommentComposer } from '../../../components/project-space/CommentCompos
 import { CommentRail } from '../../../components/project-space/CommentRail';
 import { MentionPicker } from '../../../components/project-space/MentionPicker';
 import { ModuleLoadingState } from '../../../components/project-space/ModuleFeedback';
-import { OverviewView } from '../../../components/project-space/OverviewView';
 import { PaneSwitcher } from '../../../components/project-space/PaneSwitcher';
 import { RelationsSection } from '../../../components/project-space/RelationsSection';
 import { AutomationBuilder } from '../../../components/project-space/AutomationBuilder';
@@ -62,12 +61,11 @@ import {
   readElementRect,
   resolveInspectorFocusTarget,
 } from './domFocus';
-import type { OverviewSubView, TimelineEvent, TopLevelProjectTab } from './types';
+import type { TimelineEvent, TopLevelProjectTab } from './types';
 import {
   collectPaneTaskCollectionIds,
   paneCanEditForUser,
   readLayoutBool,
-  readOverviewView,
   readPlainComment,
   relationFieldTargetCollectionId,
   toBase64,
@@ -126,8 +124,11 @@ export const ProjectSpaceWorkspace = ({
   const location = useLocation();
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
-
-  const [overviewView, setOverviewView] = useState<OverviewSubView>(() => readOverviewView(searchParams));
+  const { overviewView, setOverviewView } = useProjectSpaceOverviewState({
+    activeTab,
+    searchParams,
+    setSearchParams,
+  });
 
   const [creatingPaneName, setCreatingPaneName] = useState('');
   const [showCreatePaneControl, setShowCreatePaneControl] = useState(false);
@@ -378,12 +379,6 @@ export const ProjectSpaceWorkspace = ({
     setShowPaneSwitcher,
     showCreatePaneControl,
     createPaneNameInputRef,
-  });
-
-  useOverviewViewFromSearchParams({
-    searchParams,
-    readOverviewView,
-    setOverviewView,
   });
 
   const activePaneId = activePane?.pane_id || null;
@@ -643,13 +638,6 @@ export const ProjectSpaceWorkspace = ({
       ),
     [activePaneId, tasksOverviewRows],
   );
-
-  useOverviewViewQuerySyncEffect({
-    activeTab,
-    overviewView,
-    searchParams,
-    setSearchParams,
-  });
   const taskCollectionId = paneTaskCollectionIds[0] || tasksOverviewRows[0]?.collection_id || null;
   const {
     tableContract,
@@ -712,20 +700,6 @@ export const ProjectSpaceWorkspace = ({
     const names = collections.map((collection) => collection.name.trim()).filter((name) => name.length > 0);
     return names.length > 0 ? names : ['record'];
   }, [collections]);
-  const overviewCollaborators = useMemo(
-    () =>
-      projectMemberList.map((member) => {
-        const role: 'owner' | 'editor' | 'viewer' =
-          member.role === 'owner' || member.role === 'editor' || member.role === 'viewer' ? member.role : 'viewer';
-        return {
-          id: member.user_id,
-          name: member.display_name,
-          role,
-        };
-      }),
-    [projectMemberList],
-  );
-  const overviewClients = useMemo(() => [], []);
   const projectLayoutId = !prefersReducedMotion ? `project-${project.project_id}` : undefined;
   const workLayoutId = !prefersReducedMotion && activePane ? `pane-${activePane.pane_id}` : undefined;
 
@@ -848,36 +822,30 @@ export const ProjectSpaceWorkspace = ({
       {paneNavigator}
 
       {activeTab === 'overview' ? (
-        <OverviewView
+        <ProjectSpaceOverviewSurface
           projectName={project.name}
-          projectSummary="Track the timeline, calendar, and task flow for this project."
-          collaborators={overviewCollaborators}
-          clients={overviewClients}
-          activeView={overviewView}
-          onSelectView={setOverviewView}
+          projectId={project.project_id}
+          isPersonalProject={project.is_personal}
+          projectMemberList={projectMemberList}
+          accessToken={accessToken}
+          overviewView={overviewView}
+          onSelectOverviewView={setOverviewView}
           timelineClusters={timelineClusters}
           timelineFilters={timelineFilters}
           onTimelineFilterToggle={toggleTimelineFilter}
-          onOpenTimelineRecord={(recordId) => {
+          onOpenRecord={(recordId) => {
             void openInspectorWithFocusRestore(recordId);
           }}
-          accessToken={accessToken}
-          projectId={project.project_id}
           calendarEvents={calendarEvents}
           calendarLoading={calendarLoading}
-          calendarScope={calendarMode}
+          calendarMode={calendarMode}
           onCalendarScopeChange={setCalendarMode}
-          onOpenCalendarRecord={(recordId) => {
-            void openInspectorWithFocusRestore(recordId);
-          }}
           tasks={tasksOverviewRows}
           tasksLoading={projectTasksLoading}
           tasksError={projectTasksError}
           onRefreshTasks={() => {
             void loadProjectTaskPage();
           }}
-          projectMembers={projectMemberList}
-          canInviteMembers={!project.is_personal}
           inviteEmail={inviteEmail}
           inviteSubmitting={isSubmittingInvite}
           inviteError={projectMemberMutationError}
