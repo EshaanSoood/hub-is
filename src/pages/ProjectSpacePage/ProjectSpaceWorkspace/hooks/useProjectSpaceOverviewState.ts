@@ -3,7 +3,7 @@ import type { SetURLSearchParams } from 'react-router-dom';
 import { useOverviewViewFromSearchParams } from '../../hooks/useOverviewViewFromSearchParams';
 import { useOverviewViewQuerySyncEffect } from '../../hooks/useOverviewViewQuerySyncEffect';
 import type { OverviewSubView, TopLevelProjectTab } from '../types';
-import { readOverviewView } from '../utils';
+import { readOverviewView } from '../overviewState';
 
 interface UseProjectSpaceOverviewStateParams {
   activeTab: TopLevelProjectTab;

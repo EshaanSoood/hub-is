@@ -47,8 +47,8 @@ import {
   paneCanEditForUser,
   readLayoutBool,
   relationFieldTargetCollectionId,
-  toBase64,
-} from './utils';
+} from './paneModel';
+import { toBase64 } from './encoding';
 
 export type { TopLevelProjectTab } from './types';
 

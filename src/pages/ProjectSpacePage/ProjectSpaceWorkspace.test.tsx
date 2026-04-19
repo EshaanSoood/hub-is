@@ -13,10 +13,10 @@ import {
 import {
   collectPaneTaskCollectionIds,
   paneCanEditForUser,
-  readOverviewView,
   relationFieldTargetCollectionId,
-  toBase64,
-} from './ProjectSpaceWorkspace/utils';
+} from './ProjectSpaceWorkspace/paneModel';
+import { readOverviewView } from './ProjectSpaceWorkspace/overviewState';
+import { toBase64 } from './ProjectSpaceWorkspace/encoding';
 import { createProjectSpaceWorkspaceFixture } from './testUtils/projectSpaceWorkspaceTestFixture';
 
 const fixture = createProjectSpaceWorkspaceFixture();

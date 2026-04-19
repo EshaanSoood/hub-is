@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import type { ComponentProps, FormEvent, ReactElement, RefObject } from 'react';
 import type { HubBacklink, HubPaneSummary, HubProject } from '../../../services/hub/types';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
-import { readPlainComment } from './utils';
+import { readPlainComment } from './commentModel';
 
 type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
 type MentionPickerProps = ComponentProps<typeof MentionPicker>;
