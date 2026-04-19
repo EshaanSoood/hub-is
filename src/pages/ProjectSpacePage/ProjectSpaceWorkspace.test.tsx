@@ -4,6 +4,18 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ProjectSpaceWorkspace } from './ProjectSpaceWorkspace';
+import {
+  getActiveInspectorFocusTarget,
+  readElementRect,
+  resolveInspectorFocusTarget,
+} from './ProjectSpaceWorkspace/domFocus';
+import {
+  collectPaneTaskCollectionIds,
+  paneCanEditForUser,
+  readOverviewView,
+  relationFieldTargetCollectionId,
+  toBase64,
+} from './ProjectSpaceWorkspace/utils';
 import { createProjectSpaceWorkspaceFixture } from './testUtils/projectSpaceWorkspaceTestFixture';
 
 const fixture = createProjectSpaceWorkspaceFixture();
@@ -694,5 +706,102 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
     fireEvent.click(screen.getByLabelText('Close inspector'));
     expect(closeInspectorMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ProjectSpaceWorkspace helpers', () => {
+  it('parses the overview sub-view query with a safe fallback', () => {
+    expect(readOverviewView(new URLSearchParams())).toBe('timeline');
+    expect(readOverviewView(new URLSearchParams('view=calendar'))).toBe('calendar');
+    expect(readOverviewView(new URLSearchParams('view=unknown'))).toBe('timeline');
+  });
+
+  it('uses pane edit flags and ignores unrelated user identity for current gating', () => {
+    expect(paneCanEditForUser(fixture.sharedPane, 'user-1')).toBe(true);
+    expect(paneCanEditForUser(fixture.privatePane, 'user-1')).toBe(false);
+    expect(paneCanEditForUser(null, 'user-1')).toBe(false);
+  });
+
+  it('collects task collection ids from table and non-standalone kanban modules only', () => {
+    const collectionIds = collectPaneTaskCollectionIds(
+      {
+        modules: [
+          { module_type: 'table', binding: { view_id: fixture.tableView.view_id } },
+          { module_type: 'kanban', binding: { view_id: fixture.kanbanView.view_id } },
+          { module_type: 'kanban', binding: { view_id: 'view-standalone-kanban' } },
+        ],
+      },
+      [
+        fixture.tableView,
+        fixture.kanbanView,
+        {
+          ...fixture.kanbanView,
+          view_id: 'view-standalone-kanban',
+          collection_id: 'collection-standalone',
+          config: {
+            owned_by_module_instance_id: 'module-1',
+          },
+        },
+      ],
+    );
+
+    expect(collectionIds).toEqual(['collection-1']);
+  });
+
+  it('reads relation target collection ids from supported config shapes', () => {
+    expect(relationFieldTargetCollectionId({ target_collection_id: 'collection-a' })).toBe('collection-a');
+    expect(relationFieldTargetCollectionId({ targetCollectionId: 'collection-b' })).toBe('collection-b');
+    expect(relationFieldTargetCollectionId({ target: { collection_id: 'collection-c' } })).toBe('collection-c');
+    expect(relationFieldTargetCollectionId({ target: { collectionId: 'collection-d' } })).toBe('collection-d');
+    expect(relationFieldTargetCollectionId({})).toBeNull();
+  });
+
+  it('encodes uploaded files as base64 for inspector and doc attachments', async () => {
+    const file = new File(['hello'], 'greeting.txt', { type: 'text/plain' });
+    await expect(toBase64(file)).resolves.toBe('aGVsbG8=');
+  });
+
+  it('resolves inspector focus targets against the current active element and main content fallback', () => {
+    const mainContent = document.createElement('main');
+    mainContent.id = 'main-content';
+    document.body.append(mainContent);
+
+    const trigger = document.createElement('button');
+    document.body.append(trigger);
+    trigger.focus();
+
+    expect(getActiveInspectorFocusTarget()).toBe(trigger);
+    expect(resolveInspectorFocusTarget(trigger)).toBe(trigger);
+
+    trigger.remove();
+
+    expect(resolveInspectorFocusTarget(trigger)).toBe(mainContent);
+    expect(mainContent.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('reads a focus rect only when the element is connected and measurable', () => {
+    const button = document.createElement('button');
+    document.body.append(button);
+
+    vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({
+      x: 10,
+      y: 20,
+      top: 20,
+      left: 10,
+      bottom: 60,
+      right: 110,
+      width: 100,
+      height: 40,
+      toJSON: () => ({}),
+    });
+
+    expect(readElementRect(button)).toEqual({
+      top: 20,
+      left: 10,
+      width: 100,
+      height: 40,
+    });
+
+    expect(readElementRect(document.createElement('button'))).toBeNull();
   });
 });

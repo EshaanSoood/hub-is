@@ -6,35 +6,33 @@ import {
   type HubPaneSummary,
   type HubProject,
   type HubProjectMember,
-  type HubView,
-} from '../../services/hub/types';
+} from '../../../services/hub/types';
 import {
   buildPaneContextHref,
   buildProjectOverviewHref,
   buildProjectToolsHref,
   buildProjectWorkHref,
-} from '../../lib/hubRoutes';
-import { useAutomationRuntime } from '../../hooks/useAutomationRuntime';
-import { useCalendarRuntime } from '../../hooks/useCalendarRuntime';
-import { usePaneMutations } from '../../hooks/usePaneMutations';
-import { useProjectMembers } from '../../hooks/useProjectMembers';
-import { useProjectFilesRuntime } from '../../hooks/useProjectFilesRuntime';
-import { useProjectTasksRuntime } from '../../hooks/useProjectTasksRuntime';
-import { useProjectViewsRuntime } from '../../hooks/useProjectViewsRuntime';
-import { useQuickCapture } from '../../hooks/useQuickCapture';
-import { useRecordInspector } from '../../hooks/useRecordInspector';
-import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
-import { useTimelineRuntime } from '../../hooks/useTimelineRuntime';
-import { useWorkspaceDocRuntime } from '../../hooks/useWorkspaceDocRuntime';
-import { isStandaloneKanbanView } from '../../hooks/projectViewsRuntime/shared';
-import { useFocusNodeQueryEffect } from './hooks/useFocusNodeQueryEffect';
-import { useOverviewViewFromSearchParams } from './hooks/useOverviewViewFromSearchParams';
-import { useOverviewViewQuerySyncEffect } from './hooks/useOverviewViewQuerySyncEffect';
-import { usePaneControlEffects } from './hooks/usePaneControlEffects';
-import { useQuickCaptureQueryIntentEffect } from './hooks/useQuickCaptureQueryIntentEffect';
-import { useWorkViewModuleRuntime } from './hooks/useWorkViewModuleRuntime';
-import { useWorkRouteAndInspectorQueryEffects } from './hooks/useWorkRouteAndInspectorQueryEffects';
-import { AccessDeniedView } from '../../components/auth/AccessDeniedView';
+} from '../../../lib/hubRoutes';
+import { useAutomationRuntime } from '../../../hooks/useAutomationRuntime';
+import { useCalendarRuntime } from '../../../hooks/useCalendarRuntime';
+import { usePaneMutations } from '../../../hooks/usePaneMutations';
+import { useProjectMembers } from '../../../hooks/useProjectMembers';
+import { useProjectFilesRuntime } from '../../../hooks/useProjectFilesRuntime';
+import { useProjectTasksRuntime } from '../../../hooks/useProjectTasksRuntime';
+import { useProjectViewsRuntime } from '../../../hooks/useProjectViewsRuntime';
+import { useQuickCapture } from '../../../hooks/useQuickCapture';
+import { useRecordInspector } from '../../../hooks/useRecordInspector';
+import { useRemindersRuntime } from '../../../hooks/useRemindersRuntime';
+import { useTimelineRuntime } from '../../../hooks/useTimelineRuntime';
+import { useWorkspaceDocRuntime } from '../../../hooks/useWorkspaceDocRuntime';
+import { useFocusNodeQueryEffect } from '../hooks/useFocusNodeQueryEffect';
+import { useOverviewViewFromSearchParams } from '../hooks/useOverviewViewFromSearchParams';
+import { useOverviewViewQuerySyncEffect } from '../hooks/useOverviewViewQuerySyncEffect';
+import { usePaneControlEffects } from '../hooks/usePaneControlEffects';
+import { useQuickCaptureQueryIntentEffect } from '../hooks/useQuickCaptureQueryIntentEffect';
+import { useWorkViewModuleRuntime } from '../hooks/useWorkViewModuleRuntime';
+import { useWorkRouteAndInspectorQueryEffects } from '../hooks/useWorkRouteAndInspectorQueryEffects';
+import { AccessDeniedView } from '../../../components/auth/AccessDeniedView';
 import {
   Dialog,
   DialogClose,
@@ -42,23 +40,40 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '../../components/project-space/ProjectSpaceDialogPrimitives';
-import { Icon, IconButton, InlineNotice } from '../../components/primitives';
-import { BacklinksPanel } from '../../components/project-space/BacklinksPanel';
-import { CommentComposer } from '../../components/project-space/CommentComposer';
-import { CommentRail } from '../../components/project-space/CommentRail';
-import { MentionPicker } from '../../components/project-space/MentionPicker';
-import { ModuleLoadingState } from '../../components/project-space/ModuleFeedback';
-import { OverviewView } from '../../components/project-space/OverviewView';
-import { PaneSwitcher } from '../../components/project-space/PaneSwitcher';
-import { RelationsSection } from '../../components/project-space/RelationsSection';
-import { AutomationBuilder } from '../../components/project-space/AutomationBuilder';
-import { FileInspectorActionBar } from '../../components/project-space/FileInspectorActionBar';
-import { WorkView } from '../../components/project-space/WorkView';
-import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
-import type { PaneLateralSource } from '../../components/motion/hubMotion';
-import { withHubMotionState } from '../../lib/hubMotionState';
-import { dialogLayoutIds } from '../../styles/motion';
+} from '../../../components/project-space/ProjectSpaceDialogPrimitives';
+import { Icon, IconButton, InlineNotice } from '../../../components/primitives';
+import { BacklinksPanel } from '../../../components/project-space/BacklinksPanel';
+import { CommentComposer } from '../../../components/project-space/CommentComposer';
+import { CommentRail } from '../../../components/project-space/CommentRail';
+import { MentionPicker } from '../../../components/project-space/MentionPicker';
+import { ModuleLoadingState } from '../../../components/project-space/ModuleFeedback';
+import { OverviewView } from '../../../components/project-space/OverviewView';
+import { PaneSwitcher } from '../../../components/project-space/PaneSwitcher';
+import { RelationsSection } from '../../../components/project-space/RelationsSection';
+import { AutomationBuilder } from '../../../components/project-space/AutomationBuilder';
+import { FileInspectorActionBar } from '../../../components/project-space/FileInspectorActionBar';
+import { WorkView } from '../../../components/project-space/WorkView';
+import { adaptTaskSummaries } from '../../../components/project-space/taskAdapter';
+import type { PaneLateralSource } from '../../../components/motion/hubMotion';
+import { withHubMotionState } from '../../../lib/hubMotionState';
+import { dialogLayoutIds } from '../../../styles/motion';
+import {
+  getActiveInspectorFocusTarget,
+  readElementRect,
+  resolveInspectorFocusTarget,
+} from './domFocus';
+import type { OverviewSubView, TimelineEvent, TopLevelProjectTab } from './types';
+import {
+  collectPaneTaskCollectionIds,
+  paneCanEditForUser,
+  readLayoutBool,
+  readOverviewView,
+  readPlainComment,
+  relationFieldTargetCollectionId,
+  toBase64,
+} from './utils';
+
+export type { TopLevelProjectTab } from './types';
 
 // Layout contract references:
 // components/project-space/TopNavTabs
@@ -69,184 +84,19 @@ import { dialogLayoutIds } from '../../styles/motion';
 // CommentRail, MentionPicker, and useWorkspaceDocRuntime-related rendering.
 
 const KanbanModuleSkin = lazy(async () => {
-  const module = await import('../../components/project-space/KanbanModuleSkin');
+  const module = await import('../../../components/project-space/KanbanModuleSkin');
   return { default: module.KanbanModuleSkin };
 });
 
 const TableModuleSkin = lazy(async () => {
-  const module = await import('../../components/project-space/TableModuleSkin');
+  const module = await import('../../../components/project-space/TableModuleSkin');
   return { default: module.TableModuleSkin };
 });
 
 const CollaborativeLexicalEditor = lazy(async () => {
-  const module = await import('../../features/notes/CollaborativeLexicalEditor');
+  const module = await import('../../../features/notes/CollaborativeLexicalEditor');
   return { default: module.CollaborativeLexicalEditor };
 });
-
-export type TopLevelProjectTab = 'overview' | 'work' | 'tools';
-type OverviewSubView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
-
-interface TimelineEvent {
-  timeline_event_id: string;
-  event_type: string;
-  primary_entity_type: string;
-  primary_entity_id: string;
-  summary_json: Record<string, unknown>;
-  created_at: string;
-}
-
-const readPlainComment = (bodyJson: Record<string, unknown>): string => {
-  const text = bodyJson.text;
-  if (typeof text === 'string') {
-    return text;
-  }
-  const content = bodyJson.content;
-  if (typeof content === 'string') {
-    return content;
-  }
-  return JSON.stringify(bodyJson);
-};
-
-const paneCanEditForUser = (pane: HubPaneSummary | null | undefined, userId: string): boolean => {
-  // User-level pane permissions are not enforced yet; current gating is pane.can_edit.
-  void userId;
-  return pane?.can_edit === true;
-};
-
-function readOverviewView(searchParams: URLSearchParams): OverviewSubView {
-  const value = searchParams.get('view');
-  if (value === 'calendar' || value === 'tasks' || value === 'kanban') {
-    return value;
-  }
-  return 'timeline';
-}
-
-const collectPaneTaskCollectionIds = (
-  layoutConfig: Record<string, unknown> | null | undefined,
-  availableViews: HubView[],
-): string[] => {
-  if (!layoutConfig || typeof layoutConfig !== 'object' || Array.isArray(layoutConfig)) {
-    return [];
-  }
-
-  const rawModules = Array.isArray(layoutConfig.modules) ? layoutConfig.modules : [];
-  const viewById = new Map(availableViews.map((view) => [view.view_id, view]));
-  const defaultViewByType = new Map<string, HubView>();
-  for (const view of availableViews) {
-    if (view.type === 'kanban' && isStandaloneKanbanView(view)) {
-      continue;
-    }
-    if (!defaultViewByType.has(view.type)) {
-      defaultViewByType.set(view.type, view);
-    }
-  }
-
-  const collectionIds: string[] = [];
-  for (const candidate of rawModules) {
-    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
-      continue;
-    }
-
-    const moduleConfig = candidate as { module_type?: unknown; binding?: { view_id?: unknown } | null };
-    const moduleType = typeof moduleConfig.module_type === 'string' ? moduleConfig.module_type : '';
-    if (moduleType !== 'table' && moduleType !== 'kanban') {
-      continue;
-    }
-
-    const requestedViewId =
-      moduleConfig.binding && typeof moduleConfig.binding === 'object' && !Array.isArray(moduleConfig.binding)
-        && typeof moduleConfig.binding.view_id === 'string'
-        ? moduleConfig.binding.view_id
-        : '';
-    const resolvedView = (requestedViewId ? viewById.get(requestedViewId) : null) ?? defaultViewByType.get(moduleType) ?? null;
-    if (!resolvedView || (moduleType === 'kanban' && isStandaloneKanbanView(resolvedView)) || collectionIds.includes(resolvedView.collection_id)) {
-      continue;
-    }
-    collectionIds.push(resolvedView.collection_id);
-  }
-
-  return collectionIds;
-};
-
-const relationFieldTargetCollectionId = (config: Record<string, unknown>): string | null => {
-  const directTarget = config.target_collection_id;
-  if (typeof directTarget === 'string' && directTarget.trim()) {
-    return directTarget.trim();
-  }
-  const camelTarget = config.targetCollectionId;
-  if (typeof camelTarget === 'string' && camelTarget.trim()) {
-    return camelTarget.trim();
-  }
-  const target = config.target;
-  if (target && typeof target === 'object' && !Array.isArray(target)) {
-    const targetRecord = target as Record<string, unknown>;
-    const nestedSnake = targetRecord.collection_id;
-    if (typeof nestedSnake === 'string' && nestedSnake.trim()) {
-      return nestedSnake.trim();
-    }
-    const nestedCamel = targetRecord.collectionId;
-    if (typeof nestedCamel === 'string' && nestedCamel.trim()) {
-      return nestedCamel.trim();
-    }
-  }
-  return null;
-};
-
-const toBase64 = async (file: File): Promise<string> => {
-  const arrayBuffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  const chunkSize = 8192;
-  const chunks: string[] = [];
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    chunks.push(String.fromCharCode(...bytes.subarray(index, index + chunkSize)));
-  }
-  return window.btoa(chunks.join(''));
-};
-
-const readLayoutBool = (config: Record<string, unknown> | null | undefined, key: string, fallback: boolean): boolean => {
-  if (!config || typeof config !== 'object' || Array.isArray(config)) {
-    return fallback;
-  }
-  const value = config[key];
-  return typeof value === 'boolean' ? value : fallback;
-};
-
-const resolveInspectorFocusTarget = (candidate: HTMLElement | null): HTMLElement | null => {
-  if (candidate && candidate.isConnected) {
-    return candidate;
-  }
-  const mainContent = document.getElementById('main-content');
-  if (mainContent instanceof HTMLElement) {
-    if (!mainContent.hasAttribute('tabindex')) {
-      mainContent.setAttribute('tabindex', '-1');
-    }
-    return mainContent;
-  }
-  return null;
-};
-
-const getActiveInspectorFocusTarget = (): HTMLElement | null => {
-  if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
-    return document.activeElement;
-  }
-  return resolveInspectorFocusTarget(null);
-};
-
-const readElementRect = (element: HTMLElement | null): { top: number; left: number; width: number; height: number } | null => {
-  if (!element || !element.isConnected) {
-    return null;
-  }
-  const rect = element.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return null;
-  }
-  return {
-    top: rect.top,
-    left: rect.left,
-    width: rect.width,
-    height: rect.height,
-  };
-};
 
 export const ProjectSpaceWorkspace = ({
   activeTab,
