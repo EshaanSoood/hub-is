@@ -3,10 +3,10 @@ import { RecordInspectorActivitySection } from './RecordInspectorActivitySection
 import { RecordInspectorCommentsSection } from './RecordInspectorCommentsSection';
 import type { ComponentProps, ReactElement } from 'react';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
-import type { RecordInspectorSharedSectionsProps } from './recordInspectorTypes';
+import type { RecordInspectorSectionProps } from './recordInspectorTypes';
 
 type RecordInspectorDiscussionSectionsProps = Pick<
-  RecordInspectorSharedSectionsProps,
+  RecordInspectorSectionProps,
   | 'accessToken'
   | 'projectId'
   | 'inspectorBacklinks'

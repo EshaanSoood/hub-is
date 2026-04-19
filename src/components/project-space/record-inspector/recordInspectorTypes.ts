@@ -6,7 +6,7 @@ import type { RecordInspectorCommentsSectionProps } from './RecordInspectorComme
 
 type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
 
-export interface RecordInspectorSharedSectionsProps {
+export interface RecordInspectorSectionProps {
   accessToken: string;
   projectId: string;
   panes: HubPaneSummary[];
@@ -34,7 +34,7 @@ export interface RecordInspectorSharedSectionsProps {
   inspectorMutationPaneCanEdit: boolean;
 }
 
-export interface RecordInspectorBodyProps extends RecordInspectorSharedSectionsProps {
+export interface RecordInspectorBodyProps extends RecordInspectorSectionProps {
   inspectorMutationPane: HubPaneSummary | null;
   savingValues: boolean;
   onSaveRecordField: (fieldId: string, value: string) => Promise<void>;
