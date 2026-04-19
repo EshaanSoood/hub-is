@@ -1,13 +1,8 @@
 import { FormEvent, useCallback, useMemo, useRef, useState, type ReactElement } from 'react';
-import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { buildProjectWorkHref } from '../../../lib/hubRoutes';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from '../../../components/project-space/ProjectSpaceDialogPrimitives';
 import { Icon, IconButton, InlineNotice } from '../../../components/primitives';
 import { PaneSwitcher } from '../../../components/project-space/PaneSwitcher';
@@ -15,6 +10,7 @@ import type { HubPaneSummary, HubProjectMember } from '../../../services/hub/typ
 import type { PaneLateralSource } from '../../../components/motion/hubMotion';
 import { dialogLayoutIds } from '../../../styles/motion';
 import { usePaneControlEffects } from '../hooks/usePaneControlEffects';
+import { ProjectSpacePaneSettingsDialog } from './ProjectSpacePaneSettingsDialog';
 
 export interface ProjectSpacePaneChromeProps {
   projectId: string;
@@ -78,7 +74,6 @@ export const ProjectSpaceWorkPaneChrome = ({
   const [paneSettingsOpen, setPaneSettingsOpen] = useState(false);
   const previousOpenedFromPinnedRef = useRef(openedFromPinned);
   const paneSettingsTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const paneSettingsNameInputRef = useRef<HTMLInputElement | null>(null);
   const createPaneNameInputRef = useRef<HTMLInputElement | null>(null);
 
   usePaneControlEffects({
@@ -97,24 +92,11 @@ export const ProjectSpaceWorkPaneChrome = ({
     return readOnlyPanes.filter((pane) => pane.name.toLowerCase().includes(query));
   }, [otherPaneQuery, readOnlyPanes]);
 
-  const commitActivePaneSettingsName = useCallback(() => {
-    if (!activePane || !activePaneCanEdit) {
-      return;
-    }
-    const nextName = paneSettingsNameInputRef.current?.value.trim();
-    if (nextName && nextName !== activePane.name) {
-      void onUpdatePane(activePane.pane_id, { name: nextName });
-    }
-  }, [activePane, activePaneCanEdit, onUpdatePane]);
-
   const handlePaneSettingsOpenChange = useCallback(
     (nextOpen: boolean) => {
-      if (!nextOpen) {
-        commitActivePaneSettingsName();
-      }
       setPaneSettingsOpen(nextOpen);
     },
-    [commitActivePaneSettingsName],
+    [],
   );
 
   const onCreatePaneSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -298,145 +280,24 @@ export const ProjectSpaceWorkPaneChrome = ({
               paneSettingsTriggerRef.current?.focus();
             }}
           >
-            <DialogHeader>
-              <DialogTitle>Pane Settings</DialogTitle>
-              <DialogDescription className="sr-only">
-                Manage settings for pane {activePane.name}.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="mt-4 space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="pane-settings-name">
-                  Pane name
-                </label>
-                <input
-                  key={activePane.pane_id}
-                  ref={paneSettingsNameInputRef}
-                  id="pane-settings-name"
-                  defaultValue={activePane.name}
-                  autoFocus
-                  disabled={!activePaneCanEdit}
-                  className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                  aria-label="Pane name"
-                  onBlur={() => commitActivePaneSettingsName()}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      commitActivePaneSettingsName();
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  to={buildProjectWorkHref(projectId, activePane.pane_id)}
-                  onClick={() => handlePaneSettingsOpenChange(false)}
-                  className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary"
-                >
-                  Open pane route
-                </Link>
-                <button
-                  type="button"
-                  className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
-                  onClick={() => {
-                    void onTogglePinned(activePane);
-                  }}
-                  disabled={!activePaneCanEdit}
-                >
-                  {activePane.pinned ? 'Unpin' : 'Pin'}
-                </button>
-                <button
-                  type="button"
-                  className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
-                  onClick={() => {
-                    void onMovePane(activePane, 'up');
-                  }}
-                  disabled={!activePaneCanEdit || activeEditablePaneIndex <= 0}
-                >
-                  Move up
-                </button>
-                <button
-                  type="button"
-                  className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
-                  onClick={() => {
-                    void onMovePane(activePane, 'down');
-                  }}
-                  disabled={!activePaneCanEdit || activeEditablePaneIndex < 0 || activeEditablePaneIndex >= orderedEditablePanes.length - 1}
-                >
-                  Move down
-                </button>
-                {orderedEditablePanes.length > 1 ? (
-                  <button
-                    type="button"
-                    className="rounded-panel border border-danger px-3 py-1.5 text-sm font-semibold text-danger disabled:opacity-60"
-                    onClick={() => {
-                      setPaneSettingsOpen(false);
-                      void onDeletePane(activePane);
-                    }}
-                    disabled={!activePaneCanEdit}
-                  >
-                    Delete pane
-                  </button>
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Regions</p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
-                    onClick={() => onToggleActivePaneRegion('modules_enabled')}
-                    disabled={!activePaneCanEdit}
-                  >
-                    {modulesEnabled ? 'Hide modules' : 'Show modules'}
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
-                    onClick={() => onToggleActivePaneRegion('workspace_enabled')}
-                    disabled={!activePaneCanEdit}
-                  >
-                    {workspaceEnabled ? 'Hide workspace doc' : 'Show workspace doc'}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Pane members</p>
-                <div className="flex flex-wrap gap-2">
-                  {projectMemberList
-                    .filter((member) => String(member.role).toLowerCase() !== 'owner'
-                      || activePane.members.some((entry) => entry.user_id === member.user_id))
-                    .map((member) => {
-                      const selected = activePane.members.some((entry) => entry.user_id === member.user_id);
-                      return (
-                        <label
-                          key={member.user_id}
-                          className={`rounded-panel border px-2 py-1 text-xs ${
-                            selected ? 'border-primary text-primary' : 'border-border-muted text-muted'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            className="mr-1"
-                            checked={selected}
-                            onChange={() => {
-                              void onTogglePaneMember(activePane, member.user_id);
-                            }}
-                            disabled={!activePaneCanEdit || member.user_id === sessionUserId}
-                          />
-                          {member.display_name}
-                        </label>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {!activePaneCanEdit ? <p className="text-xs text-muted">Read-only pane.</p> : null}
-            </div>
+            <ProjectSpacePaneSettingsDialog
+              projectId={projectId}
+              activePane={activePane}
+              activePaneCanEdit={activePaneCanEdit}
+              activeEditablePaneIndex={activeEditablePaneIndex}
+              orderedEditablePanes={orderedEditablePanes}
+              projectMemberList={projectMemberList}
+              sessionUserId={sessionUserId}
+              modulesEnabled={modulesEnabled}
+              workspaceEnabled={workspaceEnabled}
+              onRequestClose={() => handlePaneSettingsOpenChange(false)}
+              onTogglePinned={onTogglePinned}
+              onMovePane={onMovePane}
+              onTogglePaneMember={onTogglePaneMember}
+              onDeletePane={onDeletePane}
+              onUpdatePane={onUpdatePane}
+              onToggleActivePaneRegion={onToggleActivePaneRegion}
+            />
           </DialogContent>
         </Dialog>
       ) : null}

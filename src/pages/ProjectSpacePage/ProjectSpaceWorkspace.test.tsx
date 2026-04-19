@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ProjectSpaceWorkspace } from './ProjectSpaceWorkspace';
+import { ProjectSpacePaneSettingsDialog } from './ProjectSpaceWorkspace/ProjectSpacePaneSettingsDialog';
 import {
   getActiveInspectorFocusTarget,
   readElementRect,
@@ -655,14 +656,25 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Pane settings' }));
 
+    expect(screen.getByRole('button', { name: 'Pane settings' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('heading', { name: 'Pane Settings' })).toBeInTheDocument();
+    expect(screen.getByText('Manage settings for pane Shared Work.')).toBeInTheDocument();
     expect(screen.getByLabelText('Pane name')).toHaveValue('Shared Work');
+    expect(screen.getByRole('link', { name: 'Open pane route' })).toHaveAttribute('href', '/projects/project-1/work/pane-shared');
 
     await userEvent.click(screen.getByRole('button', { name: 'Hide modules' }));
     expect(onUpdatePaneFromWorkViewMock).toHaveBeenCalledWith('pane-shared', expect.objectContaining({
       layout_config: expect.objectContaining({
         modules_enabled: false,
         workspace_enabled: true,
+      }),
+    }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hide workspace doc' }));
+    expect(onUpdatePaneFromWorkViewMock).toHaveBeenCalledWith('pane-shared', expect.objectContaining({
+      layout_config: expect.objectContaining({
+        modules_enabled: true,
+        workspace_enabled: false,
       }),
     }));
   });
@@ -866,5 +878,120 @@ describe('ProjectSpaceWorkspace helpers', () => {
     });
 
     expect(readElementRect(document.createElement('button'))).toBeNull();
+  });
+});
+
+describe('ProjectSpacePaneSettingsDialog', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('commits renamed pane names on blur and ignores unchanged values', async () => {
+    const onUpdatePane = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <ProjectSpacePaneSettingsDialog
+          projectId="project-1"
+          activePane={fixture.sharedPane}
+          activePaneCanEdit
+          activeEditablePaneIndex={0}
+          orderedEditablePanes={[fixture.sharedPane, { ...fixture.privatePane, can_edit: true }]}
+          projectMemberList={fixture.projectMembers}
+          sessionUserId="user-1"
+          modulesEnabled
+          workspaceEnabled
+          onRequestClose={vi.fn()}
+          onTogglePinned={vi.fn(async () => undefined)}
+          onMovePane={vi.fn(async () => undefined)}
+          onTogglePaneMember={vi.fn(async () => undefined)}
+          onDeletePane={vi.fn(async () => undefined)}
+          onUpdatePane={onUpdatePane}
+          onToggleActivePaneRegion={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const paneNameInput = screen.getByLabelText('Pane name');
+    await userEvent.clear(paneNameInput);
+    await userEvent.type(paneNameInput, 'Renamed Pane');
+    fireEvent.blur(paneNameInput);
+
+    expect(onUpdatePane).toHaveBeenCalledWith('pane-shared', { name: 'Renamed Pane' });
+
+    onUpdatePane.mockClear();
+    await userEvent.clear(paneNameInput);
+    await userEvent.type(paneNameInput, 'Shared Work');
+    fireEvent.blur(paneNameInput);
+
+    expect(onUpdatePane).not.toHaveBeenCalled();
+  });
+
+  it('renders read-only dialog state and keeps mutation controls disabled', () => {
+    render(
+      <MemoryRouter>
+        <ProjectSpacePaneSettingsDialog
+          projectId="project-1"
+          activePane={fixture.privatePane}
+          activePaneCanEdit={false}
+          activeEditablePaneIndex={1}
+          orderedEditablePanes={[fixture.sharedPane, { ...fixture.privatePane, can_edit: true }]}
+          projectMemberList={fixture.projectMembers}
+          sessionUserId="user-1"
+          modulesEnabled
+          workspaceEnabled
+          onRequestClose={vi.fn()}
+          onTogglePinned={vi.fn(async () => undefined)}
+          onMovePane={vi.fn(async () => undefined)}
+          onTogglePaneMember={vi.fn(async () => undefined)}
+          onDeletePane={vi.fn(async () => undefined)}
+          onUpdatePane={vi.fn(async () => undefined)}
+          onToggleActivePaneRegion={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByLabelText('Pane name')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Unpin' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move up' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hide modules' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hide workspace doc' })).toBeDisabled();
+    expect(screen.getByText('Read-only pane.')).toBeInTheDocument();
+  });
+
+  it('wires pane member toggles and keeps the current user checkbox disabled', async () => {
+    const onTogglePaneMember = vi.fn(async () => undefined);
+
+    render(
+      <MemoryRouter>
+        <ProjectSpacePaneSettingsDialog
+          projectId="project-1"
+          activePane={fixture.sharedPane}
+          activePaneCanEdit
+          activeEditablePaneIndex={0}
+          orderedEditablePanes={[fixture.sharedPane, { ...fixture.privatePane, can_edit: true }]}
+          projectMemberList={fixture.projectMembers}
+          sessionUserId="user-1"
+          modulesEnabled
+          workspaceEnabled
+          onRequestClose={vi.fn()}
+          onTogglePinned={vi.fn(async () => undefined)}
+          onMovePane={vi.fn(async () => undefined)}
+          onTogglePaneMember={onTogglePaneMember}
+          onDeletePane={vi.fn(async () => undefined)}
+          onUpdatePane={vi.fn(async () => undefined)}
+          onToggleActivePaneRegion={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const ownerCheckbox = screen.getByRole('checkbox', { name: 'Owner Person' });
+    const viewerCheckbox = screen.getByRole('checkbox', { name: 'Viewer Person' });
+
+    expect(ownerCheckbox).toBeDisabled();
+    expect(viewerCheckbox).toBeEnabled();
+
+    await userEvent.click(viewerCheckbox);
+    expect(onTogglePaneMember).toHaveBeenCalledWith(fixture.sharedPane, 'user-2');
   });
 });
