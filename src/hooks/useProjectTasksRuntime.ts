@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { listProjectTasks } from '../services/hub/records';
 
 type OverviewView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
-type ProjectSpaceTab = 'overview' | 'work' | 'tools';
+type ProjectSpaceTab = 'overview' | 'work';
 
 const PROJECT_TASK_PAGE_SIZE = 50;
 

@@ -29,7 +29,7 @@ interface UseRecordInspectorParams {
   accessToken: string;
   projectId: string;
   panes: HubPaneSummary[];
-  activeTab: 'overview' | 'work' | 'tools';
+  activeTab: 'overview' | 'work';
   activePaneId: string | null;
   sessionUserId: string;
   refreshViewsAndRecords: () => Promise<void>;

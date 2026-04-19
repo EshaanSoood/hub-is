@@ -5,7 +5,7 @@ import { loadCompleteViewQuery, type TableViewRuntimeState, type ViewQueryResult
 
 interface UseProjectFocusedViewLoaderParams {
   accessToken: string;
-  activeTab: 'overview' | 'work' | 'tools';
+  activeTab: 'overview' | 'work';
   focusedWorkViewId: string;
   focusedWorkView: HubView | null;
   tableViewDataById: Record<string, TableViewRuntimeState>;

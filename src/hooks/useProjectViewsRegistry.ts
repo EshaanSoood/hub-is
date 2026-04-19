@@ -7,7 +7,7 @@ import type { HubView } from '../services/hub/types';
 interface UseProjectViewsRegistryParams {
   accessToken: string;
   projectId: string;
-  activeTab: 'overview' | 'work' | 'tools';
+  activeTab: 'overview' | 'work';
 }
 
 export const useProjectViewsRegistry = ({ accessToken, projectId, activeTab }: UseProjectViewsRegistryParams) => {

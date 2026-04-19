@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { type NavigateFunction, type SetURLSearchParams } from 'react-router-dom';
 import { buildProjectWorkHref } from '../../../lib/hubRoutes';
+import type { TopLevelProjectTab } from '../ProjectSpaceWorkspace/types';
 
 interface UseWorkRouteAndInspectorQueryEffectsParams {
   activePane: { pane_id: string } | null;
-  activeTab: string;
+  activeTab: TopLevelProjectTab;
   hasRequestedPane: boolean;
   navigate: NavigateFunction;
   openRecordInspector: (recordId: string) => Promise<void>;

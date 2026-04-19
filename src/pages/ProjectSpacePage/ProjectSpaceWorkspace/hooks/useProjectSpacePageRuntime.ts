@@ -318,7 +318,7 @@ export const useProjectSpacePageRuntime = ({
     activePaneCanEdit,
     collections,
     focusedWorkViewId,
-    openInspector: openRecordInspector,
+    openRecordInspector,
     refreshViewsAndRecords,
     setPaneMutationError,
   });
@@ -571,7 +571,7 @@ export const useProjectSpacePageRuntime = ({
     timelineFilters,
     toggleTimelineFilter,
     refreshProjectData,
-    openInspectorWithFocusRestore: openRecordInspector,
+    openRecordInspector,
     reminders: remindersRuntime.reminders,
     remindersLoading: remindersRuntime.loading,
     remindersError: remindersRuntime.error,

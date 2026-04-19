@@ -3,7 +3,7 @@ import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { createRecord } from '../services/hub/records';
 import type { HubCollection, HubPaneSummary } from '../services/hub/types';
 
-type TopLevelProjectTab = 'overview' | 'work' | 'tools';
+type TopLevelProjectTab = 'overview' | 'work';
 
 const captureTitleFromIntent = (intent: string | null): string => {
   if (intent === 'project-task') {
@@ -78,7 +78,7 @@ interface UseQuickCaptureParams {
   activePaneCanEdit: boolean;
   collections: HubCollection[];
   focusedWorkViewId: string | null;
-  openInspector: (recordId: string, options?: { mutationPaneId?: string | null }) => Promise<void>;
+  openRecordInspector: (recordId: string, options?: { mutationPaneId?: string | null }) => Promise<void>;
   refreshViewsAndRecords: () => Promise<void>;
   setPaneMutationError: Dispatch<SetStateAction<string | null>>;
 }
@@ -91,7 +91,7 @@ export const useQuickCapture = ({
   activePaneCanEdit,
   collections,
   focusedWorkViewId,
-  openInspector,
+  openRecordInspector,
   refreshViewsAndRecords,
   setPaneMutationError,
 }: UseQuickCaptureParams) => {
@@ -152,7 +152,7 @@ export const useQuickCapture = ({
 
       try {
         await refreshViewsAndRecords();
-        await openInspector(created.record_id);
+        await openRecordInspector(created.record_id);
       } catch (error) {
         setPaneMutationError(error instanceof Error ? error.message : 'Quick capture created, but follow-up UI refresh failed.');
       } finally {
@@ -167,7 +167,7 @@ export const useQuickCapture = ({
       activeTab,
       collections,
       focusedWorkViewId,
-      openInspector,
+      openRecordInspector,
       projectId,
       refreshViewsAndRecords,
       setPaneMutationError,
