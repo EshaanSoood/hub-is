@@ -248,7 +248,7 @@ export const ProjectSpaceWorkspaceDocSection = ({
                     className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
                     aria-label="Upload doc asset"
                   >
-                    <Icon name="upload" className="text-[12px]" />
+                    <Icon name="upload" className="h-3 w-3" />
                     {uploadingDocAsset ? 'Uploading...' : 'Upload + embed'}
                   </button>
                 </form>

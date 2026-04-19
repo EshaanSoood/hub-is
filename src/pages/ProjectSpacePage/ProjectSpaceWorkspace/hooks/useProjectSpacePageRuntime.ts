@@ -581,7 +581,11 @@ export const useProjectSpacePageRuntime = ({
       ),
     [activePaneId, tasksOverviewRows],
   );
-  const taskCollectionId = paneTaskCollectionIds[0] || tasksOverviewRows[0]?.collection_id || null;
+  const activePaneTaskCollectionId = useMemo(
+    () => tasksOverviewRows.find((task) => task.source_pane?.pane_id === activePaneId)?.collection_id ?? null,
+    [activePaneId, tasksOverviewRows],
+  );
+  const taskCollectionId = paneTaskCollectionIds[0] || activePaneTaskCollectionId;
   const {
     tableContract,
     kanbanContract,

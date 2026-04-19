@@ -48,8 +48,17 @@ export const ProjectSpacePaneSettingsDialog = ({
       return;
     }
     const nextName = paneSettingsNameInputRef.current?.value.trim();
-    if (nextName && nextName !== activePane.name) {
+    if (!nextName) {
+      if (paneSettingsNameInputRef.current) {
+        paneSettingsNameInputRef.current.value = activePane.name;
+      }
+      return;
+    }
+    if (nextName !== activePane.name) {
       void onUpdatePane(activePane.pane_id, { name: nextName });
+    }
+    if (paneSettingsNameInputRef.current) {
+      paneSettingsNameInputRef.current.value = nextName;
     }
   }, [activePane, activePaneCanEdit, onUpdatePane]);
 

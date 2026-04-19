@@ -73,6 +73,7 @@ export const ProjectSpaceWorkPaneChrome = ({
   const [otherPaneQuery, setOtherPaneQuery] = useState('');
   const [paneSettingsOpen, setPaneSettingsOpen] = useState(false);
   const previousOpenedFromPinnedRef = useRef(openedFromPinned);
+  const createPaneTriggerRef = useRef<HTMLButtonElement | null>(null);
   const paneSettingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const createPaneNameInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -108,6 +109,7 @@ export const ProjectSpaceWorkPaneChrome = ({
 
     setCreatingPaneName('');
     setShowCreatePaneControl(false);
+    createPaneTriggerRef.current?.focus();
     onNavigateToPane({
       paneId: nextPane.pane_id,
       paneName: nextPane.name,
@@ -125,6 +127,7 @@ export const ProjectSpaceWorkPaneChrome = ({
               type="button"
               className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onClick={() => setShowPaneSwitcher((current) => !current)}
+              aria-expanded={showPaneSwitcher}
               aria-label={showPaneSwitcher ? 'Hide pane switcher' : 'Show pane switcher'}
             >
               {showPaneSwitcher ? 'Hide pane switcher' : 'Show pane switcher'}
@@ -135,6 +138,7 @@ export const ProjectSpaceWorkPaneChrome = ({
               type="button"
               className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onClick={() => setShowOtherPanes((current) => !current)}
+              aria-expanded={showOtherPanes}
             >
               {showOtherPanes ? 'Hide other panes' : `Other panes (${readOnlyPanes.length})`}
             </button>
@@ -174,6 +178,7 @@ export const ProjectSpaceWorkPaneChrome = ({
           ) : null}
           {canWriteProject ? (
             <IconButton
+              ref={createPaneTriggerRef}
               type="button"
               size="sm"
               variant={showCreatePaneControl ? 'secondary' : 'ghost'}
@@ -213,6 +218,7 @@ export const ProjectSpaceWorkPaneChrome = ({
                 if (event.key === 'Escape') {
                   event.preventDefault();
                   setShowCreatePaneControl(false);
+                  createPaneTriggerRef.current?.focus();
                 }
               }}
               className="rounded-panel border border-border-muted bg-surface px-3 py-1.5 text-sm text-text"

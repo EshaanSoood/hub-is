@@ -831,20 +831,23 @@ describe('ProjectSpaceWorkspace characterization', () => {
   });
 
   it('renders the workspace doc hidden state when the pane disables workspace content', () => {
-    const originalLayout = fixture.sharedPane.layout_config;
-    fixture.sharedPane.layout_config = {
-      ...fixture.sharedPane.layout_config,
-      workspace_enabled: false,
-    };
+    const originalLayout = { ...fixture.sharedPane.layout_config };
 
-    renderWorkspace({
-      entry: '/projects/project-1/work/pane-shared',
-      activeTab: 'work',
-    });
+    try {
+      fixture.sharedPane.layout_config = {
+        ...fixture.sharedPane.layout_config,
+        workspace_enabled: false,
+      };
 
-    expect(screen.getByText('This pane is set to modules-only mode. The workspace doc is hidden here.')).toBeInTheDocument();
+      renderWorkspace({
+        entry: '/projects/project-1/work/pane-shared',
+        activeTab: 'work',
+      });
 
-    fixture.sharedPane.layout_config = originalLayout;
+      expect(screen.getByText('This pane is set to modules-only mode. The workspace doc is hidden here.')).toBeInTheDocument();
+    } finally {
+      fixture.sharedPane.layout_config = originalLayout;
+    }
   });
 
   it('gates the doc comment dialog on block selection', async () => {

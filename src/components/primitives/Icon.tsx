@@ -1,4 +1,4 @@
-import type { CSSProperties, ComponentType } from 'react';
+import type { ComponentType } from 'react';
 import {
   Alarm,
   ArrowLeft,
@@ -89,26 +89,22 @@ export const HomeIcon = createPhosphorIcon(House);
 export const FocusIcon = createPhosphorIcon(Target);
 
 export const HubOsWordmark = ({ className, width, height, 'aria-label': ariaLabel }: BrandIconProps) => (
-  <span
+  <svg
     aria-hidden={ariaLabel ? undefined : true}
     aria-label={ariaLabel}
-    className={className}
+    className={['facets-wordmark', className].filter(Boolean).join(' ')}
+    fill="currentColor"
+    focusable="false"
+    height={height}
     role={ariaLabel ? 'img' : undefined}
-    style={{
-      display: 'inline-block',
-      width,
-      height,
-      fontFamily: 'var(--font-logo)',
-      fontSize: '2.625rem',
-      fontStyle: 'italic',
-      fontWeight: 600,
-      letterSpacing: '-0.06em',
-      lineHeight: 1,
-      whiteSpace: 'nowrap',
-    } satisfies CSSProperties}
+    viewBox="0 0 296 52"
+    width={width}
+    xmlns="http://www.w3.org/2000/svg"
   >
-    Facets
-  </span>
+    <text x="0" y="38" className="facets-wordmark-text">
+      Facets
+    </text>
+  </svg>
 );
 
 export const HubOsMark = ({ className, width, height, 'aria-label': ariaLabel }: BrandIconProps) => (

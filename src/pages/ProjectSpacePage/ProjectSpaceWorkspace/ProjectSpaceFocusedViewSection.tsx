@@ -92,6 +92,12 @@ export const ProjectSpaceFocusedViewSection = ({
         </button>
       </div>
 
+      {focusedWorkViewError ? (
+        <InlineNotice variant="danger" className="mt-3" title="Focused view unavailable">
+          {focusedWorkViewError}
+        </InlineNotice>
+      ) : null}
+
       {focusedWorkView.type === 'kanban' ? (
         <div className="mt-3">
           <Suspense fallback={<ModuleLoadingState label="Loading kanban module" rows={5} />}>
@@ -144,7 +150,6 @@ export const ProjectSpaceFocusedViewSection = ({
         </div>
       ) : (
         <div className="mt-3">
-          {focusedWorkViewError ? <InlineNotice variant="danger" title="Focused view unavailable">{focusedWorkViewError}</InlineNotice> : null}
           <Suspense fallback={<ModuleLoadingState label="Loading table module" rows={6} />}>
             <TableModuleSkin
               schema={focusedWorkViewData?.schema || null}

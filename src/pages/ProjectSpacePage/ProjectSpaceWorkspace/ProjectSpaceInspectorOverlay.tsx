@@ -55,6 +55,25 @@ export interface ProjectSpaceInspectorOverlayProps {
   onOpenBacklink: (backlink: HubBacklink) => void;
 }
 
+const InspectorPlaceholder = ({
+  inspectorTriggerRect,
+}: {
+  inspectorTriggerRect: { top: number; left: number; width: number; height: number };
+}): ReactElement => (
+  <motion.div
+    layoutId={dialogLayoutIds.recordInspector}
+    aria-hidden="true"
+    className="inspector-placeholder"
+    initial={false}
+    animate={{
+      x: inspectorTriggerRect.left,
+      y: inspectorTriggerRect.top,
+      width: inspectorTriggerRect.width,
+      height: inspectorTriggerRect.height,
+    }}
+  />
+);
+
 export const ProjectSpaceInspectorOverlay = ({
   accessToken,
   project,
@@ -94,19 +113,7 @@ export const ProjectSpaceInspectorOverlay = ({
   onOpenBacklink,
 }: ProjectSpaceInspectorOverlayProps): ReactElement => (
   <>
-    {!prefersReducedMotion && inspectorTriggerRect ? (
-      <motion.div
-        layoutId={dialogLayoutIds.recordInspector}
-        aria-hidden="true"
-        className="pointer-events-none fixed z-[299] opacity-0"
-        style={{
-          top: inspectorTriggerRect.top,
-          left: inspectorTriggerRect.left,
-          width: inspectorTriggerRect.width,
-          height: inspectorTriggerRect.height,
-        }}
-      />
-    ) : null}
+    {!prefersReducedMotion && inspectorTriggerRect ? <InspectorPlaceholder inspectorTriggerRect={inspectorTriggerRect} /> : null}
 
     <Dialog open={Boolean(inspectorRecordId)} onOpenChange={(open) => (!open ? closeInspectorWithFocusRestore() : undefined)}>
       <DialogContent
@@ -187,7 +194,7 @@ export const ProjectSpaceInspectorOverlay = ({
                   <label key={field.field_id} className="flex flex-col gap-1 text-xs text-muted">
                     {field.name}
                     <input
-                      defaultValue={String(inspectorRecord.values[field.field_id] || '')}
+                      defaultValue={String(inspectorRecord.values[field.field_id] ?? '')}
                       disabled={!inspectorMutationPaneCanEdit}
                       className="rounded-panel border border-border-muted bg-surface px-2 py-1 text-sm text-text"
                       onBlur={(event) => {

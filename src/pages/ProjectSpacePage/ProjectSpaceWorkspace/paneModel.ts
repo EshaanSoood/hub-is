@@ -47,6 +47,7 @@ export const collectPaneTaskCollectionIds = (
     const resolvedView = (requestedViewId ? viewById.get(requestedViewId) : null) ?? defaultViewByType.get(moduleType) ?? null;
     if (
       !resolvedView
+      || resolvedView.type !== moduleType
       || (moduleType === 'kanban' && isStandaloneKanbanView(resolvedView))
       || collectionIds.includes(resolvedView.collection_id)
     ) {

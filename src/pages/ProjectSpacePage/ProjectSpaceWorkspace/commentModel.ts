@@ -1,11 +1,20 @@
-export const readPlainComment = (bodyJson: Record<string, unknown>): string => {
-  const text = bodyJson.text;
+export const readPlainComment = (bodyJson: unknown): string => {
+  if (bodyJson == null) {
+    return '';
+  }
+
+  if (typeof bodyJson !== 'object') {
+    return String(bodyJson);
+  }
+
+  const record = bodyJson as Record<string, unknown>;
+  const text = record.text;
   if (typeof text === 'string') {
     return text;
   }
-  const content = bodyJson.content;
+  const content = record.content;
   if (typeof content === 'string') {
     return content;
   }
-  return JSON.stringify(bodyJson);
+  return JSON.stringify(record);
 };

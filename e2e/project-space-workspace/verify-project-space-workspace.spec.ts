@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 interface Fixture {
   project: {
@@ -27,9 +27,9 @@ let fixture: Fixture;
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const waitForWorkspace = async (page: Parameters<typeof test>[0]['page'], tabName: 'Overview' | 'Work') => {
+const waitForWorkspace = async (page: Page, tabName: 'Overview' | 'Work') => {
   await expect(page.getByRole('tab', { name: tabName })).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText('Loading project space...')).toHaveCount(0, { timeout: 20_000 }).catch(() => undefined);
+  await expect(page.getByText('Loading project space...')).toHaveCount(0, { timeout: 20_000 });
 };
 
 test.beforeAll(async () => {
@@ -38,7 +38,10 @@ test.beforeAll(async () => {
 
 test.describe('ProjectSpaceWorkspace local characterization', () => {
   test('tools tab keeps asset and automation surfaces reachable on the local realm', async ({ page }) => {
-    await page.goto(`/projects/${fixture.project.id}/tools`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/projects/${fixture.project.id}/overview`, { waitUntil: 'domcontentloaded' });
+    await waitForWorkspace(page, 'Overview');
+
+    await page.getByRole('tab', { name: 'Tools' }).click();
     await expect(page.getByRole('tab', { name: 'Tools' })).toHaveAttribute('aria-current', 'page');
     await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(fixture.project.id)}/tools$`));
 

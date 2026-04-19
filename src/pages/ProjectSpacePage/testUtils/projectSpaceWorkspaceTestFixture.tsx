@@ -1,14 +1,6 @@
 import type { HubPaneSummary, HubProject, HubProjectMember, HubView } from '../../../services/hub/types';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
-
-type TimelineEvent = {
-  timeline_event_id: string;
-  event_type: string;
-  primary_entity_type: string;
-  primary_entity_id: string;
-  summary_json: Record<string, unknown>;
-  created_at: string;
-};
+import type { TimelineEvent } from '../ProjectSpaceWorkspace/types';
 
 export interface ProjectSpaceWorkspaceFixture {
   project: HubProject;

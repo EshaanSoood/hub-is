@@ -61,14 +61,8 @@ export const ProjectSpaceWorkspace = ({
         <div className="mb-3">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Project Space</p>
           <h1
-            className="mt-1 text-base font-bold text-text"
+            className="mt-1 line-clamp-2 text-base font-bold text-text"
             title={navigatorProps.projectName}
-            style={{
-              display: '-webkit-box',
-              overflow: 'hidden',
-              WebkitBoxOrient: 'vertical',
-              WebkitLineClamp: 2,
-            }}
           >
             {navigatorProps.projectName}
           </h1>
