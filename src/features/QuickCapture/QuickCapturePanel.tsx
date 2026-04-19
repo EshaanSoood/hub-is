@@ -6,155 +6,27 @@ import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { listCollections } from '../../services/hub/collections';
 import { convertRecord, createPersonalTask, createRecord } from '../../services/hub/records';
 import type { HubCollection, HubHomeCapture } from '../../services/hub/types';
-import type { ProjectRecord } from '../../types/domain';
 import { useCaptureListEffects } from './hooks/useCaptureListEffects';
 import { usePersonalCollectionsEffect } from './hooks/usePersonalCollectionsEffect';
 import { useQuickCaptureComposerEffects } from './hooks/useQuickCaptureComposerEffects';
-
-const LAST_PROJECT_KEY = 'hub:last-opened-project-id';
-const PENDING_CAPTURE_DRAFT_KEY = 'hub:pending-project-capture';
-const PERSONAL_CAPTURE_TARGET = '__personal__';
-
-type CaptureMode = 'thought' | 'task' | 'reminder' | 'calendar';
-
-const safeGetLastProjectId = (): string => {
-  if (typeof window === 'undefined') {
-    return '';
-  }
-  try {
-    return window.localStorage.getItem(LAST_PROJECT_KEY) || '';
-  } catch {
-    return '';
-  }
-};
-
-const captureModeFromIntent = (intent: string | null): CaptureMode => {
-  if (intent === 'event') {
-    return 'calendar';
-  }
-  if (intent === 'project-task') {
-    return 'task';
-  }
-  if (intent === 'reminder') {
-    return 'reminder';
-  }
-  return 'thought';
-};
-
-const selectPersonalCaptureCollection = (collections: HubCollection[]): HubCollection | null => {
-  if (collections.length === 0) {
-    return null;
-  }
-
-  const preferred = collections.find((collection) => {
-    const name = collection.name.toLowerCase();
-    return ['inbox', 'capture', 'note', 'journal'].some((keyword) => name.includes(keyword));
-  });
-
-  return preferred || collections[0] || null;
-};
-
-const selectProjectCaptureCollection = (collections: HubCollection[], mode: CaptureMode): HubCollection | null => {
-  if (collections.length === 0) {
-    return null;
-  }
-
-  if (mode === 'thought') {
-    return selectPersonalCaptureCollection(collections);
-  }
-
-  const rankedCollectionIds = new Set<string>();
-  const rankByKeywords = (keywords: string[]) => {
-    for (const collection of collections) {
-      const haystack = `${collection.name} ${collection.collection_id}`.toLowerCase();
-      if (keywords.some((keyword) => haystack.includes(keyword))) {
-        rankedCollectionIds.add(collection.collection_id);
-      }
-    }
-  };
-
-  if (mode === 'task') {
-    rankByKeywords(['task', 'todo']);
-  } else if (mode === 'reminder') {
-    rankByKeywords(['reminder']);
-  } else if (mode === 'calendar') {
-    rankByKeywords(['event', 'calendar']);
-  }
-
-  if (rankedCollectionIds.size > 0) {
-    const selected = collections.find((collection) => rankedCollectionIds.has(collection.collection_id));
-    if (selected) {
-      return selected;
-    }
-  }
-
-  return collections[0] || null;
-};
-
-const parseIso = (value: string | null | undefined): Date | null => {
-  if (!value) {
-    return null;
-  }
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) ? parsed : null;
-};
-
-const startOfDay = (date: Date): Date => {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-};
-
-const formatRelativeDateTime = (value: string | null): string => {
-  const parsed = parseIso(value);
-  if (!parsed) {
-    return 'No date';
-  }
-  const now = new Date();
-  const dayDelta = Math.round((startOfDay(parsed).getTime() - startOfDay(now).getTime()) / 86_400_000);
-  if (dayDelta === 0) {
-    return `Today ${parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
-  }
-  if (dayDelta === 1) {
-    return `Tomorrow ${parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
-  }
-  if (dayDelta > 1 && dayDelta < 7) {
-    return parsed.toLocaleDateString([], { weekday: 'long', hour: 'numeric', minute: '2-digit' });
-  }
-  if (dayDelta < 0) {
-    return `Overdue ${parsed.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
-  }
-  return parsed.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-};
-
-const truncateCaptureTitle = (title: string): string => {
-  const normalized = title.trim();
-  if (normalized.length <= 250) {
-    return normalized;
-  }
-  return `${normalized.slice(0, 247)}...`;
-};
-
-type CaptureSortDirection = 'desc' | 'asc';
-
-interface ExpandedCaptureAssignment {
-  recordId: string;
-  mode: CaptureMode;
-  projectId: string;
-}
-
-interface QuickCapturePanelProps {
-  accessToken: string | null;
-  projects: ProjectRecord[];
-  personalProjectId: string | null;
-  captures: HubHomeCapture[];
-  capturesLoading?: boolean;
-  onCaptureComplete: () => void | Promise<void>;
-  preferredProjectId?: string | null;
-  initialIntent?: string | null;
-  activationKey?: number;
-  onRequestClose: (options?: { restoreFocus?: boolean }) => void;
-}
+import {
+  captureModeFromIntent,
+  formatRelativeDateTime,
+  PENDING_CAPTURE_DRAFT_KEY,
+  PERSONAL_CAPTURE_TARGET,
+  resolveTargetProjectForMode,
+  safeGetLastProjectId,
+  selectPersonalCaptureCollection,
+  selectProjectCaptureCollection,
+  sortCaptures,
+  truncateCaptureTitle,
+} from './model';
+import type {
+  CaptureMode,
+  CaptureSortDirection,
+  ExpandedCaptureAssignment,
+  QuickCapturePanelProps,
+} from './types';
 
 export const QuickCapturePanel = ({
   accessToken,
@@ -222,17 +94,7 @@ export const QuickCapturePanel = ({
     () => captureTypeOptions.filter((option) => option.value === 'thought' || option.value === 'task'),
     [captureTypeOptions],
   );
-  const sortedCaptures = useMemo(() => {
-    const direction = captureSortDirection === 'asc' ? 1 : -1;
-    return [...captures].sort((left, right) => {
-      const leftTime = parseIso(left.created_at)?.getTime() ?? 0;
-      const rightTime = parseIso(right.created_at)?.getTime() ?? 0;
-      if (leftTime === rightTime) {
-        return left.record_id.localeCompare(right.record_id) * direction;
-      }
-      return (leftTime - rightTime) * direction;
-    });
-  }, [captureSortDirection, captures]);
+  const sortedCaptures = useMemo(() => sortCaptures(captures, captureSortDirection), [captureSortDirection, captures]);
 
   const focusCaptureInput = useCallback(() => focusWhenReady(() => captureInputRef.current), []);
 
@@ -585,14 +447,9 @@ export const QuickCapturePanel = ({
                   onValueChange={(value) => {
                     const nextMode = value as CaptureMode;
                     setCaptureMode(nextMode);
-                    if (nextMode === 'thought') {
-                      setCaptureTargetProjectId(PERSONAL_CAPTURE_TARGET);
-                    } else if (
-                      captureTargetProjectId === PERSONAL_CAPTURE_TARGET
-                      && (nextMode === 'reminder' || nextMode === 'calendar')
-                    ) {
-                      setCaptureTargetProjectId(defaultProjectCaptureTarget);
-                    }
+                    setCaptureTargetProjectId(
+                      resolveTargetProjectForMode(nextMode, captureTargetProjectId, defaultProjectCaptureTarget),
+                    );
                   }}
                   options={captureTypeOptions}
                   ariaLabel="Capture type"
@@ -716,11 +573,11 @@ export const QuickCapturePanel = ({
                               value={assignmentMode}
                               onValueChange={(value) => {
                                 const nextMode = value as CaptureMode;
-                                const nextProjectId = nextMode === 'thought'
-                                  ? PERSONAL_CAPTURE_TARGET
-                                  : assignmentProjectId === PERSONAL_CAPTURE_TARGET && (nextMode === 'reminder' || nextMode === 'calendar')
-                                    ? defaultProjectCaptureTarget
-                                    : assignmentProjectId;
+                                const nextProjectId = resolveTargetProjectForMode(
+                                  nextMode,
+                                  assignmentProjectId,
+                                  defaultProjectCaptureTarget,
+                                );
                                 setExpandedCaptureAssignment({
                                   recordId: capture.record_id,
                                   mode: nextMode,
