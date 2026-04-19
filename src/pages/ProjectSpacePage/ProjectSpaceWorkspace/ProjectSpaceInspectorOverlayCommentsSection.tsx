@@ -27,12 +27,16 @@ export const ProjectSpaceInspectorOverlayCommentsSection = ({
   <section className="rounded-panel border border-border-muted p-3">
     <h3 className="text-sm font-semibold text-primary">Comments + Mentions</h3>
     <ul className="mt-2 space-y-2">
-      {comments.map((comment) => (
-        <li key={comment.comment_id} className="rounded-panel border border-border-muted p-2">
-          <p className="text-sm text-text">{readPlainComment(comment.body_json)}</p>
-          <p className="text-xs text-muted">{comment.status}</p>
-        </li>
-      ))}
+      {comments.length === 0 ? (
+        <li className="text-sm text-muted">No comments yet.</li>
+      ) : (
+        comments.map((comment) => (
+          <li key={comment.comment_id} className="rounded-panel border border-border-muted p-2">
+            <p className="text-sm text-text">{readPlainComment(comment.body_json)}</p>
+            <p className="text-xs text-muted">{comment.status}</p>
+          </li>
+        ))
+      )}
     </ul>
 
     <form

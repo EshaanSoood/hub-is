@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { useOverviewViewFromSearchParams } from '../../hooks/useOverviewViewFromSearchParams';
 import { useOverviewViewQuerySyncEffect } from '../../hooks/useOverviewViewQuerySyncEffect';
@@ -13,7 +13,7 @@ interface UseProjectSpaceOverviewStateParams {
 
 interface ProjectSpaceOverviewState {
   overviewView: OverviewSubView;
-  setOverviewView: React.Dispatch<React.SetStateAction<OverviewSubView>>;
+  setOverviewView: Dispatch<SetStateAction<OverviewSubView>>;
 }
 
 export const useProjectSpaceOverviewState = ({
