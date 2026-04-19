@@ -1,11 +1,31 @@
-import { MentionPicker } from '../../../components/project-space/MentionPicker';
-import { readPlainComment } from './commentModel';
+import { MentionPicker } from '../MentionPicker';
 import type { ComponentProps, FormEvent, ReactElement } from 'react';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
 
 type MentionPickerProps = ComponentProps<typeof MentionPicker>;
 
-interface ProjectSpaceInspectorOverlayCommentsSectionProps {
+const readPlainComment = (bodyJson: unknown): string => {
+  if (bodyJson == null) {
+    return '';
+  }
+
+  if (typeof bodyJson !== 'object') {
+    return String(bodyJson);
+  }
+
+  const record = bodyJson as Record<string, unknown>;
+  const text = record.text;
+  if (typeof text === 'string') {
+    return text;
+  }
+  const content = record.content;
+  if (typeof content === 'string') {
+    return content;
+  }
+  return JSON.stringify(record);
+};
+
+export interface RecordInspectorCommentsSectionProps {
   accessToken: string;
   projectId: string;
   comments: HubRecordDetail['comments'];
@@ -15,7 +35,7 @@ interface ProjectSpaceInspectorOverlayCommentsSectionProps {
   onAddRecordComment: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
-export const ProjectSpaceInspectorOverlayCommentsSection = ({
+export const RecordInspectorCommentsSection = ({
   accessToken,
   projectId,
   comments,
@@ -23,7 +43,7 @@ export const ProjectSpaceInspectorOverlayCommentsSection = ({
   setInspectorCommentText,
   onInsertRecordCommentMention,
   onAddRecordComment,
-}: ProjectSpaceInspectorOverlayCommentsSectionProps): ReactElement => (
+}: RecordInspectorCommentsSectionProps): ReactElement => (
   <section className="rounded-panel border border-border-muted p-3">
     <h3 className="text-sm font-semibold text-primary">Comments + Mentions</h3>
     <ul className="mt-2 space-y-2">

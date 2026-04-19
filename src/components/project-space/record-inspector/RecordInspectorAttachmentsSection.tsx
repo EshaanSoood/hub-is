@@ -1,10 +1,10 @@
-import { FileInspectorActionBar } from '../../../components/project-space/FileInspectorActionBar';
-import { Icon } from '../../../components/primitives';
+import { FileInspectorActionBar } from '../FileInspectorActionBar';
+import { Icon } from '../../primitives';
 import type { FormEvent, ReactElement } from 'react';
 import type { HubPaneSummary } from '../../../services/hub/types';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
 
-interface ProjectSpaceInspectorOverlayAttachmentsSectionProps {
+interface RecordInspectorAttachmentsSectionProps {
   attachments: HubRecordDetail['attachments'];
   panes: HubPaneSummary[];
   selectedAttachmentId: string | null;
@@ -17,7 +17,7 @@ interface ProjectSpaceInspectorOverlayAttachmentsSectionProps {
   onAttachFile: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
-export const ProjectSpaceInspectorOverlayAttachmentsSection = ({
+export const RecordInspectorAttachmentsSection = ({
   attachments,
   panes,
   selectedAttachmentId,
@@ -28,7 +28,7 @@ export const ProjectSpaceInspectorOverlayAttachmentsSection = ({
   onMoveAttachment,
   onDetachAttachment,
   onAttachFile,
-}: ProjectSpaceInspectorOverlayAttachmentsSectionProps): ReactElement => {
+}: RecordInspectorAttachmentsSectionProps): ReactElement => {
   const selectedAttachment = selectedAttachmentId
     ? attachments.find((attachment) => attachment.attachment_id === selectedAttachmentId)
     : null;
