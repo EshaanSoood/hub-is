@@ -581,7 +581,7 @@ const renderWorkspace = ({
   activeTab,
 }: {
   entry: string;
-  activeTab: 'overview' | 'work' | 'tools';
+  activeTab: 'overview' | 'work';
 }) => render(
   <MemoryRouter initialEntries={[entry]}>
     <Routes>
@@ -607,26 +607,6 @@ const renderWorkspace = ({
       />
       <Route
         path="/projects/:projectId/work/:paneId"
-        element={
-          <>
-            <LocationEcho />
-            <ProjectSpaceWorkspace
-              activeTab={activeTab}
-              project={fixture.project}
-              panes={fixture.panes}
-              setPanes={vi.fn()}
-              projectMembers={fixture.projectMembers}
-              accessToken="token"
-              sessionUserId="user-1"
-              refreshProjectData={vi.fn(async () => undefined)}
-              timeline={fixture.timeline}
-              setTimeline={vi.fn()}
-            />
-          </>
-        }
-      />
-      <Route
-        path="/projects/:projectId/tools"
         element={
           <>
             <LocationEcho />
@@ -803,6 +783,15 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
     expect(screen.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Work' })).toBeInTheDocument();
+  });
+
+  it('does not expose a Tools navigation affordance', () => {
+    renderWorkspace({
+      entry: '/projects/project-1/overview',
+      activeTab: 'overview',
+    });
+
+    expect(screen.queryByRole('button', { name: 'Tools' })).not.toBeInTheDocument();
   });
 
   it('hides the pane switcher for pinned routes until the user reveals it', async () => {
@@ -1149,40 +1138,17 @@ describe('ProjectSpaceWorkspace characterization', () => {
     });
   });
 
-  it('renders the tools surface and preserves asset library and automation wiring', async () => {
-    projectFilesRuntimeState.assetRoots = [{ asset_root_id: 'root-1', root_path: '/Projects/Home' }];
-    projectFilesRuntimeState.assetEntries = [
-      { path: '/Projects/Home/brief.md', name: 'brief.md' },
-      { path: '/Projects/Home/spec.md', name: 'spec.md' },
-    ];
-    projectFilesRuntimeState.assetWarning = 'Asset roots are local-only.';
-    projectFilesRuntimeState.newAssetRootPath = '/Projects/Home';
-    automationRuntimeState.automationRules = [{ id: 'rule-1' }];
-    automationRuntimeState.automationRuns = [{ id: 'run-1' }];
-
+  it('keeps the overview and work shell behavior stable after the tools surface removal', () => {
     renderWorkspace({
-      entry: '/projects/project-1/tools',
-      activeTab: 'tools',
+      entry: '/projects/project-1/work/pane-private?pinned=1',
+      activeTab: 'work',
     });
 
-    expect(screen.getByRole('button', { name: 'Tools' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('heading', { name: 'Asset Library Roots' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Asset root path')).toHaveValue('/Projects/Home');
-    expect(screen.getByRole('alert')).toHaveTextContent('Asset roots are local-only.');
-    expect(screen.getByText('brief.md')).toBeInTheDocument();
-    expect(screen.getByText('spec.md')).toBeInTheDocument();
-    expect(screen.getByTestId('automation-rules-count')).toHaveTextContent('1');
-    expect(screen.getByTestId('automation-runs-count')).toHaveTextContent('1');
-    expect(screen.getByTestId('automation-record-types')).toHaveTextContent('Tasks');
-
-    await userEvent.type(screen.getByLabelText('Asset root path'), '/next');
-    expect(projectFilesRuntimeState.setNewAssetRootPath).toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole('button', { name: 'List assets' }));
-    expect(projectFilesRuntimeState.onLoadAssets).toHaveBeenCalledWith('root-1');
-
-    await userEvent.click(screen.getByRole('button', { name: 'Add root' }));
-    expect(projectFilesRuntimeState.onAddAssetRoot).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Work' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open pinned pane Private Work' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByText('Asset Library Roots')).not.toBeInTheDocument();
+    expect(screen.queryByText('Automation builder')).not.toBeInTheDocument();
   });
 });
 

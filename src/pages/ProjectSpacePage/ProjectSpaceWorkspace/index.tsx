@@ -3,7 +3,6 @@ import type { ReactElement } from 'react';
 import type { HubPaneSummary, HubProject, HubProjectMember } from '../../../services/hub/types';
 import { ProjectSpaceInspectorOverlay } from './ProjectSpaceInspectorOverlay';
 import { ProjectSpaceOverviewSurface } from './ProjectSpaceOverviewSurface';
-import { ProjectSpaceToolsSurface } from './ProjectSpaceToolsSurface';
 import { ProjectSpaceWorkSurface } from './ProjectSpaceWorkSurface';
 import { useProjectSpacePageRuntime } from './hooks/useProjectSpacePageRuntime';
 import type { TimelineEvent, TopLevelProjectTab } from './types';
@@ -39,7 +38,6 @@ export const ProjectSpaceWorkspace = ({
     navigatorProps,
     overviewProps,
     workProps,
-    toolsProps,
     inspectorProps,
   } = useProjectSpacePageRuntime({
     activeTab,
@@ -113,23 +111,11 @@ export const ProjectSpaceWorkspace = ({
               </button>
             );
           })}
-
-          <button
-            type="button"
-            onClick={navigatorProps.onNavigateTools}
-            className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-              navigatorProps.activeTab === 'tools' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
-            }`}
-            aria-current={navigatorProps.activeTab === 'tools' ? 'page' : undefined}
-          >
-            Tools
-          </button>
         </div>
       </div>
 
       {activeTab === 'overview' ? <ProjectSpaceOverviewSurface {...overviewProps} /> : null}
       {activeTab === 'work' ? <ProjectSpaceWorkSurface {...workProps} /> : null}
-      {activeTab === 'tools' ? <ProjectSpaceToolsSurface {...toolsProps} /> : null}
 
       <ProjectSpaceInspectorOverlay {...inspectorProps} />
     </motion.div>
