@@ -143,19 +143,69 @@ vi.mock('../../components/project-space/CommentComposer', () => ({
 }));
 
 vi.mock('../../components/project-space/MentionPicker', () => ({
-  MentionPicker: ({ buttonLabel }: { buttonLabel: string }) => <button type="button">{buttonLabel}</button>,
+  MentionPicker: ({ buttonLabel, onSelect }: { buttonLabel: string; onSelect?: (value: unknown) => void }) => (
+    <button type="button" onClick={() => onSelect?.({ entity_type: 'user', entity_id: 'user-2' })}>
+      {buttonLabel}
+    </button>
+  ),
 }));
 
 vi.mock('../../components/project-space/RelationsSection', () => ({
-  RelationsSection: () => <div>Relations section</div>,
+  RelationsSection: ({
+    outgoing,
+    incoming,
+    mutationError,
+  }: {
+    outgoing?: unknown[];
+    incoming?: unknown[];
+    mutationError?: string | null;
+  }) => (
+    <div>
+      Relations section
+      <span data-testid="relations-count">{(outgoing?.length ?? 0) + (incoming?.length ?? 0)}</span>
+      {mutationError ? <span>{mutationError}</span> : null}
+    </div>
+  ),
 }));
 
 vi.mock('../../components/project-space/FileInspectorActionBar', () => ({
-  FileInspectorActionBar: () => <div>File action bar</div>,
+  FileInspectorActionBar: ({
+    fileName,
+    onRename,
+    onMove,
+    onRemove,
+  }: {
+    fileName: string;
+    onRename?: (nextName: string) => void;
+    onMove?: (paneId: string) => void;
+    onRemove?: () => void;
+  }) => (
+    <div>
+      <span>File action bar {fileName}</span>
+      <button type="button" onClick={() => onRename?.('renamed-attachment.txt')}>Rename attachment</button>
+      <button type="button" onClick={() => onMove?.('pane-private')}>Move attachment</button>
+      <button type="button" onClick={() => onRemove?.()}>Remove attachment</button>
+    </div>
+  ),
 }));
 
 vi.mock('../../components/project-space/BacklinksPanel', () => ({
-  BacklinksPanel: () => <div>Backlinks panel</div>,
+  BacklinksPanel: ({
+    backlinks,
+    onOpenBacklink,
+  }: {
+    backlinks?: Array<{ mention_id: string; source_entity_type: string }>;
+    onOpenBacklink?: (backlink: unknown) => void;
+  }) => (
+    <div>
+      <span>Backlinks panel</span>
+      {(backlinks ?? []).map((backlink) => (
+        <button key={backlink.mention_id} type="button" onClick={() => onOpenBacklink?.(backlink)}>
+          Open backlink {backlink.source_entity_type}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 const automationBuilderMock = vi.fn(({ rules, runs, availableRecordTypes }: { rules: unknown[]; runs: unknown[]; availableRecordTypes: string[] }) => (
@@ -287,8 +337,8 @@ const workspaceDocRuntimeState = {
 
 const recordInspectorState = {
   closeInspector: closeInspectorMock,
-  inspectorBacklinks: [],
-  inspectorBacklinksError: null,
+  inspectorBacklinks: [] as unknown[],
+  inspectorBacklinksError: null as string | null,
   inspectorBacklinksLoading: false,
   inspectorCommentText: '',
   inspectorError: null,
@@ -308,10 +358,10 @@ const recordInspectorState = {
   onRenameInspectorAttachment: vi.fn(),
   onSaveRecordField: vi.fn(),
   openInspector: openInspectorMock,
-  relationMutationError: null,
+  relationMutationError: null as string | null,
   removingRelationId: null,
   savingValues: false,
-  selectedAttachmentId: null,
+  selectedAttachmentId: null as string | null,
   setInspectorCommentText: vi.fn(),
   setSelectedAttachmentId: vi.fn(),
   uploadingAttachment: false,
@@ -591,6 +641,21 @@ describe('ProjectSpaceWorkspace characterization', () => {
     recordInspectorState.inspectorRecord = null;
     recordInspectorState.inspectorRecordId = null;
     recordInspectorState.inspectorMutationPaneCanEdit = true;
+    recordInspectorState.inspectorBacklinks = [];
+    recordInspectorState.inspectorBacklinksError = null;
+    recordInspectorState.inspectorCommentText = '';
+    recordInspectorState.relationMutationError = null;
+    recordInspectorState.selectedAttachmentId = null;
+    recordInspectorState.onAttachFile.mockClear();
+    recordInspectorState.onDetachInspectorAttachment.mockClear();
+    recordInspectorState.onInsertRecordCommentMention.mockClear();
+    recordInspectorState.onMoveInspectorAttachment.mockClear();
+    recordInspectorState.onAddRecordComment.mockClear();
+    recordInspectorState.onRemoveRelation.mockClear();
+    recordInspectorState.onRenameInspectorAttachment.mockClear();
+    recordInspectorState.onSaveRecordField.mockClear();
+    recordInspectorState.setInspectorCommentText.mockClear();
+    recordInspectorState.setSelectedAttachmentId.mockClear();
     projectFilesRuntimeState.assetEntries = [];
     projectFilesRuntimeState.assetRoots = [];
     projectFilesRuntimeState.assetWarning = null;
@@ -745,6 +810,111 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
     fireEvent.click(screen.getByLabelText('Close inspector'));
     expect(closeInspectorMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves inspector attachment actions, comment wiring, and backlink opening', async () => {
+    recordInspectorState.inspectorRecord = {
+      ...fixture.inspectorRecord,
+      attachments: [
+        {
+          attachment_id: 'attachment-1',
+          provider: 'local',
+          asset_root_id: 'root-1',
+          asset_path: '/Projects/Home/brief.txt',
+          name: 'brief.txt',
+          mime_type: 'text/plain',
+          size_bytes: 42,
+          metadata: {},
+          proxy_url: '/files/brief.txt',
+          created_at: '2026-04-19T00:00:00.000Z',
+        },
+      ],
+      comments: [
+        {
+          comment_id: 'comment-1',
+          author_user_id: 'user-1',
+          body_json: { text: 'Inspector comment body' },
+          status: 'open',
+          created_at: '2026-04-19T00:00:00.000Z',
+          updated_at: '2026-04-19T00:00:00.000Z',
+        },
+      ],
+      relations: {
+        outgoing: [{
+          relation_id: 'relation-1',
+          to_record_id: 'record-2',
+          via_field_id: 'field-related',
+        }],
+        incoming: [],
+      },
+      activity: [
+        {
+          timeline_event_id: 'activity-1',
+          event_type: 'record.updated',
+          created_at: '2026-04-19T00:00:00.000Z',
+          actor_user_id: 'user-1',
+          summary_json: {},
+        },
+      ],
+    } as typeof fixture.inspectorRecord;
+    recordInspectorState.inspectorRecordId = fixture.inspectorRecord.record_id;
+    recordInspectorState.selectedAttachmentId = 'attachment-1';
+    recordInspectorState.inspectorCommentText = 'Need follow-up';
+    recordInspectorState.inspectorBacklinks = [
+      {
+        mention_id: 'mention-1',
+        created_at: '2026-04-19T00:00:00.000Z',
+        source_entity_type: 'doc',
+        source_entity_id: 'doc-1',
+        target_entity_type: 'record',
+        target_entity_id: fixture.inspectorRecord.record_id,
+        context: null,
+        source: {
+          doc_id: 'doc-1',
+          pane_id: 'pane-private',
+          pane_name: 'Private Work',
+          node_key: 'node-1',
+          comment_target_entity_type: null,
+          comment_target_entity_id: null,
+          comment_author_user_id: null,
+        },
+      },
+    ];
+    recordInspectorState.relationMutationError = 'Relation mutation failed';
+
+    renderWorkspace({
+      entry: '/projects/project-1/work/pane-shared',
+      activeTab: 'work',
+    });
+
+    expect(screen.getByText('File action bar brief.txt')).toBeInTheDocument();
+    expect(screen.getByText('Inspector comment body')).toBeInTheDocument();
+    expect(screen.getByTestId('relations-count')).toHaveTextContent('1');
+    expect(screen.getByText('Relation mutation failed')).toBeInTheDocument();
+    expect(screen.getByText(/record\.updated/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Rename attachment' }));
+    expect(recordInspectorState.onRenameInspectorAttachment).toHaveBeenCalledWith('attachment-1', 'renamed-attachment.txt');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Move attachment' }));
+    expect(recordInspectorState.onMoveInspectorAttachment).toHaveBeenCalledWith('attachment-1', 'pane-private');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove attachment' }));
+    expect(recordInspectorState.onDetachInspectorAttachment).toHaveBeenCalledWith('attachment-1');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Attach' }));
+    expect(recordInspectorState.onAttachFile).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', { name: '@ Mention' }));
+    expect(recordInspectorState.onInsertRecordCommentMention).toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add comment' }));
+    expect(recordInspectorState.onAddRecordComment).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open backlink doc' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('location-state')).toHaveTextContent('/projects/project-1/work/pane-private');
+    });
   });
 
   it('renders the tools surface and preserves asset library and automation wiring', async () => {

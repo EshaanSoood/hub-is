@@ -1,20 +1,20 @@
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../../components/project-space/ProjectSpaceDialogPrimitives';
 import { BacklinksPanel } from '../../../components/project-space/BacklinksPanel';
-import { FileInspectorActionBar } from '../../../components/project-space/FileInspectorActionBar';
-import { MentionPicker } from '../../../components/project-space/MentionPicker';
 import { RelationsSection } from '../../../components/project-space/RelationsSection';
 import { Icon, InlineNotice } from '../../../components/primitives';
 import { buildPaneContextHref, buildProjectWorkHref } from '../../../lib/hubRoutes';
 import { withHubMotionState } from '../../../lib/hubMotionState';
 import { dialogLayoutIds } from '../../../styles/motion';
 import { motion } from 'framer-motion';
-import type { ComponentProps, FormEvent, ReactElement, RefObject } from 'react';
+import type { ComponentProps, ReactElement, RefObject } from 'react';
 import type { HubBacklink, HubPaneSummary, HubProject } from '../../../services/hub/types';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
-import { readPlainComment } from './commentModel';
+import { ProjectSpaceInspectorOverlayActivitySection } from './ProjectSpaceInspectorOverlayActivitySection';
+import { ProjectSpaceInspectorOverlayAttachmentsSection } from './ProjectSpaceInspectorOverlayAttachmentsSection';
+import { ProjectSpaceInspectorOverlayCommentsSection } from './ProjectSpaceInspectorOverlayCommentsSection';
+import type { FormEvent } from 'react';
 
 type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
-type MentionPickerProps = ComponentProps<typeof MentionPicker>;
 
 export interface ProjectSpaceInspectorOverlayProps {
   accessToken: string;
@@ -50,7 +50,7 @@ export interface ProjectSpaceInspectorOverlayProps {
   onAttachFile: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onAddRelation: RelationsSectionProps['onAddRelation'];
   onRemoveRelation: (relationId: string) => Promise<void>;
-  onInsertRecordCommentMention: MentionPickerProps['onSelect'];
+  onInsertRecordCommentMention: ComponentProps<typeof ProjectSpaceInspectorOverlayCommentsSection>['onInsertRecordCommentMention'];
   onAddRecordComment: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onOpenBacklink: (backlink: HubBacklink) => void;
 }
@@ -202,86 +202,18 @@ export const ProjectSpaceInspectorOverlay = ({
               {savingValues ? <p className="mt-2 text-xs text-muted">Saving...</p> : null}
             </section>
 
-            <section className="rounded-panel border border-border-muted p-3">
-              <h3 className="text-sm font-semibold text-primary">Attachments</h3>
-              {inspectorRecord.attachments.length > 0 ? (
-                <div className="mt-2 space-y-2">
-                  <div className="flex flex-wrap gap-1">
-                    {inspectorRecord.attachments.map((attachment) => {
-                      const selected = selectedAttachmentId === attachment.attachment_id;
-                      return (
-                        <button
-                          key={attachment.attachment_id}
-                          type="button"
-                          onClick={() => setSelectedAttachmentId(attachment.attachment_id)}
-                          aria-pressed={selected}
-                          className={`rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                            selected
-                              ? 'border-primary text-text bg-primary/10'
-                              : 'border-border-muted text-muted bg-transparent'
-                          }`}
-                        >
-                          {attachment.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {selectedAttachmentId ? (
-                    <FileInspectorActionBar
-                      fileName={
-                        inspectorRecord.attachments.find((attachment) => attachment.attachment_id === selectedAttachmentId)?.name ||
-                        'Attachment'
-                      }
-                      downloadUrl={
-                        inspectorRecord.attachments.find((attachment) => attachment.attachment_id === selectedAttachmentId)?.proxy_url || ''
-                      }
-                      shareableLink={
-                        inspectorRecord.attachments.find((attachment) => attachment.attachment_id === selectedAttachmentId)?.proxy_url || ''
-                      }
-                      panes={panes.map((pane) => ({ id: pane.pane_id, name: pane.name }))}
-                      readOnly={!inspectorMutationPaneCanEdit}
-                      onRename={(nextName) => {
-                        void onRenameInspectorAttachment(selectedAttachmentId, nextName);
-                      }}
-                      onMove={(paneIdToMove) => {
-                        void onMoveInspectorAttachment(selectedAttachmentId, paneIdToMove);
-                      }}
-                      onRemove={() => {
-                        void onDetachInspectorAttachment(selectedAttachmentId);
-                      }}
-                    />
-                  ) : null}
-
-                  <ul className="space-y-1">
-                    {inspectorRecord.attachments.map((attachment) => (
-                      <li key={attachment.attachment_id} className="text-sm text-muted">
-                        {attachment.name} ({attachment.mime_type})
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <p className="mt-2 text-sm text-muted">No attachments yet.</p>
-              )}
-              {inspectorMutationPaneCanEdit ? (
-                <form className="mt-2 flex flex-wrap items-center gap-2" onSubmit={(event) => {
-                  void onAttachFile(event);
-                }}>
-                  <input name="attachment-file" type="file" className="text-xs text-muted" aria-label="Attach file" />
-                  <button
-                    type="submit"
-                    disabled={uploadingAttachment}
-                    className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Icon name="upload" className="text-[12px]" />
-                    {uploadingAttachment ? 'Uploading...' : 'Attach'}
-                  </button>
-                </form>
-              ) : (
-                <p className="mt-2 text-xs text-muted">Attachments are read-only in this pane.</p>
-              )}
-            </section>
+            <ProjectSpaceInspectorOverlayAttachmentsSection
+              attachments={inspectorRecord.attachments}
+              panes={panes}
+              selectedAttachmentId={selectedAttachmentId}
+              inspectorMutationPaneCanEdit={inspectorMutationPaneCanEdit}
+              uploadingAttachment={uploadingAttachment}
+              setSelectedAttachmentId={setSelectedAttachmentId}
+              onRenameAttachment={onRenameInspectorAttachment}
+              onMoveAttachment={onMoveInspectorAttachment}
+              onDetachAttachment={onDetachInspectorAttachment}
+              onAttachFile={onAttachFile}
+            />
 
             <RelationsSection
               accessToken={accessToken}
@@ -297,45 +229,15 @@ export const ProjectSpaceInspectorOverlay = ({
               onRemoveRelation={onRemoveRelation}
             />
 
-            <section className="rounded-panel border border-border-muted p-3">
-              <h3 className="text-sm font-semibold text-primary">Comments + Mentions</h3>
-              <ul className="mt-2 space-y-2">
-                {inspectorRecord.comments.map((comment) => (
-                  <li key={comment.comment_id} className="rounded-panel border border-border-muted p-2">
-                    <p className="text-sm text-text">{readPlainComment(comment.body_json)}</p>
-                    <p className="text-xs text-muted">{comment.status}</p>
-                  </li>
-                ))}
-              </ul>
-
-              <form className="mt-2 space-y-2" onSubmit={(event) => {
-                void onAddRecordComment(event);
-              }}>
-                <textarea
-                  value={inspectorCommentText}
-                  onChange={(event) => setInspectorCommentText(event.target.value)}
-                  className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                  rows={3}
-                  placeholder="Type comment. Use mention picker for users/records."
-                  aria-label="Record comment"
-                />
-                <div className="flex flex-wrap items-center gap-2">
-                  <MentionPicker
-                    accessToken={accessToken}
-                    projectId={project.project_id}
-                    onSelect={onInsertRecordCommentMention}
-                    buttonLabel="@ Mention"
-                    ariaLabel="Add mention to record comment"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary"
-                  >
-                    Add comment
-                  </button>
-                </div>
-              </form>
-            </section>
+            <ProjectSpaceInspectorOverlayCommentsSection
+              accessToken={accessToken}
+              projectId={project.project_id}
+              comments={inspectorRecord.comments}
+              inspectorCommentText={inspectorCommentText}
+              setInspectorCommentText={setInspectorCommentText}
+              onInsertRecordCommentMention={onInsertRecordCommentMention}
+              onAddRecordComment={onAddRecordComment}
+            />
 
             <BacklinksPanel
               backlinks={inspectorBacklinks as ComponentProps<typeof BacklinksPanel>['backlinks']}
@@ -344,16 +246,7 @@ export const ProjectSpaceInspectorOverlay = ({
               onOpenBacklink={onOpenBacklink}
             />
 
-            <section className="rounded-panel border border-border-muted p-3">
-              <h3 className="text-sm font-semibold text-primary">Activity</h3>
-              <ul className="mt-2 space-y-1">
-                {inspectorRecord.activity.map((entry) => (
-                  <li key={entry.timeline_event_id} className="text-xs text-muted">
-                    {entry.event_type} · {new Date(entry.created_at).toLocaleString()}
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <ProjectSpaceInspectorOverlayActivitySection activity={inspectorRecord.activity} />
           </div>
         ) : null}
 
