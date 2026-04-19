@@ -1021,7 +1021,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
       activeTab: 'tools',
     });
 
-    expect(screen.getByRole('tab', { name: 'Tools' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Tools' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('heading', { name: 'Asset Library Roots' })).toBeInTheDocument();
     expect(screen.getByLabelText('Asset root path')).toHaveValue('/Projects/Home');
     expect(screen.getByRole('alert')).toHaveTextContent('Asset roots are local-only.');

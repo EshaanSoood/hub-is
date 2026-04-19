@@ -102,7 +102,11 @@ export const ProjectSpaceWorkPaneChrome = ({
 
   const onCreatePaneSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const nextPane = await onCreatePane(creatingPaneName);
+    const trimmedName = creatingPaneName.trim();
+    if (!trimmedName) {
+      return;
+    }
+    const nextPane = await onCreatePane(trimmedName);
     if (!nextPane) {
       return;
     }

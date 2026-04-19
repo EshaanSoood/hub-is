@@ -28,7 +28,7 @@ let fixture: Fixture;
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const waitForWorkspace = async (page: Page, tabName: 'Overview' | 'Work') => {
-  await expect(page.getByRole('tab', { name: tabName })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: tabName, exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Loading project space...')).toHaveCount(0, { timeout: 20_000 });
 };
 
@@ -41,8 +41,8 @@ test.describe('ProjectSpaceWorkspace local characterization', () => {
     await page.goto(`/projects/${fixture.project.id}/overview`, { waitUntil: 'domcontentloaded' });
     await waitForWorkspace(page, 'Overview');
 
-    await page.getByRole('tab', { name: 'Tools' }).click();
-    await expect(page.getByRole('tab', { name: 'Tools' })).toHaveAttribute('aria-current', 'page');
+    await page.getByRole('button', { name: 'Tools' }).click();
+    await expect(page.getByRole('button', { name: 'Tools' })).toHaveAttribute('aria-current', 'page');
     await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(fixture.project.id)}/tools$`));
 
     await expect(page.getByRole('heading', { name: 'Asset Library Roots' })).toBeVisible();

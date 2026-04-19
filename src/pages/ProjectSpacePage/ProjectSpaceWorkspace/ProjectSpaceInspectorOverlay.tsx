@@ -168,6 +168,7 @@ export const ProjectSpaceInspectorOverlay = ({
                         sourcePane: inspectorRecord.source_pane,
                         fallbackHref: buildProjectWorkHref(project.project_id),
                       });
+                      closeInspectorWithFocusRestore();
                       navigate(targetHref, {
                         state: withHubMotionState(undefined, {
                           hubProjectName: project.name,

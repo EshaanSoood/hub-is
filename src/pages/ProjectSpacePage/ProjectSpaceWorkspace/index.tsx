@@ -67,15 +67,13 @@ export const ProjectSpaceWorkspace = ({
             {navigatorProps.projectName}
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Project space tabs">
+        <div className="flex flex-wrap items-center gap-2" aria-label="Project space navigation">
           <button
             type="button"
             onClick={navigatorProps.onNavigateOverview}
             className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
               navigatorProps.activeTab === 'overview' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
             }`}
-            role="tab"
-            aria-selected={navigatorProps.activeTab === 'overview'}
             aria-current={navigatorProps.activeTab === 'overview' ? 'page' : undefined}
           >
             Overview
@@ -88,8 +86,6 @@ export const ProjectSpaceWorkspace = ({
                 ? 'bg-primary text-on-primary'
                 : 'border border-border-muted text-primary'
             }`}
-            role="tab"
-            aria-selected={navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned}
             aria-current={navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned ? 'page' : undefined}
           >
             Work
@@ -107,8 +103,6 @@ export const ProjectSpaceWorkspace = ({
                     ? 'border-primary bg-primary text-on-primary'
                     : 'border-border-muted bg-surface text-primary hover:border-primary hover:bg-primary/10'
                 }`}
-                role="tab"
-                aria-selected={selected}
                 aria-current={selected ? 'page' : undefined}
                 aria-label={`Open pinned pane ${pane.name}`}
               >
@@ -126,8 +120,6 @@ export const ProjectSpaceWorkspace = ({
             className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
               navigatorProps.activeTab === 'tools' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
             }`}
-            role="tab"
-            aria-selected={navigatorProps.activeTab === 'tools'}
             aria-current={navigatorProps.activeTab === 'tools' ? 'page' : undefined}
           >
             Tools

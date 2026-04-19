@@ -1,4 +1,13 @@
-import { Suspense, lazy, type ComponentProps, type ReactElement } from 'react';
+import {
+  Suspense,
+  lazy,
+  type ComponentProps,
+  type Dispatch,
+  type FormEvent,
+  type ReactElement,
+  type RefObject,
+  type SetStateAction,
+} from 'react';
 import { CommentComposer } from '../../../components/project-space/CommentComposer';
 import { CommentRail } from '../../../components/project-space/CommentRail';
 import { MentionPicker } from '../../../components/project-space/MentionPicker';
@@ -56,9 +65,9 @@ export interface ProjectSpaceWorkspaceDocSectionProps {
   onOpenRecord: (recordId: string) => void;
   onOpenEmbeddedView: (viewId: string) => void;
   uploadingDocAsset: boolean;
-  onUploadDocAsset: (event: React.FormEvent<HTMLFormElement>) => void;
+  onUploadDocAsset: (event: FormEvent<HTMLFormElement>) => void;
   docCommentComposerOpen: boolean;
-  commentTriggerRef: React.RefObject<HTMLButtonElement | null>;
+  commentTriggerRef: RefObject<HTMLButtonElement | null>;
   onDocCommentDialogOpenChange: (open: boolean) => void;
   docCommentError: string | null;
   docCommentText: string;
@@ -69,7 +78,7 @@ export interface ProjectSpaceWorkspaceDocSectionProps {
   onResolveDocComment: CommentRailProps['onToggleStatus'];
   onJumpToDocComment: CommentRailProps['onJumpToComment'];
   showResolvedDocComments: boolean;
-  setShowResolvedDocComments: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowResolvedDocComments: Dispatch<SetStateAction<boolean>>;
 }
 
 export const ProjectSpaceWorkspaceDocSection = ({
@@ -120,6 +129,7 @@ export const ProjectSpaceWorkspaceDocSection = ({
   setShowResolvedDocComments,
 }: ProjectSpaceWorkspaceDocSectionProps): ReactElement | null => {
   const prefersReducedMotion = useReducedMotion();
+  const mountedDocId = docBootstrapReady ? activePaneDocId : null;
   const {
     docAssetFormRef,
     docAssetInputRef,
@@ -149,12 +159,12 @@ export const ProjectSpaceWorkspaceDocSection = ({
     <>
       <section className="rounded-panel border border-subtle bg-elevated p-4">
         <h3 className="heading-3 text-primary">Workspace Doc</h3>
-        {docBootstrapReady && activePaneDocId ? (
+        {mountedDocId ? (
           <>
             <Suspense fallback={<ModuleLoadingState label="Loading collaborative editor" rows={8} />}>
               <CollaborativeLexicalEditor
-                key={activePaneDocId}
-                noteId={activePaneDocId}
+                key={mountedDocId}
+                noteId={mountedDocId}
                 initialLexicalState={docBootstrapLexicalState}
                 collaborationSession={collabSession}
                 userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
@@ -165,19 +175,19 @@ export const ProjectSpaceWorkspaceDocSection = ({
                 onNodeFocused={() => setPendingDocFocusNodeKey(null)}
                 pendingMentionInsert={pendingDocMentionInsert}
                 onMentionInserted={(insertId) => {
-                  if ((pendingDocMentionInsert as { insert_id?: string } | null)?.insert_id === insertId) {
+                  if (pendingDocMentionInsert?.insert_id === insertId) {
                     setPendingDocMentionInsert(null);
                   }
                 }}
                 pendingViewEmbedInsert={pendingViewEmbedInsert}
                 onViewEmbedInserted={(insertId) => {
-                  if ((pendingViewEmbedInsert as { insert_id?: string } | null)?.insert_id === insertId) {
+                  if (pendingViewEmbedInsert?.insert_id === insertId) {
                     setPendingViewEmbedInsert(null);
                   }
                 }}
                 pendingAssetEmbed={pendingDocAssetEmbed}
                 onAssetEmbedApplied={(embedId) => {
-                  if ((pendingDocAssetEmbed as { embed_id?: string } | null)?.embed_id === embedId) {
+                  if (pendingDocAssetEmbed?.embed_id === embedId) {
                     setPendingDocAssetEmbed(null);
                   }
                 }}
@@ -264,65 +274,69 @@ export const ProjectSpaceWorkspaceDocSection = ({
         )}
       </section>
 
-      <div className="rounded-panel border border-subtle bg-elevated p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-muted">
-            Selected block: <span className="font-semibold text-primary">{selectedDocNodeKey || 'none'}</span>
-          </p>
-          <motion.button
-            layoutId={!prefersReducedMotion && docCommentComposerOpen ? dialogLayoutIds.commentOnBlock : undefined}
-            ref={commentTriggerRef}
-            type="button"
-            className="rounded-panel border border-border-muted px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-60"
-            onClick={() => onDocCommentDialogOpenChange(true)}
-            disabled={!selectedDocNodeKey}
-            aria-label="Comment on block"
-          >
-            Comment on block
-          </motion.button>
-        </div>
-      </div>
+      {mountedDocId ? (
+        <>
+          <div className="rounded-panel border border-subtle bg-elevated p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted">
+                Selected block: <span className="font-semibold text-primary">{selectedDocNodeKey || 'none'}</span>
+              </p>
+              <motion.button
+                layoutId={!prefersReducedMotion && docCommentComposerOpen ? dialogLayoutIds.commentOnBlock : undefined}
+                ref={commentTriggerRef}
+                type="button"
+                className="rounded-panel border border-border-muted px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-60"
+                onClick={() => onDocCommentDialogOpenChange(true)}
+                disabled={!selectedDocNodeKey}
+                aria-label="Comment on block"
+              >
+                Comment on block
+              </motion.button>
+            </div>
+          </div>
 
-      <CommentRail
-        comments={docComments}
-        orphanedComments={orphanedDocComments}
-        onToggleStatus={(commentId, status) => {
-          void onResolveDocComment(commentId, status);
-        }}
-        onJumpToComment={onJumpToDocComment}
-        showResolved={showResolvedDocComments}
-        onToggleShowResolved={() => setShowResolvedDocComments((current) => !current)}
-      />
-
-      <Dialog open={docCommentComposerOpen} onOpenChange={onDocCommentDialogOpenChange}>
-        <DialogContent open={docCommentComposerOpen} animated layoutId={dialogLayoutIds.commentOnBlock}>
-          <DialogHeader>
-            <DialogTitle>Comment on block</DialogTitle>
-            <DialogDescription className="sr-only">
-              Add a node-anchored comment for block {selectedDocNodeKey || 'unknown'}.
-            </DialogDescription>
-          </DialogHeader>
-          {docCommentError ? (
-            <InlineNotice variant="danger" title="Doc comment failed">
-              {docCommentError}
-            </InlineNotice>
-          ) : null}
-          <CommentComposer
-            accessToken={accessToken}
-            projectId={projectId}
-            value={docCommentText}
-            onChange={setDocCommentText}
-            onSubmit={() => {
-              void onAddDocComment();
+          <CommentRail
+            comments={docComments}
+            orphanedComments={orphanedDocComments}
+            onToggleStatus={(commentId, status) => {
+              void onResolveDocComment(commentId, status);
             }}
-            onCancel={() => onDocCommentDialogOpenChange(false)}
-            disabled={!selectedDocNodeKey || !docCommentText.trim()}
-            submitLabel="Add node comment"
-            placeholder="Comment on selected block"
-            nodeKeyLabel={selectedDocNodeKey}
+            onJumpToComment={onJumpToDocComment}
+            showResolved={showResolvedDocComments}
+            onToggleShowResolved={() => setShowResolvedDocComments((current) => !current)}
           />
-        </DialogContent>
-      </Dialog>
+
+          <Dialog open={docCommentComposerOpen} onOpenChange={onDocCommentDialogOpenChange}>
+            <DialogContent open={docCommentComposerOpen} animated layoutId={dialogLayoutIds.commentOnBlock}>
+              <DialogHeader>
+                <DialogTitle>Comment on block</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Add a node-anchored comment for block {selectedDocNodeKey || 'unknown'}.
+                </DialogDescription>
+              </DialogHeader>
+              {docCommentError ? (
+                <InlineNotice variant="danger" title="Doc comment failed">
+                  {docCommentError}
+                </InlineNotice>
+              ) : null}
+              <CommentComposer
+                accessToken={accessToken}
+                projectId={projectId}
+                value={docCommentText}
+                onChange={setDocCommentText}
+                onSubmit={() => {
+                  void onAddDocComment();
+                }}
+                onCancel={() => onDocCommentDialogOpenChange(false)}
+                disabled={!selectedDocNodeKey || !docCommentText.trim()}
+                submitLabel="Add node comment"
+                placeholder="Comment on selected block"
+                nodeKeyLabel={selectedDocNodeKey}
+              />
+            </DialogContent>
+          </Dialog>
+        </>
+      ) : null}
     </>
   );
 };
