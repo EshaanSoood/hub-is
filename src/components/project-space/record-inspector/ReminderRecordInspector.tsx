@@ -1,8 +1,12 @@
+import { RecordInspectorAttachmentsSection } from './RecordInspectorAttachmentsSection';
+import { RecordInspectorDiscussionSections } from './RecordInspectorDiscussionSections';
 import { RecordInspectorSchemaFields } from './RecordInspectorSchemaFields';
-import { RecordInspectorSharedSections } from './RecordInspectorSharedSections';
+import { RelationsSection } from '../RelationsSection';
 import { ReminderRecordSummary, formatReminderRecurrenceLabel } from '../record-primitives/ReminderRecordSummary';
-import type { ReactElement } from 'react';
+import type { ComponentProps, ReactElement } from 'react';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
+
+type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
 
 export const ReminderRecordInspector = ({
   inspectorRecord,
@@ -66,10 +70,45 @@ export const ReminderRecordInspector = ({
         {savingValues ? <p className="mt-2 text-xs text-muted">Saving...</p> : null}
       </section>
 
-      <RecordInspectorSharedSections
-        {...sharedSectionProps}
-        inspectorRecord={inspectorRecord}
+      <RelationsSection
+        accessToken={sharedSectionProps.accessToken}
+        projectId={sharedSectionProps.projectId}
+        recordId={inspectorRecord.record_id}
+        relationFields={sharedSectionProps.inspectorRelationFields as RelationsSectionProps['relationFields']}
+        outgoing={inspectorRecord.relations.outgoing}
+        incoming={inspectorRecord.relations.incoming}
+        removingRelationId={sharedSectionProps.removingRelationId}
+        mutationError={sharedSectionProps.relationMutationError}
+        readOnly={!inspectorMutationPaneCanEdit}
+        onAddRelation={sharedSectionProps.onAddRelation}
+        onRemoveRelation={sharedSectionProps.onRemoveRelation}
+      />
+
+      <RecordInspectorAttachmentsSection
+        attachments={inspectorRecord.attachments}
+        panes={sharedSectionProps.panes}
+        selectedAttachmentId={sharedSectionProps.selectedAttachmentId}
         inspectorMutationPaneCanEdit={inspectorMutationPaneCanEdit}
+        uploadingAttachment={sharedSectionProps.uploadingAttachment}
+        setSelectedAttachmentId={sharedSectionProps.setSelectedAttachmentId}
+        onRenameAttachment={sharedSectionProps.onRenameInspectorAttachment}
+        onMoveAttachment={sharedSectionProps.onMoveInspectorAttachment}
+        onDetachAttachment={sharedSectionProps.onDetachInspectorAttachment}
+        onAttachFile={sharedSectionProps.onAttachFile}
+      />
+
+      <RecordInspectorDiscussionSections
+        accessToken={sharedSectionProps.accessToken}
+        projectId={sharedSectionProps.projectId}
+        inspectorBacklinks={sharedSectionProps.inspectorBacklinks}
+        inspectorBacklinksLoading={sharedSectionProps.inspectorBacklinksLoading}
+        inspectorBacklinksError={sharedSectionProps.inspectorBacklinksError}
+        inspectorCommentText={sharedSectionProps.inspectorCommentText}
+        setInspectorCommentText={sharedSectionProps.setInspectorCommentText}
+        onInsertRecordCommentMention={sharedSectionProps.onInsertRecordCommentMention}
+        onAddRecordComment={sharedSectionProps.onAddRecordComment}
+        onOpenBacklink={sharedSectionProps.onOpenBacklink}
+        inspectorRecord={inspectorRecord}
       />
     </div>
   );
