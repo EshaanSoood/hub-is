@@ -1,5 +1,6 @@
 import { RecordInspectorSchemaFields } from './RecordInspectorSchemaFields';
 import { RecordInspectorSharedSections } from './RecordInspectorSharedSections';
+import { EventRecordSummary } from '../record-primitives/EventRecordSummary';
 import type { ReactElement } from 'react';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
 
@@ -26,16 +27,19 @@ export const EventRecordInspector = ({
     <div className="mt-4 space-y-4">
       <section className="rounded-panel border border-border-muted p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Event</p>
-        <h3 className="mt-1 text-sm font-semibold text-primary">{inspectorRecord.title}</h3>
         <p className="mt-1 text-xs text-muted">Collection: {inspectorRecord.schema?.name || inspectorRecord.collection_id}</p>
-        {eventState ? (
-          <div className="mt-2 space-y-1 text-xs text-muted">
-            <p>Starts: {formatDateTime(eventState.start_dt)}</p>
-            <p>Ends: {formatDateTime(eventState.end_dt)}</p>
-            <p>Location: {eventState.location || 'None'}</p>
-            <p>Timezone: {eventState.timezone}</p>
-          </div>
-        ) : null}
+        <EventRecordSummary
+          className="mt-3"
+          title={inspectorRecord.title}
+          timeLabel={
+            eventState
+              ? `${formatDateTime(eventState.start_dt) || 'No start'}${eventState.end_dt ? ` - ${formatDateTime(eventState.end_dt)}` : ''}`
+              : null
+          }
+          detailLabel={eventState?.location || null}
+          location={eventState?.location || null}
+          timezone={eventState?.timezone || null}
+        />
         {inspectorRecord.source_pane?.pane_id ? (
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
             <span>Origin: {inspectorRecord.source_pane.pane_name || inspectorRecord.source_pane.pane_id}</span>

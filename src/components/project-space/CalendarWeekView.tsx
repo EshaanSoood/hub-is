@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { EventRecordSummary } from './record-primitives/EventRecordSummary';
 import type { CalendarDayEvent } from './CalendarDayView';
 import { cn } from '../../lib/cn';
 
@@ -156,12 +157,14 @@ const EventList = ({
             aria-label={formatEventAriaLabel(event)}
             className="w-full rounded-control border border-border-muted bg-surface px-2.5 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
-            <p className="truncate text-sm font-semibold text-text">{event.title}</p>
-            <p className="text-xs text-text-secondary">{timeLabel}</p>
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-              <span className="inline-block h-2 w-2 rounded-full bg-[color:var(--color-primary)]" aria-hidden="true" />
-              <span className="truncate">{projectLabel}</span>
-            </p>
+            <EventRecordSummary
+              title={event.title}
+              timeLabel={timeLabel}
+              detailLabel={event.item_kind === 'reminder' ? 'Reminder' : event.item_kind === 'task' ? 'Task' : null}
+              projectName={projectLabel}
+              location={event.event_state.location}
+              timezone={event.event_state.timezone}
+            />
           </button>
         </li>
       );

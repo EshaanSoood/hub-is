@@ -1,5 +1,6 @@
 import { RecordInspectorSchemaFields } from './RecordInspectorSchemaFields';
 import { RecordInspectorSharedSections } from './RecordInspectorSharedSections';
+import { TaskRecordSummary } from '../record-primitives/TaskRecordSummary';
 import type { ReactElement } from 'react';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
 
@@ -18,15 +19,16 @@ export const TaskRecordInspector = ({
     <div className="mt-4 space-y-4">
       <section className="rounded-panel border border-border-muted p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Task</p>
-        <h3 className="mt-1 text-sm font-semibold text-primary">{inspectorRecord.title}</h3>
         <p className="mt-1 text-xs text-muted">Collection: {inspectorRecord.schema?.name || inspectorRecord.collection_id}</p>
-        {taskState ? (
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
-            <span>Status: {taskState.status}</span>
-            <span>Priority: {taskState.priority || 'none'}</span>
-            <span>Assignments: {inspectorRecord.capabilities.assignments.length}</span>
-          </div>
-        ) : null}
+        <TaskRecordSummary
+          className="mt-3"
+          title={inspectorRecord.title}
+          status={(taskState?.status as 'todo' | 'in_progress' | 'done' | 'cancelled') || 'todo'}
+          dueLabel={null}
+          priorityLabel={taskState?.priority || null}
+          assigneeLabel={inspectorRecord.capabilities.assignments[0]?.user_id || null}
+          subtaskCount={inspectorRecord.relations.outgoing.length}
+        />
         {inspectorRecord.source_pane?.pane_id ? (
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
             <span>Origin: {inspectorRecord.source_pane.pane_name || inspectorRecord.source_pane.pane_id}</span>
