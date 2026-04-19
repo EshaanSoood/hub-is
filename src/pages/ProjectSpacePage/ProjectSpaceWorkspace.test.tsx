@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ProjectSpaceWorkspace } from './ProjectSpaceWorkspace';
 import { ProjectSpacePaneSettingsDialog } from './ProjectSpaceWorkspace/ProjectSpacePaneSettingsDialog';
+import { ProjectSpaceWorkspaceDocSection } from './ProjectSpaceWorkspace/ProjectSpaceWorkspaceDocSection';
 import {
   getActiveInspectorFocusTarget,
   readElementRect,
@@ -619,6 +620,72 @@ const renderWorkspace = ({
   </MemoryRouter>,
 );
 
+const renderWorkspaceDocSection = ({
+  activePane = fixture.sharedPane,
+  activePaneCanEdit = true,
+  workspaceEnabled = true,
+  activePaneDocId = 'doc-shared',
+  uploadingDocAsset = false,
+  onUploadDocAsset = vi.fn<(event: React.FormEvent<HTMLFormElement>) => void>(),
+}: {
+  activePane?: typeof fixture.sharedPane | typeof fixture.privatePane | null;
+  activePaneCanEdit?: boolean;
+  workspaceEnabled?: boolean;
+  activePaneDocId?: string | null;
+  uploadingDocAsset?: boolean;
+  onUploadDocAsset?: (event: React.FormEvent<HTMLFormElement>) => void;
+} = {}) => render(
+  <MemoryRouter>
+    <ProjectSpaceWorkspaceDocSection
+      accessToken="token"
+      projectId="project-1"
+      projectMembers={fixture.projectMembers}
+      sessionUserId="user-1"
+      activePane={activePane}
+      activePaneCanEdit={activePaneCanEdit}
+      workspaceEnabled={workspaceEnabled}
+      activePaneDocId={activePaneDocId}
+      docBootstrapReady
+      docBootstrapLexicalState={{}}
+      collabSession={null}
+      collabSessionError={null}
+      onDocEditorChange={vi.fn()}
+      selectedDocNodeKey={null}
+      setSelectedDocNodeKey={vi.fn()}
+      pendingDocFocusNodeKey={null}
+      setPendingDocFocusNodeKey={vi.fn()}
+      pendingDocMentionInsert={null}
+      setPendingDocMentionInsert={vi.fn()}
+      pendingViewEmbedInsert={null}
+      setPendingViewEmbedInsert={vi.fn()}
+      pendingDocAssetEmbed={null}
+      setPendingDocAssetEmbed={vi.fn()}
+      onInsertDocMention={vi.fn()}
+      views={[fixture.tableView, fixture.kanbanView]}
+      selectedEmbedViewId=""
+      setSelectedEmbedViewId={vi.fn()}
+      onInsertViewEmbed={vi.fn()}
+      onOpenRecord={vi.fn()}
+      onOpenEmbeddedView={vi.fn()}
+      uploadingDocAsset={uploadingDocAsset}
+      onUploadDocAsset={onUploadDocAsset}
+      docCommentComposerOpen={false}
+      commentTriggerRef={{ current: null }}
+      onDocCommentDialogOpenChange={vi.fn()}
+      docCommentError={null}
+      docCommentText=""
+      setDocCommentText={vi.fn()}
+      onAddDocComment={vi.fn()}
+      docComments={[]}
+      orphanedDocComments={[]}
+      onResolveDocComment={vi.fn()}
+      onJumpToDocComment={vi.fn()}
+      showResolvedDocComments={false}
+      setShowResolvedDocComments={vi.fn()}
+    />
+  </MemoryRouter>,
+);
+
 describe('ProjectSpaceWorkspace characterization', () => {
   afterEach(() => {
     cleanup();
@@ -794,6 +861,24 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(screen.getByRole('heading', { name: 'Comment on block' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Submit doc comment' })).toBeEnabled();
     workspaceDocRuntimeState.docCommentText = '';
+  });
+
+  it('shows the upload control for editable docs and hides it for read-only docs', () => {
+    renderWorkspace({
+      entry: '/projects/project-1/work/pane-shared',
+      activeTab: 'work',
+    });
+
+    expect(screen.getByRole('button', { name: 'Upload doc asset' })).toBeInTheDocument();
+    cleanup();
+
+    renderWorkspace({
+      entry: '/projects/project-1/work/pane-private',
+      activeTab: 'work',
+    });
+
+    expect(screen.queryByRole('button', { name: 'Upload doc asset' })).not.toBeInTheDocument();
+    expect(screen.getByText('Read-only doc mode. You can review the pane and leave comments below.')).toBeInTheDocument();
   });
 
   it('renders the inspector and routes close actions back through the close hook', async () => {
@@ -1163,5 +1248,44 @@ describe('ProjectSpacePaneSettingsDialog', () => {
 
     await userEvent.click(viewerCheckbox);
     expect(onTogglePaneMember).toHaveBeenCalledWith(fixture.sharedPane, 'user-2');
+  });
+});
+
+describe('ProjectSpaceWorkspaceDocSection', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('routes the doc asset picker bridge through the local upload hook', async () => {
+    const onUploadDocAsset = vi.fn<(event: React.FormEvent<HTMLFormElement>) => void>((event) => {
+      event.preventDefault();
+    });
+    const { container } = renderWorkspaceDocSection({ onUploadDocAsset });
+    const uploadButton = screen.getByRole('button', { name: 'Upload doc asset' });
+    const uploadInput = container.querySelector('input[name="doc-asset-file"]') as HTMLInputElement;
+    const uploadForm = container.querySelector('form') as HTMLFormElement;
+
+    const clickSpy = vi.spyOn(uploadInput, 'click');
+    const requestSubmitSpy = vi.spyOn(uploadForm, 'requestSubmit');
+
+    await userEvent.click(uploadButton);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+
+    const file = new File(['hello'], 'brief.txt', { type: 'text/plain' });
+    fireEvent.change(uploadInput, { target: { files: [file] } });
+    expect(requestSubmitSpy).toHaveBeenCalledTimes(1);
+    expect(onUploadDocAsset).toHaveBeenCalledTimes(1);
+
+    fireEvent.submit(uploadForm);
+    expect(onUploadDocAsset).toHaveBeenCalledTimes(2);
+  });
+
+  it('disables the doc asset upload controls while an upload is in flight', () => {
+    const { container } = renderWorkspaceDocSection({ uploadingDocAsset: true });
+    const uploadButton = screen.getByRole('button', { name: 'Upload doc asset' });
+    const uploadInput = container.querySelector('input[name="doc-asset-file"]') as HTMLInputElement;
+
+    expect(uploadButton).toBeDisabled();
+    expect(uploadInput).toBeDisabled();
   });
 });

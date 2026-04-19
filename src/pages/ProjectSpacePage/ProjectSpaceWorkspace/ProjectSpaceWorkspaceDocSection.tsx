@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef, type ComponentProps, type ReactElement } from 'react';
+import { Suspense, lazy, type ComponentProps, type ReactElement } from 'react';
 import { CommentComposer } from '../../../components/project-space/CommentComposer';
 import { CommentRail } from '../../../components/project-space/CommentRail';
 import { MentionPicker } from '../../../components/project-space/MentionPicker';
@@ -14,6 +14,7 @@ import { Icon, InlineNotice } from '../../../components/primitives';
 import { dialogLayoutIds } from '../../../styles/motion';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { HubPaneSummary, HubProjectMember, HubView } from '../../../services/hub/types';
+import { useProjectSpaceDocAssetFlow } from './hooks/useProjectSpaceDocAssetFlow';
 
 const CollaborativeLexicalEditor = lazy(async () => {
   const module = await import('../../../features/notes/CollaborativeLexicalEditor');
@@ -119,8 +120,17 @@ export const ProjectSpaceWorkspaceDocSection = ({
   setShowResolvedDocComments,
 }: ProjectSpaceWorkspaceDocSectionProps): ReactElement | null => {
   const prefersReducedMotion = useReducedMotion();
-  const docAssetFormRef = useRef<HTMLFormElement | null>(null);
-  const docAssetInputRef = useRef<HTMLInputElement | null>(null);
+  const {
+    docAssetFormRef,
+    docAssetInputRef,
+    uploadDisabled,
+    onDocAssetInputChange,
+    onDocAssetUploadClick,
+    onDocAssetFormSubmit,
+  } = useProjectSpaceDocAssetFlow({
+    uploadingDocAsset,
+    onUploadDocAsset,
+  });
 
   if (!activePane) {
     return null;
@@ -220,7 +230,7 @@ export const ProjectSpaceWorkspaceDocSection = ({
                     Insert view block
                   </button>
                 </div>
-                <form ref={docAssetFormRef} className="mt-3 flex flex-wrap items-center gap-2" onSubmit={onUploadDocAsset}>
+                <form ref={docAssetFormRef} className="mt-3 flex flex-wrap items-center gap-2" onSubmit={onDocAssetFormSubmit}>
                   <input
                     ref={docAssetInputRef}
                     name="doc-asset-file"
@@ -228,18 +238,13 @@ export const ProjectSpaceWorkspaceDocSection = ({
                     className="hidden"
                     aria-hidden="true"
                     tabIndex={-1}
-                    disabled={uploadingDocAsset}
-                    onChange={(event) => {
-                      if (!event.currentTarget.files?.length) {
-                        return;
-                      }
-                      docAssetFormRef.current?.requestSubmit();
-                    }}
+                    disabled={uploadDisabled}
+                    onChange={onDocAssetInputChange}
                   />
                   <button
                     type="button"
-                    onClick={() => docAssetInputRef.current?.click()}
-                    disabled={uploadingDocAsset}
+                    onClick={onDocAssetUploadClick}
+                    disabled={uploadDisabled}
                     className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
                     aria-label="Upload doc asset"
                   >
