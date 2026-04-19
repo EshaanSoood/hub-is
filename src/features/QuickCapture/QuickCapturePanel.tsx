@@ -1,17 +1,18 @@
 import { FormEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Icon, IconButton, Select } from '../../components/primitives';
+import { Icon } from '../../components/primitives';
 import { focusWhenReady } from '../../lib/focusWhenReady';
 import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { listCollections } from '../../services/hub/collections';
 import { convertRecord, createPersonalTask, createRecord } from '../../services/hub/records';
 import type { HubCollection, HubHomeCapture } from '../../services/hub/types';
+import { QuickCaptureComposer } from './QuickCaptureComposer';
+import { QuickCaptureRecentList } from './QuickCaptureRecentList';
 import { useCaptureListEffects } from './hooks/useCaptureListEffects';
 import { usePersonalCollectionsEffect } from './hooks/usePersonalCollectionsEffect';
 import { useQuickCaptureComposerEffects } from './hooks/useQuickCaptureComposerEffects';
 import {
   captureModeFromIntent,
-  formatRelativeDateTime,
   PENDING_CAPTURE_DRAFT_KEY,
   PERSONAL_CAPTURE_TARGET,
   resolveTargetProjectForMode,
@@ -19,7 +20,6 @@ import {
   selectPersonalCaptureCollection,
   selectProjectCaptureCollection,
   sortCaptures,
-  truncateCaptureTitle,
 } from './model';
 import type {
   CaptureMode,
@@ -372,12 +372,38 @@ export const QuickCapturePanel = ({
     setExpandedHoverCaptureId(null);
   };
 
-  const renderAssignmentIcon = (expanded: boolean) => (
-    <Icon
-      name={expanded ? 'chevron-down' : 'more'}
-      className={expanded ? 'rotate-180 text-[14px] transition-transform' : 'text-[14px]'}
-    />
-  );
+  const onComposerModeChange = (value: string) => {
+    const nextMode = value as CaptureMode;
+    setCaptureMode(nextMode);
+    setCaptureTargetProjectId(
+      resolveTargetProjectForMode(nextMode, captureTargetProjectId, defaultProjectCaptureTarget),
+    );
+  };
+
+  const onAssignmentModeChange = (capture: HubHomeCapture, assignmentProjectId: string, nextMode: CaptureMode) => {
+    const nextProjectId = resolveTargetProjectForMode(nextMode, assignmentProjectId, defaultProjectCaptureTarget);
+    setExpandedCaptureAssignment({
+      recordId: capture.record_id,
+      mode: nextMode,
+      projectId: nextProjectId,
+    });
+    if (nextMode === 'thought' || (nextMode === 'task' && nextProjectId === PERSONAL_CAPTURE_TARGET)) {
+      void applyCaptureAssignment(capture, nextMode, nextProjectId);
+    } else if (nextProjectId !== PERSONAL_CAPTURE_TARGET) {
+      void applyCaptureAssignment(capture, nextMode, nextProjectId);
+    }
+  };
+
+  const onAssignmentProjectChange = (capture: HubHomeCapture, assignmentMode: CaptureMode, value: string) => {
+    setExpandedCaptureAssignment({
+      recordId: capture.record_id,
+      mode: assignmentMode,
+      projectId: value,
+    });
+    if (value !== PERSONAL_CAPTURE_TARGET || assignmentMode === 'task') {
+      void applyCaptureAssignment(capture, assignmentMode, value);
+    }
+  };
 
   return (
     <section className="space-y-4" aria-label="Thought Pile">
@@ -397,246 +423,47 @@ export const QuickCapturePanel = ({
       </div>
 
       <form className="space-y-4" onSubmit={onSaveCapture}>
-        <div className="rounded-panel border border-border-muted bg-surface p-3">
-          <div className="flex items-center gap-2">
-            <input
-              ref={captureInputRef}
-              type="text"
-              value={captureText}
-              onChange={(event) => setCaptureText(event.target.value)}
-              placeholder="Capture something..."
-              autoComplete="off"
-              disabled={captureSaving}
-              aria-label="Capture text"
-              className="flex-1 rounded-panel border border-border-muted bg-surface-elevated px-3 py-2 text-sm text-text outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
-            />
-            <IconButton
-              aria-label={captureOptionsExpanded ? 'Hide capture options' : 'Show capture options'}
-              aria-expanded={captureOptionsExpanded}
-              aria-controls="quick-capture-options"
-              size="sm"
-              variant="secondary"
-              onMouseDown={(event) => {
-                event.preventDefault();
-              }}
-              onClick={() => {
-                setCaptureOptionsExpanded((current) => !current);
-              }}
-            >
-              {renderAssignmentIcon(captureOptionsExpanded)}
-            </IconButton>
-            <button type="submit" className="sr-only">
-              Save capture
-            </button>
-          </div>
+        <QuickCaptureComposer
+          captureInputRef={captureInputRef}
+          captureText={captureText}
+          captureSaving={captureSaving}
+          captureOptionsExpanded={captureOptionsExpanded}
+          captureNotice={captureNotice}
+          captureMode={captureMode}
+          captureTargetProjectId={captureTargetProjectId}
+          captureTypeOptions={captureTypeOptions}
+          captureProjectOptions={captureProjectOptions}
+          visibleProjectCount={visibleProjects.length}
+          captureError={captureError}
+          onCaptureTextChange={setCaptureText}
+          onToggleCaptureOptions={() => {
+            setCaptureOptionsExpanded((current) => !current);
+          }}
+          onCaptureModeChange={onComposerModeChange}
+          onCaptureProjectChange={setCaptureTargetProjectId}
+        />
 
-          <div className="mt-3 flex min-h-5 items-center justify-between gap-3">
-            <div className="text-xs text-muted" role="status" aria-live="polite">
-              {captureSaving ? 'Saving...' : captureNotice || ''}
-            </div>
-            {!captureOptionsExpanded ? <span className="text-xs text-muted">Press Enter to save quickly</span> : null}
-          </div>
-
-          {captureOptionsExpanded ? (
-            <div id="quick-capture-options" className="mt-3 grid gap-3 rounded-panel border border-border-muted bg-surface-elevated p-3 md:grid-cols-2">
-              <div className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
-                <span>Type</span>
-                <Select
-                  id="quick-capture-type"
-                  value={captureMode}
-                  onValueChange={(value) => {
-                    const nextMode = value as CaptureMode;
-                    setCaptureMode(nextMode);
-                    setCaptureTargetProjectId(
-                      resolveTargetProjectForMode(nextMode, captureTargetProjectId, defaultProjectCaptureTarget),
-                    );
-                  }}
-                  options={captureTypeOptions}
-                  ariaLabel="Capture type"
-                  triggerClassName="w-full min-w-0"
-                />
-              </div>
-
-              {captureMode !== 'thought' ? (
-                <div className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
-                  <span>Project</span>
-                  <Select
-                    id="quick-capture-project"
-                    value={captureTargetProjectId}
-                    onValueChange={setCaptureTargetProjectId}
-                    options={captureProjectOptions}
-                    ariaLabel="Capture project"
-                    triggerClassName="w-full min-w-0"
-                  />
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {captureMode !== 'thought' && captureTargetProjectId === PERSONAL_CAPTURE_TARGET ? (
-            <p className="mt-3 text-xs text-muted">Reminders and calendar items need a project.</p>
-          ) : null}
-
-          {captureMode !== 'thought' && visibleProjects.length === 0 ? (
-            <p className="mt-3 text-xs text-muted">Create a project to route reminders or calendar captures.</p>
-          ) : null}
-
-          {captureError ? (
-            <p className="mt-3 text-sm text-danger" role="alert" aria-live="polite">
-              {captureError}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-primary">Recent Captures</h3>
-              <p className="text-xs text-muted">Recent uncategorized notes waiting to be sorted into real work.</p>
-            </div>
-            {sortedCaptures.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCaptureSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'));
-                }}
-                className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                aria-label={captureSortDirection === 'desc' ? 'Sort oldest first' : 'Sort newest first'}
-              >
-                {captureSortDirection === 'desc' ? 'Newest ↓' : 'Oldest ↑'}
-              </button>
-            ) : null}
-          </div>
-
-          {capturesLoading ? (
-            <div className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted" role="status" aria-live="polite">
-              Loading recent captures...
-            </div>
-          ) : sortedCaptures.length > 0 ? (
-            <div className="max-h-80 space-y-2 overflow-y-auto rounded-panel border border-border-muted bg-surface p-2">
-                {sortedCaptures.map((capture) => {
-                const assignmentExpanded = expandedCaptureAssignment?.recordId === capture.record_id;
-                const assignmentProjectId = expandedCaptureAssignment?.recordId === capture.record_id
-                  ? expandedCaptureAssignment.projectId
-                  : PERSONAL_CAPTURE_TARGET;
-                const assignmentMode = expandedCaptureAssignment?.recordId === capture.record_id
-                  ? expandedCaptureAssignment.mode
-                  : 'thought';
-                const rowSaving = captureAssignmentSavingId === capture.record_id;
-                const titleExpanded = expandedHoverCaptureId === capture.record_id;
-                const captureSourceLabel = capture.project_id === personalProjectId
-                  ? 'Home'
-                  : visibleProjects.find((project) => project.id === capture.project_id)?.name || 'Project';
-                return (
-                  <div key={capture.record_id} className="rounded-panel border border-border-muted bg-surface-elevated p-3">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className="min-w-0 flex-1"
-                        onMouseEnter={() => onCaptureRowMouseEnter(capture.record_id)}
-                        onMouseLeave={onCaptureRowMouseLeave}
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-control border border-border-muted bg-surface px-2 py-[2px] text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                            {captureSourceLabel}
-                          </span>
-                          <span className="text-xs text-muted">{formatRelativeDateTime(capture.created_at)}</span>
-                        </div>
-                        <p className={titleExpanded ? 'mt-2 break-words text-sm text-text' : 'mt-2 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-text'}>
-                          {titleExpanded ? capture.title : truncateCaptureTitle(capture.title)}
-                        </p>
-                      </div>
-                      <IconButton
-                        aria-label={assignmentExpanded ? 'Hide capture assignment options' : 'Show capture assignment options'}
-                        aria-expanded={assignmentExpanded}
-                        aria-controls={`quick-capture-item-options-${capture.record_id}`}
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          onToggleCaptureAssignment(capture);
-                        }}
-                        disabled={rowSaving}
-                      >
-                        {renderAssignmentIcon(assignmentExpanded)}
-                      </IconButton>
-                    </div>
-
-                    {assignmentExpanded ? (
-                      <div
-                        id={`quick-capture-item-options-${capture.record_id}`}
-                        className="mt-3 space-y-3 rounded-panel border border-border-muted bg-surface p-3"
-                      >
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <div className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
-                            <span>Type</span>
-                            <Select
-                              id={`quick-capture-item-type-${capture.record_id}`}
-                              value={assignmentMode}
-                              onValueChange={(value) => {
-                                const nextMode = value as CaptureMode;
-                                const nextProjectId = resolveTargetProjectForMode(
-                                  nextMode,
-                                  assignmentProjectId,
-                                  defaultProjectCaptureTarget,
-                                );
-                                setExpandedCaptureAssignment({
-                                  recordId: capture.record_id,
-                                  mode: nextMode,
-                                  projectId: nextProjectId,
-                                });
-                                if (nextMode === 'thought' || (nextMode === 'task' && nextProjectId === PERSONAL_CAPTURE_TARGET)) {
-                                  void applyCaptureAssignment(capture, nextMode, nextProjectId);
-                                } else if (nextProjectId !== PERSONAL_CAPTURE_TARGET) {
-                                  void applyCaptureAssignment(capture, nextMode, nextProjectId);
-                                }
-                              }}
-                              options={captureAssignmentTypeOptions}
-                              ariaLabel="Capture assignment type"
-                              triggerClassName="w-full min-w-0"
-                            />
-                          </div>
-
-                          {assignmentMode !== 'thought' ? (
-                            <div className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
-                              <span>Project</span>
-                              <Select
-                                id={`quick-capture-item-project-${capture.record_id}`}
-                                value={assignmentProjectId}
-                                onValueChange={(value) => {
-                                  setExpandedCaptureAssignment({
-                                    recordId: capture.record_id,
-                                    mode: assignmentMode,
-                                    projectId: value,
-                                  });
-                                  if (value !== PERSONAL_CAPTURE_TARGET || assignmentMode === 'task') {
-                                    void applyCaptureAssignment(capture, assignmentMode, value);
-                                  }
-                                }}
-                                options={assignmentProjectOptions}
-                                ariaLabel="Capture assignment project"
-                                triggerClassName="w-full min-w-0"
-                              />
-                            </div>
-                          ) : null}
-                        </div>
-
-                        {captureAssignmentError ? (
-                          <p className="text-sm text-danger" role="alert" aria-live="polite">
-                            {captureAssignmentError}
-                          </p>
-                        ) : null}
-                        {rowSaving ? <p className="text-xs text-muted">Assigning...</p> : null}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-                })}
-            </div>
-          ) : (
-            <div className="rounded-panel border border-border-muted bg-surface px-3 py-4 text-sm text-muted">
-              No recent captures yet.
-            </div>
-          )}
-        </div>
+        <QuickCaptureRecentList
+          capturesLoading={capturesLoading}
+          sortedCaptures={sortedCaptures}
+          captureSortDirection={captureSortDirection}
+          personalProjectId={personalProjectId}
+          visibleProjects={visibleProjects}
+          expandedCaptureAssignment={expandedCaptureAssignment}
+          captureAssignmentSavingId={captureAssignmentSavingId}
+          captureAssignmentError={captureAssignmentError}
+          expandedHoverCaptureId={expandedHoverCaptureId}
+          captureAssignmentTypeOptions={captureAssignmentTypeOptions}
+          assignmentProjectOptions={assignmentProjectOptions}
+          onToggleSortDirection={() => {
+            setCaptureSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'));
+          }}
+          onToggleCaptureAssignment={onToggleCaptureAssignment}
+          onCaptureRowMouseEnter={onCaptureRowMouseEnter}
+          onCaptureRowMouseLeave={onCaptureRowMouseLeave}
+          onAssignmentModeChange={onAssignmentModeChange}
+          onAssignmentProjectChange={onAssignmentProjectChange}
+        />
       </form>
     </section>
   );
