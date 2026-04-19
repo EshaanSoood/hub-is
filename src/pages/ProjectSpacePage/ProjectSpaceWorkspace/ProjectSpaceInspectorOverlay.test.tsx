@@ -314,7 +314,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
           assignments: [],
         },
       }),
-      expected: ['Design review', 'Collection: Events', 'Start', 'End', 'Location'],
+      expected: ['Event', 'Design review', 'Collection: Events', 'Start', 'End', 'Location'],
     },
     {
       label: 'task',
@@ -335,7 +335,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
           'field-due': '2026-04-22T12:00:00.000Z',
         },
       }),
-      expected: ['Ship inspector refactor', 'Collection: Tasks', 'Priority', 'Due date'],
+      expected: ['Task', 'Ship inspector refactor', 'Collection: Tasks', 'Priority', 'Due date'],
     },
     {
       label: 'file',
@@ -366,7 +366,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
           assignments: [],
         },
       }),
-      expected: ['Quarterly Plan.pdf', 'Collection: Files', 'Filename', 'File type', 'Size'],
+      expected: ['File', 'Quarterly Plan.pdf', 'Collection: Files', 'Filename', 'File type', 'Size'],
     },
     {
       label: 'reminder',
@@ -395,7 +395,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
           assignments: [],
         },
       }),
-      expected: ['Renew domain', 'Collection: Reminders', 'Remind at', 'Repeat'],
+      expected: ['Reminder', 'Renew domain', 'Collection: Reminders', 'Remind at', 'Repeat'],
     },
   ])('renders $label-specific record content', ({ record, expected }) => {
     render(<ProjectSpaceInspectorOverlay {...createProps({ inspectorRecord: record, inspectorRecordId: record.record_id })} />);
@@ -436,6 +436,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
     render(<ProjectSpaceInspectorOverlay {...createProps({ inspectorRecord: record, inspectorRecordId: record.record_id })} />);
 
     expect(screen.getByText('Knowledge base entry')).toBeInTheDocument();
+    expect(screen.getByText('Record')).toBeInTheDocument();
     expect(screen.getByText('Collection: Reference')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
     expect(screen.getByText('Link')).toBeInTheDocument();
@@ -593,7 +594,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
       />,
     );
 
-    expect(screen.getByText('Opened in read-only pane Private Work. You can review this record and add comments, but only pane editors can change fields, attachments, or relations.')).toBeInTheDocument();
+    expect(screen.getByText('Opened in read-only pane Private Work. You can review this task and add comments, but only pane editors can change fields, attachments, or relations.')).toBeInTheDocument();
     expect(screen.getByLabelText('Title')).toBeDisabled();
     expect(screen.getByText('Attachments are read-only in this pane.')).toBeInTheDocument();
     expect(screen.getByTestId('attachment-read-only')).toHaveTextContent('read-only');
