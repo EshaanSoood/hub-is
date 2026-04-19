@@ -1,15 +1,8 @@
 import { RecordInspectorSchemaFields } from './RecordInspectorSchemaFields';
 import { RecordInspectorSharedSections } from './RecordInspectorSharedSections';
+import { ReminderRecordSummary, formatReminderRecurrenceLabel } from '../record-primitives/ReminderRecordSummary';
 import type { ReactElement } from 'react';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
-
-const formatDateTime = (value: string | null): string | null => {
-  if (!value) {
-    return null;
-  }
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) ? parsed.toLocaleString() : value;
-};
 
 export const ReminderRecordInspector = ({
   inspectorRecord,
@@ -26,13 +19,24 @@ export const ReminderRecordInspector = ({
     <div className="mt-4 space-y-4">
       <section className="rounded-panel border border-border-muted p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Reminder</p>
-        <h3 className="mt-1 text-sm font-semibold text-primary">{inspectorRecord.title}</h3>
         <p className="mt-1 text-xs text-muted">Collection: {inspectorRecord.schema?.name || inspectorRecord.collection_id}</p>
-        <div className="mt-2 space-y-1 text-xs text-muted">
-          <p>Next reminder: {formatDateTime(nextReminder?.remind_at || null) || 'Not scheduled'}</p>
-          <p>Recurrence: {inspectorRecord.capabilities.recurrence_rule ? 'Configured' : 'None'}</p>
-          <p>Active reminders: {inspectorRecord.capabilities.reminders.length}</p>
-        </div>
+        {nextReminder ? (
+          <div className="mt-3 rounded-panel border border-border-muted bg-surface-elevated p-3">
+            <ReminderRecordSummary
+              title={inspectorRecord.title}
+              remindAt={nextReminder.remind_at}
+              recurrenceLabel={formatReminderRecurrenceLabel({
+                frequency: typeof inspectorRecord.capabilities.recurrence_rule?.frequency === 'string'
+                  ? inspectorRecord.capabilities.recurrence_rule.frequency
+                  : undefined,
+                interval: typeof inspectorRecord.capabilities.recurrence_rule?.interval === 'number'
+                  ? inspectorRecord.capabilities.recurrence_rule.interval
+                  : null,
+              })}
+            />
+          </div>
+        ) : null}
+        <div className="mt-2 text-xs text-muted">Active reminders: {inspectorRecord.capabilities.reminders.length}</div>
         {inspectorRecord.source_pane?.pane_id ? (
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
             <span>Origin: {inspectorRecord.source_pane.pane_name || inspectorRecord.source_pane.pane_id}</span>

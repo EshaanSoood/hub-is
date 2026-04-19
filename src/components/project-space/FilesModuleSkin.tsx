@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLongPress } from '../../hooks/useLongPress';
 import { cn } from '../../lib/cn';
 import { useModuleInsertState, type ModuleInsertPayload, type ModuleInsertState } from './hooks/useModuleInsertState';
+import { FileRecordSummary } from './record-primitives/FileRecordSummary';
 import { Icon } from '../primitives';
 
 export interface FilesModuleItem {
@@ -51,27 +52,6 @@ const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
   { key: 'size', label: 'Size' },
   { key: 'type', label: 'Type' },
 ];
-
-const EXT_ICON: Record<string, string> = {
-  pdf: '\ud83d\udcc4',
-  doc: '\ud83d\udcdd',
-  docx: '\ud83d\udcdd',
-  xls: '\ud83d\udcca',
-  xlsx: '\ud83d\udcca',
-  ppt: '\ud83d\udcc8',
-  pptx: '\ud83d\udcc8',
-  mp4: '\ud83c\udfac',
-  mov: '\ud83c\udfac',
-  mp3: '\ud83c\udfb5',
-  wav: '\ud83c\udfb5',
-  zip: '\ud83d\udce6',
-  rar: '\ud83d\udce6',
-  txt: '\ud83d\udccb',
-  md: '\ud83d\udccb',
-  default: '\ud83d\udcce',
-};
-
-const iconForExt = (ext: string): string => EXT_ICON[ext.toLowerCase()] ?? EXT_ICON.default;
 
 const normalizeExt = (file: FilesModuleItem): string => file.ext.toLowerCase();
 
@@ -352,13 +332,12 @@ const FileRow = ({
         className="group relative flex w-full items-center gap-xs overflow-visible rounded-control bg-transparent px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
         aria-label={`Open ${file.name}`}
       >
-        <span className="shrink-0 text-base" aria-hidden="true">
-          {iconForExt(file.ext)}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-medium text-text">{file.name}</span>
-          <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
-        </span>
+        <FileRecordSummary
+          name={file.name}
+          ext={file.ext}
+          metaLabel={uploadLabel(file)}
+          thumbnailUrl={file.thumbnailUrl}
+        />
         <span
           aria-hidden="true"
           className="absolute inset-0 rounded-control opacity-0 transition-opacity group-hover:opacity-100"
@@ -401,7 +380,6 @@ const FileTile = ({
   onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
 }) => {
   const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
-  const useThumbnail = IMAGE_EXTS.has(file.ext.toLowerCase()) && Boolean(file.thumbnailUrl);
   const longPressHandlers = useLongPress(() => {
     if (!uploading) {
       setActiveItem(file.id, 'file', file.name);
@@ -432,26 +410,13 @@ const FileTile = ({
         aria-label={`Open ${file.name}`}
         className="relative w-full overflow-visible rounded-panel border border-border-muted bg-surface text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-70"
       >
-        <div
-          className="flex h-24 items-center justify-center overflow-hidden"
-          style={{
-            background: useThumbnail ? undefined : 'var(--color-surface-elevated)',
-            borderTopLeftRadius: 'var(--radius-panel)',
-            borderTopRightRadius: 'var(--radius-panel)',
-          }}
-        >
-          {useThumbnail ? (
-            <img src={file.thumbnailUrl} alt="" aria-hidden="true" className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-[32px]" aria-hidden="true">
-              {iconForExt(file.ext)}
-            </span>
-          )}
-        </div>
-        <div className="p-xs">
-          <span className="block truncate text-xs font-medium text-text">{file.name}</span>
-          <span className="block text-[11px] font-normal text-text-secondary">{uploadLabel(file)}</span>
-        </div>
+        <FileRecordSummary
+          name={file.name}
+          ext={file.ext}
+          metaLabel={uploadLabel(file)}
+          thumbnailUrl={file.thumbnailUrl}
+          presentation="tile"
+        />
         {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
       </button>
       {showInsertAction ? (
