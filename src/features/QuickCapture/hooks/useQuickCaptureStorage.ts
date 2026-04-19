@@ -8,13 +8,17 @@ export const useQuickCaptureStorage = () => {
     if (typeof window === 'undefined') {
       return;
     }
-    window.sessionStorage.setItem(
-      'hub:pending-project-capture',
-      JSON.stringify({
-        intent,
-        seedText,
-      }),
-    );
+    try {
+      window.sessionStorage.setItem(
+        'hub:pending-project-capture',
+        JSON.stringify({
+          intent,
+          seedText,
+        }),
+      );
+    } catch {
+      // Ignore blocked or unavailable session storage so project handoff still proceeds.
+    }
   }, []);
 
   return {

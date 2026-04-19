@@ -1,5 +1,5 @@
 import { Icon, IconButton, Select } from '../../components/primitives';
-import { formatRelativeDateTime, truncateCaptureTitle } from './model';
+import { formatRelativeDateTime } from './model';
 import type { CaptureMode } from './types';
 import type { HubHomeCapture } from '../../services/hub/types';
 
@@ -9,7 +9,7 @@ interface QuickCaptureCaptureRowProps {
   assignmentExpanded: boolean;
   assignmentProjectId: string;
   assignmentMode: CaptureMode;
-  rowSaving: boolean;
+  assignmentInteractionDisabled: boolean;
   titleExpanded: boolean;
   captureAssignmentError: string | null;
   captureAssignmentTypeOptions: Array<{ value: string; label: string }>;
@@ -27,7 +27,7 @@ export const QuickCaptureCaptureRow = ({
   assignmentExpanded,
   assignmentProjectId,
   assignmentMode,
-  rowSaving,
+  assignmentInteractionDisabled,
   titleExpanded,
   captureAssignmentError,
   captureAssignmentTypeOptions,
@@ -38,17 +38,28 @@ export const QuickCaptureCaptureRow = ({
   onAssignmentModeChange,
   onAssignmentProjectChange,
 }: QuickCaptureCaptureRowProps) => (
-  <div className="rounded-panel border border-border-muted bg-surface-elevated p-3">
+  <div
+    className="rounded-panel border border-border-muted bg-surface-elevated p-3"
+    data-testid={`capture-row-${capture.record_id}`}
+  >
     <div className="flex items-start gap-3">
-      <div className="min-w-0 flex-1" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      <div
+        className="min-w-0 flex-1"
+        data-testid={`capture-hover-target-${capture.record_id}`}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-control border border-border-muted bg-surface px-2 py-[2px] text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
             {captureSourceLabel}
           </span>
           <span className="text-xs text-muted">{formatRelativeDateTime(capture.created_at)}</span>
         </div>
-        <p className={titleExpanded ? 'mt-2 break-words text-sm text-text' : 'mt-2 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-text'}>
-          {titleExpanded ? capture.title : truncateCaptureTitle(capture.title)}
+        <p
+          data-testid={`capture-title-${capture.record_id}`}
+          className={titleExpanded ? 'mt-2 break-words text-sm text-text' : 'mt-2 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-text'}
+        >
+          {capture.title}
         </p>
       </div>
       <IconButton
@@ -58,7 +69,7 @@ export const QuickCaptureCaptureRow = ({
         size="sm"
         variant="secondary"
         onClick={onToggleAssignment}
-        disabled={rowSaving}
+        disabled={assignmentInteractionDisabled}
       >
         <Icon
           name={assignmentExpanded ? 'chevron-down' : 'more'}
@@ -81,6 +92,7 @@ export const QuickCaptureCaptureRow = ({
               onValueChange={onAssignmentModeChange}
               options={captureAssignmentTypeOptions}
               ariaLabel="Capture assignment type"
+              disabled={assignmentInteractionDisabled}
               triggerClassName="w-full min-w-0"
             />
           </div>
@@ -94,6 +106,7 @@ export const QuickCaptureCaptureRow = ({
                 onValueChange={onAssignmentProjectChange}
                 options={assignmentProjectOptions}
                 ariaLabel="Capture assignment project"
+                disabled={assignmentInteractionDisabled}
                 triggerClassName="w-full min-w-0"
               />
             </div>
@@ -105,7 +118,7 @@ export const QuickCaptureCaptureRow = ({
             {captureAssignmentError}
           </p>
         ) : null}
-        {rowSaving ? <p className="text-xs text-muted">Assigning...</p> : null}
+        {assignmentInteractionDisabled ? <p className="text-xs text-muted">Assigning...</p> : null}
       </div>
     ) : null}
   </div>

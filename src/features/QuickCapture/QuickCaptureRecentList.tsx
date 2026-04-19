@@ -1,4 +1,5 @@
 import { QuickCaptureCaptureRow } from './QuickCaptureCaptureRow';
+import { PERSONAL_CAPTURE_TARGET } from './model';
 import type { CaptureMode, ExpandedCaptureAssignment } from './types';
 import type { HubHomeCapture } from '../../services/hub/types';
 import type { ProjectRecord } from '../../types/domain';
@@ -68,9 +69,9 @@ export const QuickCaptureRecentList = ({
       <div className="max-h-80 space-y-2 overflow-y-auto rounded-panel border border-border-muted bg-surface p-2">
         {sortedCaptures.map((capture) => {
           const assignmentExpanded = expandedCaptureAssignment?.recordId === capture.record_id;
-          const assignmentProjectId = assignmentExpanded ? expandedCaptureAssignment.projectId : '__personal__';
+          const assignmentProjectId = assignmentExpanded ? expandedCaptureAssignment.projectId : PERSONAL_CAPTURE_TARGET;
           const assignmentMode = assignmentExpanded ? expandedCaptureAssignment.mode : 'thought';
-          const rowSaving = captureAssignmentSavingId === capture.record_id;
+          const assignmentInteractionDisabled = captureAssignmentSavingId !== null;
           const titleExpanded = expandedHoverCaptureId === capture.record_id;
           const captureSourceLabel = capture.project_id === personalProjectId
             ? 'Home'
@@ -84,7 +85,7 @@ export const QuickCaptureRecentList = ({
               assignmentExpanded={assignmentExpanded}
               assignmentProjectId={assignmentProjectId}
               assignmentMode={assignmentMode}
-              rowSaving={rowSaving}
+              assignmentInteractionDisabled={assignmentInteractionDisabled}
               titleExpanded={titleExpanded}
               captureAssignmentError={captureAssignmentError}
               captureAssignmentTypeOptions={captureAssignmentTypeOptions}

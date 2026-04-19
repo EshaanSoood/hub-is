@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { listCollections } from '../../../services/hub/collections';
 import type { HubCollection } from '../../../services/hub/types';
 import { usePersonalCollectionsEffect } from './usePersonalCollectionsEffect';
@@ -14,6 +14,10 @@ export const useQuickCaptureCollections = ({
 }: UseQuickCaptureCollectionsParams) => {
   const [personalCollections, setPersonalCollections] = useState<HubCollection[]>([]);
   const projectCollectionsCacheRef = useRef<Record<string, HubCollection[]>>({});
+
+  useEffect(() => {
+    projectCollectionsCacheRef.current = {};
+  }, [accessToken]);
 
   usePersonalCollectionsEffect({
     accessToken,

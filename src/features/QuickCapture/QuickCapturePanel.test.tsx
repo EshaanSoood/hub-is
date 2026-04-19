@@ -37,17 +37,20 @@ vi.mock('../../components/primitives', () => ({
     onValueChange,
     options,
     ariaLabel,
+    disabled,
   }: {
     id?: string;
     value: string;
     onValueChange: (value: string) => void;
     options: Array<{ value: string; label: string; disabled?: boolean }>;
     ariaLabel?: string;
+    disabled?: boolean;
   }) => (
     <select
       id={id}
       aria-label={ariaLabel}
       value={value}
+      disabled={disabled}
       onChange={(event) => onValueChange(event.target.value)}
     >
       {options.map((option) => (
@@ -200,8 +203,12 @@ const openCaptureOptions = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(toggleButton);
 };
 
-const openAssignmentOptions = async (user: ReturnType<typeof userEvent.setup>, captureTitle: string) => {
-  const row = screen.getByText(captureTitle).closest<HTMLElement>('div.rounded-panel');
+const openAssignmentOptions = async (
+  user: ReturnType<typeof userEvent.setup>,
+  captureTitle: string,
+  captureRecordId: string,
+) => {
+  const row = screen.getByTestId(`capture-row-${captureRecordId}`);
   if (!row) {
     throw new Error(`Capture row not found for ${captureTitle}.`);
   }
@@ -342,7 +349,7 @@ describe('QuickCapturePanel characterization', () => {
     const user = userEvent.setup();
     const { onCaptureComplete } = renderQuickCapture();
 
-    await openAssignmentOptions(user, 'Older capture');
+    await openAssignmentOptions(user, 'Older capture', 'capture-old');
     await user.selectOptions(screen.getByRole('combobox', { name: 'Capture assignment type' }), 'task');
 
     await waitFor(() => {
@@ -357,12 +364,9 @@ describe('QuickCapturePanel characterization', () => {
 
   it('toggles recent capture sort order', async () => {
     const user = userEvent.setup();
-    const { container } = renderQuickCapture();
+    renderQuickCapture();
 
-    const titleTexts = () =>
-      Array.from(container.querySelectorAll('p.text-sm.text-text'))
-        .map((node) => node.textContent ?? '')
-        .filter((text) => text === 'Newest capture' || text === 'Older capture');
+    const titleTexts = () => screen.getAllByTestId(/capture-title-/).map((node) => node.textContent ?? '');
 
     expect(titleTexts()).toEqual(['Newest capture', 'Older capture']);
 
@@ -392,7 +396,7 @@ describe('QuickCapturePanel characterization', () => {
     const user = userEvent.setup();
     await renderQuickCapture();
 
-    const row = await openAssignmentOptions(user, 'Older capture');
+    const row = await openAssignmentOptions(user, 'Older capture', 'capture-old');
     expect(within(row).getByRole('combobox', { name: 'Capture assignment type' })).toBeInTheDocument();
 
     await user.click(within(row).getByRole('button', { name: 'Hide capture assignment options' }));
@@ -403,7 +407,7 @@ describe('QuickCapturePanel characterization', () => {
     vi.useFakeTimers();
     const longTitle = `${'Long capture title '.repeat(20)}tail`;
 
-    const { container } = renderQuickCapture({
+    renderQuickCapture({
       captures: [
         {
           record_id: 'capture-long',
@@ -415,9 +419,11 @@ describe('QuickCapturePanel characterization', () => {
       ],
     });
 
-    expect(screen.queryByText(longTitle)).not.toBeInTheDocument();
+    const title = screen.getByTestId('capture-title-capture-long');
+    expect(title).toHaveTextContent(longTitle);
+    expect(title).toHaveClass('whitespace-nowrap');
 
-    const hoverTarget = container.querySelector<HTMLElement>('.min-w-0.flex-1');
+    const hoverTarget = screen.getByTestId('capture-hover-target-capture-long');
     if (!hoverTarget) {
       throw new Error('Hover target not found.');
     }
@@ -427,10 +433,70 @@ describe('QuickCapturePanel characterization', () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
 
-    expect(screen.getByText(longTitle)).toBeInTheDocument();
+    expect(title).toHaveClass('break-words');
+    expect(title).not.toHaveClass('whitespace-nowrap');
 
     fireEvent.mouseLeave(hoverTarget);
 
-    expect(screen.queryByText(longTitle)).not.toBeInTheDocument();
+    expect(title).toHaveClass('whitespace-nowrap');
+  });
+
+  it('does not show project-required reminder guidance for personal tasks', async () => {
+    const user = userEvent.setup();
+    renderQuickCapture();
+
+    await openCaptureOptions(user);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Capture type' }), 'task');
+
+    expect(screen.queryByText('Reminders and calendar items need a project.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Create a project to route reminders or calendar captures.')).not.toBeInTheDocument();
+  });
+
+  it('disables assignment controls while a conversion is in flight', async () => {
+    const user = userEvent.setup();
+    let resolveConvert: (() => void) | undefined;
+    mockConvertRecord.mockImplementation(
+      () => new Promise((resolve) => {
+        resolveConvert = () => {
+          resolve({ target_record_id: 'target-1', source_record_id: 'capture-old' });
+        };
+      }),
+    );
+
+    await renderQuickCapture();
+    const row = await openAssignmentOptions(user, 'Older capture', 'capture-old');
+
+    await user.selectOptions(within(row).getByRole('combobox', { name: 'Capture assignment type' }), 'task');
+
+    expect(within(row).getByRole('button', { name: 'Hide capture assignment options' })).toBeDisabled();
+    expect(within(row).getByRole('combobox', { name: 'Capture assignment type' })).toBeDisabled();
+
+    if (!resolveConvert) {
+      throw new Error('Expected convert resolver to be set.');
+    }
+    resolveConvert();
+    await waitFor(() => {
+      expect(screen.queryByText('Assigning...')).not.toBeInTheDocument();
+    });
+  });
+
+  it('continues project handoff when session storage is unavailable', async () => {
+    const user = userEvent.setup();
+    const sessionStorageSetItem = vi.spyOn(window.sessionStorage.__proto__, 'setItem').mockImplementation(() => {
+      throw new DOMException('Blocked', 'QuotaExceededError');
+    });
+
+    renderQuickCapture();
+
+    await openCaptureOptions(user);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Capture type' }), 'reminder');
+    await user.type(screen.getByRole('textbox', { name: 'Capture text' }), 'reminder capture');
+    submitCaptureForm();
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(`/projects/${encodeURIComponent(projectAlpha.id)}/work?capture=1&intent=reminder`);
+    });
+
+    sessionStorageSetItem.mockRestore();
   });
 });

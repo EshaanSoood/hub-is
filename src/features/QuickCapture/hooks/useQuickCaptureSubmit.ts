@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { type FormEvent, useCallback } from 'react';
 import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
 import { createPersonalTask, createRecord } from '../../../services/hub/records';
 import { PERSONAL_CAPTURE_TARGET, selectPersonalCaptureCollection } from '../model';
@@ -42,7 +42,7 @@ export const useQuickCaptureSubmit = ({
   setCaptureError,
   setCaptureNotice,
 }: UseQuickCaptureSubmitParams) => {
-  return useCallback((event: React.FormEvent<HTMLFormElement>) => {
+  return useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const trimmed = captureText.trim();

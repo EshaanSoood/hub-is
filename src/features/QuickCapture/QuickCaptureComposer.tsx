@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import { Icon, IconButton, Select } from '../../components/primitives';
+import { PERSONAL_CAPTURE_TARGET } from './model';
 import type { CaptureMode } from './types';
 
 interface QuickCaptureComposerProps {
@@ -108,11 +109,11 @@ export const QuickCaptureComposer = ({
         </div>
       ) : null}
 
-      {captureMode !== 'thought' && captureTargetProjectId === '__personal__' ? (
+      {(captureMode === 'reminder' || captureMode === 'calendar') && captureTargetProjectId === PERSONAL_CAPTURE_TARGET ? (
         <p className="mt-3 text-xs text-muted">Reminders and calendar items need a project.</p>
       ) : null}
 
-      {captureMode !== 'thought' && visibleProjectCount === 0 ? (
+      {(captureMode === 'reminder' || captureMode === 'calendar') && visibleProjectCount === 0 ? (
         <p className="mt-3 text-xs text-muted">Create a project to route reminders or calendar captures.</p>
       ) : null}
 
