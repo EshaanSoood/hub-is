@@ -8,7 +8,6 @@ import {
   type HubProjectMember,
 } from '../../../services/hub/types';
 import {
-  buildPaneContextHref,
   buildProjectOverviewHref,
   buildProjectToolsHref,
   buildProjectWorkHref,
@@ -29,31 +28,15 @@ import { useFocusNodeQueryEffect } from '../hooks/useFocusNodeQueryEffect';
 import { useQuickCaptureQueryIntentEffect } from '../hooks/useQuickCaptureQueryIntentEffect';
 import { useWorkViewModuleRuntime } from '../hooks/useWorkViewModuleRuntime';
 import { useWorkRouteAndInspectorQueryEffects } from '../hooks/useWorkRouteAndInspectorQueryEffects';
-import { ProjectSpaceFocusedViewSection } from './ProjectSpaceFocusedViewSection';
+import { ProjectSpaceInspectorOverlay } from './ProjectSpaceInspectorOverlay';
 import { ProjectSpaceOverviewSurface } from './ProjectSpaceOverviewSurface';
-import { ProjectSpaceWorkPaneChrome } from './ProjectSpaceWorkPaneChrome';
-import { ProjectSpaceWorkspaceDocSection } from './ProjectSpaceWorkspaceDocSection';
+import { ProjectSpaceWorkSurface } from './ProjectSpaceWorkSurface';
 import { useProjectSpaceOverviewState } from './hooks/useProjectSpaceOverviewState';
-import { AccessDeniedView } from '../../../components/auth/AccessDeniedView';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../../../components/project-space/ProjectSpaceDialogPrimitives';
-import { Icon, InlineNotice } from '../../../components/primitives';
-import { BacklinksPanel } from '../../../components/project-space/BacklinksPanel';
-import { MentionPicker } from '../../../components/project-space/MentionPicker';
-import { RelationsSection } from '../../../components/project-space/RelationsSection';
+import { InlineNotice } from '../../../components/primitives';
 import { AutomationBuilder } from '../../../components/project-space/AutomationBuilder';
-import { FileInspectorActionBar } from '../../../components/project-space/FileInspectorActionBar';
-import { WorkView } from '../../../components/project-space/WorkView';
 import { adaptTaskSummaries } from '../../../components/project-space/taskAdapter';
 import type { PaneLateralSource } from '../../../components/motion/hubMotion';
 import { withHubMotionState } from '../../../lib/hubMotionState';
-import { dialogLayoutIds } from '../../../styles/motion';
 import {
   getActiveInspectorFocusTarget,
   readElementRect,
@@ -64,7 +47,6 @@ import {
   collectPaneTaskCollectionIds,
   paneCanEditForUser,
   readLayoutBool,
-  readPlainComment,
   relationFieldTargetCollectionId,
   toBase64,
 } from './utils';
@@ -106,7 +88,7 @@ export const ProjectSpaceWorkspace = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const { overviewView, setOverviewView } = useProjectSpaceOverviewState({
     activeTab,
     searchParams,
@@ -829,131 +811,119 @@ export const ProjectSpaceWorkspace = ({
       ) : null}
 
       {activeTab === 'work' ? (
-        <section className="space-y-4">
-          <ProjectSpaceWorkPaneChrome
-            projectId={project.project_id}
-            activePane={activePane}
-            activePaneCanEdit={activePaneCanEdit}
-            canWriteProject={canWriteProject}
-            openedFromPinned={openedFromPinned}
-            orderedEditablePanes={orderedEditablePanes}
-            readOnlyPanes={readOnlyPanes}
-            projectMemberList={projectMemberList}
-            sessionUserId={sessionUserId}
-            activeEditablePaneIndex={activeEditablePaneIndex}
-            modulesEnabled={modulesEnabled}
-            workspaceEnabled={workspaceEnabled}
-            paneMutationError={paneMutationError}
-            onNavigateToPane={navigateToPane}
-            onCreatePane={onCreatePane}
-            onMovePane={onMovePane}
-            onTogglePinned={onTogglePinned}
-            onTogglePaneMember={onTogglePaneMember}
-            onDeletePane={onDeletePaneWithNavigation}
-            onUpdatePane={onUpdatePaneFromWorkView}
-            onToggleActivePaneRegion={handleToggleActivePaneRegion}
-          />
-
-          {paneId && !hasRequestedPane ? (
-            <AccessDeniedView message="Pane not found in this project." />
-          ) : (
-            <>
-              <ProjectSpaceFocusedViewSection
-                focusedWorkView={focusedWorkView}
-                focusedWorkViewError={focusedWorkViewError}
-                focusedWorkViewLoading={focusedWorkViewLoading}
-                focusedWorkViewData={focusedWorkViewData}
-                focusedKanbanRuntime={focusedKanbanRuntime}
-                activePaneCanEdit={activePaneCanEdit}
-                activePaneId={activePane?.pane_id ?? null}
-                onCloseFocusedView={onCloseFocusedView}
-                onOpenRecord={(recordId) => {
-                  void openInspectorWithFocusRestore(recordId);
-                }}
-                onCreateKanbanRecord={onCreateKanbanRecord}
-                onConfigureKanbanGrouping={onConfigureKanbanGrouping}
-                onDeleteKanbanRecord={onDeleteKanbanRecord}
-                onMoveKanbanRecord={onMoveKanbanRecord}
-                onUpdateKanbanRecord={onUpdateKanbanRecord}
-              />
-
-              <WorkView
-                layoutId={workLayoutId}
-                pane={activePane ?? null}
-                canEditPane={activePaneCanEdit}
-                modulesEnabled={modulesEnabled}
-                showWorkspaceDocPlaceholder={false}
-                onUpdatePane={onUpdatePaneFromWorkView}
-                onOpenRecord={(recordId) => {
-                  void openInspectorWithFocusRestore(recordId);
-                }}
-                tableContract={tableContract}
-                kanbanContract={kanbanContract}
-                calendarContract={calendarContract}
-                filesContract={filesContract}
-                quickThoughtsContract={quickThoughtsContract}
-                tasksContract={tasksContract}
-                timelineContract={timelineContract}
-                remindersContract={remindersContract}
-              />
-              {recordsError ? (
-                <InlineNotice variant="danger" title="Views and records unavailable">
-                  {recordsError}
-                </InlineNotice>
-              ) : null}
-
-              <ProjectSpaceWorkspaceDocSection
-                accessToken={accessToken}
-                projectId={project.project_id}
-                projectMembers={projectMembers}
-                sessionUserId={sessionUserId}
-                activePane={activePane}
-                activePaneCanEdit={activePaneCanEdit}
-                workspaceEnabled={workspaceEnabled}
-                activePaneDocId={activePaneDocId}
-                docBootstrapReady={docBootstrapReady}
-                docBootstrapLexicalState={docBootstrapLexicalState}
-                collabSession={collabSession}
-                collabSessionError={collabSessionError}
-                onDocEditorChange={onDocEditorChange}
-                selectedDocNodeKey={selectedDocNodeKey}
-                setSelectedDocNodeKey={setSelectedDocNodeKey}
-                pendingDocFocusNodeKey={pendingDocFocusNodeKey}
-                setPendingDocFocusNodeKey={setPendingDocFocusNodeKey}
-                pendingDocMentionInsert={pendingDocMentionInsert}
-                setPendingDocMentionInsert={setPendingDocMentionInsert}
-                pendingViewEmbedInsert={pendingViewEmbedInsert}
-                setPendingViewEmbedInsert={setPendingViewEmbedInsert}
-                pendingDocAssetEmbed={pendingDocAssetEmbed}
-                setPendingDocAssetEmbed={setPendingDocAssetEmbed}
-                onInsertDocMention={onInsertDocMention}
-                views={views}
-                selectedEmbedViewId={selectedEmbedViewId}
-                setSelectedEmbedViewId={setSelectedEmbedViewId}
-                onInsertViewEmbed={onInsertViewEmbed}
-                onOpenRecord={(recordId) => {
-                  void openInspectorWithFocusRestore(recordId);
-                }}
-                onOpenEmbeddedView={onOpenEmbeddedView}
-                uploadingDocAsset={uploadingDocAsset}
-                onUploadDocAsset={onUploadDocAsset}
-                docCommentComposerOpen={docCommentComposerOpen}
-                commentTriggerRef={commentTriggerRef}
-                onDocCommentDialogOpenChange={onDocCommentDialogOpenChange}
-                docCommentError={docCommentError}
-                docCommentText={docCommentText}
-                setDocCommentText={setDocCommentText}
-                onAddDocComment={onAddDocComment}
-                docComments={docComments}
-                orphanedDocComments={orphanedDocComments}
-                onResolveDocComment={onResolveDocComment}
-                onJumpToDocComment={onJumpToDocComment}
-                showResolvedDocComments={showResolvedDocComments}
-                setShowResolvedDocComments={setShowResolvedDocComments}
-              />
-            </>
-          )}
-        </section>
+        <ProjectSpaceWorkSurface
+          paneId={paneId}
+          hasRequestedPane={hasRequestedPane}
+          activePane={activePane}
+          activePaneCanEdit={activePaneCanEdit}
+          modulesEnabled={modulesEnabled}
+          workLayoutId={workLayoutId}
+          recordsError={recordsError}
+          paneChromeProps={{
+            projectId: project.project_id,
+            activePane,
+            activePaneCanEdit,
+            canWriteProject,
+            openedFromPinned,
+            orderedEditablePanes,
+            readOnlyPanes,
+            projectMemberList,
+            sessionUserId,
+            activeEditablePaneIndex,
+            modulesEnabled,
+            workspaceEnabled,
+            paneMutationError,
+            onNavigateToPane: navigateToPane,
+            onCreatePane,
+            onMovePane,
+            onTogglePinned,
+            onTogglePaneMember,
+            onDeletePane: onDeletePaneWithNavigation,
+            onUpdatePane: onUpdatePaneFromWorkView,
+            onToggleActivePaneRegion: handleToggleActivePaneRegion,
+          }}
+          focusedViewProps={{
+            focusedWorkView,
+            focusedWorkViewError,
+            focusedWorkViewLoading,
+            focusedWorkViewData,
+            focusedKanbanRuntime,
+            activePaneCanEdit,
+            activePaneId: activePane?.pane_id ?? null,
+            onCloseFocusedView: onCloseFocusedView,
+            onOpenRecord: (recordId) => {
+              void openInspectorWithFocusRestore(recordId);
+            },
+            onCreateKanbanRecord,
+            onConfigureKanbanGrouping,
+            onDeleteKanbanRecord,
+            onMoveKanbanRecord,
+            onUpdateKanbanRecord,
+          }}
+          workViewProps={{
+            onUpdatePane: onUpdatePaneFromWorkView,
+            onOpenRecord: (recordId) => {
+              void openInspectorWithFocusRestore(recordId);
+            },
+            tableContract,
+            kanbanContract,
+            calendarContract,
+            filesContract,
+            quickThoughtsContract,
+            tasksContract,
+            timelineContract,
+            remindersContract,
+          }}
+          workspaceDocProps={{
+            accessToken,
+            projectId: project.project_id,
+            projectMembers,
+            sessionUserId,
+            activePane,
+            activePaneCanEdit,
+            workspaceEnabled,
+            activePaneDocId,
+            docBootstrapReady,
+            docBootstrapLexicalState,
+            collabSession,
+            collabSessionError,
+            onDocEditorChange,
+            selectedDocNodeKey,
+            setSelectedDocNodeKey,
+            pendingDocFocusNodeKey,
+            setPendingDocFocusNodeKey,
+            pendingDocMentionInsert,
+            setPendingDocMentionInsert,
+            pendingViewEmbedInsert,
+            setPendingViewEmbedInsert,
+            pendingDocAssetEmbed,
+            setPendingDocAssetEmbed,
+            onInsertDocMention,
+            views,
+            selectedEmbedViewId,
+            setSelectedEmbedViewId,
+            onInsertViewEmbed,
+            onOpenRecord: (recordId) => {
+              void openInspectorWithFocusRestore(recordId);
+            },
+            onOpenEmbeddedView,
+            uploadingDocAsset,
+            onUploadDocAsset,
+            docCommentComposerOpen,
+            commentTriggerRef,
+            onDocCommentDialogOpenChange,
+            docCommentError,
+            docCommentText,
+            setDocCommentText,
+            onAddDocComment,
+            docComments,
+            orphanedDocComments,
+            onResolveDocComment,
+            onJumpToDocComment,
+            showResolvedDocComments,
+            setShowResolvedDocComments,
+          }}
+        />
       ) : null}
 
       {activeTab === 'tools' ? (
@@ -1016,272 +986,44 @@ export const ProjectSpaceWorkspace = ({
         </section>
       ) : null}
 
-      {!prefersReducedMotion && inspectorTriggerRect ? (
-        <motion.div
-          layoutId={dialogLayoutIds.recordInspector}
-          aria-hidden="true"
-          className="pointer-events-none fixed z-[299] opacity-0"
-          style={{
-            top: inspectorTriggerRect.top,
-            left: inspectorTriggerRect.left,
-            width: inspectorTriggerRect.width,
-            height: inspectorTriggerRect.height,
-          }}
-        />
-      ) : null}
-
-      <Dialog open={Boolean(inspectorRecordId)} onOpenChange={(open) => (!open ? closeInspectorWithFocusRestore() : undefined)}>
-        <DialogContent
-          open={Boolean(inspectorRecordId)}
-          animated
-          layoutId={dialogLayoutIds.recordInspector}
-          motionVariant="fold-sheet"
-          className="dialog-panel-sheet-size !left-0 !top-0 h-screen !translate-x-0 !translate-y-0 overflow-y-auto rounded-none sm:!rounded-none border-r border-border-muted"
-          onCloseAutoFocus={(event) => {
-            if (inspectorTriggerRef.current) {
-              event.preventDefault();
-              inspectorTriggerRef.current.focus();
-            }
-          }}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <DialogHeader className="min-w-0 flex-1">
-              <DialogTitle>Record Inspector</DialogTitle>
-              <DialogDescription className="sr-only">
-                Quick dismissible inspector. Press Escape or close to return focus to the invoking control.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogClose
-              aria-label="Close inspector"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-panel border border-border-muted text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              <Icon name="close" className="h-4 w-4" />
-            </DialogClose>
-          </div>
-
-          {inspectorLoading ? <p className="mt-3 text-sm text-muted">Loading record...</p> : null}
-          {inspectorError ? (
-            <InlineNotice variant="danger" className="mt-3" title="Record inspector error">
-              {inspectorError}
-            </InlineNotice>
-          ) : null}
-
-          {inspectorRecord ? (
-            <div className="mt-4 space-y-4">
-              <section className="rounded-panel border border-border-muted p-3">
-                <h3 className="text-sm font-semibold text-primary">{inspectorRecord.title}</h3>
-                <p className="mt-1 text-xs text-muted">Collection: {inspectorRecord.schema?.name || inspectorRecord.collection_id}</p>
-                {inspectorRecord.source_pane?.pane_id ? (
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-                    <span>Origin: {inspectorRecord.source_pane.pane_name || inspectorRecord.source_pane.pane_id}</span>
-                    <button
-                      type="button"
-                      className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-                      onClick={() => {
-                        const targetHref = buildPaneContextHref({
-                          projectId: project.project_id,
-                          sourcePane: inspectorRecord.source_pane,
-                          fallbackHref: buildProjectWorkHref(project.project_id),
-                        });
-                        navigate(targetHref, {
-                          state: withHubMotionState(undefined, {
-                            hubProjectName: project.name,
-                            hubPaneName: inspectorRecord.source_pane?.pane_name || inspectorRecord.source_pane?.pane_id || undefined,
-                            hubPaneSource: 'click',
-                          }),
-                        });
-                      }}
-                    >
-                      Open source pane
-                    </button>
-                  </div>
-                ) : null}
-                {!inspectorMutationPaneCanEdit ? (
-                  <p className="mt-2 text-xs text-muted">
-                    {inspectorMutationPane?.pane_id
-                      ? `Opened in read-only pane ${inspectorMutationPane.name || inspectorMutationPane.pane_id}.`
-                      : 'Opened outside a pane edit context.'}{' '}
-                    You can review this record and add comments, but only pane editors can change fields, attachments, or relations.
-                  </p>
-                ) : null}
-                <div className="mt-2 space-y-2">
-                  {inspectorRecord.schema?.fields.map((field) => (
-                    <label key={field.field_id} className="flex flex-col gap-1 text-xs text-muted">
-                      {field.name}
-                      <input
-                        defaultValue={String(inspectorRecord.values[field.field_id] || '')}
-                        disabled={!inspectorMutationPaneCanEdit}
-                        className="rounded-panel border border-border-muted bg-surface px-2 py-1 text-sm text-text"
-                        onBlur={(event) => {
-                          if (inspectorMutationPaneCanEdit) {
-                            void onSaveRecordField(field.field_id, event.target.value);
-                          }
-                        }}
-                      />
-                    </label>
-                  ))}
-                </div>
-                {savingValues ? <p className="mt-2 text-xs text-muted">Saving...</p> : null}
-              </section>
-
-              <section className="rounded-panel border border-border-muted p-3">
-                <h3 className="text-sm font-semibold text-primary">Attachments</h3>
-                {inspectorRecord.attachments.length > 0 ? (
-                  <div className="mt-2 space-y-2">
-                    <div className="flex flex-wrap gap-1">
-                      {inspectorRecord.attachments.map((attachment) => {
-                        const selected = selectedAttachmentId === attachment.attachment_id;
-                        return (
-                          <button
-                            key={attachment.attachment_id}
-                            type="button"
-                            onClick={() => setSelectedAttachmentId(attachment.attachment_id)}
-                            aria-pressed={selected}
-                            className={`rounded-control border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                              selected
-                                ? 'border-primary text-text bg-primary/10'
-                                : 'border-border-muted text-muted bg-transparent'
-                            }`}
-                          >
-                            {attachment.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {selectedAttachmentId ? (
-                      <FileInspectorActionBar
-                        fileName={
-                          inspectorRecord.attachments.find((attachment) => attachment.attachment_id === selectedAttachmentId)?.name ||
-                          'Attachment'
-                        }
-                        downloadUrl={
-                          inspectorRecord.attachments.find((attachment) => attachment.attachment_id === selectedAttachmentId)?.proxy_url || ''
-                        }
-                        shareableLink={
-                          inspectorRecord.attachments.find((attachment) => attachment.attachment_id === selectedAttachmentId)?.proxy_url || ''
-                        }
-                        panes={panes.map((pane) => ({ id: pane.pane_id, name: pane.name }))}
-                        readOnly={!inspectorMutationPaneCanEdit}
-                        onRename={(nextName) => {
-                          void onRenameInspectorAttachment(selectedAttachmentId, nextName);
-                        }}
-                        onMove={(paneIdToMove) => {
-                          void onMoveInspectorAttachment(selectedAttachmentId, paneIdToMove);
-                        }}
-                        onRemove={() => {
-                          void onDetachInspectorAttachment(selectedAttachmentId);
-                        }}
-                      />
-                    ) : null}
-
-                    <ul className="space-y-1">
-                      {inspectorRecord.attachments.map((attachment) => (
-                        <li key={attachment.attachment_id} className="text-sm text-muted">
-                          {attachment.name} ({attachment.mime_type})
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <p className="mt-2 text-sm text-muted">No attachments yet.</p>
-                )}
-                {inspectorMutationPaneCanEdit ? (
-                  <form className="mt-2 flex flex-wrap items-center gap-2" onSubmit={onAttachFile}>
-                    <input name="attachment-file" type="file" className="text-xs text-muted" aria-label="Attach file" />
-                    <button
-                      type="submit"
-                      disabled={uploadingAttachment}
-                      className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Icon name="upload" className="text-[12px]" />
-                      {uploadingAttachment ? 'Uploading...' : 'Attach'}
-                    </button>
-                  </form>
-                ) : (
-                  <p className="mt-2 text-xs text-muted">Attachments are read-only in this pane.</p>
-                )}
-              </section>
-
-              <RelationsSection
-                accessToken={accessToken}
-                projectId={project.project_id}
-                recordId={inspectorRecord.record_id}
-                relationFields={inspectorRelationFields}
-                outgoing={inspectorRecord.relations.outgoing}
-                incoming={inspectorRecord.relations.incoming}
-                removingRelationId={removingRelationId}
-                mutationError={relationMutationError}
-                readOnly={!inspectorMutationPaneCanEdit}
-                onAddRelation={onAddRelation}
-                onRemoveRelation={onRemoveRelation}
-              />
-
-              <section className="rounded-panel border border-border-muted p-3">
-                <h3 className="text-sm font-semibold text-primary">Comments + Mentions</h3>
-                <ul className="mt-2 space-y-2">
-                  {inspectorRecord.comments.map((comment) => (
-                    <li key={comment.comment_id} className="rounded-panel border border-border-muted p-2">
-                      <p className="text-sm text-text">{readPlainComment(comment.body_json)}</p>
-                      <p className="text-xs text-muted">{comment.status}</p>
-                    </li>
-                  ))}
-                </ul>
-
-                <form className="mt-2 space-y-2" onSubmit={onAddRecordComment}>
-                  <textarea
-                    value={inspectorCommentText}
-                    onChange={(event) => setInspectorCommentText(event.target.value)}
-                    className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                    rows={3}
-                    placeholder="Type comment. Use mention picker for users/records."
-                    aria-label="Record comment"
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <MentionPicker
-                      accessToken={accessToken}
-                      projectId={project.project_id}
-                      onSelect={onInsertRecordCommentMention}
-                      buttonLabel="@ Mention"
-                      ariaLabel="Add mention to record comment"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary"
-                    >
-                      Add comment
-                    </button>
-                  </div>
-                </form>
-              </section>
-
-              <BacklinksPanel
-                backlinks={inspectorBacklinks}
-                loading={inspectorBacklinksLoading}
-                error={inspectorBacklinksError}
-                onOpenBacklink={onOpenBacklink}
-              />
-
-              <section className="rounded-panel border border-border-muted p-3">
-                <h3 className="text-sm font-semibold text-primary">Activity</h3>
-                <ul className="mt-2 space-y-1">
-                  {inspectorRecord.activity.map((entry) => (
-                    <li key={entry.timeline_event_id} className="text-xs text-muted">
-                      {entry.event_type} · {new Date(entry.created_at).toLocaleString()}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            </div>
-          ) : null}
-
-          <div className="mt-4">
-            <DialogClose className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary">
-              Close inspector
-            </DialogClose>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ProjectSpaceInspectorOverlay
+        accessToken={accessToken}
+        project={project}
+        panes={panes}
+        inspectorTriggerRect={inspectorTriggerRect}
+        inspectorTriggerRef={inspectorTriggerRef}
+        prefersReducedMotion={prefersReducedMotion}
+        inspectorLoading={inspectorLoading}
+        inspectorError={inspectorError}
+        inspectorRecord={inspectorRecord}
+        inspectorRecordId={inspectorRecordId}
+        inspectorMutationPane={inspectorMutationPane}
+        inspectorMutationPaneCanEdit={inspectorMutationPaneCanEdit}
+        inspectorRelationFields={inspectorRelationFields}
+        inspectorBacklinks={inspectorBacklinks}
+        inspectorBacklinksLoading={inspectorBacklinksLoading}
+        inspectorBacklinksError={inspectorBacklinksError}
+        inspectorCommentText={inspectorCommentText}
+        relationMutationError={relationMutationError}
+        removingRelationId={removingRelationId}
+        savingValues={savingValues}
+        selectedAttachmentId={selectedAttachmentId}
+        uploadingAttachment={uploadingAttachment}
+        setSelectedAttachmentId={setSelectedAttachmentId}
+        setInspectorCommentText={setInspectorCommentText}
+        closeInspectorWithFocusRestore={closeInspectorWithFocusRestore}
+        navigate={navigate}
+        onSaveRecordField={onSaveRecordField}
+        onRenameInspectorAttachment={onRenameInspectorAttachment}
+        onMoveInspectorAttachment={onMoveInspectorAttachment}
+        onDetachInspectorAttachment={onDetachInspectorAttachment}
+        onAttachFile={onAttachFile}
+        onAddRelation={onAddRelation}
+        onRemoveRelation={onRemoveRelation}
+        onInsertRecordCommentMention={onInsertRecordCommentMention}
+        onAddRecordComment={onAddRecordComment}
+        onOpenBacklink={onOpenBacklink}
+      />
     </motion.div>
   );
 };
