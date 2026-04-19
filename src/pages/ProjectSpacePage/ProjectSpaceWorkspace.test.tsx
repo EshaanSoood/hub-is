@@ -238,19 +238,6 @@ vi.mock('../../components/project-space/BacklinksPanel', () => ({
   ),
 }));
 
-const automationBuilderMock = vi.fn(({ rules, runs, availableRecordTypes }: { rules: unknown[]; runs: unknown[]; availableRecordTypes: string[] }) => (
-  <section>
-    Automation builder
-    <span data-testid="automation-rules-count">{rules.length}</span>
-    <span data-testid="automation-runs-count">{runs.length}</span>
-    <span data-testid="automation-record-types">{availableRecordTypes.join(',')}</span>
-  </section>
-));
-
-vi.mock('../../components/project-space/AutomationBuilder', () => ({
-  AutomationBuilder: (props: { rules: unknown[]; runs: unknown[]; availableRecordTypes: string[] }) => automationBuilderMock(props),
-}));
-
 vi.mock('../../components/project-space/ModuleFeedback', () => ({
   ModuleLoadingState: ({ label }: { label: string }) => <div>{label}</div>,
 }));
@@ -398,29 +385,13 @@ const recordInspectorState = {
 };
 
 const projectFilesRuntimeState = {
-  assetEntries: [] as Array<{ path: string; name: string }>,
-  assetRoots: [] as Array<{ asset_root_id: string; root_path: string }>,
-  assetWarning: null as string | null,
   ensureProjectAssetRoot: vi.fn(),
-  newAssetRootPath: '',
-  onAddAssetRoot: vi.fn((event?: Event) => event?.preventDefault?.()),
-  onLoadAssets: vi.fn(),
   onOpenPaneFile: vi.fn(),
   onUploadPaneFiles: vi.fn(),
   onUploadProjectFiles: vi.fn(),
   paneFiles: [],
   projectFiles: [],
   refreshTrackedProjectFiles: vi.fn(),
-  setNewAssetRootPath: vi.fn(),
-};
-
-const automationRuntimeState = {
-  automationRules: [] as Array<Record<string, unknown>>,
-  automationRuns: [] as Array<Record<string, unknown>>,
-  onCreateAutomationRule: vi.fn(),
-  onDeleteAutomationRule: vi.fn(),
-  onToggleAutomationRule: vi.fn(),
-  onUpdateAutomationRule: vi.fn(),
 };
 
 vi.mock('../../hooks/useCalendarRuntime', () => ({
@@ -478,10 +449,6 @@ vi.mock('../../hooks/useProjectViewsRuntime', () => ({
 
 vi.mock('../../hooks/useRecordInspector', () => ({
   useRecordInspector: () => recordInspectorState,
-}));
-
-vi.mock('../../hooks/useAutomationRuntime', () => ({
-  useAutomationRuntime: () => automationRuntimeState,
 }));
 
 vi.mock('../../hooks/useTimelineRuntime', () => ({
@@ -704,7 +671,6 @@ describe('ProjectSpaceWorkspace characterization', () => {
     openInspectorMock.mockReset();
     closeInspectorMock.mockReset();
     onUpdatePaneFromWorkViewMock.mockReset();
-    automationBuilderMock.mockClear();
     projectViewsRuntimeState.focusedWorkView = null;
     projectViewsRuntimeState.focusedWorkViewId = '';
     workspaceDocRuntimeState.docBootstrapReady = true;
@@ -732,19 +698,6 @@ describe('ProjectSpaceWorkspace characterization', () => {
     recordInspectorState.onSaveRecordField.mockClear();
     recordInspectorState.setInspectorCommentText.mockClear();
     recordInspectorState.setSelectedAttachmentId.mockClear();
-    projectFilesRuntimeState.assetEntries = [];
-    projectFilesRuntimeState.assetRoots = [];
-    projectFilesRuntimeState.assetWarning = null;
-    projectFilesRuntimeState.newAssetRootPath = '';
-    projectFilesRuntimeState.onAddAssetRoot.mockClear();
-    projectFilesRuntimeState.onLoadAssets.mockClear();
-    projectFilesRuntimeState.setNewAssetRootPath.mockClear();
-    automationRuntimeState.automationRules = [];
-    automationRuntimeState.automationRuns = [];
-    automationRuntimeState.onCreateAutomationRule.mockClear();
-    automationRuntimeState.onDeleteAutomationRule.mockClear();
-    automationRuntimeState.onToggleAutomationRule.mockClear();
-    automationRuntimeState.onUpdateAutomationRule.mockClear();
   });
 
   it('reads the overview sub-view from the query string and syncs changes back to the URL', async () => {

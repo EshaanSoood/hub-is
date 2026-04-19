@@ -1,4 +1,4 @@
-export type TopLevelProjectTab = 'overview' | 'work' | 'tools';
+export type TopLevelProjectTab = 'overview' | 'work';
 
 export type OverviewViewId = 'timeline' | 'calendar' | 'tasks' | 'kanban';
 

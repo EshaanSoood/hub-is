@@ -55,7 +55,7 @@ export const parseHubRouteDescriptor = (pathname: string): HubRouteDescriptor =>
     };
   }
 
-  const projectMatch = pathname.match(/^\/projects\/([^/]+)\/(overview|work|tools)$/);
+  const projectMatch = pathname.match(/^\/projects\/([^/]+)\/(overview|work)$/);
   if (projectMatch) {
     return {
       pathname,

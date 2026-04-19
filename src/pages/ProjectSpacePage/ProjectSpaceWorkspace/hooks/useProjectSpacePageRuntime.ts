@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { HubBacklink, HubPaneSummary, HubProject, HubProjectMember } from '../../../../services/hub/types';
-import { buildProjectOverviewHref, buildProjectToolsHref, buildProjectWorkHref } from '../../../../lib/hubRoutes';
-import { useAutomationRuntime } from '../../../../hooks/useAutomationRuntime';
+import { buildProjectOverviewHref, buildProjectWorkHref } from '../../../../lib/hubRoutes';
 import { useCalendarRuntime } from '../../../../hooks/useCalendarRuntime';
 import { usePaneMutations } from '../../../../hooks/usePaneMutations';
 import { useProjectMembers } from '../../../../hooks/useProjectMembers';
@@ -27,7 +26,6 @@ import { useProjectSpaceOverviewState } from './useProjectSpaceOverviewState';
 import { collectPaneTaskCollectionIds, paneCanEditForUser, readLayoutBool, relationFieldTargetCollectionId } from '../paneModel';
 import { ProjectSpaceInspectorOverlay } from '../ProjectSpaceInspectorOverlay';
 import { ProjectSpaceOverviewSurface } from '../ProjectSpaceOverviewSurface';
-import { ProjectSpaceToolsSurface } from '../ProjectSpaceToolsSurface';
 import { ProjectSpaceWorkSurface } from '../ProjectSpaceWorkSurface';
 import type { TimelineEvent, TopLevelProjectTab } from '../types';
 
@@ -56,7 +54,6 @@ export interface ProjectSpaceNavigatorProps {
   onNavigateOverview: () => void;
   onNavigateWork: () => void;
   onNavigatePinnedPane: (pane: HubPaneSummary) => void;
-  onNavigateTools: () => void;
 }
 
 export interface UseProjectSpacePageRuntimeResult {
@@ -64,7 +61,6 @@ export interface UseProjectSpacePageRuntimeResult {
   navigatorProps: ProjectSpaceNavigatorProps;
   overviewProps: ComponentProps<typeof ProjectSpaceOverviewSurface>;
   workProps: ComponentProps<typeof ProjectSpaceWorkSurface>;
-  toolsProps: ComponentProps<typeof ProjectSpaceToolsSurface>;
   inspectorProps: ComponentProps<typeof ProjectSpaceInspectorOverlay>;
 }
 
@@ -147,20 +143,13 @@ export const useProjectSpacePageRuntime = ({
     paneCanEditForUser,
   });
   const {
-    assetEntries,
-    assetRoots,
-    assetWarning,
     ensureProjectAssetRoot,
-    newAssetRootPath,
-    onAddAssetRoot,
-    onLoadAssets,
     onOpenPaneFile,
     onUploadPaneFiles,
     onUploadProjectFiles,
     paneFiles,
     projectFiles,
     refreshTrackedProjectFiles,
-    setNewAssetRootPath,
   } = useProjectFilesRuntime({
     accessToken,
     projectId: project.project_id,
@@ -282,17 +271,6 @@ export const useProjectSpacePageRuntime = ({
     paneCanEditForUser,
     relationFieldTargetCollectionId,
     toBase64,
-  });
-  const {
-    automationRules,
-    automationRuns,
-    onCreateAutomationRule,
-    onDeleteAutomationRule,
-    onToggleAutomationRule,
-    onUpdateAutomationRule,
-  } = useAutomationRuntime({
-    accessToken,
-    projectId: project.project_id,
   });
   const { refreshTimeline, timelineClusters, timelineFilters, toggleTimelineFilter } = useTimelineRuntime({
     accessToken,
@@ -642,11 +620,6 @@ export const useProjectSpacePageRuntime = ({
     onDismissReminder: remindersRuntime.dismiss,
     onCreateReminder: remindersRuntime.create,
   });
-
-  const availableRecordTypes = useMemo(() => {
-    const names = collections.map((collection) => collection.name.trim()).filter((name) => name.length > 0);
-    return names.length > 0 ? names : ['record'];
-  }, [collections]);
   const focusedKanbanRuntime = focusedWorkView ? kanbanRuntimeDataByViewId[focusedWorkView.view_id] ?? null : null;
   const projectLayoutId = !prefersReducedMotion ? `project-${project.project_id}` : undefined;
   const workLayoutId = !prefersReducedMotion && activePane ? `pane-${activePane.pane_id}` : undefined;
@@ -690,13 +663,6 @@ export const useProjectSpacePageRuntime = ({
           paneName: pane.name,
           paneSource: 'click',
           query: 'pinned=1',
-        });
-      },
-      onNavigateTools: () => {
-        navigate(buildProjectToolsHref(project.project_id), {
-          state: withHubMotionState(undefined, {
-            hubProjectName: project.name,
-          }),
         });
       },
     },
@@ -846,22 +812,6 @@ export const useProjectSpacePageRuntime = ({
         showResolvedDocComments,
         setShowResolvedDocComments,
       },
-    },
-    toolsProps: {
-      assetRoots,
-      assetEntries,
-      assetWarning,
-      newAssetRootPath,
-      onNewAssetRootPathChange: setNewAssetRootPath,
-      onAddAssetRoot,
-      onLoadAssets,
-      automationRules,
-      automationRuns,
-      availableRecordTypes,
-      onCreateAutomationRule,
-      onUpdateAutomationRule,
-      onDeleteAutomationRule,
-      onToggleAutomationRule,
     },
     inspectorProps: {
       accessToken,
