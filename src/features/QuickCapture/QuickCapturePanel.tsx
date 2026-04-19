@@ -1,7 +1,6 @@
 import { FormEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/primitives';
-import { focusWhenReady } from '../../lib/focusWhenReady';
 import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { listCollections } from '../../services/hub/collections';
 import { convertRecord, createPersonalTask, createRecord } from '../../services/hub/records';
@@ -9,10 +8,9 @@ import type { HubCollection, HubHomeCapture } from '../../services/hub/types';
 import { QuickCaptureComposer } from './QuickCaptureComposer';
 import { QuickCaptureRecentList } from './QuickCaptureRecentList';
 import { useCaptureListEffects } from './hooks/useCaptureListEffects';
+import { useQuickCaptureComposerState } from './hooks/useQuickCaptureComposerState';
 import { usePersonalCollectionsEffect } from './hooks/usePersonalCollectionsEffect';
-import { useQuickCaptureComposerEffects } from './hooks/useQuickCaptureComposerEffects';
 import {
-  captureModeFromIntent,
   PENDING_CAPTURE_DRAFT_KEY,
   PERSONAL_CAPTURE_TARGET,
   resolveTargetProjectForMode,
@@ -41,23 +39,14 @@ export const QuickCapturePanel = ({
   onRequestClose,
 }: QuickCapturePanelProps) => {
   const navigate = useNavigate();
-  const [captureText, setCaptureText] = useState('');
-  const [captureMode, setCaptureMode] = useState<CaptureMode>('thought');
-  const [captureTargetProjectId, setCaptureTargetProjectId] = useState(PERSONAL_CAPTURE_TARGET);
-  const [captureOptionsExpanded, setCaptureOptionsExpanded] = useState(false);
-  const [captureSaving, setCaptureSaving] = useState(false);
-  const [captureError, setCaptureError] = useState<string | null>(null);
-  const [captureNotice, setCaptureNotice] = useState<string | null>(null);
   const [personalCollections, setPersonalCollections] = useState<HubCollection[]>([]);
   const [captureSortDirection, setCaptureSortDirection] = useState<CaptureSortDirection>('desc');
   const [expandedCaptureAssignment, setExpandedCaptureAssignment] = useState<ExpandedCaptureAssignment | null>(null);
   const [captureAssignmentSavingId, setCaptureAssignmentSavingId] = useState<string | null>(null);
   const [captureAssignmentError, setCaptureAssignmentError] = useState<string | null>(null);
   const [expandedHoverCaptureId, setExpandedHoverCaptureId] = useState<string | null>(null);
-  const captureInputRef = useRef<HTMLInputElement | null>(null);
   const hoverExpandTimerRef = useRef<number | null>(null);
   const projectCollectionsCacheRef = useRef<Record<string, HubCollection[]>>({});
-  const defaultProjectCaptureTargetRef = useRef(PERSONAL_CAPTURE_TARGET);
 
   const visibleProjects = useMemo(
     () => projects.filter((project) => !project.isPersonal),
@@ -73,6 +62,29 @@ export const QuickCapturePanel = ({
     [preferredProjectId, visibleProjects],
   );
   const defaultProjectCaptureTarget = preferredProject?.id ?? lastOpenedProject?.id ?? visibleProjects[0]?.id ?? PERSONAL_CAPTURE_TARGET;
+  const {
+    captureInputRef,
+    captureText,
+    setCaptureText,
+    captureMode,
+    captureTargetProjectId,
+    setCaptureTargetProjectId,
+    captureOptionsExpanded,
+    setCaptureOptionsExpanded,
+    captureSaving,
+    setCaptureSaving,
+    captureError,
+    setCaptureError,
+    captureNotice,
+    setCaptureNotice,
+    focusCaptureInput,
+    resetCaptureComposer,
+    onComposerModeChange,
+  } = useQuickCaptureComposerState({
+    defaultProjectCaptureTarget,
+    activationKey,
+    initialIntent,
+  });
 
   const captureProjectOptions = useMemo(
     () => [
@@ -95,8 +107,6 @@ export const QuickCapturePanel = ({
     [captureTypeOptions],
   );
   const sortedCaptures = useMemo(() => sortCaptures(captures, captureSortDirection), [captureSortDirection, captures]);
-
-  const focusCaptureInput = useCallback(() => focusWhenReady(() => captureInputRef.current), []);
 
   const loadPersonalCollections = useCallback(async () => {
     if (!accessToken || !personalProjectId) {
@@ -132,31 +142,6 @@ export const QuickCapturePanel = ({
     [accessToken, personalProjectId],
   );
 
-  const resetCaptureComposer = useCallback(
-    (nextMode: CaptureMode = 'thought', expandOptions = false, nextProjectId = PERSONAL_CAPTURE_TARGET) => {
-      setCaptureText('');
-      setCaptureMode(nextMode);
-      setCaptureOptionsExpanded(expandOptions);
-      setCaptureTargetProjectId(nextProjectId);
-      setCaptureError(null);
-      setCaptureNotice(null);
-    },
-    [],
-  );
-
-  useQuickCaptureComposerEffects({
-    defaultProjectCaptureTarget,
-    defaultProjectCaptureTargetRef,
-    activationKey,
-    initialIntent,
-    captureModeFromIntent,
-    personalCaptureTarget: PERSONAL_CAPTURE_TARGET,
-    resetCaptureComposer,
-    focusCaptureInput,
-    captureNotice,
-    setCaptureNotice,
-  });
-
   usePersonalCollectionsEffect({
     accessToken,
     personalProjectId,
@@ -183,7 +168,7 @@ export const QuickCapturePanel = ({
     setExpandedHoverCaptureId(null);
     resetCaptureComposer('thought', false, PERSONAL_CAPTURE_TARGET);
     onRequestClose();
-  }, [onRequestClose, resetCaptureComposer]);
+  }, [onRequestClose, resetCaptureComposer, setCaptureSaving]);
 
   const onSaveCapture = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -370,14 +355,6 @@ export const QuickCapturePanel = ({
       hoverExpandTimerRef.current = null;
     }
     setExpandedHoverCaptureId(null);
-  };
-
-  const onComposerModeChange = (value: string) => {
-    const nextMode = value as CaptureMode;
-    setCaptureMode(nextMode);
-    setCaptureTargetProjectId(
-      resolveTargetProjectForMode(nextMode, captureTargetProjectId, defaultProjectCaptureTarget),
-    );
   };
 
   const onAssignmentModeChange = (capture: HubHomeCapture, assignmentProjectId: string, nextMode: CaptureMode) => {
