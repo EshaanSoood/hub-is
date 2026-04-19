@@ -1,18 +1,15 @@
-import { FormEvent, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/primitives';
-import { requestHubHomeRefresh } from '../../lib/hubHomeRefresh';
-import { createPersonalTask, createRecord } from '../../services/hub/records';
 import { QuickCaptureComposer } from './QuickCaptureComposer';
 import { QuickCaptureRecentList } from './QuickCaptureRecentList';
 import { useQuickCaptureAssignment } from './hooks/useQuickCaptureAssignment';
 import { useQuickCaptureCollections } from './hooks/useQuickCaptureCollections';
 import { useQuickCaptureComposerState } from './hooks/useQuickCaptureComposerState';
+import { useQuickCaptureStorage } from './hooks/useQuickCaptureStorage';
+import { useQuickCaptureSubmit } from './hooks/useQuickCaptureSubmit';
 import {
-  PENDING_CAPTURE_DRAFT_KEY,
   PERSONAL_CAPTURE_TARGET,
-  safeGetLastProjectId,
-  selectPersonalCaptureCollection,
   sortCaptures,
 } from './model';
 import type { CaptureSortDirection, QuickCapturePanelProps } from './types';
@@ -31,12 +28,12 @@ export const QuickCapturePanel = ({
 }: QuickCapturePanelProps) => {
   const navigate = useNavigate();
   const [captureSortDirection, setCaptureSortDirection] = useState<CaptureSortDirection>('desc');
+  const { lastOpenedProjectId, writePendingCaptureDraft } = useQuickCaptureStorage();
 
   const visibleProjects = useMemo(
     () => projects.filter((project) => !project.isPersonal),
     [projects],
   );
-  const lastOpenedProjectId = safeGetLastProjectId();
   const lastOpenedProject = useMemo(
     () => visibleProjects.find((project) => project.id === lastOpenedProjectId) || null,
     [lastOpenedProjectId, visibleProjects],
@@ -76,6 +73,24 @@ export const QuickCapturePanel = ({
   } = useQuickCaptureCollections({
     accessToken,
     personalProjectId,
+  });
+  const onSaveCapture = useQuickCaptureSubmit({
+    accessToken,
+    personalProjectId,
+    captureText,
+    captureMode,
+    captureTargetProjectId,
+    personalCollections,
+    loadPersonalCollections,
+    onCaptureComplete,
+    onRequestClose,
+    focusCaptureInput,
+    navigate,
+    writePendingCaptureDraft,
+    setCaptureText,
+    setCaptureSaving,
+    setCaptureError,
+    setCaptureNotice,
   });
 
   const captureProjectOptions = useMemo(
@@ -126,85 +141,6 @@ export const QuickCapturePanel = ({
     resetCaptureComposer('thought', false, PERSONAL_CAPTURE_TARGET);
     onRequestClose();
   }, [onRequestClose, resetAssignmentRuntime, resetCaptureComposer, setCaptureSaving]);
-
-  const onSaveCapture = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const trimmed = captureText.trim();
-    if (!trimmed) {
-      setCaptureError('Capture text is required.');
-      return;
-    }
-
-    if (!accessToken) {
-      setCaptureError('An authenticated session is required.');
-      return;
-    }
-
-    setCaptureNotice(null);
-    setCaptureSaving(true);
-    void (async () => {
-      try {
-        if (captureMode === 'thought') {
-          const collections = personalCollections.length > 0 ? personalCollections : await loadPersonalCollections();
-          const targetCollection = selectPersonalCaptureCollection(collections);
-          if (!personalProjectId || !targetCollection) {
-            setCaptureError('Personal capture is unavailable right now.');
-            return;
-          }
-
-          await createRecord(accessToken, personalProjectId, {
-            collection_id: targetCollection.collection_id,
-            title: trimmed,
-          });
-          await onCaptureComplete();
-          setCaptureNotice('Saved');
-          setCaptureText('');
-          setCaptureError(null);
-          focusCaptureInput();
-          return;
-        }
-
-        if (captureMode === 'task' && captureTargetProjectId === PERSONAL_CAPTURE_TARGET) {
-          if (!personalProjectId) {
-            setCaptureError('Personal capture is unavailable right now.');
-            return;
-          }
-          await createPersonalTask(accessToken, { project_id: personalProjectId, title: trimmed });
-          requestHubHomeRefresh();
-          await onCaptureComplete();
-          setCaptureNotice('Saved');
-          setCaptureText('');
-          setCaptureError(null);
-          focusCaptureInput();
-          return;
-        }
-
-        if (captureTargetProjectId === PERSONAL_CAPTURE_TARGET) {
-          setCaptureError('Choose a project to categorize this capture.');
-          return;
-        }
-
-        const intent = captureMode === 'calendar' ? 'event' : captureMode === 'task' ? 'project-task' : 'reminder';
-        window.sessionStorage.setItem(
-          PENDING_CAPTURE_DRAFT_KEY,
-          JSON.stringify({
-            intent,
-            seedText: trimmed,
-          }),
-        );
-        setCaptureText('');
-        setCaptureError(null);
-        onRequestClose({ restoreFocus: false });
-        navigate(`/projects/${encodeURIComponent(captureTargetProjectId)}/work?capture=1&intent=${encodeURIComponent(intent)}`);
-      } catch (error) {
-        setCaptureError(error instanceof Error ? error.message : 'Failed to save capture.');
-        focusCaptureInput();
-      } finally {
-        setCaptureSaving(false);
-      }
-    })();
-  };
 
   const assignmentProjectOptions = useMemo(
     () => [
