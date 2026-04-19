@@ -38,7 +38,7 @@ export const ProjectSpaceWorkspace = ({
     navigatorProps,
     overviewProps,
     workProps,
-    inspectorProps,
+    recordInspectorOverlayProps,
   } = useProjectSpacePageRuntime({
     activeTab,
     project,
@@ -117,7 +117,7 @@ export const ProjectSpaceWorkspace = ({
       {activeTab === 'overview' ? <ProjectSpaceOverviewSurface {...overviewProps} /> : null}
       {activeTab === 'work' ? <ProjectSpaceWorkSurface {...workProps} /> : null}
 
-      <ProjectSpaceInspectorOverlay {...inspectorProps} />
+      <ProjectSpaceInspectorOverlay {...recordInspectorOverlayProps} />
     </motion.div>
   );
 };

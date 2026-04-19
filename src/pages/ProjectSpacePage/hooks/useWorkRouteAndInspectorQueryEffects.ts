@@ -7,7 +7,7 @@ interface UseWorkRouteAndInspectorQueryEffectsParams {
   activeTab: string;
   hasRequestedPane: boolean;
   navigate: NavigateFunction;
-  openInspectorWithFocusRestore: (recordId: string) => Promise<void>;
+  openRecordInspector: (recordId: string) => Promise<void>;
   paneId: string | undefined;
   projectId: string;
   searchParams: URLSearchParams;
@@ -19,7 +19,7 @@ export const useWorkRouteAndInspectorQueryEffects = ({
   activeTab,
   hasRequestedPane,
   navigate,
-  openInspectorWithFocusRestore,
+  openRecordInspector,
   paneId,
   projectId,
   searchParams,
@@ -44,7 +44,7 @@ export const useWorkRouteAndInspectorQueryEffects = ({
 
     let cancelled = false;
     void (async () => {
-      await openInspectorWithFocusRestore(recordId);
+      await openRecordInspector(recordId);
       if (cancelled) {
         return;
       }
@@ -58,5 +58,5 @@ export const useWorkRouteAndInspectorQueryEffects = ({
     return () => {
       cancelled = true;
     };
-  }, [activePane, activeTab, hasRequestedPane, openInspectorWithFocusRestore, paneId, searchParams, setSearchParams]);
+  }, [activePane, activeTab, hasRequestedPane, openRecordInspector, paneId, searchParams, setSearchParams]);
 };
