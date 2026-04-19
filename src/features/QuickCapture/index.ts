@@ -1,0 +1,1 @@
+export { QuickCapturePanel } from './QuickCapturePanel';
