@@ -31,9 +31,8 @@ import { useWorkRouteAndInspectorQueryEffects } from '../hooks/useWorkRouteAndIn
 import { ProjectSpaceInspectorOverlay } from './ProjectSpaceInspectorOverlay';
 import { ProjectSpaceOverviewSurface } from './ProjectSpaceOverviewSurface';
 import { ProjectSpaceWorkSurface } from './ProjectSpaceWorkSurface';
+import { ProjectSpaceToolsSurface } from './ProjectSpaceToolsSurface';
 import { useProjectSpaceOverviewState } from './hooks/useProjectSpaceOverviewState';
-import { InlineNotice } from '../../../components/primitives';
-import { AutomationBuilder } from '../../../components/project-space/AutomationBuilder';
 import { adaptTaskSummaries } from '../../../components/project-space/taskAdapter';
 import type { PaneLateralSource } from '../../../components/motion/hubMotion';
 import { withHubMotionState } from '../../../lib/hubMotionState';
@@ -927,63 +926,22 @@ export const ProjectSpaceWorkspace = ({
       ) : null}
 
       {activeTab === 'tools' ? (
-        <section className="space-y-4">
-          <article className="rounded-panel border border-subtle bg-elevated p-4">
-            <h2 className="heading-3 text-primary">Asset Library Roots</h2>
-            <form className="mt-2 flex flex-wrap gap-2" onSubmit={onAddAssetRoot}>
-              <input
-                value={newAssetRootPath}
-                onChange={(event) => setNewAssetRootPath(event.target.value)}
-                className="rounded-panel border border-border-muted bg-surface px-3 py-1.5 text-sm text-text"
-                placeholder="/Projects/Home"
-                aria-label="Asset root path"
-              />
-              <button type="submit" className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary">
-                Add root
-              </button>
-            </form>
-            <ul className="mt-3 space-y-2">
-              {assetRoots.map((root) => (
-                <li key={root.asset_root_id} className="rounded-panel border border-border-muted p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm text-text">{root.root_path}</p>
-                    <button
-                      type="button"
-                      className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-                      onClick={() => void onLoadAssets(root.asset_root_id)}
-                    >
-                      List assets
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            {assetWarning ? (
-              <InlineNotice variant="warning" className="mt-2" title="Asset warning">
-                {assetWarning}
-              </InlineNotice>
-            ) : null}
-            {assetEntries.length > 0 ? (
-              <ul className="mt-2 space-y-1">
-                {assetEntries.map((entry) => (
-                  <li key={entry.path} className="text-sm text-muted">
-                    {entry.name}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </article>
-
-          <AutomationBuilder
-            rules={automationRules}
-            runs={automationRuns}
-            availableRecordTypes={availableRecordTypes}
-            onCreateRule={onCreateAutomationRule}
-            onUpdateRule={onUpdateAutomationRule}
-            onDeleteRule={onDeleteAutomationRule}
-            onToggleRule={onToggleAutomationRule}
-          />
-        </section>
+        <ProjectSpaceToolsSurface
+          assetRoots={assetRoots}
+          assetEntries={assetEntries}
+          assetWarning={assetWarning}
+          newAssetRootPath={newAssetRootPath}
+          onNewAssetRootPathChange={setNewAssetRootPath}
+          onAddAssetRoot={onAddAssetRoot}
+          onLoadAssets={onLoadAssets}
+          automationRules={automationRules}
+          automationRuns={automationRuns}
+          availableRecordTypes={availableRecordTypes}
+          onCreateAutomationRule={onCreateAutomationRule}
+          onUpdateAutomationRule={onUpdateAutomationRule}
+          onDeleteAutomationRule={onDeleteAutomationRule}
+          onToggleAutomationRule={onToggleAutomationRule}
+        />
       ) : null}
 
       <ProjectSpaceInspectorOverlay

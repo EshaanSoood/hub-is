@@ -157,8 +157,17 @@ vi.mock('../../components/project-space/BacklinksPanel', () => ({
   BacklinksPanel: () => <div>Backlinks panel</div>,
 }));
 
+const automationBuilderMock = vi.fn(({ rules, runs, availableRecordTypes }: { rules: unknown[]; runs: unknown[]; availableRecordTypes: string[] }) => (
+  <section>
+    Automation builder
+    <span data-testid="automation-rules-count">{rules.length}</span>
+    <span data-testid="automation-runs-count">{runs.length}</span>
+    <span data-testid="automation-record-types">{availableRecordTypes.join(',')}</span>
+  </section>
+));
+
 vi.mock('../../components/project-space/AutomationBuilder', () => ({
-  AutomationBuilder: () => <section>Automation builder</section>,
+  AutomationBuilder: (props: { rules: unknown[]; runs: unknown[]; availableRecordTypes: string[] }) => automationBuilderMock(props),
 }));
 
 vi.mock('../../components/project-space/ModuleFeedback', () => ({
@@ -307,6 +316,32 @@ const recordInspectorState = {
   uploadingAttachment: false,
 };
 
+const projectFilesRuntimeState = {
+  assetEntries: [] as Array<{ path: string; name: string }>,
+  assetRoots: [] as Array<{ asset_root_id: string; root_path: string }>,
+  assetWarning: null as string | null,
+  ensureProjectAssetRoot: vi.fn(),
+  newAssetRootPath: '',
+  onAddAssetRoot: vi.fn((event?: Event) => event?.preventDefault?.()),
+  onLoadAssets: vi.fn(),
+  onOpenPaneFile: vi.fn(),
+  onUploadPaneFiles: vi.fn(),
+  onUploadProjectFiles: vi.fn(),
+  paneFiles: [],
+  projectFiles: [],
+  refreshTrackedProjectFiles: vi.fn(),
+  setNewAssetRootPath: vi.fn(),
+};
+
+const automationRuntimeState = {
+  automationRules: [] as Array<Record<string, unknown>>,
+  automationRuns: [] as Array<Record<string, unknown>>,
+  onCreateAutomationRule: vi.fn(),
+  onDeleteAutomationRule: vi.fn(),
+  onToggleAutomationRule: vi.fn(),
+  onUpdateAutomationRule: vi.fn(),
+};
+
 vi.mock('../../hooks/useCalendarRuntime', () => ({
   useCalendarRuntime: () => ({
     calendarEvents: [],
@@ -327,22 +362,7 @@ vi.mock('../../hooks/useProjectTasksRuntime', () => ({
 }));
 
 vi.mock('../../hooks/useProjectFilesRuntime', () => ({
-  useProjectFilesRuntime: () => ({
-    assetEntries: [],
-    assetRoots: [],
-    assetWarning: null,
-    ensureProjectAssetRoot: vi.fn(),
-    newAssetRootPath: '',
-    onAddAssetRoot: vi.fn((event?: Event) => event?.preventDefault?.()),
-    onLoadAssets: vi.fn(),
-    onOpenPaneFile: vi.fn(),
-    onUploadPaneFiles: vi.fn(),
-    onUploadProjectFiles: vi.fn(),
-    paneFiles: [],
-    projectFiles: [],
-    refreshTrackedProjectFiles: vi.fn(),
-    setNewAssetRootPath: vi.fn(),
-  }),
+  useProjectFilesRuntime: () => projectFilesRuntimeState,
 }));
 
 vi.mock('../../hooks/useProjectMembers', () => ({
@@ -380,14 +400,7 @@ vi.mock('../../hooks/useRecordInspector', () => ({
 }));
 
 vi.mock('../../hooks/useAutomationRuntime', () => ({
-  useAutomationRuntime: () => ({
-    automationRules: [],
-    automationRuns: [],
-    onCreateAutomationRule: vi.fn(),
-    onDeleteAutomationRule: vi.fn(),
-    onToggleAutomationRule: vi.fn(),
-    onUpdateAutomationRule: vi.fn(),
-  }),
+  useAutomationRuntime: () => automationRuntimeState,
 }));
 
 vi.mock('../../hooks/useTimelineRuntime', () => ({
@@ -564,6 +577,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     openInspectorMock.mockReset();
     closeInspectorMock.mockReset();
     onUpdatePaneFromWorkViewMock.mockReset();
+    automationBuilderMock.mockClear();
     projectViewsRuntimeState.focusedWorkView = null;
     projectViewsRuntimeState.focusedWorkViewId = '';
     workspaceDocRuntimeState.docBootstrapReady = true;
@@ -576,6 +590,19 @@ describe('ProjectSpaceWorkspace characterization', () => {
     recordInspectorState.inspectorRecord = null;
     recordInspectorState.inspectorRecordId = null;
     recordInspectorState.inspectorMutationPaneCanEdit = true;
+    projectFilesRuntimeState.assetEntries = [];
+    projectFilesRuntimeState.assetRoots = [];
+    projectFilesRuntimeState.assetWarning = null;
+    projectFilesRuntimeState.newAssetRootPath = '';
+    projectFilesRuntimeState.onAddAssetRoot.mockClear();
+    projectFilesRuntimeState.onLoadAssets.mockClear();
+    projectFilesRuntimeState.setNewAssetRootPath.mockClear();
+    automationRuntimeState.automationRules = [];
+    automationRuntimeState.automationRuns = [];
+    automationRuntimeState.onCreateAutomationRule.mockClear();
+    automationRuntimeState.onDeleteAutomationRule.mockClear();
+    automationRuntimeState.onToggleAutomationRule.mockClear();
+    automationRuntimeState.onUpdateAutomationRule.mockClear();
   });
 
   it('reads the overview sub-view from the query string and syncs changes back to the URL', async () => {
@@ -706,6 +733,42 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
     fireEvent.click(screen.getByLabelText('Close inspector'));
     expect(closeInspectorMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the tools surface and preserves asset library and automation wiring', async () => {
+    projectFilesRuntimeState.assetRoots = [{ asset_root_id: 'root-1', root_path: '/Projects/Home' }];
+    projectFilesRuntimeState.assetEntries = [
+      { path: '/Projects/Home/brief.md', name: 'brief.md' },
+      { path: '/Projects/Home/spec.md', name: 'spec.md' },
+    ];
+    projectFilesRuntimeState.assetWarning = 'Asset roots are local-only.';
+    projectFilesRuntimeState.newAssetRootPath = '/Projects/Home';
+    automationRuntimeState.automationRules = [{ id: 'rule-1' }];
+    automationRuntimeState.automationRuns = [{ id: 'run-1' }];
+
+    renderWorkspace({
+      entry: '/projects/project-1/tools',
+      activeTab: 'tools',
+    });
+
+    expect(screen.getByRole('tab', { name: 'Tools' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('heading', { name: 'Asset Library Roots' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Asset root path')).toHaveValue('/Projects/Home');
+    expect(screen.getByRole('alert')).toHaveTextContent('Asset roots are local-only.');
+    expect(screen.getByText('brief.md')).toBeInTheDocument();
+    expect(screen.getByText('spec.md')).toBeInTheDocument();
+    expect(screen.getByTestId('automation-rules-count')).toHaveTextContent('1');
+    expect(screen.getByTestId('automation-runs-count')).toHaveTextContent('1');
+    expect(screen.getByTestId('automation-record-types')).toHaveTextContent('Tasks');
+
+    await userEvent.type(screen.getByLabelText('Asset root path'), '/next');
+    expect(projectFilesRuntimeState.setNewAssetRootPath).toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'List assets' }));
+    expect(projectFilesRuntimeState.onLoadAssets).toHaveBeenCalledWith('root-1');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add root' }));
+    expect(projectFilesRuntimeState.onAddAssetRoot).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -37,6 +37,17 @@ test.beforeAll(async () => {
 });
 
 test.describe('ProjectSpaceWorkspace local characterization', () => {
+  test('tools tab keeps asset and automation surfaces reachable on the local realm', async ({ page }) => {
+    await page.goto(`/projects/${fixture.project.id}/tools`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('tab', { name: 'Tools' })).toHaveAttribute('aria-current', 'page');
+    await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(fixture.project.id)}/tools$`));
+
+    await expect(page.getByRole('heading', { name: 'Asset Library Roots' })).toBeVisible();
+    await expect(page.getByLabel('Asset root path')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add root' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Automations' })).toBeVisible();
+  });
+
   test('overview sub-view switching preserves query semantics and calendar behavior', async ({ page }) => {
     await page.goto(`/projects/${fixture.project.id}/overview`, { waitUntil: 'domcontentloaded' });
     await waitForWorkspace(page, 'Overview');
