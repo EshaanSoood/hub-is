@@ -16,7 +16,9 @@
     "build": "tsc -b tsconfig.app.json && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "test:ui:project-space": "vitest run src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx",
     "test:e2e": "bash scripts/run-playwright-regression.sh",
+    "test:e2e:project-space": "npm --prefix e2e test -- -c project-space-workspace/playwright.config.ts",
     "test:e2e:workflow": "bash scripts/run-playwright-workflow.sh",
     "test:nlp": "node --experimental-strip-types --test scripts/calendar-nlp/corpus.test.mjs scripts/calendar-nlp/weekday-semantics.test.mjs scripts/calendar-nlp/enhancements.test.mjs",
     "test:hub-provenance": "node --experimental-strip-types --test scripts/hub-provenance-regression.test.mjs",
@@ -106,6 +108,10 @@
     "@eslint/js": "^9.39.3",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/vite": "^4.2.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -115,9 +121,11 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.0",
+    "jsdom": "^29.0.2",
     "tailwindcss": "^4.2.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.4"
   }
 }
