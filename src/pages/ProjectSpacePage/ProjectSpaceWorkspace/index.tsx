@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useMemo, useRef, useState, type ReactElement } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactElement } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -29,8 +29,10 @@ import { useFocusNodeQueryEffect } from '../hooks/useFocusNodeQueryEffect';
 import { useQuickCaptureQueryIntentEffect } from '../hooks/useQuickCaptureQueryIntentEffect';
 import { useWorkViewModuleRuntime } from '../hooks/useWorkViewModuleRuntime';
 import { useWorkRouteAndInspectorQueryEffects } from '../hooks/useWorkRouteAndInspectorQueryEffects';
+import { ProjectSpaceFocusedViewSection } from './ProjectSpaceFocusedViewSection';
 import { ProjectSpaceOverviewSurface } from './ProjectSpaceOverviewSurface';
 import { ProjectSpaceWorkPaneChrome } from './ProjectSpaceWorkPaneChrome';
+import { ProjectSpaceWorkspaceDocSection } from './ProjectSpaceWorkspaceDocSection';
 import { useProjectSpaceOverviewState } from './hooks/useProjectSpaceOverviewState';
 import { AccessDeniedView } from '../../../components/auth/AccessDeniedView';
 import {
@@ -43,10 +45,7 @@ import {
 } from '../../../components/project-space/ProjectSpaceDialogPrimitives';
 import { Icon, InlineNotice } from '../../../components/primitives';
 import { BacklinksPanel } from '../../../components/project-space/BacklinksPanel';
-import { CommentComposer } from '../../../components/project-space/CommentComposer';
-import { CommentRail } from '../../../components/project-space/CommentRail';
 import { MentionPicker } from '../../../components/project-space/MentionPicker';
-import { ModuleLoadingState } from '../../../components/project-space/ModuleFeedback';
 import { RelationsSection } from '../../../components/project-space/RelationsSection';
 import { AutomationBuilder } from '../../../components/project-space/AutomationBuilder';
 import { FileInspectorActionBar } from '../../../components/project-space/FileInspectorActionBar';
@@ -79,21 +78,6 @@ export type { TopLevelProjectTab } from './types';
 // TODO(phase8-tech-debt): Split inspector dialog and workspace-doc runtime/UI into dedicated components.
 // Targets: Dialog/DialogContent/DialogHeader/DialogTitle, FileInspectorActionBar, CommentComposer,
 // CommentRail, MentionPicker, and useWorkspaceDocRuntime-related rendering.
-
-const KanbanModuleSkin = lazy(async () => {
-  const module = await import('../../../components/project-space/KanbanModuleSkin');
-  return { default: module.KanbanModuleSkin };
-});
-
-const TableModuleSkin = lazy(async () => {
-  const module = await import('../../../components/project-space/TableModuleSkin');
-  return { default: module.TableModuleSkin };
-});
-
-const CollaborativeLexicalEditor = lazy(async () => {
-  const module = await import('../../../features/notes/CollaborativeLexicalEditor');
-  return { default: module.CollaborativeLexicalEditor };
-});
 
 export const ProjectSpaceWorkspace = ({
   activeTab,
@@ -130,8 +114,6 @@ export const ProjectSpaceWorkspace = ({
   });
   const [inspectorTriggerRect, setInspectorTriggerRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const inspectorTriggerRef = useRef<HTMLElement | null>(null);
-  const docAssetFormRef = useRef<HTMLFormElement | null>(null);
-  const docAssetInputRef = useRef<HTMLInputElement | null>(null);
 
   const { calendarEvents, calendarLoading, calendarMode, refreshCalendar, setCalendarMode } = useCalendarRuntime({
     accessToken,
@@ -511,6 +493,56 @@ export const ProjectSpaceWorkspace = ({
     }
     queueViewEmbed(selectedEmbedViewId);
   }, [queueViewEmbed, selectedEmbedViewId]);
+  const onCloseFocusedView = useCallback(() => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('view_id');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+  const onOpenEmbeddedView = useCallback((viewId: string) => {
+    const targetView = views.find((view) => view.view_id === viewId);
+    if (!activePane || !targetView) {
+      if (activePane) {
+        navigateToPane({
+          paneId: activePane.pane_id,
+          paneName: activePane.name,
+          paneSource: 'click',
+        });
+      }
+      return;
+    }
+    if (targetView.type === 'kanban') {
+      navigate(`${buildProjectOverviewHref(project.project_id)}?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`, {
+        state: withHubMotionState(undefined, {
+          hubProjectName: project.name,
+        }),
+      });
+      return;
+    }
+    if (targetView.type === 'calendar') {
+      navigate(`${buildProjectOverviewHref(project.project_id)}?view=calendar`, {
+        state: withHubMotionState(undefined, {
+          hubProjectName: project.name,
+        }),
+      });
+      return;
+    }
+    if (targetView.type === 'timeline') {
+      navigate(`${buildProjectOverviewHref(project.project_id)}?view=timeline`, {
+        state: withHubMotionState(undefined, {
+          hubProjectName: project.name,
+        }),
+      });
+      return;
+    }
+    navigateToPane({
+      paneId: activePane.pane_id,
+      paneName: activePane.name,
+      paneSource: 'click',
+      query: `view_id=${encodeURIComponent(viewId)}`,
+    });
+  }, [activePane, navigate, navigateToPane, project.name, project.project_id, views]);
 
   useFocusNodeQueryEffect({
     activePaneDocId,
@@ -637,6 +669,7 @@ export const ProjectSpaceWorkspace = ({
     const names = collections.map((collection) => collection.name.trim()).filter((name) => name.length > 0);
     return names.length > 0 ? names : ['record'];
   }, [collections]);
+  const focusedKanbanRuntime = focusedWorkView ? kanbanRuntimeDataByViewId[focusedWorkView.view_id] ?? null : null;
   const projectLayoutId = !prefersReducedMotion ? `project-${project.project_id}` : undefined;
   const workLayoutId = !prefersReducedMotion && activePane ? `pane-${activePane.pane_id}` : undefined;
 
@@ -825,97 +858,24 @@ export const ProjectSpaceWorkspace = ({
             <AccessDeniedView message="Pane not found in this project." />
           ) : (
             <>
-              {focusedWorkView ? (
-                <section className="rounded-panel border border-subtle bg-elevated p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <h3 className="heading-3 text-primary">Focused View: {focusedWorkView.name}</h3>
-                      <p className="text-sm text-muted">Opened from an embedded doc view.</p>
-                    </div>
-                    <button
-                      type="button"
-                      className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-                      onClick={() => {
-                        setSearchParams((current) => {
-                          const next = new URLSearchParams(current);
-                          next.delete('view_id');
-                          return next;
-                        }, { replace: true });
-                      }}
-                    >
-                      Close focused view
-                    </button>
-                  </div>
-
-                  {focusedWorkView.type === 'kanban' ? (
-                    <div className="mt-3">
-                      <Suspense fallback={<ModuleLoadingState label="Loading kanban module" rows={5} />}>
-                        <KanbanModuleSkin
-                          groups={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groups || []}
-                          groupOptions={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupOptions || []}
-                          loading={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.loading ?? false}
-                          groupingConfigured={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupingConfigured ?? false}
-                          readOnly={!activePaneCanEdit}
-                          groupingMessage={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupingMessage}
-                          groupableFields={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.groupableFields}
-                          metadataFieldIds={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.metadataFieldIds}
-                          wipLimits={kanbanRuntimeDataByViewId[focusedWorkView.view_id]?.wipLimits}
-                          onOpenRecord={(recordId) => {
-                            void openInspectorWithFocusRestore(recordId);
-                          }}
-                          onCreateRecord={
-                            activePaneCanEdit
-                              ? async (payload) => {
-                                  await onCreateKanbanRecord(focusedWorkView.view_id, payload, activePane?.pane_id ?? null);
-                                }
-                              : undefined
-                          }
-                          onConfigureGrouping={
-                            activePaneCanEdit
-                              ? async (fieldId) => {
-                                  await onConfigureKanbanGrouping(focusedWorkView.view_id, fieldId, activePane?.pane_id ?? null);
-                                }
-                              : undefined
-                          }
-                          onDeleteRecord={
-                            activePaneCanEdit
-                              ? async (recordId) => {
-                                  await onDeleteKanbanRecord(recordId, activePane?.pane_id ?? null);
-                                }
-                              : undefined
-                          }
-                          onMoveRecord={(recordId, nextGroup) => {
-                            if (activePaneCanEdit) {
-                              void onMoveKanbanRecord(focusedWorkView.view_id, recordId, nextGroup, activePane?.pane_id ?? null);
-                            }
-                          }}
-                          onUpdateRecord={
-                            activePaneCanEdit
-                              ? async (recordId, fields) => {
-                                  await onUpdateKanbanRecord(focusedWorkView.view_id, recordId, fields, activePane?.pane_id ?? null);
-                                }
-                              : undefined
-                          }
-                        />
-                      </Suspense>
-                    </div>
-                  ) : (
-                    <div className="mt-3">
-                      {focusedWorkViewError ? <InlineNotice variant="danger" title="Focused view unavailable">{focusedWorkViewError}</InlineNotice> : null}
-                      <Suspense fallback={<ModuleLoadingState label="Loading table module" rows={6} />}>
-                        <TableModuleSkin
-                          schema={focusedWorkViewData?.schema || null}
-                          records={focusedWorkViewData?.records || []}
-                          loading={focusedWorkViewLoading}
-                          onOpenRecord={(recordId) => {
-                            void openInspectorWithFocusRestore(recordId);
-                          }}
-                        />
-                      </Suspense>
-                    </div>
-                  )}
-                </section>
-              ) : null}
+              <ProjectSpaceFocusedViewSection
+                focusedWorkView={focusedWorkView}
+                focusedWorkViewError={focusedWorkViewError}
+                focusedWorkViewLoading={focusedWorkViewLoading}
+                focusedWorkViewData={focusedWorkViewData}
+                focusedKanbanRuntime={focusedKanbanRuntime}
+                activePaneCanEdit={activePaneCanEdit}
+                activePaneId={activePane?.pane_id ?? null}
+                onCloseFocusedView={onCloseFocusedView}
+                onOpenRecord={(recordId) => {
+                  void openInspectorWithFocusRestore(recordId);
+                }}
+                onCreateKanbanRecord={onCreateKanbanRecord}
+                onConfigureKanbanGrouping={onConfigureKanbanGrouping}
+                onDeleteKanbanRecord={onDeleteKanbanRecord}
+                onMoveKanbanRecord={onMoveKanbanRecord}
+                onUpdateKanbanRecord={onUpdateKanbanRecord}
+              />
 
               <WorkView
                 layoutId={workLayoutId}
@@ -936,244 +896,61 @@ export const ProjectSpaceWorkspace = ({
                 timelineContract={timelineContract}
                 remindersContract={remindersContract}
               />
-              {activePane && workspaceEnabled ? (
-                <>
-                  {recordsError ? (
-                    <InlineNotice variant="danger" title="Views and records unavailable">
-                      {recordsError}
-                    </InlineNotice>
-                  ) : null}
-
-                  <section className="rounded-panel border border-subtle bg-elevated p-4">
-                <h3 className="heading-3 text-primary">Workspace Doc</h3>
-                {docBootstrapReady && activePaneDocId ? (
-                  <>
-                    <Suspense fallback={<ModuleLoadingState label="Loading collaborative editor" rows={8} />}>
-                      <CollaborativeLexicalEditor
-                        key={activePaneDocId}
-                        noteId={activePaneDocId}
-                        initialLexicalState={docBootstrapLexicalState}
-                        collaborationSession={collabSession}
-                        userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
-                        editable={activePaneCanEdit}
-                        onDocumentChange={onDocEditorChange}
-                        onSelectedNodeChange={setSelectedDocNodeKey}
-                        focusNodeKey={pendingDocFocusNodeKey}
-                        onNodeFocused={() => setPendingDocFocusNodeKey(null)}
-                        pendingMentionInsert={pendingDocMentionInsert}
-                        onMentionInserted={(insertId) => {
-                          if (pendingDocMentionInsert?.insert_id === insertId) {
-                            setPendingDocMentionInsert(null);
-                          }
-                        }}
-                        pendingViewEmbedInsert={pendingViewEmbedInsert}
-                        onViewEmbedInserted={(insertId) => {
-                          if (pendingViewEmbedInsert?.insert_id === insertId) {
-                            setPendingViewEmbedInsert(null);
-                          }
-                        }}
-                        pendingAssetEmbed={pendingDocAssetEmbed}
-                        onAssetEmbedApplied={(embedId) => {
-                          if (pendingDocAssetEmbed?.embed_id === embedId) {
-                            setPendingDocAssetEmbed(null);
-                          }
-                        }}
-                        viewEmbedRuntime={{
-                          accessToken,
-                          onOpenRecord: (recordId) => {
-                            void openInspectorWithFocusRestore(recordId);
-                          },
-                          onOpenView: (viewId) => {
-                            const targetView = views.find((view) => view.view_id === viewId);
-                            if (!targetView) {
-                              navigateToPane({
-                                paneId: activePane.pane_id,
-                                paneName: activePane.name,
-                                paneSource: 'click',
-                              });
-                              return;
-                            }
-                            if (targetView.type === 'kanban') {
-                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`, {
-                                state: withHubMotionState(undefined, {
-                                  hubProjectName: project.name,
-                                }),
-                              });
-                              return;
-                            }
-                            if (targetView.type === 'calendar') {
-                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=calendar`, {
-                                state: withHubMotionState(undefined, {
-                                  hubProjectName: project.name,
-                                }),
-                              });
-                              return;
-                            }
-                            if (targetView.type === 'timeline') {
-                              navigate(`${buildProjectOverviewHref(project.project_id)}?view=timeline`, {
-                                state: withHubMotionState(undefined, {
-                                  hubProjectName: project.name,
-                                }),
-                              });
-                              return;
-                            }
-                            navigateToPane({
-                              paneId: activePane.pane_id,
-                              paneName: activePane.name,
-                              paneSource: 'click',
-                              query: `view_id=${encodeURIComponent(viewId)}`,
-                            });
-                          },
-                        }}
-                      />
-                    </Suspense>
-                    {collabSessionError ? (
-                      <InlineNotice variant="danger" className="mt-2" title="Collaboration unavailable">
-                        {collabSessionError}
-                      </InlineNotice>
-                    ) : null}
-                    {activePaneCanEdit ? (
-                      <>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <MentionPicker
-                            accessToken={accessToken}
-                            projectId={project.project_id}
-                            onSelect={onInsertDocMention}
-                            buttonLabel="Insert mention"
-                            ariaLabel="Insert mention into doc"
-                          />
-                          <label className="text-xs text-muted" htmlFor="embed-view-picker">
-                            View
-                          </label>
-                          <select
-                            id="embed-view-picker"
-                            value={selectedEmbedViewId}
-                            onChange={(event) => setSelectedEmbedViewId(event.target.value)}
-                            className="rounded-panel border border-border-muted bg-surface px-2 py-1 text-xs text-text"
-                            aria-label="View embed picker"
-                          >
-                            <option value="">Select a view</option>
-                            {views.map((view) => (
-                              <option key={view.view_id} value={view.view_id}>
-                                {view.name} ({view.type})
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            onClick={onInsertViewEmbed}
-                            disabled={!selectedEmbedViewId}
-                            className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:opacity-60"
-                            aria-label="Insert selected view embed"
-                          >
-                            Insert view block
-                          </button>
-                        </div>
-                        <form ref={docAssetFormRef} className="mt-3 flex flex-wrap items-center gap-2" onSubmit={onUploadDocAsset}>
-                          <input
-                            ref={docAssetInputRef}
-                            name="doc-asset-file"
-                            type="file"
-                            className="hidden"
-                            aria-hidden="true"
-                            tabIndex={-1}
-                            disabled={uploadingDocAsset}
-                            onChange={(event) => {
-                              if (!event.currentTarget.files?.length) {
-                                return;
-                              }
-                              docAssetFormRef.current?.requestSubmit();
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => docAssetInputRef.current?.click()}
-                            disabled={uploadingDocAsset}
-                            className="inline-flex items-center gap-1 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
-                            aria-label="Upload doc asset"
-                          >
-                            <Icon name="upload" className="text-[12px]" />
-                            {uploadingDocAsset ? 'Uploading...' : 'Upload + embed'}
-                          </button>
-                        </form>
-                      </>
-                    ) : (
-                      <p className="mt-3 text-xs text-muted">Read-only doc mode. You can review the pane and leave comments below.</p>
-                    )}
-                  </>
-                ) : docBootstrapReady ? (
-                  <p className="mt-2 text-sm text-muted">Pane doc unavailable.</p>
-                ) : (
-                  <ModuleLoadingState label="Loading workspace doc" rows={8} />
-                )}
-                  </section>
-
-                  <div className="rounded-panel border border-subtle bg-elevated p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-muted">
-                    Selected block: <span className="font-semibold text-primary">{selectedDocNodeKey || 'none'}</span>
-                  </p>
-                  <motion.button
-                    layoutId={!prefersReducedMotion && docCommentComposerOpen ? dialogLayoutIds.commentOnBlock : undefined}
-                    ref={commentTriggerRef}
-                    type="button"
-                    className="rounded-panel border border-border-muted px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-60"
-                    onClick={() => onDocCommentDialogOpenChange(true)}
-                    disabled={!selectedDocNodeKey}
-                    aria-label="Comment on block"
-                  >
-                    Comment on block
-                  </motion.button>
-                </div>
-                  </div>
-
-                  <CommentRail
-                comments={docComments}
-                orphanedComments={orphanedDocComments}
-                onToggleStatus={(commentId, status) => {
-                  void onResolveDocComment(commentId, status);
-                }}
-                onJumpToComment={onJumpToDocComment}
-                showResolved={showResolvedDocComments}
-                onToggleShowResolved={() => setShowResolvedDocComments((current) => !current)}
-                  />
-
-                  <Dialog open={docCommentComposerOpen} onOpenChange={onDocCommentDialogOpenChange}>
-                <DialogContent open={docCommentComposerOpen} animated layoutId={dialogLayoutIds.commentOnBlock}>
-                  <DialogHeader>
-                    <DialogTitle>Comment on block</DialogTitle>
-                    <DialogDescription className="sr-only">
-                      Add a node-anchored comment for block {selectedDocNodeKey || 'unknown'}.
-                    </DialogDescription>
-                  </DialogHeader>
-                  {docCommentError ? (
-                    <InlineNotice variant="danger" title="Doc comment failed">
-                      {docCommentError}
-                    </InlineNotice>
-                  ) : null}
-                  <CommentComposer
-                    accessToken={accessToken}
-                    projectId={project.project_id}
-                    value={docCommentText}
-                    onChange={setDocCommentText}
-                    onSubmit={() => {
-                      void onAddDocComment();
-                    }}
-                    onCancel={() => onDocCommentDialogOpenChange(false)}
-                    disabled={!selectedDocNodeKey || !docCommentText.trim()}
-                    submitLabel="Add node comment"
-                    placeholder="Comment on selected block"
-                    nodeKeyLabel={selectedDocNodeKey}
-                  />
-                </DialogContent>
-              </Dialog>
-                </>
-              ) : activePane ? (
-                <section className="rounded-panel border border-subtle bg-elevated p-4">
-                  <h3 className="heading-3 text-primary">Workspace Doc</h3>
-                  <p className="mt-2 text-sm text-muted">This pane is set to modules-only mode. The workspace doc is hidden here.</p>
-                </section>
+              {recordsError ? (
+                <InlineNotice variant="danger" title="Views and records unavailable">
+                  {recordsError}
+                </InlineNotice>
               ) : null}
+
+              <ProjectSpaceWorkspaceDocSection
+                accessToken={accessToken}
+                projectId={project.project_id}
+                projectMembers={projectMembers}
+                sessionUserId={sessionUserId}
+                activePane={activePane}
+                activePaneCanEdit={activePaneCanEdit}
+                workspaceEnabled={workspaceEnabled}
+                activePaneDocId={activePaneDocId}
+                docBootstrapReady={docBootstrapReady}
+                docBootstrapLexicalState={docBootstrapLexicalState}
+                collabSession={collabSession}
+                collabSessionError={collabSessionError}
+                onDocEditorChange={onDocEditorChange}
+                selectedDocNodeKey={selectedDocNodeKey}
+                setSelectedDocNodeKey={setSelectedDocNodeKey}
+                pendingDocFocusNodeKey={pendingDocFocusNodeKey}
+                setPendingDocFocusNodeKey={setPendingDocFocusNodeKey}
+                pendingDocMentionInsert={pendingDocMentionInsert}
+                setPendingDocMentionInsert={setPendingDocMentionInsert}
+                pendingViewEmbedInsert={pendingViewEmbedInsert}
+                setPendingViewEmbedInsert={setPendingViewEmbedInsert}
+                pendingDocAssetEmbed={pendingDocAssetEmbed}
+                setPendingDocAssetEmbed={setPendingDocAssetEmbed}
+                onInsertDocMention={onInsertDocMention}
+                views={views}
+                selectedEmbedViewId={selectedEmbedViewId}
+                setSelectedEmbedViewId={setSelectedEmbedViewId}
+                onInsertViewEmbed={onInsertViewEmbed}
+                onOpenRecord={(recordId) => {
+                  void openInspectorWithFocusRestore(recordId);
+                }}
+                onOpenEmbeddedView={onOpenEmbeddedView}
+                uploadingDocAsset={uploadingDocAsset}
+                onUploadDocAsset={onUploadDocAsset}
+                docCommentComposerOpen={docCommentComposerOpen}
+                commentTriggerRef={commentTriggerRef}
+                onDocCommentDialogOpenChange={onDocCommentDialogOpenChange}
+                docCommentError={docCommentError}
+                docCommentText={docCommentText}
+                setDocCommentText={setDocCommentText}
+                onAddDocComment={onAddDocComment}
+                docComments={docComments}
+                orphanedDocComments={orphanedDocComments}
+                onResolveDocComment={onResolveDocComment}
+                onJumpToDocComment={onJumpToDocComment}
+                showResolvedDocComments={showResolvedDocComments}
+                setShowResolvedDocComments={setShowResolvedDocComments}
+              />
             </>
           )}
         </section>
