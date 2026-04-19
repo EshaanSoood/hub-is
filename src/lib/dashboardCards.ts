@@ -43,8 +43,8 @@ export const dashboardCardRegistry: DashboardCardDefinition[] = [
   },
   {
     id: 'recent-notes',
-    title: 'Notes (Hub)',
-    description: 'Hub-native notes workspace (placeholder).',
+    title: 'Notes',
+    description: 'Facets notes workspace (placeholder).',
     requiredGlobalCapabilities: ['hub.view'],
     requiredProjectCapability: 'project.notes.view',
     projectScopeRequired: true,

@@ -55,7 +55,7 @@ const TRIGGER_OPTIONS: Array<{ value: TriggerEvent; label: string }> = [
 
 const ACTION_OPTIONS: Array<{ value: ActionType; label: string }> = [
   { value: 'send_email', label: 'Send an email' },
-  { value: 'send_hub_notification', label: 'Send a Hub notification' },
+  { value: 'send_hub_notification', label: 'Send a notification' },
   { value: 'create_record', label: 'Create a record' },
 ];
 
@@ -76,7 +76,7 @@ const buildActionConfig = (name: string, actionType: ActionType): Record<string,
     return {
       to_address: '{{record.owner_email}}',
       subject: `Automation: ${name}`,
-      body: 'Automated email from Hub rule.',
+      body: 'Automated email from Facets rule.',
     };
   }
   if (actionType === 'create_record') {

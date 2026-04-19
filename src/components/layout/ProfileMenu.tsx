@@ -65,7 +65,7 @@ export const ProfileMenu: FC<ProfileMenuProps> = ({
       <button
         type="button"
         role="menuitem"
-        aria-label="Install Hub OS app."
+        aria-label="Install Facets app."
         className="block w-full px-md py-sm text-left text-sm text-text hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onInstall}
       >

@@ -204,7 +204,7 @@ export const QuickCapturePanel = ({
 
   const captureProjectOptions = useMemo(
     () => [
-      { value: PERSONAL_CAPTURE_TARGET, label: 'myHub', disabled: captureMode === 'reminder' || captureMode === 'calendar' },
+      { value: PERSONAL_CAPTURE_TARGET, label: 'Home', disabled: captureMode === 'reminder' || captureMode === 'calendar' },
       ...visibleProjects.map((project) => ({ value: project.id, label: project.name })),
     ],
     [captureMode, visibleProjects],
@@ -404,7 +404,7 @@ export const QuickCapturePanel = ({
 
   const assignmentProjectOptions = useMemo(
     () => [
-      { value: PERSONAL_CAPTURE_TARGET, label: 'myHub', disabled: false },
+      { value: PERSONAL_CAPTURE_TARGET, label: 'Home', disabled: false },
       ...visibleProjects.map((project) => ({ value: project.id, label: project.name })),
     ],
     [visibleProjects],
@@ -668,7 +668,7 @@ export const QuickCapturePanel = ({
                 const rowSaving = captureAssignmentSavingId === capture.record_id;
                 const titleExpanded = expandedHoverCaptureId === capture.record_id;
                 const captureSourceLabel = capture.project_id === personalProjectId
-                  ? 'myHub'
+                  ? 'Home'
                   : visibleProjects.find((project) => project.id === capture.project_id)?.name || 'Project';
                 return (
                   <div key={capture.record_id} className="rounded-panel border border-border-muted bg-surface-elevated p-3">

@@ -263,7 +263,7 @@ export const CaptureDialog = ({
           }
           const collectionId = await selectCollectionId(accessToken, personalProject.id, ['inbox', 'capture', 'note', 'journal']);
           if (!collectionId) {
-            throw new Error('No capture collection is available in myHub.');
+            throw new Error('No capture collection is available in Home.');
           }
           await createRecord(accessToken, personalProject.id, {
             collection_id: collectionId,

@@ -228,7 +228,7 @@ export const SearchButton = ({
                   }
                 }}
                 placeholder="Search"
-                aria-label="Search across Hub OS"
+                aria-label="Search across Facets"
                 aria-controls="sidebar-search-results"
                 aria-expanded={hasOverlay}
                 aria-activedescendant={normalizedActiveIndex >= 0 ? `sidebar-search-result-${normalizedActiveIndex}` : undefined}

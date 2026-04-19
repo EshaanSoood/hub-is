@@ -24,7 +24,7 @@ export const WorkspaceHeader = ({
     return (
       <button
         type="button"
-        aria-label="Open myHub"
+        aria-label="Open Home"
         className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onOpenHome}
       >
@@ -48,7 +48,7 @@ export const WorkspaceHeader = ({
           <Icon name="home" size={16} />
         </span>
         <SidebarLabel show={showLabels} className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold tracking-[0.01em]">myHub</span>
+          <span className="block truncate text-sm font-semibold tracking-[0.01em]">Home</span>
         </SidebarLabel>
       </Link>
 

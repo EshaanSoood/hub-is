@@ -1,6 +1,6 @@
 {
-  "name": "Hub OS",
-  "short_name": "Hub OS",
+  "name": "Facets",
+  "short_name": "Facets",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

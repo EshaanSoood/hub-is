@@ -192,7 +192,7 @@ export const decideRouteTransition = ({
     } else if (isPaneToPane) {
       announcement = `Switched to ${resolvePaneName(descriptor, currentMotionState)}`;
     } else if (isProjectToMyHubBack) {
-      announcement = 'Back to myHub';
+      announcement = 'Back to Home';
     } else if (isPaneToProjectBack) {
       announcement = `Back to ${resolveProjectName(descriptor, currentMotionState, getProjectName)}`;
     }

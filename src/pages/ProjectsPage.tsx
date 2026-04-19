@@ -160,7 +160,7 @@ export const ProjectsPage = () => {
       setHomeError(null);
       setHomeReady(true);
     } catch (error) {
-      setHomeError(error instanceof Error ? error.message : 'Failed to load myHub.');
+      setHomeError(error instanceof Error ? error.message : 'Failed to load Home.');
       setHomeReady(true);
     } finally {
       setHomeLoading(false);
@@ -329,7 +329,7 @@ export const ProjectsPage = () => {
       ? 'Calendar'
       : fullPageSurface === 'reminders'
         ? 'Reminders'
-        : 'myHub';
+        : 'Home';
 
   return (
     <div className="relative space-y-4">
@@ -338,7 +338,7 @@ export const ProjectsPage = () => {
         <section className="space-y-4">
           <header className="flex flex-wrap items-start justify-between gap-3 rounded-panel border border-subtle bg-elevated p-4">
             <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">myHub</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Home</p>
               <h2 className="text-lg font-semibold text-text">{fullPageTitle}</h2>
             </div>
             <button
@@ -423,7 +423,7 @@ export const ProjectsPage = () => {
         layoutId={dialogLayoutIds.myHubRecordInspector}
         motionVariant="fold-sheet"
         title="Record Inspector"
-        description="Review the selected Hub item without leaving the Hub."
+        description="Review the selected item without leaving Home."
       >
         {selectedHubRecordLoading ? <p className="text-sm text-muted">Loading record...</p> : null}
         {selectedHubRecordError ? (
