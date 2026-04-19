@@ -19,8 +19,37 @@ import {
 import { readOverviewView } from './ProjectSpaceWorkspace/overviewState';
 import { toBase64 } from './ProjectSpaceWorkspace/encoding';
 import { createProjectSpaceWorkspaceFixture } from './testUtils/projectSpaceWorkspaceTestFixture';
+import type { HubRecordDetail } from '../../shared/api-types/records';
 
 const fixture = createProjectSpaceWorkspaceFixture();
+const fixtureInspectorSchema = fixture.inspectorRecord.schema;
+
+const createInspectorRecord = (overrides: Partial<HubRecordDetail> = {}): HubRecordDetail => ({
+  ...fixture.inspectorRecord,
+  schema: fixtureInspectorSchema
+    ? {
+        ...fixtureInspectorSchema,
+        fields: fixtureInspectorSchema.fields.map((field) => ({ ...field })),
+      }
+    : null,
+  values: {
+    ...fixture.inspectorRecord.values,
+  },
+  capabilities: {
+    ...fixture.inspectorRecord.capabilities,
+    reminders: [...fixture.inspectorRecord.capabilities.reminders],
+    participants: [...fixture.inspectorRecord.capabilities.participants],
+    assignments: [...fixture.inspectorRecord.capabilities.assignments],
+  },
+  relations: {
+    outgoing: [...fixture.inspectorRecord.relations.outgoing],
+    incoming: [...fixture.inspectorRecord.relations.incoming],
+  },
+  attachments: [...fixture.inspectorRecord.attachments],
+  comments: [...fixture.inspectorRecord.comments],
+  activity: [...fixture.inspectorRecord.activity],
+  ...overrides,
+});
 
 const motionFactory = (tag: keyof HTMLElementTagNameMap) =>
   ({ children, ...props }: PropsWithChildren<Record<string, unknown>>): ReactElement =>
@@ -766,6 +795,16 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(openInspectorMock).toHaveBeenNthCalledWith(2, 'record-calendar', undefined);
   });
 
+  it('keeps Overview and Work available as top-level navigation affordances', () => {
+    renderWorkspace({
+      entry: '/projects/project-1/overview',
+      activeTab: 'overview',
+    });
+
+    expect(screen.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Work' })).toBeInTheDocument();
+  });
+
   it('hides the pane switcher for pinned routes until the user reveals it', async () => {
     renderWorkspace({
       entry: '/projects/project-1/work/pane-private?pinned=1',
@@ -898,6 +937,111 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
     fireEvent.click(screen.getByLabelText('Close inspector'));
     expect(closeInspectorMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    {
+      label: 'task',
+      entry: '/projects/project-1/overview',
+      activeTab: 'overview' as const,
+      record: createInspectorRecord({
+        title: 'Ship inspector refactor',
+        schema: {
+          collection_id: 'collection-1',
+          name: 'Tasks',
+          fields: [
+            { field_id: 'field-title', name: 'Title', type: 'text', config: {}, sort_order: 1 },
+            { field_id: 'field-priority', name: 'Priority', type: 'select', config: {}, sort_order: 2 },
+          ],
+        },
+        values: {
+          'field-title': 'Ship inspector refactor',
+          'field-priority': 'high',
+        },
+      }),
+      expected: ['Task', 'Ship inspector refactor', 'Collection: Tasks', 'Priority'],
+    },
+    {
+      label: 'event',
+      entry: '/projects/project-1/work/pane-shared',
+      activeTab: 'work' as const,
+      record: createInspectorRecord({
+        title: 'Design review',
+        collection_id: 'collection-events',
+        schema: {
+          collection_id: 'collection-events',
+          name: 'Events',
+          fields: [
+            { field_id: 'field-start', name: 'Start', type: 'datetime', config: {}, sort_order: 1 },
+            { field_id: 'field-location', name: 'Location', type: 'text', config: {}, sort_order: 2 },
+          ],
+        },
+        values: {
+          'field-start': '2026-04-21T14:00:00.000Z',
+          'field-location': 'Studio A',
+        },
+        capabilities: {
+          capability_types: ['event'],
+          task_state: null,
+          event_state: {
+            start_dt: '2026-04-21T14:00:00.000Z',
+            end_dt: '2026-04-21T15:00:00.000Z',
+            timezone: 'America/New_York',
+            location: 'Studio A',
+            updated_at: '2026-04-19T00:00:00.000Z',
+          },
+          recurrence_rule: null,
+          reminders: [],
+          participants: [],
+          assignments: [],
+        },
+      }),
+      expected: ['Event', 'Design review', 'Collection: Events', 'Start', 'Location'],
+    },
+    {
+      label: 'generic',
+      entry: '/projects/project-1/work/pane-shared',
+      activeTab: 'work' as const,
+      record: createInspectorRecord({
+        title: 'Knowledge base entry',
+        collection_id: 'collection-reference',
+        source_pane: null,
+        schema: {
+          collection_id: 'collection-reference',
+          name: 'Reference',
+          fields: [
+            { field_id: 'field-owner', name: 'Owner', type: 'text', config: {}, sort_order: 1 },
+            { field_id: 'field-link', name: 'Link', type: 'text', config: {}, sort_order: 2 },
+          ],
+        },
+        values: {
+          'field-owner': 'Ops',
+          'field-link': 'https://example.com',
+        },
+        capabilities: {
+          capability_types: [],
+          task_state: null,
+          event_state: null,
+          recurrence_rule: null,
+          reminders: [],
+          participants: [],
+          assignments: [],
+        },
+      }),
+      expected: ['Record', 'Knowledge base entry', 'Collection: Reference', 'Owner', 'Link'],
+    },
+  ])('renders the $label inspector body through Project Space host flows', ({ entry, activeTab, record, expected }) => {
+    recordInspectorState.inspectorRecord = record;
+    recordInspectorState.inspectorRecordId = record.record_id;
+
+    renderWorkspace({
+      entry,
+      activeTab,
+    });
+
+    for (const text of expected) {
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
   });
 
   it('preserves inspector attachment actions, comment wiring, and backlink opening', async () => {
