@@ -61,6 +61,7 @@ export const FileRecordInspector = ({
           </p>
         ) : null}
         <RecordInspectorSchemaFields
+          recordId={inspectorRecord.record_id}
           fields={inspectorRecord.schema?.fields}
           values={inspectorRecord.values}
           canEdit={inspectorMutationPaneCanEdit}

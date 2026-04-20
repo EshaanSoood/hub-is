@@ -44,11 +44,9 @@ const readPlainComment = (bodyJson: unknown): string => {
   if (typeof content === 'string') {
     return content;
   }
-  if (Array.isArray(content)) {
-    const plainContent = readCommentText(content);
-    if (plainContent) {
-      return plainContent;
-    }
+  const plainContent = readCommentText(record.content ?? record.children ?? record.value ?? null);
+  if (plainContent) {
+    return plainContent;
   }
   return JSON.stringify(record);
 };

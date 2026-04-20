@@ -496,6 +496,17 @@ describe('ProjectsPage', () => {
     expect(screen.getByText('Inbox task')).toBeInTheDocument();
   });
 
+  it('clears an invalid task_id route param without opening the Home record inspector', async () => {
+    renderProjectsPage('/projects?task_id=%20%20');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
+    });
+
+    expect(mockGetRecordDetail).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: 'Record Inspector' })).not.toBeInTheDocument();
+  });
+
   it('restores focus to the Home trigger when the record inspector closes', async () => {
     const user = userEvent.setup();
     renderProjectsPage();

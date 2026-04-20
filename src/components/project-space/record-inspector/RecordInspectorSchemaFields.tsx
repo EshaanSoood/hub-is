@@ -5,6 +5,7 @@ import type { ReactElement } from 'react';
 type RecordSchemaField = NonNullable<HubRecordDetail['schema']>['fields'][number];
 
 interface RecordInspectorSchemaFieldsProps {
+  recordId: string;
   fields: RecordSchemaField[] | undefined;
   values: HubRecordDetail['values'];
   canEdit: boolean;
@@ -12,6 +13,7 @@ interface RecordInspectorSchemaFieldsProps {
 }
 
 export const RecordInspectorSchemaFields = ({
+  recordId,
   fields,
   values,
   canEdit,
@@ -24,11 +26,12 @@ export const RecordInspectorSchemaFields = ({
   return (
     <div className="mt-3 space-y-2">
       {fields.map((field) => {
+        const fieldKey = `${recordId}:${field.field_id}`;
         const initialValue = getEditableFieldValue(field, values[field.field_id]);
 
         if (field.type === 'relation') {
           return (
-            <label key={field.field_id} className="flex flex-col gap-1 text-xs text-muted">
+            <label key={fieldKey} className="flex flex-col gap-1 text-xs text-muted">
               {field.name}
               <span className="rounded-panel border border-border-muted bg-surface-elevated px-2 py-1 text-sm text-muted">
                 Manage relation fields in the Relations section.
@@ -44,7 +47,7 @@ export const RecordInspectorSchemaFields = ({
             : options;
 
           return (
-            <label key={field.field_id} className="flex flex-col gap-1 text-xs text-muted">
+            <label key={fieldKey} className="flex flex-col gap-1 text-xs text-muted">
               {field.name}
               <select
                 defaultValue={initialValue}
@@ -69,7 +72,7 @@ export const RecordInspectorSchemaFields = ({
         }
 
         return (
-          <label key={field.field_id} className="flex flex-col gap-1 text-xs text-muted">
+          <label key={fieldKey} className="flex flex-col gap-1 text-xs text-muted">
             {field.name}
             <input
               type={getEditableInputType(field)}

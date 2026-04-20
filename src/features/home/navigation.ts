@@ -1,5 +1,9 @@
+import { z } from 'zod';
+
 export type HomeViewId = 'project-lens' | 'stream';
 export type HomeOverlayId = 'tasks' | 'calendar' | 'reminders' | 'thoughts';
+
+const HomeTaskRecordIdSchema = z.string().trim().min(1);
 
 export const parseHomeViewId = (value: string | null): HomeViewId =>
   value === 'stream' || value === 'project-lens' ? value : 'project-lens';
@@ -8,6 +12,11 @@ export const parseHomeOverlayId = (value: string | null): HomeOverlayId | null =
   value === 'tasks' || value === 'calendar' || value === 'reminders' || value === 'thoughts'
     ? value
     : null;
+
+export const parseHomeTaskRecordId = (value: string | null): string | null => {
+  const parsedTaskRecordId = HomeTaskRecordIdSchema.safeParse(value);
+  return parsedTaskRecordId.success ? parsedTaskRecordId.data : null;
+};
 
 const buildHomeHref = ({
   overlay,

@@ -41,7 +41,7 @@ export const EventRecordInspector = ({
               ? `${formatDateTime(eventState.start_dt, eventState.timezone) || 'No start'}${eventState.end_dt ? ` - ${formatDateTime(eventState.end_dt, eventState.timezone)}` : ''}`
               : null
           }
-          detailLabel={eventState?.location || null}
+          detailLabel={null}
           location={eventState?.location || null}
           timezone={eventState?.timezone || null}
         />
@@ -66,6 +66,7 @@ export const EventRecordInspector = ({
           </p>
         ) : null}
         <RecordInspectorSchemaFields
+          recordId={inspectorRecord.record_id}
           fields={inspectorRecord.schema?.fields}
           values={inspectorRecord.values}
           canEdit={inspectorMutationPaneCanEdit}

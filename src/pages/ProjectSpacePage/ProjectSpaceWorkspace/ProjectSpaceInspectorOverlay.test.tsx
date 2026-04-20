@@ -451,6 +451,48 @@ describe('ProjectSpaceInspectorOverlay', () => {
     expect(screen.getAllByText('README').length).toBeGreaterThan(0);
   });
 
+  it('remounts schema field controls when switching records that share a schema', () => {
+    const sharedSchema = {
+      collection_id: 'collection-1',
+      name: 'Tasks',
+      fields: [
+        { field_id: 'field-title', name: 'Title', type: 'text', config: {}, sort_order: 1 },
+      ],
+    };
+    const firstRecord = createRecord({
+      record_id: 'record-1',
+      title: 'First task',
+      schema: sharedSchema,
+      values: {
+        'field-title': 'First task',
+      },
+    });
+    const secondRecord = createRecord({
+      record_id: 'record-2',
+      title: 'Second task',
+      schema: sharedSchema,
+      values: {
+        'field-title': 'Second task',
+      },
+    });
+
+    const { rerender } = render(
+      <ProjectSpaceInspectorOverlay
+        {...createProps({ inspectorRecord: firstRecord, inspectorRecordId: firstRecord.record_id })}
+      />,
+    );
+
+    expect(screen.getByLabelText('Title')).toHaveValue('First task');
+
+    rerender(
+      <ProjectSpaceInspectorOverlay
+        {...createProps({ inspectorRecord: secondRecord, inspectorRecordId: secondRecord.record_id })}
+      />,
+    );
+
+    expect(screen.getByLabelText('Title')).toHaveValue('Second task');
+  });
+
   it('renders a generic fallback record when no typed cues are available', () => {
     const record = createRecord({
       title: 'Knowledge base entry',
@@ -518,7 +560,11 @@ describe('ProjectSpaceInspectorOverlay', () => {
         {
           comment_id: 'comment-1',
           author_user_id: 'user-1',
-          body_json: { text: 'Inspector comment body' },
+          body_json: {
+            content: {
+              children: [{ text: 'Inspector comment body' }],
+            },
+          },
           status: 'open',
           created_at: '2026-04-19T00:00:00.000Z',
           updated_at: '2026-04-19T00:00:00.000Z',

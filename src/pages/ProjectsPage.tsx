@@ -4,7 +4,7 @@ import { useAuthz } from '../context/AuthzContext';
 import { useProjects } from '../context/ProjectsContext';
 import { HomeRecordInspectorDialog } from '../features/home/HomeRecordInspectorDialog';
 import { HomeShell } from '../features/home/HomeShell';
-import { parseHomeOverlayId, parseHomeViewId, type HomeViewId } from '../features/home/navigation';
+import { parseHomeOverlayId, parseHomeTaskRecordId, parseHomeViewId, type HomeViewId } from '../features/home/navigation';
 import { useHomeRecordInspectorRuntime } from '../features/home/useHomeRecordInspectorRuntime';
 import { useHomeRuntime } from '../features/home/useHomeRuntime';
 import { useHomeSurfaceIdentity } from '../features/home/useHomeSurfaceIdentity';
@@ -24,12 +24,16 @@ export const ProjectsPage = () => {
   const { openRecord } = homeRecordInspector;
 
   useEffect(() => {
-    const taskId = searchParams.get('task_id');
-    if (!taskId) {
+    const rawTaskId = searchParams.get('task_id');
+    if (rawTaskId == null) {
       return;
     }
 
-    openRecord(taskId);
+    const taskId = parseHomeTaskRecordId(rawTaskId);
+
+    if (taskId) {
+      openRecord(taskId);
+    }
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       next.delete('task_id');

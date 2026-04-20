@@ -57,6 +57,7 @@ export const TaskRecordInspector = ({
           </p>
         ) : null}
         <RecordInspectorSchemaFields
+          recordId={inspectorRecord.record_id}
           fields={inspectorRecord.schema?.fields}
           values={inspectorRecord.values}
           canEdit={inspectorMutationPaneCanEdit}
