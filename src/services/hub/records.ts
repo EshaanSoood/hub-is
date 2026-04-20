@@ -652,7 +652,7 @@ export const createTask = createPersonalTask;
 
 export const getHubHome = async (
   accessToken: string,
-  options?: { tasks_limit?: number; events_limit?: number; captures_limit?: number; notifications_limit?: number; unread?: boolean },
+  options?: { tasks_limit?: number; events_limit?: number; captures_limit?: number; notifications_limit?: number; unread?: boolean; signal?: AbortSignal },
 ): Promise<HubHomeResponse> => {
   const params = new URLSearchParams();
   if (typeof options?.tasks_limit === 'number') {
@@ -673,6 +673,7 @@ export const getHubHome = async (
   const query = params.toString();
   const data = await hubRequest<HubHomeEnvelopeResponse>(accessToken, `/api/hub/home${query ? `?${query}` : ''}`, {
     method: 'GET',
+    signal: options?.signal,
   });
   return {
     ...data.home,

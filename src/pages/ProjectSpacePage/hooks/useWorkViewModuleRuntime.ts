@@ -113,7 +113,7 @@ interface UseWorkViewModuleRuntimeParams {
   timelineFilters: TimelineModuleContract['activeFilters'];
   toggleTimelineFilter: TimelineModuleContract['onFilterToggle'];
   refreshProjectData: () => Promise<void>;
-  openInspectorWithFocusRestore: (recordId: string, options?: { mutationPaneId?: string | null }) => Promise<void>;
+  openRecordInspector: (recordId: string, options?: { mutationPaneId?: string | null }) => Promise<void>;
 
   reminders: RemindersModuleContract['items'];
   remindersLoading: RemindersModuleContract['loading'];
@@ -162,7 +162,7 @@ export const useWorkViewModuleRuntime = ({
   timelineFilters,
   toggleTimelineFilter,
   refreshProjectData,
-  openInspectorWithFocusRestore,
+  openRecordInspector,
   reminders,
   remindersLoading,
   remindersError,
@@ -353,7 +353,7 @@ export const useWorkViewModuleRuntime = ({
           void refreshProjectData();
         },
         onItemClick: (recordId) => {
-          void openInspectorWithFocusRestore(recordId);
+          void openRecordInspector(recordId);
         },
       },
       remindersContract: {
@@ -406,7 +406,7 @@ export const useWorkViewModuleRuntime = ({
       timelineFilters,
       toggleTimelineFilter,
       refreshProjectData,
-      openInspectorWithFocusRestore,
+      openRecordInspector,
       reminders,
       remindersLoading,
       remindersError,

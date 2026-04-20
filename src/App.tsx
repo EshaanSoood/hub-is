@@ -175,16 +175,6 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/projects/:projectId/tools"
-            element={
-              <ProtectedRoute capability="projects.view">
-                <ProjectRouteGuard>
-                  <ProjectSpacePage activeTab="tools" />
-                </ProjectRouteGuard>
-              </ProtectedRoute>
-            }
-          />
           <Route path="/projects/:projectId" element={<ProjectRouteRedirect />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

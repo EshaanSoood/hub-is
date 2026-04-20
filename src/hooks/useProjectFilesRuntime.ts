@@ -1,8 +1,7 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createAssetRoot,
   listAssetRoots,
-  listAssets,
   listTrackedFiles,
   uploadFile,
 } from '../services/hub/files';
@@ -87,9 +86,6 @@ export const useProjectFilesRuntime = ({
   onError,
 }: UseProjectFilesRuntimeParams) => {
   const [assetRoots, setAssetRoots] = useState<AssetRootSummary[]>([]);
-  const [assetEntries, setAssetEntries] = useState<Array<{ name: string; path: string }>>([]);
-  const [assetWarning, setAssetWarning] = useState<string | undefined>(undefined);
-  const [newAssetRootPath, setNewAssetRootPath] = useState('/');
   const [pendingProjectFiles, setPendingProjectFiles] = useState<FilesModuleItem[]>([]);
   const [trackedProjectFiles, setTrackedProjectFiles] = useState<FilesModuleItem[]>([]);
   const [pendingPaneFilesByPaneId, setPendingPaneFilesByPaneId] = useState<Record<string, FilesModuleItem[]>>({});
@@ -411,33 +407,6 @@ export const useProjectFilesRuntime = ({
     }
   }, []);
 
-  const onAddAssetRoot = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const rootPath = newAssetRootPath.trim();
-      if (!rootPath) {
-        return;
-      }
-
-      await createAssetRoot(accessToken, projectId, {
-        provider: 'nextcloud',
-        root_path: rootPath,
-      });
-      setNewAssetRootPath('/');
-      await refreshAssetRoots();
-    },
-    [accessToken, newAssetRootPath, projectId, refreshAssetRoots],
-  );
-
-  const onLoadAssets = useCallback(
-    async (assetRootId: string) => {
-      const result = await listAssets(accessToken, projectId, assetRootId, '/');
-      setAssetEntries(result.entries);
-      setAssetWarning(result.warning);
-    },
-    [accessToken, projectId],
-  );
-
   const paneFiles = useMemo(() => {
     if (!activePane) {
       return [];
@@ -465,19 +434,12 @@ export const useProjectFilesRuntime = ({
   );
 
   return {
-    assetEntries,
-    assetRoots,
-    assetWarning,
     ensureProjectAssetRoot,
-    newAssetRootPath,
-    onAddAssetRoot,
-    onLoadAssets,
     onOpenPaneFile,
     onUploadPaneFiles,
     onUploadProjectFiles,
     paneFiles,
     projectFiles,
     refreshTrackedProjectFiles,
-    setNewAssetRootPath,
   };
 };

@@ -1,4 +1,5 @@
-export type TopLevelProjectTab = 'overview' | 'work' | 'tools';
+export { PROJECT_SPACE_PRIMARY_SURFACES } from '../../../components/project-space/types';
+export type { TopLevelProjectTab } from '../../../components/project-space/types';
 
 export type OverviewSubView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
 

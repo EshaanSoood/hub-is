@@ -57,9 +57,6 @@ export const buildPaneContextHref = ({
 export const buildProjectOverviewHref = (projectId: string): string =>
   `/projects/${encodePathSegment(projectId)}/overview`;
 
-export const buildProjectToolsHref = (projectId: string): string =>
-  `/projects/${encodePathSegment(projectId)}/tools`;
-
 export const buildProjectWorkHref = (projectId: string, paneId?: string | null): string => {
   const baseHref = `/projects/${encodePathSegment(projectId)}/work`;
   const resolvedPaneId = asText(paneId);

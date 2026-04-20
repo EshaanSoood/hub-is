@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useRef, useState, type ComponentProps } from 'react';
+import { useCallback, useMemo, type ComponentProps } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { HubBacklink, HubPaneSummary, HubProject, HubProjectMember } from '../../../../services/hub/types';
-import { buildProjectOverviewHref, buildProjectToolsHref, buildProjectWorkHref } from '../../../../lib/hubRoutes';
-import { useAutomationRuntime } from '../../../../hooks/useAutomationRuntime';
+import { buildProjectOverviewHref, buildProjectWorkHref } from '../../../../lib/hubRoutes';
 import { useCalendarRuntime } from '../../../../hooks/useCalendarRuntime';
 import { usePaneMutations } from '../../../../hooks/usePaneMutations';
 import { useProjectMembers } from '../../../../hooks/useProjectMembers';
@@ -10,7 +9,6 @@ import { useProjectFilesRuntime } from '../../../../hooks/useProjectFilesRuntime
 import { useProjectTasksRuntime } from '../../../../hooks/useProjectTasksRuntime';
 import { useProjectViewsRuntime } from '../../../../hooks/useProjectViewsRuntime';
 import { useQuickCapture } from '../../../../hooks/useQuickCapture';
-import { useRecordInspector } from '../../../../hooks/useRecordInspector';
 import { useRemindersRuntime } from '../../../../hooks/useRemindersRuntime';
 import { useTimelineRuntime } from '../../../../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../../../../hooks/useWorkspaceDocRuntime';
@@ -18,16 +16,14 @@ import { withHubMotionState } from '../../../../lib/hubMotionState';
 import { adaptTaskSummaries } from '../../../../components/project-space/taskAdapter';
 import type { PaneLateralSource } from '../../../../components/motion/hubMotion';
 import { useFocusNodeQueryEffect } from '../../hooks/useFocusNodeQueryEffect';
+import { useProjectSpaceInspectorRuntime } from './useProjectSpaceInspectorRuntime';
 import { useQuickCaptureQueryIntentEffect } from '../../hooks/useQuickCaptureQueryIntentEffect';
 import { useWorkViewModuleRuntime } from '../../hooks/useWorkViewModuleRuntime';
 import { useWorkRouteAndInspectorQueryEffects } from '../../hooks/useWorkRouteAndInspectorQueryEffects';
-import { getActiveInspectorFocusTarget, readElementRect, resolveInspectorFocusTarget } from '../domFocus';
-import { toBase64 } from '../encoding';
 import { useProjectSpaceOverviewState } from './useProjectSpaceOverviewState';
-import { collectPaneTaskCollectionIds, paneCanEditForUser, readLayoutBool, relationFieldTargetCollectionId } from '../paneModel';
+import { collectPaneTaskCollectionIds, paneCanEditForUser, readLayoutBool } from '../paneModel';
 import { ProjectSpaceInspectorOverlay } from '../ProjectSpaceInspectorOverlay';
 import { ProjectSpaceOverviewSurface } from '../ProjectSpaceOverviewSurface';
-import { ProjectSpaceToolsSurface } from '../ProjectSpaceToolsSurface';
 import { ProjectSpaceWorkSurface } from '../ProjectSpaceWorkSurface';
 import type { TimelineEvent, TopLevelProjectTab } from '../types';
 
@@ -56,7 +52,6 @@ export interface ProjectSpaceNavigatorProps {
   onNavigateOverview: () => void;
   onNavigateWork: () => void;
   onNavigatePinnedPane: (pane: HubPaneSummary) => void;
-  onNavigateTools: () => void;
 }
 
 export interface UseProjectSpacePageRuntimeResult {
@@ -64,8 +59,7 @@ export interface UseProjectSpacePageRuntimeResult {
   navigatorProps: ProjectSpaceNavigatorProps;
   overviewProps: ComponentProps<typeof ProjectSpaceOverviewSurface>;
   workProps: ComponentProps<typeof ProjectSpaceWorkSurface>;
-  toolsProps: ComponentProps<typeof ProjectSpaceToolsSurface>;
-  inspectorProps: ComponentProps<typeof ProjectSpaceInspectorOverlay>;
+  recordInspectorOverlayProps: ComponentProps<typeof ProjectSpaceInspectorOverlay>;
 }
 
 export const useProjectSpacePageRuntime = ({
@@ -90,8 +84,6 @@ export const useProjectSpacePageRuntime = ({
     searchParams,
     setSearchParams,
   });
-  const [inspectorTriggerRect, setInspectorTriggerRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
-  const inspectorTriggerRef = useRef<HTMLElement | null>(null);
 
   const { calendarEvents, calendarLoading, calendarMode, refreshCalendar, setCalendarMode } = useCalendarRuntime({
     accessToken,
@@ -147,20 +139,13 @@ export const useProjectSpacePageRuntime = ({
     paneCanEditForUser,
   });
   const {
-    assetEntries,
-    assetRoots,
-    assetWarning,
     ensureProjectAssetRoot,
-    newAssetRootPath,
-    onAddAssetRoot,
-    onLoadAssets,
     onOpenPaneFile,
     onUploadPaneFiles,
     onUploadProjectFiles,
     paneFiles,
     projectFiles,
     refreshTrackedProjectFiles,
-    setNewAssetRootPath,
   } = useProjectFilesRuntime({
     accessToken,
     projectId: project.project_id,
@@ -168,6 +153,57 @@ export const useProjectSpacePageRuntime = ({
     activePane: activePane ? { pane_id: activePane.pane_id, name: activePane.name } : null,
     onError: (message) => setRecordsError(message),
   });
+  const activePaneId = activePane?.pane_id || null;
+  const activePaneDocId = activePane?.doc_id || null;
+  const buildPaneNavigationState = useCallback(({
+    paneName,
+    paneSource,
+    extraState,
+  }: {
+    paneName?: string | null;
+    paneSource?: PaneLateralSource;
+    extraState?: unknown;
+  }) => withHubMotionState(extraState, {
+    hubProjectName: project.name,
+    hubPaneName: paneName ?? undefined,
+    hubPaneSource: paneSource,
+  }), [project.name]);
+
+  const navigateToPane = useCallback(({
+    paneId: nextPaneId,
+    paneName,
+    paneSource,
+    query,
+    extraState,
+  }: {
+    paneId: string;
+    paneName?: string | null;
+    paneSource?: PaneLateralSource;
+    query?: string;
+    extraState?: unknown;
+  }) => {
+    const nextHrefBase = buildProjectWorkHref(project.project_id, nextPaneId);
+    const nextHref = query ? `${nextHrefBase}?${query}` : nextHrefBase;
+    navigate(nextHref, {
+      state: buildPaneNavigationState({
+        paneName,
+        paneSource,
+        extraState,
+      }),
+    });
+  }, [buildPaneNavigationState, navigate, project.project_id]);
+
+  const onOpenBacklink = useCallback((backlink: HubBacklink) => {
+    if (!backlink.source.pane_id) {
+      return;
+    }
+    navigateToPane({
+      paneId: backlink.source.pane_id,
+      paneName: backlink.source.pane_name,
+      paneSource: 'click',
+      extraState: backlink.source.node_key ? { focusNodeKey: backlink.source.node_key } : undefined,
+    });
+  }, [navigateToPane]);
 
   const hasRequestedPane = useMemo(
     () => (paneId ? panes.some((pane) => pane.pane_id === paneId) : false),
@@ -238,62 +274,6 @@ export const useProjectSpacePageRuntime = ({
     sessionUserId,
     setTimeline,
   });
-  const {
-    closeInspector,
-    inspectorBacklinks,
-    inspectorBacklinksError,
-    inspectorBacklinksLoading,
-    inspectorCommentText,
-    inspectorError,
-    inspectorLoading,
-    inspectorMutationPane,
-    inspectorMutationPaneCanEdit,
-    inspectorRecord,
-    inspectorRecordId,
-    inspectorRelationFields,
-    onAddRecordComment,
-    onAddRelation,
-    onAttachFile,
-    onDetachInspectorAttachment,
-    onInsertRecordCommentMention,
-    onMoveInspectorAttachment,
-    onRemoveRelation,
-    onRenameInspectorAttachment,
-    onSaveRecordField,
-    openInspector,
-    relationMutationError,
-    removingRelationId,
-    savingValues,
-    selectedAttachmentId,
-    setInspectorCommentText,
-    setSelectedAttachmentId,
-    uploadingAttachment,
-  } = useRecordInspector({
-    accessToken,
-    projectId: project.project_id,
-    panes,
-    activeTab,
-    activePaneId: activePane?.pane_id || null,
-    sessionUserId,
-    refreshViewsAndRecords,
-    setTimeline,
-    ensureProjectAssetRoot,
-    refreshTrackedProjectFiles,
-    paneCanEditForUser,
-    relationFieldTargetCollectionId,
-    toBase64,
-  });
-  const {
-    automationRules,
-    automationRuns,
-    onCreateAutomationRule,
-    onDeleteAutomationRule,
-    onToggleAutomationRule,
-    onUpdateAutomationRule,
-  } = useAutomationRuntime({
-    accessToken,
-    projectId: project.project_id,
-  });
   const { refreshTimeline, timelineClusters, timelineFilters, toggleTimelineFilter } = useTimelineRuntime({
     accessToken,
     projectId: project.project_id,
@@ -309,21 +289,27 @@ export const useProjectSpacePageRuntime = ({
     paneId: activeTab === 'work' ? activePane?.pane_id ?? null : null,
     sourceViewId: activeTab === 'work' ? focusedWorkViewId || null : null,
   });
-
-  const activePaneId = activePane?.pane_id || null;
-  const activePaneDocId = activePane?.doc_id || null;
-  const openInspectorWithFocusRestore = useCallback(
-    async (recordId: string, options?: { mutationPaneId?: string | null }) => {
-      inspectorTriggerRef.current = getActiveInspectorFocusTarget();
-      setInspectorTriggerRect(readElementRect(inspectorTriggerRef.current));
-      await openInspector(recordId, options);
-    },
-    [openInspector],
-  );
-  const closeInspectorWithFocusRestore = useCallback(() => {
-    inspectorTriggerRef.current = resolveInspectorFocusTarget(inspectorTriggerRef.current);
-    closeInspector();
-  }, [closeInspector]);
+  const {
+    openRecordInspector,
+    recordInspectorOverlayProps,
+  } = useProjectSpaceInspectorRuntime({
+    accessToken,
+    project,
+    panes,
+    activeTab,
+    activePaneId,
+    sessionUserId,
+    refreshViewsAndRecords,
+    setTimeline,
+    ensureProjectAssetRoot,
+    refreshTrackedProjectFiles,
+    prefersReducedMotion,
+    navigate,
+    onOpenBacklink,
+  });
+  const onOpenRecord = useCallback((recordId: string) => {
+    void openRecordInspector(recordId);
+  }, [openRecordInspector]);
   const { createAndOpenCaptureRecord, quickCaptureInFlightRef } = useQuickCapture({
     accessToken,
     projectId: project.project_id,
@@ -332,7 +318,7 @@ export const useProjectSpacePageRuntime = ({
     activePaneCanEdit,
     collections,
     focusedWorkViewId,
-    openInspector: openInspectorWithFocusRestore,
+    openRecordInspector,
     refreshViewsAndRecords,
     setPaneMutationError,
   });
@@ -342,7 +328,7 @@ export const useProjectSpacePageRuntime = ({
     activeTab,
     hasRequestedPane,
     navigate,
-    openInspectorWithFocusRestore,
+    openRecordInspector,
     paneId,
     projectId: project.project_id,
     searchParams,
@@ -355,56 +341,6 @@ export const useProjectSpacePageRuntime = ({
     searchParams,
     setSearchParams,
   });
-
-  const buildPaneNavigationState = useCallback(({
-    paneName,
-    paneSource,
-    extraState,
-  }: {
-    paneName?: string | null;
-    paneSource?: PaneLateralSource;
-    extraState?: unknown;
-  }) => withHubMotionState(extraState, {
-    hubProjectName: project.name,
-    hubPaneName: paneName ?? undefined,
-    hubPaneSource: paneSource,
-  }), [project.name]);
-
-  const navigateToPane = useCallback(({
-    paneId: nextPaneId,
-    paneName,
-    paneSource,
-    query,
-    extraState,
-  }: {
-    paneId: string;
-    paneName?: string | null;
-    paneSource?: PaneLateralSource;
-    query?: string;
-    extraState?: unknown;
-  }) => {
-    const nextHrefBase = buildProjectWorkHref(project.project_id, nextPaneId);
-    const nextHref = query ? `${nextHrefBase}?${query}` : nextHrefBase;
-    navigate(nextHref, {
-      state: buildPaneNavigationState({
-        paneName,
-        paneSource,
-        extraState,
-      }),
-    });
-  }, [buildPaneNavigationState, navigate, project.project_id]);
-
-  const onOpenBacklink = useCallback((backlink: HubBacklink) => {
-    if (!backlink.source.pane_id) {
-      return;
-    }
-    navigateToPane({
-      paneId: backlink.source.pane_id,
-      paneName: backlink.source.pane_name,
-      paneSource: 'click',
-      extraState: backlink.source.node_key ? { focusNodeKey: backlink.source.node_key } : undefined,
-    });
-  }, [navigateToPane]);
 
   const onDeletePaneWithNavigation = useCallback(async (pane: HubPaneSummary) => {
     const nextPath = await onDeletePane(pane, activePane?.pane_id ?? null);
@@ -635,18 +571,13 @@ export const useProjectSpacePageRuntime = ({
     timelineFilters,
     toggleTimelineFilter,
     refreshProjectData,
-    openInspectorWithFocusRestore,
+    openRecordInspector,
     reminders: remindersRuntime.reminders,
     remindersLoading: remindersRuntime.loading,
     remindersError: remindersRuntime.error,
     onDismissReminder: remindersRuntime.dismiss,
     onCreateReminder: remindersRuntime.create,
   });
-
-  const availableRecordTypes = useMemo(() => {
-    const names = collections.map((collection) => collection.name.trim()).filter((name) => name.length > 0);
-    return names.length > 0 ? names : ['record'];
-  }, [collections]);
   const focusedKanbanRuntime = focusedWorkView ? kanbanRuntimeDataByViewId[focusedWorkView.view_id] ?? null : null;
   const projectLayoutId = !prefersReducedMotion ? `project-${project.project_id}` : undefined;
   const workLayoutId = !prefersReducedMotion && activePane ? `pane-${activePane.pane_id}` : undefined;
@@ -692,13 +623,6 @@ export const useProjectSpacePageRuntime = ({
           query: 'pinned=1',
         });
       },
-      onNavigateTools: () => {
-        navigate(buildProjectToolsHref(project.project_id), {
-          state: withHubMotionState(undefined, {
-            hubProjectName: project.name,
-          }),
-        });
-      },
     },
     overviewProps: {
       projectName: project.name,
@@ -711,9 +635,7 @@ export const useProjectSpacePageRuntime = ({
       timelineClusters,
       timelineFilters,
       onTimelineFilterToggle: toggleTimelineFilter,
-      onOpenRecord: (recordId) => {
-        void openInspectorWithFocusRestore(recordId);
-      },
+      onOpenRecord,
       calendarEvents,
       calendarLoading,
       calendarMode,
@@ -774,9 +696,7 @@ export const useProjectSpacePageRuntime = ({
         activePaneCanEdit,
         activePaneId: activePane?.pane_id ?? null,
         onCloseFocusedView,
-        onOpenRecord: (recordId) => {
-          void openInspectorWithFocusRestore(recordId);
-        },
+        onOpenRecord,
         onCreateKanbanRecord,
         onConfigureKanbanGrouping,
         onDeleteKanbanRecord,
@@ -785,9 +705,7 @@ export const useProjectSpacePageRuntime = ({
       },
       workViewProps: {
         onUpdatePane: onUpdatePaneFromWorkView,
-        onOpenRecord: (recordId) => {
-          void openInspectorWithFocusRestore(recordId);
-        },
+        onOpenRecord,
         tableContract,
         kanbanContract,
         calendarContract,
@@ -826,9 +744,7 @@ export const useProjectSpacePageRuntime = ({
         selectedEmbedViewId,
         setSelectedEmbedViewId,
         onInsertViewEmbed,
-        onOpenRecord: (recordId) => {
-          void openInspectorWithFocusRestore(recordId);
-        },
+        onOpenRecord,
         onOpenEmbeddedView,
         uploadingDocAsset,
         onUploadDocAsset,
@@ -847,59 +763,6 @@ export const useProjectSpacePageRuntime = ({
         setShowResolvedDocComments,
       },
     },
-    toolsProps: {
-      assetRoots,
-      assetEntries,
-      assetWarning,
-      newAssetRootPath,
-      onNewAssetRootPathChange: setNewAssetRootPath,
-      onAddAssetRoot,
-      onLoadAssets,
-      automationRules,
-      automationRuns,
-      availableRecordTypes,
-      onCreateAutomationRule,
-      onUpdateAutomationRule,
-      onDeleteAutomationRule,
-      onToggleAutomationRule,
-    },
-    inspectorProps: {
-      accessToken,
-      project,
-      panes,
-      inspectorTriggerRect,
-      inspectorTriggerRef,
-      prefersReducedMotion,
-      inspectorLoading,
-      inspectorError,
-      inspectorRecord,
-      inspectorRecordId,
-      inspectorMutationPane,
-      inspectorMutationPaneCanEdit,
-      inspectorRelationFields,
-      inspectorBacklinks,
-      inspectorBacklinksLoading,
-      inspectorBacklinksError,
-      inspectorCommentText,
-      relationMutationError,
-      removingRelationId,
-      savingValues,
-      selectedAttachmentId,
-      uploadingAttachment,
-      setSelectedAttachmentId,
-      setInspectorCommentText,
-      closeInspectorWithFocusRestore,
-      navigate,
-      onSaveRecordField,
-      onRenameInspectorAttachment,
-      onMoveInspectorAttachment,
-      onDetachInspectorAttachment,
-      onAttachFile,
-      onAddRelation,
-      onRemoveRelation,
-      onInsertRecordCommentMention,
-      onAddRecordComment,
-      onOpenBacklink,
-    },
+    recordInspectorOverlayProps,
   };
 };

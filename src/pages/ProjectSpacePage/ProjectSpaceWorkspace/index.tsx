@@ -3,12 +3,16 @@ import type { ReactElement } from 'react';
 import type { HubPaneSummary, HubProject, HubProjectMember } from '../../../services/hub/types';
 import { ProjectSpaceInspectorOverlay } from './ProjectSpaceInspectorOverlay';
 import { ProjectSpaceOverviewSurface } from './ProjectSpaceOverviewSurface';
-import { ProjectSpaceToolsSurface } from './ProjectSpaceToolsSurface';
 import { ProjectSpaceWorkSurface } from './ProjectSpaceWorkSurface';
 import { useProjectSpacePageRuntime } from './hooks/useProjectSpacePageRuntime';
-import type { TimelineEvent, TopLevelProjectTab } from './types';
+import { PROJECT_SPACE_PRIMARY_SURFACES, type TimelineEvent, type TopLevelProjectTab } from './types';
 
 export type { TopLevelProjectTab } from './types';
+
+const primarySurfaceLabels: Record<TopLevelProjectTab, string> = {
+  overview: 'Overview',
+  work: 'Work',
+};
 
 export const ProjectSpaceWorkspace = ({
   activeTab,
@@ -39,8 +43,7 @@ export const ProjectSpaceWorkspace = ({
     navigatorProps,
     overviewProps,
     workProps,
-    toolsProps,
-    inspectorProps,
+    recordInspectorOverlayProps,
   } = useProjectSpacePageRuntime({
     activeTab,
     project,
@@ -54,6 +57,10 @@ export const ProjectSpaceWorkspace = ({
     setTimeline,
     prefersReducedMotion,
   });
+  const primarySurfaceHandlers: Record<TopLevelProjectTab, () => void> = {
+    overview: navigatorProps.onNavigateOverview,
+    work: navigatorProps.onNavigateWork,
+  };
 
   return (
     <motion.div layoutId={projectLayoutId} className="space-y-4">
@@ -68,28 +75,25 @@ export const ProjectSpaceWorkspace = ({
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2" aria-label="Project space navigation">
-          <button
-            type="button"
-            onClick={navigatorProps.onNavigateOverview}
-            className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-              navigatorProps.activeTab === 'overview' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
-            }`}
-            aria-current={navigatorProps.activeTab === 'overview' ? 'page' : undefined}
-          >
-            Overview
-          </button>
-          <button
-            type="button"
-            onClick={navigatorProps.onNavigateWork}
-            className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-              navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned
-                ? 'bg-primary text-on-primary'
-                : 'border border-border-muted text-primary'
-            }`}
-            aria-current={navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned ? 'page' : undefined}
-          >
-            Work
-          </button>
+          {PROJECT_SPACE_PRIMARY_SURFACES.map((surface) => {
+            const selected = surface === 'work'
+              ? navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned
+              : navigatorProps.activeTab === surface;
+
+            return (
+              <button
+                key={surface}
+                type="button"
+                onClick={primarySurfaceHandlers[surface]}
+                className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                  selected ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
+                }`}
+                aria-current={selected ? 'page' : undefined}
+              >
+                {primarySurfaceLabels[surface]}
+              </button>
+            );
+          })}
 
           {navigatorProps.pinnedPanes.map((pane) => {
             const selected = navigatorProps.currentPaneId === pane.pane_id && navigatorProps.openedFromPinned;
@@ -113,25 +117,13 @@ export const ProjectSpaceWorkspace = ({
               </button>
             );
           })}
-
-          <button
-            type="button"
-            onClick={navigatorProps.onNavigateTools}
-            className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-              navigatorProps.activeTab === 'tools' ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
-            }`}
-            aria-current={navigatorProps.activeTab === 'tools' ? 'page' : undefined}
-          >
-            Tools
-          </button>
         </div>
       </div>
 
       {activeTab === 'overview' ? <ProjectSpaceOverviewSurface {...overviewProps} /> : null}
       {activeTab === 'work' ? <ProjectSpaceWorkSurface {...workProps} /> : null}
-      {activeTab === 'tools' ? <ProjectSpaceToolsSurface {...toolsProps} /> : null}
 
-      <ProjectSpaceInspectorOverlay {...inspectorProps} />
+      <ProjectSpaceInspectorOverlay {...recordInspectorOverlayProps} />
     </motion.div>
   );
 };

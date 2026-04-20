@@ -12,7 +12,7 @@ import type { ProjectTimelineItem } from './projectViewsRuntime/shared';
 interface UseProjectViewsRuntimeParams {
   accessToken: string;
   projectId: string;
-  activeTab: 'overview' | 'work' | 'tools';
+  activeTab: 'overview' | 'work';
   panes: HubPaneSummary[];
   sessionUserId: string;
   setTimeline: React.Dispatch<React.SetStateAction<ProjectTimelineItem[]>>;

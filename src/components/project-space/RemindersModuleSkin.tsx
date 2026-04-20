@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useLongPress } from '../../hooks/useLongPress';
 import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../hooks/useReminderNLDraft';
 import { useModuleInsertState, type ModuleInsertState } from './hooks/useModuleInsertState';
+import { ReminderRecordSummary, formatReminderRecurrenceLabel } from './record-primitives/ReminderRecordSummary';
 import { Icon } from '../primitives';
-import { ReminderCard } from '../cards/ReminderCard';
 import type { ReminderParseResult } from '../../lib/nlp/reminder-parser/types';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import { ModuleEmptyState } from './ModuleFeedback';
@@ -100,22 +100,6 @@ const installReminderAnimations = () => {
   document.head.appendChild(style);
 };
 
-const formatReminderChip = (value: string): string => {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) {
-    return value;
-  }
-
-  const now = new Date();
-  const sameDay = date.getFullYear() === now.getFullYear()
-    && date.getMonth() === now.getMonth()
-    && date.getDate() === now.getDate();
-
-  return sameDay
-    ? date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-    : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-};
-
 const formatPreviewDateTime = (value: string | null): string | null => {
   if (!value) {
     return null;
@@ -132,23 +116,8 @@ const formatPreviewDateTime = (value: string | null): string | null => {
   });
 };
 
-const recurrenceLabel = (preview: ReminderParseResult): string | null => {
-  if (!preview.fields.recurrence) {
-    return null;
-  }
-  const unit =
-    preview.fields.recurrence.frequency === 'daily'
-      ? 'day'
-      : preview.fields.recurrence.frequency === 'weekly'
-        ? 'week'
-        : preview.fields.recurrence.frequency === 'monthly'
-          ? 'month'
-          : 'year';
-  const interval = preview.fields.recurrence.interval && preview.fields.recurrence.interval > 0
-    ? preview.fields.recurrence.interval
-    : 1;
-  return interval > 1 ? `Every ${interval} ${unit}s` : `Every ${unit}`;
-};
+const recurrenceLabel = (preview: ReminderParseResult): string | null =>
+  formatReminderRecurrenceLabel(preview.fields.recurrence);
 
 const createSparkles = (): SparkleParticle[] =>
   Array.from({ length: 10 }, (_, index) => ({
@@ -219,10 +188,11 @@ const ReminderRibbonRow = ({
             }
           }}
         >
-          <ReminderCard
+          <ReminderRecordSummary
             title={reminder.record_title || 'Untitled reminder'}
-            whenLabel={formatReminderChip(reminder.remind_at)}
+            remindAt={reminder.remind_at}
             overdue={isOverdue}
+            recurrenceLabel={formatReminderRecurrenceLabel(reminder.recurrence_json)}
           />
         </button>
         {onSnooze ? (

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useLongPress } from '../../../hooks/useLongPress';
 import { Icon } from '../../primitives';
-import { TaskCard } from '../../cards/TaskCard';
 import { cn } from '../../../lib/cn';
+import { TaskRecordSummary } from '../record-primitives/TaskRecordSummary';
 import { TasksTab, type SortChain, type SortDimension, type TaskItem, type TaskPriorityValue, type TaskStatus } from '../TasksTab';
 import { formatDueLabel } from '../taskAdapter';
 import { ModuleEmptyState } from '../ModuleFeedback';
@@ -170,11 +170,13 @@ const TaskSummaryRow = ({
 
   return (
     <li className="relative" {...longPressHandlers}>
-      <TaskCard
+      <TaskRecordSummary
         title={task.label}
         status={task.status}
         dueLabel={formatDueLabel(task.dueAt)}
-        subtitle={task.priorityValue ? `Priority ${task.priorityValue}` : null}
+        priorityLabel={task.priorityValue}
+        assigneeLabel={task.assigneeLabel}
+        subtaskCount={task.subtaskCount ?? task.subtasks.length}
         onToggleStatus={() => {
           void Promise.resolve()
             .then(() => onUpdateTaskStatus?.(task.id, nextStatus))
@@ -194,7 +196,6 @@ const TaskSummaryRow = ({
         titleAriaLabel={`Insert task ${task.label}`}
         titlePressed={showInsertAction}
         className={cn(
-          'items-center gap-1',
           task.status === 'cancelled' && 'text-text-secondary',
         )}
       />

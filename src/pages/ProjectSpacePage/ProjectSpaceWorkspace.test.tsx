@@ -19,8 +19,37 @@ import {
 import { readOverviewView } from './ProjectSpaceWorkspace/overviewState';
 import { toBase64 } from './ProjectSpaceWorkspace/encoding';
 import { createProjectSpaceWorkspaceFixture } from './testUtils/projectSpaceWorkspaceTestFixture';
+import type { HubRecordDetail } from '../../shared/api-types/records';
 
 const fixture = createProjectSpaceWorkspaceFixture();
+const fixtureInspectorSchema = fixture.inspectorRecord.schema;
+
+const createInspectorRecord = (overrides: Partial<HubRecordDetail> = {}): HubRecordDetail => ({
+  ...fixture.inspectorRecord,
+  schema: fixtureInspectorSchema
+    ? {
+        ...fixtureInspectorSchema,
+        fields: fixtureInspectorSchema.fields.map((field) => ({ ...field })),
+      }
+    : null,
+  values: {
+    ...fixture.inspectorRecord.values,
+  },
+  capabilities: {
+    ...fixture.inspectorRecord.capabilities,
+    reminders: [...fixture.inspectorRecord.capabilities.reminders],
+    participants: [...fixture.inspectorRecord.capabilities.participants],
+    assignments: [...fixture.inspectorRecord.capabilities.assignments],
+  },
+  relations: {
+    outgoing: [...fixture.inspectorRecord.relations.outgoing],
+    incoming: [...fixture.inspectorRecord.relations.incoming],
+  },
+  attachments: [...fixture.inspectorRecord.attachments],
+  comments: [...fixture.inspectorRecord.comments],
+  activity: [...fixture.inspectorRecord.activity],
+  ...overrides,
+});
 
 const motionFactory = (tag: keyof HTMLElementTagNameMap) =>
   ({ children, ...props }: PropsWithChildren<Record<string, unknown>>): ReactElement =>
@@ -209,19 +238,6 @@ vi.mock('../../components/project-space/BacklinksPanel', () => ({
   ),
 }));
 
-const automationBuilderMock = vi.fn(({ rules, runs, availableRecordTypes }: { rules: unknown[]; runs: unknown[]; availableRecordTypes: string[] }) => (
-  <section>
-    Automation builder
-    <span data-testid="automation-rules-count">{rules.length}</span>
-    <span data-testid="automation-runs-count">{runs.length}</span>
-    <span data-testid="automation-record-types">{availableRecordTypes.join(',')}</span>
-  </section>
-));
-
-vi.mock('../../components/project-space/AutomationBuilder', () => ({
-  AutomationBuilder: (props: { rules: unknown[]; runs: unknown[]; availableRecordTypes: string[] }) => automationBuilderMock(props),
-}));
-
 vi.mock('../../components/project-space/ModuleFeedback', () => ({
   ModuleLoadingState: ({ label }: { label: string }) => <div>{label}</div>,
 }));
@@ -369,29 +385,13 @@ const recordInspectorState = {
 };
 
 const projectFilesRuntimeState = {
-  assetEntries: [] as Array<{ path: string; name: string }>,
-  assetRoots: [] as Array<{ asset_root_id: string; root_path: string }>,
-  assetWarning: null as string | null,
   ensureProjectAssetRoot: vi.fn(),
-  newAssetRootPath: '',
-  onAddAssetRoot: vi.fn((event?: Event) => event?.preventDefault?.()),
-  onLoadAssets: vi.fn(),
   onOpenPaneFile: vi.fn(),
   onUploadPaneFiles: vi.fn(),
   onUploadProjectFiles: vi.fn(),
   paneFiles: [],
   projectFiles: [],
   refreshTrackedProjectFiles: vi.fn(),
-  setNewAssetRootPath: vi.fn(),
-};
-
-const automationRuntimeState = {
-  automationRules: [] as Array<Record<string, unknown>>,
-  automationRuns: [] as Array<Record<string, unknown>>,
-  onCreateAutomationRule: vi.fn(),
-  onDeleteAutomationRule: vi.fn(),
-  onToggleAutomationRule: vi.fn(),
-  onUpdateAutomationRule: vi.fn(),
 };
 
 vi.mock('../../hooks/useCalendarRuntime', () => ({
@@ -449,10 +449,6 @@ vi.mock('../../hooks/useProjectViewsRuntime', () => ({
 
 vi.mock('../../hooks/useRecordInspector', () => ({
   useRecordInspector: () => recordInspectorState,
-}));
-
-vi.mock('../../hooks/useAutomationRuntime', () => ({
-  useAutomationRuntime: () => automationRuntimeState,
 }));
 
 vi.mock('../../hooks/useTimelineRuntime', () => ({
@@ -552,7 +548,7 @@ const renderWorkspace = ({
   activeTab,
 }: {
   entry: string;
-  activeTab: 'overview' | 'work' | 'tools';
+  activeTab: 'overview' | 'work';
 }) => render(
   <MemoryRouter initialEntries={[entry]}>
     <Routes>
@@ -578,26 +574,6 @@ const renderWorkspace = ({
       />
       <Route
         path="/projects/:projectId/work/:paneId"
-        element={
-          <>
-            <LocationEcho />
-            <ProjectSpaceWorkspace
-              activeTab={activeTab}
-              project={fixture.project}
-              panes={fixture.panes}
-              setPanes={vi.fn()}
-              projectMembers={fixture.projectMembers}
-              accessToken="token"
-              sessionUserId="user-1"
-              refreshProjectData={vi.fn(async () => undefined)}
-              timeline={fixture.timeline}
-              setTimeline={vi.fn()}
-            />
-          </>
-        }
-      />
-      <Route
-        path="/projects/:projectId/tools"
         element={
           <>
             <LocationEcho />
@@ -695,7 +671,6 @@ describe('ProjectSpaceWorkspace characterization', () => {
     openInspectorMock.mockReset();
     closeInspectorMock.mockReset();
     onUpdatePaneFromWorkViewMock.mockReset();
-    automationBuilderMock.mockClear();
     projectViewsRuntimeState.focusedWorkView = null;
     projectViewsRuntimeState.focusedWorkViewId = '';
     workspaceDocRuntimeState.docBootstrapReady = true;
@@ -723,19 +698,6 @@ describe('ProjectSpaceWorkspace characterization', () => {
     recordInspectorState.onSaveRecordField.mockClear();
     recordInspectorState.setInspectorCommentText.mockClear();
     recordInspectorState.setSelectedAttachmentId.mockClear();
-    projectFilesRuntimeState.assetEntries = [];
-    projectFilesRuntimeState.assetRoots = [];
-    projectFilesRuntimeState.assetWarning = null;
-    projectFilesRuntimeState.newAssetRootPath = '';
-    projectFilesRuntimeState.onAddAssetRoot.mockClear();
-    projectFilesRuntimeState.onLoadAssets.mockClear();
-    projectFilesRuntimeState.setNewAssetRootPath.mockClear();
-    automationRuntimeState.automationRules = [];
-    automationRuntimeState.automationRuns = [];
-    automationRuntimeState.onCreateAutomationRule.mockClear();
-    automationRuntimeState.onDeleteAutomationRule.mockClear();
-    automationRuntimeState.onToggleAutomationRule.mockClear();
-    automationRuntimeState.onUpdateAutomationRule.mockClear();
   });
 
   it('reads the overview sub-view from the query string and syncs changes back to the URL', async () => {
@@ -764,6 +726,25 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
     expect(openInspectorMock).toHaveBeenNthCalledWith(1, 'record-timeline', undefined);
     expect(openInspectorMock).toHaveBeenNthCalledWith(2, 'record-calendar', undefined);
+  });
+
+  it('keeps Overview and Work available as top-level navigation affordances', () => {
+    renderWorkspace({
+      entry: '/projects/project-1/overview',
+      activeTab: 'overview',
+    });
+
+    expect(screen.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Work' })).toBeInTheDocument();
+  });
+
+  it('does not expose a Tools navigation affordance', () => {
+    renderWorkspace({
+      entry: '/projects/project-1/overview',
+      activeTab: 'overview',
+    });
+
+    expect(screen.queryByRole('button', { name: 'Tools' })).not.toBeInTheDocument();
   });
 
   it('hides the pane switcher for pinned routes until the user reveals it', async () => {
@@ -900,6 +881,111 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(closeInspectorMock).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    {
+      label: 'task',
+      entry: '/projects/project-1/overview',
+      activeTab: 'overview' as const,
+      record: createInspectorRecord({
+        title: 'Ship inspector refactor',
+        schema: {
+          collection_id: 'collection-1',
+          name: 'Tasks',
+          fields: [
+            { field_id: 'field-title', name: 'Title', type: 'text', config: {}, sort_order: 1 },
+            { field_id: 'field-priority', name: 'Priority', type: 'select', config: {}, sort_order: 2 },
+          ],
+        },
+        values: {
+          'field-title': 'Ship inspector refactor',
+          'field-priority': 'high',
+        },
+      }),
+      expected: ['Task', 'Ship inspector refactor', 'Collection: Tasks', 'Priority'],
+    },
+    {
+      label: 'event',
+      entry: '/projects/project-1/work/pane-shared',
+      activeTab: 'work' as const,
+      record: createInspectorRecord({
+        title: 'Design review',
+        collection_id: 'collection-events',
+        schema: {
+          collection_id: 'collection-events',
+          name: 'Events',
+          fields: [
+            { field_id: 'field-start', name: 'Start', type: 'datetime', config: {}, sort_order: 1 },
+            { field_id: 'field-location', name: 'Location', type: 'text', config: {}, sort_order: 2 },
+          ],
+        },
+        values: {
+          'field-start': '2026-04-21T14:00:00.000Z',
+          'field-location': 'Studio A',
+        },
+        capabilities: {
+          capability_types: ['event'],
+          task_state: null,
+          event_state: {
+            start_dt: '2026-04-21T14:00:00.000Z',
+            end_dt: '2026-04-21T15:00:00.000Z',
+            timezone: 'America/New_York',
+            location: 'Studio A',
+            updated_at: '2026-04-19T00:00:00.000Z',
+          },
+          recurrence_rule: null,
+          reminders: [],
+          participants: [],
+          assignments: [],
+        },
+      }),
+      expected: ['Event', 'Design review', 'Collection: Events', 'Start', 'Location'],
+    },
+    {
+      label: 'generic',
+      entry: '/projects/project-1/work/pane-shared',
+      activeTab: 'work' as const,
+      record: createInspectorRecord({
+        title: 'Knowledge base entry',
+        collection_id: 'collection-reference',
+        source_pane: null,
+        schema: {
+          collection_id: 'collection-reference',
+          name: 'Reference',
+          fields: [
+            { field_id: 'field-owner', name: 'Owner', type: 'text', config: {}, sort_order: 1 },
+            { field_id: 'field-link', name: 'Link', type: 'text', config: {}, sort_order: 2 },
+          ],
+        },
+        values: {
+          'field-owner': 'Ops',
+          'field-link': 'https://example.com',
+        },
+        capabilities: {
+          capability_types: [],
+          task_state: null,
+          event_state: null,
+          recurrence_rule: null,
+          reminders: [],
+          participants: [],
+          assignments: [],
+        },
+      }),
+      expected: ['Record', 'Knowledge base entry', 'Collection: Reference', 'Owner', 'Link'],
+    },
+  ])('renders the $label inspector body through Project Space host flows', ({ entry, activeTab, record, expected }) => {
+    recordInspectorState.inspectorRecord = record;
+    recordInspectorState.inspectorRecordId = record.record_id;
+
+    renderWorkspace({
+      entry,
+      activeTab,
+    });
+
+    for (const text of expected) {
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
+  });
+
   it('preserves inspector attachment actions, comment wiring, and backlink opening', async () => {
     recordInspectorState.inspectorRecord = {
       ...fixture.inspectorRecord,
@@ -1005,40 +1091,17 @@ describe('ProjectSpaceWorkspace characterization', () => {
     });
   });
 
-  it('renders the tools surface and preserves asset library and automation wiring', async () => {
-    projectFilesRuntimeState.assetRoots = [{ asset_root_id: 'root-1', root_path: '/Projects/Home' }];
-    projectFilesRuntimeState.assetEntries = [
-      { path: '/Projects/Home/brief.md', name: 'brief.md' },
-      { path: '/Projects/Home/spec.md', name: 'spec.md' },
-    ];
-    projectFilesRuntimeState.assetWarning = 'Asset roots are local-only.';
-    projectFilesRuntimeState.newAssetRootPath = '/Projects/Home';
-    automationRuntimeState.automationRules = [{ id: 'rule-1' }];
-    automationRuntimeState.automationRuns = [{ id: 'run-1' }];
-
+  it('keeps the overview and work shell behavior stable after the tools surface removal', () => {
     renderWorkspace({
-      entry: '/projects/project-1/tools',
-      activeTab: 'tools',
+      entry: '/projects/project-1/work/pane-private?pinned=1',
+      activeTab: 'work',
     });
 
-    expect(screen.getByRole('button', { name: 'Tools' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('heading', { name: 'Asset Library Roots' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Asset root path')).toHaveValue('/Projects/Home');
-    expect(screen.getByRole('alert')).toHaveTextContent('Asset roots are local-only.');
-    expect(screen.getByText('brief.md')).toBeInTheDocument();
-    expect(screen.getByText('spec.md')).toBeInTheDocument();
-    expect(screen.getByTestId('automation-rules-count')).toHaveTextContent('1');
-    expect(screen.getByTestId('automation-runs-count')).toHaveTextContent('1');
-    expect(screen.getByTestId('automation-record-types')).toHaveTextContent('Tasks');
-
-    await userEvent.type(screen.getByLabelText('Asset root path'), '/next');
-    expect(projectFilesRuntimeState.setNewAssetRootPath).toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole('button', { name: 'List assets' }));
-    expect(projectFilesRuntimeState.onLoadAssets).toHaveBeenCalledWith('root-1');
-
-    await userEvent.click(screen.getByRole('button', { name: 'Add root' }));
-    expect(projectFilesRuntimeState.onAddAssetRoot).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Work' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open pinned pane Private Work' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByText('Asset Library Roots')).not.toBeInTheDocument();
+    expect(screen.queryByText('Automation builder')).not.toBeInTheDocument();
   });
 });
 

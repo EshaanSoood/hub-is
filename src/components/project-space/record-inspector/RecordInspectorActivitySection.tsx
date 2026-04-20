@@ -1,13 +1,13 @@
 import type { ReactElement } from 'react';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
 
-interface ProjectSpaceInspectorOverlayActivitySectionProps {
+interface RecordInspectorActivitySectionProps {
   activity: HubRecordDetail['activity'];
 }
 
-export const ProjectSpaceInspectorOverlayActivitySection = ({
+export const RecordInspectorActivitySection = ({
   activity,
-}: ProjectSpaceInspectorOverlayActivitySectionProps): ReactElement => (
+}: RecordInspectorActivitySectionProps): ReactElement => (
   <section className="rounded-panel border border-border-muted p-3">
     <h3 className="text-sm font-semibold text-primary">Activity</h3>
     <ul className="mt-2 space-y-1">
