@@ -1,11 +1,13 @@
 import type { ProjectRecord } from '../../types/domain';
 import { QuickCapturePanel } from '../QuickCapture';
 import type { HomeOverlayId } from './navigation';
+import type { HomeSurfaceIdentity } from './useHomeSurfaceIdentity';
 import { useHomeThoughtPileRuntime } from './useHomeThoughtPileRuntime';
 
 interface HomeThoughtPileOverlayProps {
   accessToken: string | null | undefined;
   activeOverlay: HomeOverlayId | null;
+  identity: HomeSurfaceIdentity;
   onClose: (options?: { restoreFocus?: boolean }) => void;
   projects: ProjectRecord[];
 }
@@ -13,6 +15,7 @@ interface HomeThoughtPileOverlayProps {
 export const HomeThoughtPileOverlay = ({
   accessToken,
   activeOverlay,
+  identity,
   onClose,
   projects,
 }: HomeThoughtPileOverlayProps) => {
@@ -20,9 +23,6 @@ export const HomeThoughtPileOverlay = ({
     accessToken,
     enabled: activeOverlay === 'thoughts',
   });
-
-  const personalProject = projects.find((project) => project.isPersonal) || null;
-
   if (activeOverlay !== 'thoughts') {
     return null;
   }
@@ -32,7 +32,7 @@ export const HomeThoughtPileOverlay = ({
       <QuickCapturePanel
         accessToken={accessToken ?? null}
         projects={projects}
-        personalProjectId={typeof personalProject?.id === 'string' ? personalProject.id : null}
+        personalProjectId={identity.backingProjectId}
         captures={runtime.captures}
         capturesLoading={runtime.loading}
         onCaptureComplete={runtime.refresh}

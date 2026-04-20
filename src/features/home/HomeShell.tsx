@@ -3,12 +3,14 @@ import type { HomeOverlayId, HomeViewId } from './navigation';
 import { HomeOverlayHost } from './HomeOverlayHost';
 import { HomeThoughtPileOverlay } from './HomeThoughtPileOverlay';
 import { HomeViewHost } from './HomeViewHost';
+import type { HomeSurfaceIdentity } from './useHomeSurfaceIdentity';
 import type { HomeRuntime } from './useHomeRuntime';
 
 interface HomeShellProps {
   accessToken: string | null | undefined;
   activeOverlay: HomeOverlayId | null;
   activeView: HomeViewId;
+  identity: HomeSurfaceIdentity;
   onClearOverlay: () => void;
   onOpenRecord: (recordId: string) => void;
   onViewChange: (view: HomeViewId) => void;
@@ -36,6 +38,7 @@ export const HomeShell = ({
   accessToken,
   activeOverlay,
   activeView,
+  identity,
   onClearOverlay,
   onOpenRecord,
   onViewChange,
@@ -46,7 +49,7 @@ export const HomeShell = ({
 
   return (
     <div className="relative space-y-4">
-      <h1 className="sr-only">{readHomeTitle(activeOverlay)}</h1>
+      <h1 className="sr-only">{activeOverlay ? readHomeTitle(activeOverlay) : identity.label}</h1>
 
       <section aria-label="Home content" className="space-y-4">
         <div hidden={hasOverlay} aria-hidden={hasOverlay || undefined}>
@@ -61,6 +64,7 @@ export const HomeShell = ({
 
         <HomeOverlayHost
           activeOverlay={activeOverlay}
+          identity={identity}
           runtime={runtime}
           onClearOverlay={onClearOverlay}
           onOpenRecord={onOpenRecord}
@@ -69,6 +73,7 @@ export const HomeShell = ({
         <HomeThoughtPileOverlay
           accessToken={accessToken}
           activeOverlay={activeOverlay}
+          identity={identity}
           onClose={(options) => {
             if (options?.restoreFocus !== false) {
               document.querySelector<HTMLElement>('[data-sidebar-surface="thoughts"]')?.focus();

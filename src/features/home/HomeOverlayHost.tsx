@@ -3,10 +3,12 @@ import { RemindersModuleSkin } from '../../components/project-space/RemindersMod
 import { TasksModuleSkin } from '../../components/project-space/TasksModuleSkin';
 import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
 import type { HomeOverlayId } from './navigation';
+import type { HomeSurfaceIdentity } from './useHomeSurfaceIdentity';
 import type { HomeRuntime } from './useHomeRuntime';
 
 interface HomeOverlayHostProps {
   activeOverlay: HomeOverlayId | null;
+  identity: HomeSurfaceIdentity;
   runtime: HomeRuntime;
   onClearOverlay: () => void;
   onOpenRecord: (recordId: string) => void;
@@ -27,6 +29,7 @@ const readFullPageTitle = (activeOverlay: HomeOverlayId | null) => {
 
 export const HomeOverlayHost = ({
   activeOverlay,
+  identity,
   runtime,
   onClearOverlay,
   onOpenRecord,
@@ -41,7 +44,7 @@ export const HomeOverlayHost = ({
     <section className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3 rounded-panel border border-subtle bg-elevated p-4">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Home</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{identity.label}</p>
           <h2 className="text-lg font-semibold text-text">{fullPageTitle}</h2>
         </div>
         <button

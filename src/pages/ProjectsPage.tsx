@@ -7,6 +7,7 @@ import { HomeShell } from '../features/home/HomeShell';
 import { parseHomeOverlayId, parseHomeViewId, type HomeViewId } from '../features/home/navigation';
 import { useHomeRecordInspectorRuntime } from '../features/home/useHomeRecordInspectorRuntime';
 import { useHomeRuntime } from '../features/home/useHomeRuntime';
+import { useHomeSurfaceIdentity } from '../features/home/useHomeSurfaceIdentity';
 
 export const ProjectsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,6 +17,10 @@ export const ProjectsPage = () => {
   const activeOverlay = parseHomeOverlayId(searchParams.get('surface'));
   const homeRuntime = useHomeRuntime({ accessToken, activeOverlay });
   const homeRecordInspector = useHomeRecordInspectorRuntime({ accessToken });
+  const homeIdentity = useHomeSurfaceIdentity({
+    backendPersonalProjectId: homeRuntime.homeData.personal_project_id,
+    projects,
+  });
   const { openRecord } = homeRecordInspector;
 
   useEffect(() => {
@@ -54,6 +59,7 @@ export const ProjectsPage = () => {
         accessToken={accessToken}
         activeOverlay={activeOverlay}
         activeView={activeView}
+        identity={homeIdentity}
         onClearOverlay={onClearOverlay}
         onOpenRecord={openRecord}
         onViewChange={onViewChange}
