@@ -1,5 +1,28 @@
 # AGENTS.md
 
+## Iterative UI architecture
+
+- Assume active product iteration.
+  New UI work must expect layout, navigation, and surface changes
+  during implementation.
+
+- Keep route and page files thin.
+  They may read route state, choose surfaces, and wire overlays,
+  but should not own durable feature behavior.
+
+- Put durable behavior below the host layer.
+  Prefer reusable feature-local hooks, sections, and typed contracts
+  so pivots mostly change composition, not ownership.
+
+- Do not hard-bind movable capabilities to one shell.
+  If a capability may later move between Home, Sidebar, Project Space,
+  or overlays, keep it importable unless the task explicitly requires
+  tight coupling.
+
+- Extract the durable seam first.
+  When direction is likely to change, prefer pulling out the reusable
+  runtime or section before deepening the current surface.
+
 ## Section 1 - Hard rules
 
 - Lexical no-touch.
