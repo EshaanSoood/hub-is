@@ -1,104 +1,105 @@
-import type { ProjectRecord } from '../../types/domain';
-import { focusHomeLauncher, type HomeOverlayId, type HomeViewId } from './navigation';
-import { HomeOverlayHost } from './HomeOverlayHost';
-import { HomeThoughtPileOverlay } from './HomeThoughtPileOverlay';
-import { HomeViewHost } from './HomeViewHost';
+import { useEffect, useRef, type ReactNode } from 'react';
+import type { HomeOverlayId, HomeTabId } from './navigation';
 import type { HomeSurfaceIdentity } from './useHomeSurfaceIdentity';
-import type { HomeRuntime } from './useHomeRuntime';
 
 interface HomeShellProps {
-  accessToken: string | null | undefined;
   activeOverlay: HomeOverlayId | null;
-  activeView: HomeViewId;
+  activeTab: HomeTabId;
+  autoFocusHeading?: boolean;
   identity: HomeSurfaceIdentity;
-  onClearOverlay: () => void;
-  onOpenRecord: (recordId: string) => void;
-  onViewChange: (view: HomeViewId) => void;
-  projects: ProjectRecord[];
-  runtime: HomeRuntime;
+  namingDialog?: ReactNode;
+  onSelectTab: (tab: HomeTabId) => void;
+  overviewContent: ReactNode;
+  quickThoughts: ReactNode;
+  workContent: ReactNode;
 }
 
-const readHomeTitle = (activeOverlay: HomeOverlayId | null) => {
-  if (activeOverlay === 'tasks') {
-    return 'Tasks';
-  }
-  if (activeOverlay === 'calendar') {
-    return 'Calendar';
-  }
-  if (activeOverlay === 'reminders') {
-    return 'Reminders';
-  }
-  if (activeOverlay === 'thoughts') {
-    return 'Quick Thoughts';
-  }
-  return 'Home';
+const homeTabLabels: Record<HomeTabId, string> = {
+  overview: 'Overview',
+  work: 'Work',
 };
 
-const focusHomeFallbackTarget = (): void => {
-  const mainContent = document.getElementById('main-content');
-  if (!(mainContent instanceof HTMLElement)) {
-    return;
-  }
-  if (!mainContent.hasAttribute('tabindex')) {
-    mainContent.setAttribute('tabindex', '-1');
-  }
-  mainContent.focus();
+let suppressNextHomeHeadingAutoFocus = false;
+
+export const suppressNextHomeHeadingFocus = (): void => {
+  suppressNextHomeHeadingAutoFocus = true;
 };
 
 export const HomeShell = ({
-  accessToken,
   activeOverlay,
-  activeView,
+  activeTab,
+  autoFocusHeading = false,
   identity,
-  onClearOverlay,
-  onOpenRecord,
-  onViewChange,
-  projects,
-  runtime,
+  namingDialog,
+  onSelectTab,
+  overviewContent,
+  quickThoughts,
+  workContent,
 }: HomeShellProps) => {
-  const hasOverlay = activeOverlay === 'tasks' || activeOverlay === 'calendar' || activeOverlay === 'reminders' || activeOverlay === 'thoughts';
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const hasFocusedHeadingRef = useRef(false);
+  const previousProjectNameRef = useRef(identity.projectName);
+
+  useEffect(() => {
+    if (!autoFocusHeading || activeOverlay) {
+      return;
+    }
+    if (suppressNextHomeHeadingAutoFocus) {
+      suppressNextHomeHeadingAutoFocus = false;
+      return;
+    }
+    const projectNameChanged = previousProjectNameRef.current !== identity.projectName;
+    previousProjectNameRef.current = identity.projectName;
+    if (hasFocusedHeadingRef.current && !projectNameChanged) {
+      return;
+    }
+    const frameId = window.requestAnimationFrame(() => {
+      headingRef.current?.focus();
+      hasFocusedHeadingRef.current = true;
+    });
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [activeOverlay, autoFocusHeading, identity.projectName]);
 
   return (
     <div className="relative space-y-4">
-      <h1 className="sr-only">{activeOverlay ? readHomeTitle(activeOverlay) : identity.label}</h1>
-
-      <section aria-label="Home content" className="space-y-4">
-        <div hidden={hasOverlay} aria-hidden={hasOverlay || undefined}>
-          <HomeViewHost
-            activeView={activeView}
-            onOpenRecord={onOpenRecord}
-            onViewChange={onViewChange}
-            projects={projects}
-            runtime={runtime}
-          />
+      <header className="rounded-panel border border-subtle bg-elevated p-4">
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{identity.label}</p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-1">
+              <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold text-text focus:outline-none">
+                {identity.projectName}
+              </h1>
+              <p className="text-sm text-muted">Your personal project, backed by the same runtime as every other project.</p>
+            </div>
+            <nav aria-label="Home tabs" className="flex flex-wrap items-center gap-2">
+              {(['overview', 'work'] as HomeTabId[]).map((tab) => {
+                const selected = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    type="button"
+                    data-home-launcher={tab}
+                    onClick={() => onSelectTab(tab)}
+                    aria-current={selected ? 'page' : undefined}
+                    className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                      selected ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
+                    }`}
+                  >
+                    {homeTabLabels[tab]}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </div>
+      </header>
 
-        <HomeOverlayHost
-          activeOverlay={activeOverlay}
-          identity={identity}
-          runtime={runtime}
-          onClearOverlay={onClearOverlay}
-          onOpenRecord={onOpenRecord}
-        />
-
-        <HomeThoughtPileOverlay
-          accessToken={accessToken}
-          activeOverlay={activeOverlay}
-          identity={identity}
-          onClose={(options) => {
-            onClearOverlay();
-            if (options?.restoreFocus === false) {
-              return;
-            }
-            window.requestAnimationFrame(() => {
-              if (!focusHomeLauncher('thoughts')) {
-                focusHomeFallbackTarget();
-              }
-            });
-          }}
-          projects={projects}
-        />
-      </section>
+      {activeTab === 'overview' ? overviewContent : workContent}
+      {quickThoughts}
+      {namingDialog}
     </div>
   );
 };

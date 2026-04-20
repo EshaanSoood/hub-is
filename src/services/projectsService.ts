@@ -93,6 +93,7 @@ const toProjectRecord = (project: HubProject): ProjectRecord => {
     nextcloudFolder: null,
     isPersonal: project.is_personal,
     position: normalizedPosition,
+    needsNamePrompt: project.needs_name_prompt === true,
     membershipRole:
       project.membership_role === 'owner' || project.membership_role === 'member'
         ? project.membership_role

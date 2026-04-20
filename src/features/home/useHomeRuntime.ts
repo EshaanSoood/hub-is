@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDashboardMutations } from '../PersonalizedDashboardPanel/hooks/useDashboardMutations';
-import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { subscribeHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { getHubHome } from '../../services/hub/records';
 import { subscribeHubLive } from '../../services/hubLive';
@@ -33,14 +31,6 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
   const homeAbortControllerRef = useRef<AbortController | null>(null);
   const homeRequestIdRef = useRef(0);
   const liveRefreshHomeTimeoutRef = useRef<number | null>(null);
-  const remindersRuntime = useRemindersRuntime(
-    activeOverlay === 'reminders' ? accessToken ?? null : null,
-    { autoload: activeOverlay === 'reminders' },
-  );
-  const { onDismissReminder, onSnoozeReminder } = useDashboardMutations({
-    accessToken,
-    refreshReminders: remindersRuntime.refresh,
-  });
 
   const refreshHome = useCallback(async () => {
     homeAbortControllerRef.current?.abort();
@@ -61,8 +51,8 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
     setHomeLoading(true);
     try {
       const next = await getHubHome(accessToken, {
-        tasks_limit: activeOverlay === 'tasks' ? 50 : 8,
-        events_limit: activeOverlay === 'calendar' ? 50 : 8,
+        tasks_limit: 8,
+        events_limit: 8,
         captures_limit: activeOverlay === 'thoughts' ? 50 : 20,
         unread: true,
         signal: controller.signal,
@@ -160,10 +150,7 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
     homeError,
     homeLoading,
     homeReady,
-    onDismissReminder,
-    onSnoozeReminder,
     refreshHome,
-    remindersRuntime,
     setCalendarScope,
   };
 };

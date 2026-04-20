@@ -1,4 +1,5 @@
 import type { ProjectRecord } from '../../types/domain';
+import { Dialog } from '../../components/primitives';
 import { QuickCapturePanel } from '../QuickCapture';
 import type { HomeOverlayId } from './navigation';
 import type { HomeSurfaceIdentity } from './useHomeSurfaceIdentity';
@@ -28,7 +29,13 @@ export const HomeThoughtPileOverlay = ({
   }
 
   return (
-    <section className="rounded-panel border border-subtle bg-elevated p-4">
+    <Dialog
+      open
+      title="Quick thoughts"
+      description="Capture a quick thought, task, reminder, or calendar item."
+      onClose={() => onClose()}
+      panelClassName="dialog-panel-wide-size"
+    >
       <QuickCapturePanel
         accessToken={accessToken ?? null}
         projects={projects}
@@ -39,6 +46,6 @@ export const HomeThoughtPileOverlay = ({
         activationKey={1}
         onRequestClose={onClose}
       />
-    </section>
+    </Dialog>
   );
 };

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { ContextBar } from '../../components/hub-home/ContextBar';
 import { DayStrip } from '../../components/hub-home/DayStrip';
 import { BacklogPanel } from '../../components/hub-home/BacklogPanel';
@@ -57,6 +57,7 @@ const resolveDailyBriefState = (dailyData: DashboardDailyData, now: Date): Daily
 interface DayStripSectionProps {
   countReady: boolean;
   greeting: string;
+  headerActions?: ReactNode;
   now: Date;
   filteredDailyData: DashboardDailyData;
   dayCounts: DashboardDayCounts;
@@ -75,6 +76,7 @@ interface DayStripSectionProps {
 export const DayStripSection = ({
   countReady,
   greeting,
+  headerActions,
   now,
   filteredDailyData,
   dayCounts,
@@ -155,6 +157,7 @@ export const DayStripSection = ({
           <p className="text-sm font-semibold text-text">{greeting}</p>
           <p className="text-xs text-muted">{dateLabel}</p>
         </div>
+        {headerActions ? <div className="flex items-center gap-2">{headerActions}</div> : null}
       </div>
       <LiveRegion message={announcement} role="status" ariaLive="polite" />
 

@@ -37,7 +37,7 @@ export const getProject = async (accessToken: string, projectId: string): Promis
 export const updateProject = async (
   accessToken: string,
   projectId: string,
-  payload: { position?: number | null },
+  payload: { name?: string; position?: number | null },
 ): Promise<ProjectSummary> => {
   const data = await hubRequest<{ project: ProjectSummary }>(
     accessToken,

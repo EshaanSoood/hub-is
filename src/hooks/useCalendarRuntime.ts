@@ -19,9 +19,15 @@ interface UseCalendarRuntimeParams {
   accessToken: string;
   projectId: string;
   initialMode?: 'relevant' | 'all';
+  enabled?: boolean;
 }
 
-export const useCalendarRuntime = ({ accessToken, projectId, initialMode = 'all' }: UseCalendarRuntimeParams) => {
+export const useCalendarRuntime = ({
+  accessToken,
+  projectId,
+  initialMode = 'all',
+  enabled = true,
+}: UseCalendarRuntimeParams) => {
   const [calendarMode, setCalendarMode] = useState<'relevant' | 'all'>(initialMode);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventSummary[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
@@ -29,6 +35,12 @@ export const useCalendarRuntime = ({ accessToken, projectId, initialMode = 'all'
   const latestRequestRef = useRef(0);
 
   const refreshCalendar = useCallback(async () => {
+    if (!enabled) {
+      setCalendarEvents([]);
+      setCalendarLoading(false);
+      setCalendarError(null);
+      return;
+    }
     const requestId = latestRequestRef.current + 1;
     latestRequestRef.current = requestId;
     setCalendarLoading(true);
@@ -47,11 +59,17 @@ export const useCalendarRuntime = ({ accessToken, projectId, initialMode = 'all'
         setCalendarLoading(false);
       }
     }
-  }, [accessToken, calendarMode, projectId]);
+  }, [accessToken, calendarMode, enabled, projectId]);
 
   useEffect(() => {
+    if (!enabled) {
+      setCalendarEvents([]);
+      setCalendarLoading(false);
+      setCalendarError(null);
+      return;
+    }
     void refreshCalendar();
-  }, [refreshCalendar]);
+  }, [enabled, refreshCalendar]);
 
   return {
     calendarError,

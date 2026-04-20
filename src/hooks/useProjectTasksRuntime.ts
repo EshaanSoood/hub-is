@@ -11,6 +11,7 @@ interface UseProjectTasksRuntimeParams {
   projectId: string;
   activeTab: ProjectSpaceTab;
   overviewView: OverviewView;
+  enabled?: boolean;
 }
 
 export const useProjectTasksRuntime = ({
@@ -18,6 +19,7 @@ export const useProjectTasksRuntime = ({
   projectId,
   activeTab,
   overviewView,
+  enabled = true,
 }: UseProjectTasksRuntimeParams) => {
   const [projectTasks, setProjectTasks] = useState<Awaited<ReturnType<typeof listProjectTasks>>>({
     tasks: [],
@@ -81,15 +83,26 @@ export const useProjectTasksRuntime = ({
   );
 
   useEffect(() => {
+    if (!enabled) {
+      loadedProjectIdRef.current = null;
+      setProjectTasks({ tasks: [], next_cursor: null });
+      setProjectTasksError(null);
+      setProjectTasksLoading(false);
+      setProjectTasksLoadingMore(false);
+      return;
+    }
     const shouldLoadTasks =
       !hasTaskData && (activeTab === 'work' || (activeTab === 'overview' && (overviewView === 'tasks' || overviewView === 'kanban')));
     if (!shouldLoadTasks) {
       return;
     }
     void loadProjectTaskPage();
-  }, [activeTab, hasTaskData, loadProjectTaskPage, overviewView]);
+  }, [activeTab, enabled, hasTaskData, loadProjectTaskPage, overviewView]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     if (
       activeTab !== 'overview'
       || (overviewView !== 'tasks' && overviewView !== 'kanban')
@@ -117,7 +130,7 @@ export const useProjectTasksRuntime = ({
     return () => {
       observer.disconnect();
     };
-  }, [activeTab, loadProjectTaskPage, overviewView, projectTasks.next_cursor, projectTasksLoading, projectTasksLoadingMore]);
+  }, [activeTab, enabled, loadProjectTaskPage, overviewView, projectTasks.next_cursor, projectTasksLoading, projectTasksLoadingMore]);
 
   return {
     loadProjectTaskPage,

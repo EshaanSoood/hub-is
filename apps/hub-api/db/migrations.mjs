@@ -50,6 +50,7 @@ export const runMigrations = (db) => {
   };
 
   addColumnIfMissing('projects', 'position', 'INTEGER');
+  addColumnIfMissing('projects', 'name_prompt_completed', 'INTEGER NOT NULL DEFAULT 0 CHECK (name_prompt_completed IN (0, 1))');
   addColumnIfMissing('panes', 'position', 'INTEGER');
 
   db.exec(`

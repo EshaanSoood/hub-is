@@ -91,6 +91,11 @@ export const createStatements = (db) => ({
       SET position = ?, updated_at = ?
       WHERE project_id = ?
     `),
+    updateName: db.prepare(`
+      UPDATE projects
+      SET name = ?, name_prompt_completed = 1, updated_at = ?
+      WHERE project_id = ?
+    `),
     insert: db.prepare(`
       INSERT INTO projects (project_id, name, created_by, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?)

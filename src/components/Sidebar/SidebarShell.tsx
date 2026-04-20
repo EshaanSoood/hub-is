@@ -4,11 +4,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjects } from '../../context/ProjectsContext';
 import {
+  buildHomeContentHref,
   buildHomeOverlayHref,
-  buildHomeViewHref,
+  parseHomeContentViewId,
   parseHomeOverlayId,
-  parseHomeViewId,
-  type HomeViewId,
+  parseHomeOverviewViewId,
+  parseHomePaneId,
+  parseHomeTabId,
+  type HomeContentViewId,
+  type HomeTabId,
 } from '../../features/home/navigation';
 import { cn } from '../../lib/cn';
 import { fadeThroughVariants } from '../motion/hubMotion';
@@ -68,7 +72,23 @@ export const SidebarShell = () => {
   );
   const activeCurrentProjectPanes =
     currentProjectId && loadedProjectId === currentProjectId ? currentProjectPanes : [];
-  const currentHomeView = useMemo<HomeViewId>(() => parseHomeViewId(new URLSearchParams(location.search).get('view')), [location.search]);
+  const currentHomeTab = useMemo<HomeTabId>(() => parseHomeTabId(new URLSearchParams(location.search).get('tab')), [location.search]);
+  const currentHomeContentView = useMemo<HomeContentViewId>(() => {
+    const searchParams = new URLSearchParams(location.search);
+    return parseHomeContentViewId(searchParams.get('content') ?? searchParams.get('view'));
+  }, [location.search]);
+  const currentHomeOverviewView = useMemo(() => {
+    if (!isOnHome) {
+      return 'timeline';
+    }
+    return parseHomeOverviewViewId(new URLSearchParams(location.search).get('overview'));
+  }, [isOnHome, location.search]);
+  const currentHomePaneId = useMemo(() => {
+    if (!isOnHome) {
+      return null;
+    }
+    return parseHomePaneId(new URLSearchParams(location.search).get('pane'));
+  }, [isOnHome, location.search]);
   const currentSurface = useMemo<SidebarSurfaceId | null>(() => {
     if (!isOnHome) {
       return null;
@@ -76,17 +96,8 @@ export const SidebarShell = () => {
     return parseHomeOverlayId(new URLSearchParams(location.search).get('surface'));
   }, [isOnHome, location.search]);
   const currentSurfaceLabel = useMemo(() => {
-    if (currentSurface === 'tasks') {
-      return 'Tasks';
-    }
-    if (currentSurface === 'calendar') {
-      return 'Calendar';
-    }
-    if (currentSurface === 'reminders') {
-      return 'Reminders';
-    }
     if (currentSurface === 'thoughts') {
-      return 'Quick Thoughts';
+      return 'Quick thoughts';
     }
     return null;
   }, [currentSurface]);
@@ -100,7 +111,7 @@ export const SidebarShell = () => {
     ? `pane:${currentPaneId}`
     : currentProjectId
       ? `project:${currentProjectId}`
-      : `hub:${currentSurface ?? currentHomeView}`;
+      : `hub:${currentSurface ?? `${currentHomeTab}:${currentHomeContentView}`}`;
 
   useEffect(() => {
     if (prefersReducedMotion) {
@@ -178,13 +189,21 @@ export const SidebarShell = () => {
 
   const onSelectSurface = useCallback((surfaceId: SidebarSurfaceId) => {
     expandSidebar();
-    navigate(buildHomeOverlayHref(surfaceId, { view: currentHomeView }));
-  }, [currentHomeView, expandSidebar, navigate]);
+    navigate(buildHomeOverlayHref(surfaceId, {
+      tab: currentHomeTab,
+      content: currentHomeContentView,
+      overview: currentHomeOverviewView,
+      paneId: currentHomeTab === 'work' ? (currentHomePaneId ?? currentPaneId) : null,
+      pinned: new URLSearchParams(location.search).get('pinned') === '1',
+    }));
+  }, [currentHomeContentView, currentHomeOverviewView, currentHomePaneId, currentHomeTab, currentPaneId, expandSidebar, location.search, navigate]);
 
-  const onSelectHomeView = useCallback((viewId: HomeViewId) => {
+  const onSelectHomeContentView = useCallback((viewId: HomeContentViewId) => {
     expandSidebar();
-    navigate(buildHomeViewHref(viewId));
-  }, [expandSidebar, navigate]);
+    navigate(buildHomeContentHref(viewId, {
+      overview: currentHomeOverviewView,
+    }));
+  }, [currentHomeOverviewView, expandSidebar, navigate]);
 
   return (
     <LayoutGroup id="sidebar-shell-layout">
@@ -242,10 +261,11 @@ export const SidebarShell = () => {
 
             <div className="shrink-0">
               <Surfaces
-                activeHomeView={currentHomeView}
+                activeHomeContentView={currentHomeContentView}
+                activeHomeTab={currentHomeTab}
                 activeSurface={currentSurface}
                 isCollapsed={resolvedVisualCollapsed}
-                onSelectHomeView={onSelectHomeView}
+                onSelectHomeContentView={onSelectHomeContentView}
                 onSelectSurface={onSelectSurface}
                 showLabels={resolvedShowLabels}
               />

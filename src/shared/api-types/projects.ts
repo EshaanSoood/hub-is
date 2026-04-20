@@ -18,6 +18,8 @@ export interface ProjectSummary {
   is_personal: boolean;
   /** Current user membership role; null when not available. */
   membership_role: ProjectMembershipRole | null;
+  /** True when the personal project should be named on first run. */
+  needs_name_prompt?: boolean;
 }
 
 export interface ListProjectsResponse {
@@ -61,4 +63,6 @@ export interface ProjectRecord {
   membershipRole: ProjectMembershipRole;
   /** Manual sidebar ordering position. */
   position: number | null;
+  /** True when Home should prompt the user to name the personal project. */
+  needsNamePrompt?: boolean;
 }

@@ -791,6 +791,8 @@ const projectRecord = (row) => ({
   position: typeof row.position === 'number' ? row.position : null,
   is_personal: Number(row.is_personal || 0) === 1 || asText(row.project_type).toLowerCase() === 'personal',
   membership_role: row.membership_role || null,
+  needs_name_prompt: (Number(row.is_personal || 0) === 1 || asText(row.project_type).toLowerCase() === 'personal')
+    && Number(row.name_prompt_completed || 0) !== 1,
 });
 
 const collectionSchema = (collectionId) => {
