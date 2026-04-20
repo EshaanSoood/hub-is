@@ -416,12 +416,12 @@ export const RemindersModuleSkin = ({
             }}
             placeholder="Add a reminder…"
             aria-label="Add a reminder"
-            className="min-h-11 flex-1 rounded-panel border border-border-muted bg-surface-elevated px-3 py-2 text-sm text-text outline-none placeholder:text-text-secondary focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
+            className="ghost-button min-h-11 flex-1 bg-surface px-3 py-2 text-sm text-text outline-none placeholder:text-text-secondary focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
           />
           <button
             type="submit"
             disabled={readOnly || submitting}
-            className="inline-flex items-center gap-2 rounded-panel border border-border-muted px-3 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
+            className="cta-primary inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Icon name="plus" className="text-[14px]" />
             Add
@@ -429,7 +429,7 @@ export const RemindersModuleSkin = ({
         </div>
 
         {showPreview ? (
-          <div className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
+          <div className="module-toolbar px-3 py-2 text-xs text-text-secondary">
             {hasMeaningfulPreview ? (
               <div className="space-y-1">
                 {preview.fields.title ? (
@@ -473,7 +473,7 @@ export const RemindersModuleSkin = ({
         ) : null}
 
         {loading && reminders.length === 0 ? (
-          <p className="rounded-panel border border-border-muted bg-surface-elevated px-3 py-4 text-sm text-text-secondary">
+          <p className="module-sheet-raised px-3 py-4 text-sm text-text-secondary">
             Loading reminders…
           </p>
         ) : null}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '../../lib/cn';
 import { useLongPress } from '../../hooks/useLongPress';
 import { useModuleInsertState, type ModuleInsertState } from './hooks/useModuleInsertState';
 import { Icon } from '../primitives';
@@ -111,7 +112,7 @@ const QuickThoughtEditor = ({
   onSave: () => void;
   onCancel?: () => void;
 }) => (
-  <div className="rounded-control border border-border-muted bg-surface">
+  <div className="paper-card">
     <textarea
       value={value}
       onChange={(event) => onChange(event.target.value)}
@@ -121,27 +122,27 @@ const QuickThoughtEditor = ({
       placeholder={placeholder}
       aria-label="Quick Thought editor"
     />
-    <div className="flex justify-between gap-2 border-t border-border-muted px-xs py-1">
+    <div className="module-rule flex justify-between gap-2 px-xs py-1">
       {onCancel ? (
         <button
           type="button"
           disabled={readOnly}
           onClick={onCancel}
-          className="rounded-control border border-border-muted px-sm py-1 text-xs font-medium text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          className="ghost-button bg-surface px-sm py-1 text-xs font-medium text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         >
           Cancel
         </button>
       ) : (
         <span />
       )}
-      <button
-        type="button"
-        disabled={readOnly}
-        onClick={onSave}
-        className="interactive interactive-fold rounded-control bg-primary px-sm py-1 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-      >
-        {saveLabel}
-      </button>
+        <button
+          type="button"
+          disabled={readOnly}
+          onClick={onSave}
+          className="interactive interactive-fold cta-primary px-sm py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        >
+          {saveLabel}
+        </button>
     </div>
   </div>
 );
@@ -193,14 +194,15 @@ const ThoughtRow = ({
 
   return (
     <div
-      className="relative rounded-control bg-surface-elevated px-sm py-xs"
-      style={{ paddingLeft: 'calc(var(--space-sm) + 6px)', opacity: entry.archived ? 0.6 : 1 }}
+      className={cn('paper-card relative overflow-hidden px-sm py-xs', entry.archived ? 'opacity-60' : null)}
       {...(!isEditing ? longPressHandlers : {})}
     >
       <div
         aria-hidden="true"
-        className="absolute bottom-0 left-0 top-0 w-[3px] rounded-l-control"
-        style={{ background: entry.archived ? 'var(--color-border-muted)' : 'var(--color-capture-rail)' }}
+        className={cn(
+          'absolute bottom-0 left-0 top-0 w-1 rounded-l-control',
+          entry.archived ? 'bg-border-muted' : 'bg-capture-rail',
+        )}
       />
 
       {isEditing ? (
@@ -236,7 +238,7 @@ const ThoughtRow = ({
                   type="button"
                   disabled={readOnly}
                   onClick={onSelect}
-                  className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="ghost-button inline-flex items-center gap-1 bg-surface px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
                   <Icon name="edit" className="text-[12px]" />
                   Edit
@@ -245,7 +247,7 @@ const ThoughtRow = ({
                   type="button"
                   disabled={readOnly}
                   onClick={onArchive}
-                  className="rounded-control border border-border-muted px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="ghost-button bg-surface px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
                   Archive
                 </button>
@@ -255,7 +257,7 @@ const ThoughtRow = ({
                 type="button"
                 disabled={readOnly}
                 onClick={onRestore}
-                className="rounded-control border border-border-muted px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                className="ghost-button bg-surface px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               >
                 Restore
               </button>
@@ -265,7 +267,7 @@ const ThoughtRow = ({
                 type="button"
                 disabled={readOnly}
                 onClick={onDelete}
-                className="inline-flex items-center gap-1 rounded-control border border-border-muted px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                className="ghost-button inline-flex items-center gap-1 bg-surface px-2 py-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               >
                 <Icon name="trash" className="text-[12px]" />
                 Delete
@@ -280,7 +282,7 @@ const ThoughtRow = ({
                 onInsertToEditor?.({ id: entry.id, type: 'quick-thought', title: preview });
                 clearActiveItem();
               }}
-              className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-on-primary shadow-soft"
+              className="interactive interactive-fold cta-primary absolute right-2 top-1/2 z-10 -translate-y-1/2 px-2 py-1 text-xs font-semibold shadow-soft"
             >
               Insert
             </button>
@@ -433,7 +435,7 @@ export const QuickThoughtsModuleSkin = ({
   const showComposer = sizeTier !== 'S';
   const showArchivedSection = sizeTier === 'L' && archivedEntries.length > 0;
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-panel border border-border-muted bg-surface-elevated p-sm">
+    <div className="module-sheet flex h-full min-h-0 flex-col p-sm">
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>

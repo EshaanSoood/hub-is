@@ -15,7 +15,7 @@ export const ModuleLoadingState = ({
 }) => {
   const safeRows = Number.isFinite(rows) ? Math.max(0, Math.floor(rows)) : 0;
   return (
-    <div role="status" aria-live="polite" className={cn('space-y-2 rounded-panel border border-subtle bg-surface p-3', className)}>
+    <div role="status" aria-live="polite" className={cn('module-sheet-raised space-y-2 p-3', className)}>
       <span className="sr-only">{label}</span>
       {visibleLabel ? <p className="mb-2 text-xs text-muted">{visibleLabel}</p> : null}
       {Array.from({ length: safeRows }).map((_, index) => (
@@ -77,7 +77,7 @@ export const ModuleEmptyState = ({
       role="status"
       aria-live="polite"
       className={cn(
-        'my-auto w-full rounded-panel border border-subtle bg-surface text-center',
+        'module-sheet-raised my-auto w-full text-center',
         hasTierSizing ? (resolvedTier === 'L' ? 'p-6' : useCompactLayout ? 'p-3' : 'p-5') : compact ? 'p-3' : 'p-5',
         className,
       )}

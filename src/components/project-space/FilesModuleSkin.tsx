@@ -193,26 +193,24 @@ const DropZone = ({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const useStackedLayout = sizeTier === 'L' && !hasFiles;
   const containerClassName = cn(
-    'relative rounded-control border border-dashed',
+    'module-dropzone relative transition-colors',
     useStackedLayout ? 'flex flex-col items-center justify-center gap-3 px-md py-6 text-center' : 'flex items-center justify-between',
     sizeTier === 'S' ? 'gap-xs px-sm py-1.5' : null,
     sizeTier === 'M' ? (hasFiles ? 'gap-xs px-sm py-1.5' : 'gap-sm px-sm py-2.5') : null,
     sizeTier === 'L' && hasFiles ? 'gap-sm px-sm py-3.5' : null,
+    dragOver ? 'border-primary bg-primary/10' : null,
   );
   const contentClassName = cn('min-w-0', useStackedLayout ? 'flex flex-col items-center text-center' : 'flex items-center gap-2 text-left');
   const iconClassName = cn(
     'shrink-0 text-muted',
-    useStackedLayout ? 'rounded-full border border-border-muted bg-surface px-3 py-3' : 'text-[14px]',
+    useStackedLayout ? 'paper-well rounded-full px-3 py-3' : 'text-[14px]',
   );
   const label = readOnly ? 'Files are read-only' : sizeTier === 'L' && hasFiles ? 'Drop more files' : 'Drop files';
   const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this pane.' : 'Drag files here or use upload.') : null;
   const buttonClassName = cn(
-    'flex items-center justify-center rounded-control border border-border-muted bg-surface text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60',
+    'ghost-button flex items-center justify-center bg-surface text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60',
     useStackedLayout ? 'h-8 min-w-[5.5rem] px-3 text-xs font-medium' : 'h-7 w-7 text-lg',
   );
-  const baseBackground = useStackedLayout
-    ? 'color-mix(in srgb, var(--color-primary) 4%, transparent)'
-    : 'color-mix(in srgb, var(--color-surface-elevated) 65%, transparent)';
 
   const readFiles = (files: FileList | null) => {
     const nextFiles = Array.from(files ?? []);
@@ -240,10 +238,6 @@ const DropZone = ({
         readFiles(event.dataTransfer.files);
       }}
       className={containerClassName}
-      style={{
-        borderColor: dragOver ? 'var(--color-primary)' : 'var(--color-border-muted)',
-        background: dragOver ? 'color-mix(in srgb, var(--color-primary) 5%, transparent)' : baseBackground,
-      }}
     >
       <div className={contentClassName}>
         <span className={iconClassName} aria-hidden="true">
@@ -329,7 +323,7 @@ const FileRow = ({
           }
         }}
         disabled={uploading}
-        className="group relative flex w-full items-center gap-xs overflow-visible rounded-control bg-transparent px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+        className="group paper-card relative flex w-full items-center gap-xs overflow-visible px-sm py-xs text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
         aria-label={`Open ${file.name}`}
       >
         <FileRecordSummary
@@ -340,8 +334,7 @@ const FileRow = ({
         />
         <span
           aria-hidden="true"
-          className="absolute inset-0 rounded-control opacity-0 transition-opacity group-hover:opacity-100"
-          style={{ background: 'color-mix(in srgb, var(--color-primary) 6%, transparent)' }}
+          className="absolute inset-0 rounded-control bg-primary/5 opacity-0 transition-opacity group-hover:opacity-100"
         />
         {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
       </button>
@@ -408,7 +401,7 @@ const FileTile = ({
         }}
         disabled={uploading}
         aria-label={`Open ${file.name}`}
-        className="relative w-full overflow-visible rounded-panel border border-border-muted bg-surface text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-70"
+        className="paper-card relative w-full overflow-visible text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-70"
       >
         <FileRecordSummary
           name={file.name}
@@ -449,11 +442,10 @@ const ToolbarButton = ({
     type="button"
     aria-pressed={active}
     onClick={onClick}
-    className="rounded-control border border-border-muted px-xs py-[3px] text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-    style={{
-      background: active ? 'color-mix(in srgb, var(--color-primary) 12%, transparent)' : 'transparent',
-      color: active ? 'var(--color-primary)' : 'var(--color-muted)',
-    }}
+    className={cn(
+      'ghost-button px-xs py-[3px] text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+      active ? 'bg-primary/10 text-primary' : 'bg-surface text-muted',
+    )}
   >
     {label}
   </button>
@@ -475,7 +467,7 @@ const FilesModuleSmall = ({
   const visible = useMemo(() => files.slice(0, 4), [files]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-xs rounded-panel border border-border-muted bg-surface-elevated p-sm">
+    <div className="module-sheet flex h-full min-h-0 flex-col gap-xs p-sm">
       <DropZone sizeTier="S" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -520,7 +512,7 @@ const FilesModuleMedium = ({
   const sorted = useMemo(() => sortFiles(files, sortKey), [files, sortKey]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-sm rounded-panel border border-border-muted bg-surface-elevated p-md">
+    <div className="module-sheet flex h-full min-h-0 flex-col gap-sm p-md">
       <DropZone sizeTier="M" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
 
       <div role="toolbar" aria-label="Sort files" className="flex items-center gap-1">
@@ -573,7 +565,7 @@ const FilesModuleLarge = ({
   const visible = useMemo(() => sortFiles(filterFiles(files, filterKey), sortKey), [files, filterKey, sortKey]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-md rounded-panel border border-border-muted bg-surface-elevated p-md">
+    <div className="module-sheet flex h-full min-h-0 flex-col gap-md p-md">
       <DropZone sizeTier="L" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
 
       <div className="flex flex-wrap items-center justify-between gap-sm">

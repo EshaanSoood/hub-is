@@ -552,7 +552,7 @@ export const DayStrip = ({
   };
 
   return (
-    <div className={`rounded-panel bg-surface-container p-2 shadow-soft ${className ?? ''}`}>
+    <div className={`rounded-panel bg-surface-low p-2 shadow-soft-subtle ${className ?? ''}`}>
       {!showTimeline ? (
         <div className="paper-well flex h-20 items-center justify-center px-4 text-center">
           <p className="text-[15px] italic text-text-secondary">
@@ -584,7 +584,7 @@ export const DayStrip = ({
             onDrop={handleDrop}
           >
             <div
-              className={`absolute inset-x-0 top-10 h-12 rounded-control bg-surface-highest/90 transition-colors ${
+              className={`absolute inset-x-0 top-10 h-12 rounded-control bg-surface/90 transition-colors ${
                 dragOver
                   ? 'ghost-button bg-primary/10'
                   : 'ghost-button'

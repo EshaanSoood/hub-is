@@ -69,8 +69,8 @@ export const CalendarMediumWeekStrip = ({
               aria-pressed={isSelected}
               aria-current={day.isToday ? 'date' : undefined}
               className={cn(
-                'min-w-0 rounded-control border px-1 py-2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-                isSelected ? 'border-primary bg-primary/10 text-primary' : 'border-border-muted bg-surface-elevated text-text',
+                'min-w-0 rounded-control px-1 py-2 text-center shadow-soft-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                isSelected ? 'bg-primary/10 text-primary' : 'bg-surface text-text',
               )}
             >
               <p className={cn('truncate text-[10px] font-semibold uppercase tracking-wide', isSelected ? 'text-primary' : 'text-muted')}>
@@ -85,10 +85,10 @@ export const CalendarMediumWeekStrip = ({
         })}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col rounded-panel border border-border-muted bg-surface-elevated p-3">
+      <div className="module-sheet flex min-h-0 flex-1 flex-col p-3">
         {selectedDay ? (
           <>
-            <div className="flex items-center justify-between gap-3 border-b border-border-muted pb-2">
+            <div className="flex items-center justify-between gap-3 pb-2">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-text">
                   {selectedDay.date.toLocaleDateString(undefined, {
@@ -105,16 +105,16 @@ export const CalendarMediumWeekStrip = ({
                 <button
                   type="button"
                   onClick={() => onCreateEvent(selectedDay.key)}
-                  className="interactive interactive-fold shrink-0 rounded-control border border-primary bg-primary px-2.5 py-1.5 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="interactive interactive-fold cta-primary shrink-0 px-2.5 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
                   New Event
                 </button>
               ) : null}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto pt-3">
+            <div className="module-rule min-h-0 flex-1 overflow-y-auto pt-3">
               {selectedDay.events.length === 0 ? (
-                <div className="flex h-full min-h-24 items-center justify-center rounded-control border border-dashed border-border-muted bg-surface px-3 text-center">
+                <div className="module-dropzone flex h-full min-h-24 items-center justify-center px-3 text-center">
                   <p className="text-sm text-muted">No events for this day.</p>
                 </div>
               ) : (

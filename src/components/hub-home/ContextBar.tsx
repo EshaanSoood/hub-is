@@ -64,7 +64,7 @@ export const ContextBar = ({
             onValueChange={onProjectFilterChange}
             options={projectOptions}
             ariaLabel="Filter timeline by project"
-            triggerClassName="min-w-44"
+            triggerClassName="min-w-44 bg-surface-highest font-medium shadow-soft-subtle"
           />
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Daily brief totals">
             <CountPill count={eventCount} iconName="calendar" label={nounForCount(eventCount, 'event', 'events')} />

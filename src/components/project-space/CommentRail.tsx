@@ -54,12 +54,12 @@ export const CommentRail = ({
   const resolvedComments = comments.filter((comment) => comment.status === 'resolved');
 
   return (
-    <section className="rounded-panel border border-subtle bg-elevated p-4" aria-label="Doc comments">
+    <section className="module-sheet p-4" aria-label="Doc comments">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="heading-3 text-primary">Doc comments</h3>
+        <h3 className="heading-3 text-text">Doc comments</h3>
         <button
           type="button"
-          className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
+          className="ghost-button bg-surface px-2 py-1 text-xs font-semibold text-primary"
           onClick={onToggleShowResolved}
           aria-label={showResolved ? 'Hide resolved comments' : 'Show resolved comments'}
         >
@@ -69,10 +69,10 @@ export const CommentRail = ({
 
       <ul className="mt-3 space-y-2" aria-label="Open comment threads">
         {openComments.map((comment) => (
-          <li key={comment.comment_id} className="rounded-panel border border-border-muted p-3">
+          <li key={comment.comment_id} className="paper-card p-3">
             <button
               type="button"
-              className="w-full text-left"
+              className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onClick={() => onJumpToComment(comment)}
               onKeyDown={(event) => handleListEnter(event, () => onJumpToComment(comment))}
               aria-label={`Comment on block ${comment.anchor_payload?.nodeKey || 'unknown block'}`}
@@ -84,7 +84,7 @@ export const CommentRail = ({
             </button>
             <button
               type="button"
-              className="mt-2 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
+              className="ghost-button mt-2 bg-surface px-2 py-1 text-xs font-semibold text-primary"
               onClick={() => onToggleStatus(comment.comment_id, 'resolved')}
               aria-label="Resolve comment"
             >
@@ -97,10 +97,10 @@ export const CommentRail = ({
       {showResolved ? (
         <ul className="mt-2 space-y-2" aria-label="Resolved comment threads">
           {resolvedComments.map((comment) => (
-            <li key={comment.comment_id} className="rounded-panel border border-border-muted p-3">
+            <li key={comment.comment_id} className="paper-card p-3">
               <button
                 type="button"
-                className="w-full text-left"
+                className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 onClick={() => onJumpToComment(comment)}
                 onKeyDown={(event) => handleListEnter(event, () => onJumpToComment(comment))}
                 aria-label={`Resolved comment on block ${comment.anchor_payload?.nodeKey || 'unknown block'}`}
@@ -112,7 +112,7 @@ export const CommentRail = ({
               </button>
               <button
                 type="button"
-                className="mt-2 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
+                className="ghost-button mt-2 bg-surface px-2 py-1 text-xs font-semibold text-primary"
                 onClick={() => onToggleStatus(comment.comment_id, 'open')}
                 aria-label="Reopen comment"
               >
@@ -128,14 +128,14 @@ export const CommentRail = ({
           <h4 className="text-sm font-semibold text-primary">Orphaned comments</h4>
           <ul className="mt-2 space-y-2" aria-label="Orphaned comments">
             {orphanedComments.map((comment) => (
-              <li key={comment.comment_id} className="rounded-panel border border-border-muted p-3">
+              <li key={comment.comment_id} className="paper-card p-3">
                 <p className="text-sm text-text">{readPlainComment(comment.body_json)}</p>
                 <p className="mt-1 text-xs text-muted">
                   Missing block: {comment.anchor_payload?.nodeKey || 'unknown'} · {new Date(comment.created_at).toLocaleString()}
                 </p>
                 <button
                   type="button"
-                  className="mt-2 rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
+                  className="ghost-button mt-2 bg-surface px-2 py-1 text-xs font-semibold text-primary"
                   onClick={() => onToggleStatus(comment.comment_id, comment.status === 'open' ? 'resolved' : 'open')}
                   aria-label={comment.status === 'open' ? 'Resolve orphaned comment' : 'Reopen orphaned comment'}
                 >

@@ -70,15 +70,15 @@ export const TableHeader = ({
   activeFilterCount,
 }: TableHeaderProps) => {
   return (
-    <div className="sticky top-0 z-10 border-b border-border-muted bg-surface">
+    <div className="sticky top-0 z-10 bg-surface-low">
       {selectedRecordIds.size > 0 ? (
-        <div className="border-b border-border-muted px-3 py-2">
+        <div className="module-rule px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-text">{selectedRecordIds.size} selected</span>
             <button
               type="button"
               onClick={clearSelection}
-              className="rounded-control border border-border-muted px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="ghost-button bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               Deselect all
             </button>
@@ -98,7 +98,7 @@ export const TableHeader = ({
                     type="button"
                     onClick={() => setBulkDeleteConfirm(false)}
                     disabled={bulkActionPending}
-                    className="rounded-control border border-border-muted px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="ghost-button bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -110,7 +110,7 @@ export const TableHeader = ({
                     setBulkDeleteConfirm(true);
                     setBulkActionError(null);
                   }}
-                  className="rounded-control border border-danger px-2 py-1 text-xs font-medium text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="ghost-button bg-surface px-2 py-1 text-xs font-medium text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
                   Delete
                 </button>
@@ -129,7 +129,7 @@ export const TableHeader = ({
                     });
                   }}
                   disabled={bulkActionPending}
-                  className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="ghost-button bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="">Select</option>
                   {statusOptions.map((option) => (
@@ -150,12 +150,12 @@ export const TableHeader = ({
       ) : null}
 
       {filterableFields.length > 0 ? (
-        <div className="border-b border-border-muted px-3 py-2">
+        <div className="module-rule px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setFiltersOpen((current) => !current)}
-              className="inline-flex items-center gap-2 rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="ghost-button inline-flex items-center gap-2 bg-surface px-2 py-1 text-xs font-medium text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               <Icon name="chevron-down" className={cn('h-3.5 w-3.5 transition-transform', filtersOpen && 'rotate-180')} />
               <span>Filter</span>

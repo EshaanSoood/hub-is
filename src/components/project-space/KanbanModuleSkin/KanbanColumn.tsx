@@ -75,7 +75,7 @@ const CreateCardComposer = ({
       <button
         type="button"
         onClick={() => onOpen(groupId)}
-        className="flex w-full items-center gap-2 rounded-control border border-border-muted px-2 py-1.5 text-left text-xs font-medium text-primary transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="ghost-button flex w-full items-center gap-2 bg-surface px-2 py-1.5 text-left text-xs font-medium text-primary transition-colors hover:bg-surface-highest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       >
         <Icon name="plus" className="h-3.5 w-3.5" />
         <span>Create card</span>
@@ -85,7 +85,7 @@ const CreateCardComposer = ({
 
   return (
     <form
-      className="space-y-2 rounded-control border border-border-muted bg-surface px-2 py-2"
+      className="paper-card space-y-2 px-2 py-2"
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit();
@@ -97,7 +97,7 @@ const CreateCardComposer = ({
         value={title}
         onChange={(event) => onTitleChange(event.target.value)}
         placeholder="Card title"
-        className="w-full rounded-control border border-border-muted bg-surface px-2 py-1.5 text-sm text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="ghost-button w-full bg-surface px-2 py-1.5 text-sm text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       />
       {error ? (
         <p className="text-[11px] text-danger" role="alert" aria-live="polite">
@@ -109,14 +109,14 @@ const CreateCardComposer = ({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="rounded-control border border-border-muted px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="ghost-button bg-surface px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="interactive interactive-fold rounded-control border border-primary bg-primary px-2 py-1 text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="interactive interactive-fold cta-primary px-2 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
         >
           Create
         </button>
@@ -180,8 +180,8 @@ export const KanbanColumn = ({
           ref={setNodeRef}
           role="list"
           className={cn(
-            'min-h-16 space-y-2 rounded-panel border border-dashed p-2 transition-colors motion-reduce:transition-none',
-            isOver ? 'border-primary bg-primary/5' : overLimit ? 'border-danger' : 'border-border-muted',
+            'module-dropzone min-h-16 space-y-2 p-2 transition-colors motion-reduce:transition-none',
+            isOver ? 'border-primary bg-primary/5' : overLimit ? 'border-danger bg-danger-subtle' : null,
           )}
           aria-label={`${group.label} drop zone`}
         >

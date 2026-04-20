@@ -263,7 +263,7 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
         aria-haspopup="dialog"
         aria-expanded={overlayOpen}
         onClick={() => setOverlayOpen(true)}
-        className="sticky top-0 z-20 w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-center text-sm font-semibold text-text md:hidden"
+        className="ghost-button sticky top-0 z-20 w-full bg-surface-highest px-3 py-2 text-center text-sm font-semibold text-text md:hidden"
       >
         Modules
       </motion.button>
@@ -324,7 +324,7 @@ export const WorkView = ({
 
   if (!pane) {
     return (
-      <motion.section layoutId={layoutId} className="rounded-panel border border-subtle bg-elevated p-4">
+      <motion.section layoutId={layoutId} className="module-sheet p-4">
         <p className="text-sm text-muted">No pane selected.</p>
       </motion.section>
     );
@@ -519,8 +519,8 @@ export const WorkView = ({
 
   return (
     <motion.section layoutId={layoutId} className="space-y-4">
-      <header className="rounded-panel border border-subtle bg-elevated p-4">
-        <h2 className="heading-3 text-primary">{pane.name}</h2>
+      <header className="section-scored rounded-panel bg-surface-container p-4 shadow-soft-subtle">
+        <h2 className="heading-3 text-text">{pane.name}</h2>
         {moduleError ? <p className="mt-2 text-xs text-danger">{moduleError}</p> : null}
       </header>
 
@@ -529,15 +529,15 @@ export const WorkView = ({
           <MobileModulesOverlay key={pane.pane_id} moduleGrid={moduleGrid} />
         </>
       ) : (
-        <section className="rounded-panel border border-subtle bg-elevated p-4">
-          <h3 className="heading-4 text-primary">Structured Modules Off</h3>
+        <section className="module-sheet p-4">
+          <h3 className="heading-4 text-text">Structured Modules Off</h3>
           <p className="mt-1 text-sm text-muted">Modules hidden.</p>
         </section>
       )}
 
       {showWorkspaceDocPlaceholder ? (
-        <section className="rounded-panel border border-subtle bg-elevated p-4">
-          <h3 className="heading-4 text-primary">Workspace Doc</h3>
+        <section className="module-sheet p-4">
+          <h3 className="heading-4 text-text">Workspace Doc</h3>
           <p className="mt-1 text-sm text-muted">Doc ID: {pane.doc_id || 'missing'}</p>
         </section>
       ) : null}

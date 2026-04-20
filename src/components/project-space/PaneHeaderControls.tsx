@@ -52,14 +52,14 @@ export const PaneHeaderControls = ({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-panel border border-subtle bg-elevated p-2">
+    <div className="module-toolbar flex flex-wrap items-center gap-2 p-2">
       <input
         type="text"
         value={paneName}
         onChange={(event) => onRename(event.target.value)}
         aria-label="Pane name"
         disabled={disabled}
-        className="min-w-56 flex-1 rounded-control border border-subtle bg-surface px-3 py-1.5 text-sm font-semibold text-text"
+        className="ghost-button min-w-56 flex-1 bg-surface px-3 py-1.5 text-sm font-semibold text-text"
       />
 
       <p className="text-xs text-muted">Audience: {activeAudienceLabel}</p>

@@ -416,7 +416,7 @@ export const TableModuleSkin = ({
   const isEmpty = modelRows.length === 0;
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-panel border border-border-muted bg-surface-elevated" aria-label="Table module">
+    <section className="module-sheet flex h-full min-h-0 flex-col" aria-label="Table module">
       <TableHeader
         table={table}
         templateColumns={templateColumns}

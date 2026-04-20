@@ -50,7 +50,7 @@ export const ModuleShell = ({
     <article
       data-testid="module-card"
       className={cn(
-        'relative flex flex-col overflow-hidden rounded-panel border border-subtle bg-elevated p-3',
+        'module-sheet relative flex flex-col overflow-hidden p-3',
         accentClassName,
         sizeClass[sizeTier],
         sizeHeightClass[sizeTier],

@@ -43,7 +43,7 @@ export const OverviewHeader = ({
   }, [isEditingTitle]);
 
   return (
-    <header className="rounded-panel border border-subtle bg-elevated p-4">
+    <header className="section-scored rounded-panel bg-surface-container p-4 shadow-soft-subtle">
       {isEditingTitle ? (
         <input
           ref={titleInputRef}
@@ -65,7 +65,7 @@ export const OverviewHeader = ({
             }
           }}
           aria-label="Project title"
-          className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-xl font-bold text-text"
+          className="ghost-button w-full bg-surface px-3 py-2 text-xl font-bold text-text"
         />
       ) : (
         <button
@@ -134,7 +134,7 @@ export const OverviewHeader = ({
           <PopoverContent align="end" className="w-72 space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">Quick references</p>
             {refs.map((ref) => (
-              <div key={ref.id} className="rounded-control border border-subtle bg-surface px-2 py-1.5">
+              <div key={ref.id} className="paper-card px-2 py-1.5">
                 <p className="text-xs font-semibold text-text">{ref.name}</p>
                 <p className="text-xs text-muted">{ref.contact}</p>
               </div>
