@@ -1,5 +1,5 @@
 import type { ProjectRecord } from '../../types/domain';
-import type { HomeOverlayId, HomeViewId } from './navigation';
+import { focusHomeLauncher, type HomeOverlayId, type HomeViewId } from './navigation';
 import { HomeOverlayHost } from './HomeOverlayHost';
 import { HomeThoughtPileOverlay } from './HomeThoughtPileOverlay';
 import { HomeViewHost } from './HomeViewHost';
@@ -76,7 +76,7 @@ export const HomeShell = ({
           identity={identity}
           onClose={(options) => {
             if (options?.restoreFocus !== false) {
-              document.querySelector<HTMLElement>('[data-sidebar-surface="thoughts"]')?.focus();
+              focusHomeLauncher('thoughts');
             }
             onClearOverlay();
           }}

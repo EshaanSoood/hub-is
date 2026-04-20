@@ -33,3 +33,7 @@ export const buildHomeOverlayHref = (
   overlay: HomeOverlayId,
   options?: { view?: HomeViewId },
 ): string => buildHomeHref({ overlay, view: options?.view });
+
+export const focusHomeLauncher = (launcherId: HomeViewId | HomeOverlayId): void => {
+  document.querySelector<HTMLElement>(`[data-home-launcher="${launcherId}"]`)?.focus();
+};

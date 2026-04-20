@@ -1,6 +1,5 @@
-import { motion, useReducedMotion } from 'framer-motion';
-import { Dialog } from '../../components/primitives';
-import { dialogLayoutIds } from '../../styles/motion';
+import { useReducedMotion } from 'framer-motion';
+import { RecordInspectorShell } from '../../components/project-space/record-inspector/RecordInspectorShell';
 import type { HomeRecordInspectorRuntime } from './types';
 
 interface HomeRecordInspectorDialogProps {
@@ -12,28 +11,12 @@ export const HomeRecordInspectorDialog = ({ runtime }: HomeRecordInspectorDialog
 
   return (
     <>
-      {!prefersReducedMotion && runtime.selectedRecordTriggerRect ? (
-        <motion.div
-          layoutId={dialogLayoutIds.myHubRecordInspector}
-          aria-hidden="true"
-          className="pointer-events-none fixed z-[299] opacity-0"
-          style={{
-            top: runtime.selectedRecordTriggerRect.top,
-            left: runtime.selectedRecordTriggerRect.left,
-            width: runtime.selectedRecordTriggerRect.width,
-            height: runtime.selectedRecordTriggerRect.height,
-          }}
-        />
-      ) : null}
-
-      <Dialog
+      <RecordInspectorShell
         open={Boolean(runtime.selectedRecordId)}
+        inspectorTriggerRect={runtime.selectedRecordTriggerRect}
+        inspectorTriggerRef={runtime.selectedRecordTriggerRef}
+        prefersReducedMotion={prefersReducedMotion}
         onClose={runtime.closeRecord}
-        triggerRef={runtime.selectedRecordTriggerRef}
-        layoutId={dialogLayoutIds.myHubRecordInspector}
-        motionVariant="fold-sheet"
-        title="Record Inspector"
-        description="Review the selected item without leaving Home."
       >
         {runtime.selectedRecordLoading ? <p className="text-sm text-muted">Loading record...</p> : null}
         {runtime.selectedRecordError ? (
@@ -82,7 +65,7 @@ export const HomeRecordInspectorDialog = ({ runtime }: HomeRecordInspectorDialog
             </section>
           </div>
         ) : null}
-      </Dialog>
+      </RecordInspectorShell>
     </>
   );
 };

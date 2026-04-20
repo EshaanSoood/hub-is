@@ -23,6 +23,7 @@ export const SurfaceItem = ({
 }: SurfaceItemProps) => (
   <button
     type="button"
+    data-home-launcher={id}
     data-sidebar-surface={id}
     aria-current={active ? 'page' : undefined}
     aria-label={isCollapsed ? label : undefined}

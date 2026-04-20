@@ -248,36 +248,37 @@ vi.mock('../components/primitives', async () => {
   const actual = await vi.importActual<typeof import('../components/primitives')>('../components/primitives');
   return {
     ...actual,
-    Dialog: ({
-      open,
-      onClose,
-      triggerRef,
-      title,
-      children,
-    }: PropsWithChildren<{
-      open: boolean;
-      onClose: () => void;
-      triggerRef?: React.RefObject<HTMLElement | null>;
-      title: string;
-    }>) => (
-      open ? (
-        <div role="dialog" aria-label={title}>
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              triggerRef?.current?.focus();
-            }}
-          >
-            Close dialog
-          </button>
-          {children}
-        </div>
-      ) : null
-    ),
     LiveRegion: ({ message }: { message: string }) => <div data-testid="live-region">{message}</div>,
   };
 });
+
+vi.mock('../components/project-space/record-inspector/RecordInspectorShell', () => ({
+  RecordInspectorShell: ({
+    open,
+    onClose,
+    inspectorTriggerRef,
+    children,
+  }: PropsWithChildren<{
+    open: boolean;
+    onClose: () => void;
+    inspectorTriggerRef: React.RefObject<HTMLElement | null>;
+  }>) => (
+    open ? (
+      <div role="dialog" aria-label="Record Inspector">
+        <button
+          type="button"
+          onClick={() => {
+            onClose();
+            inspectorTriggerRef.current?.focus();
+          }}
+        >
+          Close dialog
+        </button>
+        {children}
+      </div>
+    ) : null
+  ),
+}));
 
 vi.mock('../components/Sidebar/WorkspaceHeader', () => ({
   WorkspaceHeader: ({ onOpenHome }: { onOpenHome: () => void }) => (
