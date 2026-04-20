@@ -23,11 +23,11 @@ const CountPill = ({
   label: string;
 }) => (
   <span
-    className="inline-flex items-center gap-1.5 rounded-control border border-border-muted bg-surface-elevated px-2.5 py-1 text-xs font-medium text-text"
+    className="ghost-button inline-flex items-center gap-2 bg-surface-highest px-3 py-1 text-xs font-semibold text-text"
     role="img"
     aria-label={`${count} ${label}`}
   >
-    <Icon name={iconName} className="shrink-0" />
+    <Icon name={iconName} size={14} weight="bold" className="shrink-0" />
     <span aria-hidden="true">{count}</span>
   </span>
 );
@@ -56,7 +56,7 @@ export const ContextBar = ({
   const backlogNoun = nounForCount(backlogCount, 'item', 'items');
 
   return (
-    <div className={`rounded-panel border border-border-muted bg-surface px-3 py-3 ${className ?? ''}`}>
+    <div className={`rounded-panel bg-surface-low px-3 py-3 shadow-soft ${className ?? ''}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           <Select

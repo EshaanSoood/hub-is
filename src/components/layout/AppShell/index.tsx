@@ -50,7 +50,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const routeTransitionKey = location.pathname;
 
   return (
-    <div className="flex h-screen bg-surface text-text">
+    <div className="flex h-screen bg-bg text-text">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[200] focus:rounded-control focus:bg-surface-elevated focus:px-md focus:py-sm focus:text-text focus:ring-2 focus:ring-focus-ring"
@@ -60,7 +60,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
       <SidebarShell />
 
-      <main id="main-content" className="min-w-0 flex-1 overflow-y-auto bg-surface-elevated">
+      <main id="main-content" className="min-w-0 flex-1 overflow-y-auto bg-bg">
         <LayoutGroup id="hub-route-layout">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div

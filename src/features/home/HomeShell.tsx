@@ -64,11 +64,11 @@ export const HomeShell = ({
 
   return (
     <div className="relative space-y-4">
-      <header className="rounded-panel border border-subtle bg-elevated p-4">
+      <header className="section-scored rounded-panel bg-surface-container p-4">
         <div className="space-y-2">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
-              <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold text-text focus:outline-none">
+              <h1 ref={headingRef} tabIndex={-1} className="heading-2 text-text focus:outline-none">
                 {identity.label}
               </h1>
             </div>
@@ -82,8 +82,8 @@ export const HomeShell = ({
                     data-home-launcher={tab}
                     onClick={() => onSelectTab(tab)}
                     aria-current={selected ? 'page' : undefined}
-                    className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                      selected ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
+                    className={`interactive rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                      selected ? 'interactive-fold cta-primary text-on-primary' : 'bg-surface-low text-secondary hover:bg-surface hover:text-secondary-strong'
                     }`}
                   >
                     {homeTabLabels[tab]}

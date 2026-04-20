@@ -144,7 +144,7 @@ export const SearchButton = ({
       <button
         type="button"
         aria-label="Open search"
-        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle sidebar-row sidebar-row-button h-10 w-10 justify-center bg-surface text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onOpenSearch}
       >
         <Icon name="search" size={16} />
@@ -157,12 +157,12 @@ export const SearchButton = ({
       {!isActive ? (
         <button
           type="button"
-          className="interactive interactive-subtle interactive-fold flex w-full items-center gap-3 rounded-panel border border-subtle bg-surface px-3 py-2 text-left text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          className="interactive interactive-subtle interactive-fold sidebar-row sidebar-row-button w-full bg-surface text-left text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           onClick={focusSearchInput}
         >
           <span
             aria-hidden="true"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-low text-text-secondary"
           >
             <Icon name="search" size={16} />
           </span>
@@ -170,17 +170,17 @@ export const SearchButton = ({
             <span className="flex min-h-8 items-center truncate text-sm font-medium leading-none">Search</span>
           </SidebarLabel>
           <SidebarLabel show={showLabels}>
-            <span className="text-label-sm tracking-sidebar-kicker rounded-control border border-subtle bg-surface px-2 py-1 uppercase leading-none text-muted">
+            <span className="ghost-button text-label-sm tracking-sidebar-kicker bg-surface-low px-2 py-1 uppercase leading-none text-muted">
               ⌘K
             </span>
           </SidebarLabel>
         </button>
       ) : (
-        <div className="rounded-panel border border-subtle bg-surface px-3 py-2">
+        <div className="sidebar-row-button rounded-panel bg-surface px-3 py-2 shadow-soft">
           <div className="flex items-center gap-2">
             <span
               aria-hidden="true"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-low text-text-secondary"
             >
               <Icon name="search" size={16} />
             </span>
@@ -237,7 +237,7 @@ export const SearchButton = ({
               <button
                 type="button"
                 aria-label="Close search"
-                className="interactive interactive-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                className="interactive interactive-subtle ghost-button flex h-8 w-8 shrink-0 items-center justify-center bg-surface-low text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 onClick={closeSearch}
               >
                 <Icon name="close" size={14} />

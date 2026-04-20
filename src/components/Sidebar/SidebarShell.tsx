@@ -213,7 +213,7 @@ export const SidebarShell = () => {
         animate={resolvedVisualCollapsed ? 'collapsed' : 'expanded'}
         variants={sidebarShellVariants(prefersReducedMotion)}
         className={cn(
-          'flex h-screen shrink-0 flex-col overflow-hidden border-r border-border-muted bg-surface px-2 py-3',
+          'sidebar-fold flex h-screen shrink-0 flex-col overflow-hidden px-2 py-3',
           resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-2',
         )}
       >

@@ -313,7 +313,13 @@ export const OverviewView = ({
         <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as OverviewViewId)}>
           <TabsList aria-label="Overview sub-views">
             {overviewViews.map((view) => (
-              <TabButton key={view.id} id={`overview-view-${view.id}`} value={view.id} aria-controls={`overview-panel-${view.id}`}>
+              <TabButton
+                key={view.id}
+                id={`overview-view-${view.id}`}
+                value={view.id}
+                aria-controls={`overview-panel-${view.id}`}
+                selected={activeView === view.id}
+              >
                 {view.label}
               </TabButton>
             ))}

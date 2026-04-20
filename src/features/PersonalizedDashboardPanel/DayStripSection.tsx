@@ -144,7 +144,7 @@ export const DayStripSection = ({
   return (
     <section
       aria-labelledby="daily-brief-heading"
-      className={`mt-4 rounded-panel border border-border-muted bg-surface p-4 ${
+      className={`section-scored mt-4 rounded-panel bg-surface p-4 shadow-soft ${
         briefState === 'true-zero' ? 'min-h-[var(--daily-brief-collapsed-height)]' : ''
       }`}
       data-daily-brief-state={briefState}

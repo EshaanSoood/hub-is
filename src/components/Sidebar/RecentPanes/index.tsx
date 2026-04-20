@@ -109,7 +109,7 @@ export const RecentPanes = ({
       <button
         type="button"
         aria-label="Open recent panes"
-        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control bg-surface-container text-text-secondary hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onExpandSidebar}
       >
         <Icon name="timeline" size={16} />
@@ -122,7 +122,7 @@ export const RecentPanes = ({
   }
 
   return (
-    <section aria-label="Recent panes" className="rounded-panel border border-subtle bg-surface px-2 py-2">
+    <section aria-label="Recent panes" className="rounded-panel bg-surface-container px-2 py-2 shadow-soft">
       <SidebarLabel show={showLabels}>
         <div className="space-y-1">
           {recentPanes.map((entry) => (

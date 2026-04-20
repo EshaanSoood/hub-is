@@ -25,7 +25,7 @@ export const WorkspaceHeader = ({
       <button
         type="button"
         aria-label="Open Home"
-        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle sidebar-row sidebar-row-button h-10 w-10 justify-center bg-surface text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onOpenHome}
       >
         <Icon name="home" size={16} />
@@ -38,12 +38,12 @@ export const WorkspaceHeader = ({
       <Link
         to="/projects"
         draggable={false}
-        className="interactive interactive-subtle interactive-fold flex min-w-0 flex-1 items-center gap-3 rounded-panel border border-subtle bg-elevated px-3 py-2 text-text hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle interactive-fold sidebar-row sidebar-row-button min-w-0 flex-1 bg-surface text-text hover:bg-surface-highest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onDragStart={preventNativeDrag}
       >
         <span
           aria-hidden="true"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-surface text-text"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-low text-text"
         >
           <Icon name="home" size={16} />
         </span>
@@ -55,7 +55,7 @@ export const WorkspaceHeader = ({
       <button
         type="button"
         aria-label="Collapse sidebar"
-        className="interactive interactive-subtle flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle sidebar-row sidebar-row-button h-10 w-10 shrink-0 justify-center bg-surface text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onCollapseSidebar}
       >
         <Icon name="back" size={16} />

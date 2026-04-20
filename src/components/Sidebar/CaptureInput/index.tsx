@@ -382,7 +382,7 @@ export const CaptureInput = ({
       <button
         type="button"
         aria-label="Open capture"
-        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle sidebar-row sidebar-row-button h-10 w-10 justify-center bg-surface text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onOpenCapture}
       >
         <Icon name="edit" size={16} />
@@ -396,7 +396,7 @@ export const CaptureInput = ({
         initial={false}
         animate={isFocused || dialogOpen ? 'focused' : 'rest'}
         variants={sidebarCaptureFocusVariants(prefersReducedMotion)}
-        className="relative rounded-panel border border-subtle bg-surface px-3 py-2"
+        className="sidebar-row-button relative rounded-panel bg-surface px-3 py-2"
         onFocusCapture={() => setIsFocused(true)}
         onBlurCapture={() => {
           requestAnimationFrame(() => {
@@ -408,13 +408,13 @@ export const CaptureInput = ({
           <motion.div
             aria-hidden="true"
             layoutId={prefersReducedMotion ? undefined : sidebarMotionLayoutIds.captureSurface}
-            className="pointer-events-none absolute inset-0 rounded-panel border border-subtle bg-surface"
+            className="sidebar-row-button pointer-events-none absolute inset-0 rounded-panel bg-surface"
           />
         ) : null}
         <div className="relative z-[1] flex items-center gap-2">
           <span
             aria-hidden="true"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-low text-text-secondary"
           >
             <Icon name="edit" size={16} />
           </span>
@@ -451,7 +451,7 @@ export const CaptureInput = ({
               type="button"
               disabled={isSubmitting}
               aria-label="Open capture confirmation"
-              className="interactive interactive-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-subtle bg-elevated text-text-secondary hover:bg-surface-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="interactive interactive-subtle ghost-button flex h-8 w-8 shrink-0 items-center justify-center bg-surface-low text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onMouseEnter={() => {
                 void importCaptureDialog();
               }}

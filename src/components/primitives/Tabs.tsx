@@ -11,13 +11,13 @@ import {
 type TabsVariant = 'standard' | 'compact';
 
 const tabsListClass: Record<TabsVariant, string> = {
-  standard: 'gap-2',
-  compact: 'gap-1',
+  standard: 'gap-2 rounded-panel bg-surface-low p-1',
+  compact: 'gap-1 rounded-panel bg-surface-low p-1',
 };
 
 const tabButtonClass: Record<TabsVariant, string> = {
-  standard: 'rounded-panel border border-subtle px-3 py-2 text-sm font-semibold',
-  compact: 'rounded-control border border-subtle px-2 py-1 text-xs font-semibold',
+  standard: 'rounded-panel px-3 py-2 text-sm font-semibold transition-[background-color,color,box-shadow]',
+  compact: 'rounded-control px-2 py-1 text-xs font-semibold transition-[background-color,color,box-shadow]',
 };
 
 export const Tabs = TabsRoot;
@@ -57,8 +57,8 @@ export const TabButton = forwardRef<React.ElementRef<typeof TabsTrigger>, TabBut
       ref={ref}
       className={cn(
         tabButtonClass[variant],
-        selected && 'border-secondary/40 bg-secondary text-on-secondary',
-        'data-[state=inactive]:border-secondary/30 data-[state=inactive]:bg-surface data-[state=inactive]:text-secondary data-[state=inactive]:hover:border-secondary/45 data-[state=inactive]:hover:bg-secondary/10 data-[state=inactive]:hover:text-secondary-strong data-[state=active]:border-secondary/40 data-[state=active]:bg-secondary data-[state=active]:text-on-secondary',
+        selected && 'cta-primary text-on-primary',
+        'data-[state=inactive]:bg-surface data-[state=inactive]:text-secondary data-[state=inactive]:hover:bg-surface-container data-[state=inactive]:hover:text-secondary-strong data-[state=active]:cta-primary data-[state=active]:text-on-primary',
         className,
       )}
       {...props}

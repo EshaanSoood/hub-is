@@ -215,7 +215,7 @@ export const ProjectsTree = ({
       <button
         type="button"
         aria-label="Open projects"
-        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control bg-surface-container text-text-secondary hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onExpandSidebar}
       >
         <Icon name="project-list" size={16} />
@@ -224,24 +224,26 @@ export const ProjectsTree = ({
   }
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-panel border border-subtle bg-surface px-2 py-2">
+    <section className="sidebar-divider flex min-h-0 flex-1 flex-col overflow-hidden px-2 py-2">
       <button
         type="button"
         aria-expanded={sectionExpanded}
-        className="interactive interactive-subtle flex w-full items-center gap-2 rounded-control px-2 py-2 text-left text-sm font-semibold text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle sidebar-row w-full justify-between px-2 py-2 text-left text-sm font-semibold text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={() => setSectionExpanded((current) => !current)}
       >
-        <motion.span
-          initial={false}
-          animate={sectionExpanded ? 'expanded' : 'collapsed'}
-          variants={sidebarChevronVariants(prefersReducedMotion)}
-          className="flex shrink-0"
-        >
-          <Icon name="chevron-down" size={14} />
-        </motion.span>
-        <SidebarLabel show={showLabels}>
-          <span>Projects</span>
-        </SidebarLabel>
+        <span className="flex min-w-0 items-center gap-2">
+          <motion.span
+            initial={false}
+            animate={sectionExpanded ? 'expanded' : 'collapsed'}
+            variants={sidebarChevronVariants(prefersReducedMotion)}
+            className="flex shrink-0"
+          >
+            <Icon name="chevron-down" size={14} />
+          </motion.span>
+          <SidebarLabel show={showLabels}>
+            <span>Projects</span>
+          </SidebarLabel>
+        </span>
       </button>
 
       <AnimatePresence initial={false}>

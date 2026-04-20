@@ -593,7 +593,7 @@ export const CaptureDialog = ({
               <button
                 type="button"
                 disabled={submitting}
-                className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className="interactive interactive-fold cta-primary px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => {
                   void submitCapture();
                 }}

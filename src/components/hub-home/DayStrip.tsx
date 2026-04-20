@@ -552,9 +552,9 @@ export const DayStrip = ({
   };
 
   return (
-    <div className={`rounded-panel border border-border-muted bg-[color:var(--color-surface)] p-2 [box-shadow:inset_0_0_12px_2px_rgb(38_48_64_/_0.5)] ${className ?? ''}`}>
+    <div className={`rounded-panel bg-surface-container p-2 shadow-soft ${className ?? ''}`}>
       {!showTimeline ? (
-        <div className="flex h-20 items-center justify-center rounded-control border border-border-muted bg-surface-elevated px-4 text-center">
+        <div className="paper-well flex h-20 items-center justify-center px-4 text-center">
           <p className="text-[15px] italic text-text-secondary">
             The day is your oyster. Or carrot. Or something… — Shakespeare
           </p>
@@ -584,10 +584,10 @@ export const DayStrip = ({
             onDrop={handleDrop}
           >
             <div
-              className={`absolute inset-x-0 top-10 h-12 rounded-control border bg-surface-elevated/70 transition-colors ${
+              className={`absolute inset-x-0 top-10 h-12 rounded-control bg-surface-highest/90 transition-colors ${
                 dragOver
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border-muted'
+                  ? 'ghost-button bg-primary/10'
+                  : 'ghost-button'
               }`}
             />
             <div className="absolute bottom-7 left-0 right-0 border-t border-border-muted" />
@@ -657,7 +657,7 @@ export const DayStrip = ({
                         {active ? (
                           <>
                             <span aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-primary" />
-                            <span className="absolute -top-7 left-1/2 -translate-x-1/2 rounded-control border border-border-muted bg-surface px-2 py-0.5 text-[11px] text-text">
+                            <span className="ghost-button absolute -top-7 left-1/2 -translate-x-1/2 bg-surface px-2 py-0.5 text-[11px] text-text">
                               {slot.label}
                             </span>
                           </>

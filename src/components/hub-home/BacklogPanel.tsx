@@ -76,22 +76,22 @@ const defaultReminderSnoozeValue = (): string => {
 };
 
 const actionButtonClassName =
-  'rounded-control border border-border-muted px-2 py-1 text-xs text-text disabled:cursor-not-allowed disabled:opacity-60';
+  'ghost-button bg-surface px-2 py-1 text-xs text-text transition-colors hover:bg-surface-highest disabled:cursor-not-allowed disabled:opacity-60';
 
 const priorityClassName = (priority: BacklogTaskItem['priority']): string => {
   if (priority === 'urgent') {
-    return 'border-danger/40 bg-danger/10 text-danger';
+    return 'facet-chip facet-persimmon';
   }
   if (priority === 'high') {
-    return 'border-warning-subtle bg-warning-subtle text-text';
+    return 'facet-chip facet-persimmon';
   }
   if (priority === 'medium') {
-    return 'border-info-subtle bg-info-subtle text-text';
+    return 'facet-chip facet-ochre';
   }
   if (priority === 'low') {
-    return 'border-success-subtle bg-success-subtle text-text';
+    return 'facet-chip facet-moss';
   }
-  return 'border-border-muted bg-surface-elevated text-muted';
+  return 'facet-chip ghost-button bg-surface-low text-text-secondary';
 };
 
 const readStoredBacklogCollapsed = (): boolean | null => {
@@ -330,7 +330,7 @@ export const BacklogPanel = ({
   return (
     <section
       aria-labelledby="backlog-heading"
-      className={`rounded-panel border border-border-muted bg-surface p-3 ${className ?? ''}`}
+      className={`section-scored rounded-panel bg-surface-low p-3 shadow-soft ${className ?? ''}`}
       data-testid="daily-brief-backlog"
     >
       {dragToTimelineEnabled ? (
@@ -382,7 +382,7 @@ export const BacklogPanel = ({
                 const showAssignTime = item.groupLabel === 'Unscheduled task' && assignTimeOpenId === task.recordId;
 
                 return (
-                  <li key={item.id} className="rounded-control border border-border-muted bg-surface-elevated p-3">
+                  <li key={item.id} className="paper-card p-3">
                     <button
                       ref={(node) => {
                         itemRefs.current[item.id] = node;
@@ -420,10 +420,10 @@ export const BacklogPanel = ({
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-control border border-border-muted bg-surface px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+                            <span className="ghost-button bg-surface px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
                               {item.groupLabel}
                             </span>
-                            <span className={`rounded-control border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${priorityClassName(task.priority)}`}>
+                            <span className={`uppercase tracking-wide ${priorityClassName(task.priority)}`}>
                               {task.priority || 'none'}
                             </span>
                           </div>
@@ -495,7 +495,7 @@ export const BacklogPanel = ({
                             const value = event.target.value;
                             setRescheduleDrafts((current) => ({ ...current, [task.recordId]: value }));
                           }}
-                          className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text"
+                          className="ghost-button bg-surface px-2 py-1 text-xs text-text"
                         />
                         <button
                           type="button"
@@ -526,7 +526,7 @@ export const BacklogPanel = ({
                             const value = event.target.value;
                             setAssignTimeDrafts((current) => ({ ...current, [task.recordId]: value }));
                           }}
-                          className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text"
+                          className="ghost-button bg-surface px-2 py-1 text-xs text-text"
                         />
                         <button
                           type="button"
@@ -561,7 +561,7 @@ export const BacklogPanel = ({
               const nextIso = fromDateTimeLocalValue(draft);
 
               return (
-                <li key={item.id} className="rounded-control border border-border-muted bg-surface-elevated p-3">
+                <li key={item.id} className="paper-card p-3">
                   <button
                     ref={(node) => {
                       itemRefs.current[item.id] = node;
@@ -597,7 +597,7 @@ export const BacklogPanel = ({
                     }`}
                   >
                     <div className="min-w-0">
-                      <span className="rounded-control border border-border-muted bg-surface px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+                      <span className="ghost-button bg-surface px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
                         {item.groupLabel}
                       </span>
                       <p className="mt-2 truncate text-sm font-medium text-text">{reminder.title}</p>
@@ -644,7 +644,7 @@ export const BacklogPanel = ({
                           const value = event.target.value;
                           setReminderSnoozeDrafts((current) => ({ ...current, [reminder.reminderId]: value }));
                         }}
-                        className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs text-text"
+                        className="ghost-button bg-surface px-2 py-1 text-xs text-text"
                       />
                       <button
                         type="button"

@@ -3,8 +3,8 @@ import { cn } from '../../lib/cn';
 type CardVariant = 'surface' | 'elevated';
 
 const cardClasses: Record<CardVariant, string> = {
-  surface: 'bg-surface',
-  elevated: 'bg-elevated',
+  surface: 'bg-surface-low',
+  elevated: 'bg-surface-container',
 };
 
 export const Card = ({
@@ -16,7 +16,7 @@ export const Card = ({
 }: React.HTMLAttributes<HTMLElement> & { variant?: CardVariant; as?: 'section' | 'article' | 'header' | 'div' }) => (
   <Component
     {...props}
-    className={cn('rounded-panel border border-subtle p-4 shadow-soft', cardClasses[variant], className)}
+    className={cn('rounded-panel p-4 shadow-soft', cardClasses[variant], className)}
   >
     {children}
   </Component>

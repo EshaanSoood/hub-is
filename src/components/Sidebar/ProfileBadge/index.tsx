@@ -76,7 +76,7 @@ export const ProfileBadge = ({
       <button
         type="button"
         aria-label="Open profile menu"
-        className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control border border-subtle bg-surface text-text-secondary hover:bg-elevated hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="ghost-button interactive interactive-subtle flex h-10 w-10 items-center justify-center bg-surface text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onOpenProfile}
       >
         <Icon name="user" size={16} />
@@ -85,7 +85,7 @@ export const ProfileBadge = ({
   }
 
   return (
-    <div ref={containerRef} className="relative z-[1] rounded-panel border border-subtle bg-elevated pl-4 pr-3 py-3">
+    <div ref={containerRef} className="paper-card relative z-[1] px-4 py-3">
       {menuOpen ? (
         <ProfileMenu
           id={menuId}
@@ -96,7 +96,7 @@ export const ProfileBadge = ({
       <div className="flex items-center gap-3">
         <span
           aria-hidden="true"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-subtle bg-surface text-sm font-semibold text-text"
+          className="paper-well flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-highest text-sm font-semibold text-text"
         >
           {initials}
         </span>
@@ -111,7 +111,7 @@ export const ProfileBadge = ({
               aria-controls={menuOpen ? menuId : undefined}
               aria-expanded={menuOpen}
               aria-haspopup="menu"
-              className="interactive interactive-subtle mt-1 inline-flex items-center gap-1 rounded-control px-2 py-1 text-xs font-medium text-text-secondary hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="ghost-button interactive interactive-subtle mt-1 inline-flex items-center gap-1.5 bg-surface px-2.5 py-1 text-xs font-semibold text-text hover:bg-surface-highest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onClick={() => setMenuOpen((current) => !current)}
             >
               <span>Menu</span>
@@ -120,7 +120,7 @@ export const ProfileBadge = ({
                 animate={menuOpen ? 'expanded' : 'collapsed'}
                 variants={sidebarChevronVariants(prefersReducedMotion)}
               >
-                <Icon name="chevron-down" size={12} />
+                <Icon name="chevron-down" size={14} weight="bold" />
               </motion.span>
             </button>
           </SidebarLabel>

@@ -166,16 +166,22 @@ export const HomeOverviewSurface = ({
 
   return (
     <section className="space-y-4">
-      <header className="rounded-panel border border-subtle bg-elevated p-4">
+      <header className="section-scored rounded-panel bg-surface-container p-4">
         <p className="text-sm font-semibold text-text">{projectName}</p>
-        <h2 className="mt-1 text-lg font-semibold text-text">Overview</h2>
+        <h2 className="heading-3 mt-1 text-text">Overview</h2>
       </header>
 
       <Card className="p-4">
         <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as HomeOverviewViewId)}>
           <TabsList aria-label="Home overview subviews">
             {overviewViews.map((view) => (
-              <TabButton key={view.id} id={`home-overview-view-${view.id}`} value={view.id} aria-controls={`home-overview-panel-${view.id}`}>
+              <TabButton
+                key={view.id}
+                id={`home-overview-view-${view.id}`}
+                value={view.id}
+                aria-controls={`home-overview-panel-${view.id}`}
+                selected={activeView === view.id}
+              >
                 {view.label}
               </TabButton>
             ))}
@@ -217,7 +223,7 @@ export const HomeOverviewSurface = ({
               <motion.button
                 layoutId={!prefersReducedMotion && taskCreateOpen ? dialogLayoutIds.taskCreate : undefined}
                 type="button"
-                className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className="interactive interactive-fold cta-primary px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => {
                   const rememberedParent = lastSubtaskParentRef.current;
                   if (rememberedParent && Date.now() - rememberedParent.at < 300000) {

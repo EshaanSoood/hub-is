@@ -93,7 +93,7 @@ export const HomeDashboardSurface = ({
               type="button"
               data-home-launcher="thoughts"
               onClick={onOpenQuickThoughts}
-              className="inline-flex items-center gap-2 rounded-control border border-border-muted bg-surface px-3 py-2 text-sm font-medium text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="ghost-button inline-flex items-center gap-2 bg-surface px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-highest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               <Icon name="thought-pile" className="text-sm" />
               <span>Quick thoughts</span>
@@ -120,7 +120,7 @@ export const HomeDashboardSurface = ({
         <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} title="Lenses" />
       ) : null}
       {activeContentView === 'stream' ? (
-        <section className="space-y-4 rounded-panel border border-subtle bg-elevated p-4">
+        <section className="section-scored space-y-4 rounded-panel bg-elevated p-4 shadow-soft">
           <div className="space-y-1">
             <h2 className="text-lg font-semibold text-text">Stream</h2>
             <p className="text-sm text-muted">Review active tasks and events across Home without leaving your personal project.</p>

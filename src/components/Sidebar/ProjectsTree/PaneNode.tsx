@@ -38,10 +38,10 @@ export const PaneNode = ({
       <button
         type="button"
         aria-current={active ? 'page' : undefined}
-        className={`interactive interactive-subtle relative flex w-full items-center overflow-hidden rounded-control px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+        className={`interactive interactive-subtle sidebar-row relative w-full overflow-hidden text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
           active
-            ? 'border border-subtle text-text'
-            : 'border border-transparent text-text-secondary hover:bg-surface hover:text-text'
+            ? 'sidebar-row-button sidebar-row-active'
+            : 'sidebar-row-button text-text-secondary hover:bg-surface-highest hover:text-text'
         } ${isDragging ? 'shadow-soft' : ''} ${isDragging && !prefersReducedMotion ? 'scale-[1.02]' : ''}`}
         onClick={onClick}
       >

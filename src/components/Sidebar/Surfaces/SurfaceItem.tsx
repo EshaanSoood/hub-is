@@ -27,10 +27,10 @@ export const SurfaceItem = ({
     data-sidebar-surface={id}
     aria-current={active ? 'page' : undefined}
     aria-label={isCollapsed ? label : undefined}
-    className={`interactive interactive-subtle relative flex items-center gap-3 overflow-hidden rounded-control border px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+    className={`interactive interactive-subtle sidebar-row relative overflow-hidden text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
       active
-        ? 'border-subtle text-text'
-        : 'border-transparent bg-transparent text-text-secondary hover:border-subtle hover:bg-surface hover:text-text'
+        ? 'sidebar-row-button sidebar-row-active'
+        : 'sidebar-row-button text-text-secondary hover:bg-surface-highest hover:text-text'
     } ${isCollapsed ? 'h-10 w-10 justify-center px-0 py-0' : 'w-full'}`}
     onClick={onClick}
   >

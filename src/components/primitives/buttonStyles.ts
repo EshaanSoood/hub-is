@@ -10,12 +10,12 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'interactive interactive-fold border border-subtle bg-accent text-on-primary hover:bg-primary-strong active:bg-primary-strong',
+  primary: 'interactive interactive-fold cta-primary',
   secondary:
-    'border border-secondary/30 bg-surface text-secondary hover:border-secondary/45 hover:bg-secondary/10 hover:text-secondary-strong active:bg-secondary/15',
+    'bg-surface-low text-secondary hover:bg-surface-container hover:text-secondary-strong active:bg-surface-container',
   ghost:
-    'border border-transparent bg-transparent text-secondary hover:bg-secondary/10 hover:text-secondary-strong active:bg-secondary/15',
-  danger: 'border border-danger bg-danger text-on-primary hover:bg-danger-subtle hover:text-danger active:bg-danger-subtle',
+    'bg-transparent text-secondary hover:bg-surface-low hover:text-secondary-strong active:bg-surface-low',
+  danger: 'interactive interactive-fold bg-danger text-on-primary hover:bg-danger active:bg-danger',
 };
 
 export const buttonBaseClass =
