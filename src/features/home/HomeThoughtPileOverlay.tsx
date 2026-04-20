@@ -34,7 +34,7 @@ export const HomeThoughtPileOverlay = ({
       title="Quick thoughts"
       description="Capture a quick thought, task, reminder, or calendar item."
       onClose={() => onClose()}
-      panelClassName="max-w-5xl"
+      panelClassName="dialog-panel-wide-size"
     >
       <QuickCapturePanel
         accessToken={accessToken ?? null}

@@ -9,6 +9,7 @@ import {
   parseHomeContentViewId,
   parseHomeOverlayId,
   parseHomeOverviewViewId,
+  parseHomePaneId,
   parseHomeTabId,
   type HomeContentViewId,
   type HomeTabId,
@@ -81,6 +82,12 @@ export const SidebarShell = () => {
       return 'timeline';
     }
     return parseHomeOverviewViewId(new URLSearchParams(location.search).get('overview'));
+  }, [isOnHome, location.search]);
+  const currentHomePaneId = useMemo(() => {
+    if (!isOnHome) {
+      return null;
+    }
+    return parseHomePaneId(new URLSearchParams(location.search).get('pane'));
   }, [isOnHome, location.search]);
   const currentSurface = useMemo<SidebarSurfaceId | null>(() => {
     if (!isOnHome) {
@@ -186,10 +193,10 @@ export const SidebarShell = () => {
       tab: currentHomeTab,
       content: currentHomeContentView,
       overview: currentHomeOverviewView,
-      paneId: currentHomeTab === 'work' ? currentPaneId : null,
+      paneId: currentHomeTab === 'work' ? (currentHomePaneId ?? currentPaneId) : null,
       pinned: new URLSearchParams(location.search).get('pinned') === '1',
     }));
-  }, [currentHomeContentView, currentHomeOverviewView, currentHomeTab, currentPaneId, expandSidebar, location.search, navigate]);
+  }, [currentHomeContentView, currentHomeOverviewView, currentHomePaneId, currentHomeTab, currentPaneId, expandSidebar, location.search, navigate]);
 
   const onSelectHomeContentView = useCallback((viewId: HomeContentViewId) => {
     expandSidebar();

@@ -92,6 +92,7 @@
   --dialog-panel-wide-max-w: 64rem;
   --dialog-panel-expanded-max-w: 96rem;
   --alert-dialog-panel-max-w: 36rem;
+  --home-overview-calendar-panel-min-h: 32rem;
   --sidebar-width-expanded: 15.5rem;
   --sidebar-width-collapsed: 3.5rem;
   --sidebar-collapse-duration: 180ms;
@@ -320,6 +321,10 @@
   width: min(calc(100vw - (var(--dialog-panel-inline-gap) * 2)), var(--alert-dialog-panel-max-w));
   min-width: min(var(--dialog-panel-min-w), calc(100vw - (var(--dialog-panel-inline-gap) * 2)));
   max-width: var(--alert-dialog-panel-max-w);
+}
+
+@utility home-overview-calendar-panel-min-h {
+  min-height: var(--home-overview-calendar-panel-min-h);
 }
 
 .interactive {

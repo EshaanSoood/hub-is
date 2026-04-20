@@ -311,15 +311,19 @@ export const useHomeProjectWorkRuntime = ({
     }
     let cancelled = false;
     void (async () => {
-      await openRecordInspector(recordId);
-      if (cancelled) {
-        return;
+      try {
+        await openRecordInspector(recordId);
+      } catch {
+        // The inspector runtime owns the visible error state; still clear the stale deep link.
+      } finally {
+        if (!cancelled) {
+          setSearchParams((current) => {
+            const next = new URLSearchParams(current);
+            next.delete('record_id');
+            return next;
+          }, { replace: true });
+        }
       }
-      setSearchParams((current) => {
-        const next = new URLSearchParams(current);
-        next.delete('record_id');
-        return next;
-      }, { replace: true });
     })();
     return () => {
       cancelled = true;

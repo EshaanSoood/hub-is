@@ -19,6 +19,7 @@ export const HomeProjectNamingDialog = ({
   saving,
 }: HomeProjectNamingDialogProps) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const errorId = error ? 'home-project-name-error' : undefined;
 
   useEffect(() => {
     if (!open) {
@@ -38,7 +39,9 @@ export const HomeProjectNamingDialog = ({
       open={open}
       title="Name your Home project"
       description="Choose the name you want to use for your personal project."
-      onClose={() => {}}
+      onClose={() => {
+        // Intentional: block dismissal until the required Home name is saved.
+      }}
       panelClassName="max-w-xl"
     >
       <form
@@ -61,13 +64,15 @@ export const HomeProjectNamingDialog = ({
             type="text"
             value={projectName}
             onChange={(event) => onValueChange(event.target.value)}
+            aria-describedby={errorId}
+            aria-invalid={Boolean(error)}
             className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-base text-text"
             placeholder="Personal project"
             maxLength={120}
           />
         </div>
         {error ? (
-          <p role="alert" className="text-sm text-danger">
+          <p id={errorId} role="alert" className="text-sm text-danger">
             {error}
           </p>
         ) : null}

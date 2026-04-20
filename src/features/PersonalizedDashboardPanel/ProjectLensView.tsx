@@ -31,6 +31,7 @@ export const ProjectLensView = ({
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [hiddenSections, setHiddenSections] = useState<Record<string, boolean>>({});
   const [filterOpen, setFilterOpen] = useState(false);
+  const headingId = useId();
   const filterListId = useId();
 
   const groupedItems = useMemo(() => {
@@ -58,9 +59,9 @@ export const ProjectLensView = ({
     : `${visibleSections.length} of ${filterableSections.length} sections`;
 
   return (
-    <section aria-labelledby="project-lens-heading" className="space-y-4">
+    <section aria-labelledby={headingId} className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
-        <h2 id="project-lens-heading" className="font-serif text-base font-semibold text-text">{title}</h2>
+        <h2 id={headingId} className="font-serif text-base font-semibold text-text">{title}</h2>
         <ProjectLensFilter
           sections={filterableSections}
           hiddenSections={hiddenSections}

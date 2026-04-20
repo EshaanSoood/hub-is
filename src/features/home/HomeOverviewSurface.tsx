@@ -201,7 +201,7 @@ export const HomeOverviewSurface = ({
 
         {activeView === 'calendar' ? (
           <div id="home-overview-panel-calendar" role="tabpanel" aria-labelledby="home-overview-view-calendar" className="mt-4">
-            <div className="min-h-[32rem]">
+            <div className="home-overview-calendar-panel-min-h">
               <CalendarModuleSkin
                 sizeTier="L"
                 events={calendarEvents}

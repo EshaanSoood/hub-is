@@ -6,6 +6,7 @@ export type HomeOverviewViewId = 'timeline' | 'calendar' | 'tasks' | 'reminders'
 export type HomeOverlayId = 'thoughts';
 
 const HomeTaskRecordIdSchema = z.string().trim().min(1);
+const homeRouteParamKeys = new Set(['tab', 'content', 'overview', 'pane', 'pinned', 'surface']);
 
 export const parseHomeTabId = (value: string | null): HomeTabId =>
   value === 'work' ? 'work' : 'overview';
@@ -80,7 +81,7 @@ const buildHomeHref = ({
   }
   if (extraParams) {
     for (const [key, value] of Object.entries(extraParams)) {
-      if (typeof value === 'string' && value.length > 0) {
+      if (typeof value === 'string' && value.length > 0 && !homeRouteParamKeys.has(key) && !params.has(key)) {
         params.set(key, value);
       }
     }

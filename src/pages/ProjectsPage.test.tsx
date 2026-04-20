@@ -457,6 +457,17 @@ describe('ProjectsPage', () => {
     });
   });
 
+  it('preserves the Home work pane when Quick thoughts is opened from the sidebar', async () => {
+    const user = userEvent.setup();
+    renderProjectsPage('/projects?tab=work&pane=pane-1');
+
+    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Quick thoughts' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?tab=work&pane=pane-1&surface=thoughts');
+    });
+  });
+
   it('switches to the Home work tab without leaving /projects', async () => {
     const user = userEvent.setup();
     renderProjectsPage();

@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { InlineNotice } from '../../components/primitives';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjects } from '../../context/ProjectsContext';
+import { useDashboardMutations } from '../PersonalizedDashboardPanel/hooks/useDashboardMutations';
 import { useCalendarRuntime } from '../../hooks/useCalendarRuntime';
 import { useProjectBootstrap } from '../../hooks/useProjectBootstrap';
 import { useProjectTasksRuntime } from '../../hooks/useProjectTasksRuntime';
@@ -90,6 +91,10 @@ export const HomeProjectPage = () => {
     subscribeToLive: true,
     scope: 'project',
     projectId: homeIdentity.backingProjectId ?? undefined,
+  });
+  const homeReminderMutations = useDashboardMutations({
+    accessToken,
+    refreshReminders: projectRemindersRuntime.refresh,
   });
   const timelineRuntime = useTimelineRuntime({
     accessToken: accessToken ?? '',
@@ -219,7 +224,7 @@ export const HomeProjectPage = () => {
       calendarScope={calendarRuntime.calendarMode}
       onCalendarScopeChange={calendarRuntime.setCalendarMode}
       onCreateReminder={projectRemindersRuntime.create}
-      onDismissReminder={homeRuntime.onDismissReminder}
+      onDismissReminder={homeReminderMutations.onDismissReminder}
       onOpenRecord={openRecord}
       onRefreshTasks={() => {
         void tasksRuntime.loadProjectTaskPage();
@@ -235,7 +240,7 @@ export const HomeProjectPage = () => {
           return next;
         }, { replace: true });
       }}
-      onSnoozeReminder={homeRuntime.onSnoozeReminder}
+      onSnoozeReminder={homeReminderMutations.onSnoozeReminder}
       projectId={projectBootstrap.project.project_id}
       projectName={projectBootstrap.project.name}
       reminders={projectRemindersRuntime.reminders}

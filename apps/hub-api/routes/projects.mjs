@@ -1,5 +1,6 @@
 export const createProjectRoutes = (deps) => {
   const projectIdPattern = /^[A-Za-z0-9_-]+$/;
+  const projectNameMaxLength = 120;
   const {
     withAuth,
     withTransaction,
@@ -188,6 +189,10 @@ export const createProjectRoutes = (deps) => {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'name must be a non-empty string.')));
       return;
     }
+    if (typeof nextName === 'string' && nextName.length > projectNameMaxLength) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', `name must be ${projectNameMaxLength} characters or fewer.`)));
+      return;
+    }
 
     const position = body.position === null ? null : Number.isInteger(body.position) ? body.position : null;
     if (body.position !== undefined && body.position !== null && position === null) {
@@ -206,17 +211,21 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
-    if (nextName !== undefined) {
-      updateProjectNameStmt.run(nextName, nowIso(), projectId);
-    }
+    let project = existingProject;
+    if (body.position !== undefined || nextName !== undefined) {
+      const updatedAt = nowIso();
+      withTransaction(() => {
+        if (nextName !== undefined) {
+          updateProjectNameStmt.run(nextName, updatedAt, projectId);
+        }
 
-    if (body.position !== undefined) {
-      updateProjectPositionStmt.run(position, nowIso(), projectId);
-    }
+        if (body.position !== undefined) {
+          updateProjectPositionStmt.run(position, updatedAt, projectId);
+        }
 
-    const project = body.position !== undefined || nextName !== undefined
-      ? projectForMemberStmt.get(projectId, auth.user.user_id) || existingProject
-      : existingProject;
+        project = projectForMemberStmt.get(projectId, auth.user.user_id) || existingProject;
+      });
+    }
 
     send(response, jsonResponse(200, okEnvelope({ project: projectRecord(project) })));
   };

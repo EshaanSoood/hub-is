@@ -95,7 +95,7 @@ export const HomeDashboardSurface = ({
               onClick={onOpenQuickThoughts}
               className="inline-flex items-center gap-2 rounded-control border border-border-muted bg-surface px-3 py-2 text-sm font-medium text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
-              <Icon name="thought-pile" className="text-[14px]" />
+              <Icon name="thought-pile" className="text-sm" />
               <span>Quick thoughts</span>
             </button>
           </>

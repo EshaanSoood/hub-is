@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDashboardMutations } from '../PersonalizedDashboardPanel/hooks/useDashboardMutations';
-import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { subscribeHubHomeRefresh } from '../../lib/hubHomeRefresh';
 import { getHubHome } from '../../services/hub/records';
 import { subscribeHubLive } from '../../services/hubLive';
@@ -33,15 +31,6 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
   const homeAbortControllerRef = useRef<AbortController | null>(null);
   const homeRequestIdRef = useRef(0);
   const liveRefreshHomeTimeoutRef = useRef<number | null>(null);
-  const remindersRuntime = useRemindersRuntime(null, {
-    autoload: false,
-    subscribeToHomeRefresh: false,
-    subscribeToLive: false,
-  });
-  const { onDismissReminder, onSnoozeReminder } = useDashboardMutations({
-    accessToken,
-    refreshReminders: remindersRuntime.refresh,
-  });
 
   const refreshHome = useCallback(async () => {
     homeAbortControllerRef.current?.abort();
@@ -161,10 +150,7 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
     homeError,
     homeLoading,
     homeReady,
-    onDismissReminder,
-    onSnoozeReminder,
     refreshHome,
-    remindersRuntime,
     setCalendarScope,
   };
 };
