@@ -1,7 +1,7 @@
 import { BacklinksPanel } from '../BacklinksPanel';
 import { RecordInspectorActivitySection } from './RecordInspectorActivitySection';
 import { RecordInspectorCommentsSection } from './RecordInspectorCommentsSection';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
 import type { RecordInspectorSectionProps } from './recordInspectorTypes';
 
@@ -46,7 +46,7 @@ export const RecordInspectorDiscussionSections = ({
     />
 
     <BacklinksPanel
-      backlinks={inspectorBacklinks as ComponentProps<typeof BacklinksPanel>['backlinks']}
+      backlinks={inspectorBacklinks}
       loading={inspectorBacklinksLoading}
       error={inspectorBacklinksError}
       onOpenBacklink={onOpenBacklink}

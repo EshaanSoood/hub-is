@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { getRecordDetail } from '../../services/hub/records';
 import type { HubRecordDetail } from '../../services/hub/types';
 import { subscribeHubLive } from '../../services/hubLive';
@@ -44,7 +44,18 @@ interface UseHomeRecordInspectorParams {
   accessToken: string | null | undefined;
 }
 
-export const useHomeRecordInspectorRuntime = ({ accessToken }: UseHomeRecordInspectorParams) => {
+export interface HomeRecordInspectorRuntime {
+  closeRecord: () => void;
+  openRecord: (recordId: string) => void;
+  selectedRecord: HubRecordDetail | null;
+  selectedRecordError: string | null;
+  selectedRecordId: string | null;
+  selectedRecordLoading: boolean;
+  selectedRecordTriggerRect: { top: number; left: number; width: number; height: number } | null;
+  selectedRecordTriggerRef: MutableRefObject<HTMLElement | null>;
+}
+
+export const useHomeRecordInspectorRuntime = ({ accessToken }: UseHomeRecordInspectorParams): HomeRecordInspectorRuntime => {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<HubRecordDetail | null>(null);
   const [selectedRecordLoading, setSelectedRecordLoading] = useState(false);

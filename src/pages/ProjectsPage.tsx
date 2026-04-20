@@ -41,6 +41,7 @@ export const ProjectsPage = () => {
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       next.set('view', view);
+      next.delete('surface');
       return next;
     }, { replace: true });
   }, [setSearchParams]);

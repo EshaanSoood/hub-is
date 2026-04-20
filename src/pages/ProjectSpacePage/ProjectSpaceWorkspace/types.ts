@@ -1,6 +1,5 @@
-export const PROJECT_SPACE_PRIMARY_SURFACES = ['overview', 'work'] as const;
-
-export type TopLevelProjectTab = (typeof PROJECT_SPACE_PRIMARY_SURFACES)[number];
+export { PROJECT_SPACE_PRIMARY_SURFACES } from '../../../components/project-space/types';
+export type { TopLevelProjectTab } from '../../../components/project-space/types';
 
 export type OverviewSubView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
 

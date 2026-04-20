@@ -3,10 +3,8 @@ import { RecordInspectorDiscussionSections } from './RecordInspectorDiscussionSe
 import { RecordInspectorSchemaFields } from './RecordInspectorSchemaFields';
 import { RelationsSection } from '../RelationsSection';
 import { ReminderRecordSummary, formatReminderRecurrenceLabel } from '../record-primitives/ReminderRecordSummary';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
-
-type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
 
 export const ReminderRecordInspector = ({
   inspectorRecord,
@@ -74,7 +72,7 @@ export const ReminderRecordInspector = ({
         accessToken={sharedSectionProps.accessToken}
         projectId={sharedSectionProps.projectId}
         recordId={inspectorRecord.record_id}
-        relationFields={sharedSectionProps.inspectorRelationFields as RelationsSectionProps['relationFields']}
+        relationFields={sharedSectionProps.inspectorRelationFields}
         outgoing={inspectorRecord.relations.outgoing}
         incoming={inspectorRecord.relations.incoming}
         removingRelationId={sharedSectionProps.removingRelationId}

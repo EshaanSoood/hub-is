@@ -2,10 +2,8 @@ import { RecordInspectorAttachmentsSection } from './RecordInspectorAttachmentsS
 import { RecordInspectorDiscussionSections } from './RecordInspectorDiscussionSections';
 import { RecordInspectorSchemaFields } from './RecordInspectorSchemaFields';
 import { RelationsSection } from '../RelationsSection';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
-
-type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
 
 export const GenericRecordInspector = ({
   inspectorRecord,
@@ -54,7 +52,7 @@ export const GenericRecordInspector = ({
       accessToken={sharedSectionProps.accessToken}
       projectId={sharedSectionProps.projectId}
       recordId={inspectorRecord.record_id}
-      relationFields={sharedSectionProps.inspectorRelationFields as RelationsSectionProps['relationFields']}
+      relationFields={sharedSectionProps.inspectorRelationFields}
       outgoing={inspectorRecord.relations.outgoing}
       incoming={inspectorRecord.relations.incoming}
       removingRelationId={sharedSectionProps.removingRelationId}

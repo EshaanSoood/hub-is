@@ -34,6 +34,11 @@ export const buildHomeOverlayHref = (
   options?: { view?: HomeViewId },
 ): string => buildHomeHref({ overlay, view: options?.view });
 
-export const focusHomeLauncher = (launcherId: HomeViewId | HomeOverlayId): void => {
-  document.querySelector<HTMLElement>(`[data-home-launcher="${launcherId}"]`)?.focus();
+export const focusHomeLauncher = (launcherId: HomeViewId | HomeOverlayId): boolean => {
+  const launcher = document.querySelector<HTMLElement>(`[data-home-launcher="${launcherId}"]`);
+  if (!launcher) {
+    return false;
+  }
+  launcher.focus();
+  return document.activeElement === launcher;
 };

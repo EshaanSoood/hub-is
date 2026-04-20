@@ -1,9 +1,8 @@
 import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
+import type { TopLevelProjectTab } from '../components/project-space/types';
 import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { createRecord } from '../services/hub/records';
 import type { HubCollection, HubPaneSummary } from '../services/hub/types';
-
-type TopLevelProjectTab = 'overview' | 'work';
 
 const captureTitleFromIntent = (intent: string | null): string => {
   if (intent === 'project-task') {

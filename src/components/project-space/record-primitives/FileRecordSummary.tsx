@@ -1,3 +1,4 @@
+import { cn } from '../../../lib/cn';
 import type { ReactElement } from 'react';
 
 interface FileRecordSummaryProps {
@@ -42,17 +43,15 @@ export const FileRecordSummary = ({
 
   if (presentation === 'tile') {
     return (
-      <>
+      <div className="overflow-hidden rounded-panel">
         <div
-          className="flex h-24 items-center justify-center overflow-hidden"
-          style={{
-            background: useThumbnail ? undefined : 'var(--color-surface-elevated)',
-            borderTopLeftRadius: 'var(--radius-panel)',
-            borderTopRightRadius: 'var(--radius-panel)',
-          }}
+          className={cn(
+            'flex h-24 items-center justify-center overflow-hidden',
+            !useThumbnail && 'bg-surface-elevated',
+          )}
         >
           {useThumbnail ? (
-            <img src={thumbnailUrl || undefined} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+            <img src={thumbnailUrl || undefined} alt="" className="h-full w-full object-cover" />
           ) : (
             <span className="text-[32px]" aria-hidden="true">
               {iconForExt(ext)}
@@ -63,7 +62,7 @@ export const FileRecordSummary = ({
           <span className="block truncate text-xs font-medium text-text">{name}</span>
           <span className="block text-[11px] font-normal text-text-secondary">{metaLabel}</span>
         </div>
-      </>
+      </div>
     );
   }
 

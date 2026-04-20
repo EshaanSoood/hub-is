@@ -1,4 +1,6 @@
-export type TopLevelProjectTab = 'overview' | 'work';
+export const PROJECT_SPACE_PRIMARY_SURFACES = ['overview', 'work'] as const;
+
+export type TopLevelProjectTab = (typeof PROJECT_SPACE_PRIMARY_SURFACES)[number];
 
 export type OverviewViewId = 'timeline' | 'calendar' | 'tasks' | 'kanban';
 

@@ -57,6 +57,10 @@ export const ProjectSpaceWorkspace = ({
     setTimeline,
     prefersReducedMotion,
   });
+  const primarySurfaceHandlers: Record<TopLevelProjectTab, () => void> = {
+    overview: navigatorProps.onNavigateOverview,
+    work: navigatorProps.onNavigateWork,
+  };
 
   return (
     <motion.div layoutId={projectLayoutId} className="space-y-4">
@@ -75,13 +79,12 @@ export const ProjectSpaceWorkspace = ({
             const selected = surface === 'work'
               ? navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned
               : navigatorProps.activeTab === surface;
-            const onClick = surface === 'overview' ? navigatorProps.onNavigateOverview : navigatorProps.onNavigateWork;
 
             return (
               <button
                 key={surface}
                 type="button"
-                onClick={onClick}
+                onClick={primarySurfaceHandlers[surface]}
                 className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
                   selected ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
                 }`}

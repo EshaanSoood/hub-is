@@ -179,7 +179,7 @@ export const useRecordInspector = ({
   }, [inspectorRecord]);
 
   const onSaveRecordField = useCallback(
-    async (fieldId: string, rawValue: string) => {
+    async (fieldId: string, rawValue: unknown) => {
       if (!inspectorRecord) {
         return;
       }

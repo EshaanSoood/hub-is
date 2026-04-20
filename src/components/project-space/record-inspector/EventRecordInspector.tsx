@@ -3,17 +3,18 @@ import { RecordInspectorDiscussionSections } from './RecordInspectorDiscussionSe
 import { RecordInspectorSchemaFields } from './RecordInspectorSchemaFields';
 import { RelationsSection } from '../RelationsSection';
 import { EventRecordSummary } from '../record-primitives/EventRecordSummary';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
 
-type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
-
-const formatDateTime = (value: string | null): string | null => {
+const formatDateTime = (value: string | null, timeZone?: string | null): string | null => {
   if (!value) {
     return null;
   }
   const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) ? parsed.toLocaleString() : value;
+  if (!Number.isFinite(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleString(undefined, timeZone ? { timeZone } : undefined);
 };
 
 export const EventRecordInspector = ({
@@ -37,7 +38,7 @@ export const EventRecordInspector = ({
           title={inspectorRecord.title}
           timeLabel={
             eventState
-              ? `${formatDateTime(eventState.start_dt) || 'No start'}${eventState.end_dt ? ` - ${formatDateTime(eventState.end_dt)}` : ''}`
+              ? `${formatDateTime(eventState.start_dt, eventState.timezone) || 'No start'}${eventState.end_dt ? ` - ${formatDateTime(eventState.end_dt, eventState.timezone)}` : ''}`
               : null
           }
           detailLabel={eventState?.location || null}
@@ -77,7 +78,7 @@ export const EventRecordInspector = ({
         accessToken={sharedSectionProps.accessToken}
         projectId={sharedSectionProps.projectId}
         recordId={inspectorRecord.record_id}
-        relationFields={sharedSectionProps.inspectorRelationFields as RelationsSectionProps['relationFields']}
+        relationFields={sharedSectionProps.inspectorRelationFields}
         outgoing={inspectorRecord.relations.outgoing}
         incoming={inspectorRecord.relations.incoming}
         removingRelationId={sharedSectionProps.removingRelationId}

@@ -117,9 +117,9 @@ vi.mock('../../../components/project-space/FileInspectorActionBar', () => ({
     <div>
       <span>File action bar {fileName}</span>
       <span data-testid="attachment-read-only">{readOnly ? 'read-only' : 'editable'}</span>
-      <button type="button" onClick={() => onRename?.('renamed-attachment.txt')}>Rename attachment</button>
-      <button type="button" onClick={() => onMove?.('pane-private')}>Move attachment</button>
-      <button type="button" onClick={() => onRemove?.()}>Remove attachment</button>
+      <button type="button" disabled={readOnly} onClick={() => onRename?.('renamed-attachment.txt')}>Rename attachment</button>
+      <button type="button" disabled={readOnly} onClick={() => onMove?.('pane-private')}>Move attachment</button>
+      <button type="button" disabled={readOnly} onClick={() => onRemove?.()}>Remove attachment</button>
     </div>
   ),
 }));
@@ -405,6 +405,52 @@ describe('ProjectSpaceInspectorOverlay', () => {
     }
   });
 
+  it('keeps file records on the file inspector when they also have attached reminders', () => {
+    const record = createRecord({
+      title: 'Roadmap draft',
+      collection_id: 'collection-files',
+      schema: {
+        collection_id: 'collection-files',
+        name: 'Project Files',
+        fields: [
+          { field_id: 'field-name', name: 'Filename', type: 'text', config: {}, sort_order: 1 },
+        ],
+      },
+      values: {
+        'field-name': 'Roadmap draft',
+      },
+      attachments: [
+        {
+          attachment_id: 'attachment-1',
+          provider: 'local',
+          asset_root_id: 'asset-root-1',
+          asset_path: 'Roadmap draft',
+          name: 'README',
+          mime_type: 'text/plain',
+          size_bytes: 32,
+          metadata: {},
+          proxy_url: '',
+          created_at: '2026-04-19T00:00:00.000Z',
+        },
+      ],
+      capabilities: {
+        capability_types: [],
+        task_state: null,
+        event_state: null,
+        recurrence_rule: null,
+        reminders: [{ reminder_id: 'reminder-1', remind_at: '2026-04-23T09:00:00.000Z', channels: ['in_app'], created_at: '2026-04-19T00:00:00.000Z', fired_at: null }],
+        participants: [],
+        assignments: [],
+      },
+    });
+
+    render(<ProjectSpaceInspectorOverlay {...createProps({ inspectorRecord: record, inspectorRecordId: record.record_id })} />);
+
+    expect(screen.getByText('File')).toBeInTheDocument();
+    expect(screen.queryByText('Reminder')).not.toBeInTheDocument();
+    expect(screen.getAllByText('README').length).toBeGreaterThan(0);
+  });
+
   it('renders a generic fallback record when no typed cues are available', () => {
     const record = createRecord({
       title: 'Knowledge base entry',
@@ -598,6 +644,9 @@ describe('ProjectSpaceInspectorOverlay', () => {
     expect(screen.getByLabelText('Title')).toBeDisabled();
     expect(screen.getByText('Attachments are read-only in this pane.')).toBeInTheDocument();
     expect(screen.getByTestId('attachment-read-only')).toHaveTextContent('read-only');
+    expect(screen.getByRole('button', { name: 'Rename attachment' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move attachment' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Remove attachment' })).toBeDisabled();
     expect(screen.getByTestId('relations-read-only')).toHaveTextContent('read-only');
     expect(screen.queryByRole('button', { name: 'Attach' })).not.toBeInTheDocument();
   });

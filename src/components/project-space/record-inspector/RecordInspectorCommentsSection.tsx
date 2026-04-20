@@ -4,6 +4,28 @@ import type { HubRecordDetail } from '../../../shared/api-types/records';
 
 type MentionPickerProps = ComponentProps<typeof MentionPicker>;
 
+const readCommentText = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => readCommentText(item))
+      .filter((item) => item.length > 0)
+      .join(' ')
+      .trim();
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const text = record.text;
+    if (typeof text === 'string') {
+      return text;
+    }
+    return readCommentText(record.content ?? record.children ?? record.value ?? null);
+  }
+  return '';
+};
+
 const readPlainComment = (bodyJson: unknown): string => {
   if (bodyJson == null) {
     return '';
@@ -21,6 +43,12 @@ const readPlainComment = (bodyJson: unknown): string => {
   const content = record.content;
   if (typeof content === 'string') {
     return content;
+  }
+  if (Array.isArray(content)) {
+    const plainContent = readCommentText(content);
+    if (plainContent) {
+      return plainContent;
+    }
   }
   return JSON.stringify(record);
 };

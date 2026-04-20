@@ -140,13 +140,31 @@ const thoughtPileRuntime = {
 
 const omitMotionProps = (props: Record<string, unknown>) => {
   const domProps = { ...props };
-  delete domProps.animate;
-  delete domProps.exit;
-  delete domProps.initial;
-  delete domProps.layoutId;
-  delete domProps.transition;
-  delete domProps.variants;
-  return domProps;
+  return Object.fromEntries(
+    Object.entries(domProps).filter(([key]) => {
+      if (
+        key === 'animate'
+        || key === 'custom'
+        || key === 'exit'
+        || key === 'initial'
+        || key === 'layout'
+        || key === 'layoutId'
+        || key === 'transition'
+        || key === 'variants'
+        || key === 'viewport'
+        || key === 'whileInView'
+        || key === 'onAnimationStart'
+        || key === 'onAnimationComplete'
+        || key === 'onUpdate'
+      ) {
+        return false;
+      }
+      if (key.startsWith('drag') || key.startsWith('while')) {
+        return false;
+      }
+      return true;
+    }),
+  );
 };
 
 const motionFactory = (tag: keyof HTMLElementTagNameMap) =>
@@ -429,6 +447,42 @@ describe('ProjectsPage', () => {
     expect(screen.getByText('Quick thoughts')).toBeInTheDocument();
   });
 
+  it('clears the Home overlay when switching Home views', async () => {
+    const user = userEvent.setup();
+    renderProjectsPage('/projects?view=project-lens&surface=thoughts');
+
+    expect(screen.getByText('Quick thoughts')).toBeInTheDocument();
+
+    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Stream' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=stream');
+    });
+
+    expect(screen.queryByText('Quick thoughts')).not.toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-view')).toHaveTextContent('stream');
+  });
+
+  it('restores focus to the Quick Thoughts launcher when the overlay closes', async () => {
+    const user = userEvent.setup();
+    renderProjectsPage();
+
+    const quickThoughtsTrigger = screen.getByRole('button', { name: 'Quick Thoughts' });
+    await user.click(quickThoughtsTrigger);
+    expect(screen.getByText('Quick thoughts')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Close quick thoughts' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Quick thoughts')).not.toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Quick Thoughts' })).toHaveFocus();
+    });
+  });
+
+  // TODO(home-record-inspector): Replace it.fails once task_id routing consistently opens HomeRecordInspectorDialog and clears the query contract.
   it.fails('opens the Home record inspector from the route task_id contract and clears the search param', async () => {
     renderProjectsPage('/projects?task_id=task-1');
 

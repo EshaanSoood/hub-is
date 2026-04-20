@@ -3,10 +3,13 @@ import { RecordInspectorDiscussionSections } from './RecordInspectorDiscussionSe
 import { RecordInspectorSchemaFields } from './RecordInspectorSchemaFields';
 import { RelationsSection } from '../RelationsSection';
 import { TaskRecordSummary } from '../record-primitives/TaskRecordSummary';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
 
-type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
+const TASK_RECORD_STATUSES = new Set(['todo', 'in_progress', 'done', 'cancelled']);
+
+const readTaskStatus = (status: string | null | undefined): 'todo' | 'in_progress' | 'done' | 'cancelled' =>
+  TASK_RECORD_STATUSES.has(status ?? '') ? (status as 'todo' | 'in_progress' | 'done' | 'cancelled') : 'todo';
 
 export const TaskRecordInspector = ({
   inspectorRecord,
@@ -27,7 +30,7 @@ export const TaskRecordInspector = ({
         <TaskRecordSummary
           className="mt-3"
           title={inspectorRecord.title}
-          status={(taskState?.status as 'todo' | 'in_progress' | 'done' | 'cancelled') || 'todo'}
+          status={readTaskStatus(taskState?.status)}
           dueLabel={null}
           priorityLabel={taskState?.priority || null}
           assigneeLabel={inspectorRecord.capabilities.assignments[0]?.user_id || null}
@@ -66,7 +69,7 @@ export const TaskRecordInspector = ({
         accessToken={sharedSectionProps.accessToken}
         projectId={sharedSectionProps.projectId}
         recordId={inspectorRecord.record_id}
-        relationFields={sharedSectionProps.inspectorRelationFields as RelationsSectionProps['relationFields']}
+        relationFields={sharedSectionProps.inspectorRelationFields}
         outgoing={inspectorRecord.relations.outgoing}
         incoming={inspectorRecord.relations.incoming}
         removingRelationId={sharedSectionProps.removingRelationId}

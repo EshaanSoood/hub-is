@@ -1,3 +1,1 @@
-import type { useHomeRecordInspectorRuntime } from './useHomeRecordInspectorRuntime';
-
-export type HomeRecordInspectorRuntime = ReturnType<typeof useHomeRecordInspectorRuntime>;
+export type { HomeRecordInspectorRuntime } from './useHomeRecordInspectorRuntime';

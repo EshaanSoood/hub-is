@@ -34,6 +34,17 @@ const readHomeTitle = (activeOverlay: HomeOverlayId | null) => {
   return 'Home';
 };
 
+const focusHomeFallbackTarget = (): void => {
+  const mainContent = document.getElementById('main-content');
+  if (!(mainContent instanceof HTMLElement)) {
+    return;
+  }
+  if (!mainContent.hasAttribute('tabindex')) {
+    mainContent.setAttribute('tabindex', '-1');
+  }
+  mainContent.focus();
+};
+
 export const HomeShell = ({
   accessToken,
   activeOverlay,
@@ -75,10 +86,15 @@ export const HomeShell = ({
           activeOverlay={activeOverlay}
           identity={identity}
           onClose={(options) => {
-            if (options?.restoreFocus !== false) {
-              focusHomeLauncher('thoughts');
-            }
             onClearOverlay();
+            if (options?.restoreFocus === false) {
+              return;
+            }
+            window.requestAnimationFrame(() => {
+              if (!focusHomeLauncher('thoughts')) {
+                focusHomeFallbackTarget();
+              }
+            });
           }}
           projects={projects}
         />

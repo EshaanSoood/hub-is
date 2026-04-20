@@ -3,10 +3,19 @@ import { RecordInspectorDiscussionSections } from './RecordInspectorDiscussionSe
 import { RecordInspectorSchemaFields } from './RecordInspectorSchemaFields';
 import { RelationsSection } from '../RelationsSection';
 import { FileRecordSummary } from '../record-primitives/FileRecordSummary';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
 
-type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
+const readFileExtension = (name: string | null | undefined): string => {
+  if (!name) {
+    return 'file';
+  }
+  const extensionIndex = name.lastIndexOf('.');
+  if (extensionIndex <= 0 || extensionIndex === name.length - 1) {
+    return 'file';
+  }
+  return name.slice(extensionIndex + 1);
+};
 
 export const FileRecordInspector = ({
   inspectorRecord,
@@ -27,7 +36,7 @@ export const FileRecordInspector = ({
         <div className="mt-3 rounded-panel border border-border-muted bg-surface-elevated p-3">
           <FileRecordSummary
             name={leadAttachment?.name || inspectorRecord.title}
-            ext={leadAttachment?.name.split('.').pop() || 'file'}
+            ext={readFileExtension(leadAttachment?.name)}
             metaLabel={leadAttachment ? `${leadAttachment.mime_type} · ${inspectorRecord.attachments.length} linked file(s)` : `${inspectorRecord.attachments.length} linked file(s)`}
           />
         </div>
@@ -77,7 +86,7 @@ export const FileRecordInspector = ({
         accessToken={sharedSectionProps.accessToken}
         projectId={sharedSectionProps.projectId}
         recordId={inspectorRecord.record_id}
-        relationFields={sharedSectionProps.inspectorRelationFields as RelationsSectionProps['relationFields']}
+        relationFields={sharedSectionProps.inspectorRelationFields}
         outgoing={inspectorRecord.relations.outgoing}
         incoming={inspectorRecord.relations.incoming}
         removingRelationId={sharedSectionProps.removingRelationId}

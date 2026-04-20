@@ -36,15 +36,15 @@ export const formatReminderRecurrenceLabel = (
     return null;
   }
   const interval = recurrence?.interval && recurrence.interval > 0 ? recurrence.interval : 1;
-  const unit = frequency === 'daily'
-    ? 'day'
-    : frequency === 'weekly'
-      ? 'week'
-      : frequency === 'monthly'
-        ? 'month'
-        : frequency === 'yearly'
-          ? 'year'
-          : frequency;
+  const unit = {
+    daily: 'day',
+    weekly: 'week',
+    monthly: 'month',
+    yearly: 'year',
+  }[frequency];
+  if (!unit) {
+    return null;
+  }
   return interval > 1 ? `Every ${interval} ${unit}s` : `Every ${unit}`;
 };
 

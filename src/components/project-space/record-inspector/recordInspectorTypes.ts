@@ -1,18 +1,16 @@
-import type { ComponentProps, FormEvent } from 'react';
+import type { FormEvent } from 'react';
+import type { RelationFieldOption } from '../RelationPicker';
 import type { HubBacklink, HubPaneSummary } from '../../../services/hub/types';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
-import type { RelationsSection } from '../RelationsSection';
 import type { RecordInspectorCommentsSectionProps } from './RecordInspectorCommentsSection';
-
-type RelationsSectionProps = ComponentProps<typeof RelationsSection>;
 
 export interface RecordInspectorSectionProps {
   accessToken: string;
   projectId: string;
   panes: HubPaneSummary[];
   inspectorRecord: HubRecordDetail;
-  inspectorRelationFields: unknown[];
-  inspectorBacklinks: unknown[];
+  inspectorRelationFields: RelationFieldOption[];
+  inspectorBacklinks: HubBacklink[];
   inspectorBacklinksLoading: boolean;
   inspectorBacklinksError: string | null;
   inspectorCommentText: string;
@@ -26,7 +24,7 @@ export interface RecordInspectorSectionProps {
   onMoveInspectorAttachment: (attachmentId: string, paneIdToMove: string) => Promise<void>;
   onDetachInspectorAttachment: (attachmentId: string) => Promise<void>;
   onAttachFile: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  onAddRelation: RelationsSectionProps['onAddRelation'];
+  onAddRelation: (payload: { to_record_id: string; via_field_id: string }) => Promise<void>;
   onRemoveRelation: (relationId: string) => Promise<void>;
   onInsertRecordCommentMention: RecordInspectorCommentsSectionProps['onInsertRecordCommentMention'];
   onAddRecordComment: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -37,6 +35,6 @@ export interface RecordInspectorSectionProps {
 export interface RecordInspectorBodyProps extends RecordInspectorSectionProps {
   inspectorMutationPane: HubPaneSummary | null;
   savingValues: boolean;
-  onSaveRecordField: (fieldId: string, value: string) => Promise<void>;
+  onSaveRecordField: (fieldId: string, value: unknown) => Promise<void>;
   onOpenSourcePane: (() => void) | null;
 }

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useMemo, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import type { HubBacklink, HubPaneSummary, HubProject } from '../../../../services/hub/types';
 import { useRecordInspector } from '../../../../hooks/useRecordInspector';
@@ -108,7 +108,7 @@ export const useProjectSpaceInspectorRuntime = ({
 
   return {
     openRecordInspector,
-    recordInspectorOverlayProps: {
+    recordInspectorOverlayProps: useMemo(() => ({
       accessToken,
       project,
       panes,
@@ -145,6 +145,42 @@ export const useProjectSpaceInspectorRuntime = ({
       onInsertRecordCommentMention,
       onAddRecordComment,
       onOpenBacklink,
-    },
+    }), [
+      accessToken,
+      closeRecordInspectorWithFocusRestore,
+      inspectorBacklinks,
+      inspectorBacklinksError,
+      inspectorBacklinksLoading,
+      inspectorCommentText,
+      inspectorError,
+      inspectorLoading,
+      inspectorMutationPane,
+      inspectorMutationPaneCanEdit,
+      inspectorRecord,
+      inspectorRecordId,
+      inspectorRelationFields,
+      inspectorTriggerRect,
+      navigate,
+      onAddRecordComment,
+      onAddRelation,
+      onAttachFile,
+      onDetachInspectorAttachment,
+      onInsertRecordCommentMention,
+      onMoveInspectorAttachment,
+      onOpenBacklink,
+      onRemoveRelation,
+      onRenameInspectorAttachment,
+      onSaveRecordField,
+      panes,
+      prefersReducedMotion,
+      project,
+      relationMutationError,
+      removingRelationId,
+      savingValues,
+      selectedAttachmentId,
+      setInspectorCommentText,
+      setSelectedAttachmentId,
+      uploadingAttachment,
+    ]),
   };
 };

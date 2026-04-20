@@ -196,7 +196,6 @@ const TaskSummaryRow = ({
         titleAriaLabel={`Insert task ${task.label}`}
         titlePressed={showInsertAction}
         className={cn(
-          'items-center gap-1',
           task.status === 'cancelled' && 'text-text-secondary',
         )}
       />

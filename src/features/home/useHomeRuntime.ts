@@ -30,6 +30,8 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
   const [homeError, setHomeError] = useState<string | null>(null);
   const [homeData, setHomeData] = useState<HomeData>(emptyHomeData);
   const [calendarScope, setCalendarScope] = useState<'relevant' | 'all'>('relevant');
+  const homeAbortControllerRef = useRef<AbortController | null>(null);
+  const homeRequestIdRef = useRef(0);
   const liveRefreshHomeTimeoutRef = useRef<number | null>(null);
   const remindersRuntime = useRemindersRuntime(
     activeOverlay === 'reminders' ? accessToken ?? null : null,
@@ -41,6 +43,11 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
   });
 
   const refreshHome = useCallback(async () => {
+    homeAbortControllerRef.current?.abort();
+    homeAbortControllerRef.current = null;
+    const requestId = homeRequestIdRef.current + 1;
+    homeRequestIdRef.current = requestId;
+
     if (!accessToken) {
       setHomeData(emptyHomeData);
       setHomeError(null);
@@ -49,6 +56,8 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
       return;
     }
 
+    const controller = new AbortController();
+    homeAbortControllerRef.current = controller;
     setHomeLoading(true);
     try {
       const next = await getHubHome(accessToken, {
@@ -56,15 +65,33 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
         events_limit: activeOverlay === 'calendar' ? 50 : 8,
         captures_limit: activeOverlay === 'thoughts' ? 50 : 20,
         unread: true,
+        signal: controller.signal,
       });
+      if (
+        controller.signal.aborted
+        || homeAbortControllerRef.current !== controller
+        || homeRequestIdRef.current !== requestId
+      ) {
+        return;
+      }
       setHomeData(next);
       setHomeError(null);
       setHomeReady(true);
     } catch (error) {
+      if (
+        controller.signal.aborted
+        || homeAbortControllerRef.current !== controller
+        || homeRequestIdRef.current !== requestId
+      ) {
+        return;
+      }
       setHomeError(error instanceof Error ? error.message : 'Failed to load Home.');
       setHomeReady(true);
     } finally {
-      setHomeLoading(false);
+      if (homeAbortControllerRef.current === controller && homeRequestIdRef.current === requestId) {
+        homeAbortControllerRef.current = null;
+        setHomeLoading(false);
+      }
     }
   }, [accessToken, activeOverlay]);
 
@@ -84,6 +111,12 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
   useEffect(() => {
     void refreshHome();
   }, [refreshHome]);
+
+  useEffect(() => () => {
+    homeAbortControllerRef.current?.abort();
+    homeAbortControllerRef.current = null;
+    homeRequestIdRef.current += 1;
+  }, []);
 
   useEffect(() => subscribeHubHomeRefresh(() => {
     void refreshHome();
