@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { subscribeHubHomeRefresh } from '../../../lib/hubHomeRefresh';
-import { getHubHome } from '../../../services/hub/records';
-import type { HubHomeCapture } from '../../../services/hub/types';
+import { subscribeHubHomeRefresh } from '../../lib/hubHomeRefresh';
+import { getHubHome } from '../../services/hub/records';
+import type { HubHomeCapture } from '../../services/hub/types';
 
-interface UseThoughtPileRuntimeParams {
+interface UseHomeThoughtPileRuntimeParams {
   accessToken: string | null | undefined;
   enabled: boolean;
 }
 
-export const useThoughtPileRuntime = ({ accessToken, enabled }: UseThoughtPileRuntimeParams) => {
+export const useHomeThoughtPileRuntime = ({ accessToken, enabled }: UseHomeThoughtPileRuntimeParams) => {
   const [captures, setCaptures] = useState<HubHomeCapture[]>([]);
   const [loading, setLoading] = useState(false);
   const refreshSequenceRef = useRef(0);

@@ -309,8 +309,8 @@ vi.mock('../components/Sidebar/hooks/useSidebarCollapse', () => ({
   useSidebarCollapse: () => sidebarCollapseValue,
 }));
 
-vi.mock('../components/Sidebar/hooks/useThoughtPileRuntime', () => ({
-  useThoughtPileRuntime: () => thoughtPileRuntime,
+vi.mock('../features/home/useHomeThoughtPileRuntime', () => ({
+  useHomeThoughtPileRuntime: () => thoughtPileRuntime,
 }));
 
 vi.mock('../features/QuickCapture', () => ({
@@ -413,6 +413,19 @@ describe('ProjectsPage', () => {
     });
 
     expect(screen.getByTestId('dashboard-view')).toHaveTextContent('project-lens');
+  });
+
+  it('opens Quick Thoughts from the sidebar as a Home-hosted launcher surface', async () => {
+    const user = userEvent.setup();
+    renderProjectsPage();
+
+    await user.click(screen.getByRole('button', { name: 'Quick Thoughts' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=project-lens&surface=thoughts');
+    });
+
+    expect(screen.getByText('Quick thoughts')).toBeInTheDocument();
   });
 
   it.fails('opens the Home record inspector from the route task_id contract and clears the search param', async () => {

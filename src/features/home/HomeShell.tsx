@@ -1,10 +1,12 @@
 import type { ProjectRecord } from '../../types/domain';
 import type { HomeOverlayId, HomeViewId } from './navigation';
 import { HomeOverlayHost } from './HomeOverlayHost';
+import { HomeThoughtPileOverlay } from './HomeThoughtPileOverlay';
 import { HomeViewHost } from './HomeViewHost';
 import type { HomeRuntime } from './useHomeRuntime';
 
 interface HomeShellProps {
+  accessToken: string | null | undefined;
   activeOverlay: HomeOverlayId | null;
   activeView: HomeViewId;
   onClearOverlay: () => void;
@@ -24,10 +26,14 @@ const readHomeTitle = (activeOverlay: HomeOverlayId | null) => {
   if (activeOverlay === 'reminders') {
     return 'Reminders';
   }
+  if (activeOverlay === 'thoughts') {
+    return 'Quick Thoughts';
+  }
   return 'Home';
 };
 
 export const HomeShell = ({
+  accessToken,
   activeOverlay,
   activeView,
   onClearOverlay,
@@ -36,7 +42,7 @@ export const HomeShell = ({
   projects,
   runtime,
 }: HomeShellProps) => {
-  const hasOverlay = activeOverlay === 'tasks' || activeOverlay === 'calendar' || activeOverlay === 'reminders';
+  const hasOverlay = activeOverlay === 'tasks' || activeOverlay === 'calendar' || activeOverlay === 'reminders' || activeOverlay === 'thoughts';
 
   return (
     <div className="relative space-y-4">
@@ -58,6 +64,18 @@ export const HomeShell = ({
           runtime={runtime}
           onClearOverlay={onClearOverlay}
           onOpenRecord={onOpenRecord}
+        />
+
+        <HomeThoughtPileOverlay
+          accessToken={accessToken}
+          activeOverlay={activeOverlay}
+          onClose={(options) => {
+            if (options?.restoreFocus !== false) {
+              document.querySelector<HTMLElement>('[data-sidebar-surface="thoughts"]')?.focus();
+            }
+            onClearOverlay();
+          }}
+          projects={projects}
         />
       </section>
     </div>

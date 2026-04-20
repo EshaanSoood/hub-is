@@ -51,6 +51,7 @@ export const ProjectsPage = () => {
   return (
     <>
       <HomeShell
+        accessToken={accessToken}
         activeOverlay={activeOverlay}
         activeView={activeView}
         onClearOverlay={onClearOverlay}
