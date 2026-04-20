@@ -1,7 +1,7 @@
 import type { ProjectRecord } from '../../types/domain';
-import { PersonalizedDashboardPanel } from '../PersonalizedDashboardPanel';
 import type { HomeOverlayId, HomeViewId } from './navigation';
 import { HomeOverlayHost } from './HomeOverlayHost';
+import { HomeViewHost } from './HomeViewHost';
 import type { HomeRuntime } from './useHomeRuntime';
 
 interface HomeShellProps {
@@ -35,28 +35,31 @@ export const HomeShell = ({
   onViewChange,
   projects,
   runtime,
-}: HomeShellProps) => (
-  <div className="relative space-y-4">
-    <h1 className="sr-only">{readHomeTitle(activeOverlay)}</h1>
+}: HomeShellProps) => {
+  const hasOverlay = activeOverlay === 'tasks' || activeOverlay === 'calendar' || activeOverlay === 'reminders';
 
-    <HomeOverlayHost
-      activeOverlay={activeOverlay}
-      runtime={runtime}
-      onClearOverlay={onClearOverlay}
-      onOpenRecord={onOpenRecord}
-    />
+  return (
+    <div className="relative space-y-4">
+      <h1 className="sr-only">{readHomeTitle(activeOverlay)}</h1>
 
-    {activeOverlay !== 'tasks' && activeOverlay !== 'calendar' && activeOverlay !== 'reminders' ? (
-      <PersonalizedDashboardPanel
-        homeData={runtime.homeData}
-        homeLoading={runtime.homeLoading}
-        homeReady={runtime.homeReady}
-        homeError={runtime.homeError}
-        projects={projects}
-        onOpenRecord={onOpenRecord}
-        initialView={activeView}
-        onViewChange={onViewChange}
-      />
-    ) : null}
-  </div>
-);
+      <section aria-label="Home content" className="space-y-4">
+        <div hidden={hasOverlay} aria-hidden={hasOverlay || undefined}>
+          <HomeViewHost
+            activeView={activeView}
+            onOpenRecord={onOpenRecord}
+            onViewChange={onViewChange}
+            projects={projects}
+            runtime={runtime}
+          />
+        </div>
+
+        <HomeOverlayHost
+          activeOverlay={activeOverlay}
+          runtime={runtime}
+          onClearOverlay={onClearOverlay}
+          onOpenRecord={onOpenRecord}
+        />
+      </section>
+    </div>
+  );
+};
