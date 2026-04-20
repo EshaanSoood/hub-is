@@ -33,10 +33,11 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
   const homeAbortControllerRef = useRef<AbortController | null>(null);
   const homeRequestIdRef = useRef(0);
   const liveRefreshHomeTimeoutRef = useRef<number | null>(null);
-  const remindersRuntime = useRemindersRuntime(
-    activeOverlay === 'reminders' ? accessToken ?? null : null,
-    { autoload: activeOverlay === 'reminders' },
-  );
+  const remindersRuntime = useRemindersRuntime(null, {
+    autoload: false,
+    subscribeToHomeRefresh: false,
+    subscribeToLive: false,
+  });
   const { onDismissReminder, onSnoozeReminder } = useDashboardMutations({
     accessToken,
     refreshReminders: remindersRuntime.refresh,
@@ -61,8 +62,8 @@ export const useHomeRuntime = ({ accessToken, activeOverlay }: UseHomeDataParams
     setHomeLoading(true);
     try {
       const next = await getHubHome(accessToken, {
-        tasks_limit: activeOverlay === 'tasks' ? 50 : 8,
-        events_limit: activeOverlay === 'calendar' ? 50 : 8,
+        tasks_limit: 8,
+        events_limit: 8,
         captures_limit: activeOverlay === 'thoughts' ? 50 : 20,
         unread: true,
         signal: controller.signal,

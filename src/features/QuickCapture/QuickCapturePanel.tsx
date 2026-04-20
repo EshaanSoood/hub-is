@@ -151,11 +151,11 @@ export const QuickCapturePanel = ({
   );
 
   return (
-    <section className="space-y-4" aria-label="Thought Pile">
+    <section className="space-y-4" aria-label="Quick thoughts">
       <div className="flex items-start justify-between gap-3 border-b border-border-muted pb-3">
         <div className="space-y-1">
-          <h2 className="text-base font-semibold text-primary">Thought Pile</h2>
-          <p className="text-sm text-muted">Drop a thought. It lands in your pile.</p>
+          <h2 className="text-base font-semibold text-primary">Quick thoughts</h2>
+          <p className="text-sm text-muted">Capture a thought, task, reminder, or calendar item without leaving Home.</p>
         </div>
         <button
           type="button"

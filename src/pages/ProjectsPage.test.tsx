@@ -6,20 +6,13 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { ProjectsPage } from './ProjectsPage';
 import type { ProjectRecord } from '../types/domain';
-import type { HubRecordDetail } from '../services/hub/types';
 
-const mockGetHubHome = vi.fn();
-const mockGetRecordDetail = vi.fn();
-const mockSubscribeHubLive = vi.fn();
-const mockListPanes = vi.fn();
-const mockRefreshReminders = vi.fn();
-const mockOnDismissReminder = vi.fn();
-const mockOnSnoozeReminder = vi.fn();
-const mockThoughtPileRefresh = vi.fn();
+const mockRefreshProjects = vi.fn();
+const mockUpdateProject = vi.fn();
 
 const personalProject: ProjectRecord = {
   id: 'personal-project',
-  name: 'Home',
+  name: 'Sunday Desk',
   status: 'active',
   summary: '',
   openProjectProjectId: null,
@@ -29,8 +22,8 @@ const personalProject: ProjectRecord = {
   position: null,
 };
 
-const projectAlpha: ProjectRecord = {
-  id: 'project-alpha',
+const teamProject: ProjectRecord = {
+  id: 'team-project',
   name: 'Alpha',
   status: 'active',
   summary: '',
@@ -41,89 +34,16 @@ const projectAlpha: ProjectRecord = {
   position: 1,
 };
 
-const homeResponse = {
-  personal_project_id: personalProject.id,
-  tasks: [
-    {
-      record_id: 'task-1',
-      project_id: personalProject.id,
-      project_name: 'Home',
-      collection_id: 'tasks',
-      collection_name: 'Tasks',
-      title: 'Inbox task',
-      created_at: '2026-04-19T10:00:00.000Z',
-      updated_at: '2026-04-19T10:00:00.000Z',
-      subtask_count: 0,
-      task_state: {
-        status: 'todo',
-        priority: null,
-        completed_at: null,
-        due_at: null,
-        category: null,
-        updated_at: '2026-04-19T10:00:00.000Z',
-      },
-      assignments: [],
-      origin_kind: 'personal',
-      source_view_id: null,
-      source_pane: null,
-    },
-  ],
-  tasks_next_cursor: null,
-  captures: [],
-  events: [
-    {
-      record_id: 'event-1',
-      project_id: projectAlpha.id,
-      project_name: projectAlpha.name,
-      collection_id: 'events',
-      collection_name: 'Events',
-      title: 'Planning',
-      updated_at: '2026-04-19T10:00:00.000Z',
-      event_state: {
-        start_dt: '2026-04-20T14:00:00.000Z',
-        end_dt: '2026-04-20T15:00:00.000Z',
-        timezone: 'America/New_York',
-        location: null,
-        updated_at: '2026-04-19T10:00:00.000Z',
-      },
-      participants: [],
-      source_pane: null,
-    },
-  ],
-  notifications: [],
-};
-
-const recordDetail = {
-  record_id: 'task-1',
-  title: 'Inbox task',
-  collection_id: 'tasks',
-  schema: {
-    name: 'Tasks',
-  },
-  capabilities: {
-    task_state: {
-      status: 'todo',
-      priority: 'medium',
-    },
-    event_state: null,
-  },
-  origin_kind: 'personal',
-  comments: [
-    {
-      comment_id: 'comment-1',
-    },
-  ],
-  values: {
-    status: 'todo',
-  },
-} as unknown as HubRecordDetail;
-
 const authzContextValue = {
   accessToken: 'access-token',
+  sessionSummary: {
+    userId: 'user-1',
+  },
 };
 
 const projectsContextValue = {
-  projects: [personalProject, projectAlpha],
+  projects: [personalProject, teamProject],
+  refreshProjects: mockRefreshProjects,
 };
 
 const sidebarCollapseValue = {
@@ -132,10 +52,67 @@ const sidebarCollapseValue = {
   isCollapsed: false,
 };
 
-const thoughtPileRuntime = {
-  captures: [],
+const homeRuntime = {
+  calendarScope: 'relevant',
+  filteredCalendarEvents: [],
+  homeData: {
+    personal_project_id: personalProject.id,
+    tasks: [],
+    tasks_next_cursor: null,
+    captures: [],
+    events: [],
+    notifications: [],
+  },
+  homeError: null,
+  homeLoading: false,
+  homeReady: true,
+  onDismissReminder: vi.fn(),
+  onSnoozeReminder: vi.fn(),
+  refreshHome: vi.fn(),
+  remindersRuntime: {
+    reminders: [],
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+    dismiss: vi.fn(),
+    create: vi.fn(),
+  },
+  setCalendarScope: vi.fn(),
+};
+
+const projectBootstrap = {
+  error: null,
   loading: false,
-  refresh: mockThoughtPileRefresh,
+  panes: [
+    {
+      pane_id: 'pane-1',
+      project_id: personalProject.id,
+      name: 'Main Work',
+      sort_order: 1,
+      position: 1,
+      pinned: false,
+      layout_config: {},
+      doc_id: 'doc-1',
+      members: [],
+      can_edit: true,
+    },
+  ],
+  project: {
+    project_id: personalProject.id,
+    name: personalProject.name,
+    created_by: 'user-1',
+    created_at: '2026-04-20T00:00:00.000Z',
+    updated_at: '2026-04-20T00:00:00.000Z',
+    position: null,
+    is_personal: true,
+    membership_role: 'owner',
+    needs_name_prompt: false,
+  },
+  projectMembers: [],
+  refreshProjectData: vi.fn(),
+  setPanes: vi.fn(),
+  setTimeline: vi.fn(),
+  timeline: [],
 };
 
 const omitMotionProps = (props: Record<string, unknown>) => {
@@ -191,110 +168,140 @@ vi.mock('../context/ProjectsContext', () => ({
   useProjects: () => projectsContextValue,
 }));
 
-vi.mock('../services/hub/records', () => ({
-  getHubHome: (...args: unknown[]) => mockGetHubHome(...args),
-  getRecordDetail: (...args: unknown[]) => mockGetRecordDetail(...args),
+vi.mock('../features/home/useHomeRuntime', () => ({
+  useHomeRuntime: () => homeRuntime,
 }));
 
-vi.mock('../services/hubLive', () => ({
-  subscribeHubLive: (...args: unknown[]) => mockSubscribeHubLive(...args),
+vi.mock('../hooks/useProjectBootstrap', () => ({
+  useProjectBootstrap: () => projectBootstrap,
 }));
 
-vi.mock('../services/hub/panes', () => ({
-  listPanes: (...args: unknown[]) => mockListPanes(...args),
+vi.mock('../hooks/useCalendarRuntime', () => ({
+  useCalendarRuntime: () => ({
+    calendarEvents: [],
+    calendarLoading: false,
+    calendarMode: 'all',
+    refreshCalendar: vi.fn(),
+    setCalendarMode: vi.fn(),
+  }),
 }));
 
-vi.mock('../lib/hubHomeRefresh', () => ({
-  subscribeHubHomeRefresh: () => () => {},
+vi.mock('../hooks/useProjectTasksRuntime', () => ({
+  useProjectTasksRuntime: () => ({
+    loadProjectTaskPage: vi.fn(),
+    projectTasksError: null,
+    projectTasksLoading: false,
+    projectTasksLoadingMore: false,
+    projectTasksNextCursor: null,
+    projectTasksSentinelRef: { current: null },
+    tasksOverviewRows: [],
+  }),
 }));
 
 vi.mock('../hooks/useRemindersRuntime', () => ({
   useRemindersRuntime: () => ({
-    reminders: [{ reminder_id: 'reminder-1', title: 'Pay rent' }],
+    reminders: [],
     loading: false,
     error: null,
-    refresh: mockRefreshReminders,
+    refresh: vi.fn(),
+    dismiss: vi.fn(),
     create: vi.fn(),
   }),
 }));
 
-vi.mock('../features/PersonalizedDashboardPanel/hooks/useDashboardMutations', () => ({
-  useDashboardMutations: () => ({
-    onDismissReminder: mockOnDismissReminder,
-    onSnoozeReminder: mockOnSnoozeReminder,
+vi.mock('../hooks/useTimelineRuntime', () => ({
+  useTimelineRuntime: () => ({
+    refreshTimeline: vi.fn(),
+    timelineClusters: [],
+    timelineFilters: ['task', 'event', 'milestone', 'file', 'workspace'],
+    toggleTimelineFilter: vi.fn(),
   }),
 }));
 
-vi.mock('../features/PersonalizedDashboardPanel', () => ({
-  PersonalizedDashboardPanel: ({
-    initialView = 'project-lens',
-    onOpenRecord,
-    onViewChange,
+vi.mock('../services/hub/projects', () => ({
+  updateProject: (...args: unknown[]) => mockUpdateProject(...args),
+}));
+
+vi.mock('../features/home/useHomeRecordInspectorRuntime', () => ({
+  useHomeRecordInspectorRuntime: () => ({
+    closeRecord: vi.fn(),
+    openRecord: vi.fn(),
+    selectedRecord: null,
+    selectedRecordError: null,
+    selectedRecordId: null,
+    selectedRecordLoading: false,
+    selectedRecordTriggerRect: null,
+    selectedRecordTriggerRef: { current: null },
+  }),
+}));
+
+vi.mock('../features/home/HomeRecordInspectorDialog', () => ({
+  HomeRecordInspectorDialog: () => null,
+}));
+
+vi.mock('../features/home/HomeDashboardSurface', () => ({
+  HomeDashboardSurface: ({
+    activeContentView,
+    onOpenQuickThoughts,
+    projectContent,
   }: {
-    initialView?: 'project-lens' | 'stream';
-    onOpenRecord: (recordId: string) => void;
-    onViewChange?: (view: 'project-lens' | 'stream') => void;
+    activeContentView: 'project' | 'lenses' | 'stream';
+    onOpenQuickThoughts: () => void;
+    projectContent: React.ReactNode;
   }) => (
-    <section aria-label="Home dashboard">
-      <p data-testid="dashboard-view">{initialView}</p>
-      <button type="button" onClick={() => onViewChange?.('stream')}>Open Stream</button>
-      <button type="button" onClick={() => onViewChange?.('project-lens')}>Open Project Lens</button>
-      <button type="button" onClick={() => onOpenRecord('task-1')}>Open dashboard record</button>
+    <section aria-label="Home dashboard" data-testid="home-dashboard">
+      <p data-testid="dashboard-content">{activeContentView}</p>
+      <button type="button" data-home-launcher="thoughts" onClick={onOpenQuickThoughts}>Quick thoughts</button>
+      {activeContentView === 'project' ? projectContent : null}
     </section>
   ),
 }));
 
-vi.mock('../components/project-space/TasksModuleSkin', () => ({
-  TasksModuleSkin: ({ tasks }: { tasks: Array<{ id: string }> }) => (
-    <div data-testid="tasks-module-skin">Tasks {tasks.length}</div>
-  ),
+vi.mock('../features/home/HomeOverviewSurface', () => ({
+  HomeOverviewSurface: () => <div data-testid="overview-surface">Home overview surface</div>,
 }));
 
-vi.mock('../components/project-space/CalendarModuleSkin', () => ({
-  CalendarModuleSkin: ({ events }: { events: Array<{ record_id: string }> }) => (
-    <div data-testid="calendar-module-skin">Calendar {events.length}</div>
-  ),
+vi.mock('../features/home/HomeProjectWorkSection', () => ({
+  HomeProjectWorkSection: () => <div data-testid="work-surface">Home work surface</div>,
 }));
 
-vi.mock('../components/project-space/RemindersModuleSkin', () => ({
-  RemindersModuleSkin: ({ reminders }: { reminders: Array<{ reminder_id: string }> }) => (
-    <div data-testid="reminders-module-skin">Reminders {reminders.length}</div>
-  ),
-}));
-
-vi.mock('../components/primitives', async () => {
-  const actual = await vi.importActual<typeof import('../components/primitives')>('../components/primitives');
-  return {
-    ...actual,
-    LiveRegion: ({ message }: { message: string }) => <div data-testid="live-region">{message}</div>,
-  };
-});
-
-vi.mock('../components/project-space/record-inspector/RecordInspectorShell', () => ({
-  RecordInspectorShell: ({
+vi.mock('../features/home/HomeProjectNamingDialog', () => ({
+  HomeProjectNamingDialog: ({
     open,
-    onClose,
-    inspectorTriggerRef,
-    children,
-  }: PropsWithChildren<{
+    projectName,
+    onSubmit,
+    onValueChange,
+  }: {
     open: boolean;
-    onClose: () => void;
-    inspectorTriggerRef: React.RefObject<HTMLElement | null>;
-  }>) => (
-    open ? (
-      <div role="dialog" aria-label="Record Inspector">
-        <button
-          type="button"
-          onClick={() => {
-            onClose();
-            inspectorTriggerRef.current?.focus();
-          }}
-        >
-          Close dialog
-        </button>
-        {children}
-      </div>
-    ) : null
+    projectName: string;
+    onSubmit: () => void;
+    onValueChange: (value: string) => void;
+  }) => (open ? (
+    <div role="dialog" aria-label="Name your Home project">
+      <input
+        aria-label="Project name"
+        value={projectName}
+        onChange={(event) => onValueChange(event.currentTarget.value)}
+      />
+      <button type="button" onClick={onSubmit}>Save name</button>
+    </div>
+  ) : null),
+}));
+
+vi.mock('../features/home/useHomeThoughtPileRuntime', () => ({
+  useHomeThoughtPileRuntime: () => ({
+    captures: [],
+    loading: false,
+    refresh: vi.fn(),
+  }),
+}));
+
+vi.mock('../features/QuickCapture', () => ({
+  QuickCapturePanel: ({ onRequestClose }: { onRequestClose?: (options?: { restoreFocus?: boolean }) => void }) => (
+    <div>
+      Quick thoughts
+      <button type="button" onClick={() => onRequestClose?.()}>Close quick thoughts</button>
+    </div>
   ),
 }));
 
@@ -324,21 +331,24 @@ vi.mock('../components/Sidebar/ProfileBadge', () => ({
   ProfileBadge: () => <button type="button">Profile</button>,
 }));
 
-vi.mock('../components/Sidebar/hooks/useSidebarCollapse', () => ({
-  useSidebarCollapse: () => sidebarCollapseValue,
-}));
-
-vi.mock('../features/home/useHomeThoughtPileRuntime', () => ({
-  useHomeThoughtPileRuntime: () => thoughtPileRuntime,
-}));
-
-vi.mock('../features/QuickCapture', () => ({
-  QuickCapturePanel: ({ onRequestClose }: { onRequestClose?: (options?: { restoreFocus?: boolean }) => void }) => (
+vi.mock('../components/Sidebar/Surfaces', () => ({
+  Surfaces: ({
+    onSelectHomeContentView,
+    onSelectSurface,
+  }: {
+    onSelectHomeContentView: (viewId: 'lenses' | 'stream') => void;
+    onSelectSurface: (surfaceId: 'thoughts') => void;
+  }) => (
     <div>
-      Quick thoughts
-      <button type="button" onClick={() => onRequestClose?.()}>Close quick thoughts</button>
+      <button type="button" onClick={() => onSelectHomeContentView('lenses')}>Lenses</button>
+      <button type="button" onClick={() => onSelectHomeContentView('stream')}>Stream</button>
+      <button type="button" onClick={() => onSelectSurface('thoughts')}>Quick thoughts</button>
     </div>
   ),
+}));
+
+vi.mock('../components/Sidebar/hooks/useSidebarCollapse', () => ({
+  useSidebarCollapse: () => sidebarCollapseValue,
 }));
 
 const LocationProbe = () => {
@@ -366,14 +376,27 @@ const renderProjectsPage = (entry = '/projects') =>
   );
 
 beforeEach(() => {
-  mockGetHubHome.mockResolvedValue(homeResponse);
-  mockGetRecordDetail.mockResolvedValue(recordDetail);
-  mockSubscribeHubLive.mockReturnValue(() => {});
-  mockListPanes.mockResolvedValue([]);
-  mockRefreshReminders.mockReset();
-  mockOnDismissReminder.mockReset();
-  mockOnSnoozeReminder.mockReset();
-  mockThoughtPileRefresh.mockReset();
+  mockRefreshProjects.mockReset();
+  mockRefreshProjects.mockResolvedValue(undefined);
+  mockUpdateProject.mockReset();
+  mockUpdateProject.mockResolvedValue({
+    project_id: personalProject.id,
+    name: 'Sunday Desk',
+    created_by: 'user-1',
+    created_at: '2026-04-20T00:00:00.000Z',
+    updated_at: '2026-04-20T00:00:00.000Z',
+    position: null,
+    is_personal: true,
+    membership_role: 'owner',
+    needs_name_prompt: false,
+  });
+  projectsContextValue.projects = [personalProject, teamProject];
+  homeRuntime.homeData.personal_project_id = personalProject.id;
+  projectBootstrap.project = {
+    ...projectBootstrap.project,
+    name: personalProject.name,
+    needs_name_prompt: personalProject.needsNamePrompt === true,
+  };
 });
 
 afterEach(() => {
@@ -381,185 +404,95 @@ afterEach(() => {
 });
 
 describe('ProjectsPage', () => {
-  it('renders Home on the /projects route and moves focus into the Home heading', async () => {
+  it('renders Home as the named personal project on /projects', async () => {
     renderProjectsPage();
 
-    const homeHeading = await screen.findByRole('heading', { name: 'Home', level: 1, hidden: true });
+    const heading = await screen.findByRole('heading', { name: 'Sunday Desk', level: 1 });
 
     await waitFor(() => {
-      expect(homeHeading).toHaveFocus();
+      expect(heading).toHaveFocus();
     });
 
-    expect(screen.getByTestId('dashboard-view')).toHaveTextContent('project-lens');
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
+    expect(screen.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
+    expect(screen.getByTestId('overview-surface')).toBeInTheDocument();
   });
 
-  it('updates Home surface selection from sidebar controls', async () => {
-    const user = userEvent.setup();
-    renderProjectsPage();
-
-    const tasksButton = screen.getByRole('button', { name: 'Tasks' });
-    await user.click(tasksButton);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=project-lens&surface=tasks');
-    });
-
-    expect(screen.getByRole('button', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('heading', { name: 'Tasks', level: 2 })).toBeInTheDocument();
-    expect(screen.getByTestId('tasks-module-skin')).toHaveTextContent('Tasks 1');
-  });
-
-  it.each([
-    { surface: 'tasks', label: 'Tasks', testId: 'tasks-module-skin' },
-    { surface: 'calendar', label: 'Calendar', testId: 'calendar-module-skin' },
-    { surface: 'reminders', label: 'Reminders', testId: 'reminders-module-skin' },
-  ])('pins the current full-page $surface Home surface behavior before the overlay refactor', async ({
-    surface,
-    label,
-    testId,
-  }) => {
-    const user = userEvent.setup();
-    renderProjectsPage(`/projects?surface=${surface}`);
-
-    expect(await screen.findByRole('heading', { name: label, level: 2 })).toBeInTheDocument();
-    expect(screen.getByTestId(testId)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Back to Dashboard' }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
-    });
-
-    expect(screen.getByTestId('dashboard-view')).toHaveTextContent('project-lens');
-  });
-
-  it('opens Quick Thoughts from the sidebar as a Home-hosted launcher surface', async () => {
+  it('swaps the lower Home region from sidebar-owned Lenses and Stream toggles', async () => {
     const user = userEvent.setup();
     renderProjectsPage();
 
-    await user.click(screen.getByRole('button', { name: 'Quick Thoughts' }));
-
+    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Lenses' }));
     await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=project-lens&surface=thoughts');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?content=lenses');
     });
-
-    expect(screen.getByText('Quick thoughts')).toBeInTheDocument();
-  });
-
-  it('clears the Home overlay when switching Home views', async () => {
-    const user = userEvent.setup();
-    renderProjectsPage('/projects?view=project-lens&surface=thoughts');
-
-    expect(screen.getByText('Quick thoughts')).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('lenses');
 
     await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Stream' }));
-
     await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=stream');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?content=stream');
     });
-
-    expect(screen.queryByText('Quick thoughts')).not.toBeInTheDocument();
-    expect(screen.getByTestId('dashboard-view')).toHaveTextContent('stream');
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('stream');
   });
 
-  it('restores focus to the Quick Thoughts launcher when the overlay closes', async () => {
+  it('opens Quick thoughts from the compact dashboard control and restores focus when it closes', async () => {
     const user = userEvent.setup();
     renderProjectsPage();
 
-    const quickThoughtsTrigger = screen.getByRole('button', { name: 'Quick Thoughts' });
-    await user.click(quickThoughtsTrigger);
-    expect(screen.getByText('Quick thoughts')).toBeInTheDocument();
+    const trigger = within(screen.getByTestId('home-dashboard')).getByRole('button', { name: 'Quick thoughts' });
+    await user.click(trigger);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?surface=thoughts');
+    });
+    expect(screen.getByRole('dialog', { name: 'Quick thoughts' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Close quick thoughts' }));
 
     await waitFor(() => {
-      expect(screen.queryByText('Quick thoughts')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Quick thoughts' })).not.toBeInTheDocument();
     });
-
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Quick Thoughts' })).toHaveFocus();
+      expect(within(screen.getByTestId('home-dashboard')).getByRole('button', { name: 'Quick thoughts' })).toHaveFocus();
     });
   });
 
-  // TODO(home-record-inspector): Replace it.fails once task_id routing consistently opens HomeRecordInspectorDialog and clears the query contract.
-  it.fails('opens the Home record inspector from the route task_id contract and clears the search param', async () => {
-    renderProjectsPage('/projects?task_id=task-1');
-
-    expect(await screen.findByRole('dialog', { name: 'Record Inspector' })).toBeInTheDocument();
-    expect(mockGetRecordDetail).toHaveBeenCalledWith('access-token', 'task-1', { signal: expect.any(AbortSignal) });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
-    });
-
-    expect(screen.getByText('Inbox task')).toBeInTheDocument();
-  });
-
-  it('clears an invalid task_id route param without opening the Home record inspector', async () => {
-    renderProjectsPage('/projects?task_id=%20%20');
-
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
-    });
-
-    expect(mockGetRecordDetail).not.toHaveBeenCalled();
-    expect(screen.queryByRole('dialog', { name: 'Record Inspector' })).not.toBeInTheDocument();
-  });
-
-  it('restores focus to the Home trigger when the record inspector closes', async () => {
+  it('switches to the Home work tab without leaving /projects', async () => {
     const user = userEvent.setup();
     renderProjectsPage();
 
-    const openRecordButton = screen.getByRole('button', { name: 'Open dashboard record' });
-    openRecordButton.focus();
-
-    await user.click(openRecordButton);
-    expect(await screen.findByRole('dialog', { name: 'Record Inspector' })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Close dialog' }));
+    await user.click(screen.getByRole('button', { name: 'Work' }));
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Record Inspector' })).not.toBeInTheDocument();
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?tab=work');
     });
-    expect(openRecordButton).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByTestId('work-surface')).toBeInTheDocument();
   });
 
-  it('keeps view query state wired through the Home host', async () => {
+  it('shows the first-run personal-project naming dialog and persists the rename', async () => {
     const user = userEvent.setup();
-    renderProjectsPage('/projects?view=stream');
+    projectsContextValue.projects = [
+      { ...personalProject, needsNamePrompt: true, name: "Eshaan's Project" },
+      teamProject,
+    ];
+    projectBootstrap.project = {
+      ...projectBootstrap.project,
+      name: "Eshaan's Project",
+      needs_name_prompt: true,
+    };
 
-    expect(screen.getByTestId('dashboard-view')).toHaveTextContent('stream');
-
-    await user.click(screen.getByRole('button', { name: 'Open Project Lens' }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=project-lens');
-    });
-  });
-
-  it('selects Project Lens and Stream from Sidebar-owned Home controls', async () => {
-    const user = userEvent.setup();
     renderProjectsPage();
 
-    const sidebar = screen.getByRole('navigation', { name: 'Primary' });
-    expect(within(sidebar).getByRole('button', { name: 'Project Lens' })).toHaveAttribute('aria-current', 'page');
+    const dialog = await screen.findByRole('dialog', { name: 'Name your Home project' });
+    const input = within(dialog).getByRole('textbox', { name: 'Project name' });
+    await user.clear(input);
+    await user.type(input, 'Sunday Desk');
+    await user.click(within(dialog).getByRole('button', { name: 'Save name' }));
 
-    await user.click(within(sidebar).getByRole('button', { name: 'Stream' }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=stream');
+    expect(mockUpdateProject).toHaveBeenCalledWith('access-token', personalProject.id, {
+      name: 'Sunday Desk',
     });
-
-    expect(screen.getByTestId('dashboard-view')).toHaveTextContent('stream');
-    expect(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Stream' })).toHaveAttribute('aria-current', 'page');
-
-    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Project Lens' }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=project-lens');
-    });
-
-    expect(screen.getByTestId('dashboard-view')).toHaveTextContent('project-lens');
+    expect(mockRefreshProjects).toHaveBeenCalled();
   });
 });

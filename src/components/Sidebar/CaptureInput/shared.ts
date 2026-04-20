@@ -29,9 +29,6 @@ export const labelForCaptureKind: Record<CaptureKind, string> = {
 };
 
 export const captureKindBySidebarSurface: Record<Exclude<SidebarCaptureSurface, null>, CaptureKind> = {
-  tasks: 'task',
-  calendar: 'event',
-  reminders: 'reminder',
   thoughts: 'thought',
 };
 

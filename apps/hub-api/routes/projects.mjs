@@ -50,6 +50,7 @@ export const createProjectRoutes = (deps) => {
     deletePaneMembersByUserInProjectStmt,
     assignedTaskListForUser,
     reassignTasksForRemovedMember,
+    updateProjectNameStmt,
     updateProjectPositionStmt,
   } = deps;
 
@@ -182,6 +183,12 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
+    const nextName = body.name === undefined ? undefined : asText(body.name);
+    if (body.name !== undefined && !nextName) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'name must be a non-empty string.')));
+      return;
+    }
+
     const position = body.position === null ? null : Number.isInteger(body.position) ? body.position : null;
     if (body.position !== undefined && body.position !== null && position === null) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'position must be an integer or null.')));
@@ -199,11 +206,15 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
+    if (nextName !== undefined) {
+      updateProjectNameStmt.run(nextName, nowIso(), projectId);
+    }
+
     if (body.position !== undefined) {
       updateProjectPositionStmt.run(position, nowIso(), projectId);
     }
 
-    const project = body.position !== undefined
+    const project = body.position !== undefined || nextName !== undefined
       ? projectForMemberStmt.get(projectId, auth.user.user_id) || existingProject
       : existingProject;
 

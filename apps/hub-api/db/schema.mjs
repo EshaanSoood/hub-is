@@ -161,6 +161,7 @@ const resetSchemaToContractV1 = (db) => {
         tasks_collection_id TEXT,
         reminders_collection_id TEXT,
         position INTEGER,
+        name_prompt_completed INTEGER NOT NULL DEFAULT 0 CHECK (name_prompt_completed IN (0, 1)),
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         CHECK (

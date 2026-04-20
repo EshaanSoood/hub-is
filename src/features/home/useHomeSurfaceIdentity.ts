@@ -5,6 +5,7 @@ export interface HomeSurfaceIdentity {
   backingProject: ProjectRecord | null;
   backingProjectId: string | null;
   label: 'Home';
+  projectName: string;
   surfaceId: 'home';
 }
 
@@ -29,6 +30,7 @@ export const useHomeSurfaceIdentity = ({
     backingProject,
     backingProjectId: backingProject?.id ?? backendPersonalProjectId,
     label: 'Home',
+    projectName: backingProject?.name ?? 'Home',
     surfaceId: 'home',
   };
 }, [backendPersonalProjectId, projects]);

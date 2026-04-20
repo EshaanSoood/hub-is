@@ -7,6 +7,7 @@ import {
   Binoculars,
   CalendarBlank,
   CaretDown,
+  ChatTeardropText,
   Check,
   ClockCounterClockwise,
   Compass,
@@ -15,7 +16,6 @@ import {
   Gear,
   House,
   Kanban,
-  Lightbulb,
   ListChecks,
   MagnifyingGlass,
   PencilSimple,
@@ -64,7 +64,7 @@ export const CloseIcon = createPhosphorIcon(X);
 export const PlusIcon = createPhosphorIcon(Plus);
 export const ChevronDownIcon = createPhosphorIcon(CaretDown);
 export const TrashIcon = createPhosphorIcon(Trash);
-export const ThoughtPileIcon = createPhosphorIcon(Lightbulb);
+export const ThoughtPileIcon = createPhosphorIcon(ChatTeardropText);
 export const CalendarIcon = createPhosphorIcon(CalendarBlank);
 export const UploadIcon = createPhosphorIcon(UploadSimple);
 export const BellUnreadIcon = createPhosphorIcon(BellSimpleRinging);

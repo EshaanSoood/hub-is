@@ -102,6 +102,7 @@ export const buildRouteDeps = ({ db, stmts, withTransaction, ...deps }) => ({
   updateDocStorageStmt: stmts.docs.updateStorage,
   updateDocTimestampStmt: stmts.docs.updateTimestamp,
   updatePaneStmt: stmts.panes.update,
+  updateProjectNameStmt: stmts.projects.updateName,
   updateProjectPositionStmt: stmts.projects.updatePosition,
   updatePendingInviteDecisionStmt: stmts.projectMembers.updateInvite,
   updateRecordStmt: stmts.records.update,
