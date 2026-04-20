@@ -383,7 +383,7 @@ describe('ProjectsPage', () => {
     await user.click(tasksButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?surface=tasks');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=project-lens&surface=tasks');
     });
 
     expect(screen.getByRole('button', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page');
@@ -459,16 +459,28 @@ describe('ProjectsPage', () => {
     });
   });
 
-  it.fails('selects Project Lens and Stream from Sidebar-owned Home controls', async () => {
+  it('selects Project Lens and Stream from Sidebar-owned Home controls', async () => {
     const user = userEvent.setup();
     renderProjectsPage();
 
     const sidebar = screen.getByRole('navigation', { name: 'Primary' });
+    expect(within(sidebar).getByRole('button', { name: 'Project Lens' })).toHaveAttribute('aria-current', 'page');
 
     await user.click(within(sidebar).getByRole('button', { name: 'Stream' }));
 
     await waitFor(() => {
       expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=stream');
     });
+
+    expect(screen.getByTestId('dashboard-view')).toHaveTextContent('stream');
+    expect(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Stream' })).toHaveAttribute('aria-current', 'page');
+
+    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Project Lens' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?view=project-lens');
+    });
+
+    expect(screen.getByTestId('dashboard-view')).toHaveTextContent('project-lens');
   });
 });
