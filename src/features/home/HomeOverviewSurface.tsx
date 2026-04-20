@@ -167,11 +167,8 @@ export const HomeOverviewSurface = ({
   return (
     <section className="space-y-4">
       <header className="rounded-panel border border-subtle bg-elevated p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">Personal project</p>
+        <p className="text-sm font-semibold text-text">{projectName}</p>
         <h2 className="mt-1 text-lg font-semibold text-text">Overview</h2>
-        <p className="mt-2 text-sm text-muted">
-          Keep track of {projectName}, including the timeline, calendar, tasks, and reminders that are driving it.
-        </p>
       </header>
 
       <Card className="p-4">

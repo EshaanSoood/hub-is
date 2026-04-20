@@ -258,7 +258,9 @@ vi.mock('../features/home/HomeDashboardSurface', () => ({
 }));
 
 vi.mock('../features/home/HomeOverviewSurface', () => ({
-  HomeOverviewSurface: () => <div data-testid="overview-surface">Home overview surface</div>,
+  HomeOverviewSurface: ({ projectName }: { projectName: string }) => (
+    <div data-testid="overview-surface">{projectName}</div>
+  ),
 }));
 
 vi.mock('../features/home/HomeProjectWorkSection', () => ({
@@ -407,7 +409,7 @@ describe('ProjectsPage', () => {
   it('renders Home as the named personal project on /projects', async () => {
     renderProjectsPage();
 
-    const heading = await screen.findByRole('heading', { name: 'Sunday Desk', level: 1 });
+    const heading = await screen.findByRole('heading', { name: 'Home', level: 1 });
 
     await waitFor(() => {
       expect(heading).toHaveFocus();
@@ -415,7 +417,7 @@ describe('ProjectsPage', () => {
 
     expect(screen.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
-    expect(screen.getByTestId('overview-surface')).toBeInTheDocument();
+    expect(screen.getByTestId('overview-surface')).toHaveTextContent('Sunday Desk');
   });
 
   it('swaps the lower Home region from sidebar-owned Lenses and Stream toggles', async () => {

@@ -66,13 +66,11 @@ export const HomeShell = ({
     <div className="relative space-y-4">
       <header className="rounded-panel border border-subtle bg-elevated p-4">
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">{identity.label}</p>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
               <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold text-text focus:outline-none">
-                {identity.projectName}
+                {identity.label}
               </h1>
-              <p className="text-sm text-muted">Your personal project, backed by the same runtime as every other project.</p>
             </div>
             <nav aria-label="Home tabs" className="flex flex-wrap items-center gap-2">
               {(['overview', 'work'] as HomeTabId[]).map((tab) => {

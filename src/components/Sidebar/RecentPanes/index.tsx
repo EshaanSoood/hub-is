@@ -122,14 +122,7 @@ export const RecentPanes = ({
   }
 
   return (
-    <section className="rounded-panel border border-subtle bg-surface px-2 py-2">
-      <div className="flex items-center gap-2 px-2 py-2 text-sm font-semibold text-text-secondary">
-        <Icon name="timeline" size={14} />
-        <SidebarLabel show={showLabels}>
-          <span>Recent Panes</span>
-        </SidebarLabel>
-      </div>
-
+    <section aria-label="Recent panes" className="rounded-panel border border-subtle bg-surface px-2 py-2">
       <SidebarLabel show={showLabels}>
         <div className="space-y-1">
           {recentPanes.map((entry) => (
