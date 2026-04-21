@@ -36,6 +36,7 @@ export const CalendarModuleSkin = ({
     draftTitle,
     draftStartTime,
     draftEndTime,
+    draftPreview,
     isCreatingEvent,
     createError,
     setDraftTitle,
@@ -134,6 +135,7 @@ export const CalendarModuleSkin = ({
       draftTitle={draftTitle}
       draftStartTime={draftStartTime}
       draftEndTime={draftEndTime}
+      draftPreview={draftPreview}
       isCreatingEvent={isCreatingEvent}
       createError={createError}
       onDraftTitleChange={setDraftTitle}

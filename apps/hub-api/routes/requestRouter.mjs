@@ -116,6 +116,11 @@ export const createRequestRouter = ({
       return;
     }
 
+    if (request.method === 'GET' && pathname === '/api/hub/dev/bootstrap-auth') {
+      await userRoutes.getLocalDevBootstrapAuth({ request, response, requestUrl, pathname });
+      return;
+    }
+
     if (request.method === 'POST' && pathname === '/api/hub/chat/provision') {
       await chatRoutes.provision({ request, response, requestUrl, pathname });
       return;

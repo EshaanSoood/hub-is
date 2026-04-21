@@ -88,6 +88,7 @@ export const createViewRoutes = (deps) => {
     viewByIdStmt,
     insertViewStmt,
     collectionByIdStmt,
+    recordByIdStmt,
     recordsByCollectionStmt,
     capabilitiesByRecordStmt,
     participantsByRecordStmt,
@@ -132,6 +133,108 @@ export const createViewRoutes = (deps) => {
       config: parseJsonObject(view.config, {}),
     }));
     send(response, jsonResponse(200, okEnvelope({ views })));
+  };
+
+  const timelineRecordActionLabel = {
+    created: 'created',
+    updated: 'updated',
+    archived: 'archived',
+  };
+
+  const timelineRecordKindByCapability = {
+    meeting: 'Meeting',
+    milestone: 'Milestone',
+    calendar_event: 'Event',
+    task: 'Task',
+    capture: 'Capture',
+  };
+
+  const normalizeTimelineRecordKind = (value) => {
+    const trimmed = asText(value);
+    if (!trimmed) {
+      return '';
+    }
+
+    const normalizedLower = trimmed.toLowerCase();
+    const knownCollectionKinds = {
+      tasks: 'Task',
+      events: 'Event',
+      milestones: 'Milestone',
+      files: 'File',
+      notes: 'Note',
+      thoughts: 'Thought',
+      captures: 'Capture',
+      reminders: 'Reminder',
+    };
+    if (knownCollectionKinds[normalizedLower]) {
+      return knownCollectionKinds[normalizedLower];
+    }
+
+    if (normalizedLower.endsWith('ies') && trimmed.length > 3) {
+      return `${trimmed.slice(0, -3)}y`;
+    }
+    if (normalizedLower.endsWith('s') && trimmed.length > 3 && !normalizedLower.endsWith('ss')) {
+      return trimmed.slice(0, -1);
+    }
+
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  };
+
+  const buildTimelinePage = (rows) => {
+    const recordKindCache = new Map();
+
+    const readRecordKind = (recordId) => {
+      if (!recordId) {
+        return '';
+      }
+      if (recordKindCache.has(recordId)) {
+        return recordKindCache.get(recordId) || '';
+      }
+
+      const record = recordByIdStmt.get(recordId);
+      if (!record) {
+        recordKindCache.set(recordId, '');
+        return '';
+      }
+
+      const capabilityRows = capabilitiesByRecordStmt.all(recordId);
+      for (const capabilityRow of capabilityRows) {
+        const capabilityType = asText(capabilityRow.capability_type);
+        if (timelineRecordKindByCapability[capabilityType]) {
+          const kind = timelineRecordKindByCapability[capabilityType];
+          recordKindCache.set(recordId, kind);
+          return kind;
+        }
+      }
+
+      const collection = collectionByIdStmt.get(record.collection_id);
+      const kind = normalizeTimelineRecordKind(collection?.name);
+      recordKindCache.set(recordId, kind);
+      return kind;
+    };
+
+    return rows.map((row) => {
+      if (row.primary_entity_type !== 'record') {
+        return row;
+      }
+
+      const action = row.event_type.match(/^record\.(created|updated|archived)$/)?.[1];
+      if (!action) {
+        return row;
+      }
+
+      const summary = row.summary_json && typeof row.summary_json === 'object' ? row.summary_json : {};
+      const recordKind = normalizeTimelineRecordKind(summary.record_kind) || readRecordKind(row.primary_entity_id) || 'Record';
+
+      return {
+        ...row,
+        summary_json: {
+          ...summary,
+          record_kind: recordKind,
+          message: `${recordKind} ${timelineRecordActionLabel[action]}`,
+        },
+      };
+    });
   };
 
   const createView = async ({ request, response, requestUrl, params }) => {
@@ -657,7 +760,7 @@ export const createViewRoutes = (deps) => {
     const limit = asInteger(requestUrl.searchParams.get('limit'), 50, 1, 200);
     const offset = parseCursorOffset(requestUrl.searchParams.get('cursor'));
     const rows = timelineByProjectStmt.all(projectId).map(timelineRecord);
-    const page = rows.slice(offset, offset + limit);
+    const page = buildTimelinePage(rows.slice(offset, offset + limit));
     const nextOffset = offset + page.length;
     const nextCursor = nextOffset < rows.length ? encodeCursorOffset(nextOffset) : null;
 

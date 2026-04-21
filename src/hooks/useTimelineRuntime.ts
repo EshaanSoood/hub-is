@@ -9,6 +9,7 @@ type ProjectTimelineItem = {
   primary_entity_type: string;
   primary_entity_id: string;
   summary_json: Record<string, unknown>;
+  summary?: Record<string, unknown>;
   created_at: string;
 };
 
@@ -19,8 +20,35 @@ interface UseTimelineRuntimeParams {
   setTimeline: React.Dispatch<React.SetStateAction<ProjectTimelineItem[]>>;
 }
 
-const timelineTypeFromEvent = (eventType: string): TimelineEventType => {
+const timelineTypeFromRecordKind = (recordKind: string): TimelineEventType | null => {
+  const normalized = recordKind.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (normalized.includes('task') || normalized.includes('reminder')) {
+    return 'task';
+  }
+  if (normalized.includes('event') || normalized.includes('calendar') || normalized.includes('meeting')) {
+    return 'event';
+  }
+  if (normalized.includes('milestone')) {
+    return 'milestone';
+  }
+  if (normalized.includes('file') || normalized.includes('asset') || normalized.includes('attachment')) {
+    return 'file';
+  }
+  return 'workspace';
+};
+
+const timelineTypeFromEvent = (eventType: string, summary: Record<string, unknown>): TimelineEventType => {
   const normalized = eventType.toLowerCase();
+  if (normalized.startsWith('record.')) {
+    const recordKind = typeof summary.record_kind === 'string' ? summary.record_kind : '';
+    const fromRecordKind = timelineTypeFromRecordKind(recordKind);
+    if (fromRecordKind) {
+      return fromRecordKind;
+    }
+  }
   if (normalized.includes('task')) {
     return 'task';
   }
@@ -64,6 +92,18 @@ const relativeTime = (iso: string): string => {
   return `${Math.floor(deltaHour / 24)}d ago`;
 };
 
+const humanizeTimelineEventType = (eventType: string): string => {
+  const words = eventType
+    .trim()
+    .replace(/[._]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) {
+    return 'Activity';
+  }
+  return [words[0].charAt(0).toUpperCase() + words[0].slice(1), ...words.slice(1)].join(' ');
+};
+
 export const useTimelineRuntime = ({
   accessToken,
   projectId,
@@ -88,7 +128,9 @@ export const useTimelineRuntime = ({
     const orderedKeys: string[] = [];
 
     for (const item of timeline) {
-      const type = timelineTypeFromEvent(item.event_type);
+      const summarySource = item.summary_json ?? item.summary;
+      const summary = summarySource && typeof summarySource === 'object' ? summarySource : {};
+      const type = timelineTypeFromEvent(item.event_type, summary);
       if (!timelineFilters.includes(type)) {
         continue;
       }
@@ -99,10 +141,8 @@ export const useTimelineRuntime = ({
         buckets.set(key, []);
         orderedKeys.push(key);
       }
-
-      const summary = item.summary_json && typeof item.summary_json === 'object' ? item.summary_json : {};
       const summaryMessage = typeof summary.message === 'string' ? summary.message.trim() : '';
-      const message = summaryMessage || item.event_type.replace(/_/g, ' ');
+      const message = summaryMessage || humanizeTimelineEventType(item.event_type);
 
       buckets.get(key)?.push({
         id: item.timeline_event_id,

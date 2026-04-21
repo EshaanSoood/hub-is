@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useInlineExpansionFocus } from '../../hooks/accessibility/useInlineExpansionFocus';
 import { useLongPress } from '../../hooks/useLongPress';
 import { mapReminderFailureReasonToMessage, useReminderNLDraft } from '../../hooks/useReminderNLDraft';
 import { useModuleInsertState, type ModuleInsertState } from './hooks/useModuleInsertState';
@@ -118,6 +119,8 @@ const formatPreviewDateTime = (value: string | null): string | null => {
 
 const recurrenceLabel = (preview: ReminderParseResult): string | null =>
   formatReminderRecurrenceLabel(preview.fields.recurrence);
+
+const previewFallbackLabel = (value: string | null, fallback: string): string => value?.trim() || fallback;
 
 const createSparkles = (): SparkleParticle[] =>
   Array.from({ length: 10 }, (_, index) => ({
@@ -262,8 +265,7 @@ export const RemindersModuleSkin = ({
     preview,
     clear: clearDraft,
     createPayload,
-    hasMeaningfulPreview,
-  } = useReminderNLDraft({ parseDelayMs: 300 });
+  } = useReminderNLDraft({ parseDelayMs: 150 });
   const [submitting, setSubmitting] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [animations, setAnimations] = useState<Record<string, ReminderAnimationState>>({});
@@ -299,7 +301,30 @@ export const RemindersModuleSkin = ({
   }, [animations, visibleReminders]);
 
   const hiddenCount = Math.max(0, reminders.length - visibleReminders.length);
-  const showPreview = draft.length > 0;
+  const showPreview = draft.trim().length > 0;
+  useInlineExpansionFocus({
+    anchorRef: reminderInputRef,
+    active: showPreview,
+    expansionKey: draft,
+    enabled: !readOnly && !submitting,
+  });
+  const previewRows = [
+    {
+      label: 'Title',
+      value: preview.fields.title.trim() || null,
+      fallback: 'Listening for the reminder title…',
+    },
+    {
+      label: 'When',
+      value: preview.fields.context_hint || formatPreviewDateTime(preview.fields.remind_at),
+      fallback: 'Add a date or time like “tomorrow at 3pm”.',
+    },
+    {
+      label: 'Repeats',
+      value: recurrenceLabel(preview),
+      fallback: 'One-time reminder',
+    },
+  ];
 
   const submitReminder = async () => {
     if (readOnly || submitting) {
@@ -414,8 +439,8 @@ export const RemindersModuleSkin = ({
                 void submitReminder();
               }
             }}
-            placeholder="Add a reminder…"
-            aria-label="Add a reminder"
+            placeholder="Write A Reminder in Natural Language"
+            aria-label="Write a reminder in natural language"
             className="ghost-button min-h-11 flex-1 bg-surface px-3 py-2 text-sm text-text outline-none placeholder:text-text-secondary focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
           />
           <button
@@ -430,35 +455,20 @@ export const RemindersModuleSkin = ({
 
         {showPreview ? (
           <div className="module-toolbar px-3 py-2 text-xs text-text-secondary">
-            {hasMeaningfulPreview ? (
-              <div className="space-y-1">
-                {preview.fields.title ? (
-                  <p>
-                    <span className="font-semibold text-text">Title:</span> {preview.fields.title}
+            <div className="space-y-1">
+              {previewRows.map((row) => {
+                const resolvedValue = previewFallbackLabel(row.value, row.fallback);
+                const isParsed = Boolean(row.value?.trim());
+                return (
+                  <p key={row.label}>
+                    <span className="font-semibold text-text">{row.label}:</span>{' '}
+                    <span className={isParsed ? 'text-text' : 'text-text-secondary'}>
+                      {resolvedValue}
+                    </span>
                   </p>
-                ) : null}
-                {preview.fields.remind_at ? (
-                  <p>
-                    <span className="font-semibold text-text">When:</span> {preview.fields.context_hint || formatPreviewDateTime(preview.fields.remind_at)}
-                  </p>
-                ) : null}
-                {preview.fields.recurrence ? (
-                  <p>
-                    <span className="font-semibold text-text">Recurs:</span> {recurrenceLabel(preview)}
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <p>Just set a time — e.g. &quot;call dentist tomorrow at 3pm&quot;</p>
-            )}
-            {import.meta.env.DEV ? (
-              <details className="mt-2">
-                <summary className="cursor-pointer select-none">Reminder Parser Debug</summary>
-                <pre className="mt-1 whitespace-pre-wrap text-[11px]">
-                  {preview.meta.debugSteps.map((step) => `${step.pass} | ${step.ruleId} | ${step.note}`).join('\n') || 'No steps'}
-                </pre>
-              </details>
-            ) : null}
+                );
+              })}
+            </div>
           </div>
         ) : null}
 

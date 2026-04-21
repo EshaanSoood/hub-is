@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { anonymousUser } from '../data/authzData';
 import { getKeycloak, isKeycloakConfigured } from '../lib/keycloak';
 import { getMembershipForProject, hasGlobalCapability } from '../lib/policy';
@@ -57,6 +57,14 @@ const toUserRole = (role: SessionRole): UserIdentity['role'] => {
 
 const AuthzContext = createContext<AuthzContextValue | undefined>(undefined);
 const E2E_ACCESS_TOKEN_KEY = 'hub:e2e:access-token';
+const LOCAL_DEV_BOOTSTRAP_REFRESH_INTERVAL_MS = 2 * 60_000;
+
+const isLocalDevBootstrapEligible = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+};
 
 const readE2eAccessToken = (): string => {
   if (typeof window === 'undefined') {
@@ -80,6 +88,36 @@ const clearE2eAccessToken = (): void => {
   }
 };
 
+const writeE2eAccessToken = (token: string): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  try {
+    window.localStorage.setItem(E2E_ACCESS_TOKEN_KEY, token);
+  } catch {
+    // no-op
+  }
+};
+
+const requestLocalDevBootstrapToken = async (): Promise<string> => {
+  const response = await fetch('/api/hub/dev/bootstrap-auth', {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+  const payload = await response.json().catch(() => null) as
+    | { data?: { access_token?: unknown }; error?: { message?: unknown } }
+    | null;
+  const accessToken = typeof payload?.data?.access_token === 'string' ? payload.data.access_token.trim() : '';
+  if (!response.ok || !accessToken) {
+    const message = typeof payload?.error?.message === 'string' ? payload.error.message : 'Local dev auth bootstrap failed.';
+    throw new Error(message);
+  }
+  writeE2eAccessToken(accessToken);
+  return accessToken;
+};
+
 export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
   const keycloakConfigured = isKeycloakConfigured;
   const [authReady, setAuthReady] = useState(!keycloakConfigured);
@@ -92,123 +130,159 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
   const [sessionSummary, setSessionSummary] = useState<SessionSummary>(emptySessionSummary);
   const [accessToken, setAccessToken] = useState<string | undefined>(undefined);
 
+  const applyAnonymousState = useCallback((nextAuthError?: string) => {
+    setSignedIn(false);
+    setSessionSummary(emptySessionSummary);
+    setAccessToken(undefined);
+    setAuthError(nextAuthError);
+  }, []);
+
+  const applyTokenSession = useCallback(async (token: string): Promise<boolean> => {
+    try {
+      const nextSessionSummary = await fetchSessionSummary(token);
+      setSessionSummary(nextSessionSummary);
+      setAccessToken(token);
+      setSignedIn(true);
+      setAuthError(undefined);
+      setAuthReady(true);
+      return true;
+    } catch (error) {
+      clearE2eAccessToken();
+      applyAnonymousState(error instanceof Error ? error.message : 'Failed to load session from bootstrap token.');
+      return false;
+    }
+  }, [applyAnonymousState]);
+
+  const bootstrapLocalDevSession = useCallback(async (): Promise<boolean> => {
+    if (!isLocalDevBootstrapEligible()) {
+      return false;
+    }
+    try {
+      const localDevToken = await requestLocalDevBootstrapToken();
+      return await applyTokenSession(localDevToken);
+    } catch {
+      return false;
+    }
+  }, [applyTokenSession]);
+
   useEffect(() => {
-    const e2eAccessToken = readE2eAccessToken();
-    if (e2eAccessToken) {
-      let cancelled = false;
-      void fetchSessionSummary(e2eAccessToken)
-        .then((nextSessionSummary) => {
+    const keycloak = getKeycloak();
+    let cancelled = false;
+
+    void (async () => {
+      const e2eAccessToken = readE2eAccessToken();
+      if (e2eAccessToken) {
+        const ok = await applyTokenSession(e2eAccessToken);
+        if (ok) {
+          return;
+        }
+        if (isLocalDevBootstrapEligible()) {
+          const recovered = await bootstrapLocalDevSession();
+          if (recovered) {
+            return;
+          }
+        }
+      } else if (isLocalDevBootstrapEligible()) {
+        const bootstrapped = await bootstrapLocalDevSession();
+        if (bootstrapped) {
+          return;
+        }
+      }
+
+      if (!keycloak) {
+        setAuthReady(true);
+        return;
+      }
+
+      const authRedirectUri = buildCurrentAuthRedirectUri(window.location);
+      const silentCheckSsoRedirectUri = `${window.location.origin}/silent-check-sso.html`;
+
+      void keycloak
+        .init({
+          onLoad: 'check-sso',
+          checkLoginIframe: false,
+          pkceMethod: 'S256',
+          responseMode: 'query',
+          redirectUri: authRedirectUri,
+          silentCheckSsoRedirectUri,
+        })
+        .then(async (authenticated) => {
           if (cancelled) {
             return;
           }
-          setSessionSummary(nextSessionSummary);
-          setAccessToken(e2eAccessToken);
-          setSignedIn(true);
-          setAuthError(undefined);
-          setAuthReady(true);
+
+          if (replaceAuthCallbackUrlIfNeeded(window.history, window.location)) {
+            window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+          }
+
+          if (!authenticated || !keycloak.token) {
+            applyAnonymousState(undefined);
+            setAuthReady(true);
+            return;
+          }
+
+          try {
+            const nextSessionSummary = await fetchSessionSummary(keycloak.token);
+            if (cancelled) {
+              return;
+            }
+
+            setSessionSummary(nextSessionSummary);
+            setAccessToken(keycloak.token);
+            setSignedIn(true);
+            setAuthError(undefined);
+            setAuthReady(true);
+          } catch (error) {
+            if (cancelled) {
+              return;
+            }
+
+            console.error('Session summary fetch failed', error);
+            applyAnonymousState(
+              error instanceof Error
+                ? error.message
+                : 'Authenticated with Keycloak but failed to load hub session from server.',
+            );
+            setAuthReady(true);
+          }
         })
         .catch((error) => {
           if (cancelled) {
             return;
           }
-          clearE2eAccessToken();
-          setSignedIn(false);
-          setSessionSummary(emptySessionSummary);
-          setAccessToken(undefined);
-          setAuthError(error instanceof Error ? error.message : 'Failed to load session from bootstrap token.');
+
+          console.error('Keycloak init failed', error);
+          applyAnonymousState('Unable to initialize Keycloak authentication.');
           setAuthReady(true);
         });
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const keycloak = getKeycloak();
-
-    if (!keycloak) {
-      return;
-    }
-
-    let cancelled = false;
-    const authRedirectUri = buildCurrentAuthRedirectUri(window.location);
-    const silentCheckSsoRedirectUri = `${window.location.origin}/silent-check-sso.html`;
-
-    void keycloak
-      .init({
-        onLoad: 'check-sso',
-        checkLoginIframe: false,
-        pkceMethod: 'S256',
-        responseMode: 'query',
-        redirectUri: authRedirectUri,
-        silentCheckSsoRedirectUri,
-      })
-      .then(async (authenticated) => {
-        if (cancelled) {
-          return;
-        }
-
-        if (replaceAuthCallbackUrlIfNeeded(window.history, window.location)) {
-          window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
-        }
-
-        if (!authenticated || !keycloak.token) {
-          setSignedIn(false);
-          setSessionSummary(emptySessionSummary);
-          setAccessToken(undefined);
-          setAuthError(undefined);
-          setAuthReady(true);
-          return;
-        }
-
-        try {
-          const nextSessionSummary = await fetchSessionSummary(keycloak.token);
-          if (cancelled) {
-            return;
-          }
-
-          setSessionSummary(nextSessionSummary);
-          setAccessToken(keycloak.token);
-          setSignedIn(true);
-          setAuthError(undefined);
-          setAuthReady(true);
-        } catch (error) {
-          if (cancelled) {
-            return;
-          }
-
-          console.error('Session summary fetch failed', error);
-          setSignedIn(false);
-          setSessionSummary(emptySessionSummary);
-          setAccessToken(undefined);
-          setAuthError(
-            error instanceof Error
-              ? error.message
-              : 'Authenticated with Keycloak but failed to load hub session from server.',
-          );
-          setAuthReady(true);
-        }
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-
-        console.error('Keycloak init failed', error);
-        setSignedIn(false);
-        setSessionSummary(emptySessionSummary);
-        setAccessToken(undefined);
-        setAuthError('Unable to initialize Keycloak authentication.');
-        setAuthReady(true);
-      });
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [applyAnonymousState, applyTokenSession, bootstrapLocalDevSession]);
 
   useEffect(() => {
     if (readE2eAccessToken()) {
-      return;
+      if (!signedIn || !isLocalDevBootstrapEligible()) {
+        return;
+      }
+
+      const refreshLocalDevSession = async () => {
+        const recovered = await bootstrapLocalDevSession();
+        if (!recovered) {
+          applyAnonymousState('Local dev session expired.');
+          setAuthReady(true);
+        }
+      };
+
+      const timerId = window.setInterval(() => {
+        void refreshLocalDevSession();
+      }, LOCAL_DEV_BOOTSTRAP_REFRESH_INTERVAL_MS);
+
+      return () => {
+        window.clearInterval(timerId);
+      };
     }
 
     const keycloak = getKeycloak();
@@ -231,9 +305,7 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
         setAccessToken(keycloak.token);
       } catch (error) {
         console.error('Token/session refresh failed', error);
-        setSignedIn(false);
-        setSessionSummary(emptySessionSummary);
-        setAccessToken(undefined);
+        applyAnonymousState(undefined);
       }
     };
 
@@ -244,7 +316,7 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       window.clearInterval(timerId);
     };
-  }, [signedIn]);
+  }, [applyAnonymousState, bootstrapLocalDevSession, signedIn]);
 
   const user = useMemo<UserIdentity>(
     () => ({
@@ -293,6 +365,9 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
 
         const token = readE2eAccessToken() || accessToken || getKeycloak()?.token || '';
         if (!token) {
+          if (isLocalDevBootstrapEligible()) {
+            await bootstrapLocalDevSession();
+          }
           return;
         }
 
@@ -300,8 +375,15 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
           const nextSessionSummary = await fetchSessionSummary(token);
           setSessionSummary(nextSessionSummary);
           setAccessToken(token);
+          setSignedIn(true);
           setAuthError(undefined);
         } catch (error) {
+          if (isLocalDevBootstrapEligible()) {
+            const recovered = await bootstrapLocalDevSession();
+            if (recovered) {
+              return;
+            }
+          }
           setAuthError(error instanceof Error ? error.message : 'Unable to refresh session summary.');
         }
       },
@@ -340,7 +422,7 @@ export const AuthzProvider = ({ children }: { children: React.ReactNode }) => {
         });
       },
     }),
-    [accessToken, authError, authReady, globalCapabilities, keycloakConfigured, memberships, sessionSummary, signedIn, user],
+    [accessToken, authError, authReady, bootstrapLocalDevSession, globalCapabilities, keycloakConfigured, memberships, sessionSummary, signedIn, user],
   );
 
   return <AuthzContext.Provider value={value}>{children}</AuthzContext.Provider>;

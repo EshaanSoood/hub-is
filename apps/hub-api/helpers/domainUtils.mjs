@@ -129,7 +129,7 @@ export const createDomainUtils = ({
     primary_entity_type: row.primary_entity_type,
     primary_entity_id: row.primary_entity_id,
     secondary_entities: parseJson(row.secondary_entities_json, []),
-    summary: parseJsonObject(row.summary_json, {}),
+    summary_json: parseJsonObject(row.summary_json, {}),
     created_at: row.created_at,
   });
 

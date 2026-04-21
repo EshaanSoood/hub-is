@@ -54,7 +54,9 @@ export const ProjectNode = ({
           type="button"
           aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
           aria-expanded={expanded}
-          className={`interactive interactive-subtle relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+          className={`interactive interactive-subtle relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-control hover:bg-surface-highest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+            active ? 'text-primary hover:text-primary' : 'text-text-secondary hover:text-text'
+          } ${
             isDragging ? 'shadow-soft' : ''
           } ${isDragging && !prefersReducedMotion ? 'scale-[1.02]' : ''}`}
           onClick={(event) => {

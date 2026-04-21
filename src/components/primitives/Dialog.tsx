@@ -1,4 +1,5 @@
 import { cn } from '../../lib/cn';
+import { applyDialogOpenFocus, type DialogOpenFocusMode, type DialogOpenIntent } from '../../lib/accessibility/focus';
 import {
   AlertDialog as AlertDialogRoot,
   AlertDialogAction,
@@ -30,6 +31,8 @@ export interface BaseDialogProps {
   panelClassName?: string;
   contentClassName?: string;
   motionVariant?: DialogSurfaceMotionVariant;
+  openFocusMode?: DialogOpenFocusMode;
+  openIntent?: DialogOpenIntent;
 }
 
 export const Dialog = ({
@@ -44,10 +47,25 @@ export const Dialog = ({
   panelClassName,
   contentClassName,
   motionVariant = 'dialog',
+  openFocusMode = 'first-control',
+  openIntent = 'user',
 }: BaseDialogProps) => (
   <DialogRoot open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
     <DialogContent
       open={open}
+      onOpenAutoFocus={(event) => {
+        if (openIntent === 'system' || openFocusMode === 'none') {
+          event.preventDefault();
+          return;
+        }
+        if (applyDialogOpenFocus({
+          container: event.currentTarget,
+          intent: openIntent,
+          mode: openFocusMode,
+        })) {
+          event.preventDefault();
+        }
+      }}
       onCloseAutoFocus={(event) => {
         if (triggerRef?.current) {
           event.preventDefault();
@@ -81,6 +99,8 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   motionVariant?: DialogSurfaceMotionVariant;
+  openFocusMode?: DialogOpenFocusMode;
+  openIntent?: DialogOpenIntent;
 }
 
 export const AlertDialog = ({
@@ -94,6 +114,8 @@ export const AlertDialog = ({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   motionVariant = 'dialog',
+  openFocusMode = 'first-control',
+  openIntent = 'user',
 }: ConfirmDialogProps) => (
   <AlertDialogRoot open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent
@@ -101,6 +123,19 @@ export const AlertDialog = ({
       animated={Boolean(layoutId)}
       layoutId={layoutId}
       motionVariant={motionVariant}
+      onOpenAutoFocus={(event) => {
+        if (openIntent === 'system' || openFocusMode === 'none') {
+          event.preventDefault();
+          return;
+        }
+        if (applyDialogOpenFocus({
+          container: event.currentTarget,
+          intent: openIntent,
+          mode: openFocusMode,
+        })) {
+          event.preventDefault();
+        }
+      }}
       onCloseAutoFocus={(event) => {
         if (triggerRef?.current) {
           event.preventDefault();

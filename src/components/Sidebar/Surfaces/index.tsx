@@ -43,7 +43,7 @@ export const Surfaces = ({
   showLabels,
 }: SurfacesProps) => (
   <div className={`flex ${isCollapsed ? 'flex-col items-center gap-3' : 'sidebar-section'}`}>
-    <div role="group" aria-label="Home subviews" className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'sidebar-section'}`}>
+    <div role="group" aria-label="Views" className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'sidebar-section'}`}>
       {HOME_CONTENT_ITEMS.map((view) => (
         <SurfaceItem
           key={view.id}
@@ -58,7 +58,7 @@ export const Surfaces = ({
       ))}
     </div>
 
-    <div role="group" aria-label="Home launchers" className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'sidebar-section'}`}>
+    <div role="group" aria-label="Views" className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'sidebar-section'}`}>
       {SURFACE_ITEMS.map((surface) => (
         <SurfaceItem
           key={surface.id}

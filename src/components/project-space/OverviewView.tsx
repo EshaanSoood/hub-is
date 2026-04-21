@@ -310,7 +310,7 @@ export const OverviewView = ({
 
         <p className="mb-3 text-sm text-muted">{projectSummary}</p>
 
-        <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as OverviewViewId)}>
+        <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as OverviewViewId)} activationMode="manual">
           <TabsList aria-label="Overview sub-views">
             {overviewViews.map((view) => (
               <TabButton

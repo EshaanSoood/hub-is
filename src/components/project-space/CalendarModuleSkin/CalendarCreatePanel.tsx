@@ -1,3 +1,6 @@
+import { useRef } from 'react';
+import { useInlineExpansionFocus } from '../../../hooks/accessibility/useInlineExpansionFocus';
+import type { CalendarNLFormPreview } from '../../../hooks/useCalendarNLDraft';
 import { asDateLabel, fromLocalDateKey } from './utils';
 
 interface CalendarCreatePanelProps {
@@ -6,6 +9,7 @@ interface CalendarCreatePanelProps {
   draftTitle: string;
   draftStartTime: string;
   draftEndTime: string;
+  draftPreview: CalendarNLFormPreview;
   isCreatingEvent: boolean;
   createError: string | null;
   onDraftTitleChange: (value: string) => void;
@@ -21,6 +25,7 @@ export const CalendarCreatePanel = ({
   draftTitle,
   draftStartTime,
   draftEndTime,
+  draftPreview,
   isCreatingEvent,
   createError,
   onDraftTitleChange,
@@ -29,6 +34,42 @@ export const CalendarCreatePanel = ({
   onCancel,
   onSubmit,
 }: CalendarCreatePanelProps) => {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const showPreview = draftTitle.trim().length > 0;
+  useInlineExpansionFocus({
+    anchorRef: inputRef,
+    active: showPreview,
+    expansionKey: draftTitle,
+    enabled: !isCreatingEvent,
+  });
+  const previewRows = [
+    {
+      label: 'Title',
+      value: draftPreview.title?.trim() || draftTitle.trim() || null,
+      fallback: 'Event title will appear here',
+    },
+    {
+      label: 'Starts',
+      value: draftPreview.startAt ? new Date(draftPreview.startAt).toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }) : null,
+      fallback: 'Start time will appear here',
+    },
+    {
+      label: 'Ends',
+      value: draftPreview.endAt ? new Date(draftPreview.endAt).toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }) : null,
+      fallback: 'End time will appear here',
+    },
+  ];
+
   if (!draftDay || !hasCreateHandler) {
     return null;
   }
@@ -45,17 +86,37 @@ export const CalendarCreatePanel = ({
         <h3 className="text-sm font-semibold text-text">{asDateLabel(fromLocalDateKey(draftDay))}</h3>
       </div>
       <label className="flex flex-col gap-1 text-xs text-muted">
-        Event title
+        Event prompt
         <input
+          ref={inputRef}
           autoFocus
           type="text"
           value={draftTitle}
           onChange={(event) => onDraftTitleChange(event.target.value)}
           disabled={isCreatingEvent}
           className="rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          placeholder="New event"
+          placeholder="Write An Event in Natural Language"
+          aria-label="Write an event in natural language"
         />
       </label>
+      {showPreview ? (
+        <div className="module-toolbar px-3 py-2 text-xs text-text-secondary">
+          <div className="space-y-1">
+            {previewRows.map((row) => {
+              const resolvedValue = row.value?.trim() || row.fallback;
+              const isParsed = Boolean(row.value?.trim());
+              return (
+                <p key={row.label}>
+                  <span className="font-semibold text-text">{row.label}:</span>{' '}
+                  <span className={isParsed ? 'text-text' : 'text-text-secondary'}>
+                    {resolvedValue}
+                  </span>
+                </p>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-muted">
           Start time

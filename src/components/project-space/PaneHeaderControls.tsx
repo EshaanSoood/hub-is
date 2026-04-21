@@ -75,6 +75,7 @@ export const PaneHeaderControls = ({
             aria-label="Pane configuration"
             aria-expanded={configOpen}
             disabled={disabled}
+            className={cn(configOpen && 'text-primary')}
           >
             <Icon name="settings" className="text-[14px]" />
           </IconButton>
@@ -129,6 +130,7 @@ export const PaneHeaderControls = ({
         aria-pressed={isPinned}
         disabled={disabled}
         onClick={onPinToggle}
+        className={cn(isPinned && 'text-primary')}
       >
         <Icon name="pin" className="text-[14px]" />
       </IconButton>
@@ -141,6 +143,7 @@ export const PaneHeaderControls = ({
         aria-pressed={isFocusMode}
         disabled={disabled}
         onClick={onFocusToggle}
+        className={cn(isFocusMode && 'text-primary')}
       >
         <Icon name="focus" className="text-[14px]" />
       </IconButton>

@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useInlineExpansionFocus } from '../../../hooks/accessibility/useInlineExpansionFocus';
+import { useTaskNLDraft } from '../../../hooks/useTaskNLDraft';
 import { Icon } from '../../primitives';
 import { cn } from '../../../lib/cn';
 import type { TaskItem, TaskPriorityValue } from '../TasksTab';
@@ -15,12 +17,34 @@ const toIsoDate = (value: string): string | null => {
   if (!value) {
     return null;
   }
-  const d = new Date(`${value}T12:00:00`);
+  const normalizedValue = value.includes('T') ? value : `${value}T12:00:00`;
+  const d = new Date(normalizedValue);
   if (Number.isNaN(d.getTime())) {
     return null;
   }
   return d.toISOString();
 };
+
+const formatTaskPreviewDue = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const formatTaskPreviewPriority = (value: TaskPriorityValue): string | null =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1) : null;
+
+const previewFallbackLabel = (value: string | null, fallback: string): string => value?.trim() || fallback;
 
 interface TaskComposerProps {
   tasks: TaskItem[];
@@ -44,17 +68,45 @@ export const TaskComposer = ({
   initialParentTask = null,
   onCancel,
 }: TaskComposerProps) => {
-  const [title, setTitle] = useState('');
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [priority, setPriority] = useState<string>('');
   const [dueDate, setDueDate] = useState('');
   const [parentPickerOpen, setParentPickerOpen] = useState(Boolean(initialParentTask));
   const [parentTaskId, setParentTaskId] = useState(initialParentTask?.id ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { draft, setDraft, clear, formPreview } = useTaskNLDraft({ parseDelayMs: 150 });
   const selectedParentTask = useMemo(() => tasks.find((task) => task.id === parentTaskId) ?? null, [parentTaskId, tasks]);
+  const showPreview = draft.trim().length > 0;
+  useInlineExpansionFocus({
+    anchorRef: inputRef,
+    active: showPreview,
+    expansionKey: draft,
+    enabled: !submitting,
+  });
+  const previewRows = useMemo(
+    () => [
+      {
+        label: 'Title',
+        value: formPreview.title?.trim() || draft.trim() || null,
+        fallback: 'Task title will appear here',
+      },
+      {
+        label: 'When',
+        value: formatTaskPreviewDue(formPreview.dueAt),
+        fallback: 'Due date will appear here',
+      },
+      {
+        label: 'Priority',
+        value: formatTaskPreviewPriority(formPreview.priority),
+        fallback: 'Priority will appear here',
+      },
+    ],
+    [draft, formPreview.dueAt, formPreview.priority, formPreview.title],
+  );
 
   const reset = () => {
-    setTitle('');
+    clear();
     setPriority('');
     setDueDate('');
     setParentPickerOpen(false);
@@ -70,7 +122,8 @@ export const TaskComposer = ({
       onSubmit={async (event) => {
         event.preventDefault();
         setErrorMsg(null);
-        const trimmedTitle = title.trim();
+        const trimmedDraft = draft.trim();
+        const trimmedTitle = formPreview.title?.trim() || trimmedDraft;
         if (!trimmedTitle || submitting) {
           return;
         }
@@ -78,8 +131,8 @@ export const TaskComposer = ({
           setSubmitting(true);
           await onCreateTask({
             title: trimmedTitle,
-            priority: priority || null,
-            due_at: toIsoDate(dueDate),
+            priority: priority || formPreview.priority || null,
+            due_at: toIsoDate(dueDate || formPreview.dueAt || ''),
             parent_record_id: selectedParentTask?.id ?? null,
           });
           reset();
@@ -93,16 +146,36 @@ export const TaskComposer = ({
       }}
     >
       <input
+        ref={inputRef}
         type="text"
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        placeholder="New task..."
-        aria-label="New task title"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="Write A Task in Natural Language"
+        aria-label="Write a task in natural language"
         className={cn(
           'w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-text placeholder:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
           'text-sm',
         )}
       />
+
+      {showPreview ? (
+        <div className="module-toolbar px-3 py-2 text-xs text-text-secondary">
+          <div className="space-y-1">
+            {previewRows.map((row) => {
+              const resolvedValue = previewFallbackLabel(row.value, row.fallback);
+              const isParsed = Boolean(row.value?.trim());
+              return (
+                <p key={row.label}>
+                  <span className="font-semibold text-text">{row.label}:</span>{' '}
+                  <span className={isParsed ? 'text-text' : 'text-text-secondary'}>
+                    {resolvedValue}
+                  </span>
+                </p>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <select

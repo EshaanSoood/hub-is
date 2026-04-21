@@ -172,7 +172,7 @@ export const HomeOverviewSurface = ({
       </header>
 
       <Card className="p-4">
-        <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as HomeOverviewViewId)}>
+        <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as HomeOverviewViewId)} activationMode="manual">
           <TabsList aria-label="Home overview subviews">
             {overviewViews.map((view) => (
               <TabButton

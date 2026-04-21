@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useInlineExpansionFocus } from '../../../hooks/accessibility/useInlineExpansionFocus';
 import { buildSearchResultHref, SEARCH_RESULT_TYPE_LABELS } from '../../layout/appShellUtils';
 import { SidebarLabel } from '../motion/SidebarLabel';
 import {
@@ -45,6 +46,13 @@ export const SearchButton = ({
     () => (results.length === 0 ? -1 : activeIndex < 0 || activeIndex >= results.length ? 0 : activeIndex),
     [activeIndex, results.length],
   );
+
+  useInlineExpansionFocus({
+    anchorRef: inputRef,
+    active: hasOverlay,
+    expansionKey: `${query.trim()}|${loading ? 'loading' : 'idle'}|${error ?? 'no-error'}|${results.length}`,
+    enabled: isActive,
+  });
 
   const closeSearch = useCallback(() => {
     requestVersionRef.current += 1;
@@ -180,7 +188,7 @@ export const SearchButton = ({
           <div className="flex items-center gap-2">
             <span
               aria-hidden="true"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-low text-text-secondary"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-highest text-primary"
             >
               <Icon name="search" size={16} />
             </span>
@@ -237,7 +245,7 @@ export const SearchButton = ({
               <button
                 type="button"
                 aria-label="Close search"
-                className="interactive interactive-subtle ghost-button flex h-8 w-8 shrink-0 items-center justify-center bg-surface-low text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                className="interactive interactive-subtle ghost-button flex h-8 w-8 shrink-0 items-center justify-center bg-surface-low text-primary hover:bg-surface-highest hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 onClick={closeSearch}
               >
                 <Icon name="close" size={14} />

@@ -243,6 +243,18 @@ export const SidebarShell = () => {
             </div>
 
             <div className="shrink-0">
+              <Surfaces
+                activeHomeContentView={currentHomeContentView}
+                activeHomeTab={currentHomeTab}
+                activeSurface={currentSurface}
+                isCollapsed={resolvedVisualCollapsed}
+                onSelectHomeContentView={onSelectHomeContentView}
+                onSelectSurface={onSelectSurface}
+                showLabels={resolvedShowLabels}
+              />
+            </div>
+
+            <div className="shrink-0">
               <CaptureInput
                 key={`capture:${location.pathname}${location.search}`}
                 accessToken={accessToken}
@@ -255,18 +267,6 @@ export const SidebarShell = () => {
                 isCollapsed={resolvedVisualCollapsed}
                 onOpenCapture={openCapture}
                 personalProject={personalProject}
-                showLabels={resolvedShowLabels}
-              />
-            </div>
-
-            <div className="shrink-0">
-              <Surfaces
-                activeHomeContentView={currentHomeContentView}
-                activeHomeTab={currentHomeTab}
-                activeSurface={currentSurface}
-                isCollapsed={resolvedVisualCollapsed}
-                onSelectHomeContentView={onSelectHomeContentView}
-                onSelectSurface={onSelectSurface}
                 showLabels={resolvedShowLabels}
               />
             </div>
