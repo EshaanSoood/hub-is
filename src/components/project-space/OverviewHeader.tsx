@@ -64,7 +64,7 @@ export const OverviewHeader = ({
               event.currentTarget.blur();
             }
           }}
-          aria-label="Project title"
+          aria-label="Space title"
           className="ghost-button w-full bg-surface px-3 py-2 text-xl font-bold text-text"
         />
       ) : (
@@ -75,7 +75,7 @@ export const OverviewHeader = ({
             setIsEditingTitle(true);
           }}
           className="w-full rounded-control px-1 py-0.5 text-left text-xl font-bold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          aria-label={`Edit project title: ${title || 'Untitled project'}`}
+          aria-label={`Edit space title: ${title || 'Untitled space'}`}
         >
           {title}
         </button>

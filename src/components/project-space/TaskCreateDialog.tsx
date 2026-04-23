@@ -273,7 +273,7 @@ export const TaskCreateDialog = ({
         {projectOptions && onSelectedProjectIdChange ? (
           <div className="space-y-1">
             <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="task-create-project">
-              Project
+              Space
             </label>
             <select
               id="task-create-project"

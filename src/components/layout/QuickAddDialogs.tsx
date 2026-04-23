@@ -135,7 +135,7 @@ export const QuickAddEventDialog: FC<{
 
       <div className="space-y-1">
         <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-event-project">
-          Project
+          Space
         </label>
         <select
           id="quick-add-event-project"
@@ -254,7 +254,7 @@ export const QuickAddReminderDialog: FC<{
   >
     <form className="space-y-4" onSubmit={onSubmit}>
       <p className="rounded-panel border border-border-muted bg-surface px-3 py-2 text-xs text-text-secondary">
-        Reminders are saved to your {personalProjectLabel} project.
+        Reminders are saved to your {personalProjectLabel} space.
       </p>
 
       <div className="space-y-1">
@@ -335,13 +335,13 @@ export const QuickAddProjectDialog: FC<{
     onClose={onClose}
     triggerRef={triggerRef}
     layoutId={layoutId}
-    title="Create Project"
-    description="Create a new project."
+    title="Create Space"
+    description="Create a new space."
   >
     <form className="space-y-4" onSubmit={onSubmit}>
       <div className="space-y-1">
         <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-project-name">
-          Project name
+          Space name
         </label>
         <input
           id="quick-add-project-name"
@@ -350,7 +350,7 @@ export const QuickAddProjectDialog: FC<{
           value={name}
           onChange={(event) => onNameChange(event.target.value)}
           className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-          placeholder="New project"
+          placeholder="New space"
         />
       </div>
 

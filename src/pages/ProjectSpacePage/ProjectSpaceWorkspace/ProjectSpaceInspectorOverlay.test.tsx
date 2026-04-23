@@ -528,7 +528,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
     expect(screen.getByText('Collection: Reference')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
     expect(screen.getByText('Link')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Open source pane' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open source project' })).not.toBeInTheDocument();
   });
 
   it('preserves shared attachments, relations, comments, backlinks, and activity behavior', async () => {
@@ -686,9 +686,9 @@ describe('ProjectSpaceInspectorOverlay', () => {
       />,
     );
 
-    expect(screen.getByText('Opened in read-only pane Private Work. You can review this task and add comments, but only pane editors can change fields, attachments, or relations.')).toBeInTheDocument();
+    expect(screen.getByText('Opened in read-only project Private Work. You can review this task and add comments, but only project editors can change fields, attachments, or relations.')).toBeInTheDocument();
     expect(screen.getByLabelText('Title')).toBeDisabled();
-    expect(screen.getByText('Attachments are read-only in this pane.')).toBeInTheDocument();
+    expect(screen.getByText('Attachments are read-only in this project.')).toBeInTheDocument();
     expect(screen.getByTestId('attachment-read-only')).toHaveTextContent('read-only');
     expect(screen.getByRole('button', { name: 'Rename attachment' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Move attachment' })).toBeDisabled();
@@ -697,7 +697,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
     expect(screen.queryByRole('button', { name: 'Attach' })).not.toBeInTheDocument();
   });
 
-  it('closes the inspector and navigates to the source pane context', async () => {
+  it('closes the inspector and navigates to the source project context', async () => {
     const closeInspectorWithFocusRestore = vi.fn();
     const navigate = vi.fn();
 
@@ -710,7 +710,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Open source pane' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Open source project' }));
 
     expect(closeInspectorWithFocusRestore).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith(

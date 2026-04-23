@@ -257,7 +257,7 @@ export const useProjectFilesRuntime = ({
               name: entry.localFile.name,
               mime_type: entry.localFile.type || 'application/octet-stream',
               content_base64: base64,
-              path: 'Project Files',
+              path: 'Space Files',
               mutation_context_pane_id: activePane?.pane_id || undefined,
               metadata: {
                 scope: 'project',

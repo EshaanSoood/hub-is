@@ -96,7 +96,7 @@ export const useQuickCaptureSubmit = ({
         }
 
         if (captureTargetProjectId === PERSONAL_CAPTURE_TARGET) {
-          setCaptureError('Choose a project to categorize this capture.');
+          setCaptureError('Choose a space to categorize this capture.');
           return;
         }
 

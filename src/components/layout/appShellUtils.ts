@@ -52,7 +52,7 @@ export const QUICK_ADD_OPTIONS: QuickAddOption[] = [
   { key: 'task', label: 'Task', iconName: 'tasks' },
   { key: 'event', label: 'Calendar Event', iconName: 'calendar' },
   { key: 'reminder', label: 'Reminder', iconName: 'reminders' },
-  { key: 'project', label: 'Project', iconName: 'project-list' },
+  { key: 'project', label: 'Space', iconName: 'project-list' },
 ];
 
 export const relativeTimeLabel = (iso: string): string => {
@@ -142,7 +142,7 @@ export const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; 
     return segments.map((segment) => segment.replace(/-/g, ' '));
   }
 
-  const crumb: string[] = ['Projects'];
+  const crumb: string[] = ['Spaces'];
   const projectId = segments[1];
   if (projectId) {
     let decodedProjectId = projectId;
@@ -151,7 +151,7 @@ export const buildBreadcrumb = (pathname: string, projects: Array<{ id: string; 
     } catch {
       decodedProjectId = projectId;
     }
-    const projectName = projects.find((project) => project.id === decodedProjectId)?.name || 'Unknown project';
+    const projectName = projects.find((project) => project.id === decodedProjectId)?.name || 'Unknown space';
     crumb.push(projectName);
   }
   if (segments[2]) {
@@ -285,8 +285,8 @@ export const emptyReminderPreview = (): ReminderParseResult =>
 
 export const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
   record: 'Record',
-  project: 'Project',
-  pane: 'Pane',
+  project: 'Space',
+  pane: 'Project',
 };
 
 export const buildSearchResultHref = (result: HubSearchResult): string | null => {

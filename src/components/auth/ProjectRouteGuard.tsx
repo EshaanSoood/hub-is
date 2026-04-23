@@ -75,13 +75,13 @@ export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
   if (!initialized || shouldRefreshAccess || isRefreshingProjectAccess) {
     return (
       <div className="p-4" role="status" aria-live="polite">
-        <p className="text-sm text-muted">Loading project...</p>
+        <p className="text-sm text-muted">Loading space...</p>
       </div>
     );
   }
 
   if (!hasProjectAccess) {
-    return <AccessDeniedView message={`You do not have project.view access for ${projectId || 'this project'}.`} />;
+    return <AccessDeniedView message="You do not have access to this space." />;
   }
 
   return <>{children}</>;

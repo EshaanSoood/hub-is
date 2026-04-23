@@ -25,7 +25,7 @@ export const ProjectLensView = ({
   items,
   projects,
   onOpenRecord,
-  title = 'Project Lens',
+  title = 'Space Lens',
 }: ProjectLensViewProps) => {
   const prefersReducedMotion = useReducedMotion();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -90,7 +90,7 @@ export const ProjectLensView = ({
             className="inline-flex h-8 items-center justify-center gap-2 rounded-control border border-border-muted bg-surface px-3 text-xs font-medium text-text"
           >
             <Icon name="plus" className="text-[12px]" />
-            <span>New Project</span>
+            <span>New Space</span>
           </button>
         </div>
       </div>
@@ -165,7 +165,7 @@ export const ProjectLensView = ({
       ) : null}
       {projects.length === 0 ? (
         <p className="rounded-panel border border-border-muted bg-surface px-4 py-8 text-center text-sm text-muted">
-          No projects yet.
+          No spaces yet.
         </p>
       ) : null}
     </section>

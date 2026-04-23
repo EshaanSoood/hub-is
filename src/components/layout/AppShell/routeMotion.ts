@@ -121,14 +121,14 @@ const resolveProjectName = (
   state: HubMotionState,
   getProjectName: (projectId: string | null) => string | null,
 ): string => {
-  return state.hubProjectName || getProjectName(descriptor.projectId) || 'Project';
+  return state.hubProjectName || getProjectName(descriptor.projectId) || 'Space';
 };
 
 const resolvePaneName = (
   descriptor: HubRouteDescriptor,
   state: HubMotionState,
 ): string => {
-  return state.hubPaneName || descriptor.paneId || 'Pane';
+  return state.hubPaneName || descriptor.paneId || 'Project';
 };
 
 export const decideRouteTransition = ({

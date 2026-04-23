@@ -66,7 +66,7 @@ export const ProjectSpaceWorkspace = ({
     <motion.div layoutId={projectLayoutId} className="space-y-4">
       <div className="rounded-panel border border-subtle bg-elevated p-3">
         <div className="mb-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Project Space</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Space</p>
           <h1
             className="mt-1 line-clamp-2 text-base font-bold text-text"
             title={navigatorProps.projectName}
@@ -74,7 +74,7 @@ export const ProjectSpaceWorkspace = ({
             {navigatorProps.projectName}
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2" aria-label="Project space navigation">
+        <nav className="flex flex-wrap items-center gap-2" aria-label="Space navigation">
           {PROJECT_SPACE_PRIMARY_SURFACES.map((surface) => {
             const selected = surface === 'work'
               ? navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned
@@ -108,16 +108,16 @@ export const ProjectSpaceWorkspace = ({
                     : 'border-border-muted bg-surface text-primary hover:border-primary hover:bg-primary/10'
                 }`}
                 aria-current={selected ? 'page' : undefined}
-                aria-label={`Open pinned pane ${pane.name}`}
+                aria-label={`Open pinned project ${pane.name}`}
               >
                 <span className="flex flex-col items-center leading-tight">
                   <span>{pane.name}</span>
                   <span className={selected ? 'mt-1 h-1 w-1 rounded-full bg-on-primary' : 'mt-1 h-1 w-1 rounded-full bg-muted'} aria-hidden="true" />
                 </span>
               </button>
-            );
+              );
           })}
-        </div>
+        </nav>
       </div>
 
       {activeTab === 'overview' ? <ProjectSpaceOverviewSurface {...overviewProps} /> : null}

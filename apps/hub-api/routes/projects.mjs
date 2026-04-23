@@ -77,7 +77,7 @@ export const createProjectRoutes = (deps) => {
 
     const name = asText(body.name);
     if (!name) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Project name is required.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Space name is required.')));
       return;
     }
 
@@ -90,7 +90,7 @@ export const createProjectRoutes = (deps) => {
     const projectId = providedProjectId || newId('prj');
 
     if (projectByIdStmt.get(projectId)) {
-      send(response, jsonResponse(409, errorEnvelope('conflict', 'Project already exists.')));
+      send(response, jsonResponse(409, errorEnvelope('conflict', 'Space already exists.')));
       return;
     }
 
@@ -134,7 +134,7 @@ export const createProjectRoutes = (deps) => {
       eventType: 'project.created',
       primaryEntityType: 'project',
       primaryEntityId: projectId,
-      summary: { message: `Project created: ${name}` },
+      summary: { message: `Space created: ${name}` },
     });
 
     const project = projectForMemberStmt.get(projectId, auth.user.user_id);
@@ -150,7 +150,7 @@ export const createProjectRoutes = (deps) => {
 
     const project = projectForMemberStmt.get(params.projectId, auth.user.user_id);
     if (!project) {
-      send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found.')));
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Space not found.')));
       return;
     }
 
@@ -207,7 +207,7 @@ export const createProjectRoutes = (deps) => {
 
     const existingProject = projectForMemberStmt.get(projectId, auth.user.user_id);
     if (!existingProject) {
-      send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found.')));
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Space not found.')));
       return;
     }
 
@@ -282,12 +282,12 @@ export const createProjectRoutes = (deps) => {
       return;
     }
     if (isPersonalProject(projectId)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal project.')));
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal space.')));
       return;
     }
     const callerRole = normalizeProjectRole(projectMembershipRoleStmt.get(projectId, auth.user.user_id)?.role);
     if (callerRole !== 'owner') {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only project owners can add members directly. Use the invite flow instead.')));
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can add members directly. Use the invite flow instead.')));
       return;
     }
 
@@ -305,7 +305,7 @@ export const createProjectRoutes = (deps) => {
 
     if (!targetUserId) {
       const email = asText(body.email).toLowerCase();
-      const displayName = asText(body.display_name) || email || 'Project Member';
+      const displayName = asText(body.display_name) || email || 'Space Member';
       if (!email) {
         send(response, jsonResponse(400, errorEnvelope('invalid_input', 'user_id or email is required.')));
         return;
@@ -315,12 +315,12 @@ export const createProjectRoutes = (deps) => {
     }
 
     if (!targetUserId) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Unable to resolve target project member.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Unable to resolve target space member.')));
       return;
     }
 
     if (projectMembershipExistsStmt.get(projectId, targetUserId)?.ok) {
-      send(response, jsonResponse(409, errorEnvelope('conflict', 'Project member already exists.')));
+      send(response, jsonResponse(409, errorEnvelope('conflict', 'Space member already exists.')));
       return;
     }
 
@@ -335,7 +335,7 @@ export const createProjectRoutes = (deps) => {
           entityId: projectId,
           notificationScope: 'network',
           payload: buildNotificationPayload({
-            message: 'You were added to a project.',
+            message: 'You were added to a space.',
             sourceProjectId: projectId,
           }),
         });
@@ -379,7 +379,7 @@ export const createProjectRoutes = (deps) => {
       return;
     }
     if (isPersonalProject(projectId)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal project.')));
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal space.')));
       return;
     }
 
@@ -399,7 +399,7 @@ export const createProjectRoutes = (deps) => {
     }
     const existingUser = userByEmailStmt.get(email);
     if (existingUser && projectMembershipExistsStmt.get(projectId, existingUser.user_id)?.ok) {
-      send(response, jsonResponse(409, errorEnvelope('conflict', 'User is already a project member.')));
+      send(response, jsonResponse(409, errorEnvelope('conflict', 'User is already a space member.')));
       return;
     }
     const existingInvite = activePendingInviteByProjectAndEmailStmt.get(projectId, email);
@@ -500,7 +500,7 @@ export const createProjectRoutes = (deps) => {
       return;
     }
     if (isPersonalProject(projectId)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal project.')));
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal space.')));
       return;
     }
 
@@ -530,7 +530,7 @@ export const createProjectRoutes = (deps) => {
     if (decision === 'approve') {
       const resolvedUser = ensureUserForEmail({
         email: invite.email,
-        displayName: invite.email.split('@')[0] || 'Project Member',
+        displayName: invite.email.split('@')[0] || 'Space Member',
       });
       targetUserId = resolvedUser?.user_id || null;
       if (!targetUserId) {
@@ -548,7 +548,7 @@ export const createProjectRoutes = (deps) => {
         entityId: projectId,
         notificationScope: 'network',
         payload: buildNotificationPayload({
-          message: 'Your project invite was approved.',
+          message: 'Your space invite was approved.',
           sourceProjectId: projectId,
           extras: {
             invite_request_id: inviteRequestId,
@@ -589,13 +589,13 @@ export const createProjectRoutes = (deps) => {
       return;
     }
     if (isPersonalProject(projectId)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot manage collaborators on a personal project.')));
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot manage collaborators on a personal space.')));
       return;
     }
 
     const targetMembership = projectMembershipRoleStmt.get(projectId, targetUserId);
     if (!targetMembership) {
-      send(response, jsonResponse(404, errorEnvelope('not_found', 'Project member not found.')));
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Space member not found.')));
       return;
     }
 
@@ -607,7 +607,7 @@ export const createProjectRoutes = (deps) => {
           response,
           jsonResponse(
             409,
-            errorEnvelope('last_owner', 'The last owner cannot leave the project. Assign ownership to another member first.'),
+            errorEnvelope('last_owner', 'The last owner cannot leave the space. Assign ownership to another member first.'),
           ),
         );
         return;
@@ -633,7 +633,7 @@ export const createProjectRoutes = (deps) => {
     }
 
     if (!selfRemoval && !projectGate.is_owner) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only project owners can remove members.')));
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can remove members.')));
       return;
     }
 

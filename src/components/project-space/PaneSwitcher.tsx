@@ -42,13 +42,13 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
   };
 
   if (panes.length === 0) {
-    return <p className="text-xs text-muted">No panes available.</p>;
+    return <p className="text-xs text-muted">No projects available.</p>;
   }
 
   return (
-    <div id={id} role="toolbar" aria-label="Open panes" className="flex items-center gap-0.5 px-2 py-1">
+    <div id={id} role="toolbar" aria-label="Open projects" className="flex items-center gap-0.5 px-2 py-1">
       <span className="sr-only">
-        Use Left and Right arrows to navigate between panes. Use Home and End to move focus to first and last panes. Use Ctrl plus arrows to reorder panes.
+        Use Left and Right arrows to navigate between projects. Use Home and End to move focus to first and last projects. Use Ctrl plus arrows to reorder projects.
       </span>
       {panes.map((pane, index) => {
         const isActive = pane.id === activePaneId;
@@ -64,7 +64,7 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
             }}
             type="button"
             aria-pressed={isActive}
-            aria-label={`${pane.label}${pane.shortcutNumber ? `, pane ${pane.shortcutNumber}` : ''}`}
+            aria-label={`${pane.label}${pane.shortcutNumber ? `, project ${pane.shortcutNumber}` : ''}`}
             disabled={pane.disabled}
             onClick={() => onPaneChange(pane.id, 'click')}
             aria-keyshortcuts={onMovePane ? 'Control+ArrowLeft Control+ArrowRight' : undefined}

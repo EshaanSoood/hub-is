@@ -75,7 +75,7 @@ export const QuickCaptureRecentList = ({
           const titleExpanded = expandedHoverCaptureId === capture.record_id;
           const captureSourceLabel = capture.project_id === personalProjectId
             ? 'Home'
-            : visibleProjects.find((project) => project.id === capture.project_id)?.name || 'Project';
+            : visibleProjects.find((project) => project.id === capture.project_id)?.name || 'Space';
 
           return (
             <QuickCaptureCaptureRow

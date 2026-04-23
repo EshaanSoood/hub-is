@@ -95,13 +95,13 @@ export const QuickCaptureComposer = ({
 
           {captureMode !== 'thought' ? (
             <div className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
-              <span>Project</span>
+              <span>Space</span>
               <Select
                 id="quick-capture-project"
                 value={captureTargetProjectId}
                 onValueChange={onCaptureProjectChange}
                 options={captureProjectOptions}
-                ariaLabel="Capture project"
+                ariaLabel="Capture space"
                 triggerClassName="w-full min-w-0"
               />
             </div>
@@ -110,11 +110,11 @@ export const QuickCaptureComposer = ({
       ) : null}
 
       {(captureMode === 'reminder' || captureMode === 'calendar') && captureTargetProjectId === PERSONAL_CAPTURE_TARGET ? (
-        <p className="mt-3 text-xs text-muted">Reminders and calendar items need a project.</p>
+        <p className="mt-3 text-xs text-muted">Reminders and calendar items need a space.</p>
       ) : null}
 
       {(captureMode === 'reminder' || captureMode === 'calendar') && visibleProjectCount === 0 ? (
-        <p className="mt-3 text-xs text-muted">Create a project to route reminders or calendar captures.</p>
+        <p className="mt-3 text-xs text-muted">Create a space to route reminders or calendar captures.</p>
       ) : null}
 
       {captureError ? (

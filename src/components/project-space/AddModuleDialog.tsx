@@ -77,7 +77,7 @@ export const AddModuleDialog = ({
       open={open}
       onClose={handleClose}
       title="Add Module"
-      description="Choose a module, then choose the size to add to this pane."
+      description="Choose a module, then choose the size to add to this project."
       triggerRef={triggerRef}
       layoutId={layoutId}
       motionVariant="fold-dialog"
@@ -132,7 +132,7 @@ export const AddModuleDialog = ({
         <div className="space-y-4">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-primary">Choose a module</p>
-            <p className="text-sm text-muted">Pick a module first, then choose the size that fits this pane.</p>
+            <p className="text-sm text-muted">Pick a module first, then choose the size that fits this project.</p>
           </div>
 
           <p className="text-xs text-muted">{MODULE_CATALOG.length} modules available</p>

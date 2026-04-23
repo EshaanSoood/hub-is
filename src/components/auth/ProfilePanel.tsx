@@ -43,7 +43,7 @@ export const ProfilePanel = () => {
       <AccessibleDialog
         open={open}
         title={`${sessionSummary.name} profile`}
-        description="Account details, current projects, and sign out action."
+        description="Account details, current spaces, and sign out action."
         onClose={() => setOpen(false)}
         triggerRef={triggerRef}
         hideHeader
@@ -69,7 +69,7 @@ export const ProfilePanel = () => {
         <hr className="my-6 border-border-muted opacity-50" />
 
         <div>
-          <h3 className="heading-3 mb-3 text-primary-strong">Projects</h3>
+          <h3 className="heading-3 mb-3 text-primary-strong">Spaces</h3>
           <ul className="space-y-2">
             {projectNames.length > 0 ? (
               projectNames.map((projectName, index) => (
@@ -84,7 +84,7 @@ export const ProfilePanel = () => {
               ))
             ) : (
               <li className="rounded-panel bg-muted-subtle px-4 py-3 text-sm font-medium text-muted">
-                No projects assigned
+                No spaces assigned
               </li>
             )}
           </ul>

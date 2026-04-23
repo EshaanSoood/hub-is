@@ -103,11 +103,11 @@ export const useQuickCapture = ({
       }
       const shouldUsePaneContext = activeTab === 'work';
       if (shouldUsePaneContext && !activePane) {
-        setPaneMutationError('Open a pane before creating pane-local structured work.');
+        setPaneMutationError('Open a project before creating project-local structured work.');
         return false;
       }
       if (shouldUsePaneContext && !activePaneCanEdit) {
-        setPaneMutationError('Read-only pane. Only pane editors can create pane-originated structured work.');
+        setPaneMutationError('Read-only project. Only project editors can create project-originated structured work.');
         return false;
       }
       if (collections.length === 0) {

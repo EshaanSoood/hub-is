@@ -1,16 +1,16 @@
 import type { ComponentProps, ReactElement } from 'react';
 import { AccessDeniedView } from '../../../components/auth/AccessDeniedView';
+import { WorkspaceDocSurface } from '../../../components/project-space/WorkspaceDocSurface';
 import { InlineNotice } from '../../../components/primitives';
 import { WorkView } from '../../../components/project-space/WorkView';
 import type { HubPaneSummary } from '../../../services/hub/types';
 import { ProjectSpaceFocusedViewSection } from './ProjectSpaceFocusedViewSection';
 import { ProjectSpaceWorkPaneChrome } from './ProjectSpaceWorkPaneChrome';
-import { ProjectSpaceWorkspaceDocSection } from './ProjectSpaceWorkspaceDocSection';
 
 type PaneChromeProps = ComponentProps<typeof ProjectSpaceWorkPaneChrome>;
 type FocusedViewProps = ComponentProps<typeof ProjectSpaceFocusedViewSection>;
 type WorkViewProps = ComponentProps<typeof WorkView>;
-type WorkspaceDocProps = ComponentProps<typeof ProjectSpaceWorkspaceDocSection>;
+type WorkspaceDocProps = ComponentProps<typeof WorkspaceDocSurface>;
 
 export interface ProjectSpaceWorkSurfaceProps {
   paneId?: string;
@@ -43,7 +43,7 @@ export const ProjectSpaceWorkSurface = ({
     <ProjectSpaceWorkPaneChrome {...paneChromeProps} />
 
     {paneId && !hasRequestedPane ? (
-      <AccessDeniedView message="Pane not found in this project." />
+      <AccessDeniedView message="Project not found in this space." />
     ) : (
       <>
         <ProjectSpaceFocusedViewSection {...focusedViewProps} />
@@ -63,7 +63,7 @@ export const ProjectSpaceWorkSurface = ({
           </InlineNotice>
         ) : null}
 
-        <ProjectSpaceWorkspaceDocSection {...workspaceDocProps} />
+        <WorkspaceDocSurface {...workspaceDocProps} />
       </>
     )}
   </section>

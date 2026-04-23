@@ -71,7 +71,7 @@ export const createChatRoutes = (deps) => {
         error: {
           status: 403,
           code: 'forbidden',
-          message: 'Project membership required.',
+          message: 'Space membership required.',
         },
       };
     }

@@ -102,9 +102,9 @@ export const useProjectTableRuntime = ({
       mutationPaneId: string | null,
     ) => {
       setRecordsError(null);
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before creating records.');
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before creating records.');
       if (!mutationPane) {
-        const message = 'Open an editable pane before creating records.';
+        const message = 'Open an editable project before creating records.';
         throw new Error(message);
       }
 
@@ -151,9 +151,9 @@ export const useProjectTableRuntime = ({
       mutationPaneId: string | null,
     ) => {
       setRecordsError(null);
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before editing records.');
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before editing records.');
       if (!mutationPane) {
-        const message = 'Open an editable pane before editing records.';
+        const message = 'Open an editable project before editing records.';
         throw new Error(message);
       }
 
@@ -196,9 +196,9 @@ export const useProjectTableRuntime = ({
       mutationPaneId: string | null,
     ) => {
       setRecordsError(null);
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before deleting records.');
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before deleting records.');
       if (!mutationPane) {
-        const message = 'Open an editable pane before deleting records.';
+        const message = 'Open an editable project before deleting records.';
         throw new Error(message);
       }
 
@@ -229,10 +229,10 @@ export const useProjectTableRuntime = ({
       setRecordsError(null);
       const mutationPane = resolveEditableMutationPane(
         mutationPaneId,
-        'Open an editable pane before bulk updating records.',
+        'Open an editable project before bulk updating records.',
       );
       if (!mutationPane) {
-        const message = 'Open an editable pane before bulk updating records.';
+        const message = 'Open an editable project before bulk updating records.';
         throw new Error(message);
       }
 

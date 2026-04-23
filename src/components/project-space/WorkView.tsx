@@ -275,7 +275,7 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
           triggerRef={triggerRef}
           layoutId={mobileModulesLayoutId}
           title="Modules"
-          description="Manage and browse pane modules"
+          description="Manage and browse project modules"
           hideHeader
           panelClassName="left-1/2 top-1/2 h-[100dvh] w-screen max-w-none -translate-x-1/2 -translate-y-1/2 rounded-none border-none bg-surface p-0 md:hidden"
           contentClassName="mt-0 h-full overflow-y-auto p-4"
@@ -317,7 +317,7 @@ export const WorkView = ({
   if (accessDenied) {
     return (
       <motion.section layoutId={layoutId} className="space-y-4">
-        <AccessDeniedView message="Project membership is required for this workspace." />
+        <AccessDeniedView message="Space membership is required for this workspace." />
       </motion.section>
     );
   }
@@ -325,7 +325,7 @@ export const WorkView = ({
   if (!pane) {
     return (
       <motion.section layoutId={layoutId} className="module-sheet p-4">
-        <p className="text-sm text-muted">No pane selected.</p>
+        <p className="text-sm text-muted">No project selected.</p>
       </motion.section>
     );
   }

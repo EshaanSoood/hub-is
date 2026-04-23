@@ -41,11 +41,11 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactEle
         aria-live="polite"
       >
         <div className="rounded-panel border border-subtle bg-elevated p-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Project Space</p>
-          <h1 className="mt-1 text-base font-bold text-text">Loading project {projectId}</h1>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Space</p>
+          <h1 className="mt-1 text-base font-bold text-text">Loading space {projectId}</h1>
         </div>
         <div className="rounded-panel border border-subtle bg-elevated p-4">
-          <p className="text-sm text-muted">Loading project space...</p>
+          <p className="text-sm text-muted">Loading space...</p>
           <div className="mt-3 h-2 w-3/4 animate-pulse rounded-control bg-muted/30 motion-reduce:animate-none" aria-hidden="true" />
           <div className="mt-2 h-2 w-1/2 animate-pulse rounded-control bg-muted/20 motion-reduce:animate-none" aria-hidden="true" />
         </div>
@@ -55,11 +55,11 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactEle
 
   if (error || !project) {
     return (
-      <InlineNotice variant="danger" title="Project load failed">
-        {error || 'Project not found.'}
+      <InlineNotice variant="danger" title="Space load failed">
+        {error || 'Space not found.'}
         <p className="mt-2 text-sm text-muted">
           <Link to="/projects" className="font-semibold text-primary underline">
-            Return to projects
+            Return to spaces
           </Link>
         </p>
       </InlineNotice>

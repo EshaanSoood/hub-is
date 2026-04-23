@@ -57,14 +57,14 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
       ref={popoverRef}
       role="dialog"
       aria-modal="true"
-      ariaLabel={`Move ${currentFileName} to pane`}
+      ariaLabel={`Move ${currentFileName} to project`}
       transformOrigin="top left"
       className="absolute left-0 top-[calc(100%+4px)] z-[200] min-w-[220px] rounded-panel border border-border-muted bg-surface-elevated p-xs shadow-soft"
     >
       {pendingPaneId ? (
         <div className="space-y-xs p-xs">
           <p className="text-sm text-text">
-            Move to <strong>{panes.find((pane) => pane.id === pendingPaneId)?.name || 'selected pane'}</strong>?
+            Move to <strong>{panes.find((pane) => pane.id === pendingPaneId)?.name || 'selected project'}</strong>?
           </p>
           <div className="flex gap-xs">
             <button
@@ -86,10 +86,10 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
         </div>
       ) : (
         <ul className="space-y-[2px]">
-          <li className="px-xs py-[2px] text-[11px] text-muted">Move to pane</li>
+          <li className="px-xs py-[2px] text-[11px] text-muted">Move to project</li>
           {panes.length === 0 ? (
             <li className="rounded-control px-sm py-xs text-sm text-muted">
-              No destination panes available.
+              No destination projects available.
             </li>
           ) : (
             panes.map((pane) => (

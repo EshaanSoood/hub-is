@@ -105,7 +105,7 @@ export const RecordInspectorAttachmentsSection = ({
           </button>
         </form>
       ) : (
-        <p className="mt-2 text-xs text-muted">Attachments are read-only in this pane.</p>
+        <p className="mt-2 text-xs text-muted">Attachments are read-only in this project.</p>
       )}
     </section>
   );

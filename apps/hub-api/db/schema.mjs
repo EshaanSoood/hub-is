@@ -17,6 +17,7 @@ const CONTRACT_TABLES = [
   'calendar_feed_tokens',
   'projects',
   'project_members',
+  'pending_project_invites',
   'panes',
   'pane_members',
   'docs',
@@ -44,6 +45,9 @@ const CONTRACT_TABLES = [
   'mentions',
   'timeline_events',
   'notifications',
+  'personal_tasks',
+  'chat_snapshots',
+  'matrix_accounts',
   'automation_rules',
   'automation_runs',
   'bug_reports',
@@ -84,6 +88,10 @@ const CONTRACT_INDEXES = [
   'idx_timeline_project_created',
   'idx_timeline_primary_lookup',
   'idx_notifications_user_unread_created',
+  'idx_pending_project_invites_project_status_created',
+  'idx_pending_project_invites_email_status',
+  'idx_personal_tasks_user_updated',
+  'idx_chat_snapshots_project_created',
   'idx_automation_runs_rule_started',
   'idx_projects_personal_owner',
   'idx_bug_reports_public_created',
@@ -179,6 +187,21 @@ const resetSchemaToContractV1 = (db) => {
         PRIMARY KEY(project_id, user_id),
         FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE pending_project_invites (
+        invite_request_id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        email TEXT NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('member')),
+        requested_by_user_id TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+        target_user_id TEXT,
+        reviewed_by_user_id TEXT,
+        reviewed_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
       );
 
       CREATE TABLE panes (
@@ -503,6 +526,39 @@ const resetSchemaToContractV1 = (db) => {
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
       );
 
+      CREATE TABLE personal_tasks (
+        task_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        status TEXT NOT NULL,
+        priority TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE chat_snapshots (
+        snapshot_id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        conversation_room_id TEXT NOT NULL,
+        message_sender_display_name TEXT NOT NULL,
+        message_text TEXT NOT NULL,
+        message_timestamp TEXT NOT NULL,
+        created_by TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(created_by) REFERENCES users(user_id)
+      );
+
+      CREATE TABLE matrix_accounts (
+        user_id TEXT PRIMARY KEY,
+        matrix_user_id TEXT NOT NULL UNIQUE,
+        matrix_device_id TEXT,
+        matrix_password_encrypted TEXT NOT NULL,
+        provisioned_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+
       CREATE TABLE automation_rules (
         automation_rule_id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -696,6 +752,14 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_timeline_project_created ON timeline_events(project_id, created_at DESC);
       CREATE INDEX idx_timeline_primary_lookup ON timeline_events(project_id, primary_entity_type, primary_entity_id, created_at DESC);
       CREATE INDEX idx_notifications_user_unread_created ON notifications(user_id, read_at, created_at DESC);
+      CREATE INDEX idx_pending_project_invites_project_status_created
+        ON pending_project_invites(project_id, status, created_at DESC);
+      CREATE INDEX idx_pending_project_invites_email_status
+        ON pending_project_invites(LOWER(email), status);
+      CREATE INDEX idx_personal_tasks_user_updated
+        ON personal_tasks(user_id, updated_at DESC, task_id DESC);
+      CREATE INDEX idx_chat_snapshots_project_created
+        ON chat_snapshots(project_id, created_at DESC, snapshot_id DESC);
       CREATE INDEX idx_automation_runs_rule_started ON automation_runs(automation_rule_id, started_at DESC);
       CREATE UNIQUE INDEX idx_projects_personal_owner ON projects(created_by)
         WHERE project_type = 'personal';

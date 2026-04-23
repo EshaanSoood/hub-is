@@ -38,7 +38,7 @@ export const AddPaneAction = ({
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Pane name is required.');
+      setError('Project name is required.');
       nameInputRef.current?.focus();
       return;
     }
@@ -62,7 +62,7 @@ export const AddPaneAction = ({
         navigate(buildProjectWorkHref(projectId, pane.pane_id));
       });
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : 'Pane creation failed.');
+      setError(submissionError instanceof Error ? submissionError.message : 'Project creation failed.');
     } finally {
       setSubmitting(false);
     }
@@ -80,7 +80,7 @@ export const AddPaneAction = ({
         }}
       >
         <Icon name="plus" size={14} />
-        <span>Add pane</span>
+        <span>Add project</span>
       </button>
 
       <Dialog
@@ -90,19 +90,19 @@ export const AddPaneAction = ({
           setError(null);
         }}
         triggerRef={triggerRef}
-        title="Create Pane"
-        description="Create a new pane in this project."
+        title="Create Project"
+        description="Create a new project in this space."
       >
         <form className="space-y-4" onSubmit={onSubmit}>
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted">Pane name</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-muted">Project name</span>
             <input
               id={nameInputId}
               ref={nameInputRef}
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="New pane"
+              placeholder="New project"
               aria-describedby={error ? errorId : undefined}
               aria-errormessage={error ? errorId : undefined}
               aria-invalid={error ? 'true' : undefined}

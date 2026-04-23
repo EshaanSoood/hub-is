@@ -22,7 +22,7 @@ export const PinnedPanesTabs = ({
   onUnpinPane,
 }: PinnedPanesTabsProps) => {
   if (panes.length === 0) {
-    return <p className="text-xs text-muted">No pinned panes yet.</p>;
+    return <p className="text-xs text-muted">No pinned projects yet.</p>;
   }
 
   return (
@@ -45,7 +45,7 @@ export const PinnedPanesTabs = ({
                 variant={selected ? 'primary' : 'secondary'}
                 onClick={() => onOpenPinnedPane(pane.id)}
                 aria-current={selected ? 'page' : undefined}
-                aria-label={`Open pinned pane ${pane.title}`}
+                aria-label={`Open pinned project ${pane.title}`}
               >
                 {pane.title}
               </Button>
@@ -54,7 +54,7 @@ export const PinnedPanesTabs = ({
                 size="sm"
                 variant="ghost"
                 onClick={() => onUnpinPane(pane.id)}
-                aria-label={`Unpin pane ${pane.title}`}
+                aria-label={`Unpin project ${pane.title}`}
               >
                 Unpin
               </Button>

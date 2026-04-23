@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../components/primit
 import type { HubDashboardView } from './types';
 
 const viewLabels: Record<HubDashboardView, string> = {
-  'project-lens': 'Project Lens',
+  'project-lens': 'Space Lens',
   stream: 'Stream',
 };
 

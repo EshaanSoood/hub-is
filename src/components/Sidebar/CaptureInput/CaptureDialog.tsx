@@ -251,7 +251,7 @@ export const CaptureDialog = ({
           const pane = destination.pane;
           const storageKey = readQuickThoughtStorageKey(pane);
           if (!storageKey) {
-            throw new Error('Quick Thoughts is unavailable for this pane.');
+            throw new Error('Quick Thoughts is unavailable for this project.');
           }
           createQuickThoughtEntry(storageKey, trimmedDraft);
           startTransition(() => {
@@ -287,7 +287,7 @@ export const CaptureDialog = ({
           const pane = destination.pane;
           const collectionId = await selectCollectionId(accessToken, pane.project_id, ['task', 'todo']);
           if (!collectionId) {
-            throw new Error('No task collection is available for this pane.');
+            throw new Error('No task collection is available for this project.');
           }
           await createRecord(accessToken, pane.project_id, {
             collection_id: collectionId,
@@ -359,7 +359,7 @@ export const CaptureDialog = ({
           ? destination.pane.project_id
           : personalProject?.id;
         if (!projectId) {
-          throw new Error('Select a destination project.');
+          throw new Error('Select a destination space.');
         }
         await createEventFromNlp(accessToken, projectId, {
           title: eventTitle.trim(),

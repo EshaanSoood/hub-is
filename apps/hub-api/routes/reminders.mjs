@@ -95,7 +95,7 @@ export const createReminderRoutes = (deps) => {
     if (scope === 'project') {
       projectId = asText(requestUrl.searchParams.get('project_id'));
       if (!projectId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for project-scoped reminders.')));
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for space-scoped reminders.')));
         return;
       }
 
@@ -113,7 +113,7 @@ export const createReminderRoutes = (deps) => {
       if (paneId) {
         const pane = paneByIdStmt.get(paneId);
         if (!pane || pane.project_id !== projectId) {
-          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested project.')));
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested space.')));
           return;
         }
       }
@@ -258,7 +258,7 @@ export const createReminderRoutes = (deps) => {
     if (scope === 'project') {
       const projectId = asText(validated.project_id);
       if (!projectId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for project-scoped reminders.')));
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for space-scoped reminders.')));
         return;
       }
 
@@ -274,14 +274,14 @@ export const createReminderRoutes = (deps) => {
 
       targetProject = projectByIdStmt.get(projectId);
       if (!targetProject) {
-        send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found.')));
+        send(response, jsonResponse(404, errorEnvelope('not_found', 'Space not found.')));
         return;
       }
 
       if (paneId) {
         const pane = paneByIdStmt.get(paneId);
         if (!pane || pane.project_id !== projectId) {
-          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested project.')));
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested space.')));
           return;
         }
       }
@@ -289,14 +289,14 @@ export const createReminderRoutes = (deps) => {
       if (sourceViewId) {
         const view = viewByIdStmt.get(sourceViewId);
         if (!view || view.project_id !== projectId) {
-          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'source_view_id must belong to the requested project.')));
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'source_view_id must belong to the requested space.')));
           return;
         }
       }
     } else {
       targetProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
       if (!targetProject) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'No personal project found for user.')));
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'No personal space found for user.')));
         return;
       }
     }

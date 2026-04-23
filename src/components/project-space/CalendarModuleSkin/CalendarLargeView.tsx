@@ -146,10 +146,10 @@ export const CalendarLargeView = ({
       <div className="flex h-full min-h-0 flex-col gap-3">
         <ModuleEmptyState
           iconName="calendar"
-          title={scope === 'relevant' ? 'No relevant events yet.' : 'No project events yet.'}
+          title={scope === 'relevant' ? 'No relevant events yet.' : 'No space events yet.'}
           description={
             scope === 'relevant'
-              ? 'Relevant is showing only your events right now. Switch to All to see the wider project calendar.'
+              ? 'Relevant is showing only your events right now. Switch to All to see the wider space calendar.'
               : 'Create an event to populate this calendar.'
           }
           ctaLabel={scope === 'relevant' ? 'Show All' : onCreateEvent ? 'New Event' : undefined}

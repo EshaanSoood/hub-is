@@ -19,7 +19,7 @@ export const ReminderCard = ({
   className,
 }: ReminderCardProps) => {
   const hasProjectMeta = Boolean(projectName || projectId);
-  const resolvedProjectName = projectName || (projectId ? 'Project' : null);
+  const resolvedProjectName = projectName || (projectId ? 'Space' : null);
 
   return (
     <div className={cn('min-w-0', className)}>

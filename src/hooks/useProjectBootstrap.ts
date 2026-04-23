@@ -62,7 +62,7 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
         .then((members) => ({ members, error: null as string | null }))
         .catch((membersError) => ({
           members: [] as HubProjectMember[],
-          error: membersError instanceof Error ? membersError.message : 'Failed to load project members.',
+          error: membersError instanceof Error ? membersError.message : 'Failed to load space members.',
         })),
     ]);
 
@@ -111,7 +111,7 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
         }
       } catch (loadError) {
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : 'Failed to load project space.');
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load space.');
         }
       } finally {
         if (!cancelled) {

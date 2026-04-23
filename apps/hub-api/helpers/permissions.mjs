@@ -61,12 +61,12 @@ export const createPermissionHelpers = ({
 
   const withProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
     if (!projectPolicyCapabilitySet.has(requiredCapability)) {
-      throw new Error(`Unknown project capability: ${requiredCapability}`);
+      throw new Error(`Unknown space capability: ${requiredCapability}`);
     }
 
     const membership = projectMembershipRoleStmt.get(projectId, userId);
     if (!membership) {
-      return { error: { status: 403, code: 'forbidden', message: 'Project membership required.' } };
+      return { error: { status: 403, code: 'forbidden', message: 'Space membership required.' } };
     }
 
     const role = normalizeProjectRole(membership.role);
@@ -78,7 +78,7 @@ export const createPermissionHelpers = ({
         error: {
           status: 403,
           code: 'forbidden',
-          message: `Project capability "${requiredCapability}" required.`,
+          message: `Space capability "${requiredCapability}" required.`,
         },
       };
     }
@@ -92,12 +92,12 @@ export const createPermissionHelpers = ({
 
   const withPanePolicyGate = ({ userId, paneId, requiredCapability }) => {
     if (!panePolicyCapabilitySet.has(requiredCapability)) {
-      throw new Error(`Unknown pane capability: ${requiredCapability}`);
+      throw new Error(`Unknown project capability: ${requiredCapability}`);
     }
 
     const pane = paneByIdStmt.get(paneId);
     if (!pane) {
-      return { error: { status: 404, code: 'not_found', message: 'Pane not found.' } };
+      return { error: { status: 404, code: 'not_found', message: 'Project not found.' } };
     }
 
     const projectGate = withProjectPolicyGate({ userId, projectId: pane.project_id, requiredCapability: 'view' });
@@ -113,7 +113,7 @@ export const createPermissionHelpers = ({
         error: {
           status: 403,
           code: 'forbidden',
-          message: `Pane capability "${requiredCapability}" required.`,
+          message: `Project capability "${requiredCapability}" required.`,
         },
       };
     }
