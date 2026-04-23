@@ -36,6 +36,8 @@ export const createPaneRoutes = (deps) => {
     deletePaneMemberStmt,
   } = deps;
 
+  const isHiddenRoomPane = (pane) => parseJsonObject(pane?.layout_config, {}).room_coordination === true;
+
   const listProjectPanes = async ({ request, response, params }) => {
     const auth = await withAuth(request);
     if (auth.error) {
@@ -54,7 +56,15 @@ export const createPaneRoutes = (deps) => {
       return;
     }
 
-    const panes = paneListForUserByProjectStmt.all(projectId).map((pane) => paneSummary(pane, auth.user.user_id));
+    const panes = paneListForUserByProjectStmt
+      .all(projectId)
+      .filter((pane) => !isHiddenRoomPane(pane))
+      .filter((pane) => !withPanePolicyGate({
+        userId: auth.user.user_id,
+        paneId: pane.pane_id,
+        requiredCapability: 'view',
+      }).error)
+      .map((pane) => paneSummary(pane, auth.user.user_id));
     send(response, jsonResponse(200, okEnvelope({ panes })));
   };
 

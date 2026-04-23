@@ -97,6 +97,20 @@ export const validateCreateTaskRequest = (body: unknown): CreateTaskRequest => {
     title: asNonEmptyString(body.title, 'title'),
   };
 
+  const projectId = asOptionalString(body.project_id, 'project_id');
+  if (projectId) {
+    request.project_id = projectId;
+  }
+
+  const sourcePaneId = asOptionalString(body.source_pane_id, 'source_pane_id');
+  if (sourcePaneId) {
+    request.source_pane_id = sourcePaneId;
+  }
+
+  if (typeof body.parent_record_id !== 'undefined') {
+    request.parent_record_id = body.parent_record_id === null ? null : asNonEmptyString(body.parent_record_id, 'parent_record_id');
+  }
+
   if (typeof body.status !== 'undefined') {
     request.status = validateTaskStatus(body.status);
   }
@@ -111,6 +125,18 @@ export const validateCreateTaskRequest = (body: unknown): CreateTaskRequest => {
     } else {
       request.category = asOptionalString(body.category, 'category') ?? null;
     }
+  }
+
+  if (typeof body.due_at !== 'undefined') {
+    request.due_at = asOptionalIsoOrNull(body.due_at, 'due_at');
+  }
+
+  if (typeof body.assignee_user_ids !== 'undefined') {
+    request.assignee_user_ids = asStringArray(body.assignee_user_ids, 'assignee_user_ids');
+  }
+
+  if (typeof body.assignment_user_ids !== 'undefined') {
+    request.assignment_user_ids = asStringArray(body.assignment_user_ids, 'assignment_user_ids');
   }
 
   return request;

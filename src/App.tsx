@@ -17,6 +17,11 @@ const ProjectSpacePage = lazy(async () => {
   return { default: module.ProjectSpacePage };
 });
 
+const RoomPage = lazy(async () => {
+  const module = await import('./pages/RoomPage');
+  return { default: module.RoomPage };
+});
+
 const NotFoundPage = lazy(async () => {
   const module = await import('./pages/NotFoundPage');
   return { default: module.NotFoundPage };
@@ -172,6 +177,22 @@ const App = () => {
                 <ProjectRouteGuard>
                   <ProjectSpacePage activeTab="work" />
                 </ProjectRouteGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rooms/:roomId"
+            element={
+              <ProtectedRoute capability="projects.view">
+                <RoomPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rooms/:roomId/projects/:paneId"
+            element={
+              <ProtectedRoute capability="projects.view">
+                <RoomPage />
               </ProtectedRoute>
             }
           />

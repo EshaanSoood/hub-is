@@ -161,43 +161,45 @@ export const WorkspaceDocSurface = ({
         <h3 className="heading-3 text-primary">Workspace Doc</h3>
         {mountedDocId ? (
           <>
-            <Suspense fallback={<ModuleLoadingState label="Loading collaborative editor" rows={8} />}>
-              <CollaborativeLexicalEditor
-                key={mountedDocId}
-                noteId={mountedDocId}
-                initialLexicalState={docBootstrapLexicalState}
-                collaborationSession={collabSession}
-                userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
-                editable={activePaneCanEdit}
-                onDocumentChange={onDocEditorChange}
-                onSelectedNodeChange={setSelectedDocNodeKey}
-                focusNodeKey={pendingDocFocusNodeKey}
-                onNodeFocused={() => setPendingDocFocusNodeKey(null)}
-                pendingMentionInsert={pendingDocMentionInsert}
-                onMentionInserted={(insertId) => {
-                  if (pendingDocMentionInsert?.insert_id === insertId) {
-                    setPendingDocMentionInsert(null);
-                  }
-                }}
-                pendingViewEmbedInsert={pendingViewEmbedInsert}
-                onViewEmbedInserted={(insertId) => {
-                  if (pendingViewEmbedInsert?.insert_id === insertId) {
-                    setPendingViewEmbedInsert(null);
-                  }
-                }}
-                pendingAssetEmbed={pendingDocAssetEmbed}
-                onAssetEmbedApplied={(embedId) => {
-                  if (pendingDocAssetEmbed?.embed_id === embedId) {
-                    setPendingDocAssetEmbed(null);
-                  }
-                }}
-                viewEmbedRuntime={{
-                  accessToken,
-                  onOpenRecord,
-                  onOpenView: onOpenEmbeddedView,
-                }}
-              />
-            </Suspense>
+            <div className="relative">
+              <Suspense fallback={<ModuleLoadingState label="Loading collaborative editor" rows={8} />}>
+                <CollaborativeLexicalEditor
+                  key={mountedDocId}
+                  noteId={mountedDocId}
+                  initialLexicalState={docBootstrapLexicalState}
+                  collaborationSession={collabSession}
+                  userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
+                  editable={activePaneCanEdit}
+                  onDocumentChange={onDocEditorChange}
+                  onSelectedNodeChange={setSelectedDocNodeKey}
+                  focusNodeKey={pendingDocFocusNodeKey}
+                  onNodeFocused={() => setPendingDocFocusNodeKey(null)}
+                  pendingMentionInsert={pendingDocMentionInsert}
+                  onMentionInserted={(insertId) => {
+                    if (pendingDocMentionInsert?.insert_id === insertId) {
+                      setPendingDocMentionInsert(null);
+                    }
+                  }}
+                  pendingViewEmbedInsert={pendingViewEmbedInsert}
+                  onViewEmbedInserted={(insertId) => {
+                    if (pendingViewEmbedInsert?.insert_id === insertId) {
+                      setPendingViewEmbedInsert(null);
+                    }
+                  }}
+                  pendingAssetEmbed={pendingDocAssetEmbed}
+                  onAssetEmbedApplied={(embedId) => {
+                    if (pendingDocAssetEmbed?.embed_id === embedId) {
+                      setPendingDocAssetEmbed(null);
+                    }
+                  }}
+                  viewEmbedRuntime={{
+                    accessToken,
+                    onOpenRecord,
+                    onOpenView: onOpenEmbeddedView,
+                  }}
+                />
+              </Suspense>
+            </div>
             {collabSessionError ? (
               <InlineNotice variant="danger" className="mt-2" title="Collaboration unavailable">
                 {collabSessionError}

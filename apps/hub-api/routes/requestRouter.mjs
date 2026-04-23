@@ -1,4 +1,5 @@
 import { URL } from 'node:url';
+import { isRoomDocumentId } from '../lib/roomDocuments.mjs';
 
 export const createRequestRouter = ({
   applyRequestContext,
@@ -18,8 +19,10 @@ export const createRequestRouter = ({
   searchRoutes,
   reminderRoutes,
   projectRoutes,
+  roomRoutes,
   paneRoutes,
   docRoutes,
+  roomDocRoutes,
   collectionRoutes,
   recordRoutes,
   viewRoutes,
@@ -197,6 +200,74 @@ export const createRequestRouter = ({
 
     if (request.method === 'POST' && pathname === '/api/hub/projects') {
       await projectRoutes.createProject({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (request.method === 'GET' && pathname === '/api/hub/rooms') {
+      await roomRoutes.listRooms({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    if (request.method === 'POST' && pathname === '/api/hub/rooms') {
+      await roomRoutes.createRoom({ request, response, requestUrl, pathname });
+      return;
+    }
+
+    const roomItemMatch = pathMatch(pathname, /^\/api\/hub\/rooms\/([^/]+)$/);
+    if (request.method === 'GET' && roomItemMatch) {
+      await roomRoutes.getRoom({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { roomId: decodeURIComponent(roomItemMatch[1]) },
+      });
+      return;
+    }
+
+    if (request.method === 'PATCH' && roomItemMatch) {
+      await roomRoutes.archiveRoom({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { roomId: decodeURIComponent(roomItemMatch[1]) },
+      });
+      return;
+    }
+
+    const roomMembersMatch = pathMatch(pathname, /^\/api\/hub\/rooms\/([^/]+)\/members$/);
+    if (roomMembersMatch && request.method === 'GET') {
+      await roomRoutes.listRoomMembers({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { roomId: decodeURIComponent(roomMembersMatch[1]) },
+      });
+      return;
+    }
+
+    if (roomMembersMatch && request.method === 'POST') {
+      await roomRoutes.addRoomMember({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { roomId: decodeURIComponent(roomMembersMatch[1]) },
+      });
+      return;
+    }
+
+    const roomMigrationsMatch = pathMatch(pathname, /^\/api\/hub\/rooms\/([^/]+)\/migrations$/);
+    if (roomMigrationsMatch && request.method === 'POST') {
+      await roomRoutes.migrateRoomProjects({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { roomId: decodeURIComponent(roomMigrationsMatch[1]) },
+      });
       return;
     }
 
@@ -404,6 +475,41 @@ export const createRequestRouter = ({
         requestUrl,
         pathname,
         params: { docId: decodeURIComponent(docPresenceMatch[1]) },
+      });
+      return;
+    }
+
+    const roomDocItemMatch = pathMatch(pathname, /^\/api\/hub\/room-docs\/([^/]+)$/);
+    if (roomDocItemMatch && request.method === 'GET') {
+      await roomDocRoutes.getRoomDoc({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { docId: decodeURIComponent(roomDocItemMatch[1]) },
+      });
+      return;
+    }
+
+    if (roomDocItemMatch && request.method === 'PUT') {
+      await roomDocRoutes.updateRoomDoc({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { docId: decodeURIComponent(roomDocItemMatch[1]) },
+      });
+      return;
+    }
+
+    const roomDocPresenceMatch = pathMatch(pathname, /^\/api\/hub\/room-docs\/([^/]+)\/presence$/);
+    if (roomDocPresenceMatch && request.method === 'POST') {
+      await roomDocRoutes.updateRoomDocPresence({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { docId: decodeURIComponent(roomDocPresenceMatch[1]) },
       });
       return;
     }
@@ -891,7 +997,12 @@ export const createRequestRouter = ({
     }
 
     if (request.method === 'GET' && pathname === '/api/hub/collab/authorize') {
-      await docRoutes.authorizeCollab({ request, response, requestUrl, pathname });
+      const collabDocId = requestUrl.searchParams.get('doc_id') || '';
+      if (isRoomDocumentId(collabDocId)) {
+        await roomDocRoutes.authorizeCollab({ request, response, requestUrl, pathname });
+      } else {
+        await docRoutes.authorizeCollab({ request, response, requestUrl, pathname });
+      }
       return;
     }
 

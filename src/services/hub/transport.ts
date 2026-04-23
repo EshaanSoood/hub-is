@@ -25,6 +25,7 @@ export const normalizeSourcePane = (sourcePane: HubSourcePaneContext | null | un
     pane_id: sourcePane.pane_id ?? null,
     pane_name: sourcePane.pane_name ?? null,
     doc_id: sourcePane.doc_id ?? null,
+    room_id: sourcePane.room_id ?? null,
   };
 };
 

@@ -1,7 +1,11 @@
 import { useMemo, type ComponentProps, type ReactElement } from 'react';
 import { OverviewView } from '../../../components/project-space/OverviewView';
-import type { HubProjectMember } from '../../../services/hub/types';
+import { SpaceInviteGuestsPanel } from '../../../features/rooms/SpaceInviteGuestsPanel';
+import { SpaceRoomsOverviewSection } from '../../../features/rooms/SpaceRoomsOverviewSection';
+import type { CalendarEventSummary } from '../../../components/project-space/CalendarModuleSkin/types';
+import type { HubPaneSummary, HubProjectMember, HubTaskSummary } from '../../../services/hub/types';
 import type { OverviewSubView } from './types';
+import type { TimelineEvent } from './types';
 
 type OverviewViewProps = ComponentProps<typeof OverviewView>;
 
@@ -9,6 +13,7 @@ export interface ProjectSpaceOverviewSurfaceProps {
   projectName: string;
   projectId: string;
   isPersonalProject: boolean;
+  panes: HubPaneSummary[];
   projectMemberList: HubProjectMember[];
   accessToken: string;
   overviewView: OverviewSubView;
@@ -17,11 +22,11 @@ export interface ProjectSpaceOverviewSurfaceProps {
   timelineFilters: OverviewViewProps['timelineFilters'];
   onTimelineFilterToggle: OverviewViewProps['onTimelineFilterToggle'];
   onOpenRecord: (recordId: string) => void;
-  calendarEvents: OverviewViewProps['calendarEvents'];
+  calendarEvents: CalendarEventSummary[];
   calendarLoading: boolean;
   calendarMode: OverviewViewProps['calendarScope'];
   onCalendarScopeChange: OverviewViewProps['onCalendarScopeChange'];
-  tasks: OverviewViewProps['tasks'];
+  tasks: HubTaskSummary[];
   tasksLoading: boolean;
   tasksError: string | null;
   onRefreshTasks: () => void;
@@ -32,12 +37,14 @@ export interface ProjectSpaceOverviewSurfaceProps {
   onInviteEmailChange: (nextValue: string) => void;
   onInviteSubmit: () => void;
   onDismissInviteFeedback: () => void;
+  timeline: TimelineEvent[];
 }
 
 export const ProjectSpaceOverviewSurface = ({
   projectName,
   projectId,
   isPersonalProject,
+  panes,
   projectMemberList,
   accessToken,
   overviewView,
@@ -61,6 +68,7 @@ export const ProjectSpaceOverviewSurface = ({
   onInviteEmailChange,
   onInviteSubmit,
   onDismissInviteFeedback,
+  timeline,
 }: ProjectSpaceOverviewSurfaceProps): ReactElement => {
   const overviewCollaborators = useMemo(
     () =>
@@ -78,37 +86,56 @@ export const ProjectSpaceOverviewSurface = ({
   const overviewClients = useMemo(() => [], []);
 
   return (
-    <OverviewView
-      projectName={projectName}
-      projectSummary="Track the timeline, calendar, and task flow for this space."
-      collaborators={overviewCollaborators}
-      clients={overviewClients}
-      activeView={overviewView}
-      onSelectView={onSelectOverviewView}
-      timelineClusters={timelineClusters}
-      timelineFilters={timelineFilters}
-      onTimelineFilterToggle={onTimelineFilterToggle}
-      onOpenTimelineRecord={onOpenRecord}
-      accessToken={accessToken}
-      projectId={projectId}
-      calendarEvents={calendarEvents}
-      calendarLoading={calendarLoading}
-      calendarScope={calendarMode}
-      onCalendarScopeChange={onCalendarScopeChange}
-      onOpenCalendarRecord={onOpenRecord}
-      tasks={tasks}
-      tasksLoading={tasksLoading}
-      tasksError={tasksError}
-      onRefreshTasks={onRefreshTasks}
-      projectMembers={projectMemberList}
-      canInviteMembers={!isPersonalProject}
-      inviteEmail={inviteEmail}
-      inviteSubmitting={inviteSubmitting}
-      inviteError={inviteError}
-      inviteNotice={inviteNotice}
-      onInviteEmailChange={onInviteEmailChange}
-      onInviteSubmit={onInviteSubmit}
-      onDismissInviteFeedback={onDismissInviteFeedback}
-    />
+    <div className="space-y-4">
+      <OverviewView
+        projectName={projectName}
+        projectSummary="Track the timeline, calendar, and task flow for this space."
+        collaborators={overviewCollaborators}
+        clients={overviewClients}
+        activeView={overviewView}
+        onSelectView={onSelectOverviewView}
+        timelineClusters={timelineClusters}
+        timelineFilters={timelineFilters}
+        onTimelineFilterToggle={onTimelineFilterToggle}
+        onOpenTimelineRecord={onOpenRecord}
+        accessToken={accessToken}
+        projectId={projectId}
+        calendarEvents={calendarEvents}
+        calendarLoading={calendarLoading}
+        calendarScope={calendarMode}
+        onCalendarScopeChange={onCalendarScopeChange}
+        onOpenCalendarRecord={onOpenRecord}
+        tasks={tasks}
+        tasksLoading={tasksLoading}
+        tasksError={tasksError}
+        onRefreshTasks={onRefreshTasks}
+        projectMembers={projectMemberList}
+        canInviteMembers={!isPersonalProject}
+        inviteEmail={inviteEmail}
+        inviteSubmitting={inviteSubmitting}
+        inviteError={inviteError}
+        inviteNotice={inviteNotice}
+        onInviteEmailChange={onInviteEmailChange}
+        onInviteSubmit={onInviteSubmit}
+        onDismissInviteFeedback={onDismissInviteFeedback}
+        inviteGuestsSection={!isPersonalProject ? (
+          <SpaceInviteGuestsPanel
+            accessToken={accessToken}
+            projectId={projectId}
+          />
+        ) : null}
+      />
+
+      {!isPersonalProject ? (
+        <SpaceRoomsOverviewSection
+          accessToken={accessToken}
+          projectId={projectId}
+          panes={panes}
+          tasks={tasks}
+          calendarEvents={calendarEvents}
+          timeline={timeline}
+        />
+      ) : null}
+    </div>
   );
 };

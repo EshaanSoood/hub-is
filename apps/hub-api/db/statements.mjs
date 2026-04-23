@@ -168,6 +168,64 @@ export const createStatements = (db) => ({
     isMember: db.prepare('SELECT 1 AS ok FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1'),
     getRole: db.prepare('SELECT role FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1'),
   },
+  rooms: {
+    findById: db.prepare('SELECT * FROM rooms WHERE room_id = ? LIMIT 1'),
+    findByIdForUser: db.prepare(`
+      SELECT r.*
+      FROM rooms r
+      JOIN room_members rm ON rm.room_id = r.room_id
+      WHERE r.room_id = ? AND rm.user_id = ?
+      LIMIT 1
+    `),
+    listForUser: db.prepare(`
+      SELECT r.*
+      FROM rooms r
+      JOIN room_members rm ON rm.room_id = r.room_id
+      WHERE rm.user_id = ?
+      ORDER BY
+        CASE WHEN r.status = 'active' THEN 0 ELSE 1 END ASC,
+        r.created_at DESC,
+        r.room_id DESC
+    `),
+    insert: db.prepare(`
+      INSERT INTO rooms (room_id, space_id, display_name, coordination_pane_id, status, created_by, created_at, archived_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    updateCoordinationPane: db.prepare(`
+      UPDATE rooms
+      SET coordination_pane_id = ?
+      WHERE room_id = ?
+    `),
+    archive: db.prepare(`
+      UPDATE rooms
+      SET status = 'archived', archived_at = ?
+      WHERE room_id = ? AND status != 'archived'
+    `),
+  },
+  roomMembers: {
+    listUserIds: db.prepare(`
+      SELECT user_id
+      FROM room_members
+      WHERE room_id = ?
+      ORDER BY joined_at ASC, user_id ASC
+    `),
+    listWithUsers: db.prepare(`
+      SELECT rm.room_id, rm.user_id, rm.role, rm.joined_at, u.display_name, u.email
+      FROM room_members rm
+      JOIN users u ON u.user_id = rm.user_id
+      WHERE rm.room_id = ?
+      ORDER BY
+        CASE WHEN rm.role = 'owner' THEN 0 ELSE 1 END ASC,
+        rm.joined_at ASC,
+        rm.user_id ASC
+    `),
+    insert: db.prepare(`
+      INSERT INTO room_members (room_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, ?)
+    `),
+    isMember: db.prepare('SELECT 1 AS ok FROM room_members WHERE room_id = ? AND user_id = ? LIMIT 1'),
+    getRole: db.prepare('SELECT role FROM room_members WHERE room_id = ? AND user_id = ? LIMIT 1'),
+  },
   panes: {
     findById: db.prepare('SELECT * FROM panes WHERE pane_id = ?'),
     listMembers: db.prepare(`
@@ -232,6 +290,46 @@ export const createStatements = (db) => ({
     updateTimestamp: db.prepare('UPDATE docs SET updated_at = ? WHERE doc_id = ?'),
     upsertPresence: db.prepare(`
       INSERT INTO doc_presence (doc_id, user_id, cursor_payload, last_seen_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(doc_id, user_id)
+      DO UPDATE SET cursor_payload = excluded.cursor_payload, last_seen_at = excluded.last_seen_at
+    `),
+  },
+  roomDocs: {
+    insert: db.prepare('INSERT INTO room_docs (doc_id, room_id, created_at, updated_at) VALUES (?, ?, ?, ?)'),
+    insertStorage: db.prepare(`
+      INSERT INTO room_doc_storage (doc_id, snapshot_version, snapshot_payload, updated_at)
+      VALUES (?, ?, ?, ?)
+    `),
+    findById: db.prepare(`
+      SELECT
+        rd.doc_id,
+        rd.room_id,
+        rd.created_at,
+        rd.updated_at,
+        r.space_id,
+        r.status AS room_status,
+        r.archived_at,
+        r.created_by,
+        r.display_name,
+        r.created_at AS room_created_at,
+        rds.snapshot_version,
+        rds.snapshot_payload,
+        rds.updated_at AS storage_updated_at
+      FROM room_docs rd
+      JOIN rooms r ON r.room_id = rd.room_id
+      LEFT JOIN room_doc_storage rds ON rds.doc_id = rd.doc_id
+      WHERE rd.doc_id = ?
+      LIMIT 1
+    `),
+    updateStorage: db.prepare(`
+      UPDATE room_doc_storage
+      SET snapshot_version = ?, snapshot_payload = ?, updated_at = ?
+      WHERE doc_id = ? AND snapshot_version = ?
+    `),
+    updateTimestamp: db.prepare('UPDATE room_docs SET updated_at = ? WHERE doc_id = ?'),
+    upsertPresence: db.prepare(`
+      INSERT INTO room_doc_presence (doc_id, user_id, cursor_payload, last_seen_at)
       VALUES (?, ?, ?, ?)
       ON CONFLICT(doc_id, user_id)
       DO UPDATE SET cursor_payload = excluded.cursor_payload, last_seen_at = excluded.last_seen_at

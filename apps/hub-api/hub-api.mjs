@@ -34,6 +34,8 @@ import { createProjectRoutes } from './routes/projects.mjs';
 import { createPublicRoutes } from './routes/public.mjs';
 import { createRecordRoutes } from './routes/records.mjs';
 import { createReminderRoutes } from './routes/reminders.mjs';
+import { createRoomDocRoutes } from './routes/roomDocs.mjs';
+import { createRoomRoutes } from './routes/rooms.mjs';
 import { createRequestRouter } from './routes/requestRouter.mjs';
 import { createSearchRoutes } from './routes/search.mjs';
 import { createTaskRoutes } from './routes/tasks.mjs';
@@ -82,7 +84,7 @@ const REMINDER_CHECK_INTERVAL_MS = 30_000;
 const HUB_PUBLIC_APP_URL = (process.env.HUB_PUBLIC_APP_URL || 'https://eshaansood.org').trim().replace(/\/+$/, '');
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
-const REGISTERED_ROUTE_COUNT = 82;
+const REGISTERED_ROUTE_COUNT = 92;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const {
@@ -256,6 +258,12 @@ const {
     isMember: projectMembershipExistsStmt,
     getRole: projectMembershipRoleStmt,
   },
+  rooms: {
+    findById: roomByIdStmt,
+  },
+  roomMembers: {
+    isMember: roomMembershipExistsStmt,
+  },
   panes: {
     findById: paneByIdStmt,
     listMembers: paneMembersStmt,
@@ -358,9 +366,8 @@ const {
   normalizeProjectRole,
   membershipRoleLabel,
   withProjectPolicyGate,
-  withPanePolicyGate,
-  withDocPolicyGate,
-  requireDocAccess,
+  withPanePolicyGate: baseWithPanePolicyGate,
+  withDocPolicyGate: baseWithDocPolicyGate,
 } = createPermissionHelpers({
   asText,
   projectMembershipRoleStmt,
@@ -973,7 +980,12 @@ const paneSummary = (pane, userId = '') => {
     display_name: member.display_name,
   }));
   const projectRole = userId ? normalizeProjectRole(projectMembershipRoleStmt.get(pane.project_id, userId)?.role) : 'member';
-  const canEdit = projectRole === 'owner' || Boolean(userId && paneEditorExistsStmt.get(pane.pane_id, userId)?.ok);
+  const roomBinding = roomBindingForPane(pane);
+  const archivedRoom = roomBinding?.room?.status === 'archived' ? roomBinding.room : null;
+  const isRoomMember = !roomBinding || (userId ? Boolean(roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) : false);
+  const canEdit = isRoomMember && !archivedRoom && (
+    projectRole === 'owner' || Boolean(userId && paneEditorExistsStmt.get(pane.pane_id, userId)?.ok)
+  );
 
   return {
     pane_id: pane.pane_id,
@@ -988,6 +1000,97 @@ const paneSummary = (pane, userId = '') => {
     can_edit: canEdit,
   };
 };
+
+const roomBindingForPane = (paneOrPaneId) => {
+  const pane = typeof paneOrPaneId === 'string' ? paneByIdStmt.get(paneOrPaneId) : paneOrPaneId;
+  if (!pane) {
+    return null;
+  }
+
+  const layoutConfig = parseJsonObject(pane.layout_config, {});
+  const roomId = asText(layoutConfig.room_id);
+  if (!roomId) {
+    return null;
+  }
+
+  const room = roomByIdStmt.get(roomId);
+  return room ? { room, roomId } : null;
+};
+
+const archivedRoomForPane = (paneOrPaneId) => {
+  const roomBinding = roomBindingForPane(paneOrPaneId);
+  return roomBinding?.room?.status === 'archived' ? roomBinding.room : null;
+};
+
+const archivedRoomError = () => ({
+  status: 403,
+  code: 'room_archived',
+  message: 'Archived rooms are read-only.',
+});
+
+const roomMemberRequiredError = () => ({
+  status: 403,
+  code: 'forbidden',
+  message: 'Room membership required.',
+});
+
+const withPanePolicyGate = ({ userId, paneId, requiredCapability }) => {
+  const paneGate = baseWithPanePolicyGate({ userId, paneId, requiredCapability });
+  if (paneGate.error) {
+    return paneGate;
+  }
+
+  const roomBinding = roomBindingForPane(paneGate.pane_id);
+  if (roomBinding && !roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) {
+    return { error: roomMemberRequiredError() };
+  }
+
+  const archivedRoom = roomBinding?.room?.status === 'archived' ? roomBinding.room : null;
+  if (!archivedRoom) {
+    return paneGate;
+  }
+
+  if (requiredCapability !== 'view') {
+    return { error: archivedRoomError() };
+  }
+
+  return {
+    ...paneGate,
+    can_edit: false,
+  };
+};
+
+const withDocPolicyGate = ({ userId, docId, requiredCapability }) => {
+  const docGate = baseWithDocPolicyGate({ userId, docId, requiredCapability });
+  if (docGate.error) {
+    return docGate;
+  }
+
+  const roomBinding = roomBindingForPane(docGate.pane_id);
+  if (roomBinding && !roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) {
+    return { error: roomMemberRequiredError() };
+  }
+
+  const archivedRoom = archivedRoomForPane(docGate.pane_id);
+  if (!archivedRoom) {
+    return docGate;
+  }
+
+  if (requiredCapability !== 'view') {
+    return { error: archivedRoomError() };
+  }
+
+  return {
+    ...docGate,
+    can_edit: false,
+  };
+};
+
+const requireDocAccess = (docId, userId) => withDocPolicyGate({
+  userId,
+  docId,
+  requiredCapability: 'view',
+});
 
 const pendingInviteRecord = (row) => ({
   invite_request_id: row.invite_request_id,
@@ -1062,10 +1165,12 @@ const sourcePaneContextForRecord = (record, cache = null) => {
   }
   const pane = paneByIdStmt.get(paneId);
   const doc = paneDocByPaneStmt.get(paneId);
+  const layoutConfig = parseJsonObject(pane?.layout_config, {});
   const context = {
     pane_id: paneId,
     pane_name: asNullableText(pane?.name),
     doc_id: asNullableText(doc?.doc_id),
+    room_id: asNullableText(layoutConfig.room_id),
   };
   cache?.set(paneId, context);
   return context;
@@ -1826,8 +1931,10 @@ const routeDeps = buildRouteDeps({
 const userRoutes = createUserRoutes(routeDeps);
 const chatRoutes = createChatRoutes(routeDeps);
 const projectRoutes = createProjectRoutes(routeDeps);
+const roomRoutes = createRoomRoutes(routeDeps);
 const paneRoutes = createPaneRoutes(routeDeps);
 const docRoutes = createDocRoutes(routeDeps);
+const roomDocRoutes = createRoomDocRoutes(routeDeps);
 const collectionRoutes = createCollectionRoutes(routeDeps);
 const recordRoutes = createRecordRoutes(routeDeps);
 const viewRoutes = createViewRoutes(routeDeps);
@@ -1876,8 +1983,10 @@ const requestRouter = createRequestRouter({
   searchRoutes,
   reminderRoutes,
   projectRoutes,
+  roomRoutes,
   paneRoutes,
   docRoutes,
+  roomDocRoutes,
   collectionRoutes,
   recordRoutes,
   viewRoutes,

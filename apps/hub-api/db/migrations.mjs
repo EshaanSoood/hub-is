@@ -83,6 +83,176 @@ export const runMigrations = (db) => {
       ON pending_project_invites(LOWER(email), status);
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      room_id TEXT PRIMARY KEY,
+      space_id TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      coordination_pane_id TEXT,
+      status TEXT NOT NULL CHECK (status IN ('active', 'archived')),
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      archived_at TEXT,
+      FOREIGN KEY(space_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+      FOREIGN KEY(coordination_pane_id) REFERENCES panes(pane_id) ON DELETE SET NULL,
+      FOREIGN KEY(created_by) REFERENCES users(user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS room_members (
+      room_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL CHECK (role IN ('owner', 'participant')),
+      joined_at TEXT NOT NULL,
+      PRIMARY KEY(room_id, user_id),
+      FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS room_docs (
+      doc_id TEXT PRIMARY KEY,
+      room_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS room_doc_storage (
+      doc_id TEXT PRIMARY KEY,
+      snapshot_version INTEGER NOT NULL DEFAULT 0,
+      snapshot_payload TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(doc_id) REFERENCES room_docs(doc_id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS room_doc_presence (
+      doc_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      cursor_payload TEXT,
+      last_seen_at TEXT NOT NULL,
+      PRIMARY KEY(doc_id, user_id),
+      FOREIGN KEY(doc_id) REFERENCES room_docs(doc_id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_rooms_space_status_created
+      ON rooms(space_id, status, created_at DESC, room_id DESC);
+    CREATE INDEX IF NOT EXISTS idx_room_members_user_room
+      ON room_members(user_id, room_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_room_docs_room_unique
+      ON room_docs(room_id);
+
+    CREATE TRIGGER IF NOT EXISTS rooms_archive_consistency_insert
+    BEFORE INSERT ON rooms
+    FOR EACH ROW
+    BEGIN
+      SELECT
+        CASE
+          WHEN (
+            (NEW.status = 'active' AND NEW.archived_at IS NOT NULL)
+            OR (NEW.status = 'archived' AND NEW.archived_at IS NULL)
+          )
+          THEN RAISE(ABORT, 'rooms archived_at must match status')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS rooms_archive_consistency_update
+    BEFORE UPDATE OF status, archived_at ON rooms
+    FOR EACH ROW
+    BEGIN
+      SELECT
+        CASE
+          WHEN (
+            (NEW.status = 'active' AND NEW.archived_at IS NOT NULL)
+            OR (NEW.status = 'archived' AND NEW.archived_at IS NULL)
+          )
+          THEN RAISE(ABORT, 'rooms archived_at must match status')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS rooms_coordination_pane_space_insert
+    BEFORE INSERT ON rooms
+    FOR EACH ROW
+    WHEN NEW.coordination_pane_id IS NOT NULL
+    BEGIN
+      SELECT
+        CASE
+          WHEN NOT EXISTS (
+            SELECT 1
+            FROM panes p
+            WHERE p.pane_id = NEW.coordination_pane_id
+              AND p.project_id = NEW.space_id
+          )
+          THEN RAISE(ABORT, 'rooms.coordination_pane_id must belong to rooms.space_id')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS rooms_coordination_pane_space_update
+    BEFORE UPDATE OF space_id, coordination_pane_id ON rooms
+    FOR EACH ROW
+    WHEN NEW.coordination_pane_id IS NOT NULL
+    BEGIN
+      SELECT
+        CASE
+          WHEN NOT EXISTS (
+            SELECT 1
+            FROM panes p
+            WHERE p.pane_id = NEW.coordination_pane_id
+              AND p.project_id = NEW.space_id
+          )
+          THEN RAISE(ABORT, 'rooms.coordination_pane_id must belong to rooms.space_id')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS room_members_must_be_project_members_insert
+    BEFORE INSERT ON room_members
+    FOR EACH ROW
+    BEGIN
+      SELECT
+        CASE
+          WHEN NOT EXISTS (
+            SELECT 1
+            FROM rooms r
+            JOIN project_members pm ON pm.project_id = r.space_id
+            WHERE r.room_id = NEW.room_id
+              AND pm.user_id = NEW.user_id
+          )
+          THEN RAISE(ABORT, 'room_members must be a subset of project_members')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS room_members_must_be_project_members_update
+    BEFORE UPDATE OF room_id, user_id ON room_members
+    FOR EACH ROW
+    BEGIN
+      SELECT
+        CASE
+          WHEN NOT EXISTS (
+            SELECT 1
+            FROM rooms r
+            JOIN project_members pm ON pm.project_id = r.space_id
+            WHERE r.room_id = NEW.room_id
+              AND pm.user_id = NEW.user_id
+          )
+          THEN RAISE(ABORT, 'room_members must be a subset of project_members')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS room_members_removed_with_project_member
+    AFTER DELETE ON project_members
+    FOR EACH ROW
+    BEGIN
+      DELETE FROM room_members
+      WHERE user_id = OLD.user_id
+        AND room_id IN (
+          SELECT room_id
+          FROM rooms
+          WHERE space_id = OLD.project_id
+        );
+    END;
+  `);
+
+  addColumnIfMissing('rooms', 'coordination_pane_id', 'TEXT REFERENCES panes(pane_id) ON DELETE SET NULL');
+
   db.exec('BEGIN IMMEDIATE;');
   try {
     const notificationScopeColumn = db

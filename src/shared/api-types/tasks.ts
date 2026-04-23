@@ -14,6 +14,8 @@ export interface SourcePaneContext {
   pane_name: string | null;
   /** Backing document identifier for the pane, if one exists. */
   doc_id: string | null;
+  /** Associated room identifier when the pane belongs to a room. */
+  room_id?: string | null;
 }
 
 export interface TaskState {
@@ -79,6 +81,8 @@ export interface TaskPage {
 export interface CreateTaskRequest {
   /** Optional destination project ID; defaults to the caller's personal project when omitted by backend policy. */
   project_id?: string;
+  /** Optional pane context used for write authorization and origin linkage. */
+  source_pane_id?: string;
   /** Optional parent task/record ID when creating a subtask. */
   parent_record_id?: string | null;
   /** Required non-empty task title. */
