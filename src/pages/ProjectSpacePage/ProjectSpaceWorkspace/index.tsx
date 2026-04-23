@@ -74,7 +74,7 @@ export const ProjectSpaceWorkspace = ({
             {navigatorProps.projectName}
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2" aria-label="Space navigation">
+        <nav className="flex flex-wrap items-center gap-2" aria-label="Space navigation">
           {PROJECT_SPACE_PRIMARY_SURFACES.map((surface) => {
             const selected = surface === 'work'
               ? navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned
@@ -115,9 +115,9 @@ export const ProjectSpaceWorkspace = ({
                   <span className={selected ? 'mt-1 h-1 w-1 rounded-full bg-on-primary' : 'mt-1 h-1 w-1 rounded-full bg-muted'} aria-hidden="true" />
                 </span>
               </button>
-            );
+              );
           })}
-        </div>
+        </nav>
       </div>
 
       {activeTab === 'overview' ? <ProjectSpaceOverviewSurface {...overviewProps} /> : null}

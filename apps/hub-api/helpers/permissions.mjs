@@ -61,7 +61,7 @@ export const createPermissionHelpers = ({
 
   const withProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
     if (!projectPolicyCapabilitySet.has(requiredCapability)) {
-      throw new Error(`Unknown project capability: ${requiredCapability}`);
+      throw new Error(`Unknown space capability: ${requiredCapability}`);
     }
 
     const membership = projectMembershipRoleStmt.get(projectId, userId);
@@ -92,7 +92,7 @@ export const createPermissionHelpers = ({
 
   const withPanePolicyGate = ({ userId, paneId, requiredCapability }) => {
     if (!panePolicyCapabilitySet.has(requiredCapability)) {
-      throw new Error(`Unknown pane capability: ${requiredCapability}`);
+      throw new Error(`Unknown project capability: ${requiredCapability}`);
     }
 
     const pane = paneByIdStmt.get(paneId);

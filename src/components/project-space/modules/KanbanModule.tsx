@@ -79,7 +79,7 @@ export const KanbanModule = ({
         });
         return;
       }
-      setSetupError('Unable to create a kanban view for this space.');
+      setSetupError('Unable to create a kanban view for this project.');
       autoEnsureAttemptedRef.current = false;
     } catch (error) {
       setSetupError(error instanceof Error ? error.message : 'Failed to create a kanban view.');

@@ -633,7 +633,7 @@ export const createProjectRoutes = (deps) => {
     }
 
     if (!selfRemoval && !projectGate.is_owner) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only project owners can remove members.')));
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can remove members.')));
       return;
     }
 

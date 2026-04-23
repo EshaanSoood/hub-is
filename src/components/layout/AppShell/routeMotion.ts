@@ -121,7 +121,7 @@ const resolveProjectName = (
   state: HubMotionState,
   getProjectName: (projectId: string | null) => string | null,
 ): string => {
-  return state.hubProjectName || getProjectName(descriptor.projectId) || 'Project';
+  return state.hubProjectName || getProjectName(descriptor.projectId) || 'Space';
 };
 
 const resolvePaneName = (

@@ -238,7 +238,7 @@ export const OverviewView = ({
                 Add collaborators by email. They&apos;ll receive an invite to join this space.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2" aria-label="Current space members">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Current space members">
               {projectMembers.map((member) => (
                 <span
                   key={member.user_id}

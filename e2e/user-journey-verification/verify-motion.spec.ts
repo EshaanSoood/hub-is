@@ -39,20 +39,6 @@ const waitForProjectsHome = async (page: Page): Promise<void> => {
   await expect(page.getByRole('navigation', { name: 'Home tabs' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
-const openProjectOverview = async (
-  page: Page,
-  context: Awaited<ReturnType<typeof readJourneyContext>>,
-): Promise<void> => {
-  await page.goto(`/projects/${context.project.id}/overview`, {
-    waitUntil: 'domcontentloaded',
-    timeout: LIVE_TIMEOUT_MS,
-  });
-
-  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/overview`), {
-    timeout: LIVE_TIMEOUT_MS,
-  });
-};
-
 const navigateToSeededPane = async (
   page: Page,
   context: Awaited<ReturnType<typeof readJourneyContext>>,
@@ -197,10 +183,13 @@ test.describe('Motion Verification', () => {
     await loginThroughKeycloak(page, accountA);
 
     await waitForProjectsHome(page);
+    await navigateToSeededPane(page, context);
+    const overviewButton = page.getByRole('button', { name: /^Overview$/i }).first();
+    await expect(overviewButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
     checks.push(
       await runMotionCheck(page, 'route_transition_projects_to_overview', routeSurfaceSelector, async () => {
-        await openProjectOverview(page, context);
+        await overviewButton.click();
         await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/overview`), {
           timeout: LIVE_TIMEOUT_MS,
         });

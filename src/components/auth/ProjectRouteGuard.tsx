@@ -81,7 +81,7 @@ export const ProjectRouteGuard = ({ children }: { children: ReactNode }) => {
   }
 
   if (!hasProjectAccess) {
-    return <AccessDeniedView message={`You do not have access to ${projectId || 'this space'}.`} />;
+    return <AccessDeniedView message="You do not have access to this space." />;
   }
 
   return <>{children}</>;

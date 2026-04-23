@@ -30,7 +30,10 @@ export const useWorkspaceDocAssetFlow = ({
   }, []);
 
   const onDocAssetUploadClick = useCallback(() => {
-    docAssetInputRef.current?.click();
+    if (docAssetInputRef.current) {
+      docAssetInputRef.current.value = '';
+      docAssetInputRef.current.click();
+    }
   }, []);
 
   const onDocAssetFormSubmit = useCallback<FormEventHandler<HTMLFormElement>>((event) => {

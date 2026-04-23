@@ -134,7 +134,7 @@ vi.mock('../../components/project-space/OverviewView', () => ({
 
 vi.mock('../../components/project-space/PaneSwitcher', () => ({
   PaneSwitcher: ({ panes, onPaneChange }: { panes: Array<{ id: string; label: string }>; onPaneChange: (paneId: string, source: 'click') => void }) => (
-    <div aria-label="Project switcher">
+    <div role="toolbar" aria-label="Open projects">
       {panes.map((pane) => (
         <button key={pane.id} type="button" onClick={() => onPaneChange(pane.id, 'click')}>
           {pane.label}

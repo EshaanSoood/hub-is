@@ -509,7 +509,7 @@ const main = async (): Promise<void> => {
 
     await runPhase(report, desktopPage, 'reminders', async () => {
       const remindersModule = getRemindersModule(desktopPage);
-      const input = remindersModule.getByLabel('Write a reminder in natural language').first();
+      const input = remindersModule.getByLabel(/Reminder|Write a reminder in natural language/i).first();
       await expect(input).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await input.fill(`${artifacts.reminderTokenA} tomorrow at 9am`);
       await remindersModule.getByRole('button', { name: /^Add$/i }).first().click();

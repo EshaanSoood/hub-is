@@ -374,7 +374,7 @@ test.describe('User Journey Verification', () => {
     const reminderTokenB = withRunTag(context, `${scenario}-reminder-b`);
     const remindersModule = getRemindersModule(page);
     await captureCheckpoint({ page, scenario, phase: 'reminders', state: 'before_action', viewport });
-    const reminderInput = remindersModule.getByLabel('Write a reminder in natural language').first();
+    const reminderInput = remindersModule.getByLabel(/Reminder|Write a reminder in natural language/i).first();
     await expect(reminderInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await reminderInput.fill(`${reminderTokenA} tomorrow at 9am`);
     await captureCheckpoint({ page, scenario, phase: 'reminders', state: 'input_filled', viewport });
