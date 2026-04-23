@@ -171,6 +171,7 @@ export const RoomWorkspace = ({
           isArchived={runtime.isArchived}
           roomName={room.displayName}
           projectId={room.spaceId}
+          sourcePaneId={runtime.coordinationPaneId}
           tasks={runtime.coordinationTasks}
           taskError={runtime.taskError}
           taskLoading={runtime.tasksLoading}

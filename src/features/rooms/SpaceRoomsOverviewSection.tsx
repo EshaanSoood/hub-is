@@ -95,6 +95,9 @@ export const SpaceRoomsOverviewSection = ({
       .filter((room) => room.status === 'active' && room.spaceId === projectId)
       .map((room) => {
         const roomPaneIds = new Set(getRoomProjectPanes(panes, room.id).map((pane) => pane.pane_id));
+        if (room.coordinationPaneId) {
+          roomPaneIds.add(room.coordinationPaneId);
+        }
         const activityCandidates = [
           room.createdAt,
           ...tasks

@@ -12,6 +12,7 @@ export const RoomSchema = z.object({
   id: RoomIdSchema,
   displayName: RoomDisplayNameSchema,
   spaceId: SpaceIdSchema,
+  coordinationPaneId: z.string().trim().min(1).nullable().optional(),
   status: RoomStatusSchema,
   createdAt: IsoTimestampSchema,
   archivedAt: IsoTimestampSchema.nullable(),

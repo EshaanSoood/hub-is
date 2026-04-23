@@ -188,8 +188,13 @@ export const createStatements = (db) => ({
         r.room_id DESC
     `),
     insert: db.prepare(`
-      INSERT INTO rooms (room_id, space_id, display_name, status, created_by, created_at, archived_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO rooms (room_id, space_id, display_name, coordination_pane_id, status, created_by, created_at, archived_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    updateCoordinationPane: db.prepare(`
+      UPDATE rooms
+      SET coordination_pane_id = ?
+      WHERE room_id = ?
     `),
     archive: db.prepare(`
       UPDATE rooms

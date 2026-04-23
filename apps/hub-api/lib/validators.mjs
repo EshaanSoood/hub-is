@@ -236,6 +236,11 @@ export const validateCreateTaskRequest = (body) => {
     request.project_id = projectId;
   }
 
+  const sourcePaneId = asOptionalString(body.source_pane_id, 'source_pane_id');
+  if (sourcePaneId) {
+    request.source_pane_id = sourcePaneId;
+  }
+
   if (typeof body.parent_record_id !== 'undefined') {
     request.parent_record_id = body.parent_record_id === null ? null : asNonEmptyString(body.parent_record_id, 'parent_record_id');
   }

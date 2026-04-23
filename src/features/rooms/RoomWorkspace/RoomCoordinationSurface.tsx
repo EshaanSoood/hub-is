@@ -21,6 +21,7 @@ interface RoomCoordinationSurfaceProps {
   isArchived: boolean;
   roomName: string;
   projectId: string;
+  sourcePaneId: string | null;
   tasks: HubTaskSummary[];
   taskError: string | null;
   taskLoading: boolean;
@@ -45,6 +46,7 @@ export const RoomCoordinationSurface = ({
   isArchived,
   roomName,
   projectId,
+  sourcePaneId,
   tasks,
   taskError,
   taskLoading,
@@ -208,6 +210,7 @@ export const RoomCoordinationSurface = ({
           }}
           accessToken={accessToken}
           projectId={projectId}
+          sourcePaneId={sourcePaneId || undefined}
           projectMembers={roomMembers.map((member) => ({
             display_name: member.label,
             user_id: member.id,

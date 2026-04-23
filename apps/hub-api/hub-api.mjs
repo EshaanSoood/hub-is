@@ -261,6 +261,9 @@ const {
   rooms: {
     findById: roomByIdStmt,
   },
+  roomMembers: {
+    isMember: roomMembershipExistsStmt,
+  },
   panes: {
     findById: paneByIdStmt,
     listMembers: paneMembersStmt,
@@ -978,8 +981,12 @@ const paneSummary = (pane, userId = '') => {
     display_name: member.display_name,
   }));
   const projectRole = userId ? normalizeProjectRole(projectMembershipRoleStmt.get(pane.project_id, userId)?.role) : 'member';
-  const archivedRoom = archivedRoomForPane(pane);
-  const canEdit = !archivedRoom && (projectRole === 'owner' || Boolean(userId && paneEditorExistsStmt.get(pane.pane_id, userId)?.ok));
+  const roomBinding = roomBindingForPane(pane);
+  const archivedRoom = roomBinding?.room?.status === 'archived' ? roomBinding.room : null;
+  const isRoomMember = !roomBinding || (userId ? Boolean(roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) : false);
+  const canEdit = isRoomMember && !archivedRoom && (
+    projectRole === 'owner' || Boolean(userId && paneEditorExistsStmt.get(pane.pane_id, userId)?.ok)
+  );
 
   return {
     pane_id: pane.pane_id,
@@ -995,24 +1002,25 @@ const paneSummary = (pane, userId = '') => {
   };
 };
 
-const archivedRoomForPane = (paneOrPaneId) => {
+const roomBindingForPane = (paneOrPaneId) => {
   const pane = typeof paneOrPaneId === 'string' ? paneByIdStmt.get(paneOrPaneId) : paneOrPaneId;
   if (!pane) {
     return null;
   }
 
   const layoutConfig = parseJsonObject(pane.layout_config, {});
-  if (layoutConfig.fixed_room_project !== true) {
-    return null;
-  }
-
   const roomId = asText(layoutConfig.room_id);
   if (!roomId) {
     return null;
   }
 
   const room = roomByIdStmt.get(roomId);
-  return room?.status === 'archived' ? room : null;
+  return room ? { room, roomId } : null;
+};
+
+const archivedRoomForPane = (paneOrPaneId) => {
+  const roomBinding = roomBindingForPane(paneOrPaneId);
+  return roomBinding?.room?.status === 'archived' ? roomBinding.room : null;
 };
 
 const archivedRoomError = () => ({
@@ -1021,10 +1029,21 @@ const archivedRoomError = () => ({
   message: 'Archived rooms are read-only.',
 });
 
+const roomMemberRequiredError = () => ({
+  status: 403,
+  code: 'forbidden',
+  message: 'Room membership required.',
+});
+
 const withPanePolicyGate = ({ userId, paneId, requiredCapability }) => {
   const paneGate = baseWithPanePolicyGate({ userId, paneId, requiredCapability });
   if (paneGate.error) {
     return paneGate;
+  }
+
+  const roomBinding = roomBindingForPane(paneGate.pane);
+  if (roomBinding && !roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) {
+    return { error: roomMemberRequiredError() };
   }
 
   const archivedRoom = archivedRoomForPane(paneGate.pane);
@@ -1046,6 +1065,11 @@ const withDocPolicyGate = ({ userId, docId, requiredCapability }) => {
   const docGate = baseWithDocPolicyGate({ userId, docId, requiredCapability });
   if (docGate.error) {
     return docGate;
+  }
+
+  const roomBinding = roomBindingForPane(docGate.pane_id);
+  if (roomBinding && !roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) {
+    return { error: roomMemberRequiredError() };
   }
 
   const archivedRoom = archivedRoomForPane(docGate.pane_id);
@@ -1136,10 +1160,12 @@ const sourcePaneContextForRecord = (record, cache = null) => {
   }
   const pane = paneByIdStmt.get(paneId);
   const doc = paneDocByPaneStmt.get(paneId);
+  const layoutConfig = parseJsonObject(pane?.layout_config, {});
   const context = {
     pane_id: paneId,
     pane_name: asNullableText(pane?.name),
     doc_id: asNullableText(doc?.doc_id),
+    room_id: asNullableText(layoutConfig.room_id),
   };
   cache?.set(paneId, context);
   return context;

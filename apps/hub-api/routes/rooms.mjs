@@ -6,6 +6,7 @@ const roomRecord = (room, memberUserIds) => ({
   id: room.room_id,
   displayName: room.display_name,
   spaceId: room.space_id,
+  coordinationPaneId: room.coordination_pane_id || null,
   status: room.status,
   createdAt: room.created_at,
   archivedAt: room.archived_at || null,
@@ -38,6 +39,7 @@ export const createRoomRoutes = (deps) => {
     docByIdStmt,
     paneByIdStmt,
     paneDocByPaneStmt,
+    paneListForUserByProjectStmt,
     paneNextSortStmt,
     projectMembershipExistsStmt,
     projectMembershipRoleStmt,
@@ -51,6 +53,7 @@ export const createRoomRoutes = (deps) => {
     roomsByUserStmt,
     insertDocStmt,
     insertDocStorageStmt,
+    insertPaneMemberStmt,
     insertPaneStmt,
     insertRoomStmt,
     insertRoomMemberStmt,
@@ -73,6 +76,7 @@ export const createRoomRoutes = (deps) => {
     remindersByRecordStmt,
     assignmentsByRecordStmt,
     archiveRoomStmt,
+    updateRoomCoordinationPaneStmt,
   } = deps;
 
   const normalizeRoomParticipantIdentifier = (value) => {
@@ -80,9 +84,106 @@ export const createRoomRoutes = (deps) => {
     return text.includes('@') ? text.toLowerCase() : text;
   };
 
-  const hasWritableSpaceMembership = (spaceId, userId) => {
+  const projectMembershipRole = (spaceId, userId) => {
     const role = asText(projectMembershipRoleStmt.get(spaceId, userId)?.role).toLowerCase();
-    return role === 'owner' || role === 'member';
+    return role === 'admin' ? 'owner' : role;
+  };
+
+  const hasOwnerSpaceMembership = (spaceId, userId) =>
+    projectMembershipRole(spaceId, userId) === 'owner';
+
+  const hasSpaceMembership = (spaceId, userId) =>
+    Boolean(projectMembershipExistsStmt.get(spaceId, userId)?.ok);
+
+  const shouldGrantPaneEditor = (spaceId, userId) =>
+    projectMembershipRole(spaceId, userId) !== 'owner';
+
+  const roomLayout = (pane) => parseJsonObject(pane?.layout_config, {});
+
+  const isRoomProjectPane = (pane, roomId) => {
+    const layoutConfig = roomLayout(pane);
+    return asText(layoutConfig.room_id) === roomId && layoutConfig.fixed_room_project === true;
+  };
+
+  const isRoomPane = (pane, roomId) => asText(roomLayout(pane).room_id) === roomId;
+
+  const createCoordinationPane = ({
+    roomId,
+    spaceId,
+    displayName,
+    createdBy,
+    createdAt,
+    sortOrder,
+  }) => {
+    const paneId = newId('pan');
+    const docId = newId('doc');
+    insertPaneStmt.run(
+      paneId,
+      spaceId,
+      `${displayName} Coordination`,
+      sortOrder,
+      sortOrder,
+      0,
+      toJson({
+        doc_binding_mode: 'owned',
+        modules_enabled: false,
+        room_coordination: true,
+        room_hidden: true,
+        room_id: roomId,
+        workspace_enabled: false,
+      }),
+      createdBy,
+      createdAt,
+      createdAt,
+    );
+    insertDocStmt.run(docId, paneId, createdAt, createdAt);
+    insertDocStorageStmt.run(docId, 0, toJson({}), createdAt);
+    return paneId;
+  };
+
+  const grantRoomPaneEditors = ({ spaceId, paneId, userIds, joinedAt }) => {
+    for (const userId of userIds) {
+      if (shouldGrantPaneEditor(spaceId, userId)) {
+        insertPaneMemberStmt.run(paneId, userId, joinedAt);
+      }
+    }
+  };
+
+  const roomPaneIdsForSpace = ({ roomId, spaceId, coordinationPaneId }) => {
+    const paneIds = paneListForUserByProjectStmt
+      .all(spaceId)
+      .filter((pane) => isRoomPane(pane, roomId))
+      .map((pane) => pane.pane_id);
+    if (coordinationPaneId && !paneIds.includes(coordinationPaneId)) {
+      paneIds.unshift(coordinationPaneId);
+    }
+    return paneIds;
+  };
+
+  const ensureRoomCoordinationPane = (room) => {
+    const existingPaneId = asText(room?.coordination_pane_id);
+    if (existingPaneId && paneByIdStmt.get(existingPaneId)) {
+      return existingPaneId;
+    }
+
+    const createdAt = nowIso();
+    const sortOrder = Number(paneNextSortStmt.get(room.space_id)?.max_sort || 0) + 1;
+    const paneId = createCoordinationPane({
+      roomId: room.room_id,
+      spaceId: room.space_id,
+      displayName: room.display_name,
+      createdBy: room.created_by,
+      createdAt,
+      sortOrder,
+    });
+    updateRoomCoordinationPaneStmt.run(paneId, room.room_id);
+    grantRoomPaneEditors({
+      spaceId: room.space_id,
+      paneId,
+      userIds: roomMemberUserIdsByRoomStmt.all(room.room_id).map((member) => member.user_id),
+      joinedAt: createdAt,
+    });
+    return paneId;
   };
 
   const resolveParticipantUserId = ({ identifier, spaceMembers }) => {
@@ -99,25 +200,28 @@ export const createRoomRoutes = (deps) => {
   };
 
   const loadRoomRecord = (roomId) => {
-    const room = roomByIdStmt.get(roomId);
+    let room = roomByIdStmt.get(roomId);
     if (!room) {
       return null;
+    }
+    if (!asText(room.coordination_pane_id) || !paneByIdStmt.get(room.coordination_pane_id)) {
+      withTransaction(() => {
+        ensureRoomCoordinationPane(room);
+      });
+      room = roomByIdStmt.get(roomId);
     }
     const memberUserIds = roomMemberUserIdsByRoomStmt.all(roomId).map((member) => member.user_id);
     return roomRecord(room, memberUserIds);
   };
 
-  const isRoomProjectPane = (pane, roomId) => {
-    const layoutConfig = parseJsonObject(pane?.layout_config, {});
-    return asText(layoutConfig.room_id) === roomId && layoutConfig.fixed_room_project === true;
-  };
-
   const normalizePaneLayoutConfig = (pane, roomId) => {
     const layoutConfig = {
-      ...parseJsonObject(pane?.layout_config, {}),
+      ...roomLayout(pane),
       doc_binding_mode: 'owned',
     };
     delete layoutConfig.fixed_room_project;
+    delete layoutConfig.room_coordination;
+    delete layoutConfig.room_hidden;
     delete layoutConfig.room_id;
     delete layoutConfig.room_slot;
     if (asText(layoutConfig.room_origin_room_id) !== roomId) {
@@ -135,10 +239,8 @@ export const createRoomRoutes = (deps) => {
 
     const rooms = roomsByUserStmt
       .all(auth.user.user_id)
-      .map((room) => roomRecord(
-        room,
-        roomMemberUserIdsByRoomStmt.all(room.room_id).map((member) => member.user_id),
-      ));
+      .map((room) => loadRoomRecord(room.room_id))
+      .filter(Boolean);
 
     send(response, jsonResponse(200, okEnvelope({ rooms })));
   };
@@ -185,8 +287,8 @@ export const createRoomRoutes = (deps) => {
       return;
     }
 
-    if (!hasWritableSpaceMembership(spaceId, auth.user.user_id)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'You must belong to the selected space to create a room.')));
+    if (!hasOwnerSpaceMembership(spaceId, auth.user.user_id)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can create rooms.')));
       return;
     }
 
@@ -212,7 +314,7 @@ export const createRoomRoutes = (deps) => {
     }
 
     for (const userId of memberUserIds) {
-      if (!hasWritableSpaceMembership(spaceId, userId)) {
+      if (!hasSpaceMembership(spaceId, userId)) {
         send(response, jsonResponse(400, errorEnvelope('invalid_members', `User ${userId} is not a space member.`)));
         return;
       }
@@ -224,7 +326,15 @@ export const createRoomRoutes = (deps) => {
     const baseSortOrder = Number(paneNextSortStmt.get(spaceId)?.max_sort || 0);
 
     withTransaction(() => {
-      insertRoomStmt.run(roomId, spaceId, displayName, 'active', auth.user.user_id, now, null);
+      const coordinationPaneId = createCoordinationPane({
+        roomId,
+        spaceId,
+        displayName,
+        createdBy: auth.user.user_id,
+        createdAt: now,
+        sortOrder: baseSortOrder + 1,
+      });
+      insertRoomStmt.run(roomId, spaceId, displayName, coordinationPaneId, 'active', auth.user.user_id, now, null);
       insertRoomMemberStmt.run(roomId, auth.user.user_id, 'owner', now);
       for (const userId of memberUserIds) {
         if (userId !== auth.user.user_id) {
@@ -233,11 +343,17 @@ export const createRoomRoutes = (deps) => {
       }
       insertRoomDocStmt.run(docId, roomId, now, now);
       insertRoomDocStorageStmt.run(docId, 0, toJson({}), now);
+      grantRoomPaneEditors({
+        spaceId,
+        paneId: coordinationPaneId,
+        userIds: memberUserIds,
+        joinedAt: now,
+      });
 
       requestedProjectNames.forEach((paneName, index) => {
         const paneId = newId('pan');
         const paneDocId = newId('doc');
-        const sortOrder = baseSortOrder + index + 1;
+        const sortOrder = baseSortOrder + index + 2;
         insertPaneStmt.run(
           paneId,
           spaceId,
@@ -258,6 +374,12 @@ export const createRoomRoutes = (deps) => {
         );
         insertDocStmt.run(paneDocId, paneId, now, now);
         insertDocStorageStmt.run(paneDocId, 0, toJson({}), now);
+        grantRoomPaneEditors({
+          spaceId,
+          paneId,
+          userIds: memberUserIds,
+          joinedAt: now,
+        });
       });
     });
 
@@ -271,14 +393,14 @@ export const createRoomRoutes = (deps) => {
       return;
     }
 
-    const room = roomForUserStmt.get(params.roomId, auth.user.user_id);
+    let room = roomForUserStmt.get(params.roomId, auth.user.user_id);
     if (!room) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Room not found.')));
       return;
     }
 
-    if (!hasWritableSpaceMembership(room.space_id, auth.user.user_id)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Space membership is required to migrate room content.')));
+    if (!hasOwnerSpaceMembership(room.space_id, auth.user.user_id)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can migrate room content.')));
       return;
     }
 
@@ -567,6 +689,12 @@ export const createRoomRoutes = (deps) => {
       send(response, jsonResponse(403, errorEnvelope('room_archived', 'Archived rooms are read-only.')));
       return;
     }
+    if (!asText(room.coordination_pane_id) || !paneByIdStmt.get(room.coordination_pane_id)) {
+      withTransaction(() => {
+        ensureRoomCoordinationPane(room);
+      });
+      room = roomByIdStmt.get(params.roomId);
+    }
 
     let body;
     try {
@@ -601,7 +729,19 @@ export const createRoomRoutes = (deps) => {
       return;
     }
 
-    insertRoomMemberStmt.run(params.roomId, targetUser.user_id, 'participant', nowIso());
+    const joinedAt = nowIso();
+    withTransaction(() => {
+      insertRoomMemberStmt.run(params.roomId, targetUser.user_id, 'participant', joinedAt);
+      for (const paneId of roomPaneIdsForSpace({
+        roomId: params.roomId,
+        spaceId: room.space_id,
+        coordinationPaneId: asText(room.coordination_pane_id),
+      })) {
+        if (shouldGrantPaneEditor(room.space_id, targetUser.user_id)) {
+          insertPaneMemberStmt.run(paneId, targetUser.user_id, joinedAt);
+        }
+      }
+    });
     const members = roomMembersByRoomStmt.all(params.roomId).map(roomMembershipRecord);
     send(response, jsonResponse(200, okEnvelope({ members })));
   };

@@ -52,6 +52,7 @@ export const runMigrations = (db) => {
   addColumnIfMissing('projects', 'position', 'INTEGER');
   addColumnIfMissing('projects', 'name_prompt_completed', 'INTEGER NOT NULL DEFAULT 0 CHECK (name_prompt_completed IN (0, 1))');
   addColumnIfMissing('panes', 'position', 'INTEGER');
+  addColumnIfMissing('rooms', 'coordination_pane_id', 'TEXT REFERENCES panes(pane_id) ON DELETE SET NULL');
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS calendar_feed_tokens (
@@ -88,11 +89,13 @@ export const runMigrations = (db) => {
       room_id TEXT PRIMARY KEY,
       space_id TEXT NOT NULL,
       display_name TEXT NOT NULL,
+      coordination_pane_id TEXT,
       status TEXT NOT NULL CHECK (status IN ('active', 'archived')),
       created_by TEXT NOT NULL,
       created_at TEXT NOT NULL,
       archived_at TEXT,
       FOREIGN KEY(space_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+      FOREIGN KEY(coordination_pane_id) REFERENCES panes(pane_id) ON DELETE SET NULL,
       FOREIGN KEY(created_by) REFERENCES users(user_id)
     );
 

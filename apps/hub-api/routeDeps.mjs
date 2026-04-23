@@ -158,5 +158,6 @@ export const buildRouteDeps = ({ db, stmts, withTransaction, ...deps }) => ({
   updateMatrixAccountCredentialsStmt: stmts.chat.updateAccountCredentials,
   updateMatrixAccountDeviceStmt: stmts.chat.updateAccountDevice,
   archiveRoomStmt: stmts.rooms.archive,
+  updateRoomCoordinationPaneStmt: stmts.rooms.updateCoordinationPane,
   upsertRoomDocPresenceStmt: stmts.roomDocs.upsertPresence,
 });

@@ -4,6 +4,7 @@ export const createTaskRoutes = (deps) => {
   const {
     withPolicyGate,
     withProjectPolicyGate,
+    resolveProjectContentWriteGate,
     withTransaction,
     send,
     jsonResponse,
@@ -36,6 +37,8 @@ export const createTaskRoutes = (deps) => {
     assignedTasksStmt,
     homeEventsByProjectStmt,
     personalCapturesStmt,
+    paneByIdStmt,
+    roomMembershipExistsStmt,
     collectionsByProjectStmt,
     insertCollectionStmt,
     insertRecordStmt,
@@ -59,6 +62,28 @@ export const createTaskRoutes = (deps) => {
 
   const elapsedMs = (startedAtMs) => Number((performance.now() - startedAtMs).toFixed(2));
 
+  const roomIdForRecord = (record) => {
+    const paneId = asText(record?.source_pane_id);
+    if (!paneId) {
+      return '';
+    }
+    const pane = paneByIdStmt.get(paneId);
+    if (!pane) {
+      return '';
+    }
+    try {
+      const layoutConfig = JSON.parse(pane.layout_config || '{}');
+      return asText(layoutConfig?.room_id);
+    } catch {
+      return '';
+    }
+  };
+
+  const canUserAccessTaskRecord = (userId, record) => {
+    const roomId = roomIdForRecord(record);
+    return !roomId || Boolean(roomMembershipExistsStmt.get(roomId, userId)?.ok);
+  };
+
   // buildTaskSummaryForUser keeps project_id/project_name/task_state.category aligned across task endpoints.
   // visibleProjectTasksStmt excludes subtasks from top-level listings with r.parent_record_id IS NULL.
   const listVisibleProjectTasksForUser = ({ userId, projectId = '' }) => {
@@ -72,6 +97,9 @@ export const createTaskRoutes = (deps) => {
       }
       const records = visibleProjectTasksStmt.all(visibleProjectId);
       for (const record of records) {
+        if (!canUserAccessTaskRecord(userId, record)) {
+          continue;
+        }
         tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
       }
     }
@@ -83,7 +111,10 @@ export const createTaskRoutes = (deps) => {
     const rowsByProject = rowsByProjectCache || new Map();
     for (const visibleProjectId of visibleProjectIds) {
       if (!rowsByProject.has(visibleProjectId)) {
-        rowsByProject.set(visibleProjectId, visibleProjectTasksStmt.all(visibleProjectId));
+        rowsByProject.set(
+          visibleProjectId,
+          visibleProjectTasksStmt.all(visibleProjectId).filter((record) => canUserAccessTaskRecord(userId, record)),
+        );
       }
     }
     return {
@@ -272,9 +303,14 @@ export const createTaskRoutes = (deps) => {
       return;
     }
 
-    const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'write' });
-    if (projectGate.error) {
-      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+    const sourcePaneId = asText(validated.source_pane_id);
+    const writeGate = resolveProjectContentWriteGate({
+      userId: auth.user.user_id,
+      projectId,
+      paneId: sourcePaneId,
+    });
+    if (writeGate.error) {
+      send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
       return;
     }
 
@@ -311,7 +347,18 @@ export const createTaskRoutes = (deps) => {
           insertCollectionStmt.run(collectionId, projectId, 'Tasks', null, null, timestamp, timestamp);
         }
 
-        insertRecordStmt.run(recordId, projectId, collectionId, title, null, null, auth.user.user_id, timestamp, timestamp, null);
+        insertRecordStmt.run(
+          recordId,
+          projectId,
+          collectionId,
+          title,
+          sourcePaneId || null,
+          null,
+          auth.user.user_id,
+          timestamp,
+          timestamp,
+          null,
+        );
         insertRecordCapabilityStmt.run(recordId, 'task', timestamp);
         upsertTaskStateStmt.run(
           recordId,

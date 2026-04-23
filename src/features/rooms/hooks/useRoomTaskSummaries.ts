@@ -6,9 +6,14 @@ import { listProjectTasks } from '../../../services/hub/records';
 interface UseRoomTaskSummariesParams {
   accessToken: string | null | undefined;
   projectId: string | null | undefined;
+  sourcePaneId: string | null | undefined;
 }
 
-const fetchAllProjectTasks = async (accessToken: string, projectId: string): Promise<HubTaskSummary[]> => {
+const fetchAllProjectTasks = async (
+  accessToken: string,
+  projectId: string,
+  sourcePaneId: string,
+): Promise<HubTaskSummary[]> => {
   const tasks: HubTaskSummary[] = [];
   let cursor: string | undefined;
   let previousCursor: string | undefined;
@@ -19,6 +24,7 @@ const fetchAllProjectTasks = async (accessToken: string, projectId: string): Pro
     const page = await listProjectTasks(accessToken, projectId, {
       cursor,
       limit: 200,
+      source_pane_id: sourcePaneId,
     });
     tasks.push(...page.tasks);
     previousCursor = cursor;
@@ -32,6 +38,7 @@ const fetchAllProjectTasks = async (accessToken: string, projectId: string): Pro
 export const useRoomTaskSummaries = ({
   accessToken,
   projectId,
+  sourcePaneId,
 }: UseRoomTaskSummariesParams) => {
   const [tasks, setTasks] = useState<HubTaskSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +46,7 @@ export const useRoomTaskSummaries = ({
   const requestVersionRef = useRef(0);
 
   const refreshTasks = useCallback(async () => {
-    if (!accessToken || !projectId) {
+    if (!accessToken || !projectId || !sourcePaneId) {
       requestVersionRef.current += 1;
       setTasks([]);
       setError(null);
@@ -50,7 +57,7 @@ export const useRoomTaskSummaries = ({
     const requestVersion = ++requestVersionRef.current;
     setLoading(true);
     try {
-      const nextTasks = await fetchAllProjectTasks(accessToken, projectId);
+      const nextTasks = await fetchAllProjectTasks(accessToken, projectId, sourcePaneId);
       if (requestVersion === requestVersionRef.current) {
         setTasks(nextTasks);
         setError(null);
@@ -66,10 +73,10 @@ export const useRoomTaskSummaries = ({
         setLoading(false);
       }
     }
-  }, [accessToken, projectId]);
+  }, [accessToken, projectId, sourcePaneId]);
 
   useEffect(() => {
-    if (!accessToken || !projectId) {
+    if (!accessToken || !projectId || !sourcePaneId) {
       requestVersionRef.current += 1;
       setTasks([]);
       setError(null);
@@ -78,7 +85,7 @@ export const useRoomTaskSummaries = ({
     }
 
     void refreshTasks().catch(() => {});
-  }, [accessToken, projectId, refreshTasks]);
+  }, [accessToken, projectId, refreshTasks, sourcePaneId]);
 
   return {
     error,

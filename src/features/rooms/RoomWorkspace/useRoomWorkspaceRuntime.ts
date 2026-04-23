@@ -79,9 +79,11 @@ export const useRoomWorkspaceRuntime = ({
   } = useRoomTaskSummaries({
     accessToken,
     projectId: room?.spaceId || '',
+    sourcePaneId: room?.coordinationPaneId || '',
   });
   const taskMutations = useRoomTaskMutations({
     accessToken,
+    mutationContextPaneId: room?.coordinationPaneId || null,
     onTasksChanged: () => toVoidPromise(refreshTasks),
   });
 
@@ -95,7 +97,7 @@ export const useRoomWorkspaceRuntime = ({
     [parsedPaneId, roomProjectPanes],
   );
   const coordinationTasks = useMemo(
-    () => tasks.filter((task) => !task.source_pane?.pane_id),
+    () => tasks,
     [tasks],
   );
   const activePaneTasks = useMemo(
@@ -133,6 +135,7 @@ export const useRoomWorkspaceRuntime = ({
     archiveRoom,
     archivingRoom: archiving,
     coordinationTaskItems: adaptTaskSummaries(coordinationTasks),
+    coordinationPaneId: room?.coordinationPaneId || null,
     coordinationTasks,
     error: roomError || roomMembersError || spaceError || tasksError,
     inviteEmail,

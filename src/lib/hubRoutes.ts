@@ -51,6 +51,12 @@ export const buildPaneContextHref = ({
     params.set('focus_node_key', focusNodeKey);
   }
   const query = params.toString();
+  if (sourcePane.room_id) {
+    const roomBaseHref = sourcePane.pane_id
+      ? `/rooms/${encodePathSegment(sourcePane.room_id)}/projects/${encodePathSegment(sourcePane.pane_id)}`
+      : `/rooms/${encodePathSegment(sourcePane.room_id)}`;
+    return `${roomBaseHref}${query ? `?${query}` : ''}`;
+  }
   return `/projects/${encodePathSegment(projectId)}/work/${encodePathSegment(sourcePane.pane_id)}${query ? `?${query}` : ''}`;
 };
 
