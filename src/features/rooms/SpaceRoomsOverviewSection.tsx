@@ -1,15 +1,13 @@
-import { useId, useMemo, useRef } from 'react';
+import { useId, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useProjects } from '../../context/ProjectsContext';
 import type { CalendarEventSummary } from '../../components/project-space/CalendarModuleSkin/types';
-import { Button, InlineNotice } from '../../components/primitives';
+import { InlineNotice } from '../../components/primitives';
 import type { TimelineEvent } from '../../pages/ProjectSpacePage/ProjectSpaceWorkspace/types';
 import type { HubPaneSummary, HubTaskSummary } from '../../services/hub/types';
 import { buildRoomHref } from './navigation';
 import { getRoomProjectPanes } from './paneModel';
 import { useRooms } from './hooks/useRooms';
-import { CreateRoomDialog } from './CreateRoomDialog';
 
 interface SpaceRoomsOverviewSectionProps {
   accessToken: string;
@@ -84,11 +82,9 @@ export const SpaceRoomsOverviewSection = ({
   calendarEvents,
   timeline,
 }: SpaceRoomsOverviewSectionProps) => {
-  const { projects } = useProjects();
-  const { createRoom, error, loading, rooms } = useRooms({ accessToken });
+  const { error, loading, rooms } = useRooms({ accessToken });
   const headingId = useId();
   const descriptionId = useId();
-  const createTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const activeRooms = useMemo<SpaceRoomListItem[]>(
     () => rooms
@@ -130,34 +126,11 @@ export const SpaceRoomsOverviewSection = ({
       aria-describedby={descriptionId}
       className="rounded-panel border border-subtle bg-elevated p-4"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h2 id={headingId} className="text-sm font-semibold text-text">Rooms</h2>
-          <p id={descriptionId} className="text-sm text-muted">
-            Use Rooms to invite collaborators not part of your team.
-          </p>
-        </div>
-
-        <CreateRoomDialog
-          accessToken={accessToken}
-          onCreateRoom={createRoom}
-          projectOptions={projects}
-          triggerRef={createTriggerRef}
-          initialSpaceId={projectId}
-          renderTrigger={({ disabled, onOpen, triggerRef: nextTriggerRef }) => (
-            <Button
-              ref={nextTriggerRef}
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={disabled}
-              onClick={onOpen}
-              aria-label="Create room for this space"
-            >
-              Create Room
-            </Button>
-          )}
-        />
+      <div className="space-y-1">
+        <h2 id={headingId} className="text-sm font-semibold text-text">Rooms</h2>
+        <p id={descriptionId} className="text-sm text-muted">
+          Active rooms for this space.
+        </p>
       </div>
 
       {error ? (

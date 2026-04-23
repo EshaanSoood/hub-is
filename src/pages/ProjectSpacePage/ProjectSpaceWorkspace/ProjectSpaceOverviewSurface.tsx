@@ -1,5 +1,6 @@
 import { useMemo, type ComponentProps, type ReactElement } from 'react';
 import { OverviewView } from '../../../components/project-space/OverviewView';
+import { SpaceInviteGuestsPanel } from '../../../features/rooms/SpaceInviteGuestsPanel';
 import { SpaceRoomsOverviewSection } from '../../../features/rooms/SpaceRoomsOverviewSection';
 import type { CalendarEventSummary } from '../../../components/project-space/CalendarModuleSkin/types';
 import type { HubPaneSummary, HubProjectMember, HubTaskSummary } from '../../../services/hub/types';
@@ -117,6 +118,12 @@ export const ProjectSpaceOverviewSurface = ({
         onInviteEmailChange={onInviteEmailChange}
         onInviteSubmit={onInviteSubmit}
         onDismissInviteFeedback={onDismissInviteFeedback}
+        inviteGuestsSection={!isPersonalProject ? (
+          <SpaceInviteGuestsPanel
+            accessToken={accessToken}
+            projectId={projectId}
+          />
+        ) : null}
       />
 
       {!isPersonalProject ? (

@@ -30,6 +30,11 @@ const parseParticipantIdentifiers = (value: string): string[] =>
 const firstSpaceId = (projectOptions: ProjectRecord[]): string =>
   projectOptions[0]?.id ?? '';
 
+const DEFAULT_ROOM_PROJECT_NAMES = {
+  primary: 'Project 1',
+  secondary: 'Project 2',
+} as const;
+
 export const CreateRoomDialog = ({
   accessToken,
   onCreateRoom,
@@ -45,8 +50,8 @@ export const CreateRoomDialog = ({
   const [open, setOpen] = useState(false);
   const [roomName, setRoomName] = useState('');
   const [spaceId, setSpaceId] = useState('');
-  const [projectOneName, setProjectOneName] = useState('');
-  const [projectTwoName, setProjectTwoName] = useState('');
+  const [projectOneName, setProjectOneName] = useState<string>(DEFAULT_ROOM_PROJECT_NAMES.primary);
+  const [projectTwoName, setProjectTwoName] = useState<string>(DEFAULT_ROOM_PROJECT_NAMES.secondary);
   const [participantInput, setParticipantInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +81,8 @@ export const CreateRoomDialog = ({
   const resetForm = () => {
     setRoomName('');
     setSpaceId(defaultSpaceId);
-    setProjectOneName('');
-    setProjectTwoName('');
+    setProjectOneName(DEFAULT_ROOM_PROJECT_NAMES.primary);
+    setProjectTwoName(DEFAULT_ROOM_PROJECT_NAMES.secondary);
     setParticipantInput('');
     setSubmitting(false);
     setError(null);
@@ -230,32 +235,38 @@ export const CreateRoomDialog = ({
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="room-create-project-one">
-                Project one
-              </label>
-              <input
-                id="room-create-project-one"
-                type="text"
-                value={projectOneName}
-                onChange={(event) => setProjectOneName(event.target.value)}
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                placeholder="Design"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="room-create-project-two">
-                Project two
-              </label>
-              <input
-                id="room-create-project-two"
-                type="text"
-                value={projectTwoName}
-                onChange={(event) => setProjectTwoName(event.target.value)}
-                className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                placeholder="Build"
-              />
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              What projects live in this room?
+            </p>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="room-create-project-one">
+                  Project one
+                </label>
+                <input
+                  id="room-create-project-one"
+                  type="text"
+                  value={projectOneName}
+                  onChange={(event) => setProjectOneName(event.target.value)}
+                  className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  placeholder={DEFAULT_ROOM_PROJECT_NAMES.primary}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="room-create-project-two">
+                  Project two
+                </label>
+                <input
+                  id="room-create-project-two"
+                  type="text"
+                  value={projectTwoName}
+                  onChange={(event) => setProjectTwoName(event.target.value)}
+                  className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
+                  placeholder={DEFAULT_ROOM_PROJECT_NAMES.secondary}
+                />
+              </div>
             </div>
           </div>
 

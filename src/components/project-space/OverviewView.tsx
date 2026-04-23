@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { archiveRecord, updateRecord } from '../../services/hub/records';
 import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
@@ -44,6 +44,7 @@ interface OverviewViewProps {
   onInviteEmailChange: (value: string) => void;
   onInviteSubmit: () => void;
   onDismissInviteFeedback: () => void;
+  inviteGuestsSection?: ReactNode;
 }
 
 const overviewViews: Array<{ id: OverviewViewId; label: string }> = [
@@ -91,6 +92,7 @@ export const OverviewView = ({
   onInviteEmailChange,
   onInviteSubmit,
   onDismissInviteFeedback,
+  inviteGuestsSection,
 }: OverviewViewProps) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const [titleDraft, setTitleDraft] = useState(projectName);
@@ -305,6 +307,11 @@ export const OverviewView = ({
             <InlineNotice variant="success" title="Invite sent" onDismiss={onDismissInviteFeedback}>
               {inviteNotice}
             </InlineNotice>
+          ) : null}
+          {inviteGuestsSection ? (
+            <div className="pt-2">
+              {inviteGuestsSection}
+            </div>
           ) : null}
         </div>
 
