@@ -368,7 +368,6 @@ const {
   withProjectPolicyGate,
   withPanePolicyGate: baseWithPanePolicyGate,
   withDocPolicyGate: baseWithDocPolicyGate,
-  requireDocAccess,
 } = createPermissionHelpers({
   asText,
   projectMembershipRoleStmt,
@@ -1086,6 +1085,12 @@ const withDocPolicyGate = ({ userId, docId, requiredCapability }) => {
     can_edit: false,
   };
 };
+
+const requireDocAccess = (docId, userId) => withDocPolicyGate({
+  userId,
+  docId,
+  requiredCapability: 'view',
+});
 
 const pendingInviteRecord = (row) => ({
   invite_request_id: row.invite_request_id,

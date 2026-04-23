@@ -93,6 +93,13 @@ export const CreateRoomDialog = ({
     setError(null);
   };
 
+  const requestCloseDialog = () => {
+    if (submitting) {
+      return;
+    }
+    closeDialog();
+  };
+
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!accessToken) {
@@ -130,12 +137,18 @@ export const CreateRoomDialog = ({
         projectNames: [firstProjectName, secondProjectName],
         participantIdentifiers,
       });
+      if (!isMountedRef.current) {
+        return;
+      }
       closeDialog();
       resetForm();
       startTransition(() => {
         navigate(`/rooms/${encodeURIComponent(room.id)}`);
       });
     } catch (submissionError) {
+      if (!isMountedRef.current) {
+        return;
+      }
       setError(submissionError instanceof Error ? submissionError.message : 'Room creation failed.');
     } finally {
       if (isMountedRef.current) {
@@ -167,7 +180,7 @@ export const CreateRoomDialog = ({
 
       <Dialog
         open={open}
-        onClose={closeDialog}
+        onClose={requestCloseDialog}
         triggerRef={effectiveTriggerRef}
         title="Create Room"
         description="Create a room with two fixed projects and invited participants."
@@ -268,8 +281,9 @@ export const CreateRoomDialog = ({
           <div className="flex justify-end gap-2">
             <Button
               type="button"
-              onClick={closeDialog}
+              onClick={requestCloseDialog}
               variant="secondary"
+              disabled={submitting}
             >
               Cancel
             </Button>
