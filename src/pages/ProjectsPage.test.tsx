@@ -279,9 +279,9 @@ vi.mock('../features/home/HomeProjectNamingDialog', () => ({
     onSubmit: () => void;
     onValueChange: (value: string) => void;
   }) => (open ? (
-    <div role="dialog" aria-label="Name your Home project">
+    <div role="dialog" aria-label="Name your Home space">
       <input
-        aria-label="Project name"
+        aria-label="Space name"
         value={projectName}
         onChange={(event) => onValueChange(event.currentTarget.value)}
       />
@@ -497,8 +497,8 @@ describe('ProjectsPage', () => {
 
     renderProjectsPage();
 
-    const dialog = await screen.findByRole('dialog', { name: 'Name your Home project' });
-    const input = within(dialog).getByRole('textbox', { name: 'Project name' });
+    const dialog = await screen.findByRole('dialog', { name: 'Name your Home space' });
+    const input = within(dialog).getByRole('textbox', { name: 'Space name' });
     await user.clear(input);
     await user.type(input, 'Sunday Desk');
     await user.click(within(dialog).getByRole('button', { name: 'Save name' }));

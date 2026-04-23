@@ -244,7 +244,7 @@ const TasksModuleSmall = ({
         ) : null}
         {!tasksLoading && visibleTasks.length === 0 ? (
           <ModuleEmptyState
-            title="No tasks in this pane."
+            title="No tasks in this project."
             iconName="tasks"
             sizeTier="S"
           />
@@ -305,7 +305,7 @@ const TasksModuleMedium = ({
       {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}
       {!tasksLoading && displayedTasks.length === 0 ? (
         <ModuleEmptyState
-          title="No tasks in this pane."
+          title="No tasks in this project."
           iconName="tasks"
           ctaLabel={canCreateTask ? 'New Task' : undefined}
           onCta={canCreateTask ? () => setComposerOpen(true) : undefined}
@@ -441,7 +441,7 @@ const TasksModuleLarge = ({
 
       {!tasksLoading && hasDefaultLargeFilters && visibleLargeTaskCount === 0 ? (
         <ModuleEmptyState
-          title="No tasks in this pane."
+          title="No tasks in this project."
           iconName="tasks"
           description="It's Procrastinators vs ProTaskinators out here."
           sizeTier="L"

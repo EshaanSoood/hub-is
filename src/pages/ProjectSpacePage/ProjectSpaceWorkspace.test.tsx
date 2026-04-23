@@ -134,7 +134,7 @@ vi.mock('../../components/project-space/OverviewView', () => ({
 
 vi.mock('../../components/project-space/PaneSwitcher', () => ({
   PaneSwitcher: ({ panes, onPaneChange }: { panes: Array<{ id: string; label: string }>; onPaneChange: (paneId: string, source: 'click') => void }) => (
-    <div aria-label="Pane switcher">
+    <div aria-label="Project switcher">
       {panes.map((pane) => (
         <button key={pane.id} type="button" onClick={() => onPaneChange(pane.id, 'click')}>
           {pane.label}
@@ -155,7 +155,7 @@ vi.mock('../../components/project-space/WorkView', () => ({
     onOpenRecord?: (recordId: string) => void;
   }) => (
     <section aria-label="Work view">
-      <p>{pane?.name ?? 'No pane'}</p>
+      <p>{pane?.name ?? 'No project'}</p>
       <p>{modulesEnabled ? 'Modules enabled' : 'Modules disabled'}</p>
       <button type="button" onClick={() => onOpenRecord?.('record-work')}>Open work record</button>
     </section>
@@ -753,12 +753,12 @@ describe('ProjectSpaceWorkspace characterization', () => {
       activeTab: 'work',
     });
 
-    expect(screen.queryByLabelText('Pane switcher')).not.toBeInTheDocument();
-    expect(screen.getByText('Pane switcher hidden. Use the focusable toggle above to reveal it.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Project switcher')).not.toBeInTheDocument();
+    expect(screen.getByText('Project switcher hidden. Use the focusable toggle above to reveal it.')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Show pane switcher' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show project switcher' }));
 
-    expect(screen.getByLabelText('Pane switcher')).toBeInTheDocument();
+    expect(screen.getByLabelText('Project switcher')).toBeInTheDocument();
   });
 
   it('opens pane settings with the current pane details and keeps region toggle wiring intact', async () => {
@@ -767,13 +767,13 @@ describe('ProjectSpaceWorkspace characterization', () => {
       activeTab: 'work',
     });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Pane settings' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Project settings' }));
 
-    expect(screen.getByRole('button', { name: 'Pane settings' })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('heading', { name: 'Pane Settings' })).toBeInTheDocument();
-    expect(screen.getByText('Manage settings for pane Shared Work.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Pane name')).toHaveValue('Shared Work');
-    expect(screen.getByRole('link', { name: 'Open pane route' })).toHaveAttribute('href', '/projects/project-1/work/pane-shared');
+    expect(screen.getByRole('button', { name: 'Project settings' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('heading', { name: 'Project Settings' })).toBeInTheDocument();
+    expect(screen.getByText('Manage settings for project Shared Work.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Project name')).toHaveValue('Shared Work');
+    expect(screen.getByRole('link', { name: 'Open project' })).toHaveAttribute('href', '/projects/project-1/work/pane-shared');
 
     await userEvent.click(screen.getByRole('button', { name: 'Hide modules' }));
     expect(onUpdatePaneFromWorkViewMock).toHaveBeenCalledWith('pane-shared', expect.objectContaining({
@@ -825,7 +825,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
         activeTab: 'work',
       });
 
-      expect(screen.getByText('This pane is set to modules-only mode. The workspace doc is hidden here.')).toBeInTheDocument();
+      expect(screen.getByText('This project is set to modules-only mode. The workspace doc is hidden here.')).toBeInTheDocument();
     } finally {
       fixture.sharedPane.layout_config = originalLayout;
     }
@@ -862,7 +862,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     });
 
     expect(screen.queryByRole('button', { name: 'Upload doc asset' })).not.toBeInTheDocument();
-    expect(screen.getByText('Read-only doc mode. You can review the pane and leave comments below.')).toBeInTheDocument();
+    expect(screen.getByText('Read-only doc mode. You can review the project and leave comments below.')).toBeInTheDocument();
   });
 
   it('renders the inspector and routes close actions back through the close hook', async () => {
@@ -1099,7 +1099,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
     expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Work' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open pinned pane Private Work' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Open pinned project Private Work' })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByText('Asset Library Roots')).not.toBeInTheDocument();
     expect(screen.queryByText('Automation builder')).not.toBeInTheDocument();
   });
@@ -1233,7 +1233,7 @@ describe('ProjectSpacePaneSettingsDialog', () => {
       </MemoryRouter>,
     );
 
-    const paneNameInput = screen.getByLabelText('Pane name');
+    const paneNameInput = screen.getByLabelText('Project name');
     await userEvent.clear(paneNameInput);
     await userEvent.type(paneNameInput, 'Renamed Pane');
     fireEvent.blur(paneNameInput);
@@ -1272,12 +1272,12 @@ describe('ProjectSpacePaneSettingsDialog', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByLabelText('Pane name')).toBeDisabled();
+    expect(screen.getByLabelText('Project name')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Unpin' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Move up' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Hide modules' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Hide workspace doc' })).toBeDisabled();
-    expect(screen.getByText('Read-only pane.')).toBeInTheDocument();
+    expect(screen.getByText('Read-only project.')).toBeInTheDocument();
   });
 
   it('wires pane member toggles and keeps the current user checkbox disabled', async () => {

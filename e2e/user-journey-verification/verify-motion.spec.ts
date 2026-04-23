@@ -36,16 +36,17 @@ interface MotionReport {
 
 const waitForProjectsHome = async (page: Page): Promise<void> => {
   await page.goto('/projects', { waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
-  await expect(page.getByRole('link', { name: /^Go To Project /i }).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await expect(page.getByRole('navigation', { name: 'Home tabs' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
 const openProjectOverview = async (
   page: Page,
   context: Awaited<ReturnType<typeof readJourneyContext>>,
 ): Promise<void> => {
-  const overviewLink = page.locator(`a[href="/projects/${context.project.id}/overview"]`).first();
-  await expect(overviewLink).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await overviewLink.click();
+  await page.goto(`/projects/${context.project.id}/overview`, {
+    waitUntil: 'domcontentloaded',
+    timeout: LIVE_TIMEOUT_MS,
+  });
 
   await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/overview`), {
     timeout: LIVE_TIMEOUT_MS,
@@ -57,23 +58,11 @@ const navigateToSeededPane = async (
   context: Awaited<ReturnType<typeof readJourneyContext>>,
 ): Promise<void> => {
   await waitForProjectsHome(page);
-  await openProjectOverview(page, context);
-
-  const workTab = page.getByRole('tab', { name: /^Work$/i }).first();
-  await expect(workTab).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await workTab.click();
-
-  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work`), {
+  await page.goto(`/projects/${context.project.id}/work/${context.panes.primaryId}`, {
+    waitUntil: 'domcontentloaded',
     timeout: LIVE_TIMEOUT_MS,
   });
 
-  const paneToolbar = page.getByRole('toolbar', { name: 'Open panes' });
-  await expect(paneToolbar).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  const paneButton = page.getByRole('button', {
-    name: new RegExp(`^${escapeRegExp(context.panes.primaryName)}(?:, pane \\d+)?$`, 'i'),
-  }).first();
-  await expect(paneButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await paneButton.click();
   await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work/${escapeRegExp(context.panes.primaryId)}(?:\\?|$)`), {
     timeout: LIVE_TIMEOUT_MS,
   });

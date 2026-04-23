@@ -80,7 +80,7 @@ export const ProjectSpaceOverviewSurface = ({
   return (
     <OverviewView
       projectName={projectName}
-      projectSummary="Track the timeline, calendar, and task flow for this project."
+      projectSummary="Track the timeline, calendar, and task flow for this space."
       collaborators={overviewCollaborators}
       clients={overviewClients}
       activeView={overviewView}

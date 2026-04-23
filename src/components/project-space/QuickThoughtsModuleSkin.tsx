@@ -356,7 +356,7 @@ export const QuickThoughtsModuleSkin = ({
       ...current,
     ]);
     setDraftText('');
-    setAnnouncement('Quick Thought saved to this pane.');
+    setAnnouncement('Quick Thought saved to this project.');
   };
 
   const startEditing = (entry: QuickThoughtEntry) => {
@@ -446,7 +446,7 @@ export const QuickThoughtsModuleSkin = ({
             <QuickThoughtEditor
               value={editingEntryId ? '' : draftText}
               rows={sizeTier === 'L' ? 6 : 4}
-              placeholder="Capture a thought for this pane..."
+              placeholder="Capture a thought for this project..."
               saveLabel="Save Thought"
               readOnly={!isInteractive}
               onChange={setDraftText}
@@ -459,7 +459,7 @@ export const QuickThoughtsModuleSkin = ({
       <div className={showComposer ? 'mt-sm min-h-0 flex-1 overflow-y-auto pr-1' : 'min-h-0 flex-1 overflow-y-auto pr-1'}>
         {visibleEntries.length === 0 ? (
           <ModuleEmptyState
-            title="Nothing captured for this pane yet."
+            title="Nothing captured for this project yet."
             iconName="thought-pile"
             sizeTier={sizeTier}
           />

@@ -58,15 +58,15 @@ export const ModuleGrid = ({
 
   if (modules.length === 0) {
     return (
-      <section className="space-y-3" aria-label="Pane organization modules">
+      <section className="space-y-3" aria-label="Project organization modules">
         <div className="rounded-panel border border-dashed border-border-muted bg-elevated px-6 py-14">
           <div className="mx-auto flex max-w-md flex-col items-center text-center">
             <div className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-border-muted bg-surface text-primary">
               <Icon name="plus" className="text-[22px]" />
             </div>
-            <h3 className="mt-4 text-lg font-semibold text-primary">Let&apos;s get this pane started!</h3>
+            <h3 className="mt-4 text-lg font-semibold text-primary">Let&apos;s get this project started!</h3>
             <p className="mt-2 text-sm text-muted">
-              Add a first module to shape the pane, then keep building from there.
+              Add a first module to shape the project, then keep building from there.
             </p>
             {showAddControls ? (
               <motion.button
@@ -95,7 +95,7 @@ export const ModuleGrid = ({
   }
 
   return (
-    <section className="space-y-3" aria-label="Pane organization modules">
+    <section className="space-y-3" aria-label="Project organization modules">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Modules</p>
         {showAddControls ? (

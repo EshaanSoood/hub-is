@@ -37,8 +37,8 @@ export const HomeProjectNamingDialog = ({
   return (
     <Dialog
       open={open}
-      title="Name your Home project"
-      description="Choose the name you want to use for your personal project."
+      title="Name your Home space"
+      description="Choose the name you want to use for your personal space."
       onClose={() => {
         // Intentional: block dismissal until the required Home name is saved.
       }}
@@ -53,10 +53,10 @@ export const HomeProjectNamingDialog = ({
       >
         <div className="space-y-2">
           <p className="text-sm text-muted">
-            Home is your personal project. Give it a name you want to see across the app.
+            Home is your personal space. Give it a name you want to see across the app.
           </p>
           <label htmlFor="home-project-name" className="block text-xs font-semibold uppercase tracking-wide text-muted">
-            Project name
+            Space name
           </label>
           <input
             ref={inputRef}
@@ -67,7 +67,7 @@ export const HomeProjectNamingDialog = ({
             aria-describedby={errorId}
             aria-invalid={Boolean(error)}
             className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-base text-text"
-            placeholder="Personal project"
+            placeholder="Personal space"
             maxLength={120}
           />
         </div>
@@ -81,7 +81,7 @@ export const HomeProjectNamingDialog = ({
             type="submit"
             variant="primary"
             loading={saving}
-            loadingLabel="Saving project name"
+            loadingLabel="Saving space name"
             disabled={projectName.trim().length === 0}
           >
             Save name

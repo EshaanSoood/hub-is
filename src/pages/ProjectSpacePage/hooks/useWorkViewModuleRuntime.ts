@@ -275,7 +275,7 @@ export const useWorkViewModuleRuntime = ({
         onCreateTask: async (task) => {
           if (!taskCollectionId) {
             console.error('onCreateTask: no task collection found for this project', { projectId });
-            setRecordsError(`No task collection found for project ${projectId}. Create a task from a pane first.`);
+            setRecordsError(`No task collection found for project ${projectId}. Create a task from a project first.`);
             return;
           }
           if (!accessToken) {

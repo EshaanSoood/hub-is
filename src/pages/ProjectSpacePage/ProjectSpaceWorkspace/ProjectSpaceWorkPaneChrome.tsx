@@ -124,7 +124,7 @@ export const ProjectSpaceWorkPaneChrome = ({
   return (
     <div className="rounded-panel border border-subtle bg-elevated p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="heading-3 text-primary">Work Panes</h2>
+        <h2 className="heading-3 text-primary">Projects</h2>
         <div className="flex flex-wrap gap-2">
           {openedFromPinned ? (
             <button
@@ -132,9 +132,9 @@ export const ProjectSpaceWorkPaneChrome = ({
               className="rounded-control border border-border-muted px-2 py-1 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onClick={() => setShowPaneSwitcher((current) => !current)}
               aria-expanded={showPaneSwitcher}
-              aria-label={showPaneSwitcher ? 'Hide pane switcher' : 'Show pane switcher'}
+              aria-label={showPaneSwitcher ? 'Hide project switcher' : 'Show project switcher'}
             >
-              {showPaneSwitcher ? 'Hide pane switcher' : 'Show pane switcher'}
+              {showPaneSwitcher ? 'Hide project switcher' : 'Show project switcher'}
             </button>
           ) : null}
           {readOnlyPanes.length > 0 ? (
@@ -144,7 +144,7 @@ export const ProjectSpaceWorkPaneChrome = ({
               onClick={() => setShowOtherPanes((current) => !current)}
               aria-expanded={showOtherPanes}
             >
-              {showOtherPanes ? 'Hide other panes' : `Other panes (${readOnlyPanes.length})`}
+              {showOtherPanes ? 'Hide other projects' : `Other projects (${readOnlyPanes.length})`}
             </button>
           ) : null}
         </div>
@@ -178,7 +178,7 @@ export const ProjectSpaceWorkPaneChrome = ({
               />
             </div>
           ) : openedFromPinned ? (
-            <p className="text-xs text-muted">Pane switcher hidden. Use the focusable toggle above to reveal it.</p>
+            <p className="text-xs text-muted">Project switcher hidden. Use the focusable toggle above to reveal it.</p>
           ) : null}
           {canWriteProject ? (
             <IconButton
@@ -186,7 +186,7 @@ export const ProjectSpaceWorkPaneChrome = ({
               type="button"
               size="sm"
               variant={showCreatePaneControl ? 'secondary' : 'ghost'}
-              aria-label={showCreatePaneControl ? 'Collapse create pane' : 'Create pane'}
+              aria-label={showCreatePaneControl ? 'Collapse create project' : 'Create project'}
               aria-expanded={showCreatePaneControl}
               onClick={() => setShowCreatePaneControl((current) => !current)}
             >
@@ -202,7 +202,7 @@ export const ProjectSpaceWorkPaneChrome = ({
               type="button"
               size="sm"
               variant={paneSettingsOpen ? 'secondary' : 'ghost'}
-              aria-label="Pane settings"
+              aria-label="Project settings"
               aria-expanded={paneSettingsOpen}
               onClick={() => setPaneSettingsOpen(true)}
               disabled={!activePane}
@@ -226,11 +226,11 @@ export const ProjectSpaceWorkPaneChrome = ({
                 }
               }}
               className="rounded-panel border border-border-muted bg-surface px-3 py-1.5 text-sm text-text"
-              placeholder="New pane name"
-              aria-label="New pane name"
+              placeholder="New project name"
+              aria-label="New project name"
             />
             <button type="submit" className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary">
-              Create pane
+              Create project
             </button>
           </form>
         ) : null}
@@ -238,18 +238,18 @@ export const ProjectSpaceWorkPaneChrome = ({
         {showOtherPanes ? (
           <div className="rounded-panel border border-border-muted bg-surface p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Other panes</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Other projects</h3>
               <input
                 value={otherPaneQuery}
                 onChange={(event) => setOtherPaneQuery(event.target.value)}
                 className="rounded-panel border border-border-muted bg-surface-elevated px-2 py-1 text-xs text-text"
-                placeholder="Search panes"
-                aria-label="Search read-only panes"
+                placeholder="Search projects"
+                aria-label="Search read-only projects"
               />
             </div>
             <div className="mt-3 space-y-2">
               {filteredReadOnlyPanes.length === 0 ? (
-                <p className="text-sm text-muted">No matching read-only panes.</p>
+                <p className="text-sm text-muted">No matching read-only projects.</p>
               ) : (
                 filteredReadOnlyPanes.map((pane) => (
                   <button
@@ -274,7 +274,7 @@ export const ProjectSpaceWorkPaneChrome = ({
         ) : null}
       </div>
       {paneMutationError ? (
-        <InlineNotice variant="danger" className="mt-2" title="Pane update failed">
+        <InlineNotice variant="danger" className="mt-2" title="Project update failed">
           {paneMutationError}
         </InlineNotice>
       ) : null}

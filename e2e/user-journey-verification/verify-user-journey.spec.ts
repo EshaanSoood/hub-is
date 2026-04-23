@@ -29,38 +29,16 @@ const viewportLabelForProject = (projectName: string): string => {
 
 const waitForProjectsHome = async (page: Page): Promise<void> => {
   await page.goto('/projects', { waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
-  await expect(page.getByRole('link', { name: /^Go To Project /i }).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-};
-
-const openProjectOverview = async (page: Page, context: JourneySeedContext): Promise<void> => {
-  const overviewLink = page.locator(`a[href="/projects/${context.project.id}/overview"]`).first();
-  await expect(overviewLink).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await overviewLink.click();
-
-  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/overview`), {
-    timeout: LIVE_TIMEOUT_MS,
-  });
+  await expect(page.getByRole('navigation', { name: 'Home tabs' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
 const navigateToSeededPane = async (page: Page, context: JourneySeedContext): Promise<void> => {
   await waitForProjectsHome(page);
-  await openProjectOverview(page, context);
-
-  const workTab = page.getByRole('tab', { name: /^Work$/i }).first();
-  await expect(workTab).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await workTab.click();
-
-  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work`), {
+  await page.goto(`/projects/${context.project.id}/work/${context.panes.primaryId}`, {
+    waitUntil: 'domcontentloaded',
     timeout: LIVE_TIMEOUT_MS,
   });
 
-  const paneToolbar = page.getByRole('toolbar', { name: 'Open panes' });
-  await expect(paneToolbar).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  const paneButton = page.getByRole('button', {
-    name: new RegExp(`^${escapeRegExp(context.panes.primaryName)}(?:, pane \\d+)?$`, 'i'),
-  }).first();
-  await expect(paneButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await paneButton.click();
   await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work/${escapeRegExp(context.panes.primaryId)}(?:\\?|$)`), {
     timeout: LIVE_TIMEOUT_MS,
   });
@@ -343,7 +321,7 @@ test.describe('User Journey Verification', () => {
     await calendarNewEventButton.click();
 
     const calendarTitle = withRunTag(context, `${scenario}-calendar-event`);
-    const calendarTitleInput = calendarModule.getByLabel('Event title').first();
+    const calendarTitleInput = calendarModule.getByLabel(/Event title|Write an event in natural language/i).first();
     await expect(calendarTitleInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await calendarTitleInput.fill(calendarTitle);
     await calendarModule.getByLabel('Start time').first().fill('09:30');
@@ -365,12 +343,12 @@ test.describe('User Journey Verification', () => {
     const taskTitle = withRunTag(context, `${scenario}-task-item`);
     const tasksModule = getTasksModule(page);
     await captureCheckpoint({ page, scenario, phase: 'tasks', state: 'before_action', viewport });
-    let newTaskInput = tasksModule.getByLabel('New task title').first();
+    let newTaskInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
     if (!(await newTaskInput.isVisible().catch(() => false))) {
       const openComposerButton = tasksModule.getByRole('button', { name: /^New Task$/i }).first();
       await expect(openComposerButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await openComposerButton.click();
-      newTaskInput = tasksModule.getByLabel('New task title').first();
+      newTaskInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
     }
     await expect(newTaskInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await newTaskInput.fill(taskTitle);
@@ -396,7 +374,7 @@ test.describe('User Journey Verification', () => {
     const reminderTokenB = withRunTag(context, `${scenario}-reminder-b`);
     const remindersModule = getRemindersModule(page);
     await captureCheckpoint({ page, scenario, phase: 'reminders', state: 'before_action', viewport });
-    const reminderInput = remindersModule.getByLabel('Add a reminder').first();
+    const reminderInput = remindersModule.getByLabel('Write a reminder in natural language').first();
     await expect(reminderInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await reminderInput.fill(`${reminderTokenA} tomorrow at 9am`);
     await captureCheckpoint({ page, scenario, phase: 'reminders', state: 'input_filled', viewport });
@@ -455,7 +433,7 @@ test.describe('User Journey Verification', () => {
     await captureCheckpoint({ page, scenario, phase: 'workspace-doc', state: 'post_submit', viewport });
 
     await page.reload({ waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
-    await expect(page.getByRole('toolbar', { name: 'Open panes' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await expect(page.getByRole('toolbar', { name: 'Open projects' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
     await verifyPersistenceOnPage(page, {
       tableTitle,
@@ -541,13 +519,13 @@ test.describe('User Journey Verification', () => {
     const now = new Date();
     const localDateInput = toDateTimeLocalInput(now);
     const tasksModule = getTasksModule(page);
-    let newTaskInput = tasksModule.getByLabel('New task title').first();
+    let newTaskInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
     if (!(await newTaskInput.isVisible().catch(() => false))) {
       await tasksModule.getByRole('button', { name: /^New Task$/i }).first().click();
-      newTaskInput = tasksModule.getByLabel('New task title').first();
+      newTaskInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
     }
     await expect(newTaskInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-    const dueDateInput = tasksModule.getByLabel('Due Date').first();
+    const dueDateInput = tasksModule.getByLabel(/Due Date|Task due date/i).first();
     await expect(dueDateInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await dueDateInput.fill(localDateInput);
     await expect(dueDateInput).toHaveValue(localDateInput);

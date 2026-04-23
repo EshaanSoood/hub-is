@@ -71,7 +71,7 @@ const ContentBody = ({
 }) => {
   const hasProjectMeta = Boolean(projectName || projectId);
   const hasMeta = hasProjectMeta || Boolean(subtitle);
-  const resolvedProjectName = projectName || (projectId ? 'Project' : null);
+  const resolvedProjectName = projectName || (projectId ? 'Space' : null);
 
   return (
     <>

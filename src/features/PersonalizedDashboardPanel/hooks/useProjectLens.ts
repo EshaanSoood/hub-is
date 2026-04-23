@@ -20,7 +20,7 @@ export const useProjectLens = ({ dailyData, projects }: UseProjectLensParams): U
   const [projectFilter, setProjectFilter] = useState<string>('all');
 
   const projectOptions = useMemo<ProjectOption>(
-    () => ({ value: 'all', label: 'All projects' }),
+    () => ({ value: 'all', label: 'All spaces' }),
     [],
   );
 

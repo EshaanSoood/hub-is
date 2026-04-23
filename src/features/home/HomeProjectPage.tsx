@@ -185,7 +185,7 @@ export const HomeProjectPage = () => {
 
     const nextName = projectNameDraft.trim();
     if (!nextName) {
-      setProjectNameError('Project name is required.');
+      setProjectNameError('Space name is required.');
       return;
     }
 
@@ -197,7 +197,7 @@ export const HomeProjectPage = () => {
       });
       await refreshProjects();
     } catch (error) {
-      setProjectNameError(error instanceof Error ? error.message : 'Failed to save project name.');
+      setProjectNameError(error instanceof Error ? error.message : 'Failed to save space name.');
     } finally {
       setProjectNameSaving(false);
     }
@@ -205,15 +205,15 @@ export const HomeProjectPage = () => {
 
   const overviewProjectContent = !projectRuntimeEnabled ? (
     <section className="rounded-panel border border-subtle bg-elevated p-4" role="status" aria-live="polite">
-      Loading your personal project…
+      Loading your personal space…
     </section>
   ) : projectBootstrap.loading ? (
     <section className="rounded-panel border border-subtle bg-elevated p-4" role="status" aria-live="polite">
-      Loading your project overview…
+      Loading your space overview…
     </section>
   ) : projectBootstrap.error || !projectBootstrap.project ? (
-    <InlineNotice variant="danger" title="Project load failed">
-      {projectBootstrap.error || 'Your personal project is unavailable.'}
+    <InlineNotice variant="danger" title="Space load failed">
+      {projectBootstrap.error || 'Your personal space is unavailable.'}
     </InlineNotice>
   ) : (
     <HomeOverviewSurface
@@ -264,8 +264,8 @@ export const HomeProjectPage = () => {
       Loading your work surface…
     </section>
   ) : projectBootstrap.error || !projectBootstrap.project ? (
-    <InlineNotice variant="danger" title="Project load failed">
-      {projectBootstrap.error || 'Your personal project is unavailable.'}
+    <InlineNotice variant="danger" title="Space load failed">
+      {projectBootstrap.error || 'Your personal space is unavailable.'}
     </InlineNotice>
   ) : (
     <HomeProjectWorkSection

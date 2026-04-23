@@ -116,7 +116,7 @@ export const useProjectKanbanRuntime = ({
 
   const onMoveKanbanRecord = useCallback(
     async (viewId: string, recordId: string, nextGroup: string, mutationPaneId: string | null) => {
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before moving cards.');
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before moving cards.');
       if (!mutationPane) {
         return;
       }
@@ -146,9 +146,9 @@ export const useProjectKanbanRuntime = ({
       payload: { title: string; groupFieldValue: string },
       mutationPaneId: string | null,
     ) => {
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before creating cards.');
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before creating cards.');
       if (!mutationPane) {
-        const message = 'Open an editable pane before creating cards.';
+        const message = 'Open an editable project before creating cards.';
         throw new Error(message);
       }
 
@@ -190,9 +190,9 @@ export const useProjectKanbanRuntime = ({
       fields: Record<string, unknown>,
       mutationPaneId: string | null,
     ) => {
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before editing cards.');
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before editing cards.');
       if (!mutationPane) {
-        const message = 'Open an editable pane before editing cards.';
+        const message = 'Open an editable project before editing cards.';
         throw new Error(message);
       }
 
@@ -268,9 +268,9 @@ export const useProjectKanbanRuntime = ({
 
   const onDeleteKanbanRecord = useCallback(
     async (recordId: string, mutationPaneId: string | null) => {
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before deleting cards.');
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before deleting cards.');
       if (!mutationPane) {
-        const message = 'Open an editable pane before deleting cards.';
+        const message = 'Open an editable project before deleting cards.';
         throw new Error(message);
       }
 
@@ -296,7 +296,7 @@ export const useProjectKanbanRuntime = ({
         setRecordsError('Cannot configure kanban grouping: view is unavailable.');
         return;
       }
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before configuring kanban grouping.');
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before configuring kanban grouping.');
       if (!mutationPane) {
         return;
       }
@@ -323,9 +323,9 @@ export const useProjectKanbanRuntime = ({
       if (pending) {
         return pending;
       }
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable pane before creating a kanban board.');
+      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before creating a kanban board.');
       if (!mutationPane) {
-        throw new Error('Open an editable pane before creating a kanban board.');
+        throw new Error('Open an editable project before creating a kanban board.');
       }
 
       const paneName = mutationPane.name.trim();

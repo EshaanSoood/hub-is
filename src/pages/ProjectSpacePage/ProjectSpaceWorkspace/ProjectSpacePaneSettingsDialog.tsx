@@ -65,16 +65,16 @@ export const ProjectSpacePaneSettingsDialog = ({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Pane Settings</DialogTitle>
+        <DialogTitle>Project Settings</DialogTitle>
         <DialogDescription className="sr-only">
-          Manage settings for pane {activePane.name}.
+          Manage settings for project {activePane.name}.
         </DialogDescription>
       </DialogHeader>
 
       <div className="mt-4 space-y-4">
         <div className="space-y-1">
           <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="pane-settings-name">
-            Pane name
+            Project name
           </label>
           <input
             key={activePane.pane_id}
@@ -84,7 +84,7 @@ export const ProjectSpacePaneSettingsDialog = ({
             autoFocus
             disabled={!activePaneCanEdit}
             className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-            aria-label="Pane name"
+            aria-label="Project name"
             onBlur={() => commitActivePaneSettingsName()}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
@@ -101,7 +101,7 @@ export const ProjectSpacePaneSettingsDialog = ({
             onClick={() => onRequestClose()}
             className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary"
           >
-            Open pane route
+            Open project
           </Link>
           <button
             type="button"
@@ -143,7 +143,7 @@ export const ProjectSpacePaneSettingsDialog = ({
               }}
               disabled={!activePaneCanEdit}
             >
-              Delete pane
+              Delete project
             </button>
           ) : null}
         </div>
@@ -171,7 +171,7 @@ export const ProjectSpacePaneSettingsDialog = ({
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Pane members</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Project members</p>
           <div className="flex flex-wrap gap-2">
             {projectMemberList
               .filter((member) => String(member.role).toLowerCase() !== 'owner'
@@ -201,7 +201,7 @@ export const ProjectSpacePaneSettingsDialog = ({
           </div>
         </div>
 
-        {!activePaneCanEdit ? <p className="text-xs text-muted">Read-only pane.</p> : null}
+        {!activePaneCanEdit ? <p className="text-xs text-muted">Read-only project.</p> : null}
       </div>
     </>
   );

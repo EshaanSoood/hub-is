@@ -26,7 +26,7 @@ describe('HomeProjectNamingDialog', () => {
       />,
     );
 
-    const input = await screen.findByRole('textbox', { name: 'Project name' });
+    const input = await screen.findByRole('textbox', { name: 'Space name' });
     await waitFor(() => {
       expect(input).toHaveFocus();
     });
@@ -38,7 +38,7 @@ describe('HomeProjectNamingDialog', () => {
   it('marks the input invalid and disables save while the name is empty', () => {
     render(
       <HomeProjectNamingDialog
-        error="Project name is required."
+        error="Space name is required."
         onSubmit={() => undefined}
         onValueChange={() => undefined}
         open
@@ -47,7 +47,7 @@ describe('HomeProjectNamingDialog', () => {
       />,
     );
 
-    const input = screen.getByRole('textbox', { name: 'Project name' });
+    const input = screen.getByRole('textbox', { name: 'Space name' });
     const saveButton = screen.getByRole('button', { name: 'Save name' });
     const error = screen.getByRole('alert');
 

@@ -99,13 +99,13 @@ export const QuickCaptureCaptureRow = ({
 
           {assignmentMode !== 'thought' ? (
             <div className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
-              <span>Project</span>
+              <span>Space</span>
               <Select
                 id={`quick-capture-item-project-${capture.record_id}`}
                 value={assignmentProjectId}
                 onValueChange={onAssignmentProjectChange}
                 options={assignmentProjectOptions}
-                ariaLabel="Capture assignment project"
+                ariaLabel="Capture assignment space"
                 disabled={assignmentInteractionDisabled}
                 triggerClassName="w-full min-w-0"
               />

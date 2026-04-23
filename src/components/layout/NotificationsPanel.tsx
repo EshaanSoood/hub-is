@@ -63,10 +63,10 @@ export const NotificationsPanel: FC<NotificationsPanelProps> = ({
         <select
           value={projectFilter ?? ''}
           onChange={(event) => onProjectFilterChange(event.target.value || null)}
-          aria-label="Filter by project"
+          aria-label="Filter by space"
           className="ml-auto rounded-control border border-border-muted bg-surface-elevated px-xs py-[2px] text-xs text-text outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         >
-          <option value="">All projects</option>
+          <option value="">All spaces</option>
           {projects.map((project) => (
             <option key={project.id} value={project.id}>
               {project.name}

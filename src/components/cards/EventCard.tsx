@@ -19,7 +19,7 @@ export const EventCard = ({
   className,
 }: EventCardProps) => {
   const hasProjectMeta = Boolean(projectName || projectId);
-  const resolvedProjectName = projectName || (projectId ? 'Project' : null);
+  const resolvedProjectName = projectName || (projectId ? 'Space' : null);
 
   return (
     <div className={cn('flex min-w-0 items-start justify-between gap-2', className)}>

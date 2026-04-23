@@ -184,7 +184,7 @@ export const useRecordInspector = ({
         return;
       }
       if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
-        setInspectorError('Read-only pane. Only pane editors can change record fields.');
+        setInspectorError('Read-only project. Only project editors can change record fields.');
         return;
       }
 
@@ -266,7 +266,7 @@ export const useRecordInspector = ({
         return;
       }
       if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
-        setRelationMutationError('Read-only pane. Only pane editors can change relations.');
+        setRelationMutationError('Read-only project. Only project editors can change relations.');
         return;
       }
       const requestVersion = inspectorRequestVersionRef.current;
@@ -322,7 +322,7 @@ export const useRecordInspector = ({
         return;
       }
       if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
-        setRelationMutationError('Read-only pane. Only pane editors can change relations.');
+        setRelationMutationError('Read-only project. Only project editors can change relations.');
         return;
       }
       const requestVersion = inspectorRequestVersionRef.current;
@@ -377,7 +377,7 @@ export const useRecordInspector = ({
         return;
       }
       if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
-        setInspectorError('Read-only pane. Only pane editors can manage attachments.');
+        setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
       const requestVersion = inspectorRequestVersionRef.current;
@@ -468,7 +468,7 @@ export const useRecordInspector = ({
         return;
       }
       if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
-        setInspectorError('Read-only pane. Only pane editors can manage attachments.');
+        setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
       const requestVersion = inspectorRequestVersionRef.current;
@@ -511,7 +511,7 @@ export const useRecordInspector = ({
         return;
       }
       if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
-        setInspectorError('Read-only pane. Only pane editors can manage attachments.');
+        setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
 
@@ -581,7 +581,7 @@ export const useRecordInspector = ({
         return;
       }
       if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
-        setInspectorError('Read-only pane. Only pane editors can manage attachments.');
+        setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
       const attachment = inspectorRecord.attachments.find((entry) => entry.attachment_id === attachmentId);
@@ -607,7 +607,7 @@ export const useRecordInspector = ({
         return;
       }
       if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
-        setInspectorError('Read-only pane. Only pane editors can manage attachments.');
+        setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
       const attachment = inspectorRecord.attachments.find((entry) => entry.attachment_id === attachmentId);

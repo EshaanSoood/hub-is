@@ -261,9 +261,9 @@ describe('QuickCapturePanel characterization', () => {
     expect(modeSelect).toHaveValue(expectedMode);
 
     if (projectVisible) {
-      expect(screen.getByRole('combobox', { name: 'Capture project' })).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: 'Capture space' })).toBeInTheDocument();
     } else {
-      expect(screen.queryByRole('combobox', { name: 'Capture project' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox', { name: 'Capture space' })).not.toBeInTheDocument();
     }
   });
 
@@ -317,7 +317,7 @@ describe('QuickCapturePanel characterization', () => {
     await user.type(screen.getByRole('textbox', { name: 'Capture text' }), `Needs ${mode}`);
     submitCaptureForm();
 
-    expect(await screen.findByText('Choose a project to categorize this capture.')).toBeInTheDocument();
+    expect(await screen.findByText('Choose a space to categorize this capture.')).toBeInTheDocument();
     expect(mockCreateRecord).not.toHaveBeenCalled();
     expect(mockCreatePersonalTask).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -381,14 +381,14 @@ describe('QuickCapturePanel characterization', () => {
 
     await openCaptureOptions(user);
     await user.selectOptions(screen.getByRole('combobox', { name: 'Capture type' }), 'task');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Capture project' }), projectAlpha.id);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Capture space' }), projectAlpha.id);
     await user.type(screen.getByRole('textbox', { name: 'Capture text' }), 'Unsaved capture');
 
     await user.click(screen.getByRole('button', { name: 'Close' }));
 
     expect(onRequestClose).toHaveBeenCalledWith();
     expect(screen.getByRole('textbox', { name: 'Capture text' })).toHaveValue('');
-    expect(screen.queryByRole('combobox', { name: 'Capture project' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Capture space' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show capture options' })).toBeInTheDocument();
   });
 
@@ -448,8 +448,8 @@ describe('QuickCapturePanel characterization', () => {
     await openCaptureOptions(user);
     await user.selectOptions(screen.getByRole('combobox', { name: 'Capture type' }), 'task');
 
-    expect(screen.queryByText('Reminders and calendar items need a project.')).not.toBeInTheDocument();
-    expect(screen.queryByText('Create a project to route reminders or calendar captures.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reminders and calendar items need a space.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Create a space to route reminders or calendar captures.')).not.toBeInTheDocument();
   });
 
   it('disables assignment controls while a conversion is in flight', async () => {

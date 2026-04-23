@@ -62,7 +62,7 @@ export const usePaneMutations = ({
     async (creatingPaneName: string): Promise<HubPaneSummary | null> => {
       const trimmed = creatingPaneName.trim();
       if (!trimmed) {
-        setPaneMutationError('Pane name is required.');
+        setPaneMutationError('Project name is required.');
         return null;
       }
 
@@ -87,12 +87,12 @@ export const usePaneMutations = ({
           setTimeline(nextTimeline);
         } catch (error) {
           setPaneMutationError(
-            `Pane created, but follow-up refresh failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+            `Project created, but follow-up refresh failed: ${error instanceof Error ? error.message : 'unknown error'}`,
           );
         }
         return nextPane;
       } catch (error) {
-        setPaneMutationError(error instanceof Error ? error.message : 'Failed to create pane.');
+        setPaneMutationError(error instanceof Error ? error.message : 'Failed to create project.');
         return null;
       }
     },
@@ -114,7 +114,7 @@ export const usePaneMutations = ({
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
       } catch (error) {
-        setPaneMutationError(error instanceof Error ? error.message : 'Failed to rename pane.');
+        setPaneMutationError(error instanceof Error ? error.message : 'Failed to rename project.');
       }
     },
     [accessToken, projectId, setTimeline, updatePaneInState],
@@ -148,11 +148,11 @@ export const usePaneMutations = ({
           } catch {
             // best-effort rollback
           }
-          setPaneMutationError(error instanceof Error ? error.message : 'Failed to reorder panes.');
+          setPaneMutationError(error instanceof Error ? error.message : 'Failed to reorder projects.');
           return;
         }
       } catch (error) {
-        setPaneMutationError(error instanceof Error ? error.message : 'Failed to reorder panes.');
+        setPaneMutationError(error instanceof Error ? error.message : 'Failed to reorder projects.');
         return;
       } finally {
         try {
@@ -191,7 +191,7 @@ export const usePaneMutations = ({
         }
         return null;
       } catch (error) {
-        setPaneMutationError(error instanceof Error ? error.message : 'Failed to delete pane.');
+        setPaneMutationError(error instanceof Error ? error.message : 'Failed to delete project.');
         return null;
       }
     },
@@ -211,7 +211,7 @@ export const usePaneMutations = ({
         const refreshed = await listPanes(accessToken, projectId);
         setPanes([...refreshed].sort(comparePanesBySidebarOrder));
       } catch (error) {
-        setPaneMutationError(error instanceof Error ? error.message : 'Failed to update pane members.');
+        setPaneMutationError(error instanceof Error ? error.message : 'Failed to update project members.');
       }
     },
     [accessToken, projectId, setPanes],
@@ -231,11 +231,11 @@ export const usePaneMutations = ({
           setTimeline(nextTimeline);
         } catch (error) {
           setPaneMutationError(
-            `Pane updated, but timeline refresh failed: ${error instanceof Error ? error.message : 'unknown error'}.`,
+            `Project updated, but timeline refresh failed: ${error instanceof Error ? error.message : 'unknown error'}.`,
           );
         }
       } catch (error) {
-        setPaneMutationError(error instanceof Error ? error.message : 'Failed to update pane.');
+        setPaneMutationError(error instanceof Error ? error.message : 'Failed to update project.');
       }
     },
     [accessToken, projectId, setTimeline, updatePaneInState],

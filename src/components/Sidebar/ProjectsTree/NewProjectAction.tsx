@@ -26,7 +26,7 @@ export const NewProjectAction = () => {
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Project name is required.');
+      setError('Space name is required.');
       return;
     }
 
@@ -38,7 +38,7 @@ export const NewProjectAction = () => {
         summary: '',
       });
       if (created.error || !created.data) {
-        setError(created.error || 'Project creation failed.');
+        setError(created.error || 'Space creation failed.');
         return;
       }
 
@@ -51,7 +51,7 @@ export const NewProjectAction = () => {
         navigate(`/projects/${encodeURIComponent(createdProject.id)}/overview`);
       });
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : 'Project creation failed.');
+      setError(submissionError instanceof Error ? submissionError.message : 'Space creation failed.');
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +69,7 @@ export const NewProjectAction = () => {
         }}
       >
         <Icon name="plus" size={14} />
-        <span>New project</span>
+        <span>New space</span>
       </button>
 
       <QuickAddProjectDialog

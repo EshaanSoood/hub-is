@@ -65,7 +65,7 @@ export const StreamView = ({ items, projects, onOpenRecord, now }: StreamViewPro
   });
 
   const projectOptions = [
-    { value: 'all', label: 'All projects' },
+    { value: 'all', label: 'All spaces' },
     ...projects.map((project) => ({ value: project.id, label: project.name })),
   ];
 
@@ -105,7 +105,7 @@ export const StreamView = ({ items, projects, onOpenRecord, now }: StreamViewPro
             value={projectFilter}
             onValueChange={setProjectFilter}
             options={projectOptions}
-            ariaLabel="Filter stream by project"
+            ariaLabel="Filter stream by space"
             triggerClassName="min-w-44"
           />
         </div>

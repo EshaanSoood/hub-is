@@ -57,7 +57,7 @@ export const PaneHeaderControls = ({
         type="text"
         value={paneName}
         onChange={(event) => onRename(event.target.value)}
-        aria-label="Pane name"
+        aria-label="Project name"
         disabled={disabled}
         className="ghost-button min-w-56 flex-1 bg-surface px-3 py-1.5 text-sm font-semibold text-text"
       />
@@ -72,7 +72,7 @@ export const PaneHeaderControls = ({
             type="button"
             size="sm"
             variant={configOpen ? 'secondary' : 'ghost'}
-            aria-label="Pane configuration"
+            aria-label="Project configuration"
             aria-expanded={configOpen}
             disabled={disabled}
             className={cn(configOpen && 'text-primary')}
@@ -126,7 +126,7 @@ export const PaneHeaderControls = ({
         type="button"
         size="sm"
         variant={isPinned ? 'secondary' : 'ghost'}
-        aria-label={isPinned ? 'Unpin pane' : 'Pin pane'}
+        aria-label={isPinned ? 'Unpin project' : 'Pin project'}
         aria-pressed={isPinned}
         disabled={disabled}
         onClick={onPinToggle}

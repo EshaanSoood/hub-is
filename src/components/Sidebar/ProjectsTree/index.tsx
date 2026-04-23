@@ -110,7 +110,7 @@ export const ProjectsTree = ({
         const panes = await listPanes(accessToken, projectId);
         setPanesByProjectId((current) => ({ ...current, [projectId]: sortPanes(panes) }));
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load panes.');
+        setError(loadError instanceof Error ? loadError.message : 'Failed to load projects.');
       } finally {
         setLoadingProjectIds((current) => current.filter((entry) => entry !== projectId));
       }
@@ -148,7 +148,7 @@ export const ProjectsTree = ({
         );
         await refreshProjects();
       } catch (reorderError) {
-        setError(reorderError instanceof Error ? reorderError.message : 'Failed to reorder projects.');
+        setError(reorderError instanceof Error ? reorderError.message : 'Failed to reorder spaces.');
         await refreshProjects().catch(() => undefined);
       }
     },
@@ -182,7 +182,7 @@ export const ProjectsTree = ({
         const refreshed = await listPanes(accessToken, currentProjectId);
         setPanesByProjectId((current) => ({ ...current, [currentProjectId]: sortPanes(refreshed) }));
       } catch (reorderError) {
-        setError(reorderError instanceof Error ? reorderError.message : 'Failed to reorder panes.');
+        setError(reorderError instanceof Error ? reorderError.message : 'Failed to reorder projects.');
       }
     },
     [accessToken, currentProjectId],
@@ -214,7 +214,7 @@ export const ProjectsTree = ({
     return (
       <button
         type="button"
-        aria-label="Open projects"
+        aria-label="Open spaces"
         className="interactive interactive-subtle flex h-10 w-10 items-center justify-center rounded-control bg-surface-container text-text-secondary hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={onExpandSidebar}
       >
@@ -241,7 +241,7 @@ export const ProjectsTree = ({
             <Icon name="chevron-down" size={14} />
           </motion.span>
           <SidebarLabel show={showLabels}>
-            <span>Projects</span>
+            <span>Spaces</span>
           </SidebarLabel>
         </span>
       </button>
@@ -276,7 +276,7 @@ export const ProjectsTree = ({
                     <>
                       <span>/</span>
                       <span className="truncate text-text-secondary">
-                        {focusedPanes.find((pane) => pane.pane_id === currentPaneId)?.name || 'Pane'}
+                        {focusedPanes.find((pane) => pane.pane_id === currentPaneId)?.name || 'Project'}
                       </span>
                     </>
                   ) : null}
@@ -331,7 +331,7 @@ export const ProjectsTree = ({
                                       className="mt-1 ml-8 overflow-hidden"
                                     >
                                       {loadingProjectIds.includes(project.id) ? (
-                                        <p className="px-3 py-2 text-xs text-muted">Loading panes…</p>
+                                        <p className="px-3 py-2 text-xs text-muted">Loading projects…</p>
                                       ) : panesForRender.length > 0 ? (
                                         isActiveProject && !isOnHome ? (
                                           <DndContext sensors={paneSensors} collisionDetection={closestCenter} onDragEnd={handlePaneDragEnd}>
@@ -387,7 +387,7 @@ export const ProjectsTree = ({
                                           </motion.div>
                                         )
                                       ) : (
-                                        <p className="px-3 py-2 text-xs text-muted">No panes yet.</p>
+                                        <p className="px-3 py-2 text-xs text-muted">No projects yet.</p>
                                       )}
 
                                       <AddPaneAction
@@ -412,7 +412,7 @@ export const ProjectsTree = ({
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <p className="px-2 text-sm text-muted">No projects yet.</p>
+                  <p className="px-2 text-sm text-muted">No spaces yet.</p>
                 )}
               </div>
 

@@ -123,7 +123,7 @@ export const HomeDashboardSurface = ({
         <section className="section-scored space-y-4 rounded-panel bg-elevated p-4 shadow-soft">
           <div className="space-y-1">
             <h2 className="text-lg font-semibold text-text">Stream</h2>
-            <p className="text-sm text-muted">Review active tasks and events across Home without leaving your personal project.</p>
+            <p className="text-sm text-muted">Review active tasks and events across Home without leaving your personal space.</p>
           </div>
           <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} now={now} />
         </section>

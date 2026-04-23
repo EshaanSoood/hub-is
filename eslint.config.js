@@ -17,6 +17,7 @@ export default tseslint.config(
       'test-results',
       'e2e/user-journey-verification/runs/**',
       'e2e/scripts/**',
+      'facets-design-reference/**',
     ],
   },
   js.configs.recommended,

@@ -451,7 +451,7 @@ export const gotoReady = async (page: Page, path: string): Promise<void> => {
 };
 
 export const waitForHubHome = async (page: Page): Promise<void> => {
-  await expect(page.getByRole('link', { name: /^Go To Project /i }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('navigation', { name: 'Home tabs' })).toBeVisible({ timeout: 30_000 });
 };
 
 const isAuthPage = async (page: Page): Promise<boolean> => {

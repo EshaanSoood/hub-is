@@ -27,16 +27,16 @@ export const GenericRecordInspector = ({
             className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
             onClick={() => onOpenSourcePane?.()}
           >
-            Open source pane
+            Open source project
           </button>
         </div>
       ) : null}
       {!inspectorMutationPaneCanEdit ? (
         <p className="mt-2 text-xs text-muted">
           {inspectorMutationPane?.pane_id
-            ? `Opened in read-only pane ${inspectorMutationPane.name || inspectorMutationPane.pane_id}.`
-            : 'Opened outside a pane edit context.'}{' '}
-          You can review this record and add comments, but only pane editors can change fields, attachments, or relations.
+            ? `Opened in read-only project ${inspectorMutationPane.name || inspectorMutationPane.pane_id}.`
+            : 'Opened outside a project edit context.'}{' '}
+          You can review this record and add comments, but only project editors can change fields, attachments, or relations.
         </p>
       ) : null}
       <RecordInspectorSchemaFields

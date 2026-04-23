@@ -459,6 +459,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
     scriptPath: 'apps/hub-api/hub-api.mjs',
     env: {
       PORT: String(apiPort),
+      HUB_API_BASE_URL: apiBaseUrl,
       HUB_DB_PATH: dbPath,
       HUB_API_ALLOW_SCHEMA_RESET: 'true',
       KEYCLOAK_ISSUER: issuer,

@@ -8,14 +8,14 @@ interface BacklinksPanelProps {
 }
 
 const backlinkLabel = (backlink: HubBacklink): string => {
-  const paneName = backlink.source.pane_name || backlink.source.pane_id || 'unknown pane';
+  const paneName = backlink.source.pane_name || backlink.source.pane_id || 'unknown project';
   const nodeLabel = backlink.source.node_key ? `block ${backlink.source.node_key}` : 'unanchored block';
 
   if (backlink.source_entity_type === 'doc') {
-    return `Mentioned in pane ${paneName}, ${nodeLabel}`;
+    return `Mentioned in project ${paneName}, ${nodeLabel}`;
   }
   if (backlink.source_entity_type === 'comment') {
-    return `Mentioned in comment in pane ${paneName}, ${nodeLabel}`;
+    return `Mentioned in comment in project ${paneName}, ${nodeLabel}`;
   }
   return `Mentioned in ${backlink.source_entity_type}`;
 };

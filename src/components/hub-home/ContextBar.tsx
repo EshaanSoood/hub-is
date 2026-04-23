@@ -63,7 +63,7 @@ export const ContextBar = ({
             value={projectFilter}
             onValueChange={onProjectFilterChange}
             options={projectOptions}
-            ariaLabel="Filter timeline by project"
+            ariaLabel="Filter timeline by space"
             triggerClassName="min-w-44 bg-surface-highest font-medium shadow-soft-subtle"
           />
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Daily brief totals">

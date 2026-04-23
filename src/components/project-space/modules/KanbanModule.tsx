@@ -79,7 +79,7 @@ export const KanbanModule = ({
         });
         return;
       }
-      setSetupError('Unable to create a kanban view for this project.');
+      setSetupError('Unable to create a kanban view for this space.');
       autoEnsureAttemptedRef.current = false;
     } catch (error) {
       setSetupError(error instanceof Error ? error.message : 'Failed to create a kanban view.');
@@ -111,7 +111,7 @@ export const KanbanModule = ({
         <ModuleEmptyState
           title="No kanban view found yet."
           iconName="kanban"
-          description={canEditPane ? 'Create a starter kanban board for this pane.' : 'Open an editable pane to create a kanban board.'}
+          description={canEditPane ? 'Create a starter kanban board for this project.' : 'Open an editable project to create a kanban board.'}
           ctaLabel={canEnsureView ? 'Create kanban view' : undefined}
           onCta={canEnsureView ? () => { void handleEnsureView(); } : undefined}
           sizeTier={module.size_tier}

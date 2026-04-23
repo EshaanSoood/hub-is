@@ -68,7 +68,7 @@ export const useQuickCaptureAssignment = ({
         return;
       }
       if ((nextMode === 'reminder' || nextMode === 'calendar') && nextProjectId === PERSONAL_CAPTURE_TARGET) {
-        setCaptureAssignmentError('Choose a project to assign reminders or calendar items.');
+        setCaptureAssignmentError('Choose a space to assign reminders or calendar items.');
         return;
       }
       if (nextMode === 'reminder' || nextMode === 'calendar') {
@@ -81,7 +81,7 @@ export const useQuickCaptureAssignment = ({
       try {
         const targetProjectId = nextProjectId === PERSONAL_CAPTURE_TARGET ? personalProjectId : nextProjectId;
         if (!targetProjectId) {
-          throw new Error('A target project is required.');
+          throw new Error('A target space is required.');
         }
 
         let targetCollectionId: string | undefined;

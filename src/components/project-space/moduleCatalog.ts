@@ -43,7 +43,7 @@ export const MODULE_CATALOG = [
   {
     type: 'tasks',
     label: 'Tasks',
-    description: 'A focused task list for this pane.',
+    description: 'A focused task list for this project.',
     lensConfigurable: false,
     iconName: 'tasks',
     allowedSizeTiers: ['S', 'M', 'L'],
@@ -61,7 +61,7 @@ export const MODULE_CATALOG = [
   {
     type: 'timeline',
     label: 'Timeline',
-    description: 'Recent project movement in one stream.',
+    description: 'Recent space movement in one stream.',
     lensConfigurable: true,
     iconName: 'timeline',
     allowedSizeTiers: ['S', 'M', 'L'],
@@ -70,7 +70,7 @@ export const MODULE_CATALOG = [
   {
     type: 'files',
     label: 'Files',
-    description: 'Shared assets and uploads for the pane.',
+    description: 'Shared assets and uploads for the project.',
     lensConfigurable: true,
     iconName: 'upload',
     allowedSizeTiers: ['S', 'M', 'L'],
@@ -94,7 +94,7 @@ export const moduleLabel = (moduleType: string): string =>
   moduleCatalogEntry(moduleType)?.label || moduleType.replace(/_/g, ' ');
 
 export const moduleDescription = (moduleType: string): string =>
-  moduleCatalogEntry(moduleType)?.description || 'Add this module to the pane.';
+  moduleCatalogEntry(moduleType)?.description || 'Add this module to the project.';
 
 export const isLensConfigurable = (moduleType: string): boolean =>
   moduleCatalogEntry(moduleType)?.lensConfigurable ?? true;

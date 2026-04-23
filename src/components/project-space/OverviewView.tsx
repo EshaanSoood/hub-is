@@ -235,10 +235,10 @@ export const OverviewView = ({
             <div>
               <h2 className="text-sm font-semibold text-text">Invite members</h2>
               <p className="mt-1 text-sm text-muted">
-                Add collaborators by email. They&apos;ll receive an invite to join this project.
+                Add collaborators by email. They&apos;ll receive an invite to join this space.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2" aria-label="Current project members">
+            <div className="flex flex-wrap gap-2" aria-label="Current space members">
               {projectMembers.map((member) => (
                 <span
                   key={member.user_id}
@@ -282,7 +282,7 @@ export const OverviewView = ({
                   loading={inviteSubmitting}
                   loadingLabel="Sending invite"
                   disabled={inviteEmail.trim().length === 0}
-                  aria-label="Send project invite"
+                  aria-label="Send space invite"
                   className="sm:min-w-[10rem]"
                 >
                   Invite member
@@ -293,7 +293,7 @@ export const OverviewView = ({
               </p>
             </form>
           ) : (
-            <p className="text-sm text-muted">Personal projects do not support member invites.</p>
+            <p className="text-sm text-muted">Personal spaces do not support member invites.</p>
           )}
 
           {inviteError ? (

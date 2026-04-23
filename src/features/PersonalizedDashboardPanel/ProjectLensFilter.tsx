@@ -45,7 +45,7 @@ export const ProjectLensFilter = ({
             transformOrigin="bottom center"
             className="w-64 border border-border-muted bg-surface p-2"
           >
-            <div id={filterListId} role="group" aria-label="Project Lens filters" className="space-y-1">
+            <div id={filterListId} role="group" aria-label="Space Lens filters" className="space-y-1">
               {sections.map((section) => {
                 const checked = !hiddenSections[section.id];
                 return (

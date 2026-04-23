@@ -85,7 +85,7 @@ export const createPaneRoutes = (deps) => {
       return;
     }
 
-    const name = asText(body.name) || 'Untitled Pane';
+    const name = asText(body.name) || 'Untitled Project';
     const pinned = asBoolean(body.pinned, false);
     const layoutConfig = parseJsonObject(body.layout_config, {});
     const nextSort = asInteger(body.sort_order, Number(paneNextSortStmt.get(projectId)?.max_sort || 0) + 1, 0, 100000);
@@ -100,7 +100,7 @@ export const createPaneRoutes = (deps) => {
     for (const userId of editorUserIds) {
       const membership = projectMembershipExistsStmt.get(projectId, userId);
       if (!membership?.ok) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_members', `User ${userId} is not a project member.`)));
+        send(response, jsonResponse(400, errorEnvelope('invalid_members', `User ${userId} is not a space member.`)));
         return;
       }
     }
@@ -134,7 +134,7 @@ export const createPaneRoutes = (deps) => {
       eventType: 'pane.created',
       primaryEntityType: 'pane',
       primaryEntityId: paneId,
-      summary: { message: `Pane created: ${name}` },
+      summary: { message: `Project created: ${name}` },
     });
     try {
       const projectMembers = projectMembersByProjectStmt.all(projectId);
@@ -150,7 +150,7 @@ export const createPaneRoutes = (deps) => {
           entityId: paneId,
           notificationScope: 'network',
           payload: buildNotificationPayload({
-            message: `New pane created: ${name}`,
+            message: `New project created: ${name}`,
             sourceProjectId: projectId,
             sourcePaneId: paneId,
           }),
@@ -212,7 +212,7 @@ export const createPaneRoutes = (deps) => {
       eventType: 'pane.updated',
       primaryEntityType: 'pane',
       primaryEntityId: paneId,
-      summary: { message: `Pane updated: ${name}` },
+      summary: { message: `Project updated: ${name}` },
     });
 
     send(response, jsonResponse(200, okEnvelope({ pane: paneSummary(updated, auth.user.user_id) })));
@@ -245,7 +245,7 @@ export const createPaneRoutes = (deps) => {
       eventType: 'pane.deleted',
       primaryEntityType: 'pane',
       primaryEntityId: paneId,
-      summary: { message: `Pane deleted: ${pane.name}` },
+      summary: { message: `Project deleted: ${pane.name}` },
     });
 
     send(response, jsonResponse(200, okEnvelope({ deleted: true })));
@@ -269,7 +269,7 @@ export const createPaneRoutes = (deps) => {
       return;
     }
     if (!paneGate.is_owner) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only project owners can add pane editors.')));
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can add project editors.')));
       return;
     }
     const pane = paneGate.pane;
@@ -291,7 +291,7 @@ export const createPaneRoutes = (deps) => {
 
     const membership = projectMembershipExistsStmt.get(pane.project_id, userId);
     if (!membership?.ok) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Pane members must be project members.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Project members must be space members.')));
       return;
     }
 
@@ -306,7 +306,7 @@ export const createPaneRoutes = (deps) => {
       primaryEntityType: 'pane',
       primaryEntityId: paneId,
       secondaryEntities: [{ entity_type: 'user', entity_id: userId }],
-      summary: { message: 'Pane member added' },
+      summary: { message: 'Project member added' },
     });
 
     send(response, jsonResponse(200, okEnvelope({ pane: paneSummary(paneByIdStmt.get(paneId), auth.user.user_id) })));
@@ -330,7 +330,7 @@ export const createPaneRoutes = (deps) => {
       return;
     }
     if (!paneGate.is_owner) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only project owners can remove pane editors.')));
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can remove project editors.')));
       return;
     }
     const pane = paneGate.pane;
@@ -344,7 +344,7 @@ export const createPaneRoutes = (deps) => {
       primaryEntityType: 'pane',
       primaryEntityId: paneId,
       secondaryEntities: [{ entity_type: 'user', entity_id: userId }],
-      summary: { message: 'Pane member removed' },
+      summary: { message: 'Project member removed' },
     });
 
     send(response, jsonResponse(200, okEnvelope({ removed: true })));

@@ -2,7 +2,7 @@ import type { ModuleLens } from './types';
 import { Select } from '../primitives';
 
 const lensOptions: Array<{ id: ModuleLens; label: string }> = [
-  { id: 'project', label: 'Project Lens' },
+  { id: 'project', label: 'Space Lens' },
   { id: 'pane_scratch', label: 'Scratch Lens' },
 ];
 

@@ -206,7 +206,7 @@ const DropZone = ({
     useStackedLayout ? 'paper-well rounded-full px-3 py-3' : 'text-[14px]',
   );
   const label = readOnly ? 'Files are read-only' : sizeTier === 'L' && hasFiles ? 'Drop more files' : 'Drop files';
-  const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this pane.' : 'Drag files here or use upload.') : null;
+  const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this project.' : 'Drag files here or use upload.') : null;
   const buttonClassName = cn(
     'ghost-button flex items-center justify-center bg-surface text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60',
     useStackedLayout ? 'h-8 min-w-[5.5rem] px-3 text-xs font-medium' : 'h-7 w-7 text-lg',
@@ -474,7 +474,7 @@ const FilesModuleSmall = ({
         <div className="flex flex-col gap-[2px] pr-1">
           {visible.length === 0 ? (
             <p className="m-0 py-sm text-center text-xs text-muted">
-              {files.length === 0 ? 'No files in this pane.' : 'Add files to this pane'}
+              {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
             </p>
           ) : null}
           {visible.map((file) => (
@@ -525,7 +525,7 @@ const FilesModuleMedium = ({
       <div role="list" aria-label="Files" className="min-h-0 flex-1 overflow-y-auto pr-1">
         {sorted.length === 0 ? (
           <p className="m-0 py-lg text-center text-sm text-muted">
-            {files.length === 0 ? 'No files in this pane.' : 'Add files to this pane'}
+            {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
           </p>
         ) : null}
         {sorted.map((file) => (
@@ -590,7 +590,7 @@ const FilesModuleLarge = ({
 
       {visible.length === 0 ? (
         <p className="m-0 py-xl text-center text-sm text-muted">
-          {filterKey === 'all' ? (files.length === 0 ? 'No files in this pane.' : 'Add files to this pane') : `No ${filterKey} files`}
+          {filterKey === 'all' ? (files.length === 0 ? 'No files in this project.' : 'Add files to this project') : `No ${filterKey} files`}
         </p>
       ) : (
         <div role="list" aria-label="Files" className="min-h-0 flex-1 overflow-y-auto pr-1">
