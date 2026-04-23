@@ -1,15 +1,15 @@
-import { startTransition, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type { CreateRoomRequest, Room } from '../../shared/api-types';
 import type { ProjectRecord } from '../../types/domain';
-import { Dialog } from '../../components/primitives';
+import { Button, Dialog } from '../../components/primitives';
 
 interface CreateRoomDialogProps {
   accessToken: string | null | undefined;
   onCreateRoom: (payload: CreateRoomRequest) => Promise<Room>;
   projectOptions: ProjectRecord[];
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
   initialSpaceId?: string | null;
   renderTrigger?: (props: {
     disabled: boolean;
@@ -39,7 +39,9 @@ export const CreateRoomDialog = ({
   renderTrigger,
 }: CreateRoomDialogProps) => {
   const navigate = useNavigate();
+  const internalTriggerRef = useRef<HTMLButtonElement | null>(null);
   const roomNameInputRef = useRef<HTMLInputElement | null>(null);
+  const isMountedRef = useRef(true);
   const [open, setOpen] = useState(false);
   const [roomName, setRoomName] = useState('');
   const [spaceId, setSpaceId] = useState('');
@@ -48,10 +50,15 @@ export const CreateRoomDialog = ({
   const [participantInput, setParticipantInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const effectiveTriggerRef = triggerRef ?? internalTriggerRef;
   const availableSpaces = useMemo(
     () => projectOptions.filter((project) => !project.isPersonal),
     [projectOptions],
   );
+
+  useEffect(() => () => {
+    isMountedRef.current = false;
+  }, []);
   const defaultSpaceId = useMemo(() => {
     const nextInitialSpaceId = initialSpaceId?.trim() ?? '';
     if (nextInitialSpaceId && availableSpaces.some((project) => project.id === nextInitialSpaceId)) {
@@ -128,7 +135,9 @@ export const CreateRoomDialog = ({
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : 'Room creation failed.');
     } finally {
-      setSubmitting(false);
+      if (isMountedRef.current) {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -139,10 +148,10 @@ export const CreateRoomDialog = ({
       {renderTrigger ? renderTrigger({
         disabled: createDisabled,
         onOpen: openDialog,
-        triggerRef,
+        triggerRef: effectiveTriggerRef,
       }) : (
         <button
-          ref={triggerRef}
+          ref={effectiveTriggerRef}
           type="button"
           aria-label="New room"
           disabled={createDisabled}
@@ -157,7 +166,7 @@ export const CreateRoomDialog = ({
       <Dialog
         open={open}
         onClose={closeDialog}
-        triggerRef={triggerRef}
+        triggerRef={effectiveTriggerRef}
         title="Create Room"
         description="Create a room with two fixed projects and invited participants."
         panelClassName="overflow-visible"
@@ -178,9 +187,12 @@ export const CreateRoomDialog = ({
               id="room-create-space"
               value={selectedSpaceId}
               onChange={(event) => setSpaceId(event.target.value)}
+              disabled={availableSpaces.length === 0}
               className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
             >
-              {availableSpaces.map((project) => (
+              {availableSpaces.length === 0 ? (
+                <option value="">No spaces available</option>
+              ) : availableSpaces.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
                 </option>
@@ -252,20 +264,21 @@ export const CreateRoomDialog = ({
           {error ? <p role="alert" aria-live="assertive" className="text-sm text-danger">{error}</p> : null}
 
           <div className="flex justify-end gap-2">
-            <button
+            <Button
               type="button"
               onClick={closeDialog}
-              className="rounded-control border border-secondary/30 px-3 py-2 text-sm font-medium text-secondary hover:border-secondary/45 hover:bg-secondary/10 hover:text-secondary-strong"
+              variant="secondary"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={submitting || createDisabled}
-              className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={createDisabled}
+              loading={submitting}
+              loadingLabel="Creating"
             >
-              {submitting ? 'Creating...' : 'Create room'}
-            </button>
+              Create room
+            </Button>
           </div>
         </form>
       </Dialog>

@@ -34,17 +34,18 @@ export const createRoomRoutes = (deps) => {
     newId,
     toJson,
     emitTimelineEvent,
-    ensureUserForEmail,
     collectionByIdStmt,
     docByIdStmt,
     paneByIdStmt,
     paneDocByPaneStmt,
     paneNextSortStmt,
     projectMembershipExistsStmt,
+    projectMembershipRoleStmt,
     projectMembersByProjectStmt,
     roomByIdStmt,
     roomForUserStmt,
     roomMemberUserIdsByRoomStmt,
+    roomMembershipExistsStmt,
     roomMembershipRoleStmt,
     roomMembersByRoomStmt,
     roomsByUserStmt,
@@ -77,6 +78,11 @@ export const createRoomRoutes = (deps) => {
   const normalizeRoomParticipantIdentifier = (value) => {
     const text = asText(value);
     return text.includes('@') ? text.toLowerCase() : text;
+  };
+
+  const hasWritableSpaceMembership = (spaceId, userId) => {
+    const role = asText(projectMembershipRoleStmt.get(spaceId, userId)?.role).toLowerCase();
+    return role === 'owner' || role === 'member';
   };
 
   const resolveParticipantUserId = ({ identifier, spaceMembers }) => {
@@ -179,7 +185,7 @@ export const createRoomRoutes = (deps) => {
       return;
     }
 
-    if (!projectMembershipExistsStmt.get(spaceId, auth.user.user_id)?.ok) {
+    if (!hasWritableSpaceMembership(spaceId, auth.user.user_id)) {
       send(response, jsonResponse(403, errorEnvelope('forbidden', 'You must belong to the selected space to create a room.')));
       return;
     }
@@ -206,7 +212,7 @@ export const createRoomRoutes = (deps) => {
     }
 
     for (const userId of memberUserIds) {
-      if (!projectMembershipExistsStmt.get(spaceId, userId)?.ok) {
+      if (!hasWritableSpaceMembership(spaceId, userId)) {
         send(response, jsonResponse(400, errorEnvelope('invalid_members', `User ${userId} is not a space member.`)));
         return;
       }
@@ -271,7 +277,7 @@ export const createRoomRoutes = (deps) => {
       return;
     }
 
-    if (!projectMembershipExistsStmt.get(room.space_id, auth.user.user_id)?.ok) {
+    if (!hasWritableSpaceMembership(room.space_id, auth.user.user_id)) {
       send(response, jsonResponse(403, errorEnvelope('forbidden', 'Space membership is required to migrate room content.')));
       return;
     }
@@ -572,20 +578,26 @@ export const createRoomRoutes = (deps) => {
     }
 
     const email = asText(body.email).toLowerCase();
-    const displayName = asText(body.display_name) || email;
     if (!email) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'email is required.')));
       return;
     }
 
-    const targetUser = ensureUserForEmail({ email, displayName });
+    const spaceMembers = projectMembersByProjectStmt.all(room.space_id);
+    const targetUser = spaceMembers.find((member) => asText(member.email).toLowerCase() === email);
     if (!targetUser?.user_id) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Unable to resolve target participant.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Participant must already belong to the room space.')));
       return;
     }
 
     if (!projectMembershipExistsStmt.get(room.space_id, targetUser.user_id)?.ok) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Participant must already belong to the room space.')));
+      return;
+    }
+
+    if (roomMembershipExistsStmt.get(params.roomId, targetUser.user_id)?.ok) {
+      const members = roomMembersByRoomStmt.all(params.roomId).map(roomMembershipRecord);
+      send(response, jsonResponse(200, okEnvelope({ members })));
       return;
     }
 

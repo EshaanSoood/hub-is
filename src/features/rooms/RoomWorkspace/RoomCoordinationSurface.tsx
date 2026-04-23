@@ -5,7 +5,7 @@ import { Panel } from '../../../components/layout/Panel';
 import { TaskCreateDialog } from '../../../components/project-space/TaskCreateDialog';
 import { TasksTab, type SortChain } from '../../../components/project-space/TasksTab';
 import { TimelineTab } from '../../../components/project-space/TimelineTab';
-import { InlineNotice } from '../../../components/primitives';
+import { Button, InlineNotice } from '../../../components/primitives';
 import type { HubTaskSummary } from '../../../services/hub/types';
 import { adaptTaskSummaries } from '../../../components/project-space/taskAdapter';
 import {
@@ -87,14 +87,14 @@ export const RoomCoordinationSurface = ({
         <div className="space-y-4">
           {!isArchived ? (
             <div className="flex justify-end">
-              <button
+              <Button
                 ref={triggerRef}
                 type="button"
                 onClick={() => setCreateOpen(true)}
-                className="rounded-control border border-border-muted px-3 py-2 text-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                variant="secondary"
               >
                 Add Task
-              </button>
+              </Button>
             </div>
           ) : null}
           {taskError ? (
@@ -181,13 +181,14 @@ export const RoomCoordinationSurface = ({
                   onChange={(event) => onInviteEmailChange(event.target.value)}
                   className="min-w-[16rem] flex-1 rounded-control border border-border-muted bg-surface px-3 py-2 text-sm text-text"
                 />
-                <button
+                <Button
                   type="submit"
-                  disabled={inviting}
-                  className="rounded-control border border-border-muted px-3 py-2 text-sm font-semibold text-primary disabled:opacity-60"
+                  variant="secondary"
+                  loading={inviting}
+                  loadingLabel="Adding"
                 >
-                  {inviting ? 'Adding...' : 'Add participant'}
-                </button>
+                  Add participant
+                </Button>
               </div>
               {inviteNotice ? <p className="text-sm text-success">{inviteNotice}</p> : null}
               {inviteError ? <p role="alert" className="text-sm text-danger">{inviteError}</p> : null}

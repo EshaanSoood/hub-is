@@ -101,9 +101,18 @@ export const useRoomProjectWorkRuntime = ({
     if (pathname === `${projectPrefix}/overview`) {
       return activePaneWithQuery;
     }
-    const paneMatch = pathname.match(new RegExp(`^${projectPrefix}/work/([^/]+)$`));
-    if (paneMatch) {
-      const decodedPaneId = decodeURIComponent(paneMatch[1]);
+    const workPanePrefix = `${projectPrefix}/work/`;
+    if (pathname.startsWith(workPanePrefix)) {
+      const encodedPaneId = pathname.slice(workPanePrefix.length);
+      if (!encodedPaneId || encodedPaneId.includes('/')) {
+        return to;
+      }
+      let decodedPaneId;
+      try {
+        decodedPaneId = decodeURIComponent(encodedPaneId);
+      } catch {
+        return to;
+      }
       if (roomProjectPanes.some((roomPane) => roomPane.pane_id === decodedPaneId)) {
         const nextHref = buildRoomProjectHref(roomId, decodedPaneId);
         return query ? `${nextHref}?${query}` : nextHref;

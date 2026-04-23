@@ -48,7 +48,7 @@ export const ModuleGrid = ({
   const addModuleLayoutId = !prefersReducedMotion ? dialogLayoutIds.addModule : undefined;
 
   const openAddDialog = () => {
-    if (disableAdd) {
+    if (readOnlyState || disableAdd) {
       return;
     }
     setAddDialogOpen(true);
@@ -102,7 +102,7 @@ export const ModuleGrid = ({
     <section className="space-y-3" aria-label="Project organization modules">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Modules</p>
-        {showAddControls ? (
+        {showAddControls && !readOnlyState ? (
           <motion.button
             layoutId={addModuleLayoutId}
             ref={addButtonRef}

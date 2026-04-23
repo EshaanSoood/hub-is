@@ -11,6 +11,9 @@ interface UseRoomTaskSummariesParams {
 const fetchAllProjectTasks = async (accessToken: string, projectId: string): Promise<HubTaskSummary[]> => {
   const tasks: HubTaskSummary[] = [];
   let cursor: string | undefined;
+  let previousCursor: string | undefined;
+  let pageCount = 0;
+  const maxPages = 50;
 
   do {
     const page = await listProjectTasks(accessToken, projectId, {
@@ -18,8 +21,10 @@ const fetchAllProjectTasks = async (accessToken: string, projectId: string): Pro
       limit: 200,
     });
     tasks.push(...page.tasks);
+    previousCursor = cursor;
     cursor = page.next_cursor ?? undefined;
-  } while (cursor);
+    pageCount += 1;
+  } while (cursor && cursor !== previousCursor && pageCount < maxPages);
 
   return tasks;
 };
@@ -35,6 +40,7 @@ export const useRoomTaskSummaries = ({
 
   const refreshTasks = useCallback(async () => {
     if (!accessToken || !projectId) {
+      requestVersionRef.current += 1;
       setTasks([]);
       setError(null);
       setLoading(false);
@@ -64,13 +70,14 @@ export const useRoomTaskSummaries = ({
 
   useEffect(() => {
     if (!accessToken || !projectId) {
+      requestVersionRef.current += 1;
       setTasks([]);
       setError(null);
       setLoading(false);
       return;
     }
 
-    void refreshTasks();
+    void refreshTasks().catch(() => {});
   }, [accessToken, projectId, refreshTasks]);
 
   return {

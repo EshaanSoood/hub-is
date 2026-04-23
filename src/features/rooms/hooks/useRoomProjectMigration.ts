@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import type { RoomProjectMigrationResult } from '../../../shared/api-types';
 import { migrateRoomProjects } from '../../../services/hub/rooms';
@@ -16,21 +16,29 @@ export const useRoomProjectMigration = ({
   const [migrating, setMigrating] = useState(false);
   const [results, setResults] = useState<RoomProjectMigrationResult[] | null>(null);
   const [targetProjectId, setTargetProjectId] = useState<string | null>(null);
+  const migratingRef = useRef(false);
 
   const reset = useCallback(() => {
     setError(null);
     setMigrating(false);
     setResults(null);
     setTargetProjectId(null);
+    migratingRef.current = false;
   }, []);
 
   const migrate = useCallback(async (payload: Array<{ sourcePaneId: string; destinationName: string }>) => {
     if (!accessToken) {
       throw new Error('Authentication is required to migrate room content.');
     }
+    if (migratingRef.current) {
+      throw new Error('Room content migration is already in progress.');
+    }
 
+    migratingRef.current = true;
     setMigrating(true);
     setError(null);
+    setResults(null);
+    setTargetProjectId(null);
     try {
       const response = await migrateRoomProjects(accessToken, roomId, {
         projectMigrations: payload,
@@ -43,6 +51,7 @@ export const useRoomProjectMigration = ({
       setError(message);
       throw migrationError;
     } finally {
+      migratingRef.current = false;
       setMigrating(false);
     }
   }, [accessToken, roomId]);

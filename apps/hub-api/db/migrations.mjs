@@ -108,7 +108,7 @@ export const runMigrations = (db) => {
 
     CREATE TABLE IF NOT EXISTS room_docs (
       doc_id TEXT PRIMARY KEY,
-      room_id TEXT NOT NULL UNIQUE,
+      room_id TEXT NOT NULL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
@@ -138,6 +138,68 @@ export const runMigrations = (db) => {
       ON room_members(user_id, room_id);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_room_docs_room_unique
       ON room_docs(room_id);
+
+    CREATE TRIGGER IF NOT EXISTS rooms_archive_consistency_insert
+    BEFORE INSERT ON rooms
+    FOR EACH ROW
+    BEGIN
+      SELECT
+        CASE
+          WHEN (
+            (NEW.status = 'active' AND NEW.archived_at IS NOT NULL)
+            OR (NEW.status = 'archived' AND NEW.archived_at IS NULL)
+          )
+          THEN RAISE(ABORT, 'rooms archived_at must match status')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS rooms_archive_consistency_update
+    BEFORE UPDATE OF status, archived_at ON rooms
+    FOR EACH ROW
+    BEGIN
+      SELECT
+        CASE
+          WHEN (
+            (NEW.status = 'active' AND NEW.archived_at IS NOT NULL)
+            OR (NEW.status = 'archived' AND NEW.archived_at IS NULL)
+          )
+          THEN RAISE(ABORT, 'rooms archived_at must match status')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS room_members_must_be_project_members_insert
+    BEFORE INSERT ON room_members
+    FOR EACH ROW
+    BEGIN
+      SELECT
+        CASE
+          WHEN NOT EXISTS (
+            SELECT 1
+            FROM rooms r
+            JOIN project_members pm ON pm.project_id = r.space_id
+            WHERE r.room_id = NEW.room_id
+              AND pm.user_id = NEW.user_id
+          )
+          THEN RAISE(ABORT, 'room_members must be a subset of project_members')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS room_members_must_be_project_members_update
+    BEFORE UPDATE OF room_id, user_id ON room_members
+    FOR EACH ROW
+    BEGIN
+      SELECT
+        CASE
+          WHEN NOT EXISTS (
+            SELECT 1
+            FROM rooms r
+            JOIN project_members pm ON pm.project_id = r.space_id
+            WHERE r.room_id = NEW.room_id
+              AND pm.user_id = NEW.user_id
+          )
+          THEN RAISE(ABORT, 'room_members must be a subset of project_members')
+        END;
+    END;
   `);
 
   db.exec('BEGIN IMMEDIATE;');

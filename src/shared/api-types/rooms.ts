@@ -13,7 +13,7 @@ export interface GetRoomResponse {
 export interface CreateRoomRequest {
   displayName: string;
   spaceId: string;
-  projectNames: [string, string];
+  projectNames: readonly [primary: string, secondary: string];
   participantIdentifiers: string[];
 }
 
@@ -29,6 +29,8 @@ export interface ListRoomMembersResponse {
   members: RoomMembership[];
 }
 
+// The add-member route still accepts snake_case because it mirrors the existing
+// hub-api request body shape for invite payloads.
 export interface AddRoomMemberRequest {
   email: string;
   display_name?: string;

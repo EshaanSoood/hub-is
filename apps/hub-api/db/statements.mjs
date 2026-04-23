@@ -215,7 +215,7 @@ export const createStatements = (db) => ({
         rm.user_id ASC
     `),
     insert: db.prepare(`
-      INSERT OR REPLACE INTO room_members (room_id, user_id, role, joined_at)
+      INSERT INTO room_members (room_id, user_id, role, joined_at)
       VALUES (?, ?, ?, ?)
     `),
     isMember: db.prepare('SELECT 1 AS ok FROM room_members WHERE room_id = ? AND user_id = ? LIMIT 1'),

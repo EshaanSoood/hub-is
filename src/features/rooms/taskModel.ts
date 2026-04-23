@@ -38,7 +38,7 @@ export const buildTaskCategoryOptions = (tasks: TaskItem[]): CalendarLensOption[
 };
 
 const timelineItemTypeForTask = (task: TaskItem): TimelineClusterItem['type'] =>
-  task.categoryId.toLowerCase().includes('milestone') ? 'milestone' : 'task';
+  task.categoryId.toLowerCase() === 'milestone' ? 'milestone' : 'task';
 
 export const buildTaskTimelineClusters = (tasks: TaskItem[]): TimelineCluster[] => {
   const datedTasks = tasks.filter((task) => task.dueAt);

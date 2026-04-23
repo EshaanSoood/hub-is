@@ -59,7 +59,11 @@ const CONTRACT_TABLES = [
 ];
 
 const CONTRACT_TRIGGERS = [
+  'rooms_archive_consistency_insert',
+  'rooms_archive_consistency_update',
   'pane_members_must_be_project_members',
+  'room_members_must_be_project_members_insert',
+  'room_members_must_be_project_members_update',
   'records_collection_project_consistency_insert',
   'records_collection_project_consistency_update',
   'record_relations_project_consistency_insert',
@@ -270,6 +274,10 @@ const resetSchemaToContractV1 = (db) => {
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL,
         archived_at TEXT,
+        CHECK (
+          (status = 'active' AND archived_at IS NULL)
+          OR (status = 'archived' AND archived_at IS NOT NULL)
+        ),
         FOREIGN KEY(space_id) REFERENCES projects(project_id) ON DELETE CASCADE,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
@@ -286,7 +294,7 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE room_docs (
         doc_id TEXT PRIMARY KEY,
-        room_id TEXT NOT NULL UNIQUE,
+        room_id TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
@@ -654,6 +662,34 @@ const resetSchemaToContractV1 = (db) => {
         notes TEXT
       );
 
+      CREATE TRIGGER rooms_archive_consistency_insert
+      BEFORE INSERT ON rooms
+      FOR EACH ROW
+      BEGIN
+        SELECT
+          CASE
+            WHEN (
+              (NEW.status = 'active' AND NEW.archived_at IS NOT NULL)
+              OR (NEW.status = 'archived' AND NEW.archived_at IS NULL)
+            )
+            THEN RAISE(ABORT, 'rooms archived_at must match status')
+          END;
+      END;
+
+      CREATE TRIGGER rooms_archive_consistency_update
+      BEFORE UPDATE OF status, archived_at ON rooms
+      FOR EACH ROW
+      BEGIN
+        SELECT
+          CASE
+            WHEN (
+              (NEW.status = 'active' AND NEW.archived_at IS NOT NULL)
+              OR (NEW.status = 'archived' AND NEW.archived_at IS NULL)
+            )
+            THEN RAISE(ABORT, 'rooms archived_at must match status')
+          END;
+      END;
+
       CREATE TRIGGER pane_members_must_be_project_members
       BEFORE INSERT ON pane_members
       FOR EACH ROW
@@ -668,6 +704,40 @@ const resetSchemaToContractV1 = (db) => {
                 AND pm.user_id = NEW.user_id
             )
             THEN RAISE(ABORT, 'pane_members must be a subset of project_members')
+          END;
+      END;
+
+      CREATE TRIGGER room_members_must_be_project_members_insert
+      BEFORE INSERT ON room_members
+      FOR EACH ROW
+      BEGIN
+        SELECT
+          CASE
+            WHEN NOT EXISTS (
+              SELECT 1
+              FROM rooms r
+              JOIN project_members pm ON pm.project_id = r.space_id
+              WHERE r.room_id = NEW.room_id
+                AND pm.user_id = NEW.user_id
+            )
+            THEN RAISE(ABORT, 'room_members must be a subset of project_members')
+          END;
+      END;
+
+      CREATE TRIGGER room_members_must_be_project_members_update
+      BEFORE UPDATE OF room_id, user_id ON room_members
+      FOR EACH ROW
+      BEGIN
+        SELECT
+          CASE
+            WHEN NOT EXISTS (
+              SELECT 1
+              FROM rooms r
+              JOIN project_members pm ON pm.project_id = r.space_id
+              WHERE r.room_id = NEW.room_id
+                AND pm.user_id = NEW.user_id
+            )
+            THEN RAISE(ABORT, 'room_members must be a subset of project_members')
           END;
       END;
 

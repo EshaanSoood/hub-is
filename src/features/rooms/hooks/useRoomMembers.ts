@@ -19,6 +19,7 @@ export const useRoomMembers = ({ accessToken, roomId }: UseRoomMembersParams) =>
 
   const refreshRoomMembers = useCallback(async () => {
     if (!accessToken || !roomId) {
+      requestVersionRef.current += 1;
       setMembers([]);
       setLoading(false);
       setError(null);
@@ -39,7 +40,7 @@ export const useRoomMembers = ({ accessToken, roomId }: UseRoomMembersParams) =>
       if (requestVersion === requestVersionRef.current) {
         setError(loadError instanceof Error ? loadError.message : 'Failed to load room members.');
       }
-      throw loadError;
+      return [];
     } finally {
       if (requestVersion === requestVersionRef.current) {
         setLoading(false);
@@ -49,13 +50,14 @@ export const useRoomMembers = ({ accessToken, roomId }: UseRoomMembersParams) =>
 
   useEffect(() => {
     if (!accessToken || !roomId) {
+      requestVersionRef.current += 1;
       setMembers([]);
       setLoading(false);
       setError(null);
       return;
     }
 
-    void refreshRoomMembers();
+    void refreshRoomMembers().catch(() => {});
   }, [accessToken, roomId, refreshRoomMembers]);
 
   const onInviteEmailChange = useCallback((value: string) => {

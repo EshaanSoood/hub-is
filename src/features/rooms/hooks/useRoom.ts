@@ -18,6 +18,7 @@ export const useRoom = ({ accessToken, roomId }: UseRoomParams) => {
 
   const refreshRoom = useCallback(async () => {
     if (!accessToken || !roomId) {
+      requestVersionRef.current += 1;
       setRoom(null);
       setLoading(false);
       setError(null);
@@ -68,13 +69,14 @@ export const useRoom = ({ accessToken, roomId }: UseRoomParams) => {
 
   useEffect(() => {
     if (!accessToken || !roomId) {
+      requestVersionRef.current += 1;
       setRoom(null);
       setLoading(false);
       setError(null);
       return;
     }
 
-    void refreshRoom();
+    void refreshRoom().catch(() => {});
   }, [accessToken, roomId, refreshRoom]);
 
   return {

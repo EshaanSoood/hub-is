@@ -18,6 +18,7 @@ export const useRooms = ({ accessToken }: UseRoomsParams) => {
 
   const refreshRooms = useCallback(async () => {
     if (!accessToken) {
+      requestVersionRef.current += 1;
       setRooms([]);
       setError(null);
       setLoading(false);
@@ -88,17 +89,18 @@ export const useRooms = ({ accessToken }: UseRoomsParams) => {
 
   useEffect(() => {
     if (!accessToken) {
+      requestVersionRef.current += 1;
       setRooms([]);
       setLoading(false);
       setError(null);
       return;
     }
 
-    void refreshRooms();
+    void refreshRooms().catch(() => {});
   }, [accessToken, refreshRooms]);
 
   useEffect(() => subscribeRoomListRefresh(() => {
-    void refreshRooms();
+    void refreshRooms().catch(() => {});
   }), [refreshRooms]);
 
   return {

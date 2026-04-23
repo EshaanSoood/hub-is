@@ -1,6 +1,6 @@
 const parseSnapshotPayload = (value) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
+    return null;
   }
   return value;
 };
@@ -101,17 +101,36 @@ export const createRoomDocRoutes = (deps) => {
       return;
     }
 
+    const payloadSource = body.snapshot_payload === undefined
+      ? Object.fromEntries(
+        Object.entries(body).filter(([key]) => key !== 'snapshot_version'),
+      )
+      : body.snapshot_payload;
+    const payload = parseSnapshotPayload(payloadSource);
+    if (!payload) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'snapshot_payload must be an object.')));
+      return;
+    }
+
     const currentVersion = Number(docGate.doc.snapshot_version || 0);
-    const hasProvidedVersion = body.snapshot_version !== undefined;
+    if (body.snapshot_version === undefined) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'snapshot_version is required.')));
+      return;
+    }
+
     const providedVersion = Number(body.snapshot_version);
-    if (hasProvidedVersion && (!Number.isInteger(providedVersion) || providedVersion < 0 || providedVersion !== currentVersion)) {
+    if (!Number.isInteger(providedVersion) || providedVersion < 0) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'snapshot_version must be a non-negative integer.')));
+      return;
+    }
+
+    if (providedVersion !== currentVersion) {
       send(response, jsonResponse(409, errorEnvelope('version_conflict', 'snapshot_version is stale. Refresh and retry.')));
       return;
     }
 
     const nextVersion = currentVersion + 1;
     const timestamp = nowIso();
-    const payload = parseSnapshotPayload(body.snapshot_payload ?? body);
     const updateResult = updateRoomDocStorageStmt.run(nextVersion, JSON.stringify(payload), timestamp, params.docId, currentVersion);
     if (updateResult.changes === 0) {
       send(response, jsonResponse(409, errorEnvelope('version_conflict', 'snapshot_version is stale. Refresh and retry.')));
