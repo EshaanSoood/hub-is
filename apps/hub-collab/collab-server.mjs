@@ -1,5 +1,6 @@
 import { Server } from '@hocuspocus/server';
 import * as Y from 'yjs';
+import { isRoomDocumentId } from '../hub-api/lib/roomDocuments.mjs';
 
 const PORT = Number(process.env.PORT || '1234');
 const HOST = (process.env.HOST || '0.0.0.0').trim();
@@ -37,6 +38,11 @@ const buildHubApiAuthHeaders = (token, { hasBody = false } = {}) => ({
   ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
 });
 const encodeDocUpdateBase64 = (document) => Buffer.from(Y.encodeStateAsUpdate(document)).toString('base64');
+const buildDocSnapshotPath = (docId) => (
+  isRoomDocumentId(docId)
+    ? `/api/hub/room-docs/${encodeURIComponent(docId)}`
+    : `/api/hub/docs/${encodeURIComponent(docId)}`
+);
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = HUB_API_FETCH_TIMEOUT_MS) => {
   const controller = new AbortController();
@@ -131,7 +137,7 @@ const authorizeToken = async (token, docId) => {
 const loadSnapshot = async ({ accessToken, docId }) => {
   let response;
   try {
-    response = await fetchWithTimeout(`${HUB_API_URL}/api/hub/docs/${encodeURIComponent(docId)}`, {
+    response = await fetchWithTimeout(`${HUB_API_URL}${buildDocSnapshotPath(docId)}`, {
       method: 'GET',
       headers: buildHubApiAuthHeaders(accessToken),
     });
@@ -179,7 +185,7 @@ const persistSnapshot = async (document, meta, retryOnConflict = true) => {
 
   let response;
   try {
-    response = await fetchWithTimeout(`${HUB_API_URL}/api/hub/docs/${encodeURIComponent(document.name)}`, {
+    response = await fetchWithTimeout(`${HUB_API_URL}${buildDocSnapshotPath(document.name)}`, {
       method: 'PUT',
       headers: buildHubApiAuthHeaders(meta.accessToken, { hasBody: true }),
       body: JSON.stringify({

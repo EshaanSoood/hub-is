@@ -23,6 +23,7 @@ import { sidebarMotionDurations, sidebarShellVariants } from './motion/sidebarMo
 import { ProjectsTree } from './ProjectsTree';
 import { ProfileBadge } from './ProfileBadge';
 import { RecentPanes } from './RecentPanes';
+import { RoomsSection } from './RoomsSection';
 import { SearchButton } from './SearchButton';
 import { Surfaces, type SidebarSurfaceId } from './Surfaces';
 import { useSidebarCollapse } from './hooks/useSidebarCollapse';
@@ -103,6 +104,10 @@ export const SidebarShell = () => {
   }, [currentSurface]);
   const personalProject = useMemo(
     () => projects.find((project) => project.isPersonal) || null,
+    [projects],
+  );
+  const teamProjects = useMemo(
+    () => projects.filter((project) => !project.isPersonal),
     [projects],
   );
   const resolvedVisualCollapsed = prefersReducedMotion ? isCollapsed : visualCollapsed;
@@ -291,13 +296,27 @@ export const SidebarShell = () => {
                 />
 
                 <div className="min-h-0 flex-1 overflow-hidden">
-                  <ProjectsTree
-                    currentProject={currentProject}
-                    currentProjectPanes={activeCurrentProjectPanes}
-                    isCollapsed={resolvedVisualCollapsed}
-                    onExpandSidebar={expandSidebar}
-                    showLabels={resolvedShowLabels}
-                  />
+                  <div className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-2')}>
+                    <div className="min-h-0 flex-1 overflow-hidden">
+                      <ProjectsTree
+                        currentProject={currentProject}
+                        currentProjectPanes={activeCurrentProjectPanes}
+                        isCollapsed={resolvedVisualCollapsed}
+                        onExpandSidebar={expandSidebar}
+                        showLabels={resolvedShowLabels}
+                      />
+                    </div>
+
+                    <div className={cn('shrink-0', resolvedVisualCollapsed ? 'w-full' : undefined)}>
+                      <RoomsSection
+                        accessToken={accessToken}
+                        isCollapsed={resolvedVisualCollapsed}
+                        onExpandSidebar={expandSidebar}
+                        projectOptions={teamProjects}
+                        showLabels={resolvedShowLabels}
+                      />
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             </AnimatePresence>

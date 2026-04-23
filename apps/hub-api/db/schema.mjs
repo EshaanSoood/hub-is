@@ -23,6 +23,11 @@ const CONTRACT_TABLES = [
   'docs',
   'doc_storage',
   'doc_presence',
+  'rooms',
+  'room_members',
+  'room_docs',
+  'room_doc_storage',
+  'room_doc_presence',
   'collections',
   'collection_fields',
   'records',
@@ -69,6 +74,9 @@ const CONTRACT_INDEXES = [
   'idx_pane_members_user_pane',
   'idx_panes_project_sort',
   'idx_docs_pane_unique',
+  'idx_rooms_space_status_created',
+  'idx_room_members_user_room',
+  'idx_room_docs_room_unique',
   'idx_records_project_collection_updated',
   'idx_record_values_field_record',
   'idx_record_values_record_field',
@@ -251,6 +259,54 @@ const resetSchemaToContractV1 = (db) => {
         last_seen_at TEXT NOT NULL,
         PRIMARY KEY(doc_id, user_id),
         FOREIGN KEY(doc_id) REFERENCES docs(doc_id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE rooms (
+        room_id TEXT PRIMARY KEY,
+        space_id TEXT NOT NULL,
+        display_name TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('active', 'archived')),
+        created_by TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        archived_at TEXT,
+        FOREIGN KEY(space_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(created_by) REFERENCES users(user_id)
+      );
+
+      CREATE TABLE room_members (
+        room_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('owner', 'participant')),
+        joined_at TEXT NOT NULL,
+        PRIMARY KEY(room_id, user_id),
+        FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE room_docs (
+        doc_id TEXT PRIMARY KEY,
+        room_id TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE room_doc_storage (
+        doc_id TEXT PRIMARY KEY,
+        snapshot_version INTEGER NOT NULL DEFAULT 0,
+        snapshot_payload TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY(doc_id) REFERENCES room_docs(doc_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE room_doc_presence (
+        doc_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        cursor_payload TEXT,
+        last_seen_at TEXT NOT NULL,
+        PRIMARY KEY(doc_id, user_id),
+        FOREIGN KEY(doc_id) REFERENCES room_docs(doc_id) ON DELETE CASCADE,
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
       );
 
@@ -728,6 +784,9 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_pane_members_user_pane ON pane_members(user_id, pane_id);
       CREATE INDEX idx_panes_project_sort ON panes(project_id, sort_order);
       CREATE UNIQUE INDEX idx_docs_pane_unique ON docs(pane_id);
+      CREATE INDEX idx_rooms_space_status_created ON rooms(space_id, status, created_at DESC, room_id DESC);
+      CREATE INDEX idx_room_members_user_room ON room_members(user_id, room_id);
+      CREATE UNIQUE INDEX idx_room_docs_room_unique ON room_docs(room_id);
       CREATE INDEX idx_records_project_collection_updated ON records(project_id, collection_id, updated_at DESC);
       CREATE INDEX idx_records_project_source_pane ON records(project_id, source_pane_id);
       CREATE INDEX idx_records_project_source_view ON records(project_id, source_view_id);

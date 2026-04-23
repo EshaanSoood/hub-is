@@ -1,6 +1,7 @@
 export * from './transport.ts';
 export * from './types.ts';
 export * from './projects.ts';
+export * from './rooms.ts';
 export * from './panes.ts';
 export * from './docs.ts';
 export * from './collections.ts';

@@ -628,6 +628,7 @@ export const useProjectSpacePageRuntime = ({
       projectName: project.name,
       projectId: project.project_id,
       isPersonalProject: project.is_personal,
+      panes,
       projectMemberList,
       accessToken,
       overviewView,
@@ -655,6 +656,7 @@ export const useProjectSpacePageRuntime = ({
         void onCreateProjectMember();
       },
       onDismissInviteFeedback: clearProjectMemberFeedback,
+      timeline,
     },
     workProps: {
       paneId,

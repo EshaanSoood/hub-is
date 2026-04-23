@@ -83,6 +83,63 @@ export const runMigrations = (db) => {
       ON pending_project_invites(LOWER(email), status);
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      room_id TEXT PRIMARY KEY,
+      space_id TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('active', 'archived')),
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      archived_at TEXT,
+      FOREIGN KEY(space_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+      FOREIGN KEY(created_by) REFERENCES users(user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS room_members (
+      room_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL CHECK (role IN ('owner', 'participant')),
+      joined_at TEXT NOT NULL,
+      PRIMARY KEY(room_id, user_id),
+      FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS room_docs (
+      doc_id TEXT PRIMARY KEY,
+      room_id TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS room_doc_storage (
+      doc_id TEXT PRIMARY KEY,
+      snapshot_version INTEGER NOT NULL DEFAULT 0,
+      snapshot_payload TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(doc_id) REFERENCES room_docs(doc_id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS room_doc_presence (
+      doc_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      cursor_payload TEXT,
+      last_seen_at TEXT NOT NULL,
+      PRIMARY KEY(doc_id, user_id),
+      FOREIGN KEY(doc_id) REFERENCES room_docs(doc_id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_rooms_space_status_created
+      ON rooms(space_id, status, created_at DESC, room_id DESC);
+    CREATE INDEX IF NOT EXISTS idx_room_members_user_room
+      ON room_members(user_id, room_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_room_docs_room_unique
+      ON room_docs(room_id);
+  `);
+
   db.exec('BEGIN IMMEDIATE;');
   try {
     const notificationScopeColumn = db
