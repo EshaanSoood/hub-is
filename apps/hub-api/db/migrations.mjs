@@ -52,7 +52,6 @@ export const runMigrations = (db) => {
   addColumnIfMissing('projects', 'position', 'INTEGER');
   addColumnIfMissing('projects', 'name_prompt_completed', 'INTEGER NOT NULL DEFAULT 0 CHECK (name_prompt_completed IN (0, 1))');
   addColumnIfMissing('panes', 'position', 'INTEGER');
-  addColumnIfMissing('rooms', 'coordination_pane_id', 'TEXT REFERENCES panes(pane_id) ON DELETE SET NULL');
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS calendar_feed_tokens (
@@ -170,6 +169,40 @@ export const runMigrations = (db) => {
         END;
     END;
 
+    CREATE TRIGGER IF NOT EXISTS rooms_coordination_pane_space_insert
+    BEFORE INSERT ON rooms
+    FOR EACH ROW
+    WHEN NEW.coordination_pane_id IS NOT NULL
+    BEGIN
+      SELECT
+        CASE
+          WHEN NOT EXISTS (
+            SELECT 1
+            FROM panes p
+            WHERE p.pane_id = NEW.coordination_pane_id
+              AND p.project_id = NEW.space_id
+          )
+          THEN RAISE(ABORT, 'rooms.coordination_pane_id must belong to rooms.space_id')
+        END;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS rooms_coordination_pane_space_update
+    BEFORE UPDATE OF space_id, coordination_pane_id ON rooms
+    FOR EACH ROW
+    WHEN NEW.coordination_pane_id IS NOT NULL
+    BEGIN
+      SELECT
+        CASE
+          WHEN NOT EXISTS (
+            SELECT 1
+            FROM panes p
+            WHERE p.pane_id = NEW.coordination_pane_id
+              AND p.project_id = NEW.space_id
+          )
+          THEN RAISE(ABORT, 'rooms.coordination_pane_id must belong to rooms.space_id')
+        END;
+    END;
+
     CREATE TRIGGER IF NOT EXISTS room_members_must_be_project_members_insert
     BEFORE INSERT ON room_members
     FOR EACH ROW
@@ -203,7 +236,22 @@ export const runMigrations = (db) => {
           THEN RAISE(ABORT, 'room_members must be a subset of project_members')
         END;
     END;
+
+    CREATE TRIGGER IF NOT EXISTS room_members_removed_with_project_member
+    AFTER DELETE ON project_members
+    FOR EACH ROW
+    BEGIN
+      DELETE FROM room_members
+      WHERE user_id = OLD.user_id
+        AND room_id IN (
+          SELECT room_id
+          FROM rooms
+          WHERE space_id = OLD.project_id
+        );
+    END;
   `);
+
+  addColumnIfMissing('rooms', 'coordination_pane_id', 'TEXT REFERENCES panes(pane_id) ON DELETE SET NULL');
 
   db.exec('BEGIN IMMEDIATE;');
   try {

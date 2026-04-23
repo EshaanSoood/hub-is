@@ -61,9 +61,12 @@ const CONTRACT_TABLES = [
 const CONTRACT_TRIGGERS = [
   'rooms_archive_consistency_insert',
   'rooms_archive_consistency_update',
+  'rooms_coordination_pane_space_insert',
+  'rooms_coordination_pane_space_update',
   'pane_members_must_be_project_members',
   'room_members_must_be_project_members_insert',
   'room_members_must_be_project_members_update',
+  'room_members_removed_with_project_member',
   'records_collection_project_consistency_insert',
   'records_collection_project_consistency_update',
   'record_relations_project_consistency_insert',
@@ -692,6 +695,40 @@ const resetSchemaToContractV1 = (db) => {
           END;
       END;
 
+      CREATE TRIGGER rooms_coordination_pane_space_insert
+      BEFORE INSERT ON rooms
+      FOR EACH ROW
+      WHEN NEW.coordination_pane_id IS NOT NULL
+      BEGIN
+        SELECT
+          CASE
+            WHEN NOT EXISTS (
+              SELECT 1
+              FROM panes p
+              WHERE p.pane_id = NEW.coordination_pane_id
+                AND p.project_id = NEW.space_id
+            )
+            THEN RAISE(ABORT, 'rooms.coordination_pane_id must belong to rooms.space_id')
+          END;
+      END;
+
+      CREATE TRIGGER rooms_coordination_pane_space_update
+      BEFORE UPDATE OF space_id, coordination_pane_id ON rooms
+      FOR EACH ROW
+      WHEN NEW.coordination_pane_id IS NOT NULL
+      BEGIN
+        SELECT
+          CASE
+            WHEN NOT EXISTS (
+              SELECT 1
+              FROM panes p
+              WHERE p.pane_id = NEW.coordination_pane_id
+                AND p.project_id = NEW.space_id
+            )
+            THEN RAISE(ABORT, 'rooms.coordination_pane_id must belong to rooms.space_id')
+          END;
+      END;
+
       CREATE TRIGGER pane_members_must_be_project_members
       BEFORE INSERT ON pane_members
       FOR EACH ROW
@@ -741,6 +778,19 @@ const resetSchemaToContractV1 = (db) => {
             )
             THEN RAISE(ABORT, 'room_members must be a subset of project_members')
           END;
+      END;
+
+      CREATE TRIGGER room_members_removed_with_project_member
+      AFTER DELETE ON project_members
+      FOR EACH ROW
+      BEGIN
+        DELETE FROM room_members
+        WHERE user_id = OLD.user_id
+          AND room_id IN (
+            SELECT room_id
+            FROM rooms
+            WHERE space_id = OLD.project_id
+          );
       END;
 
       CREATE TRIGGER records_collection_project_consistency_insert

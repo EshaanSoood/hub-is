@@ -252,7 +252,7 @@ export const createRoomRoutes = (deps) => {
       return;
     }
 
-    const room = roomForUserStmt.get(params.roomId, auth.user.user_id);
+    let room = roomForUserStmt.get(params.roomId, auth.user.user_id);
     if (!room) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Room not found.')));
       return;

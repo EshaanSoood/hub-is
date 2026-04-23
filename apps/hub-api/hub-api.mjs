@@ -1041,17 +1041,17 @@ const withPanePolicyGate = ({ userId, paneId, requiredCapability }) => {
     return paneGate;
   }
 
-  const roomBinding = roomBindingForPane(paneGate.pane);
+  const roomBinding = roomBindingForPane(paneGate.pane_id);
   if (roomBinding && !roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) {
     return { error: roomMemberRequiredError() };
   }
 
-  const archivedRoom = archivedRoomForPane(paneGate.pane);
+  const archivedRoom = roomBinding?.room?.status === 'archived' ? roomBinding.room : null;
   if (!archivedRoom) {
     return paneGate;
   }
 
-  if (requiredCapability === 'write' || requiredCapability === 'manage') {
+  if (requiredCapability !== 'view') {
     return { error: archivedRoomError() };
   }
 

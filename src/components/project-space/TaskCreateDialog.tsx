@@ -243,7 +243,7 @@ export const TaskCreateDialog = ({
 
       await createTask(accessToken, {
         project_id: effectiveProjectId,
-        source_pane_id: sourcePaneId,
+        ...(sourcePaneId && effectiveProjectId === projectId ? { source_pane_id: sourcePaneId } : {}),
         parent_record_id: parentRecordId || null,
         title: effectiveTitle,
         status: statusValue,

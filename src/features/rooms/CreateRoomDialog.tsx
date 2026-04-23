@@ -56,8 +56,11 @@ export const CreateRoomDialog = ({
     [projectOptions],
   );
 
-  useEffect(() => () => {
-    isMountedRef.current = false;
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
   const defaultSpaceId = useMemo(() => {
     const nextInitialSpaceId = initialSpaceId?.trim() ?? '';
@@ -153,13 +156,12 @@ export const CreateRoomDialog = ({
         <button
           ref={effectiveTriggerRef}
           type="button"
-          aria-label="New room"
           disabled={createDisabled}
           className="interactive interactive-subtle flex h-8 w-8 items-center justify-center rounded-control text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
           onClick={openDialog}
         >
           <span className="sr-only">New room</span>
-          +
+          <span aria-hidden="true">+</span>
         </button>
       )}
 
