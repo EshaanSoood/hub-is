@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -33,14 +33,37 @@ const RouteLoadingState = ({ label = 'Loading route...' }: { label?: string }) =
   </div>
 );
 
+const SIGN_IN_REDIRECT_TIMEOUT_MS = 10_000;
+
 const App = () => {
-  const { signedIn, authReady, signIn } = useAuthz();
+  const { signedIn, authReady, authError, signIn } = useAuthz();
   const location = useLocation();
   const navigate = useNavigate();
   const signInCalledRef = useRef(false);
   const previousSignedInRef = useRef(signedIn);
   const signInTimeoutRef = useRef<number | null>(null);
   const [signInError, setSignInError] = useState(false);
+
+  const beginSignInRedirect = useCallback(() => {
+    if (signInTimeoutRef.current !== null) {
+      window.clearTimeout(signInTimeoutRef.current);
+      signInTimeoutRef.current = null;
+    }
+
+    signInTimeoutRef.current = window.setTimeout(() => {
+      signInTimeoutRef.current = null;
+      setSignInError(true);
+    }, SIGN_IN_REDIRECT_TIMEOUT_MS);
+
+    signInCalledRef.current = true;
+    void signIn().catch(() => {
+      if (signInTimeoutRef.current !== null) {
+        window.clearTimeout(signInTimeoutRef.current);
+        signInTimeoutRef.current = null;
+      }
+      setSignInError(true);
+    });
+  }, [signIn]);
 
   useLayoutEffect(() => {
     if (!authReady) {
@@ -72,24 +95,11 @@ const App = () => {
   }, [signedIn]);
 
   useEffect(() => {
-    if (!authReady || signedIn || signInCalledRef.current || signInError) {
+    if (!authReady || signedIn || authError || signInCalledRef.current || signInError) {
       return;
     }
 
-    if (signInTimeoutRef.current !== null) {
-      window.clearTimeout(signInTimeoutRef.current);
-      signInTimeoutRef.current = null;
-    }
-
-    signInTimeoutRef.current = window.setTimeout(() => {
-      signInTimeoutRef.current = null;
-      setSignInError(true);
-    }, 10_000);
-
-    signInCalledRef.current = true;
-    void signIn().catch(() => {
-      setSignInError(true);
-    });
+    beginSignInRedirect();
 
     return () => {
       if (signInTimeoutRef.current !== null) {
@@ -97,7 +107,7 @@ const App = () => {
         signInTimeoutRef.current = null;
       }
     };
-  }, [authReady, signedIn, signIn, signInError]);
+  }, [authError, authReady, beginSignInRedirect, signedIn, signInError]);
 
   if (!authReady) {
     return (
@@ -110,19 +120,18 @@ const App = () => {
   if (!signedIn) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface px-4 text-text">
-        {signInError ? (
+        {authError || signInError ? (
           <div className="flex flex-col items-center gap-sm text-center" role="alert" aria-live="assertive">
-            <p className="text-sm font-semibold text-danger">Unable to reach the sign-in provider.</p>
+            <p className="text-sm font-semibold text-danger">
+              {signInError ? 'Unable to reach the sign-in provider.' : 'Unable to complete sign-in.'}
+            </p>
+            {authError ? <p className="max-w-md text-xs text-muted">{authError}</p> : null}
             <button
               type="button"
               className="rounded-control border border-border-muted px-sm py-xs text-xs font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               onClick={() => {
-                if (signInTimeoutRef.current !== null) {
-                  window.clearTimeout(signInTimeoutRef.current);
-                  signInTimeoutRef.current = null;
-                }
-                signInCalledRef.current = false;
                 setSignInError(false);
+                beginSignInRedirect();
               }}
             >
               Retry sign-in
