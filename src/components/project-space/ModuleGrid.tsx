@@ -46,6 +46,7 @@ export const ModuleGrid = ({
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const addModuleLayoutId = !prefersReducedMotion ? dialogLayoutIds.addModule : undefined;
+  const hasModules = modules.length > 0;
 
   const openAddDialog = () => {
     if (readOnlyState || disableAdd) {
@@ -77,19 +78,19 @@ export const ModuleGrid = ({
         {addControl}
       </div>
 
-      {modules.length === 0 ? (
-        <div className="rounded-panel border border-dashed border-border-muted bg-elevated px-6 py-14">
-          <div className="mx-auto flex w-full max-w-lg flex-col items-center text-center">
-            <div className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-border-muted bg-surface text-primary">
-              <Icon name="plus" className="text-[22px]" />
+      {!hasModules ? (
+        <div className="rounded-panel border border-dashed border-border-muted bg-elevated px-4 py-6 sm:px-6 sm:py-7">
+          <div className="mx-auto flex w-full max-w-2xl flex-col items-center text-center">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border-muted bg-surface text-primary">
+              <Icon name="plus" className="text-[18px]" />
             </div>
-            <h3 className="mt-4 text-lg font-semibold text-primary">
+            <h3 className="mt-3 max-w-2xl text-base font-semibold text-primary">
               {readOnlyState ? 'No modules in this project yet' : "Let's get this project started!"}
             </h3>
-            <p className="mt-2 max-w-md text-sm text-muted">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
               {readOnlyState
                 ? 'This project is currently read-only. Modules will appear here after they are added elsewhere.'
-                : 'Add a first module to shape the project, then keep building from there.'}
+                : 'Add a first module to shape the project.'}
             </p>
           </div>
         </div>

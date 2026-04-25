@@ -4,13 +4,18 @@ import {
   Dialog,
   DialogContent,
 } from '../../../components/project-space/ProjectSpaceDialogPrimitives';
-import { Icon, IconButton, InlineNotice } from '../../../components/primitives';
+import { Icon, InlineNotice } from '../../../components/primitives';
 import { PaneSwitcher } from '../../../components/project-space/PaneSwitcher';
 import type { HubPaneSummary, HubProjectMember } from '../../../services/hub/types';
 import type { PaneLateralSource } from '../../../components/motion/hubMotion';
 import { dialogLayoutIds } from '../../../styles/motion';
 import { usePaneControlEffects } from '../hooks/usePaneControlEffects';
 import { ProjectSpacePaneSettingsDialog } from './ProjectSpacePaneSettingsDialog';
+
+const projectToolbarButtonClassName =
+  'interactive interactive-fold card-folded inline-flex h-8 items-center justify-center bg-surface-low px-3 text-xs font-semibold text-primary transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring';
+
+const projectToolbarIconButtonClassName = `${projectToolbarButtonClassName} w-8 px-0`;
 
 export interface ProjectSpacePaneChromeProps {
   projectId: string;
@@ -181,34 +186,31 @@ export const ProjectSpaceWorkPaneChrome = ({
             <p className="text-xs text-muted">Project switcher hidden. Use the focusable toggle above to reveal it.</p>
           ) : null}
           {canWriteProject ? (
-            <IconButton
+            <button
               ref={createPaneTriggerRef}
               type="button"
-              size="sm"
-              variant={showCreatePaneControl ? 'secondary' : 'ghost'}
-              aria-label={showCreatePaneControl ? 'Collapse create project' : 'Create project'}
+              className={projectToolbarButtonClassName}
               aria-expanded={showCreatePaneControl}
               onClick={() => setShowCreatePaneControl((current) => !current)}
             >
-              <Icon name="plus" className="text-[14px]" />
-            </IconButton>
+              New project
+            </button>
           ) : null}
           <motion.div
             layoutId={!prefersReducedMotion && paneSettingsOpen ? dialogLayoutIds.paneSettings : undefined}
             className="inline-flex"
           >
-            <IconButton
+            <button
               ref={paneSettingsTriggerRef}
               type="button"
-              size="sm"
-              variant={paneSettingsOpen ? 'secondary' : 'ghost'}
+              className={projectToolbarIconButtonClassName}
               aria-label="Project settings"
               aria-expanded={paneSettingsOpen}
               onClick={() => setPaneSettingsOpen(true)}
               disabled={!activePane}
             >
               <Icon name="settings" className="text-[14px]" />
-            </IconButton>
+            </button>
           </motion.div>
         </div>
 
