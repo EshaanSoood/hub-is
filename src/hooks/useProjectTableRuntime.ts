@@ -1,12 +1,14 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 
 import { createRecord, listTimeline, setRecordValues, updateRecord } from '../services/hub/records';
+import { recordRecentPaneContribution } from '../features/recentPlaces/store';
 import type { HubPaneSummary, HubView } from '../services/hub/types';
 import { loadCompleteViewQuery, type ProjectTimelineItem, type TableViewRuntimeState } from './projectViewsRuntime/shared';
 
 interface UseProjectTableRuntimeParams {
   accessToken: string;
   projectId: string;
+  projectName: string;
   panes: HubPaneSummary[];
   sessionUserId: string;
   setTimeline: Dispatch<SetStateAction<ProjectTimelineItem[]>>;
@@ -18,6 +20,7 @@ interface UseProjectTableRuntimeParams {
 export const useProjectTableRuntime = ({
   accessToken,
   projectId,
+  projectName,
   panes,
   sessionUserId,
   setTimeline,
@@ -126,6 +129,12 @@ export const useProjectTableRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
+        recordRecentPaneContribution({
+          paneId: mutationPane.pane_id,
+          paneName: mutationPane.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'table-create');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to create table record.';
         setRecordsError(message);
@@ -139,6 +148,7 @@ export const useProjectTableRuntime = ({
       resolveEditableMutationPane,
       setRecordsError,
       setTimeline,
+      projectName,
       tableViewDataById,
     ],
   );
@@ -180,13 +190,19 @@ export const useProjectTableRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
+        recordRecentPaneContribution({
+          paneId: mutationPane.pane_id,
+          paneName: mutationPane.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'table-update');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to update table record.';
         setRecordsError(message);
         throw new Error(message);
       }
     },
-    [accessToken, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
   );
 
   const onDeleteTableRecords = useCallback(
@@ -210,13 +226,19 @@ export const useProjectTableRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
+        recordRecentPaneContribution({
+          paneId: mutationPane.pane_id,
+          paneName: mutationPane.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'table-delete');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to delete table records.';
         setRecordsError(message);
         throw new Error(message);
       }
     },
-    [accessToken, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
   );
 
   const onBulkUpdateTableRecords = useCallback(
@@ -246,13 +268,19 @@ export const useProjectTableRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
+        recordRecentPaneContribution({
+          paneId: mutationPane.pane_id,
+          paneName: mutationPane.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'table-bulk-update');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to bulk update table records.';
         setRecordsError(message);
         throw new Error(message);
       }
     },
-    [accessToken, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
   );
 
   const tableViewRuntimeDataById = useMemo(

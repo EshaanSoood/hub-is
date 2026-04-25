@@ -204,6 +204,7 @@ export const useRoomProjectWorkRuntime = ({
   } = useProjectViewsRuntime({
     accessToken,
     projectId: project.project_id,
+    projectName: project.name,
     activeTab: 'work',
     panes: roomProjectPanes,
     sessionUserId,
@@ -231,6 +232,7 @@ export const useRoomProjectWorkRuntime = ({
   } = usePaneMutations({
     accessToken,
     projectId: project.project_id,
+    projectName: project.name,
     panes: roomProjectPanes,
     refreshProjectData,
     setPanes,
@@ -351,10 +353,12 @@ export const useRoomProjectWorkRuntime = ({
   const canWriteProject = !roomArchived && typeof project.membership_role === 'string' && project.membership_role.toLowerCase() !== 'viewer';
   const moduleContracts = useWorkViewModuleRuntime({
     activePaneId,
+    activePaneName: activePane.name,
     activePaneCanEdit,
     accessToken,
     canWriteProject,
     projectId: project.project_id,
+    projectName: project.name,
     setRecordsError,
     tableViews,
     tableViewRuntimeDataById,

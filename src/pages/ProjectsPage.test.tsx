@@ -2,7 +2,7 @@ import React, { type PropsWithChildren, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { ProjectsPage } from './ProjectsPage';
 import type { ProjectRecord } from '../types/domain';
@@ -176,6 +176,10 @@ vi.mock('../hooks/useProjectBootstrap', () => ({
   useProjectBootstrap: () => projectBootstrap,
 }));
 
+vi.mock('../hooks/useProjectPanes', () => ({
+  useProjectPanes: () => projectBootstrap.panes,
+}));
+
 vi.mock('../hooks/useCalendarRuntime', () => ({
   useCalendarRuntime: () => ({
     calendarEvents: [],
@@ -218,6 +222,15 @@ vi.mock('../hooks/useTimelineRuntime', () => ({
   }),
 }));
 
+vi.mock('../features/rooms', () => ({
+  useRooms: () => ({
+    createRoom: vi.fn(),
+    error: null,
+    loading: false,
+    rooms: [],
+  }),
+}));
+
 vi.mock('../services/hub/projects', () => ({
   updateProject: (...args: unknown[]) => mockUpdateProject(...args),
 }));
@@ -242,25 +255,20 @@ vi.mock('../features/home/HomeRecordInspectorDialog', () => ({
 vi.mock('../features/home/HomeDashboardSurface', () => ({
   HomeDashboardSurface: ({
     activeContentView,
-    onOpenQuickThoughts,
     projectContent,
   }: {
     activeContentView: 'project' | 'lenses' | 'stream';
-    onOpenQuickThoughts: () => void;
     projectContent: React.ReactNode;
   }) => (
     <section aria-label="Home dashboard" data-testid="home-dashboard">
       <p data-testid="dashboard-content">{activeContentView}</p>
-      <button type="button" data-home-launcher="thoughts" onClick={onOpenQuickThoughts}>Quick thoughts</button>
       {activeContentView === 'project' ? projectContent : null}
     </section>
   ),
 }));
 
 vi.mock('../features/home/HomeOverviewSurface', () => ({
-  HomeOverviewSurface: ({ projectName }: { projectName: string }) => (
-    <div data-testid="overview-surface">{projectName}</div>
-  ),
+  HomeOverviewSurface: () => <section data-testid="overview-surface">Overview surface</section>,
 }));
 
 vi.mock('../features/home/HomeProjectWorkSection', () => ({
@@ -318,11 +326,15 @@ vi.mock('../components/Sidebar/SearchButton', () => ({
 }));
 
 vi.mock('../components/Sidebar/CaptureInput', () => ({
-  CaptureInput: () => <button type="button">Capture</button>,
+  CaptureInput: ({ variant, placeholder }: { variant?: 'sidebar' | 'command-bar'; placeholder?: string }) => (
+    variant === 'command-bar'
+      ? <div>{placeholder}</div>
+      : <button type="button">Capture</button>
+  ),
 }));
 
-vi.mock('../components/Sidebar/RecentPanes', () => ({
-  RecentPanes: () => <div>Recent panes</div>,
+vi.mock('../components/Sidebar/RecentPlaces', () => ({
+  RecentPlaces: () => <div>Recent places</div>,
 }));
 
 vi.mock('../components/Sidebar/ProjectsTree', () => ({
@@ -335,16 +347,23 @@ vi.mock('../components/Sidebar/ProfileBadge', () => ({
 
 vi.mock('../components/Sidebar/Surfaces', () => ({
   Surfaces: ({
+    sectionExpanded,
     onSelectHomeContentView,
     onSelectSurface,
   }: {
-    onSelectHomeContentView: (viewId: 'lenses' | 'stream') => void;
+    sectionExpanded: boolean;
+    onSelectHomeContentView: (viewId: 'project' | 'lenses' | 'stream') => void;
     onSelectSurface: (surfaceId: 'thoughts') => void;
   }) => (
     <div>
-      <button type="button" onClick={() => onSelectHomeContentView('lenses')}>Lenses</button>
-      <button type="button" onClick={() => onSelectHomeContentView('stream')}>Stream</button>
-      <button type="button" onClick={() => onSelectSurface('thoughts')}>Quick thoughts</button>
+      {sectionExpanded ? (
+        <>
+          <button type="button" onClick={() => onSelectHomeContentView('project')}>Personal Space</button>
+          <button type="button" onClick={() => onSelectHomeContentView('lenses')}>Hub</button>
+          <button type="button" onClick={() => onSelectHomeContentView('stream')}>Stream</button>
+          <button type="button" onClick={() => onSelectSurface('thoughts')}>Quick thoughts</button>
+        </>
+      ) : null}
     </div>
   ),
 }));
@@ -358,10 +377,20 @@ const LocationProbe = () => {
   return <p data-testid="location-display">{`${location.pathname}${location.search}`}</p>;
 };
 
+const RouteControls = () => {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate('/projects/team-project')}>
+      Go external
+    </button>
+  );
+};
+
 const renderProjectsPage = (entry = '/projects') =>
   render(
     <MemoryRouter initialEntries={[entry]}>
       <AppShell>
+        <RouteControls />
         <Routes>
           <Route
             path="/projects"
@@ -369,6 +398,15 @@ const renderProjectsPage = (entry = '/projects') =>
               <>
                 <LocationProbe />
                 <ProjectsPage />
+              </>
+            )}
+          />
+          <Route
+            path="/projects/:projectId"
+            element={(
+              <>
+                <LocationProbe />
+                <div data-testid="external-project">External project</div>
               </>
             )}
           />
@@ -406,25 +444,30 @@ afterEach(() => {
 });
 
 describe('ProjectsPage', () => {
-  it('renders Home as the named personal project on /projects', async () => {
+  it('uses the Home tabs as the route focus target and promotes the personal project heading', async () => {
     renderProjectsPage();
 
-    const heading = await screen.findByRole('heading', { name: 'Home', level: 1 });
+    const overviewTab = await screen.findByRole('button', { name: 'Overview' });
 
     await waitFor(() => {
-      expect(heading).toHaveFocus();
+      expect(overviewTab).toHaveFocus();
     });
 
-    expect(screen.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByRole('heading', { name: 'Home', level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByText('Capture.')).toBeInTheDocument();
+    expect(screen.getByText('Capture anything and experience the magic.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sunday Desk', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Overview', level: 3 })).toBeInTheDocument();
+    expect(overviewTab).toHaveAttribute('aria-current', 'page');
     expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
-    expect(screen.getByTestId('overview-surface')).toHaveTextContent('Sunday Desk');
+    expect(screen.getByTestId('overview-surface')).toHaveTextContent('Overview surface');
   });
 
-  it('swaps the lower Home region from sidebar-owned Lenses and Stream toggles', async () => {
+  it('swaps the lower Home region from sidebar-owned Hub and Stream toggles', async () => {
     const user = userEvent.setup();
     renderProjectsPage();
 
-    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Lenses' }));
+    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Hub' }));
     await waitFor(() => {
       expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?content=lenses');
     });
@@ -437,11 +480,55 @@ describe('ProjectsPage', () => {
     expect(screen.getByTestId('dashboard-content')).toHaveTextContent('stream');
   });
 
-  it('opens Quick thoughts from the compact dashboard control and restores focus when it closes', async () => {
+  it('uses Personal Space as the direct sidebar view back to the default project surface', async () => {
+    const user = userEvent.setup();
+    renderProjectsPage('/projects?content=stream');
+
+    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Personal Space' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
+    });
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
+  });
+
+  it('returns directly to Personal Space when Home is selected from another route', async () => {
+    const user = userEvent.setup();
+    renderProjectsPage('/projects?content=stream');
+
+    await user.click(screen.getByRole('button', { name: 'Go external' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects/team-project');
+    });
+
+    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Home' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
+    });
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
+  });
+
+  it('does not treat Home work routes as the remembered Home destination', async () => {
+    const user = userEvent.setup();
+    renderProjectsPage('/projects?tab=work&pane=pane-1');
+
+    await user.click(screen.getByRole('button', { name: 'Go external' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects/team-project');
+    });
+
+    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Home' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
+    });
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
+  });
+
+  it('opens Quick thoughts from the top command bar and restores focus when it closes', async () => {
     const user = userEvent.setup();
     renderProjectsPage();
 
-    const trigger = within(screen.getByTestId('home-dashboard')).getByRole('button', { name: 'Quick thoughts' });
+    const trigger = within(screen.getByRole('main')).getByRole('button', { name: 'Quick thoughts' });
     await user.click(trigger);
 
     await waitFor(() => {
@@ -455,7 +542,7 @@ describe('ProjectsPage', () => {
       expect(screen.queryByRole('dialog', { name: 'Quick thoughts' })).not.toBeInTheDocument();
     });
     await waitFor(() => {
-      expect(within(screen.getByTestId('home-dashboard')).getByRole('button', { name: 'Quick thoughts' })).toHaveFocus();
+      expect(within(screen.getByRole('main')).getByRole('button', { name: 'Quick thoughts' })).toHaveFocus();
     });
   });
 

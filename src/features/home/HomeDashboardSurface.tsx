@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Icon, InlineNotice } from '../../components/primitives';
+import { InlineNotice } from '../../components/primitives';
 import type { ProjectRecord } from '../../types/domain';
 import { DayStripSection } from '../PersonalizedDashboardPanel/DayStripSection';
 import { ProjectLensView } from '../PersonalizedDashboardPanel/ProjectLensView';
@@ -15,8 +15,6 @@ import type { HomeRuntime } from './useHomeRuntime';
 interface HomeDashboardSurfaceProps {
   activeContentView: HomeContentViewId;
   homeError: string | null;
-  homeLoading: boolean;
-  onOpenQuickThoughts: () => void;
   onOpenRecord: (recordId: string) => void;
   projectContent: ReactNode;
   projects: ProjectRecord[];
@@ -26,8 +24,6 @@ interface HomeDashboardSurfaceProps {
 export const HomeDashboardSurface = ({
   activeContentView,
   homeError,
-  homeLoading,
-  onOpenQuickThoughts,
   onOpenRecord,
   projectContent,
   projects,
@@ -76,7 +72,7 @@ export const HomeDashboardSurface = ({
   const greeting = greetingForHour(now.getHours());
 
   return (
-    <section className="space-y-4" aria-label="Home overview">
+    <div className="space-y-4">
       {homeError ? (
         <InlineNotice variant="danger" title="Home unavailable">
           {homeError}
@@ -86,20 +82,7 @@ export const HomeDashboardSurface = ({
       <DayStripSection
         countReady={runtime.homeReady}
         greeting={`${greeting} · ${formatCountLabel(totalPipCounts.events, 'event')}, ${formatCountLabel(totalPipCounts.tasks, 'task')}, ${formatCountLabel(totalPipCounts.reminders, 'reminder')}`}
-        headerActions={(
-          <>
-            {homeLoading ? <span className="text-xs text-muted">Refreshing…</span> : null}
-            <button
-              type="button"
-              data-home-launcher="thoughts"
-              onClick={onOpenQuickThoughts}
-              className="ghost-button inline-flex items-center gap-2 bg-surface px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-highest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              <Icon name="thought-pile" className="text-sm" />
-              <span>Quick thoughts</span>
-            </button>
-          </>
-        )}
+        headerActions={null}
         now={now}
         filteredDailyData={filteredDailyData}
         dayCounts={dayCounts}
@@ -117,7 +100,7 @@ export const HomeDashboardSurface = ({
 
       {activeContentView === 'project' ? projectContent : null}
       {activeContentView === 'lenses' ? (
-        <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} title="Lenses" />
+        <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} title="Hub" />
       ) : null}
       {activeContentView === 'stream' ? (
         <section className="section-scored space-y-4 rounded-panel bg-elevated p-4 shadow-soft">
@@ -128,6 +111,6 @@ export const HomeDashboardSurface = ({
           <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} now={now} />
         </section>
       ) : null}
-    </section>
+    </div>
   );
 };

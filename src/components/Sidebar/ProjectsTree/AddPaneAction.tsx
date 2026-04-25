@@ -73,7 +73,7 @@ export const AddPaneAction = ({
       <button
         ref={triggerRef}
         type="button"
-        className="interactive interactive-subtle flex w-full items-center gap-2 rounded-control border border-dashed border-subtle px-3 py-2 text-left text-sm font-medium text-text-secondary hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="interactive interactive-subtle flex w-full items-center gap-2 rounded-control border border-dashed border-subtle px-3 py-2 text-left text-sm font-normal text-text-secondary hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         onClick={() => {
           setError(null);
           setOpen(true);

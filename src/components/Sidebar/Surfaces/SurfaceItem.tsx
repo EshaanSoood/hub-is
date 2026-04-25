@@ -44,7 +44,7 @@ export const SurfaceItem = ({
     </span>
     {!isCollapsed ? (
       <SidebarLabel show={showLabels} className="relative z-[1] min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium leading-none">{label}</span>
+        <span className="block truncate text-sm font-normal leading-none">{label}</span>
       </SidebarLabel>
     ) : null}
   </button>

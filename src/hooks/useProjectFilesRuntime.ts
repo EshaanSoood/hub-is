@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { recordRecentPaneContribution } from '../features/recentPlaces/store';
 import {
   createAssetRoot,
   listAssetRoots,
@@ -276,6 +277,14 @@ export const useProjectFilesRuntime = ({
             }));
 
             await refreshTrackedProjectFiles();
+            if (activePane) {
+              recordRecentPaneContribution({
+                paneId: activePane.pane_id,
+                paneName: activePane.name,
+                spaceId: projectId,
+                spaceName: projectName,
+              }, 'file-upload');
+            }
             const removalTimer = window.setTimeout(() => {
               removePendingProjectFile(entry.item.id);
               delete fileRemovalTimersRef.current[entry.item.id];
@@ -299,7 +308,17 @@ export const useProjectFilesRuntime = ({
         })();
       }
     },
-    [accessToken, activePane?.pane_id, ensureProjectAssetRoot, onError, projectId, refreshTrackedProjectFiles, removePendingProjectFile, updatePendingProjectFile],
+    [
+      accessToken,
+      activePane,
+      ensureProjectAssetRoot,
+      onError,
+      projectId,
+      projectName,
+      refreshTrackedProjectFiles,
+      removePendingProjectFile,
+      updatePendingProjectFile,
+    ],
   );
 
   const onUploadPaneFiles = useCallback(
@@ -375,6 +394,12 @@ export const useProjectFilesRuntime = ({
             }));
 
             await Promise.all([refreshTrackedProjectFiles(), refreshTrackedPaneFiles(paneIdForUpload)]);
+            recordRecentPaneContribution({
+              paneId: paneIdForUpload,
+              paneName: activePane.name,
+              spaceId: projectId,
+              spaceName: projectName,
+            }, 'pane-file-upload');
             const removalTimer = window.setTimeout(() => {
               removePendingPaneFile(paneIdForUpload, entry.item.id);
               delete fileRemovalTimersRef.current[entry.item.id];
@@ -398,7 +423,18 @@ export const useProjectFilesRuntime = ({
         })();
       }
     },
-    [accessToken, activePane, ensureProjectAssetRoot, onError, projectId, refreshTrackedPaneFiles, refreshTrackedProjectFiles, removePendingPaneFile, updatePendingPaneFile],
+    [
+      accessToken,
+      activePane,
+      ensureProjectAssetRoot,
+      onError,
+      projectId,
+      projectName,
+      refreshTrackedPaneFiles,
+      refreshTrackedProjectFiles,
+      removePendingPaneFile,
+      updatePendingPaneFile,
+    ],
   );
 
   const onOpenPaneFile = useCallback((file: FilesModuleItem) => {

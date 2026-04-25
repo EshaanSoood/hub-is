@@ -12,7 +12,9 @@ import { createEventFromNlp, createPersonalTask, createRecord } from '../../../s
 import { createReminder } from '../../../services/hub/reminders';
 import type { HubPaneSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
+import { cn } from '../../../lib/cn';
 import { SidebarLabel } from '../motion/SidebarLabel';
+import { recordRecentPaneContribution } from '../../../features/recentPlaces/store';
 import {
   sidebarCaptureFocusVariants,
   sidebarMotionLayoutIds,
@@ -46,8 +48,10 @@ interface CaptureInputProps {
   currentSurfaceLabel: string | null;
   isCollapsed: boolean;
   onOpenCapture: () => void;
+  placeholder?: string;
   personalProject: ProjectRecord | null;
   showLabels: boolean;
+  variant?: 'sidebar' | 'command-bar';
 }
 
 const resolveCaptureKind = (draft: string, currentSurface: SidebarCaptureSurface): CaptureKind => {
@@ -124,8 +128,10 @@ export const CaptureInput = ({
   currentSurfaceLabel,
   isCollapsed,
   onOpenCapture,
+  placeholder,
   personalProject,
   showLabels,
+  variant = 'sidebar',
 }: CaptureInputProps) => {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion() ?? false;
@@ -189,6 +195,8 @@ export const CaptureInput = ({
     () => (currentProject && paneDestination ? 'pane' : 'hub'),
     [currentProject, paneDestination],
   );
+  const isCommandBarVariant = variant === 'command-bar';
+  const resolvedPlaceholder = placeholder ?? (currentSurfaceLabel ? `Capture for ${currentSurfaceLabel.toLowerCase()}…` : 'Capture anything…');
 
   useEffect(() => {
     if (autoFocusKey > 0) {
@@ -235,6 +243,14 @@ export const CaptureInput = ({
             return false;
           }
           createQuickThoughtEntry(storageKey, trimmedDraft);
+          if (currentProject) {
+            recordRecentPaneContribution({
+              paneId: pane.pane_id,
+              paneName: pane.name,
+              spaceId: pane.project_id,
+              spaceName: currentProject.name,
+            }, 'quick-thought');
+          }
           startTransition(() => {
             navigate(buildProjectWorkHref(pane.project_id, pane.pane_id));
           });
@@ -281,6 +297,14 @@ export const CaptureInput = ({
             source_pane_id: pane.pane_id,
           });
           requestHubHomeRefresh();
+          if (currentProject) {
+            recordRecentPaneContribution({
+              paneId: pane.pane_id,
+              paneName: pane.name,
+              spaceId: pane.project_id,
+              spaceName: currentProject.name,
+            }, 'capture-task');
+          }
           startTransition(() => {
             navigate(buildProjectWorkHref(pane.project_id, pane.pane_id));
           });
@@ -322,6 +346,14 @@ export const CaptureInput = ({
               }),
         });
         requestHubHomeRefresh();
+        if (destination.kind === 'pane' && destination.pane && currentProject) {
+          recordRecentPaneContribution({
+            paneId: destination.pane.pane_id,
+            paneName: destination.pane.name,
+            spaceId: destination.pane.project_id,
+            spaceName: currentProject.name,
+          }, 'capture-reminder');
+        }
       }
 
       if (resolvedCaptureKind === 'event') {
@@ -362,6 +394,14 @@ export const CaptureInput = ({
             : {}),
         });
         requestHubHomeRefresh();
+        if (destination.kind === 'pane' && destination.pane && currentProject) {
+          recordRecentPaneContribution({
+            paneId: destination.pane.pane_id,
+            paneName: destination.pane.name,
+            spaceId: destination.pane.project_id,
+            spaceName: currentProject.name,
+          }, 'capture-event');
+        }
       }
 
       setDraft('');
@@ -391,12 +431,17 @@ export const CaptureInput = ({
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className={cn('relative', isCommandBarVariant && 'min-w-0 flex-1')}>
       <motion.div
         initial={false}
         animate={isFocused || dialogOpen ? 'focused' : 'rest'}
         variants={sidebarCaptureFocusVariants(prefersReducedMotion)}
-        className="sidebar-row-button relative rounded-panel bg-surface px-3 py-2"
+        className={cn(
+          'relative',
+          isCommandBarVariant
+            ? 'rounded-control border border-border-muted bg-surface px-4 py-3 shadow-soft-subtle'
+            : 'sidebar-row-button rounded-panel bg-surface px-3 py-2',
+        )}
         onFocusCapture={() => setIsFocused(true)}
         onBlurCapture={() => {
           requestAnimationFrame(() => {
@@ -408,58 +453,111 @@ export const CaptureInput = ({
           <motion.div
             aria-hidden="true"
             layoutId={prefersReducedMotion ? undefined : sidebarMotionLayoutIds.captureSurface}
-            className="sidebar-row-button pointer-events-none absolute inset-0 rounded-panel bg-surface"
+            className={cn(
+              'pointer-events-none absolute inset-0',
+              isCommandBarVariant ? 'rounded-control' : 'rounded-panel',
+              isCommandBarVariant ? 'bg-transparent' : 'sidebar-row-button bg-surface',
+            )}
           />
         ) : null}
-        <div className="relative z-[1] flex items-center gap-2">
+        <div className={cn('relative z-[1] flex items-center', isCommandBarVariant ? 'gap-3' : 'gap-2')}>
           <span
             aria-hidden="true"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-low text-text-secondary"
+            className={cn(
+              'flex shrink-0 items-center justify-center text-text-secondary',
+              'rounded-control',
+              isCommandBarVariant ? 'h-10 w-10 bg-surface-low' : 'h-8 w-8 bg-surface-low',
+            )}
           >
             <Icon name="edit" size={16} />
           </span>
-          <SidebarLabel show={showLabels} className="min-w-0 flex flex-1 items-center gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={draft}
-              aria-busy={isSubmitting}
-              onFocus={() => {
-                void importCaptureDialog();
-              }}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                void importCaptureDialog();
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault();
-                  if (isSubmittingRef.current) {
-                    return;
-                  }
-                  const resolvedCaptureKind = resolveCaptureKind(draft, currentSurface);
-                  void submitDirectCapture(resolvedCaptureKind).then((didSubmit) => {
-                    if (!didSubmit) {
-                      openDialog();
+          {isCommandBarVariant ? (
+            <>
+              <input
+                ref={inputRef}
+                type="text"
+                value={draft}
+                aria-busy={isSubmitting}
+                onFocus={() => {
+                  void importCaptureDialog();
+                }}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  void importCaptureDialog();
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    if (isSubmittingRef.current) {
+                      return;
                     }
-                  });
-                }
-              }}
-              placeholder={currentSurfaceLabel ? `Capture for ${currentSurfaceLabel.toLowerCase()}…` : 'Capture anything…'}
-              className="h-8 min-w-0 flex-1 border-0 bg-transparent text-sm leading-none text-text outline-none placeholder:text-text-secondary"
-            />
-            <button
-              ref={triggerRef}
-              type="button"
-              disabled={isSubmitting}
-              aria-label="Open capture confirmation"
-              className="interactive interactive-subtle ghost-button flex h-8 w-8 shrink-0 items-center justify-center bg-surface-low text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              onMouseEnter={() => {
-                void importCaptureDialog();
-              }}
-              onClick={openDialog}
-            >
-              <Icon name="plus" size={14} />
-            </button>
-          </SidebarLabel>
+                    const resolvedCaptureKind = resolveCaptureKind(draft, currentSurface);
+                    void submitDirectCapture(resolvedCaptureKind).then((didSubmit) => {
+                      if (!didSubmit) {
+                        openDialog();
+                      }
+                    });
+                  }
+                }}
+                placeholder={resolvedPlaceholder}
+                className="h-10 min-w-0 flex-1 border-0 bg-transparent text-sm font-medium leading-none text-text outline-none placeholder:text-text-secondary"
+              />
+              <button
+                ref={triggerRef}
+                type="button"
+                disabled={isSubmitting}
+                aria-label="Open capture confirmation"
+                className="interactive interactive-subtle ghost-button flex h-10 w-10 shrink-0 items-center justify-center bg-surface-low text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                onMouseEnter={() => {
+                  void importCaptureDialog();
+                }}
+                onClick={openDialog}
+              >
+                <Icon name="plus" size={14} />
+              </button>
+            </>
+          ) : (
+            <SidebarLabel show={showLabels} className="min-w-0 flex flex-1 items-center gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={draft}
+                aria-busy={isSubmitting}
+                onFocus={() => {
+                  void importCaptureDialog();
+                }}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  void importCaptureDialog();
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    if (isSubmittingRef.current) {
+                      return;
+                    }
+                    const resolvedCaptureKind = resolveCaptureKind(draft, currentSurface);
+                    void submitDirectCapture(resolvedCaptureKind).then((didSubmit) => {
+                      if (!didSubmit) {
+                        openDialog();
+                      }
+                    });
+                  }
+                }}
+                placeholder={resolvedPlaceholder}
+                className="h-8 min-w-0 flex-1 border-0 bg-transparent text-sm leading-none text-text outline-none placeholder:text-text-secondary"
+              />
+              <button
+                ref={triggerRef}
+                type="button"
+                disabled={isSubmitting}
+                aria-label="Open capture confirmation"
+                className="interactive interactive-subtle ghost-button flex h-8 w-8 shrink-0 items-center justify-center bg-surface-low text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                onMouseEnter={() => {
+                  void importCaptureDialog();
+                }}
+                onClick={openDialog}
+              >
+                <Icon name="plus" size={14} />
+              </button>
+            </SidebarLabel>
+          )}
         </div>
       </motion.div>
 
