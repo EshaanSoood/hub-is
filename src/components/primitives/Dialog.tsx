@@ -35,6 +35,7 @@ export interface BaseDialogProps {
   openFocusMode?: DialogOpenFocusMode;
   openIntent?: DialogOpenIntent;
   modal?: boolean;
+  onEscapeKeyDown?: React.ComponentPropsWithoutRef<typeof DialogContent>['onEscapeKeyDown'];
 }
 
 export const Dialog = ({
@@ -53,6 +54,7 @@ export const Dialog = ({
   openFocusMode = 'first-control',
   openIntent = 'user',
   modal = true,
+  onEscapeKeyDown,
 }: BaseDialogProps) => (
   <DialogRoot modal={modal} open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
     <DialogContent
@@ -80,6 +82,7 @@ export const Dialog = ({
       layoutId={layoutId}
       motionVariant={motionVariant}
       overlayClassName={overlayClassName}
+      onEscapeKeyDown={onEscapeKeyDown}
       className={cn(panelClassName)}
     >
       <DialogHeader className={cn(hideHeader && 'sr-only')}>

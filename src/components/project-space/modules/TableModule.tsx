@@ -76,6 +76,7 @@ export const TableModule = ({
             loading={viewData?.loading ?? false}
             readOnly={previewMode}
             previewMode={previewMode}
+            titleColumnLabel={contract.titleColumnLabel}
             onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
             onCreateRecord={
               createRecord && selectedViewId

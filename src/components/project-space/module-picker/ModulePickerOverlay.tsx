@@ -39,6 +39,10 @@ export const ModulePickerOverlay = ({
       overlayClassName="module-picker-viewport-backdrop"
       panelClassName="module-picker-viewport-panel module-picker-panel-size overflow-hidden p-0"
       contentClassName="mt-0 flex h-full min-h-0 p-0"
+      onEscapeKeyDown={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
     >
       <div ref={trapRef} tabIndex={-1} className="flex h-full min-h-0 w-full flex-col md:flex-row">
         <aside className="module-picker-sidebar-size flex min-h-0 flex-col border-b border-border-muted bg-surface-low md:border-b-0 md:border-r">

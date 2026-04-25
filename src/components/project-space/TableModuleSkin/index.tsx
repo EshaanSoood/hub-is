@@ -31,6 +31,7 @@ export const TableModuleSkin = ({
   loading,
   readOnly = false,
   previewMode = false,
+  titleColumnLabel,
   availableViews,
   onOpenRecord,
   onCreateRecord,
@@ -61,6 +62,7 @@ export const TableModuleSkin = ({
   );
 
   const fieldById = useMemo(() => new Map((schema?.fields ?? []).map((field) => [field.field_id, field])), [schema?.fields]);
+  const schemaFieldIds = useMemo(() => schema?.fields.map((field) => field.field_id) ?? [], [schema?.fields]);
 
   const { sorting, setSorting } = useTableSorting();
   const {
@@ -71,7 +73,7 @@ export const TableModuleSkin = ({
     columnOrder,
     handleColumnOrderChange,
     handleHeaderDragEnd,
-  } = useTableDragReorder(showBulkSelection, readOnly);
+  } = useTableDragReorder(showBulkSelection, readOnly, schemaFieldIds);
 
   const {
     activeFilters,
@@ -282,7 +284,7 @@ export const TableModuleSkin = ({
       {
         id: 'title',
         accessorFn: (row) => row.title,
-        header: 'Title',
+        header: titleColumnLabel ?? 'Title',
         size: 256,
         minSize: 180,
         cell: ({ row }) => renderDisplayCell(row.original, null),
@@ -300,6 +302,7 @@ export const TableModuleSkin = ({
     setSelectedRecordIds,
     showBulkSelection,
     sizeTier,
+    titleColumnLabel,
     toggleSelectedRecord,
   ]);
 
@@ -481,6 +484,27 @@ export const TableModuleSkin = ({
               onCta={canCreate ? () => createTitleInputRef.current?.focus() : undefined}
               sizeTier={sizeTier}
             />
+          </div>
+        ) : previewMode ? (
+          <div className="flex h-full min-h-0 flex-col">
+            {modelRows.map((row, index) => (
+              <TableRow
+                key={row.id}
+                row={row}
+                rowIndex={index}
+                templateColumns={templateColumns}
+                setRowRef={(rowIndex, node) => {
+                  rowRefs.current[rowIndex] = node;
+                }}
+                onRowKeyDown={handleRowKeyDown}
+                editableCell={editableCell}
+                fieldById={fieldById}
+                setEditableCell={setEditableCell}
+                handleEditableCellBlur={handleEditableCellBlur}
+                handleEditableCellKeyDown={handleEditableCellKeyDown}
+                previewMode
+              />
+            ))}
           </div>
         ) : (
           <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>

@@ -126,8 +126,8 @@
   --module-picker-preview-min-height: 34rem;
   --module-picker-overlay-z: 400;
   --module-picker-panel-z: 401;
-  --table-preview-title-column-min: 20rem;
-  --table-preview-field-column-min: 14rem;
+  --table-preview-title-column-min: 0rem;
+  --table-preview-field-column-min: 0rem;
   --home-overview-calendar-panel-min-h: 32rem;
   --sidebar-width-expanded: 15.5rem;
   --sidebar-width-collapsed: 3.5rem;

@@ -14,7 +14,10 @@ export const buildPreviewModule = (selection: ModulePickerSelection): ContractMo
 
 export const tableContract = (seed: ModulePickerSeedPayload): TableModuleContract => {
   const rows = asArray(seed.rows);
-  const fields = ['Status', 'Vibe'].map((name, index) => ({
+  const seedFieldNames = asArray(seed.fields).map((field) => asText(field)).filter(Boolean);
+  const titleColumnLabel = seedFieldNames[0] ?? 'Name';
+  const fieldNames = seedFieldNames.length > 1 ? seedFieldNames.slice(1) : ['Status', 'Vibe'];
+  const fields = fieldNames.map((name, index) => ({
     field_id: `preview-field-${index}`,
     collection_id: 'preview-table',
     name,
@@ -25,6 +28,7 @@ export const tableContract = (seed: ModulePickerSeedPayload): TableModuleContrac
   return {
     views: [{ view_id: 'preview-view', name: 'Preview Table' }],
     defaultViewId: 'preview-view',
+    titleColumnLabel,
     dataByViewId: {
       'preview-view': {
         schema: { collection_id: 'preview-table', name: 'Preview Table', fields },

@@ -25,6 +25,7 @@ const functionalUpdate = <T,>(updater: Updater<T>, input: T): T =>
 export const useTableDragReorder = (
   showBulkSelection: boolean,
   readOnly: boolean,
+  fieldIds: string[] = [],
 ): UseTableDragReorderResult => {
   const [fieldColumnOrder, setFieldColumnOrder] = useState<string[]>([]);
 
@@ -33,9 +34,17 @@ export const useTableDragReorder = (
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  const visibleFieldColumnOrder = useMemo(
+    () => [
+      ...fieldColumnOrder.filter((fieldId) => fieldIds.includes(fieldId)),
+      ...fieldIds.filter((fieldId) => !fieldColumnOrder.includes(fieldId)),
+    ],
+    [fieldColumnOrder, fieldIds],
+  );
+
   const columnOrder = useMemo<ColumnOrderState>(
-    () => [...(showBulkSelection ? ['select'] : []), 'title', ...fieldColumnOrder],
-    [fieldColumnOrder, showBulkSelection],
+    () => [...(showBulkSelection ? ['select'] : []), 'title', ...visibleFieldColumnOrder],
+    [showBulkSelection, visibleFieldColumnOrder],
   );
 
   const handleColumnOrderChange = useCallback(
@@ -70,11 +79,11 @@ export const useTableDragReorder = (
     [readOnly],
   );
 
-  const canReorderColumns = !readOnly && fieldColumnOrder.length > 1;
+  const canReorderColumns = !readOnly && visibleFieldColumnOrder.length > 1;
 
   return {
     sensors,
-    fieldColumnOrder,
+    fieldColumnOrder: visibleFieldColumnOrder,
     setFieldColumnOrder,
     canReorderColumns,
     columnOrder,

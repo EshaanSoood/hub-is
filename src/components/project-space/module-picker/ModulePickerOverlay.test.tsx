@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useRef, useState } from 'react';
 import { ModulePickerOverlay } from './ModulePickerOverlay';
+import { tableContract } from './modulePickerPreviewContracts';
 
 const ModulePickerHarness = () => {
   const [open, setOpen] = useState(false);
@@ -75,7 +76,7 @@ describe('ModulePickerOverlay', () => {
   it('traps keyboard focus inside the picker and restores focus to the trigger', async () => {
     mockVisibleElements();
     const user = userEvent.setup();
-    render(<ModulePickerHarness />);
+    const { container } = render(<ModulePickerHarness />);
 
     const trigger = screen.getByRole('button', { name: 'Open picker' });
     await user.click(trigger);
@@ -95,10 +96,32 @@ describe('ModulePickerOverlay', () => {
     await user.keyboard('{Shift>}{Tab}{/Shift}');
     expect(screen.getByRole('button', { name: 'Add Table' })).toHaveFocus();
 
+    container.querySelectorAll('button')[2]?.focus();
+    expect(screen.getByRole('button', { name: 'Add Table' })).toHaveFocus();
+
     await user.keyboard('{Escape}');
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Add Module' })).not.toBeInTheDocument();
     });
     expect(trigger).toHaveFocus();
+  });
+
+  it('maps table seed columns into the preview table contract', () => {
+    const contract = tableContract({
+      fields: ['Name', 'Status', 'Vibe'],
+      rows: [['Your first record', 'Thriving', 'Organize anything into rows']],
+    });
+
+    const viewData = contract.dataByViewId['preview-view'];
+
+    expect(contract.titleColumnLabel).toBe('Name');
+    expect(viewData.schema?.fields.map((field) => field.name)).toEqual(['Status', 'Vibe']);
+    expect(viewData.records[0]).toMatchObject({
+      title: 'Your first record',
+      fields: {
+        'preview-field-0': 'Thriving',
+        'preview-field-1': 'Organize anything into rows',
+      },
+    });
   });
 });

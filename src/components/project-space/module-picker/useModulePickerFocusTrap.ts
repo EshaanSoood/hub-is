@@ -1,5 +1,6 @@
-import { useEffect, type RefObject } from 'react';
+import { useLayoutEffect, type RefObject } from 'react';
 
+const AUTOFOCUS_SELECTOR = '[data-dialog-autofocus]';
 const FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
@@ -20,19 +21,28 @@ const isVisible = (element: HTMLElement): boolean => {
 const focusableElements = (container: HTMLElement): HTMLElement[] =>
   Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(isVisible);
 
-const focusFirst = (container: HTMLElement): void => {
+const initialFocusElement = (container: HTMLElement): HTMLElement => {
+  const autofocusTarget = container.querySelector<HTMLElement>(AUTOFOCUS_SELECTOR);
+  if (autofocusTarget && isVisible(autofocusTarget)) {
+    return autofocusTarget;
+  }
   const [first] = focusableElements(container);
-  (first ?? container).focus({ preventScroll: true });
+  return first ?? container;
+};
+
+const focusFirst = (container: HTMLElement): void => {
+  initialFocusElement(container).focus({ preventScroll: true });
 };
 
 export const useModulePickerFocusTrap = (open: boolean, containerRef: RefObject<HTMLElement | null>) => {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!open || !container) {
       return undefined;
     }
 
-    const focusTimer = window.setTimeout(() => focusFirst(container), 0);
+    focusFirst(container);
+    const focusFrame = window.requestAnimationFrame(() => focusFirst(container));
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') {
@@ -73,7 +83,7 @@ export const useModulePickerFocusTrap = (open: boolean, containerRef: RefObject<
     document.addEventListener('focusin', onFocusIn, true);
 
     return () => {
-      window.clearTimeout(focusTimer);
+      window.cancelAnimationFrame(focusFrame);
       document.removeEventListener('keydown', onKeyDown, true);
       document.removeEventListener('focusin', onFocusIn, true);
     };

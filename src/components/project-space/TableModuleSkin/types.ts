@@ -26,6 +26,7 @@ export interface TableModuleSkinProps {
   loading: boolean;
   readOnly?: boolean;
   previewMode?: boolean;
+  titleColumnLabel?: string;
   availableViews?: TableViewOption[];
   onOpenRecord: (recordId: string) => void;
   onCreateRecord?: (payload: { title: string; fields: Record<string, unknown> }) => Promise<void>;
