@@ -1,10 +1,11 @@
-import { useMemo, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import {
   archiveRecord,
   createEventFromNlp,
   createRecord,
   updateRecord,
 } from '../../../services/hub/records';
+import { recordRecentPaneContribution } from '../../../features/recentPlaces/store';
 import { requestHubHomeRefresh } from '../../../lib/hubHomeRefresh';
 import type {
   CalendarModuleContract,
@@ -69,10 +70,12 @@ type EnsureKanbanView = (moduleInstanceId: string, ownedViewId: string | null | 
 
 interface UseWorkViewModuleRuntimeParams {
   activePaneId: string | null;
+  activePaneName: string | null;
   activePaneCanEdit: boolean;
   accessToken: string;
   canWriteProject: boolean;
   projectId: string;
+  projectName: string;
   setRecordsError: Dispatch<SetStateAction<string | null>>;
 
   tableViews: TableModuleContract['views'];
@@ -124,10 +127,12 @@ interface UseWorkViewModuleRuntimeParams {
 
 export const useWorkViewModuleRuntime = ({
   activePaneId,
+  activePaneName,
   activePaneCanEdit,
   accessToken,
   canWriteProject,
   projectId,
+  projectName,
   setRecordsError,
   tableViews,
   tableViewRuntimeDataById,
@@ -169,6 +174,18 @@ export const useWorkViewModuleRuntime = ({
   onDismissReminder,
   onCreateReminder,
 }: UseWorkViewModuleRuntimeParams): WorkViewModuleContracts => {
+  const recordActivePaneContribution = useCallback((contributionKind: string) => {
+    if (!activePaneId || !activePaneName) {
+      return;
+    }
+    recordRecentPaneContribution({
+      paneId: activePaneId,
+      paneName: activePaneName,
+      spaceId: projectId,
+      spaceName: projectName,
+    }, contributionKind);
+  }, [activePaneId, activePaneName, projectId, projectName]);
+
   return useMemo<WorkViewModuleContracts>(
     () => ({
       tableContract: {
@@ -229,6 +246,7 @@ export const useWorkViewModuleRuntime = ({
                 });
                 requestHubHomeRefresh();
                 await refreshCalendar();
+                recordActivePaneContribution('calendar-create-event');
               }
             : undefined,
         onRescheduleEvent:
@@ -246,6 +264,7 @@ export const useWorkViewModuleRuntime = ({
                     },
                   });
                   await refreshCalendar();
+                  recordActivePaneContribution('calendar-reschedule-event');
                 } catch (error) {
                   const message = error instanceof Error ? error.message : 'Failed to reschedule event.';
                   console.error('onRescheduleEvent: failed to update record', error);
@@ -295,6 +314,7 @@ export const useWorkViewModuleRuntime = ({
           });
           requestHubHomeRefresh();
           await loadProjectTaskPage();
+          recordActivePaneContribution('task-create');
         },
         onUpdateTaskStatus: async (taskId, status) => {
           if (!accessToken) {
@@ -303,6 +323,7 @@ export const useWorkViewModuleRuntime = ({
           try {
             await updateRecord(accessToken, taskId, { task_state: { status } });
             await loadProjectTaskPage();
+            recordActivePaneContribution('task-status-update');
           } catch (err) {
             console.error('Failed to update task status:', err);
           }
@@ -314,6 +335,7 @@ export const useWorkViewModuleRuntime = ({
           try {
             await updateRecord(accessToken, taskId, { task_state: { priority } });
             await loadProjectTaskPage();
+            recordActivePaneContribution('task-priority-update');
           } catch (err) {
             console.error('Failed to update task priority:', err);
           }
@@ -325,6 +347,7 @@ export const useWorkViewModuleRuntime = ({
           try {
             await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
             await loadProjectTaskPage();
+            recordActivePaneContribution('task-due-date-update');
           } catch (err) {
             console.error('Failed to update task due date:', err);
           }
@@ -336,6 +359,7 @@ export const useWorkViewModuleRuntime = ({
           try {
             await archiveRecord(accessToken, taskId);
             await loadProjectTaskPage();
+            recordActivePaneContribution('task-delete');
           } catch (err) {
             console.error('Failed to delete task:', err);
           }
@@ -360,8 +384,14 @@ export const useWorkViewModuleRuntime = ({
         items: reminders,
         loading: remindersLoading,
         error: remindersError,
-        onDismiss: onDismissReminder,
-        onCreate: onCreateReminder,
+        onDismiss: async (reminderId) => {
+          await onDismissReminder(reminderId);
+          recordActivePaneContribution('reminder-dismiss');
+        },
+        onCreate: async (payload) => {
+          await onCreateReminder(payload);
+          recordActivePaneContribution('reminder-create');
+        },
         // TODO(phase8): wire module insert-to-editor callbacks from workspace-doc runtime.
         onInsertToEditor: undefined,
       },
@@ -392,6 +422,7 @@ export const useWorkViewModuleRuntime = ({
       accessToken,
       projectId,
       refreshCalendar,
+      recordActivePaneContribution,
       setRecordsError,
       paneFiles,
       projectFiles,

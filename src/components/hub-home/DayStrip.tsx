@@ -1,4 +1,5 @@
 import { type DragEvent, type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { cn } from '../../lib/cn';
 import type {
   BacklogDragPayload,
   DayStripEventItem,
@@ -15,6 +16,8 @@ import {
 
 const ITEM_MIN_WIDTH_PX = 180;
 const ITEM_TITLE_MAX_CHARS = 30;
+const EMPTY_DAY_PROMPT_TITLE = 'Chill day ahead?';
+const EMPTY_DAY_PROMPT_BODY = 'Drag tasks over to the timeline to sketch your day.';
 
 const parseIso = (value: string): Date | null => {
   const parsed = new Date(value);
@@ -97,6 +100,7 @@ export const DayStrip = ({
   onKeyboardDrop,
   onKeyboardCancel,
   focusViewportKey = 0,
+  presentation = 'full',
 }: {
   className?: string;
   events: DayStripEventItem[];
@@ -111,6 +115,7 @@ export const DayStrip = ({
   onKeyboardDrop?: (assignedAt: Date) => void | Promise<void>;
   onKeyboardCancel?: () => void;
   focusViewportKey?: number;
+  presentation?: 'full' | 'collapsed-empty';
 }) => {
   const [now, setNow] = useState(() => new Date());
   const [dragOver, setDragOver] = useState(false);
@@ -230,6 +235,7 @@ export const DayStrip = ({
   const baseWidthPx = Math.max(720, Math.ceil(spanHours * 90));
   const widthPx = baseWidthPx;
   const showTimeline = showEmptyTimeline || timelineItems.length > 0;
+  const useCollapsedEmptyPresentation = presentation === 'collapsed-empty' && hasNoScheduledItems && showTimeline;
 
   const ticks = useMemo(() => {
     const first = new Date(range.startMs);
@@ -551,13 +557,72 @@ export const DayStrip = ({
     );
   };
 
+  if (useCollapsedEmptyPresentation) {
+    return (
+      <div className={cn('relative min-h-[var(--daily-brief-collapsed-height)] overflow-hidden rounded-panel', className)}>
+        <div aria-hidden="true" className="frosted-panel absolute inset-0 rounded-panel" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-x-4 top-1/2 h-12 -translate-y-1/2 rounded-panel bg-surface/35" />
+          <div className="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-border-muted/55" />
+          {ticks.map((tick) => {
+            if (!tick.major && !tick.midnight) {
+              return null;
+            }
+            const left = percentForMs(tick.ms);
+            return (
+              <span
+                key={tick.key}
+                className={cn(
+                  'absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-border-muted/40',
+                  tick.midnight ? 'h-12 w-[2px]' : 'h-8 w-px',
+                )}
+                style={{ left: `${left}%` }}
+              />
+            );
+          })}
+        </div>
+        <div
+          ref={timelineRef}
+          data-testid="daily-brief-collapsed-strip"
+          className={cn(
+            'relative flex min-h-[var(--daily-brief-collapsed-height)] items-center justify-center px-4 py-3 transition-colors',
+            dragOver && 'bg-primary/6',
+          )}
+          onDragOver={(event) => {
+            if (!onDropFromBacklog) {
+              return;
+            }
+            event.preventDefault();
+            setDragOver(true);
+            event.dataTransfer.dropEffect = 'move';
+          }}
+          onDragLeave={() => {
+            setDragOver(false);
+          }}
+          onDrop={handleDrop}
+        >
+          <div
+            className={cn(
+              'rounded-panel border border-border-muted/60 bg-surface/65 px-5 py-3 text-center shadow-soft-subtle transition-colors',
+              dragOver && 'border-primary/35 bg-primary/10',
+            )}
+          >
+            <p className="text-sm font-semibold text-text">{EMPTY_DAY_PROMPT_TITLE}</p>
+            <p className="mt-1 text-xs text-text-secondary">{EMPTY_DAY_PROMPT_BODY}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`rounded-panel bg-surface-low p-2 shadow-soft-subtle ${className ?? ''}`}>
+    <div className={cn('rounded-panel bg-surface-low p-2 shadow-soft-subtle', className)}>
       {!showTimeline ? (
         <div className="paper-well flex h-20 items-center justify-center px-4 text-center">
-          <p className="text-[15px] italic text-text-secondary">
-            The day is your oyster. Or carrot. Or something… — Shakespeare
-          </p>
+          <div>
+            <p className="text-sm font-semibold text-text">{EMPTY_DAY_PROMPT_TITLE}</p>
+            <p className="mt-1 text-xs text-text-secondary">{EMPTY_DAY_PROMPT_BODY}</p>
+          </div>
         </div>
       ) : (
         <div

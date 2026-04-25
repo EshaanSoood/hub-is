@@ -12,6 +12,7 @@ import {
   detachFile,
 } from '../services/hub/records';
 import { uploadFile } from '../services/hub/files';
+import { recordRecentPaneContribution } from '../features/recentPlaces/store';
 import type { HubBacklink, HubPaneSummary, HubRecordDetail } from '../services/hub/types';
 import { appendMentionToken, extractMentionsFromText, mentionToken } from '../features/notes/mentionTokens';
 import type { RelationFieldOption } from '../components/project-space/RelationPicker';
@@ -28,6 +29,7 @@ type ProjectTimelineItem = {
 interface UseRecordInspectorParams {
   accessToken: string;
   projectId: string;
+  projectName: string;
   panes: HubPaneSummary[];
   activeTab: 'overview' | 'work';
   activePaneId: string | null;
@@ -44,6 +46,7 @@ interface UseRecordInspectorParams {
 export const useRecordInspector = ({
   accessToken,
   projectId,
+  projectName,
   panes,
   activeTab,
   activePaneId,
@@ -93,6 +96,21 @@ export const useRecordInspector = ({
   }, [inspectorRecord?.schema?.fields, relationFieldTargetCollectionId]);
 
   const inspectorRequestVersionRef = useRef(0);
+  const recordInspectorPaneContribution = useCallback((contributionKind: string) => {
+    if (!inspectorMutationPaneId) {
+      return;
+    }
+    const pane = panes.find((entry) => entry.pane_id === inspectorMutationPaneId) || null;
+    if (!pane) {
+      return;
+    }
+    recordRecentPaneContribution({
+      paneId: pane.pane_id,
+      paneName: pane.name,
+      spaceId: projectId,
+      spaceName: projectName,
+    }, contributionKind);
+  }, [inspectorMutationPaneId, panes, projectId, projectName]);
 
   const openInspector = useCallback(
     async (recordId: string, options?: { mutationPaneId?: string | null }) => {
@@ -204,6 +222,7 @@ export const useRecordInspector = ({
         await refreshViewsAndRecords();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
+        recordInspectorPaneContribution('record-field-update');
       } catch (error) {
         setInspectorError(error instanceof Error ? error.message : 'Failed to save field.');
       } finally {
@@ -216,6 +235,7 @@ export const useRecordInspector = ({
       inspectorMutationPaneId,
       inspectorRecord,
       projectId,
+      recordInspectorPaneContribution,
       refreshViewsAndRecords,
       setTimeline,
     ],
@@ -256,8 +276,9 @@ export const useRecordInspector = ({
       setInspectorRecord(refreshed);
       const backlinks = await listBacklinks(accessToken, projectId, 'record', inspectorRecord.record_id);
       setInspectorBacklinks(backlinks);
+      recordInspectorPaneContribution('record-comment');
     },
-    [accessToken, inspectorCommentText, inspectorRecord, projectId],
+    [accessToken, inspectorCommentText, inspectorRecord, projectId, recordInspectorPaneContribution],
   );
 
   const onAddRelation = useCallback(
@@ -297,6 +318,7 @@ export const useRecordInspector = ({
           return;
         }
         setTimeline(nextTimeline);
+        recordInspectorPaneContribution('relation-add');
       } catch (error) {
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
@@ -311,6 +333,7 @@ export const useRecordInspector = ({
       inspectorMutationPaneId,
       inspectorRecord,
       projectId,
+      recordInspectorPaneContribution,
       refreshViewsAndRecords,
       setTimeline,
     ],
@@ -348,6 +371,7 @@ export const useRecordInspector = ({
           return;
         }
         setTimeline(nextTimeline);
+        recordInspectorPaneContribution('relation-remove');
       } catch (error) {
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
@@ -365,6 +389,7 @@ export const useRecordInspector = ({
       inspectorMutationPaneId,
       inspectorRecord,
       projectId,
+      recordInspectorPaneContribution,
       refreshViewsAndRecords,
       setTimeline,
     ],
@@ -439,6 +464,7 @@ export const useRecordInspector = ({
           return;
         }
         setTimeline(nextTimeline);
+        recordInspectorPaneContribution('attachment-add');
       } catch (error) {
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
@@ -456,6 +482,7 @@ export const useRecordInspector = ({
       inspectorMutationPaneId,
       inspectorRecord,
       projectId,
+      recordInspectorPaneContribution,
       refreshTrackedProjectFiles,
       setTimeline,
       toBase64,
@@ -492,6 +519,7 @@ export const useRecordInspector = ({
           return;
         }
         setTimeline(nextTimeline);
+        recordInspectorPaneContribution('attachment-remove');
       } catch (error) {
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
@@ -499,7 +527,7 @@ export const useRecordInspector = ({
         setInspectorError(error instanceof Error ? error.message : 'Failed to remove attachment.');
       }
     },
-    [accessToken, inspectorMutationPaneCanEdit, inspectorMutationPaneId, inspectorRecord, projectId, setTimeline],
+    [accessToken, inspectorMutationPaneCanEdit, inspectorMutationPaneId, inspectorRecord, projectId, recordInspectorPaneContribution, setTimeline],
   );
 
   const relinkInspectorAttachment = useCallback(

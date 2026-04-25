@@ -1,103 +1,24 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import type { HomeOverlayId, HomeTabId } from './navigation';
-import type { HomeSurfaceIdentity } from './useHomeSurfaceIdentity';
+import type { ReactNode } from 'react';
+import type { HomeTabId } from './navigation';
 
 interface HomeShellProps {
-  activeOverlay: HomeOverlayId | null;
   activeTab: HomeTabId;
-  autoFocusHeading?: boolean;
-  identity: HomeSurfaceIdentity;
   namingDialog?: ReactNode;
-  onSelectTab: (tab: HomeTabId) => void;
   overviewContent: ReactNode;
   quickThoughts: ReactNode;
   workContent: ReactNode;
 }
 
-const homeTabLabels: Record<HomeTabId, string> = {
-  overview: 'Overview',
-  work: 'Work',
-};
-
-let suppressNextHomeHeadingAutoFocus = false;
-
-export const suppressNextHomeHeadingFocus = (): void => {
-  suppressNextHomeHeadingAutoFocus = true;
-};
-
 export const HomeShell = ({
-  activeOverlay,
   activeTab,
-  autoFocusHeading = false,
-  identity,
   namingDialog,
-  onSelectTab,
   overviewContent,
   quickThoughts,
   workContent,
-}: HomeShellProps) => {
-  const headingRef = useRef<HTMLHeadingElement | null>(null);
-  const hasFocusedHeadingRef = useRef(false);
-  const previousProjectNameRef = useRef(identity.projectName);
-
-  useEffect(() => {
-    if (!autoFocusHeading || activeOverlay) {
-      return;
-    }
-    if (suppressNextHomeHeadingAutoFocus) {
-      suppressNextHomeHeadingAutoFocus = false;
-      return;
-    }
-    const projectNameChanged = previousProjectNameRef.current !== identity.projectName;
-    previousProjectNameRef.current = identity.projectName;
-    if (hasFocusedHeadingRef.current && !projectNameChanged) {
-      return;
-    }
-    const frameId = window.requestAnimationFrame(() => {
-      headingRef.current?.focus();
-      hasFocusedHeadingRef.current = true;
-    });
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [activeOverlay, autoFocusHeading, identity.projectName]);
-
-  return (
-    <div className="relative space-y-4">
-      <header className="section-scored rounded-panel bg-surface-container p-4">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-1">
-              <h1 ref={headingRef} tabIndex={-1} className="heading-2 text-text focus:outline-none">
-                {identity.label}
-              </h1>
-            </div>
-            <nav aria-label="Home tabs" className="flex flex-wrap items-center gap-2">
-              {(['overview', 'work'] as HomeTabId[]).map((tab) => {
-                const selected = activeTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    data-home-launcher={tab}
-                    onClick={() => onSelectTab(tab)}
-                    aria-current={selected ? 'page' : undefined}
-                    className={`interactive rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                      selected ? 'interactive-fold cta-primary text-on-primary' : 'bg-surface-low text-secondary hover:bg-surface hover:text-secondary-strong'
-                    }`}
-                  >
-                    {homeTabLabels[tab]}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      {activeTab === 'overview' ? overviewContent : workContent}
-      {quickThoughts}
-      {namingDialog}
-    </div>
-  );
-};
+}: HomeShellProps) => (
+  <div className="relative space-y-4">
+    {activeTab === 'overview' ? overviewContent : workContent}
+    {quickThoughts}
+    {namingDialog}
+  </div>
+);

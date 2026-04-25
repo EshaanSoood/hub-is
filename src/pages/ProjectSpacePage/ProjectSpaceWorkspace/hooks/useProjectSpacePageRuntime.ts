@@ -132,6 +132,7 @@ export const useProjectSpacePageRuntime = ({
   } = useProjectViewsRuntime({
     accessToken,
     projectId: project.project_id,
+    projectName: project.name,
     activeTab,
     panes,
     sessionUserId,
@@ -268,6 +269,7 @@ export const useProjectSpacePageRuntime = ({
   } = usePaneMutations({
     accessToken,
     projectId: project.project_id,
+    projectName: project.name,
     panes,
     refreshProjectData,
     setPanes,
@@ -313,6 +315,7 @@ export const useProjectSpacePageRuntime = ({
   const { createAndOpenCaptureRecord, quickCaptureInFlightRef } = useQuickCapture({
     accessToken,
     projectId: project.project_id,
+    projectName: project.name,
     activeTab,
     activePane,
     activePaneCanEdit,
@@ -533,10 +536,12 @@ export const useProjectSpacePageRuntime = ({
     remindersContract,
   } = useWorkViewModuleRuntime({
     activePaneId: activePane?.pane_id ?? null,
+    activePaneName: activePane?.name ?? null,
     activePaneCanEdit,
     accessToken,
     canWriteProject,
     projectId: project.project_id,
+    projectName: project.name,
     setRecordsError,
     tableViews,
     tableViewRuntimeDataById,

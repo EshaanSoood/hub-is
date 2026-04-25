@@ -40,7 +40,6 @@ interface HomeOverviewSurfaceProps {
   onSelectView: (view: HomeOverviewViewId) => void;
   onSnoozeReminder: (reminderId: string, remindAtIso: string) => Promise<void>;
   projectId: string;
-  projectName: string;
   reminders: HubReminderSummary[];
   remindersError: string | null;
   remindersLoading: boolean;
@@ -80,7 +79,6 @@ export const HomeOverviewSurface = ({
   onSelectView,
   onSnoozeReminder,
   projectId,
-  projectName,
   reminders,
   remindersError,
   remindersLoading,
@@ -166,11 +164,6 @@ export const HomeOverviewSurface = ({
 
   return (
     <section className="space-y-4">
-      <header className="section-scored rounded-panel bg-surface-container p-4">
-        <p className="text-sm font-semibold text-text">{projectName}</p>
-        <h2 className="heading-3 mt-1 text-text">Overview</h2>
-      </header>
-
       <Card className="p-4">
         <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as HomeOverviewViewId)} activationMode="manual">
           <TabsList aria-label="Home overview subviews">

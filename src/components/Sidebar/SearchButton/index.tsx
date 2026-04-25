@@ -175,7 +175,7 @@ export const SearchButton = ({
             <Icon name="search" size={16} />
           </span>
           <SidebarLabel show={showLabels} className="min-w-0 flex flex-1 items-center">
-            <span className="flex min-h-8 items-center truncate text-sm font-medium leading-none">Search</span>
+            <span className="flex min-h-8 items-center truncate text-sm font-normal leading-none">Search</span>
           </SidebarLabel>
           <SidebarLabel show={showLabels}>
             <span className="ghost-button text-label-sm tracking-sidebar-kicker bg-surface-low px-2 py-1 uppercase leading-none text-muted">

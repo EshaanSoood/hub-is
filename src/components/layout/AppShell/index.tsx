@@ -1,56 +1,134 @@
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
-import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
-import { useLocation, useNavigationType } from 'react-router-dom';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import { useAuthz } from '../../../context/AuthzContext';
 import { useProjects } from '../../../context/ProjectsContext';
+import {
+  buildHomeOverlayHref,
+  parseHomeContentViewId,
+  parseHomeOverviewViewId,
+  parseHomeOverlayId,
+  parseHomePaneId,
+  parseHomeTabId,
+  type HomeContentViewId,
+  type HomeOverviewViewId,
+  type HomeTabId,
+} from '../../../features/home/navigation';
+import { useProjectPanes } from '../../../hooks/useProjectPanes';
 import { useRouteFocusReset } from '../../../hooks/useRouteFocusReset';
-import { LiveRegion } from '../../primitives';
+import { useLiveRegion } from '../../../hooks/useLiveRegion';
 import { SidebarShell } from '../../Sidebar';
-import { fadeThroughVariants, routeFadeVariants, sharedAxisXVariants } from '../../motion/hubMotion';
+import { LiveRegion } from '../../primitives';
+import { AppCommandBar } from './AppCommandBar';
 import { decideRouteTransition } from './routeMotion';
+
+const decodePathSegment = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+interface HomeRouteState {
+  content: HomeContentViewId;
+  overview: HomeOverviewViewId;
+  paneId: string | null;
+  pinned: boolean;
+  tab: HomeTabId;
+}
+
+const defaultHomeRouteState: HomeRouteState = {
+  content: 'project',
+  overview: 'timeline',
+  paneId: null,
+  pinned: false,
+  tab: 'overview',
+};
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const navigationType = useNavigationType();
-  const prefersReducedMotion = useReducedMotion() ?? false;
+  const { accessToken } = useAuthz();
   const { projects } = useProjects();
+  const lastHomeRouteRef = useRef<HomeRouteState>(defaultHomeRouteState);
   const previousRouteRef = useRef<{ pathname: string; state: unknown } | null>(null);
-  const [transitionDecision, setTransitionDecision] = useState(() => decideRouteTransition({
-    currentPathname: location.pathname,
-    currentState: location.state,
-    previousPathname: null,
-    previousState: null,
-    navigationType,
-    getProjectName: (projectId) => projects.find((project) => project.id === projectId)?.name || null,
-  }));
+  const { announcement, announce } = useLiveRegion();
 
-  useLayoutEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTransitionDecision(decideRouteTransition({
+  useRouteFocusReset();
+
+  const normalizedPathname = location.pathname.replace(/\/+$/, '') || '/';
+  const isOnHome = normalizedPathname === '/projects';
+  const currentProjectId = useMemo(
+    () => decodePathSegment(normalizedPathname.match(/^\/projects\/([^/]+)/)?.[1] || null),
+    [normalizedPathname],
+  );
+  const personalProject = useMemo(
+    () => projects.find((project) => project.isPersonal) || null,
+    [projects],
+  );
+  const currentHomeState = useMemo<HomeRouteState>(() => {
+    const searchParams = new URLSearchParams(location.search);
+    return {
+      content: parseHomeContentViewId(searchParams.get('content') ?? searchParams.get('view')),
+      overview: parseHomeOverviewViewId(searchParams.get('overview')),
+      paneId: parseHomePaneId(searchParams.get('pane')),
+      pinned: searchParams.get('pinned') === '1',
+      tab: parseHomeTabId(searchParams.get('tab')),
+    };
+  }, [location.search]);
+  const currentSurface = useMemo(
+    () => (isOnHome ? parseHomeOverlayId(new URLSearchParams(location.search).get('surface')) : null),
+    [isOnHome, location.search],
+  );
+  const currentPaneId = useMemo(
+    () => (isOnHome
+      ? decodePathSegment(currentHomeState.paneId)
+      : decodePathSegment(normalizedPathname.match(/^\/projects\/[^/]+\/work\/([^/]+)/)?.[1] || null)),
+    [currentHomeState.paneId, isOnHome, normalizedPathname],
+  );
+  const currentProject = useMemo(() => {
+    if (isOnHome) {
+      return personalProject;
+    }
+    return projects.find((project) => project.id === currentProjectId) || null;
+  }, [currentProjectId, isOnHome, personalProject, projects]);
+  const currentProjectPanesProjectId = currentProject?.id ?? null;
+  const { panes: currentProjectPanes } = useProjectPanes(accessToken, currentProjectPanesProjectId);
+
+  useEffect(() => {
+    if (!isOnHome) {
+      return;
+    }
+    lastHomeRouteRef.current = currentHomeState;
+  }, [currentHomeState, isOnHome]);
+
+  useEffect(() => {
+    const transitionDecision = decideRouteTransition({
       currentPathname: location.pathname,
       currentState: location.state,
       previousPathname: previousRouteRef.current?.pathname ?? null,
       previousState: previousRouteRef.current?.state,
       navigationType,
       getProjectName: (projectId) => projects.find((project) => project.id === projectId)?.name || null,
-    }));
+    });
+
     previousRouteRef.current = {
       pathname: location.pathname,
       state: location.state,
     };
-  }, [location.pathname, location.state, navigationType, projects]);
 
-  useRouteFocusReset();
-
-  const routeTransitionVariants = transitionDecision.animation === 'shared-axis-x'
-    ? sharedAxisXVariants(transitionDecision.paneDirection, prefersReducedMotion)
-    : transitionDecision.animation === 'fade-through'
-      ? fadeThroughVariants(prefersReducedMotion)
-      : routeFadeVariants(prefersReducedMotion);
-
-  const routeTransitionKey = location.pathname;
+    if (transitionDecision.announcement) {
+      announce(transitionDecision.announcement);
+    }
+  }, [announce, location.pathname, location.state, navigationType, projects]);
 
   return (
     <div className="flex h-screen bg-bg text-text">
+      <LiveRegion message={announcement} role="status" ariaLive="polite" />
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[200] focus:rounded-control focus:bg-surface-elevated focus:px-md focus:py-sm focus:text-text focus:ring-2 focus:ring-focus-ring"
@@ -61,23 +139,30 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       <SidebarShell />
 
       <main id="main-content" className="min-w-0 flex-1 overflow-y-auto bg-bg">
-        <LayoutGroup id="hub-route-layout">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={routeTransitionKey}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              variants={routeTransitionVariants}
-              className="mx-auto w-full max-w-7xl px-4 py-6"
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
-        </LayoutGroup>
+        <div className="mx-auto w-full max-w-7xl px-4 pb-6 pt-6">
+          <AppCommandBar
+            accessToken={accessToken}
+            currentPaneId={currentPaneId}
+            currentProject={currentProject}
+            currentProjectPanes={currentProjectPanes}
+            currentSurface={currentSurface}
+            onOpenQuickThoughts={() => {
+              const homeRoute = isOnHome ? currentHomeState : lastHomeRouteRef.current;
+              navigate(buildHomeOverlayHref('thoughts', {
+                content: homeRoute.content,
+                overview: homeRoute.overview,
+                paneId: homeRoute.paneId,
+                pinned: homeRoute.pinned,
+                tab: homeRoute.tab,
+              }));
+            }}
+            personalProject={personalProject}
+          />
+        </div>
+        <div className="mx-auto w-full max-w-7xl px-4 pb-6">
+          {children}
+        </div>
       </main>
-
-      <LiveRegion message={transitionDecision.announcement} role="status" ariaLive="polite" />
     </div>
   );
 };

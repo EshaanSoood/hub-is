@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 
 import { createCollection, createCollectionField } from '../services/hub/collections';
+import { recordRecentPaneContribution } from '../features/recentPlaces/store';
 import { archiveRecord, createRecord, listTimeline, setRecordValues, updateRecord } from '../services/hub/records';
 import { createView, listViews, updateView } from '../services/hub/views';
 import type { HubPaneSummary, HubView } from '../services/hub/types';
@@ -18,6 +19,7 @@ import {
 interface UseProjectKanbanRuntimeParams {
   accessToken: string;
   projectId: string;
+  projectName: string;
   panes: HubPaneSummary[];
   views: HubView[];
   sessionUserId: string;
@@ -30,6 +32,7 @@ interface UseProjectKanbanRuntimeParams {
 export const useProjectKanbanRuntime = ({
   accessToken,
   projectId,
+  projectName,
   panes,
   views,
   sessionUserId,
@@ -133,11 +136,17 @@ export const useProjectKanbanRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
+        recordRecentPaneContribution({
+          paneId: mutationPane.pane_id,
+          paneName: mutationPane.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'kanban-move');
       } catch (error) {
         setRecordsError(error instanceof Error ? error.message : 'Failed to move kanban card.');
       }
     },
-    [accessToken, kanbanRuntimeByViewId, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
   );
 
   const onCreateKanbanRecord = useCallback(
@@ -174,13 +183,19 @@ export const useProjectKanbanRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
+        recordRecentPaneContribution({
+          paneId: mutationPane.pane_id,
+          paneName: mutationPane.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'kanban-create');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to create kanban card.';
         setRecordsError(message);
         throw new Error(message);
       }
     },
-    [accessToken, kanbanRuntimeByViewId, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
   );
 
   const onUpdateKanbanRecord = useCallback(
@@ -257,13 +272,19 @@ export const useProjectKanbanRuntime = ({
           setRecordsError(message);
           throw new Error(message);
         }
+        recordRecentPaneContribution({
+          paneId: mutationPane.pane_id,
+          paneName: mutationPane.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'kanban-update');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to update kanban card.';
         setRecordsError(message);
         throw new Error(message);
       }
     },
-    [accessToken, kanbanRuntimeByViewId, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
   );
 
   const onDeleteKanbanRecord = useCallback(
@@ -279,13 +300,19 @@ export const useProjectKanbanRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
+        recordRecentPaneContribution({
+          paneId: mutationPane.pane_id,
+          paneName: mutationPane.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'kanban-delete');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to delete kanban card.';
         setRecordsError(message);
         throw new Error(message);
       }
     },
-    [accessToken, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
   );
 
   const onConfigureKanbanGrouping = useCallback(
@@ -310,11 +337,17 @@ export const useProjectKanbanRuntime = ({
           mutation_context_pane_id: mutationPane.pane_id,
         });
         await refreshViewsAndRecordsRef.current();
+        recordRecentPaneContribution({
+          paneId: mutationPane.pane_id,
+          paneName: mutationPane.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'kanban-configure');
       } catch (error) {
         setRecordsError(error instanceof Error ? error.message : 'Failed to configure kanban grouping.');
       }
     },
-    [accessToken, kanbanRuntimeByViewId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, views],
+    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, views],
   );
 
   const onEnsureKanbanView = useCallback(
@@ -404,6 +437,12 @@ export const useProjectKanbanRuntime = ({
             mutation_context_pane_id: mutationPane.pane_id,
           });
           await refreshViewsAndRecordsRef.current();
+          recordRecentPaneContribution({
+            paneId: mutationPane.pane_id,
+            paneName: mutationPane.name,
+            spaceId: projectId,
+            spaceName: projectName,
+          }, 'kanban-view-create');
           return createdView.view_id;
         } finally {
           ensureKanbanViewRef.current.delete(moduleInstanceId);
@@ -414,7 +453,7 @@ export const useProjectKanbanRuntime = ({
       ensureKanbanViewRef.current.set(moduleInstanceId, ensurePromise);
       return ensurePromise;
     },
-    [accessToken, projectId, refreshViewsAndRecordsRef, resolveEditableMutationPane, setCreatingKanbanView, views],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setCreatingKanbanView, views],
   );
 
   const kanbanRuntimeDataByViewId = useMemo(

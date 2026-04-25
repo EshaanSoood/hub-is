@@ -10,10 +10,10 @@ const adjectiveForCount = (count: number): string => {
   return 'Packed';
 };
 
-const nounForCount = (count: number, singular: string, plural: string): string =>
+export const nounForCount = (count: number, singular: string, plural: string): string =>
   count === 1 ? singular : plural;
 
-const CountPill = ({
+export const DailyBriefCountPill = ({
   count,
   iconName,
   label,
@@ -66,10 +66,10 @@ export const ContextBar = ({
             ariaLabel="Filter timeline by space"
             triggerClassName="min-w-44 bg-surface-highest font-medium shadow-soft-subtle"
           />
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Daily brief totals">
-            <CountPill count={eventCount} iconName="calendar" label={nounForCount(eventCount, 'event', 'events')} />
-            <CountPill count={taskCount} iconName="tasks" label={nounForCount(taskCount, 'task', 'tasks')} />
-            <CountPill count={reminderCount} iconName="reminders" label={nounForCount(reminderCount, 'reminder', 'reminders')} />
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Daily brief totals">
+            <DailyBriefCountPill count={eventCount} iconName="calendar" label={nounForCount(eventCount, 'event', 'events')} />
+            <DailyBriefCountPill count={taskCount} iconName="tasks" label={nounForCount(taskCount, 'task', 'tasks')} />
+            <DailyBriefCountPill count={reminderCount} iconName="reminders" label={nounForCount(reminderCount, 'reminder', 'reminders')} />
           </div>
         </div>
       </div>

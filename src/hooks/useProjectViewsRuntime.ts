@@ -12,6 +12,7 @@ import type { ProjectTimelineItem } from './projectViewsRuntime/shared';
 interface UseProjectViewsRuntimeParams {
   accessToken: string;
   projectId: string;
+  projectName: string;
   activeTab: 'overview' | 'work';
   panes: HubPaneSummary[];
   sessionUserId: string;
@@ -22,6 +23,7 @@ interface UseProjectViewsRuntimeParams {
 export const useProjectViewsRuntime = ({
   accessToken,
   projectId,
+  projectName,
   activeTab,
   panes,
   sessionUserId,
@@ -54,6 +56,7 @@ export const useProjectViewsRuntime = ({
   } = useProjectTableRuntime({
     accessToken,
     projectId,
+    projectName,
     panes,
     sessionUserId,
     setTimeline,
@@ -77,6 +80,7 @@ export const useProjectViewsRuntime = ({
   } = useProjectKanbanRuntime({
     accessToken,
     projectId,
+    projectName,
     panes,
     views,
     sessionUserId,

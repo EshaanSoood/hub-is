@@ -79,6 +79,7 @@ export const useProjectSpaceInspectorRuntime = ({
   } = useRecordInspector({
     accessToken,
     projectId: project.project_id,
+    projectName: project.name,
     panes,
     activeTab,
     activePaneId,

@@ -1,4 +1,13 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { HomeContentViewId, HomeOverlayId, HomeTabId } from '../../../features/home/navigation';
+import { SidebarLabel } from '../motion/SidebarLabel';
+import {
+  sidebarAccordionContentVariants,
+  sidebarAccordionItemVariants,
+  sidebarAccordionListVariants,
+  sidebarChevronVariants,
+} from '../motion/sidebarMotion';
+import { Icon } from '../../primitives/Icon';
 import type { IconName } from '../../primitives/Icon';
 import { SurfaceItem } from './SurfaceItem';
 
@@ -11,66 +20,114 @@ const HOME_CONTENT_ITEMS: Array<{
   iconName: IconName;
   label: string;
 }> = [
-  { id: 'lenses', iconName: 'focus', label: 'Lenses' },
+  { id: 'project', iconName: 'home', label: 'Personal Space' },
+  { id: 'lenses', iconName: 'focus', label: 'Hub' },
   { id: 'stream', iconName: 'timeline', label: 'Stream' },
-];
-
-const SURFACE_ITEMS: Array<{
-  id: SidebarSurfaceId;
-  iconName: IconName;
-  label: string;
-}> = [
-  { id: 'thoughts', iconName: 'thought-pile', label: 'Quick thoughts' },
 ];
 
 interface SurfacesProps {
   activeHomeContentView: SidebarHomeContentViewId;
   activeHomeTab: SidebarHomeTabId;
-  activeSurface: SidebarSurfaceId | null;
+  sectionExpanded: boolean;
+  onToggleSection: () => void;
   onSelectHomeContentView: (viewId: SidebarHomeContentViewId) => void;
   isCollapsed: boolean;
-  onSelectSurface: (surfaceId: SidebarSurfaceId) => void;
   showLabels: boolean;
 }
 
 export const Surfaces = ({
   activeHomeContentView,
   activeHomeTab,
-  activeSurface,
+  sectionExpanded,
+  onToggleSection,
   onSelectHomeContentView,
   isCollapsed,
-  onSelectSurface,
   showLabels,
-}: SurfacesProps) => (
-  <div className={`flex ${isCollapsed ? 'flex-col items-center gap-3' : 'sidebar-section'}`}>
-    <div role="group" aria-label="Views" className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'sidebar-section'}`}>
-      {HOME_CONTENT_ITEMS.map((view) => (
-        <SurfaceItem
-          key={view.id}
-          active={activeSurface === null && activeHomeTab === 'overview' && activeHomeContentView === view.id}
-          id={view.id}
-          iconName={view.iconName}
-          isCollapsed={isCollapsed}
-          label={view.label}
-          onClick={() => onSelectHomeContentView(view.id)}
-          showLabels={showLabels}
-        />
-      ))}
-    </div>
+}: SurfacesProps) => {
+  const prefersReducedMotion = useReducedMotion() ?? false;
 
-    <div role="group" aria-label="Views" className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'sidebar-section'}`}>
-      {SURFACE_ITEMS.map((surface) => (
-        <SurfaceItem
-          key={surface.id}
-          active={activeSurface === surface.id}
-          id={surface.id}
-          iconName={surface.iconName}
-          isCollapsed={isCollapsed}
-          label={surface.label}
-          onClick={() => onSelectSurface(surface.id)}
-          showLabels={showLabels}
-        />
-      ))}
-    </div>
-  </div>
-);
+  if (isCollapsed) {
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <div role="group" aria-label="Home views" className="flex flex-col items-center gap-2">
+          {HOME_CONTENT_ITEMS.map((view) => (
+            <SurfaceItem
+              key={view.id}
+              active={activeHomeTab === 'overview' && activeHomeContentView === view.id}
+              id={view.id}
+              iconName={view.iconName}
+              isCollapsed
+              label={view.label}
+              onClick={() => onSelectHomeContentView(view.id)}
+              showLabels={showLabels}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <section className="sidebar-divider flex flex-col overflow-hidden px-2 py-2">
+      <button
+        type="button"
+        aria-expanded={sectionExpanded}
+        className="interactive interactive-subtle sidebar-row w-full justify-between px-2 py-2 text-left text-sm font-semibold text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        onClick={onToggleSection}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <motion.span
+            initial={false}
+            animate={sectionExpanded ? 'expanded' : 'collapsed'}
+            variants={sidebarChevronVariants(prefersReducedMotion)}
+            className="flex shrink-0"
+          >
+            <Icon name="chevron-down" size={14} />
+          </motion.span>
+          <SidebarLabel show={showLabels}>
+            <span>Home Views</span>
+          </SidebarLabel>
+        </span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {sectionExpanded ? (
+          <motion.div
+            key="surfaces-content"
+            initial="collapsed"
+            animate="expanded"
+            exit="exit"
+            variants={sidebarAccordionContentVariants(prefersReducedMotion)}
+            className="mt-2 overflow-hidden"
+          >
+            <motion.div
+              initial={false}
+              animate="expanded"
+              variants={sidebarAccordionListVariants(prefersReducedMotion)}
+              className="sidebar-section sidebar-children-indent"
+            >
+              {HOME_CONTENT_ITEMS.map((view) => (
+                <motion.div
+                  key={view.id}
+                  variants={sidebarAccordionItemVariants(prefersReducedMotion)}
+                  initial="collapsed"
+                  animate="expanded"
+                >
+                  <SurfaceItem
+                    active={activeHomeTab === 'overview' && activeHomeContentView === view.id}
+                    id={view.id}
+                    iconName={view.iconName}
+                    isCollapsed={false}
+                    label={view.label}
+                    onClick={() => onSelectHomeContentView(view.id)}
+                    showLabels={showLabels}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </section>
+  );
+};

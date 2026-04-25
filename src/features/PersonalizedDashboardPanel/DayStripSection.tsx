@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { ContextBar } from '../../components/hub-home/ContextBar';
+import { ContextBar, DailyBriefCountPill, nounForCount } from '../../components/hub-home/ContextBar';
 import { DayStrip } from '../../components/hub-home/DayStrip';
 import { BacklogPanel } from '../../components/hub-home/BacklogPanel';
 import { DAY_STRIP_FORWARD_WINDOW_MS } from '../../components/hub-home/dayStripWindow';
@@ -8,12 +8,11 @@ import type { BacklogDragPayload } from '../../components/hub-home/types';
 import { routeFadeVariants } from '../../components/motion/hubMotion';
 import { LiveRegion } from '../../components/primitives';
 import { useLiveRegion } from '../../hooks/useLiveRegion';
+import { cn } from '../../lib/cn';
 import type { DashboardDailyData, DashboardDayCounts, ProjectOption } from './types';
 import { parseIso } from './utils';
 
 type DailyBriefState = 'active-day' | 'empty-backlog' | 'true-zero';
-
-const SHAKESPEARE_QUOTE = 'The day is your oyster. Or carrot. Or something… — Shakespeare';
 
 const hasActiveScheduledTime = (value: string, nowMs: number, windowEndMs: number): boolean => {
   const parsed = parseIso(value);
@@ -97,6 +96,7 @@ export const DayStripSection = ({
     [now],
   );
   const briefState = useMemo(() => resolveDailyBriefState(filteredDailyData, now), [filteredDailyData, now]);
+  const compactGreeting = useMemo(() => greeting.split(' · ')[0] ?? greeting, [greeting]);
   const fadeVariants = useMemo(() => routeFadeVariants(prefersReducedMotion), [prefersReducedMotion]);
   const { announcement, announce } = useLiveRegion();
   const [keyboardDragItem, setKeyboardDragItem] = useState<{
@@ -140,25 +140,26 @@ export const DayStripSection = ({
       announce(`Could not schedule ${title}.`);
     }
   }, [announce, keyboardDragItem, onDropFromBacklog]);
+  const showCollapsedBrief = briefState !== 'active-day' && keyboardDragItem === null;
+  const focusBacklog = useCallback(() => {
+    const backlogToggle = document.getElementById('backlog-toggle');
+    if (!(backlogToggle instanceof HTMLButtonElement)) {
+      return;
+    }
+    backlogToggle.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'nearest' });
+    backlogToggle.focus();
+  }, [prefersReducedMotion]);
 
   return (
     <section
       aria-labelledby="daily-brief-heading"
-      className={`section-scored mt-4 rounded-panel bg-surface p-4 shadow-soft ${
-        briefState === 'true-zero' ? 'min-h-[var(--daily-brief-collapsed-height)]' : ''
-      }`}
+      className={cn(
+        'section-scored mt-4 rounded-panel bg-surface shadow-soft',
+        showCollapsedBrief ? 'p-3' : 'p-4',
+      )}
       data-daily-brief-state={briefState}
       data-testid="daily-brief"
     >
-      <h2 id="daily-brief-heading" className="font-serif text-xl font-semibold text-text">Daily Brief</h2>
-
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-text">{greeting}</p>
-          <p className="text-xs text-muted">{dateLabel}</p>
-        </div>
-        {headerActions ? <div className="flex items-center gap-2">{headerActions}</div> : null}
-      </div>
       <LiveRegion message={announcement} role="status" ariaLive="polite" />
 
       <AnimatePresence initial={false} mode="wait">
@@ -169,12 +170,96 @@ export const DayStripSection = ({
           initial="initial"
           variants={fadeVariants}
         >
-          {briefState === 'true-zero' ? (
-            <p className="mt-4 text-sm text-text" data-testid="daily-brief-quote">
-              {SHAKESPEARE_QUOTE}
-            </p>
+          {showCollapsedBrief ? (
+            <>
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_auto] xl:items-center">
+                <div className="min-w-0 space-y-1">
+                  <h2 id="daily-brief-heading" className="font-serif text-xl font-semibold text-text">Daily Brief</h2>
+                  <p className="text-sm font-semibold text-text">{compactGreeting}</p>
+                  <p className="text-xs text-muted">{dateLabel}</p>
+                </div>
+
+                <DayStrip
+                  className="min-w-0"
+                  events={[]}
+                  tasks={[]}
+                  reminders={[]}
+                  typeFilter="all"
+                  onOpenRecord={onOpenRecord}
+                  onDropFromBacklog={onDropFromBacklog}
+                  showEmptyTimeline
+                  presentation="collapsed-empty"
+                />
+
+                <div className="flex flex-wrap items-center justify-end gap-2 xl:max-w-[24rem]">
+                  <div className="flex flex-wrap items-center justify-end gap-2" role="group" aria-label="Daily brief totals">
+                    <DailyBriefCountPill
+                      count={dayCounts.events}
+                      iconName="calendar"
+                      label={nounForCount(dayCounts.events, 'event', 'events')}
+                    />
+                    <DailyBriefCountPill
+                      count={dayCounts.tasks}
+                      iconName="tasks"
+                      label={nounForCount(dayCounts.tasks, 'task', 'tasks')}
+                    />
+                    <DailyBriefCountPill
+                      count={dayCounts.reminders}
+                      iconName="reminders"
+                      label={nounForCount(dayCounts.reminders, 'reminder', 'reminders')}
+                    />
+                  </div>
+                  {briefState === 'empty-backlog' ? (
+                    <button
+                      type="button"
+                      className="ghost-button inline-flex items-center gap-2 rounded-panel bg-surface px-3 py-2 text-sm font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      onClick={focusBacklog}
+                    >
+                      <span>Backlog</span>
+                      <span className="text-text-secondary">
+                        {dayCounts.backlog} {nounForCount(dayCounts.backlog, 'item', 'items')}
+                      </span>
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {briefState === 'empty-backlog' ? (
+                <BacklogPanel
+                  className="mt-3"
+                  countReady={countReady}
+                  overdueTasks={filteredDailyData.overdueTasks}
+                  untimedTasks={filteredDailyData.untimedTasks}
+                  missedReminders={filteredDailyData.missedReminders}
+                  onOpenRecord={onOpenRecord}
+                  onCompleteTask={onCompleteTask}
+                  onRescheduleTask={onRescheduleTask}
+                  onSnoozeTask={onSnoozeTask}
+                  onAssignTaskTime={onRescheduleTask}
+                  onDismissReminder={onDismissReminder}
+                  onSnoozeReminder={onSnoozeReminder}
+                  dragToTimelineEnabled
+                  activeKeyboardDragItemId={null}
+                  restoreFocusItemId={restoreFocusItemId}
+                  onRestoreFocusHandled={() => {
+                    setRestoreFocusItemId(null);
+                  }}
+                  onBeginKeyboardDrag={handleBeginKeyboardDrag}
+                />
+              ) : null}
+            </>
           ) : (
             <>
+              <h2 id="daily-brief-heading" className="font-serif text-xl font-semibold text-text">Daily Brief</h2>
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-text">{greeting}</p>
+                  <p className="text-xs text-muted">{dateLabel}</p>
+                </div>
+                {headerActions ? <div className="flex items-center gap-2">{headerActions}</div> : null}
+              </div>
+
               <DayStrip
                 key={keyboardDragItem ? `keyboard-drag-${keyboardDragItem.id}` : 'keyboard-drag-idle'}
                 className="mt-3"
@@ -184,7 +269,7 @@ export const DayStripSection = ({
                 typeFilter="all"
                 onOpenRecord={onOpenRecord}
                 onDropFromBacklog={onDropFromBacklog}
-                showEmptyTimeline={briefState === 'empty-backlog'}
+                showEmptyTimeline={briefState !== 'active-day'}
                 keyboardDragItem={keyboardDragItem ? { title: keyboardDragItem.title } : null}
                 onKeyboardDragAnnouncement={handleKeyboardDragAnnouncement}
                 onKeyboardDrop={handleKeyboardDrop}

@@ -1,5 +1,6 @@
 import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { TopLevelProjectTab } from '../components/project-space/types';
+import { recordRecentPaneContribution } from '../features/recentPlaces/store';
 import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { createRecord } from '../services/hub/records';
 import type { HubCollection, HubPaneSummary } from '../services/hub/types';
@@ -72,6 +73,7 @@ const selectCaptureCollection = (allCollections: HubCollection[], intent: string
 interface UseQuickCaptureParams {
   accessToken: string;
   projectId: string;
+  projectName: string;
   activeTab: TopLevelProjectTab;
   activePane: HubPaneSummary | null;
   activePaneCanEdit: boolean;
@@ -85,6 +87,7 @@ interface UseQuickCaptureParams {
 export const useQuickCapture = ({
   accessToken,
   projectId,
+  projectName,
   activeTab,
   activePane,
   activePaneCanEdit,
@@ -152,6 +155,14 @@ export const useQuickCapture = ({
       try {
         await refreshViewsAndRecords();
         await openRecordInspector(created.record_id);
+        if (shouldUsePaneContext && activePane) {
+          recordRecentPaneContribution({
+            paneId: activePane.pane_id,
+            paneName: activePane.name,
+            spaceId: projectId,
+            spaceName: projectName,
+          }, 'quick-capture');
+        }
       } catch (error) {
         setPaneMutationError(error instanceof Error ? error.message : 'Quick capture created, but follow-up UI refresh failed.');
       } finally {
@@ -168,6 +179,7 @@ export const useQuickCapture = ({
       focusedWorkViewId,
       openRecordInspector,
       projectId,
+      projectName,
       refreshViewsAndRecords,
       setPaneMutationError,
     ],

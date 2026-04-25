@@ -1,5 +1,3 @@
-import type { DragEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { SidebarLabel } from '../motion/SidebarLabel';
 import { Icon } from '../../primitives/Icon';
 
@@ -16,10 +14,6 @@ export const WorkspaceHeader = ({
   onOpenHome,
   showLabels,
 }: WorkspaceHeaderProps) => {
-  const preventNativeDrag = (event: DragEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-  };
-
   if (isCollapsed) {
     return (
       <button
@@ -35,11 +29,10 @@ export const WorkspaceHeader = ({
 
   return (
     <div className="flex items-center gap-2">
-      <Link
-        to="/projects"
-        draggable={false}
+      <button
+        type="button"
         className="interactive interactive-subtle interactive-fold sidebar-row sidebar-row-button min-w-0 flex-1 bg-surface text-text hover:bg-surface-highest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-        onDragStart={preventNativeDrag}
+        onClick={onOpenHome}
       >
         <span
           aria-hidden="true"
@@ -48,9 +41,9 @@ export const WorkspaceHeader = ({
           <Icon name="home" size={16} />
         </span>
         <SidebarLabel show={showLabels} className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold tracking-[0.01em]">Home</span>
+          <span className="block truncate text-sm font-normal tracking-[0.01em]">Home</span>
         </SidebarLabel>
-      </Link>
+      </button>
 
       <button
         type="button"

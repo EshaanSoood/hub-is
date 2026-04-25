@@ -9,6 +9,7 @@ import {
   updatePane,
 } from '../services/hub/panes';
 import { buildDefaultPaneCreatePayload } from '../lib/paneTemplates';
+import { recordRecentPaneContribution } from '../features/recentPlaces/store';
 import { listTimeline } from '../services/hub/records';
 import type { HubPaneSummary } from '../services/hub/types';
 
@@ -24,6 +25,7 @@ type ProjectTimelineItem = {
 interface UsePaneMutationsParams {
   accessToken: string;
   projectId: string;
+  projectName: string;
   panes: HubPaneSummary[];
   refreshProjectData: () => Promise<void>;
   setPanes: Dispatch<SetStateAction<HubPaneSummary[]>>;
@@ -43,6 +45,7 @@ const comparePanesBySidebarOrder = (left: HubPaneSummary, right: HubPaneSummary)
 export const usePaneMutations = ({
   accessToken,
   projectId,
+  projectName,
   panes,
   refreshProjectData,
   setPanes,
@@ -85,6 +88,12 @@ export const usePaneMutations = ({
           await refreshProjectData();
           const nextTimeline = await listTimeline(accessToken, projectId);
           setTimeline(nextTimeline);
+          recordRecentPaneContribution({
+            paneId: nextPane.pane_id,
+            paneName: nextPane.name,
+            spaceId: projectId,
+            spaceName: projectName,
+          }, 'pane-create');
         } catch (error) {
           setPaneMutationError(
             `Project created, but follow-up refresh failed: ${error instanceof Error ? error.message : 'unknown error'}`,
@@ -96,7 +105,7 @@ export const usePaneMutations = ({
         return null;
       }
     },
-    [accessToken, panes, projectId, refreshProjectData, sessionUserId, setPanes, setTimeline],
+    [accessToken, panes, projectId, projectName, refreshProjectData, sessionUserId, setPanes, setTimeline],
   );
 
   const onRenamePane = useCallback(
@@ -113,11 +122,17 @@ export const usePaneMutations = ({
         updatePaneInState(updated);
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
+        recordRecentPaneContribution({
+          paneId: updated.pane_id,
+          paneName: updated.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'pane-rename');
       } catch (error) {
         setPaneMutationError(error instanceof Error ? error.message : 'Failed to rename project.');
       }
     },
-    [accessToken, projectId, setTimeline, updatePaneInState],
+    [accessToken, projectId, projectName, setTimeline, updatePaneInState],
   );
 
   const onMovePane = useCallback(
@@ -226,6 +241,12 @@ export const usePaneMutations = ({
       try {
         const updated = await updatePane(accessToken, paneIdToUpdate, payload);
         updatePaneInState(updated);
+        recordRecentPaneContribution({
+          paneId: updated.pane_id,
+          paneName: updated.name,
+          spaceId: projectId,
+          spaceName: projectName,
+        }, 'pane-update');
         try {
           const nextTimeline = await listTimeline(accessToken, projectId);
           setTimeline(nextTimeline);
@@ -238,7 +259,7 @@ export const usePaneMutations = ({
         setPaneMutationError(error instanceof Error ? error.message : 'Failed to update project.');
       }
     },
-    [accessToken, projectId, setTimeline, updatePaneInState],
+    [accessToken, projectId, projectName, setTimeline, updatePaneInState],
   );
 
   return {
