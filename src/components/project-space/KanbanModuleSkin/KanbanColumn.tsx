@@ -165,7 +165,10 @@ export const KanbanColumn = ({
 
   return (
     <section
-      className={cn('shrink-0 space-y-2 transition-[width] motion-reduce:transition-none', isCollapsed ? 'w-12' : 'w-[18rem]')}
+      className={cn(
+        'flex min-h-0 flex-col space-y-2 transition-[width] motion-reduce:transition-none',
+        previewMode ? 'min-w-0 flex-1' : isCollapsed ? 'w-12 shrink-0' : 'w-[18rem] shrink-0',
+      )}
       aria-label={`${group.label} column`}
     >
       <KanbanColumnHeader
@@ -184,6 +187,7 @@ export const KanbanColumn = ({
           role="list"
           className={cn(
             'module-dropzone min-h-16 space-y-2 p-2 transition-colors motion-reduce:transition-none',
+            previewMode && 'min-h-0 flex-1 overflow-y-auto',
             isOver ? 'border-primary bg-primary/5' : overLimit ? 'border-danger bg-danger-subtle' : null,
           )}
           aria-label={`${group.label} drop zone`}

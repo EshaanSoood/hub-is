@@ -69,7 +69,7 @@ export const TimelineFeed = ({
   );
 
   return (
-    <div className="flex flex-col gap-sm">
+    <div className="flex h-full min-h-0 flex-col gap-sm">
       {!previewMode ? <div role="group" aria-label="Filter timeline" className="flex flex-wrap gap-xs">
         {(Object.keys(FILTER_LABELS) as TimelineEventType[]).map((type) => {
           const active = activeFilters.includes(type);
@@ -92,7 +92,7 @@ export const TimelineFeed = ({
         })}
       </div> : null}
 
-      <div role="feed" aria-busy={isLoading}>
+      <div role="feed" aria-busy={isLoading} className="min-h-0 flex-1 overflow-y-auto">
         {visibleClusters.length === 0 && !isLoading ? <p className="text-sm text-muted">No timeline events match filters.</p> : null}
 
         {visibleClusters.map((cluster) => (

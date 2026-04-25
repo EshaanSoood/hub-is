@@ -313,29 +313,31 @@ const TasksModuleMedium = ({
           onCancel={() => setComposerOpen(false)}
         />
       ) : null}
-      {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}
-      {!tasksLoading && displayedTasks.length === 0 ? (
-        <ModuleEmptyState
-          title="No tasks in this project."
-          iconName="tasks"
-          ctaLabel={canCreateTask ? 'New Task' : undefined}
-          onCta={canCreateTask ? () => setComposerOpen(true) : undefined}
-          sizeTier="M"
-        />
-      ) : null}
-      {!tasksLoading && displayedTasks.length > 0 ? (
-        <TaskSummaryRows
-          tasks={displayedTasks}
-          readOnly={readOnly}
-          onUpdateTaskStatus={onUpdateTaskStatus}
-          activeItemId={insertState.activeItemId}
-          activeItemType={insertState.activeItemType}
-          setActiveItem={insertState.setActiveItem}
-          clearActiveItem={insertState.clearActiveItem}
-          onInsertToEditor={insertState.onInsertToEditor}
-          previewMode={previewMode}
-        />
-      ) : null}
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}
+        {!tasksLoading && displayedTasks.length === 0 ? (
+          <ModuleEmptyState
+            title="No tasks in this project."
+            iconName="tasks"
+            ctaLabel={canCreateTask ? 'New Task' : undefined}
+            onCta={canCreateTask ? () => setComposerOpen(true) : undefined}
+            sizeTier="M"
+          />
+        ) : null}
+        {!tasksLoading && displayedTasks.length > 0 ? (
+          <TaskSummaryRows
+            tasks={displayedTasks}
+            readOnly={readOnly}
+            onUpdateTaskStatus={onUpdateTaskStatus}
+            activeItemId={insertState.activeItemId}
+            activeItemType={insertState.activeItemType}
+            setActiveItem={insertState.setActiveItem}
+            clearActiveItem={insertState.clearActiveItem}
+            onInsertToEditor={insertState.onInsertToEditor}
+            previewMode={previewMode}
+          />
+        ) : null}
+      </div>
       {!tasksLoading && tasks.length > displayedTasks.length ? (
         <p className="mt-3 text-xs text-muted">+{tasks.length - displayedTasks.length} more</p>
       ) : null}

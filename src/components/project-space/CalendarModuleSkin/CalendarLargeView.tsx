@@ -164,7 +164,7 @@ export const CalendarLargeView = ({
           }
           sizeTier={sizeTier}
         />
-        {createPanel}
+        {!previewMode ? createPanel : null}
       </div>
     );
   }
@@ -233,7 +233,7 @@ export const CalendarLargeView = ({
       </div> : null}
 
       {view === 'month' ? (
-        <section className="space-y-2">
+        <section className={cn(previewMode ? 'flex min-h-0 flex-1 flex-col gap-2' : 'space-y-2')}>
           {!previewMode ? <div className="flex items-center justify-between gap-2">
             <button
               type="button"
@@ -254,14 +254,14 @@ export const CalendarLargeView = ({
             </button>
           </div> : <p className="text-sm font-semibold text-text">{monthLabel}</p>}
 
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid shrink-0 grid-cols-7 gap-1">
             {WEEKDAYS.map((weekday) => (
               <div key={weekday} className="py-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted">
                 {weekday}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-1">
+          <div className={cn('grid grid-cols-7 gap-1', previewMode && 'min-h-0 flex-1 auto-rows-fr')}>
             {monthCells.map((cell) => {
               const dayEvents = eventsByDate.get(cell.iso) ?? [];
               const visible = dayEvents.slice(0, OVERFLOW_LIMIT);
@@ -286,7 +286,8 @@ export const CalendarLargeView = ({
                   }
                   tabIndex={previewMode ? -1 : onCreateEvent ? 0 : undefined}
                   className={cn(
-                    'relative min-h-16 rounded-control p-1 shadow-[0_1px_2px_rgb(0_0_0_/_0.12)]',
+                    'relative rounded-control p-1 shadow-[0_1px_2px_rgb(0_0_0_/_0.12)]',
+                    previewMode ? 'min-h-0 overflow-hidden' : 'min-h-16',
                     isToday ? 'border border-primary bg-primary/10' : 'border border-transparent bg-surface-elevated',
                     !cell.currentMonth && 'opacity-20',
                     !previewMode && onCreateEvent && 'cursor-pointer',
@@ -385,7 +386,7 @@ export const CalendarLargeView = ({
         </section>
       ) : null}
 
-      {createPanel}
+      {!previewMode ? createPanel : null}
 
       {view === 'year' ? (
         <section className="grid grid-cols-2 gap-2 md:grid-cols-4">
