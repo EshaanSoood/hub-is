@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const SIDEBAR_SPACE_ROUTE_MEMORY_KEY = 'hub-sidebar-space-route-memory';
+const MAX_STORED_SPACE_ROUTES = 32;
 
 export interface SidebarNavigationState {
   expandedProjectId: string | null;
@@ -39,6 +40,32 @@ const readStoredProjectRoutes = (): Record<string, string> => {
   }
 };
 
+const pruneStoredProjectRoutes = (
+  routesBySpaceId: Record<string, string>,
+  knownSpaceIds: readonly string[],
+): Record<string, string> => {
+  const allowedSpaceIds = new Set(knownSpaceIds);
+  const entries = Object.entries(routesBySpaceId).filter(([spaceId, href]) =>
+    allowedSpaceIds.has(spaceId) && typeof href === 'string' && href.startsWith('/'));
+  return Object.fromEntries(entries.slice(-MAX_STORED_SPACE_ROUTES));
+};
+
+const mergeStoredProjectRoute = (
+  storedRoutesBySpaceId: Record<string, string>,
+  activeSpaceId: string | null,
+  currentSpaceHref: string | null,
+  knownSpaceIds: readonly string[],
+): Record<string, string> => {
+  const prunedRoutesBySpaceId = pruneStoredProjectRoutes(storedRoutesBySpaceId, knownSpaceIds);
+  if (!activeSpaceId || !currentSpaceHref) {
+    return prunedRoutesBySpaceId;
+  }
+
+  const nextEntries = Object.entries(prunedRoutesBySpaceId).filter(([spaceId]) => spaceId !== activeSpaceId);
+  nextEntries.push([activeSpaceId, currentSpaceHref]);
+  return Object.fromEntries(nextEntries.slice(-MAX_STORED_SPACE_ROUTES));
+};
+
 const resolveBooleanUpdate = (
   value: boolean | ((current: boolean) => boolean),
   current: boolean,
@@ -53,10 +80,12 @@ export const useSidebarNavigationState = ({
   activeSpaceId,
   currentSpaceHref,
   isHomeState,
+  knownSpaceIds,
 }: {
   activeSpaceId: string | null;
   currentSpaceHref: string | null;
   isHomeState: boolean;
+  knownSpaceIds: readonly string[];
 }): SidebarNavigationState => {
   const scopeKey = isHomeState ? 'home' : activeSpaceId ? `space:${activeSpaceId}` : 'other';
   const [homeViewsOverrides, setHomeViewsOverrides] = useState<Record<string, boolean>>({});
@@ -65,15 +94,8 @@ export const useSidebarNavigationState = ({
   const [expandedProjectOverrides, setExpandedProjectOverrides] = useState<Record<string, string | null>>({});
 
   const projectRoutesBySpaceId = useMemo(() => {
-    const stored = readStoredProjectRoutes();
-    if (!activeSpaceId || !currentSpaceHref) {
-      return stored;
-    }
-    return {
-      ...stored,
-      [activeSpaceId]: currentSpaceHref,
-    };
-  }, [activeSpaceId, currentSpaceHref]);
+    return mergeStoredProjectRoute(readStoredProjectRoutes(), activeSpaceId, currentSpaceHref, knownSpaceIds);
+  }, [activeSpaceId, currentSpaceHref, knownSpaceIds]);
 
   const defaultHomeViewsExpanded = isHomeState;
   const defaultProjectsSectionExpanded = true;
@@ -86,21 +108,22 @@ export const useSidebarNavigationState = ({
   const expandedProjectId = expandedProjectOverrides[scopeKey] ?? defaultExpandedProjectId;
 
   useEffect(() => {
-    if (!activeSpaceId || !currentSpaceHref) {
-      return;
-    }
     const stored = readStoredProjectRoutes();
-    if (stored[activeSpaceId] === currentSpaceHref) {
+    const nextRoutesBySpaceId = mergeStoredProjectRoute(stored, activeSpaceId, currentSpaceHref, knownSpaceIds);
+    const storedJson = JSON.stringify(stored);
+    const nextJson = JSON.stringify(nextRoutesBySpaceId);
+    if (storedJson === nextJson) {
       return;
     }
-    window.localStorage.setItem(
-      SIDEBAR_SPACE_ROUTE_MEMORY_KEY,
-      JSON.stringify({
-        ...stored,
-        [activeSpaceId]: currentSpaceHref,
-      }),
-    );
-  }, [activeSpaceId, currentSpaceHref]);
+    try {
+      window.localStorage.setItem(
+        SIDEBAR_SPACE_ROUTE_MEMORY_KEY,
+        nextJson,
+      );
+    } catch {
+      // Ignore storage failures so sidebar route memory remains non-blocking.
+    }
+  }, [activeSpaceId, currentSpaceHref, knownSpaceIds]);
 
   const setHomeViewsExpanded = useCallback((value: boolean | ((current: boolean) => boolean)) => {
     setHomeViewsOverrides((current) => ({

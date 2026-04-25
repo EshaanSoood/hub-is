@@ -177,7 +177,12 @@ vi.mock('../hooks/useProjectBootstrap', () => ({
 }));
 
 vi.mock('../hooks/useProjectPanes', () => ({
-  useProjectPanes: () => projectBootstrap.panes,
+  useProjectPanes: () => ({
+    error: null,
+    loading: false,
+    panes: projectBootstrap.panes,
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock('../hooks/useCalendarRuntime', () => ({
@@ -349,11 +354,9 @@ vi.mock('../components/Sidebar/Surfaces', () => ({
   Surfaces: ({
     sectionExpanded,
     onSelectHomeContentView,
-    onSelectSurface,
   }: {
     sectionExpanded: boolean;
     onSelectHomeContentView: (viewId: 'project' | 'lenses' | 'stream') => void;
-    onSelectSurface: (surfaceId: 'thoughts') => void;
   }) => (
     <div>
       {sectionExpanded ? (
@@ -361,7 +364,6 @@ vi.mock('../components/Sidebar/Surfaces', () => ({
           <button type="button" onClick={() => onSelectHomeContentView('project')}>Personal Space</button>
           <button type="button" onClick={() => onSelectHomeContentView('lenses')}>Hub</button>
           <button type="button" onClick={() => onSelectHomeContentView('stream')}>Stream</button>
-          <button type="button" onClick={() => onSelectSurface('thoughts')}>Quick thoughts</button>
         </>
       ) : null}
     </div>
@@ -456,8 +458,8 @@ describe('ProjectsPage', () => {
     expect(screen.queryByRole('heading', { name: 'Home', level: 1 })).not.toBeInTheDocument();
     expect(screen.getByText('Capture.')).toBeInTheDocument();
     expect(screen.getByText('Capture anything and experience the magic.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Sunday Desk', level: 2 })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Overview', level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sunday Desk', level: 1 })).toBeInTheDocument();
+    expect(screen.getByText('Overview', { selector: 'p' })).toBeInTheDocument();
     expect(overviewTab).toHaveAttribute('aria-current', 'page');
     expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
     expect(screen.getByTestId('overview-surface')).toHaveTextContent('Overview surface');
@@ -546,11 +548,11 @@ describe('ProjectsPage', () => {
     });
   });
 
-  it('preserves the Home work pane when Quick thoughts is opened from the sidebar', async () => {
+  it('preserves the Home work pane when Quick thoughts is opened from the command bar', async () => {
     const user = userEvent.setup();
     renderProjectsPage('/projects?tab=work&pane=pane-1');
 
-    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Quick thoughts' }));
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Quick thoughts' }));
 
     await waitFor(() => {
       expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?tab=work&pane=pane-1&surface=thoughts');

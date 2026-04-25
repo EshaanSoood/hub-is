@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { useAuthz } from '../../../context/AuthzContext';
 import { useProjects } from '../../../context/ProjectsContext';
 import {
@@ -15,8 +15,11 @@ import {
 } from '../../../features/home/navigation';
 import { useProjectPanes } from '../../../hooks/useProjectPanes';
 import { useRouteFocusReset } from '../../../hooks/useRouteFocusReset';
+import { useLiveRegion } from '../../../hooks/useLiveRegion';
 import { SidebarShell } from '../../Sidebar';
+import { LiveRegion } from '../../primitives';
 import { AppCommandBar } from './AppCommandBar';
+import { decideRouteTransition } from './routeMotion';
 
 const decodePathSegment = (value: string | null): string | null => {
   if (!value) {
@@ -48,9 +51,12 @@ const defaultHomeRouteState: HomeRouteState = {
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const navigationType = useNavigationType();
   const { accessToken } = useAuthz();
   const { projects } = useProjects();
   const lastHomeRouteRef = useRef<HomeRouteState>(defaultHomeRouteState);
+  const previousRouteRef = useRef<{ pathname: string; state: unknown } | null>(null);
+  const { announcement, announce } = useLiveRegion();
 
   useRouteFocusReset();
 
@@ -60,19 +66,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     () => decodePathSegment(normalizedPathname.match(/^\/projects\/([^/]+)/)?.[1] || null),
     [normalizedPathname],
   );
-  const currentPaneId = useMemo(
-    () => decodePathSegment(normalizedPathname.match(/^\/projects\/[^/]+\/work\/([^/]+)/)?.[1] || null),
-    [normalizedPathname],
-  );
-  const currentProject = useMemo(
-    () => projects.find((project) => project.id === currentProjectId) || null,
-    [currentProjectId, projects],
-  );
   const personalProject = useMemo(
     () => projects.find((project) => project.isPersonal) || null,
     [projects],
   );
-  const currentProjectPanes = useProjectPanes(accessToken, currentProjectId);
   const currentHomeState = useMemo<HomeRouteState>(() => {
     const searchParams = new URLSearchParams(location.search);
     return {
@@ -87,6 +84,20 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     () => (isOnHome ? parseHomeOverlayId(new URLSearchParams(location.search).get('surface')) : null),
     [isOnHome, location.search],
   );
+  const currentPaneId = useMemo(
+    () => (isOnHome
+      ? decodePathSegment(currentHomeState.paneId)
+      : decodePathSegment(normalizedPathname.match(/^\/projects\/[^/]+\/work\/([^/]+)/)?.[1] || null)),
+    [currentHomeState.paneId, isOnHome, normalizedPathname],
+  );
+  const currentProject = useMemo(() => {
+    if (isOnHome) {
+      return personalProject;
+    }
+    return projects.find((project) => project.id === currentProjectId) || null;
+  }, [currentProjectId, isOnHome, personalProject, projects]);
+  const currentProjectPanesProjectId = currentProject?.id ?? null;
+  const { panes: currentProjectPanes } = useProjectPanes(accessToken, currentProjectPanesProjectId);
 
   useEffect(() => {
     if (!isOnHome) {
@@ -95,8 +106,29 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     lastHomeRouteRef.current = currentHomeState;
   }, [currentHomeState, isOnHome]);
 
+  useEffect(() => {
+    const transitionDecision = decideRouteTransition({
+      currentPathname: location.pathname,
+      currentState: location.state,
+      previousPathname: previousRouteRef.current?.pathname ?? null,
+      previousState: previousRouteRef.current?.state,
+      navigationType,
+      getProjectName: (projectId) => projects.find((project) => project.id === projectId)?.name || null,
+    });
+
+    previousRouteRef.current = {
+      pathname: location.pathname,
+      state: location.state,
+    };
+
+    if (transitionDecision.announcement) {
+      announce(transitionDecision.announcement);
+    }
+  }, [announce, location.pathname, location.state, navigationType, projects]);
+
   return (
     <div className="flex h-screen bg-bg text-text">
+      <LiveRegion message={announcement} role="status" ariaLive="polite" />
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[200] focus:rounded-control focus:bg-surface-elevated focus:px-md focus:py-sm focus:text-text focus:ring-2 focus:ring-focus-ring"

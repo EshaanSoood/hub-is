@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_VISIBLE_RECENT_PLACES,
   readRecentPlaces,
@@ -12,6 +12,7 @@ const STORAGE_KEY = 'hub:sidebar:recent-places';
 describe('recent places store', () => {
   afterEach(() => {
     window.localStorage.removeItem(STORAGE_KEY);
+    vi.useRealTimers();
   });
 
   it('deduplicates pane visits by pane scope', () => {
@@ -34,36 +35,50 @@ describe('recent places store', () => {
   });
 
   it('prioritizes contributed places over passive visits and limits the visible set', () => {
+    vi.useFakeTimers();
+    const baseTime = new Date('2026-04-24T18:00:00.000Z');
+    let step = 0;
+    const advanceTime = () => {
+      vi.setSystemTime(new Date(baseTime.getTime() + step));
+      step += 1;
+    };
+
+    advanceTime();
     recordRecentPaneVisit({
       paneId: 'pane-1',
       paneName: 'First',
       spaceId: 'space-1',
       spaceName: 'Space One',
     });
+    advanceTime();
     recordRecentPaneVisit({
       paneId: 'pane-2',
       paneName: 'Second',
       spaceId: 'space-1',
       spaceName: 'Space One',
     });
+    advanceTime();
     recordRecentPaneVisit({
       paneId: 'pane-3',
       paneName: 'Third',
       spaceId: 'space-2',
       spaceName: 'Space Two',
     });
+    advanceTime();
     recordRecentPaneVisit({
       paneId: 'pane-4',
       paneName: 'Fourth',
       spaceId: 'space-2',
       spaceName: 'Space Two',
     });
+    advanceTime();
     recordRecentPaneContribution({
       paneId: 'pane-2',
       paneName: 'Second',
       spaceId: 'space-1',
       spaceName: 'Space One',
     }, 'record-update');
+    advanceTime();
     recordRecentPaneContribution({
       paneId: 'pane-4',
       paneName: 'Fourth',

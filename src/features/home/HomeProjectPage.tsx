@@ -62,7 +62,7 @@ export const HomeProjectPage = () => {
     projects,
   });
   const { openRecord } = homeRecordInspector;
-  const [autoFocusHeading] = useState(true);
+  const autoFocusHeading = true;
   const [projectNameDraft, setProjectNameDraft] = useState(homeIdentity.projectName);
   const [projectNameSaving, setProjectNameSaving] = useState(false);
   const [projectNameError, setProjectNameError] = useState<string | null>(null);

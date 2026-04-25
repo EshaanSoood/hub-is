@@ -15,6 +15,7 @@ import {
 import { buildProjectOverviewHref } from '../../lib/hubRoutes';
 import { cn } from '../../lib/cn';
 import { useRooms } from '../../features/rooms';
+import { buildRoomProjectHref } from '../../features/rooms/navigation';
 import { fadeThroughVariants } from '../motion/hubMotion';
 import { useProjectPanes } from '../../hooks/useProjectPanes';
 import { useSidebarNavigationState } from './hooks/useSidebarNavigationState';
@@ -27,6 +28,7 @@ import { SearchButton } from './SearchButton';
 import { Surfaces, type SidebarSurfaceId } from './Surfaces';
 import { useSidebarCollapse } from './hooks/useSidebarCollapse';
 import { WorkspaceHeader } from './WorkspaceHeader';
+import { buildProjectWorkHref } from '../../lib/hubRoutes';
 
 const decodePathSegment = (value: string | null): string | null => {
   if (!value) {
@@ -82,7 +84,7 @@ export const SidebarShell = () => {
     [activeSpaceId, projects],
   );
   const currentSpacePaneId = currentProjectPaneId ?? currentRoomProjectPaneId ?? null;
-  const activeCurrentProjectPanes = useProjectPanes(accessToken, activeSpaceId);
+  const { panes: activeCurrentProjectPanes } = useProjectPanes(accessToken, activeSpaceId);
   const currentRecentPlace = useMemo(() => {
     if (!activeSpaceId || !currentSpacePaneId || !currentProject) {
       return null;
@@ -92,12 +94,15 @@ export const SidebarShell = () => {
       return null;
     }
     return {
+      href: currentRoomId
+        ? buildRoomProjectHref(currentRoomId, currentPane.pane_id)
+        : buildProjectWorkHref(activeSpaceId, currentPane.pane_id),
       paneId: currentPane.pane_id,
       paneName: currentPane.name,
       spaceId: activeSpaceId,
       spaceName: currentProject.name,
     };
-  }, [activeCurrentProjectPanes, activeSpaceId, currentProject, currentSpacePaneId]);
+  }, [activeCurrentProjectPanes, activeSpaceId, currentProject, currentRoomId, currentSpacePaneId]);
   const currentHomeTab = useMemo<HomeTabId>(() => parseHomeTabId(new URLSearchParams(location.search).get('tab')), [location.search]);
   const currentHomeContentView = useMemo<HomeContentViewId>(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -130,6 +135,7 @@ export const SidebarShell = () => {
     activeSpaceId,
     currentSpaceHref: activeSpaceId ? `${location.pathname}${location.search}` : null,
     isHomeState: !activeSpaceId && isOnHome,
+    knownSpaceIds: projects.map((project) => project.id),
   });
 
   useEffect(() => {

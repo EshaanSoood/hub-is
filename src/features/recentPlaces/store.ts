@@ -5,6 +5,7 @@ const RECENT_PLACES_STORAGE_KEY = 'hub:sidebar:recent-places';
 const RECENT_PLACES_UPDATED_EVENT = 'hub:recent-places-updated';
 const MAX_STORED_RECENT_PLACES = 12;
 export const MAX_VISIBLE_RECENT_PLACES = 4;
+let lastRecentPlaceTimestampMs = 0;
 
 const parseTimestamp = (value: string | null): number => {
   if (!value) {
@@ -16,6 +17,13 @@ const parseTimestamp = (value: string | null): number => {
 
 const hasContribution = (entry: RecentPlaceEntry): boolean =>
   entry.contributionCount > 0 && parseTimestamp(entry.lastContributedAt) > Number.NEGATIVE_INFINITY;
+
+const nextRecentPlaceTimestamp = (): string => {
+  const nowMs = Date.now();
+  const nextMs = nowMs <= lastRecentPlaceTimestampMs ? lastRecentPlaceTimestampMs + 1 : nowMs;
+  lastRecentPlaceTimestampMs = nextMs;
+  return new Date(nextMs).toISOString();
+};
 
 const recentPlaceSort = (left: RecentPlaceEntry, right: RecentPlaceEntry): number => {
   const leftContributed = hasContribution(left);
@@ -142,9 +150,9 @@ export const readRecentPlaces = (): RecentPlaceEntry[] => {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed
+    return dedupeRecentPlaces(parsed
       .map(sanitizeRecentPlaceEntry)
-      .filter((entry): entry is RecentPlaceEntry => entry !== null)
+      .filter((entry): entry is RecentPlaceEntry => entry !== null))
       .sort(recentPlaceSort)
       .slice(0, MAX_STORED_RECENT_PLACES);
   } catch {
@@ -173,7 +181,7 @@ export const subscribeRecentPlaces = (callback: () => void): (() => void) => {
 };
 
 export const recordRecentPaneVisit = (input: RecentPanePlaceInput) => {
-  const nowIso = new Date().toISOString();
+  const nowIso = nextRecentPlaceTimestamp();
   const currentEntries = readRecentPlaces();
   const key = panePlaceKey(input.spaceId, input.paneId);
   const existing = currentEntries.find((entry) => entry.key === key) || null;
@@ -198,7 +206,7 @@ export const recordRecentPaneContribution = (
   input: RecentPanePlaceInput,
   contributionKind: string,
 ) => {
-  const nowIso = new Date().toISOString();
+  const nowIso = nextRecentPlaceTimestamp();
   const currentEntries = readRecentPlaces();
   const key = panePlaceKey(input.spaceId, input.paneId);
   const existing = currentEntries.find((entry) => entry.key === key) || null;

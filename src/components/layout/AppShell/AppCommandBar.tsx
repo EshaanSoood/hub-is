@@ -57,7 +57,7 @@ export const AppCommandBar = ({
             onClick={onOpenQuickThoughts}
             className="ghost-button inline-flex h-10 items-center gap-2 bg-surface px-3 text-sm font-medium text-text transition-colors hover:bg-surface-highest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
-            <Icon name="thought-pile" className="text-sm" />
+            <Icon name="thought-pile" size={14} />
             <span>Quick thoughts</span>
           </button>
         </div>

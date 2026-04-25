@@ -57,8 +57,8 @@ export const HomeProjectSectionHeader = ({
     <header className="section-scored rounded-panel bg-surface-container p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="heading-3 text-text">{projectName}</h2>
-          <h3 className="font-serif text-xl font-semibold text-text">{homeTabLabels[activeTab]}</h3>
+          <h1 className="heading-3 text-text">{projectName}</h1>
+          <p className="font-serif text-xl font-semibold text-text">{homeTabLabels[activeTab]}</p>
         </div>
 
         <nav aria-label="Home tabs" className="flex flex-wrap items-center gap-2">
