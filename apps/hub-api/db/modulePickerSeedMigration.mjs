@@ -10,6 +10,9 @@ export const installModulePickerSeedData = (db, nowIso) => {
       updated_at TEXT NOT NULL,
       PRIMARY KEY(module_type, size_tier)
     );
+
+    CREATE INDEX IF NOT EXISTS idx_module_picker_seed_module_size
+      ON module_picker_seed_data(module_type, size_tier);
   `);
 
   seedModulePickerSeedData(db, nowIso);

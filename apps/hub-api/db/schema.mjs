@@ -951,6 +951,10 @@ const resetSchemaToContractV1 = (db) => {
     `);
 
     installModulePickerSeedData(db, nowIso);
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_module_picker_seed_module_size
+        ON module_picker_seed_data(module_type, size_tier);
+    `);
     db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 1, ?)').run(nowIso());
 
     db.exec('COMMIT;');

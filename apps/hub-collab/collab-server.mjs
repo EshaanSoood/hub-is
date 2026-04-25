@@ -1,6 +1,6 @@
 import { Server } from '@hocuspocus/server';
 import * as Y from 'yjs';
-import { isRoomDocumentId } from '../hub-api/lib/roomDocuments.mjs';
+import { isRoomDocumentId } from './roomDocuments.mjs';
 
 const PORT = Number(process.env.PORT || '1234');
 const HOST = (process.env.HOST || '0.0.0.0').trim();
