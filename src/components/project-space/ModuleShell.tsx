@@ -54,7 +54,7 @@ export const ModuleShell = ({
       className={cn(
         'module-sheet relative flex flex-col overflow-hidden p-3',
         accentClassName,
-        previewMode ? 'h-full min-h-0 w-full' : sizeClass[sizeTier],
+        previewMode ? 'max-h-full w-full' : sizeClass[sizeTier],
         previewMode ? 'module-picker-preview-card' : sizeHeightClass[sizeTier],
       )}
     >
@@ -102,8 +102,8 @@ export const ModuleShell = ({
 
       <div
         className={cn(
-          'min-h-0 flex flex-1 flex-col overflow-y-auto overflow-x-hidden',
-          previewMode ? 'pr-0' : 'pr-10',
+          'min-h-0 flex flex-col overflow-y-auto overflow-x-hidden',
+          previewMode ? 'pr-0' : 'flex-1 pr-10',
         )}
         data-module-card-body="true"
       >

@@ -190,7 +190,7 @@ const ThoughtRow = ({
 }) => {
   const preview = clipPreview(entry.text);
   const longPressHandlers = useLongPress(() => {
-    if (!isEditing) {
+    if (!previewMode && !isEditing) {
       setActiveItem(entry.id, 'quick-thought', preview);
     }
   });
@@ -199,7 +199,7 @@ const ThoughtRow = ({
   return (
     <div
       className={cn('paper-card relative overflow-hidden px-sm py-xs', entry.archived ? 'opacity-60' : null)}
-      {...(!isEditing ? longPressHandlers : {})}
+      {...(!previewMode && !isEditing ? longPressHandlers : {})}
     >
       <div
         aria-hidden="true"
@@ -287,7 +287,7 @@ const ThoughtRow = ({
               </button>
             ) : null}
           </div> : null}
-          {showInsertAction ? (
+          {showInsertAction && !previewMode ? (
             <button
               type="button"
               data-module-insert-ignore="true"
@@ -324,16 +324,23 @@ export const QuickThoughtsModuleSkin = ({
   const persistStorageKeyRef = useRef(storageKey);
   const skipNextPersistRef = useRef(true);
   const [entries, setEntries] = useState<QuickThoughtEntry[]>(
-    () => initialEntries ?? readEntriesForStorageKey(storageKey, legacyStorageKey),
+    () => (previewMode ? [] : readEntriesForStorageKey(storageKey, legacyStorageKey)),
   );
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [draftText, setDraftText] = useState('');
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const composerContainerRef = useRef<HTMLDivElement | null>(null);
-  const isInteractive = !readOnly;
+  const isInteractive = !previewMode && !readOnly;
+  const renderedEntries = useMemo(
+    () => (previewMode ? initialEntries ?? [] : entries),
+    [entries, initialEntries, previewMode],
+  );
 
   useEffect(() => {
+    if (previewMode) {
+      return;
+    }
     if (typeof window === 'undefined') {
       return;
     }
@@ -347,10 +354,10 @@ export const QuickThoughtsModuleSkin = ({
     if (legacyStorageKey && legacyStorageKey !== storageKey) {
       window.localStorage.removeItem(legacyStorageKey);
     }
-  }, [entries, legacyStorageKey, storageKey]);
+  }, [entries, legacyStorageKey, previewMode, storageKey]);
 
-  const liveEntries = useMemo(() => entries.filter((entry) => !entry.archived), [entries]);
-  const archivedEntries = useMemo(() => entries.filter((entry) => entry.archived), [entries]);
+  const liveEntries = useMemo(() => renderedEntries.filter((entry) => !entry.archived), [renderedEntries]);
+  const archivedEntries = useMemo(() => renderedEntries.filter((entry) => entry.archived), [renderedEntries]);
 
   const addEntry = () => {
     if (!isInteractive) {

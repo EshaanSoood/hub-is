@@ -138,7 +138,7 @@ export const TableModuleSkin = ({
       if (!field) {
         if (previewMode) {
           return (
-            <span className="block w-full min-w-0 max-w-full truncate text-left font-semibold text-text" title={row.title}>
+            <span className="block w-full min-w-0 max-w-full whitespace-normal break-words text-left font-semibold text-text" title={row.title}>
               {row.title}
             </span>
           );
@@ -185,9 +185,13 @@ export const TableModuleSkin = ({
       const displayLabel = displayValue || '—';
       const textTitle = displayValue || undefined;
       const textClassName = cn(
-        'block max-w-full truncate text-[13px] font-normal text-text-secondary',
-        sizeTier === 'L' && isNotesField(field) && 'max-w-[200px]',
+        'block max-w-full text-[13px] font-normal text-text-secondary',
+        previewMode ? 'whitespace-normal break-words' : 'truncate',
+        !previewMode && sizeTier === 'L' && isNotesField(field) && 'max-w-[200px]',
       );
+      const compactTextClassName = previewMode
+        ? 'block max-w-full whitespace-normal break-words text-[13px] font-normal text-text-secondary'
+        : 'block max-w-full truncate text-[13px] font-normal text-text-secondary';
 
       if (canEditCells) {
         return (
@@ -206,7 +210,7 @@ export const TableModuleSkin = ({
             aria-label={`Edit ${field.name} for ${row.title}`}
           >
             <span
-              className={isFreeformTextField(field) ? textClassName : 'block max-w-full truncate text-[13px] font-normal text-text-secondary'}
+              className={isFreeformTextField(field) ? textClassName : compactTextClassName}
               title={textTitle}
             >
               {displayLabel}
@@ -217,7 +221,7 @@ export const TableModuleSkin = ({
 
       return (
         <span
-          className={isFreeformTextField(field) ? textClassName : 'block max-w-full truncate text-[13px] font-normal text-text-secondary'}
+          className={isFreeformTextField(field) ? textClassName : compactTextClassName}
           title={textTitle}
         >
           {displayLabel}
@@ -434,7 +438,7 @@ export const TableModuleSkin = ({
   const isEmpty = modelRows.length === 0;
 
   return (
-    <section className="module-sheet flex h-full min-h-0 flex-col" aria-label="Table module">
+    <section className={cn('module-sheet flex min-h-0 flex-col', previewMode ? 'w-full' : 'h-full')} aria-label="Table module">
       <TableHeader
         table={table}
         templateColumns={templateColumns}
@@ -472,7 +476,7 @@ export const TableModuleSkin = ({
         role="grid"
         aria-rowcount={modelRows.length}
         aria-colcount={table.getVisibleLeafColumns().length}
-        className="relative min-h-0 flex-1"
+        className={cn('relative min-h-0', previewMode ? 'w-full' : 'flex-1')}
       >
         {isEmpty ? (
           <div className="p-3">
@@ -486,7 +490,7 @@ export const TableModuleSkin = ({
             />
           </div>
         ) : previewMode ? (
-          <div className="flex h-full min-h-0 flex-col">
+          <div className="flex min-h-0 w-full flex-col">
             {modelRows.map((row, index) => (
               <TableRow
                 key={row.id}

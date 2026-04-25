@@ -35,11 +35,15 @@ export const tableContract = (seed: ModulePickerSeedPayload): TableModuleContrac
         loading: false,
         records: rows.map((row, index): HubRecordSummary => {
           const values = asArray(row);
+          const fieldEntries = fields.reduce<Record<string, unknown>>((entries, field, fieldIndex) => {
+            entries[field.field_id] = values[fieldIndex + 1];
+            return entries;
+          }, {});
           return {
             record_id: `preview-record-${index}`,
             collection_id: 'preview-table',
             title: asText(values[0], `Record ${index + 1}`),
-            fields: { [fields[0].field_id]: values[1], [fields[1].field_id]: values[2] },
+            fields: fieldEntries,
             updated_at: addMinutes(-index),
             source_pane: null,
           };

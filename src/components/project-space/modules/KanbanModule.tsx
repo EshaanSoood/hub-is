@@ -55,8 +55,8 @@ export const KanbanModule = ({
   const configureGrouping = canEditPane && selectedViewId ? contract.onConfigureGrouping : undefined;
   const updateRecord = canEditPane && selectedViewId ? contract.onUpdateRecord : undefined;
   const deleteRecord = canEditPane && selectedViewId ? contract.onDeleteRecord : undefined;
-  const canEnsureView = canEditPane && typeof contract.onEnsureView === 'function';
-  const needsStandaloneBoard = !selectedViewId && (isOwnedMode || contract.views.length === 0);
+  const canEnsureView = !previewMode && canEditPane && typeof contract.onEnsureView === 'function';
+  const needsStandaloneBoard = !previewMode && !selectedViewId && (isOwnedMode || contract.views.length === 0);
   const acquireAutoEnsureLock = useCallback(() => {
     if (isCreatingView || autoEnsureAttemptedRef.current) {
       return false;
@@ -90,6 +90,9 @@ export const KanbanModule = ({
   }, [acquireAutoEnsureLock, contract, module, onSetModuleBinding, ownedViewId]);
 
   useEffect(() => {
+    if (previewMode) {
+      return;
+    }
     if (!needsStandaloneBoard) {
       autoEnsureAttemptedRef.current = false;
       return;
@@ -101,7 +104,7 @@ export const KanbanModule = ({
     queueMicrotask(() => {
       void handleEnsureView();
     });
-  }, [canEnsureView, handleEnsureView, needsStandaloneBoard]);
+  }, [canEnsureView, handleEnsureView, needsStandaloneBoard, previewMode]);
 
   if (needsStandaloneBoard) {
     if (isCreatingView) {

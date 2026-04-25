@@ -2,7 +2,7 @@ export const noopAsync = async () => {};
 export const noop = () => {};
 
 export const asRecord = (value: unknown): Record<string, unknown> =>
-  value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 
 export const asText = (value: unknown, fallback = ''): string =>
   typeof value === 'string' && value.trim() ? value : fallback;

@@ -33,15 +33,20 @@ export const AddModuleDialog = ({
     setSelection(nextSelection);
   }, []);
 
+  const handleClose = useCallback(() => {
+    setSelection(null);
+    onClose();
+  }, [onClose]);
+
   const handleConfirm = useCallback((nextSelection: ModulePickerSelection) => {
     onAddModule(nextSelection.moduleType, nextSelection.sizeTier);
-    onClose();
-  }, [onAddModule, onClose]);
+    handleClose();
+  }, [handleClose, onAddModule]);
 
   return (
     <ModulePickerOverlay
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       triggerRef={triggerRef}
       layoutId={layoutId}
       sidebar={<ModulePickerSidebar key={String(open)} onSelectionChange={handleSelectionChange} />}

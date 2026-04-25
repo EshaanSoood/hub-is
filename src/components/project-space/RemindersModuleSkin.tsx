@@ -162,7 +162,9 @@ const ReminderRibbonRow = ({
   onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
 }) => {
   const longPressHandlers = useLongPress(() => {
-    setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
+    if (!previewMode) {
+      setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
+    }
   });
   const showInsertAction = activeItemId === reminder.reminder_id && activeItemType === 'reminder';
 
@@ -175,7 +177,7 @@ const ReminderRibbonRow = ({
         clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)',
         borderLeftColor: isOverdue ? 'var(--color-danger)' : 'var(--color-capture-rail)',
       }}
-      {...longPressHandlers}
+      {...(!previewMode ? longPressHandlers : {})}
     >
       <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3 pr-8">
         {previewMode ? (
@@ -234,7 +236,7 @@ const ReminderRibbonRow = ({
             <Icon name="checkmark" className="text-[14px]" />
           </button>
         ) : null}
-        {showInsertAction ? (
+        {showInsertAction && !previewMode ? (
           <button
             type="button"
             data-module-insert-ignore="true"

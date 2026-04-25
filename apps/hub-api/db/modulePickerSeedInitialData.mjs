@@ -68,6 +68,7 @@ const baseSeeds = {
 };
 
 export const seedModulePickerSeedData = (db, nowIso) => {
+  // Seed rows are first-install defaults; admin edits in this table should survive later deploys.
   const insertSeed = db.prepare(`
     INSERT OR IGNORE INTO module_picker_seed_data (
       module_type,

@@ -94,12 +94,12 @@ export const ModulePickerPreview = ({
   })();
 
   return (
-    <div className="flex h-full min-h-0 w-full items-center justify-center">
+    <div className="flex h-full min-h-0 w-full items-start justify-center overflow-y-auto">
       <div
         tabIndex={-1}
         aria-hidden="true"
         inert
-        className={cn('module-picker-readonly h-full min-h-0', previewWidthClass[selection.sizeTier])}
+        className={cn('module-picker-readonly', previewWidthClass[selection.sizeTier])}
       >
         <ModuleShell moduleType={selection.moduleType} sizeTier={selection.sizeTier} readOnlyState removeDisabled previewMode onRemove={() => {}}>
           {body}

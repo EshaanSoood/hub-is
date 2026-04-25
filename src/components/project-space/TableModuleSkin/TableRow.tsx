@@ -44,7 +44,7 @@ export const TableRow = ({
       tabIndex={previewMode ? -1 : 0}
       onKeyDown={(event) => onRowKeyDown(event, index, row.original.recordId)}
       className={previewMode
-        ? 'grid min-h-11 w-full flex-1 items-center border-b border-border-muted text-[13px]'
+        ? 'grid min-h-11 w-full items-center border-b border-border-muted text-[13px]'
         : 'absolute left-0 grid w-full border-b border-border-muted text-[13px] transition-colors hover:bg-primary/5 focus-visible:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring motion-reduce:transition-none'}
       style={previewMode
         ? { gridTemplateColumns: templateColumns }
@@ -67,6 +67,7 @@ export const TableRow = ({
             setEditableCell={setEditableCell}
             handleEditableCellBlur={handleEditableCellBlur}
             handleEditableCellKeyDown={handleEditableCellKeyDown}
+            previewMode={previewMode}
           />
         );
       })}

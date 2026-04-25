@@ -170,12 +170,14 @@ const TaskSummaryRow = ({
 }) => {
   const nextStatus = getNextStatus(task.status);
   const longPressHandlers = useLongPress(() => {
-    setActiveItem(task.id, 'task', task.label);
+    if (!previewMode) {
+      setActiveItem(task.id, 'task', task.label);
+    }
   });
   const showInsertAction = Boolean(activeItemId === task.id && activeItemType === 'task' && onInsertToEditor);
 
   return (
-    <li className="relative" {...longPressHandlers}>
+    <li className="relative" {...(!previewMode ? longPressHandlers : {})}>
       <TaskRecordSummary
         title={task.label}
         status={task.status}
@@ -200,12 +202,12 @@ const TaskSummaryRow = ({
           }
         }}
         titleAriaLabel={`Insert task ${task.label}`}
-        titlePressed={showInsertAction}
+        titlePressed={!previewMode && showInsertAction}
         className={cn(
           task.status === 'cancelled' && 'text-text-secondary',
         )}
       />
-      {showInsertAction ? (
+      {showInsertAction && !previewMode ? (
         <button
           type="button"
           data-module-insert-ignore="true"

@@ -60,7 +60,7 @@ export const SortableHeaderCell = ({
         ) : null}
 
         {previewMode ? (
-          <span className="block min-w-0 flex-1 truncate text-[11px] font-bold uppercase tracking-wide text-muted">
+          <span className="block min-w-0 flex-1 whitespace-normal break-words text-[11px] font-bold uppercase tracking-wide text-muted">
             {flexRender(header.column.columnDef.header, header.getContext())}
           </span>
         ) : (

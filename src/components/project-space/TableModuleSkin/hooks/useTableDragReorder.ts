@@ -22,10 +22,12 @@ interface UseTableDragReorderResult {
 const functionalUpdate = <T,>(updater: Updater<T>, input: T): T =>
   typeof updater === 'function' ? (updater as (old: T) => T)(input) : updater;
 
+const EMPTY_FIELD_IDS: string[] = [];
+
 export const useTableDragReorder = (
   showBulkSelection: boolean,
   readOnly: boolean,
-  fieldIds: string[] = [],
+  fieldIds: string[] = EMPTY_FIELD_IDS,
 ): UseTableDragReorderResult => {
   const [fieldColumnOrder, setFieldColumnOrder] = useState<string[]>([]);
 

@@ -83,10 +83,11 @@ export const remindersContract = (seed: ModulePickerSeedPayload): RemindersModul
 export const filesContract = (seed: ModulePickerSeedPayload): FilesModuleContract => {
   const files = asArray(seed.items).map((name, index) => {
     const fileName = asText(name);
+    const extensionDotIndex = fileName.lastIndexOf('.');
     return {
       id: `preview-file-${index}`,
       name: fileName,
-      ext: fileName.split('.').pop() || '',
+      ext: extensionDotIndex > 0 ? fileName.slice(extensionDotIndex + 1) : '',
       sizeLabel: `${index + 1}.${index + 2} MB`,
       sizeBytes: (index + 1) * 1024 * 1024,
       uploadedAt: 'Just now',

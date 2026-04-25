@@ -11,7 +11,7 @@ interface SeedDataState {
 const emptySeedData: ModulePickerSeedData = {};
 
 export const useModulePickerSeedData = (open: boolean, accessToken?: string): SeedDataState => {
-  const cacheRef = useRef<ModulePickerSeedData | null>(null);
+  const cacheRef = useRef(new Map<string, ModulePickerSeedData>());
   const [state, setState] = useState<SeedDataState>({
     seedData: emptySeedData,
     loading: false,
@@ -22,8 +22,9 @@ export const useModulePickerSeedData = (open: boolean, accessToken?: string): Se
     if (!open || !accessToken) {
       return;
     }
-    if (cacheRef.current) {
-      setState({ seedData: cacheRef.current, loading: false, error: null });
+    const cached = cacheRef.current.get(accessToken);
+    if (cached) {
+      setState({ seedData: cached, loading: false, error: null });
       return;
     }
 
@@ -38,7 +39,7 @@ export const useModulePickerSeedData = (open: boolean, accessToken?: string): Se
         if (cancelled) {
           return;
         }
-        cacheRef.current = data.seedData;
+        cacheRef.current.set(accessToken, data.seedData);
         setState({ seedData: data.seedData, loading: false, error: null });
       })
       .catch((error: unknown) => {

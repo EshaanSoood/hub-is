@@ -388,7 +388,7 @@ export const CalendarLargeView = ({
 
       {!previewMode ? createPanel : null}
 
-      {view === 'year' ? (
+      {!previewMode && view === 'year' ? (
         <section className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {Array.from({ length: 12 }, (_, monthIndex) => {
             const label = new Date(monthCursor.getFullYear(), monthIndex, 1).toLocaleDateString(undefined, { month: 'short' });
@@ -424,7 +424,7 @@ export const CalendarLargeView = ({
         </section>
       ) : null}
 
-      {view === 'day' ? (
+      {!previewMode && view === 'day' ? (
         <CalendarDayView
           events={dayViewEvents}
           date={dayViewDate}
@@ -448,7 +448,7 @@ export const CalendarLargeView = ({
         />
       ) : null}
 
-      {view === 'week' ? (
+      {!previewMode && view === 'week' ? (
         <CalendarWeekView
           events={events}
           today={weekViewToday}

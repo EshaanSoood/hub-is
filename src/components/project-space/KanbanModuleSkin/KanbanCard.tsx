@@ -125,9 +125,9 @@ export const KanbanCard = ({
   clearActiveItem,
   onInsertToEditor,
 }: KanbanCardProps) => {
-  const editable = !readOnly && typeof onUpdateRecord === 'function';
-  const deletable = !readOnly && typeof onDeleteRecord === 'function';
-  const showColumnSelector = canMove && !readOnly;
+  const editable = !previewMode && !readOnly && typeof onUpdateRecord === 'function';
+  const deletable = !previewMode && !readOnly && typeof onDeleteRecord === 'function';
+  const showColumnSelector = !previewMode && canMove && !readOnly;
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const wasEditingRef = useRef(false);
@@ -139,7 +139,7 @@ export const KanbanCard = ({
   const [draft, setDraft] = useState<EditableCardFields>(() => readEditableFields(record, metadataFieldIds));
   const [baseline, setBaseline] = useState<EditableCardFields>(() => readEditableFields(record, metadataFieldIds));
   const longPressHandlers = useLongPress(() => {
-    if (!isEditing) {
+    if (!previewMode && !isEditing) {
       setActiveItem(record.record_id, 'record', record.title);
     }
   });
@@ -153,7 +153,7 @@ export const KanbanCard = ({
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `record:${record.record_id}`,
-    disabled: !canMove,
+    disabled: previewMode || !canMove,
   });
 
   useEffect(() => {
@@ -369,7 +369,7 @@ export const KanbanCard = ({
     >
       <div
         className="group/card relative rounded-control border border-border-muted bg-surface-elevated p-3 transition-colors hover:border-primary/50 motion-reduce:transition-none"
-        {...(!isEditing ? longPressHandlers : {})}
+        {...(!previewMode && !isEditing ? longPressHandlers : {})}
       >
         {isEditing ? (
           <div ref={editorRef} className="space-y-3">
@@ -582,7 +582,7 @@ export const KanbanCard = ({
                 </IconButton>
               ) : null}
 
-              {canMove ? (
+              {canMove && !previewMode ? (
                 <button
                   type="button"
                   className="mt-0.5 shrink-0 rounded-control border border-border-muted bg-surface px-1.5 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -628,7 +628,7 @@ export const KanbanCard = ({
             </div>
           </div>
         ) : null}
-        {showInsertAction ? (
+        {showInsertAction && !previewMode ? (
           <button
             type="button"
             data-module-insert-ignore="true"

@@ -300,14 +300,14 @@ const FileRow = ({
 }) => {
   const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
   const longPressHandlers = useLongPress(() => {
-    if (!uploading) {
+    if (!previewMode && !uploading) {
       setActiveItem(file.id, 'file', file.name);
     }
   });
   const showInsertAction = activeItemId === file.id && activeItemType === 'file';
 
   return (
-    <div className="relative" {...longPressHandlers}>
+    <div className="relative" {...(!previewMode ? longPressHandlers : {})}>
       {previewMode ? (
         <div className="paper-card relative flex w-full items-center gap-xs overflow-visible px-sm py-xs text-left">
           <FileRecordSummary
@@ -390,14 +390,14 @@ const FileTile = ({
 }) => {
   const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
   const longPressHandlers = useLongPress(() => {
-    if (!uploading) {
+    if (!previewMode && !uploading) {
       setActiveItem(file.id, 'file', file.name);
     }
   });
   const showInsertAction = activeItemId === file.id && activeItemType === 'file';
 
   return (
-    <div role="listitem" className="relative" {...longPressHandlers}>
+    <div role="listitem" className="relative" {...(!previewMode ? longPressHandlers : {})}>
       {previewMode ? (
         <div className="paper-card relative w-full overflow-visible text-left">
           <FileRecordSummary
