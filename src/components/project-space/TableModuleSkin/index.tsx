@@ -30,6 +30,7 @@ export const TableModuleSkin = ({
   records,
   loading,
   readOnly = false,
+  previewMode = false,
   availableViews,
   onOpenRecord,
   onCreateRecord,
@@ -133,6 +134,13 @@ export const TableModuleSkin = ({
   const renderDisplayCell = useCallback(
     (row: TableRowData, field: TableField | null) => {
       if (!field) {
+        if (previewMode) {
+          return (
+            <span className="block w-full min-w-0 max-w-full truncate text-left font-semibold text-text" title={row.title}>
+              {row.title}
+            </span>
+          );
+        }
         if (canEditCells) {
           return (
             <button
@@ -214,7 +222,7 @@ export const TableModuleSkin = ({
         </span>
       );
     },
-    [canEditCells, onOpenRecord, setEditableCell, sizeTier],
+    [canEditCells, onOpenRecord, previewMode, setEditableCell, sizeTier],
   );
 
   const columns = useMemo<ColumnDef<TableRowData>[]>(() => {
@@ -302,6 +310,7 @@ export const TableModuleSkin = ({
     onSortingChange: setSorting,
     onColumnOrderChange: handleColumnOrderChange,
     enableColumnResizing: true,
+    enableSorting: !previewMode,
     columnResizeMode: 'onChange',
     defaultColumn: {
       minSize: 120,
@@ -329,7 +338,13 @@ export const TableModuleSkin = ({
     overscan: 8,
   });
 
-  const templateColumns = table.getVisibleLeafColumns().map((column) => `${column.getSize()}px`).join(' ');
+  const templateColumns = previewMode
+    ? table.getVisibleLeafColumns().map((column, index) => (
+      index === 0 || column.id === 'title'
+        ? 'minmax(var(--table-preview-title-column-min), 1.4fr)'
+        : 'minmax(var(--table-preview-field-column-min), 1fr)'
+    )).join(' ')
+    : table.getVisibleLeafColumns().map((column) => `${column.getSize()}px`).join(' ');
 
   const { handleRowKeyDown } = useTableKeyboardGrid({
     modelRowsLength: modelRows.length,
@@ -425,6 +440,7 @@ export const TableModuleSkin = ({
         fieldColumnOrder={fieldColumnOrder}
         canReorderColumns={canReorderColumns}
         readOnly={readOnly}
+        previewMode={previewMode}
         onResizeKeyDown={handleResizeKeyDown}
         selectedRecordIds={selectedRecordIds}
         clearSelection={clearSelection}
@@ -493,7 +509,7 @@ export const TableModuleSkin = ({
       </div>
 
       <TableCreateRow
-        canCreate={canCreate}
+        canCreate={canCreate && !previewMode}
         templateColumns={templateColumns}
         createRowVisibleColumns={createRowVisibleColumns}
         fieldById={fieldById}

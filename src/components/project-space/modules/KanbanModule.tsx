@@ -12,6 +12,7 @@ interface Props {
   module: ContractModuleConfig;
   contract: KanbanModuleContract;
   canEditPane: boolean;
+  previewMode?: boolean;
   onOpenRecord?: (recordId: string) => void;
   onSetModuleBinding: (moduleInstanceId: string, binding: ContractModuleConfig['binding']) => void;
 }
@@ -39,6 +40,7 @@ export const KanbanModule = ({
   module,
   contract,
   canEditPane,
+  previewMode = false,
   onOpenRecord,
   onSetModuleBinding,
 }: Props) => {
@@ -123,7 +125,7 @@ export const KanbanModule = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-      {contract.views.length > 0 ? (
+      {contract.views.length > 0 && !previewMode ? (
         <label className="block text-xs text-muted">
           Source view
           <select
@@ -156,6 +158,7 @@ export const KanbanModule = ({
             groupableFields={viewData?.groupableFields}
             metadataFieldIds={viewData?.metadataFieldIds}
             wipLimits={viewData?.wipLimits}
+            previewMode={previewMode}
             onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
             onMoveRecord={(recordId, nextGroup) => {
               if (canEditPane && selectedViewId) {
@@ -182,8 +185,8 @@ export const KanbanModule = ({
                 ? (recordId) => deleteRecord(selectedViewId, recordId)
                 : undefined
             }
-            onInsertToEditor={contract.onInsertToEditor}
-            readOnly={!canEditPane}
+            onInsertToEditor={previewMode ? undefined : contract.onInsertToEditor}
+            readOnly={previewMode || !canEditPane}
           />
         </Suspense>
       </div>

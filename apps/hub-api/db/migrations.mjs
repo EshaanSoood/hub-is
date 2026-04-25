@@ -1,4 +1,5 @@
 import { createRequestLogger } from '../lib/logger.mjs';
+import { installModulePickerSeedData } from './modulePickerSeedMigration.mjs';
 
 /**
  * Incremental schema migrations — additive ALTER TABLE and CREATE INDEX operations applied conditionally based on column/index existence checks.
@@ -52,6 +53,7 @@ export const runMigrations = (db) => {
   addColumnIfMissing('projects', 'position', 'INTEGER');
   addColumnIfMissing('projects', 'name_prompt_completed', 'INTEGER NOT NULL DEFAULT 0 CHECK (name_prompt_completed IN (0, 1))');
   addColumnIfMissing('panes', 'position', 'INTEGER');
+  installModulePickerSeedData(db, () => new Date().toISOString());
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS calendar_feed_tokens (

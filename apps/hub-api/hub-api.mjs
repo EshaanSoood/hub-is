@@ -29,6 +29,7 @@ import { createCollectionRoutes } from './routes/collections.mjs';
 import { createDocRoutes } from './routes/docs.mjs';
 import { createFileRoutes } from './routes/files.mjs';
 import { createNotificationRoutes } from './routes/notifications.mjs';
+import { createModulePickerSeedDataRoutes } from './routes/modulePickerSeedData.mjs';
 import { createPaneRoutes } from './routes/panes.mjs';
 import { createProjectRoutes } from './routes/projects.mjs';
 import { createPublicRoutes } from './routes/public.mjs';
@@ -84,7 +85,7 @@ const REMINDER_CHECK_INTERVAL_MS = 30_000;
 const HUB_PUBLIC_APP_URL = (process.env.HUB_PUBLIC_APP_URL || 'https://eshaansood.org').trim().replace(/\/+$/, '');
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
-const REGISTERED_ROUTE_COUNT = 92;
+const REGISTERED_ROUTE_COUNT = 93;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const {
@@ -1940,6 +1941,7 @@ const recordRoutes = createRecordRoutes(routeDeps);
 const viewRoutes = createViewRoutes(routeDeps);
 const fileRoutes = createFileRoutes(routeDeps);
 const notificationRoutes = createNotificationRoutes(routeDeps);
+const modulePickerSeedDataRoutes = createModulePickerSeedDataRoutes(routeDeps);
 const taskRoutes = createTaskRoutes(routeDeps);
 const reminderRoutes = createReminderRoutes(routeDeps);
 const automationRoutes = createAutomationRoutes(routeDeps);
@@ -1991,6 +1993,7 @@ const requestRouter = createRequestRouter({
   recordRoutes,
   viewRoutes,
   notificationRoutes,
+  modulePickerSeedDataRoutes,
   fileRoutes,
   automationRoutes,
   publicRoutes,

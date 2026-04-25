@@ -128,6 +128,13 @@ export interface FilesModuleContract {
 export interface QuickThoughtsModuleContract {
   storageKeyBase: string;
   legacyStorageKeyBase?: string;
+  initialEntries?: Array<{
+    id: string;
+    text: string;
+    createdAt: string;
+    updatedAt: string | null;
+    archived: boolean;
+  }>;
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
 }
 

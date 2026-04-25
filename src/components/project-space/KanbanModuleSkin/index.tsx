@@ -19,6 +19,7 @@ export const KanbanModuleSkin = ({
   loading,
   groupingConfigured,
   readOnly = false,
+  previewMode = false,
   groupingMessage,
   metadataFieldIds,
   groupableFields,
@@ -40,7 +41,7 @@ export const KanbanModuleSkin = ({
 
   const canMove = groupingConfigured && !readOnly;
   const canCreate = typeof onCreateRecord === 'function';
-  const shouldShowMoveHint = canMove || !groupingConfigured;
+  const shouldShowMoveHint = !previewMode && (canMove || !groupingConfigured);
   const groupingStatusMessage = groupingMessage ?? 'No grouping.';
   const emptyLimitState = { wipLimit: undefined, overLimit: false };
 
@@ -304,6 +305,7 @@ export const KanbanModuleSkin = ({
                     canMove={canMove}
                     canCreate={canCreate}
                     readOnly={readOnly}
+                    previewMode={previewMode}
                     metadataFieldIds={metadataFieldIds}
                     groupOptions={groupOptions}
                     isCollapsed={collapsedGroupIds.has(group.id)}

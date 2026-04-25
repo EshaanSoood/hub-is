@@ -19,6 +19,7 @@ interface KanbanCardProps extends KanbanInsertHandlers {
   record: HubRecordSummary;
   canMove: boolean;
   readOnly?: boolean;
+  previewMode?: boolean;
   metadataFieldIds?: KanbanMetadataFieldIds;
   currentGroupValue: string;
   groupOptions: KanbanGroupOption[];
@@ -107,6 +108,7 @@ export const KanbanCard = ({
   record,
   canMove,
   readOnly = false,
+  previewMode = false,
   metadataFieldIds,
   currentGroupValue,
   groupOptions,
@@ -499,17 +501,21 @@ export const KanbanCard = ({
           </div>
         ) : (
           <div className="relative">
-            <button
-              type="button"
-              className={cn(
-                'w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-                (editable || deletable || canMove) && 'pr-20',
-              )}
-              onClick={() => onOpenRecord(record.record_id)}
-              aria-label={`Open record: ${record.title}`}
-            >
+            {previewMode ? (
               <span className="line-clamp-2 block text-sm font-bold text-text">{record.title}</span>
-            </button>
+            ) : (
+              <button
+                type="button"
+                className={cn(
+                  'w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+                  (editable || deletable || canMove) && 'pr-20',
+                )}
+                onClick={() => onOpenRecord(record.record_id)}
+                aria-label={`Open record: ${record.title}`}
+              >
+                <span className="line-clamp-2 block text-sm font-bold text-text">{record.title}</span>
+              </button>
+            )}
 
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {priority ? (

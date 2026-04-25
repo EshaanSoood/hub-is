@@ -28,6 +28,7 @@ interface TasksModuleSkinProps {
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
   hideHeader?: boolean;
   readOnly?: boolean;
+  previewMode?: boolean;
 }
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -116,6 +117,7 @@ const TaskSummaryRows = ({
   setActiveItem,
   clearActiveItem,
   onInsertToEditor,
+  previewMode = false,
 }: {
   tasks: TaskItem[];
   readOnly?: boolean;
@@ -125,6 +127,7 @@ const TaskSummaryRows = ({
   setActiveItem: ModuleInsertState['setActiveItem'];
   clearActiveItem: ModuleInsertState['clearActiveItem'];
   onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
+  previewMode?: boolean;
 }) => (
   <ul className="space-y-2">
     {tasks.map((task) => (
@@ -138,6 +141,7 @@ const TaskSummaryRows = ({
         setActiveItem={setActiveItem}
         clearActiveItem={clearActiveItem}
         onInsertToEditor={onInsertToEditor}
+        previewMode={previewMode}
       />
     ))}
   </ul>
@@ -152,6 +156,7 @@ const TaskSummaryRow = ({
   setActiveItem,
   clearActiveItem,
   onInsertToEditor,
+  previewMode = false,
 }: {
   task: TaskItem;
   readOnly?: boolean;
@@ -161,6 +166,7 @@ const TaskSummaryRow = ({
   setActiveItem: ModuleInsertState['setActiveItem'];
   clearActiveItem: ModuleInsertState['clearActiveItem'];
   onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
+  previewMode?: boolean;
 }) => {
   const nextStatus = getNextStatus(task.status);
   const longPressHandlers = useLongPress(() => {
@@ -177,7 +183,7 @@ const TaskSummaryRow = ({
         priorityLabel={task.priorityValue}
         assigneeLabel={task.assigneeLabel}
         subtaskCount={task.subtaskCount ?? task.subtasks.length}
-        onToggleStatus={() => {
+        onToggleStatus={previewMode ? undefined : () => {
           void Promise.resolve()
             .then(() => onUpdateTaskStatus?.(task.id, nextStatus))
             .catch((error) => {
@@ -186,9 +192,9 @@ const TaskSummaryRow = ({
         }}
         toggleDisabled={readOnly || !onUpdateTaskStatus || task.status === 'cancelled'}
         toggleAriaLabel={`Mark ${task.label} as ${STATUS_LABELS[nextStatus]}`}
-        onTitleClick={() => setActiveItem(task.id, 'task', task.label)}
-        onTitleFocus={() => setActiveItem(task.id, 'task', task.label)}
-        onTitleKeyDown={(event) => {
+        onTitleClick={previewMode ? undefined : () => setActiveItem(task.id, 'task', task.label)}
+        onTitleFocus={previewMode ? undefined : () => setActiveItem(task.id, 'task', task.label)}
+        onTitleKeyDown={previewMode ? undefined : (event) => {
           if (event.key === 'Escape') {
             clearActiveItem();
           }
@@ -223,8 +229,10 @@ const TasksModuleSmall = ({
   onUpdateTaskStatus,
   insertState,
   readOnly = false,
+  previewMode = false,
 }: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'> & {
   insertState: ModuleInsertState;
+  previewMode?: boolean;
 }) => {
   const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks).slice(0, 3), [tasks]);
   const canCreateTask = !readOnly && typeof onCreateTask === 'function';
@@ -259,6 +267,7 @@ const TasksModuleSmall = ({
             setActiveItem={insertState.setActiveItem}
             clearActiveItem={insertState.clearActiveItem}
             onInsertToEditor={insertState.onInsertToEditor}
+            previewMode={previewMode}
           />
         ) : null}
       </div>
@@ -273,8 +282,10 @@ const TasksModuleMedium = ({
   onUpdateTaskStatus,
   insertState,
   readOnly = false,
+  previewMode = false,
 }: Pick<TasksModuleSkinProps, 'tasks' | 'tasksLoading' | 'onCreateTask' | 'onUpdateTaskStatus' | 'readOnly'> & {
   insertState: ModuleInsertState;
+  previewMode?: boolean;
 }) => {
   const [composerOpen, setComposerOpen] = useState(false);
   const visibleTasks = useMemo(() => [...tasks].sort(compareMediumTasks), [tasks]);
@@ -322,6 +333,7 @@ const TasksModuleMedium = ({
           setActiveItem={insertState.setActiveItem}
           clearActiveItem={insertState.clearActiveItem}
           onInsertToEditor={insertState.onInsertToEditor}
+          previewMode={previewMode}
         />
       ) : null}
       {!tasksLoading && tasks.length > displayedTasks.length ? (
@@ -343,6 +355,7 @@ const TasksModuleLarge = ({
   onAddSubtask,
   insertState,
   readOnly = false,
+  previewMode = false,
 }: Omit<TasksModuleSkinProps, 'sizeTier'> & {
   insertState: ModuleInsertState;
 }) => {
@@ -409,6 +422,21 @@ const TasksModuleLarge = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3" aria-label="Tasks module">
+      {previewMode ? (
+        <div className="module-sheet min-h-0 flex-1 overflow-y-auto p-4">
+          <TaskSummaryRows
+            tasks={filteredTasks}
+            readOnly
+            activeItemId={null}
+            activeItemType={null}
+            setActiveItem={() => undefined}
+            clearActiveItem={() => undefined}
+            previewMode
+          />
+        </div>
+      ) : null}
+      {previewMode ? null : (
+        <>
       {canCreateTask ? (
         <div className="flex items-center justify-between gap-2">
           <button
@@ -482,18 +510,20 @@ const TasksModuleLarge = ({
           onInsertToEditor={insertState.onInsertToEditor}
         />
       ) : null}
+        </>
+      )}
     </section>
   );
 };
 
-export const TasksModuleSkin = ({ sizeTier, onInsertToEditor, ...props }: TasksModuleSkinProps) => {
-  const insertState = useModuleInsertState({ onInsertToEditor });
+export const TasksModuleSkin = ({ sizeTier, onInsertToEditor, previewMode = false, ...props }: TasksModuleSkinProps) => {
+  const insertState = useModuleInsertState({ onInsertToEditor: previewMode ? undefined : onInsertToEditor });
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {sizeTier === 'S' ? <TasksModuleSmall {...props} insertState={insertState} /> : null}
-      {sizeTier === 'M' ? <TasksModuleMedium {...props} insertState={insertState} /> : null}
-      {sizeTier === 'L' ? <TasksModuleLarge {...props} insertState={insertState} /> : null}
+      {sizeTier === 'S' ? <TasksModuleSmall {...props} previewMode={previewMode} insertState={insertState} /> : null}
+      {sizeTier === 'M' ? <TasksModuleMedium {...props} previewMode={previewMode} insertState={insertState} /> : null}
+      {sizeTier === 'L' ? <TasksModuleLarge {...props} previewMode={previewMode} insertState={insertState} /> : null}
     </div>
   );
 };

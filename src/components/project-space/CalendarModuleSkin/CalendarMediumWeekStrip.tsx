@@ -33,6 +33,7 @@ interface CalendarMediumWeekStripProps {
   onSelectDay: (dayKey: string) => void;
   onOpenRecord: (recordId: string) => void;
   onCreateEvent?: (dayKey: string) => void;
+  previewMode?: boolean;
 }
 
 const formatEventTime = (value: string): string => {
@@ -52,6 +53,7 @@ export const CalendarMediumWeekStrip = ({
   onSelectDay,
   onOpenRecord,
   onCreateEvent,
+  previewMode = false,
 }: CalendarMediumWeekStripProps) => {
   const selectedDay = weekDays.find((day) => day.key === selectedDayKey) ?? weekDays[3] ?? weekDays[0] ?? null;
 
@@ -61,7 +63,23 @@ export const CalendarMediumWeekStrip = ({
         {weekDays.map((day) => {
           const isSelected = day.key === selectedDayKey;
           const eventCount = day.events.length;
-          return (
+          return previewMode ? (
+            <div
+              key={day.key}
+              className={cn(
+                'min-w-0 rounded-control px-1 py-2 text-center shadow-soft-subtle',
+                isSelected ? 'bg-primary/10 text-primary' : 'bg-surface text-text',
+              )}
+            >
+              <p className={cn('truncate text-[10px] font-semibold uppercase tracking-wide', isSelected ? 'text-primary' : 'text-muted')}>
+                {day.dayName}
+              </p>
+              <p className="mt-1 text-sm font-semibold">{day.dateLabel}</p>
+              <p className={cn('mt-1 truncate text-[10px]', isSelected ? 'text-primary' : 'text-text-secondary')}>
+                {eventCount} {eventCount === 1 ? 'event' : 'events'}
+              </p>
+            </div>
+          ) : (
             <button
               key={day.key}
               type="button"
@@ -101,7 +119,7 @@ export const CalendarMediumWeekStrip = ({
                   {selectedDay.events.length} {selectedDay.events.length === 1 ? 'event' : 'events'}
                 </p>
               </div>
-              {onCreateEvent ? (
+              {onCreateEvent && !previewMode ? (
                 <button
                   type="button"
                   onClick={() => onCreateEvent(selectedDay.key)}
@@ -125,7 +143,17 @@ export const CalendarMediumWeekStrip = ({
                     const projectId = event.project_id || event.source_pane?.pane_id || null;
                     return (
                       <li key={`${event.record_id}-${event.event_state.start_dt}`}>
-                        <button
+                        {previewMode ? (
+                          <div className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-left">
+                            <EventCard
+                              title={event.title}
+                              timeLabel={timeLabel || '--'}
+                              projectId={projectId}
+                              projectName={projectName}
+                            />
+                          </div>
+                        ) : (
+                          <button
                           type="button"
                           onClick={() => onOpenRecord(event.record_id)}
                           className="w-full rounded-control border border-border-muted bg-surface px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -136,7 +164,8 @@ export const CalendarMediumWeekStrip = ({
                             projectId={projectId}
                             projectName={projectName}
                           />
-                        </button>
+                          </button>
+                        )}
                       </li>
                     );
                   })}

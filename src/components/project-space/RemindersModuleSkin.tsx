@@ -21,6 +21,7 @@ export interface RemindersModuleSkinProps {
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
   sizeTier: RemindersSizeTier;
   readOnly?: boolean;
+  previewMode?: boolean;
 }
 
 interface SparkleParticle {
@@ -138,6 +139,7 @@ const ReminderRibbonRow = ({
   animationPhase,
   isOverdue,
   readOnly,
+  previewMode,
   onSnooze,
   onDismiss,
   activeItemId,
@@ -150,6 +152,7 @@ const ReminderRibbonRow = ({
   animationPhase: ReminderAnimationState['phase'] | null;
   isOverdue: boolean;
   readOnly: boolean;
+  previewMode: boolean;
   onSnooze?: (reminder: HubReminderSummary) => void;
   onDismiss: (reminder: HubReminderSummary) => void;
   activeItemId: ModuleInsertState['activeItemId'];
@@ -175,30 +178,41 @@ const ReminderRibbonRow = ({
       {...longPressHandlers}
     >
       <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3 pr-8">
-        <button
-          type="button"
-          className="min-w-0 rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          aria-label={`Insert reminder ${reminder.record_title || 'Untitled reminder'}`}
-          onClick={() => {
-            setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
-          }}
-          onFocus={() => {
-            setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              clearActiveItem();
-            }
-          }}
-        >
+        {previewMode ? (
+          <div className="min-w-0">
+            <ReminderRecordSummary
+              title={reminder.record_title || 'Untitled reminder'}
+              remindAt={reminder.remind_at}
+              overdue={isOverdue}
+              recurrenceLabel={formatReminderRecurrenceLabel(reminder.recurrence_json)}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="min-w-0 rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            aria-label={`Insert reminder ${reminder.record_title || 'Untitled reminder'}`}
+            onClick={() => {
+              setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
+            }}
+            onFocus={() => {
+              setActiveItem(reminder.reminder_id, 'reminder', reminder.record_title || 'Untitled reminder');
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                clearActiveItem();
+              }
+            }}
+          >
           <ReminderRecordSummary
             title={reminder.record_title || 'Untitled reminder'}
             remindAt={reminder.remind_at}
             overdue={isOverdue}
             recurrenceLabel={formatReminderRecurrenceLabel(reminder.recurrence_json)}
           />
-        </button>
-        {onSnooze ? (
+          </button>
+        )}
+        {onSnooze && !previewMode ? (
           <button
             type="button"
             aria-label={`Snooze reminder ${reminder.record_title || 'Untitled reminder'} to tomorrow at 9 AM`}
@@ -209,7 +223,7 @@ const ReminderRibbonRow = ({
             Later
           </button>
         ) : null}
-        {!showInsertAction ? (
+        {!showInsertAction && !previewMode ? (
           <button
             type="button"
             aria-label="Mark complete"
@@ -252,13 +266,14 @@ export const RemindersModuleSkin = ({
   onInsertToEditor,
   sizeTier,
   readOnly = false,
+  previewMode = false,
 }: RemindersModuleSkinProps) => {
   const {
     activeItemId,
     activeItemType,
     setActiveItem,
     clearActiveItem,
-  } = useModuleInsertState({ onInsertToEditor });
+  } = useModuleInsertState({ onInsertToEditor: previewMode ? undefined : onInsertToEditor });
   const {
     draft,
     setDraft,
@@ -414,7 +429,7 @@ export const RemindersModuleSkin = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3" aria-label="Reminders module">
-      <form
+      {!previewMode ? <form
         className="shrink-0 space-y-2"
         onSubmit={(event) => {
           event.preventDefault();
@@ -473,7 +488,7 @@ export const RemindersModuleSkin = ({
         ) : null}
 
         {inputError ? <p role="alert" aria-live="assertive" className="text-xs text-danger">{inputError}</p> : null}
-      </form>
+      </form> : null}
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
         {error ? (
@@ -537,6 +552,7 @@ export const RemindersModuleSkin = ({
               animationPhase={animation?.phase ?? null}
               isOverdue={isOverdue}
               readOnly={readOnly}
+              previewMode={previewMode}
               onSnooze={onSnooze ? (nextReminder) => void handleSnooze(nextReminder) : undefined}
               onDismiss={(nextReminder) => {
                 void handleDismiss(nextReminder);

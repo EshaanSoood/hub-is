@@ -18,6 +18,7 @@ interface KanbanColumnProps extends KanbanInsertHandlers {
   canMove: boolean;
   canCreate: boolean;
   readOnly?: boolean;
+  previewMode?: boolean;
   metadataFieldIds?: KanbanMetadataFieldIds;
   groupOptions: KanbanGroupOption[];
   isCollapsed: boolean;
@@ -130,6 +131,7 @@ export const KanbanColumn = ({
   canMove,
   canCreate,
   readOnly = false,
+  previewMode = false,
   metadataFieldIds,
   groupOptions,
   isCollapsed,
@@ -172,6 +174,7 @@ export const KanbanColumn = ({
         isCollapsed={isCollapsed}
         overLimit={overLimit}
         wipLimit={wipLimit}
+        previewMode={previewMode}
         onToggleCollapse={onToggleCollapse}
       />
 
@@ -193,6 +196,7 @@ export const KanbanColumn = ({
                 record={record}
                 canMove={canMove}
                 readOnly={readOnly}
+                previewMode={previewMode}
                 metadataFieldIds={metadataFieldIds}
                 currentGroupValue={group.id === UNASSIGNED_ID ? '' : group.id}
                 groupOptions={groupOptions}

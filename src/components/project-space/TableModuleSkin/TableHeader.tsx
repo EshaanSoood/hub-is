@@ -16,6 +16,7 @@ interface TableHeaderProps {
   fieldColumnOrder: string[];
   canReorderColumns: boolean;
   readOnly: boolean;
+  previewMode?: boolean;
   onResizeKeyDown: (event: ReactKeyboardEvent<HTMLElement>, header: Header<TableRowData, unknown>) => void;
   selectedRecordIds: Set<string>;
   clearSelection: () => void;
@@ -47,6 +48,7 @@ export const TableHeader = ({
   fieldColumnOrder,
   canReorderColumns,
   readOnly,
+  previewMode = false,
   onResizeKeyDown,
   selectedRecordIds,
   clearSelection,
@@ -71,7 +73,7 @@ export const TableHeader = ({
 }: TableHeaderProps) => {
   return (
     <div className="sticky top-0 z-10 bg-surface-low">
-      {selectedRecordIds.size > 0 ? (
+      {selectedRecordIds.size > 0 && !previewMode ? (
         <div className="module-rule px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-text">{selectedRecordIds.size} selected</span>
@@ -149,7 +151,7 @@ export const TableHeader = ({
         </div>
       ) : null}
 
-      {filterableFields.length > 0 ? (
+      {filterableFields.length > 0 && !previewMode ? (
         <div className="module-rule px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -235,6 +237,7 @@ export const TableHeader = ({
                     header={header}
                     isReorderable={!isTitleColumn && canReorderColumns}
                     dragDisabled={readOnly}
+                    previewMode={previewMode}
                     onResizeKeyDown={onResizeKeyDown}
                   />
                 );

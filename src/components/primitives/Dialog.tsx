@@ -30,9 +30,11 @@ export interface BaseDialogProps {
   hideHeader?: boolean;
   panelClassName?: string;
   contentClassName?: string;
+  overlayClassName?: string;
   motionVariant?: DialogSurfaceMotionVariant;
   openFocusMode?: DialogOpenFocusMode;
   openIntent?: DialogOpenIntent;
+  modal?: boolean;
 }
 
 export const Dialog = ({
@@ -46,11 +48,13 @@ export const Dialog = ({
   hideHeader = false,
   panelClassName,
   contentClassName,
+  overlayClassName,
   motionVariant = 'dialog',
   openFocusMode = 'first-control',
   openIntent = 'user',
+  modal = true,
 }: BaseDialogProps) => (
-  <DialogRoot open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
+  <DialogRoot modal={modal} open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
     <DialogContent
       open={open}
       onOpenAutoFocus={(event) => {
@@ -75,6 +79,7 @@ export const Dialog = ({
       animated={Boolean(layoutId)}
       layoutId={layoutId}
       motionVariant={motionVariant}
+      overlayClassName={overlayClassName}
       className={cn(panelClassName)}
     >
       <DialogHeader className={cn(hideHeader && 'sr-only')}>

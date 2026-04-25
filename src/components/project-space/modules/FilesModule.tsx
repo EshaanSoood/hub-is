@@ -12,9 +12,10 @@ interface Props {
   module: ContractModuleConfig;
   contract: FilesModuleContract;
   canEditPane: boolean;
+  previewMode?: boolean;
 }
 
-export const FilesModule = ({ module, contract, canEditPane }: Props) => (
+export const FilesModule = ({ module, contract, canEditPane, previewMode = false }: Props) => (
   <Suspense fallback={<ModuleLoadingState label="Loading files module" rows={4} />}>
     <FilesModuleSkin
       sizeTier={module.size_tier}
@@ -29,6 +30,7 @@ export const FilesModule = ({ module, contract, canEditPane }: Props) => (
       onOpenFile={contract.onOpenFile}
       onInsertToEditor={contract.onInsertToEditor}
       readOnly={!canEditPane}
+      previewMode={previewMode}
     />
   </Suspense>
 );

@@ -17,8 +17,10 @@ interface QuickThoughtsModuleSkinProps {
   sizeTier: 'S' | 'M' | 'L';
   storageKey: string;
   legacyStorageKey?: string;
+  initialEntries?: QuickThoughtEntry[];
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
   readOnly?: boolean;
+  previewMode?: boolean;
 }
 
 const parseEntries = (raw: string | null): QuickThoughtEntry[] => {
@@ -165,6 +167,7 @@ const ThoughtRow = ({
   clearActiveItem,
   onInsertToEditor,
   readOnly = false,
+  previewMode = false,
 }: {
   entry: QuickThoughtEntry;
   isEditing: boolean;
@@ -183,6 +186,7 @@ const ThoughtRow = ({
   clearActiveItem: ModuleInsertState['clearActiveItem'];
   onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
   readOnly?: boolean;
+  previewMode?: boolean;
 }) => {
   const preview = clipPreview(entry.text);
   const longPressHandlers = useLongPress(() => {
@@ -218,20 +222,29 @@ const ThoughtRow = ({
         />
       ) : (
         <>
-          <button
-            type="button"
-            disabled={readOnly}
-            onClick={onSelect}
-            className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            aria-label={entry.archived ? `Archived thought: ${preview}` : `Open thought: ${preview}`}
-          >
+          {previewMode ? (
+            <div className="w-full text-left">
+              <p className="text-[13px] font-medium text-text">{preview}</p>
+              <p className="mt-1 text-[11px] text-text-secondary">
+                {entry.updatedAt ? `Updated ${entry.updatedAt}` : entry.createdAt}
+              </p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={readOnly}
+              onClick={onSelect}
+              className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              aria-label={entry.archived ? `Archived thought: ${preview}` : `Open thought: ${preview}`}
+            >
             <p className="text-[13px] font-medium text-text">{preview}</p>
             <p className="mt-1 text-[11px] text-text-secondary">
               {entry.updatedAt ? `Updated ${entry.updatedAt}` : entry.createdAt}
             </p>
-          </button>
+            </button>
+          )}
 
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+          {!previewMode ? <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
             {!entry.archived ? (
               <>
                 <button
@@ -273,7 +286,7 @@ const ThoughtRow = ({
                 Delete
               </button>
             ) : null}
-          </div>
+          </div> : null}
           {showInsertAction ? (
             <button
               type="button"
@@ -297,18 +310,22 @@ export const QuickThoughtsModuleSkin = ({
   sizeTier,
   storageKey,
   legacyStorageKey,
+  initialEntries,
   onInsertToEditor,
   readOnly = false,
+  previewMode = false,
 }: QuickThoughtsModuleSkinProps) => {
   const {
     activeItemId,
     activeItemType,
     setActiveItem,
     clearActiveItem,
-  } = useModuleInsertState({ onInsertToEditor });
+  } = useModuleInsertState({ onInsertToEditor: previewMode ? undefined : onInsertToEditor });
   const persistStorageKeyRef = useRef(storageKey);
   const skipNextPersistRef = useRef(true);
-  const [entries, setEntries] = useState<QuickThoughtEntry[]>(() => readEntriesForStorageKey(storageKey, legacyStorageKey));
+  const [entries, setEntries] = useState<QuickThoughtEntry[]>(
+    () => initialEntries ?? readEntriesForStorageKey(storageKey, legacyStorageKey),
+  );
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [draftText, setDraftText] = useState('');
@@ -440,7 +457,7 @@ export const QuickThoughtsModuleSkin = ({
         {announcement}
       </p>
 
-      {showComposer ? (
+      {showComposer && !previewMode ? (
         !readOnly ? (
           <div ref={composerContainerRef}>
             <QuickThoughtEditor
@@ -485,13 +502,14 @@ export const QuickThoughtsModuleSkin = ({
                 clearActiveItem={clearActiveItem}
                 onInsertToEditor={onInsertToEditor}
                 readOnly={!isInteractive}
+                previewMode={previewMode}
               />
             ))}
           </div>
         )}
       </div>
 
-      {showArchivedSection ? (
+      {showArchivedSection && !previewMode ? (
         <div className="mt-xs">
           <button
             type="button"

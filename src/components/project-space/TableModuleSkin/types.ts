@@ -25,6 +25,7 @@ export interface TableModuleSkinProps {
   records: HubRecordSummary[];
   loading: boolean;
   readOnly?: boolean;
+  previewMode?: boolean;
   availableViews?: TableViewOption[];
   onOpenRecord: (recordId: string) => void;
   onCreateRecord?: (payload: { title: string; fields: Record<string, unknown> }) => Promise<void>;

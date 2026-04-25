@@ -11,16 +11,18 @@ const CalendarModuleSkin = lazy(async () => {
 interface Props {
   module: ContractModuleConfig;
   contract: CalendarModuleContract;
+  previewMode?: boolean;
   onOpenRecord?: (recordId: string) => void;
 }
 
-export const CalendarModule = ({ module, contract, onOpenRecord }: Props) => (
+export const CalendarModule = ({ module, contract, previewMode = false, onOpenRecord }: Props) => (
   <Suspense fallback={<ModuleLoadingState label="Loading calendar module" rows={5} />}>
     <div className="h-full min-h-0 overflow-hidden">
       <CalendarModuleSkin
         events={contract.events}
         loading={contract.loading}
         sizeTier={module.size_tier}
+        previewMode={previewMode}
         scope={contract.scope}
         onScopeChange={contract.onScopeChange}
         onCreateEvent={contract.onCreateEvent}

@@ -37,6 +37,7 @@ export interface CalendarModuleSkinProps {
   events: CalendarEventSummary[];
   loading: boolean;
   sizeTier?: 'S' | 'M' | 'L';
+  previewMode?: boolean;
   scope: CalendarScope;
   onScopeChange: (scope: CalendarScope) => void;
   onCreateEvent?: (payload: CreateCalendarEventPayload) => Promise<void>;
