@@ -12,6 +12,7 @@ interface Props {
   module: ContractModuleConfig;
   contract: KanbanModuleContract;
   canEditPane: boolean;
+  previewMode?: boolean;
   onOpenRecord?: (recordId: string) => void;
   onSetModuleBinding: (moduleInstanceId: string, binding: ContractModuleConfig['binding']) => void;
 }
@@ -39,6 +40,7 @@ export const KanbanModule = ({
   module,
   contract,
   canEditPane,
+  previewMode = false,
   onOpenRecord,
   onSetModuleBinding,
 }: Props) => {
@@ -53,8 +55,8 @@ export const KanbanModule = ({
   const configureGrouping = canEditPane && selectedViewId ? contract.onConfigureGrouping : undefined;
   const updateRecord = canEditPane && selectedViewId ? contract.onUpdateRecord : undefined;
   const deleteRecord = canEditPane && selectedViewId ? contract.onDeleteRecord : undefined;
-  const canEnsureView = canEditPane && typeof contract.onEnsureView === 'function';
-  const needsStandaloneBoard = !selectedViewId && (isOwnedMode || contract.views.length === 0);
+  const canEnsureView = !previewMode && canEditPane && typeof contract.onEnsureView === 'function';
+  const needsStandaloneBoard = !previewMode && !selectedViewId && (isOwnedMode || contract.views.length === 0);
   const acquireAutoEnsureLock = useCallback(() => {
     if (isCreatingView || autoEnsureAttemptedRef.current) {
       return false;
@@ -88,6 +90,9 @@ export const KanbanModule = ({
   }, [acquireAutoEnsureLock, contract, module, onSetModuleBinding, ownedViewId]);
 
   useEffect(() => {
+    if (previewMode) {
+      return;
+    }
     if (!needsStandaloneBoard) {
       autoEnsureAttemptedRef.current = false;
       return;
@@ -99,7 +104,7 @@ export const KanbanModule = ({
     queueMicrotask(() => {
       void handleEnsureView();
     });
-  }, [canEnsureView, handleEnsureView, needsStandaloneBoard]);
+  }, [canEnsureView, handleEnsureView, needsStandaloneBoard, previewMode]);
 
   if (needsStandaloneBoard) {
     if (isCreatingView) {
@@ -123,7 +128,7 @@ export const KanbanModule = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-      {contract.views.length > 0 ? (
+      {contract.views.length > 0 && !previewMode ? (
         <label className="block text-xs text-muted">
           Source view
           <select
@@ -156,6 +161,7 @@ export const KanbanModule = ({
             groupableFields={viewData?.groupableFields}
             metadataFieldIds={viewData?.metadataFieldIds}
             wipLimits={viewData?.wipLimits}
+            previewMode={previewMode}
             onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
             onMoveRecord={(recordId, nextGroup) => {
               if (canEditPane && selectedViewId) {
@@ -182,8 +188,8 @@ export const KanbanModule = ({
                 ? (recordId) => deleteRecord(selectedViewId, recordId)
                 : undefined
             }
-            onInsertToEditor={contract.onInsertToEditor}
-            readOnly={!canEditPane}
+            onInsertToEditor={previewMode ? undefined : contract.onInsertToEditor}
+            readOnly={previewMode || !canEditPane}
           />
         </Suspense>
       </div>

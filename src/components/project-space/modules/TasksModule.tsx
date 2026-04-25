@@ -12,9 +12,10 @@ interface Props {
   module: ContractModuleConfig;
   contract: TasksModuleContract;
   canEditPane: boolean;
+  previewMode?: boolean;
 }
 
-export const TasksModule = ({ module, contract, canEditPane }: Props) => (
+export const TasksModule = ({ module, contract, canEditPane, previewMode = false }: Props) => (
   <div className="flex h-full min-h-0 flex-col">
     <Suspense fallback={<ModuleLoadingState label="Loading tasks module" rows={4} />}>
       <TasksModuleSkin
@@ -26,8 +27,9 @@ export const TasksModule = ({ module, contract, canEditPane }: Props) => (
         onUpdateTaskPriority={canEditPane ? contract.onUpdateTaskPriority : undefined}
         onUpdateTaskDueDate={canEditPane ? contract.onUpdateTaskDueDate : undefined}
         onDeleteTask={canEditPane ? contract.onDeleteTask : undefined}
-        onInsertToEditor={contract.onInsertToEditor}
-        readOnly={!canEditPane}
+        onInsertToEditor={previewMode ? undefined : contract.onInsertToEditor}
+        readOnly={previewMode || !canEditPane}
+        previewMode={previewMode}
       />
     </Suspense>
   </div>

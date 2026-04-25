@@ -13,6 +13,7 @@ interface CalendarSmallViewProps {
   onCreateEvent?: (payload: CreateCalendarEventPayload) => Promise<void>;
   openCreatePanel: (day: string) => void;
   createPanel: ReactNode;
+  previewMode?: boolean;
 }
 
 export const CalendarSmallView = ({
@@ -24,6 +25,7 @@ export const CalendarSmallView = ({
   onCreateEvent,
   openCreatePanel,
   createPanel,
+  previewMode = false,
 }: CalendarSmallViewProps) => {
   const selectedDateKey = toLocalDateKey(selectedDate);
   const compactDateLabel = formatCompactDateLabel(selectedDate);
@@ -32,24 +34,24 @@ export const CalendarSmallView = ({
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex items-center gap-2">
-        <button
+        {!previewMode ? <button
           type="button"
           className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           onClick={() => onShiftSelectedDate(-1)}
           aria-label="Previous day"
         >
           ←
-        </button>
+        </button> : null}
         <p className="min-w-0 flex-1 text-center text-sm font-semibold text-text">{compactDateLabel}</p>
-        <button
+        {!previewMode ? <button
           type="button"
           className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           onClick={() => onShiftSelectedDate(1)}
           aria-label="Next day"
         >
           →
-        </button>
-        <button
+        </button> : null}
+        {!previewMode ? <button
           type="button"
           disabled={!onCreateEvent}
           onClick={() => openCreatePanel(selectedDateKey)}
@@ -57,43 +59,56 @@ export const CalendarSmallView = ({
           className="interactive interactive-fold rounded-control border border-primary bg-primary px-2.5 py-1 text-sm font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
         >
           +
-        </button>
+        </button> : null}
       </div>
 
-      {compactDayEvents.length === 0 ? (
-        <ModuleEmptyState
-          iconName="calendar"
-          title={`No events for ${compactDateLabel}.`}
-          description="Try another day or create an event for this date."
-          sizeTier={sizeTier}
-        />
-      ) : (
-        <ul className="space-y-2">
-          {compactDayEvents.map((event) => {
-            const timeLabel = formatEventTime(event.event_state.start_dt);
-            const projectName = event.project_name || event.source_pane?.pane_name || 'Calendar';
-            const projectId = event.project_id || event.source_pane?.pane_id || null;
-            return (
-              <li key={`${event.record_id}-${event.event_state.start_dt}`}>
-                <button
-                  type="button"
-                  onClick={() => onOpenRecord(event.record_id)}
-                  className="w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                >
-                  <EventCard
-                    title={event.title}
-                    timeLabel={timeLabel || '--'}
-                    projectId={projectId}
-                    projectName={projectName}
-                  />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {compactDayEvents.length === 0 ? (
+          <ModuleEmptyState
+            iconName="calendar"
+            title={`No events for ${compactDateLabel}.`}
+            description="Try another day or create an event for this date."
+            sizeTier={sizeTier}
+          />
+        ) : (
+          <ul className="space-y-2">
+            {compactDayEvents.map((event) => {
+              const timeLabel = formatEventTime(event.event_state.start_dt);
+              const projectName = event.project_name || event.source_pane?.pane_name || 'Calendar';
+              const projectId = event.project_id || event.source_pane?.pane_id || null;
+              return (
+                <li key={`${event.record_id}-${event.event_state.start_dt}`}>
+                  {previewMode ? (
+                    <div className="w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-left">
+                      <EventCard
+                        title={event.title}
+                        timeLabel={timeLabel || '--'}
+                        projectId={projectId}
+                        projectName={projectName}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                    type="button"
+                    onClick={() => onOpenRecord(event.record_id)}
+                    className="w-full rounded-control border border-border-muted bg-surface-elevated px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  >
+                    <EventCard
+                      title={event.title}
+                      timeLabel={timeLabel || '--'}
+                      projectId={projectId}
+                      projectName={projectName}
+                    />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
 
-      {createPanel}
+      {!previewMode ? createPanel : null}
     </div>
   );
 };

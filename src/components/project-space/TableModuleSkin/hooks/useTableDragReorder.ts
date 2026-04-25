@@ -22,9 +22,12 @@ interface UseTableDragReorderResult {
 const functionalUpdate = <T,>(updater: Updater<T>, input: T): T =>
   typeof updater === 'function' ? (updater as (old: T) => T)(input) : updater;
 
+const EMPTY_FIELD_IDS: string[] = [];
+
 export const useTableDragReorder = (
   showBulkSelection: boolean,
   readOnly: boolean,
+  fieldIds: string[] = EMPTY_FIELD_IDS,
 ): UseTableDragReorderResult => {
   const [fieldColumnOrder, setFieldColumnOrder] = useState<string[]>([]);
 
@@ -33,9 +36,17 @@ export const useTableDragReorder = (
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  const visibleFieldColumnOrder = useMemo(
+    () => [
+      ...fieldColumnOrder.filter((fieldId) => fieldIds.includes(fieldId)),
+      ...fieldIds.filter((fieldId) => !fieldColumnOrder.includes(fieldId)),
+    ],
+    [fieldColumnOrder, fieldIds],
+  );
+
   const columnOrder = useMemo<ColumnOrderState>(
-    () => [...(showBulkSelection ? ['select'] : []), 'title', ...fieldColumnOrder],
-    [fieldColumnOrder, showBulkSelection],
+    () => [...(showBulkSelection ? ['select'] : []), 'title', ...visibleFieldColumnOrder],
+    [showBulkSelection, visibleFieldColumnOrder],
   );
 
   const handleColumnOrderChange = useCallback(
@@ -70,11 +81,11 @@ export const useTableDragReorder = (
     [readOnly],
   );
 
-  const canReorderColumns = !readOnly && fieldColumnOrder.length > 1;
+  const canReorderColumns = !readOnly && visibleFieldColumnOrder.length > 1;
 
   return {
     sensors,
-    fieldColumnOrder,
+    fieldColumnOrder: visibleFieldColumnOrder,
     setFieldColumnOrder,
     canReorderColumns,
     columnOrder,

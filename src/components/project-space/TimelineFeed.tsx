@@ -28,6 +28,7 @@ interface TimelineFeedProps {
   onFilterToggle: (type: TimelineEventType) => void;
   onLoadMore: () => void;
   onItemClick: (recordId: string, recordType: string) => void;
+  previewMode?: boolean;
 }
 
 const FILTER_LABELS: Record<TimelineEventType, string> = {
@@ -54,6 +55,7 @@ export const TimelineFeed = ({
   onFilterToggle,
   onLoadMore,
   onItemClick,
+  previewMode = false,
 }: TimelineFeedProps) => {
   const visibleClusters = useMemo(
     () =>
@@ -67,8 +69,8 @@ export const TimelineFeed = ({
   );
 
   return (
-    <div className="flex flex-col gap-sm">
-      <div role="group" aria-label="Filter timeline" className="flex flex-wrap gap-xs">
+    <div className="flex h-full min-h-0 flex-col gap-sm">
+      {!previewMode ? <div role="group" aria-label="Filter timeline" className="flex flex-wrap gap-xs">
         {(Object.keys(FILTER_LABELS) as TimelineEventType[]).map((type) => {
           const active = activeFilters.includes(type);
           return (
@@ -88,9 +90,9 @@ export const TimelineFeed = ({
             </button>
           );
         })}
-      </div>
+      </div> : null}
 
-      <div role="feed" aria-busy={isLoading}>
+      <div role="feed" aria-busy={isLoading} className="min-h-0 flex-1 overflow-y-auto">
         {visibleClusters.length === 0 && !isLoading ? <p className="text-sm text-muted">No timeline events match filters.</p> : null}
 
         {visibleClusters.map((cluster) => (
@@ -110,7 +112,7 @@ export const TimelineFeed = ({
                     <div className="flex flex-1 items-start justify-between gap-sm pb-sm">
                       <div className="flex min-w-0 flex-wrap items-center gap-xs">
                         <span className="text-xs text-muted">{item.type}</span>
-                        {clickable ? (
+                        {clickable && !previewMode ? (
                           <button
                             type="button"
                             onClick={() => onItemClick(item.linkedRecordId!, item.linkedRecordType!)}
@@ -135,7 +137,7 @@ export const TimelineFeed = ({
 
         {isLoading ? <div className="my-sm h-5 rounded-control bg-muted/20" /> : null}
 
-        {hasMore && !isLoading ? (
+        {hasMore && !isLoading && !previewMode ? (
           <button
             type="button"
             onClick={onLoadMore}

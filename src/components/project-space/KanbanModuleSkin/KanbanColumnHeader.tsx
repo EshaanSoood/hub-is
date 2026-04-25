@@ -7,6 +7,7 @@ interface KanbanColumnHeaderProps {
   isCollapsed: boolean;
   overLimit: boolean;
   wipLimit?: number;
+  previewMode?: boolean;
   onToggleCollapse: () => void;
 }
 
@@ -16,6 +17,7 @@ export const KanbanColumnHeader = ({
   isCollapsed,
   overLimit,
   wipLimit,
+  previewMode = false,
   onToggleCollapse,
 }: KanbanColumnHeaderProps) => {
   return (
@@ -27,14 +29,14 @@ export const KanbanColumnHeader = ({
         <span className={cn('shrink-0 text-[11px] text-muted', overLimit && 'text-danger')} aria-label={`${count} cards`}>
           {count}
         </span>
-        <IconButton
+        {!previewMode ? <IconButton
           aria-label={isCollapsed ? `Expand ${label}` : `Collapse ${label}`}
           variant="ghost"
           size="sm"
           onClick={onToggleCollapse}
         >
           <Icon name="chevron-down" className={cn('h-3.5 w-3.5 transition-transform', isCollapsed && '-rotate-90')} />
-        </IconButton>
+        </IconButton> : null}
       </div>
       {overLimit ? <p className="text-[11px] text-danger">Over limit ({count}/{wipLimit})</p> : null}
     </header>

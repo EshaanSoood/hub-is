@@ -3,9 +3,10 @@ import type { TimelineModuleContract } from '../moduleContracts';
 
 interface Props {
   contract: TimelineModuleContract;
+  previewMode?: boolean;
 }
 
-export const TimelineModule = ({ contract }: Props) => (
+export const TimelineModule = ({ contract, previewMode = false }: Props) => (
   <TimelineFeed
     clusters={contract.clusters}
     activeFilters={contract.activeFilters}
@@ -14,5 +15,6 @@ export const TimelineModule = ({ contract }: Props) => (
     onFilterToggle={contract.onFilterToggle}
     onLoadMore={contract.onLoadMore}
     onItemClick={contract.onItemClick}
+    previewMode={previewMode}
   />
 );

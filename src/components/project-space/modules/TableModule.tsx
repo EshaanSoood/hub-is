@@ -12,6 +12,7 @@ interface Props {
   module: ContractModuleConfig;
   contract: TableModuleContract;
   canEditPane: boolean;
+  previewMode?: boolean;
   onOpenRecord?: (recordId: string) => void;
   onSetModuleBinding: (moduleInstanceId: string, binding: ContractModuleConfig['binding']) => void;
 }
@@ -32,6 +33,7 @@ export const TableModule = ({
   module,
   contract,
   canEditPane,
+  previewMode = false,
   onOpenRecord,
   onSetModuleBinding,
 }: Props) => {
@@ -44,7 +46,7 @@ export const TableModule = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-      {contract.views.length > 0 ? (
+      {contract.views.length > 0 && !previewMode ? (
         <label className="block text-xs text-muted">
           Source view
           <select
@@ -72,6 +74,9 @@ export const TableModule = ({
             schema={viewData?.schema || null}
             records={viewData?.records || []}
             loading={viewData?.loading ?? false}
+            readOnly={previewMode}
+            previewMode={previewMode}
+            titleColumnLabel={contract.titleColumnLabel}
             onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
             onCreateRecord={
               createRecord && selectedViewId

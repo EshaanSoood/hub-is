@@ -27,6 +27,7 @@ import {
 interface CalendarLargeViewProps {
   events: CalendarEventSummary[];
   sizeTier?: 'S' | 'M' | 'L';
+  previewMode?: boolean;
   scope: CalendarScope;
   onScopeChange: (scope: CalendarScope) => void;
   view: CalendarView;
@@ -47,6 +48,7 @@ interface CalendarLargeViewProps {
 export const CalendarLargeView = ({
   events,
   sizeTier,
+  previewMode = false,
   scope,
   onScopeChange,
   view,
@@ -162,14 +164,14 @@ export const CalendarLargeView = ({
           }
           sizeTier={sizeTier}
         />
-        {createPanel}
+        {!previewMode ? createPanel : null}
       </div>
     );
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+      {!previewMode ? <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
         <div role="group" aria-label="Calendar scope" className="flex items-center gap-0.5">
           {(['relevant', 'all'] as CalendarScope[]).map((item) => (
             <button
@@ -186,9 +188,9 @@ export const CalendarLargeView = ({
             </button>
           ))}
         </div>
-      </div>
+      </div> : null}
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+      {!previewMode ? <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
         <span className="mx-1 h-4 w-px bg-border-subtle" aria-hidden="true" />
 
         {(['month', 'year', 'week', 'day'] as CalendarView[]).map((item) => (
@@ -228,11 +230,11 @@ export const CalendarLargeView = ({
             {timezone}
           </button>
         )}
-      </div>
+      </div> : null}
 
       {view === 'month' ? (
-        <section className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
+        <section className={cn(previewMode ? 'flex min-h-0 flex-1 flex-col gap-2' : 'space-y-2')}>
+          {!previewMode ? <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -250,16 +252,16 @@ export const CalendarLargeView = ({
             >
               Next
             </button>
-          </div>
+          </div> : <p className="text-sm font-semibold text-text">{monthLabel}</p>}
 
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid shrink-0 grid-cols-7 gap-1">
             {WEEKDAYS.map((weekday) => (
               <div key={weekday} className="py-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted">
                 {weekday}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-1">
+          <div className={cn('grid grid-cols-7 gap-1', previewMode && 'min-h-0 flex-1 auto-rows-fr')}>
             {monthCells.map((cell) => {
               const dayEvents = eventsByDate.get(cell.iso) ?? [];
               const visible = dayEvents.slice(0, OVERFLOW_LIMIT);
@@ -271,9 +273,9 @@ export const CalendarLargeView = ({
                   key={cell.iso}
                   role="gridcell"
                   aria-label={asDateLabel(fromLocalDateKey(cell.iso))}
-                  onClick={onCreateEvent ? () => openCreatePanelAndCloseOverflow(cell.iso) : undefined}
+                  onClick={!previewMode && onCreateEvent ? () => openCreatePanelAndCloseOverflow(cell.iso) : undefined}
                   onKeyDown={
-                    onCreateEvent
+                    !previewMode && onCreateEvent
                       ? (event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
@@ -282,12 +284,13 @@ export const CalendarLargeView = ({
                         }
                       : undefined
                   }
-                  tabIndex={onCreateEvent ? 0 : undefined}
+                  tabIndex={previewMode ? -1 : onCreateEvent ? 0 : undefined}
                   className={cn(
-                    'relative min-h-16 rounded-control p-1 shadow-[0_1px_2px_rgb(0_0_0_/_0.12)]',
+                    'relative rounded-control p-1 shadow-[0_1px_2px_rgb(0_0_0_/_0.12)]',
+                    previewMode ? 'min-h-0 overflow-hidden' : 'min-h-16',
                     isToday ? 'border border-primary bg-primary/10' : 'border border-transparent bg-surface-elevated',
                     !cell.currentMonth && 'opacity-20',
-                    onCreateEvent && 'cursor-pointer',
+                    !previewMode && onCreateEvent && 'cursor-pointer',
                   )}
                 >
                   <p className="flex justify-end">
@@ -303,7 +306,15 @@ export const CalendarLargeView = ({
                   <div className="mt-1 space-y-1">
                     {visible.map((event) => {
                       const timeLabel = formatEventTime(event.event_state.start_dt);
-                      return (
+                      return previewMode ? (
+                        <div
+                          key={event.record_id}
+                          className="w-full truncate rounded-control border-l-2 border-primary bg-primary/10 px-1 py-0.5 text-left text-[11px] text-text"
+                        >
+                          {timeLabel ? <span className="mr-1 text-text-secondary">{timeLabel}</span> : null}
+                          {event.title}
+                        </div>
+                      ) : (
                         <button
                           key={event.record_id}
                           type="button"
@@ -319,7 +330,7 @@ export const CalendarLargeView = ({
                         </button>
                       );
                     })}
-                    {hiddenCount > 0 ? (
+                    {hiddenCount > 0 && !previewMode ? (
                       <button
                         ref={overflowDay === cell.iso ? overflowTriggerRef : undefined}
                         type="button"
@@ -375,9 +386,9 @@ export const CalendarLargeView = ({
         </section>
       ) : null}
 
-      {createPanel}
+      {!previewMode ? createPanel : null}
 
-      {view === 'year' ? (
+      {!previewMode && view === 'year' ? (
         <section className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {Array.from({ length: 12 }, (_, monthIndex) => {
             const label = new Date(monthCursor.getFullYear(), monthIndex, 1).toLocaleDateString(undefined, { month: 'short' });
@@ -413,7 +424,7 @@ export const CalendarLargeView = ({
         </section>
       ) : null}
 
-      {view === 'day' ? (
+      {!previewMode && view === 'day' ? (
         <CalendarDayView
           events={dayViewEvents}
           date={dayViewDate}
@@ -437,7 +448,7 @@ export const CalendarLargeView = ({
         />
       ) : null}
 
-      {view === 'week' ? (
+      {!previewMode && view === 'week' ? (
         <CalendarWeekView
           events={events}
           today={weekViewToday}

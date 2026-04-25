@@ -16,6 +16,7 @@ export const CalendarModuleSkin = ({
   events,
   loading,
   sizeTier,
+  previewMode = false,
   scope,
   onScopeChange,
   onCreateEvent,
@@ -161,6 +162,7 @@ export const CalendarModuleSkin = ({
         onCreateEvent={onCreateEvent}
         openCreatePanel={(day) => openCreatePanel(day)}
         createPanel={createPanel}
+        previewMode={previewMode}
       />
     );
   }
@@ -170,6 +172,7 @@ export const CalendarModuleSkin = ({
       <CalendarLargeView
         events={events}
         sizeTier={sizeTier}
+        previewMode={previewMode}
         scope={scope}
         onScopeChange={onScopeChange}
         view={view}
@@ -191,7 +194,7 @@ export const CalendarModuleSkin = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+      {!previewMode ? <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
         <div role="group" aria-label="Calendar scope" className="flex items-center gap-0.5">
           {(['relevant', 'all'] as CalendarScope[]).map((item) => (
             <button
@@ -208,9 +211,9 @@ export const CalendarModuleSkin = ({
             </button>
           ))}
         </div>
-      </div>
+      </div> : null}
 
-      <div className="flex items-center justify-between gap-2">
+      {!previewMode ? <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           className="rounded-control border border-border-muted px-2 py-1 text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -234,17 +237,18 @@ export const CalendarModuleSkin = ({
         >
           →
         </button>
-      </div>
+      </div> : null}
 
       <CalendarMediumWeekStrip
         weekDays={mediumWeekDays}
         selectedDayKey={selectedDateKey}
         onSelectDay={(dayKey) => setSelectedDate(fromLocalDateKey(dayKey))}
         onOpenRecord={onOpenRecord}
-        onCreateEvent={onCreateEvent ? (dayKey) => openCreatePanel(dayKey) : undefined}
+        onCreateEvent={!previewMode && onCreateEvent ? (dayKey) => openCreatePanel(dayKey) : undefined}
+        previewMode={previewMode}
       />
 
-      {createPanel}
+      {!previewMode ? createPanel : null}
     </div>
   );
 };

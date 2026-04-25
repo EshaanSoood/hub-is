@@ -14,9 +14,10 @@ interface Props {
   contract: QuickThoughtsModuleContract;
   pane: HubPaneSummary;
   canEditPane: boolean;
+  previewMode?: boolean;
 }
 
-export const QuickThoughtsModule = ({ module, contract, pane, canEditPane }: Props) => (
+export const QuickThoughtsModule = ({ module, contract, pane, canEditPane, previewMode = false }: Props) => (
   <Suspense fallback={<ModuleLoadingState label="Loading Quick Thoughts module" rows={5} />}>
     <QuickThoughtsModuleSkin
       key={`${contract.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}`}
@@ -27,8 +28,10 @@ export const QuickThoughtsModule = ({ module, contract, pane, canEditPane }: Pro
           ? `${contract.legacyStorageKeyBase}:${pane.pane_id}:${module.module_instance_id}`
           : undefined
       }
-      onInsertToEditor={contract.onInsertToEditor}
-      readOnly={!canEditPane}
+      initialEntries={contract.initialEntries}
+      onInsertToEditor={previewMode ? undefined : contract.onInsertToEditor}
+      readOnly={previewMode || !canEditPane}
+      previewMode={previewMode}
     />
   </Suspense>
 );

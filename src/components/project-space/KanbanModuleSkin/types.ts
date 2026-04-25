@@ -32,6 +32,7 @@ export interface KanbanModuleSkinProps {
   loading: boolean;
   groupingConfigured: boolean;
   readOnly?: boolean;
+  previewMode?: boolean;
   groupingMessage?: string;
   metadataFieldIds?: KanbanMetadataFieldIds;
   groupableFields?: KanbanGroupableField[];

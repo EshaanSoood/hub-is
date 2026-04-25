@@ -30,6 +30,7 @@ interface ModuleShellProps {
   sizeTier: ModuleSizeTier;
   readOnlyState?: boolean;
   removeDisabled?: boolean;
+  previewMode?: boolean;
   onRemove: () => void;
   children: ReactNode;
 }
@@ -39,6 +40,7 @@ export const ModuleShell = ({
   sizeTier,
   readOnlyState = false,
   removeDisabled = false,
+  previewMode = false,
   onRemove,
   children,
 }: ModuleShellProps) => {
@@ -52,11 +54,11 @@ export const ModuleShell = ({
       className={cn(
         'module-sheet relative flex flex-col overflow-hidden p-3',
         accentClassName,
-        sizeClass[sizeTier],
-        sizeHeightClass[sizeTier],
+        previewMode ? 'max-h-full w-full' : sizeClass[sizeTier],
+        previewMode ? 'module-picker-preview-card' : sizeHeightClass[sizeTier],
       )}
     >
-      <DropdownMenu open={actionsOpen} onOpenChange={setActionsOpen}>
+      {!previewMode ? <DropdownMenu open={actionsOpen} onOpenChange={setActionsOpen}>
         <DropdownMenuTrigger asChild>
           <IconButton
             size="sm"
@@ -96,10 +98,13 @@ export const ModuleShell = ({
             </DropdownMenuContent>
           ) : null}
         </AnimatePresence>
-      </DropdownMenu>
+      </DropdownMenu> : null}
 
       <div
-        className="min-h-0 flex flex-1 flex-col overflow-y-auto overflow-x-hidden pr-10"
+        className={cn(
+          'min-h-0 flex flex-col overflow-y-auto overflow-x-hidden',
+          previewMode ? 'pr-0' : 'flex-1 pr-10',
+        )}
         data-module-card-body="true"
       >
         {children}

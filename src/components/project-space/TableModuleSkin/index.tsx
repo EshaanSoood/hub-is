@@ -30,6 +30,8 @@ export const TableModuleSkin = ({
   records,
   loading,
   readOnly = false,
+  previewMode = false,
+  titleColumnLabel,
   availableViews,
   onOpenRecord,
   onCreateRecord,
@@ -60,6 +62,7 @@ export const TableModuleSkin = ({
   );
 
   const fieldById = useMemo(() => new Map((schema?.fields ?? []).map((field) => [field.field_id, field])), [schema?.fields]);
+  const schemaFieldIds = useMemo(() => schema?.fields.map((field) => field.field_id) ?? [], [schema?.fields]);
 
   const { sorting, setSorting } = useTableSorting();
   const {
@@ -70,7 +73,7 @@ export const TableModuleSkin = ({
     columnOrder,
     handleColumnOrderChange,
     handleHeaderDragEnd,
-  } = useTableDragReorder(showBulkSelection, readOnly);
+  } = useTableDragReorder(showBulkSelection, readOnly, schemaFieldIds);
 
   const {
     activeFilters,
@@ -133,6 +136,13 @@ export const TableModuleSkin = ({
   const renderDisplayCell = useCallback(
     (row: TableRowData, field: TableField | null) => {
       if (!field) {
+        if (previewMode) {
+          return (
+            <span className="block w-full min-w-0 max-w-full whitespace-normal break-words text-left font-semibold text-text" title={row.title}>
+              {row.title}
+            </span>
+          );
+        }
         if (canEditCells) {
           return (
             <button
@@ -175,9 +185,13 @@ export const TableModuleSkin = ({
       const displayLabel = displayValue || '—';
       const textTitle = displayValue || undefined;
       const textClassName = cn(
-        'block max-w-full truncate text-[13px] font-normal text-text-secondary',
-        sizeTier === 'L' && isNotesField(field) && 'max-w-[200px]',
+        'block max-w-full text-[13px] font-normal text-text-secondary',
+        previewMode ? 'whitespace-normal break-words' : 'truncate',
+        !previewMode && sizeTier === 'L' && isNotesField(field) && 'max-w-[200px]',
       );
+      const compactTextClassName = previewMode
+        ? 'block max-w-full whitespace-normal break-words text-[13px] font-normal text-text-secondary'
+        : 'block max-w-full truncate text-[13px] font-normal text-text-secondary';
 
       if (canEditCells) {
         return (
@@ -196,7 +210,7 @@ export const TableModuleSkin = ({
             aria-label={`Edit ${field.name} for ${row.title}`}
           >
             <span
-              className={isFreeformTextField(field) ? textClassName : 'block max-w-full truncate text-[13px] font-normal text-text-secondary'}
+              className={isFreeformTextField(field) ? textClassName : compactTextClassName}
               title={textTitle}
             >
               {displayLabel}
@@ -207,14 +221,14 @@ export const TableModuleSkin = ({
 
       return (
         <span
-          className={isFreeformTextField(field) ? textClassName : 'block max-w-full truncate text-[13px] font-normal text-text-secondary'}
+          className={isFreeformTextField(field) ? textClassName : compactTextClassName}
           title={textTitle}
         >
           {displayLabel}
         </span>
       );
     },
-    [canEditCells, onOpenRecord, setEditableCell, sizeTier],
+    [canEditCells, onOpenRecord, previewMode, setEditableCell, sizeTier],
   );
 
   const columns = useMemo<ColumnDef<TableRowData>[]>(() => {
@@ -274,7 +288,7 @@ export const TableModuleSkin = ({
       {
         id: 'title',
         accessorFn: (row) => row.title,
-        header: 'Title',
+        header: titleColumnLabel ?? 'Title',
         size: 256,
         minSize: 180,
         cell: ({ row }) => renderDisplayCell(row.original, null),
@@ -292,6 +306,7 @@ export const TableModuleSkin = ({
     setSelectedRecordIds,
     showBulkSelection,
     sizeTier,
+    titleColumnLabel,
     toggleSelectedRecord,
   ]);
 
@@ -302,6 +317,7 @@ export const TableModuleSkin = ({
     onSortingChange: setSorting,
     onColumnOrderChange: handleColumnOrderChange,
     enableColumnResizing: true,
+    enableSorting: !previewMode,
     columnResizeMode: 'onChange',
     defaultColumn: {
       minSize: 120,
@@ -329,7 +345,13 @@ export const TableModuleSkin = ({
     overscan: 8,
   });
 
-  const templateColumns = table.getVisibleLeafColumns().map((column) => `${column.getSize()}px`).join(' ');
+  const templateColumns = previewMode
+    ? table.getVisibleLeafColumns().map((column, index) => (
+      index === 0 || column.id === 'title'
+        ? 'minmax(var(--table-preview-title-column-min), 1.4fr)'
+        : 'minmax(var(--table-preview-field-column-min), 1fr)'
+    )).join(' ')
+    : table.getVisibleLeafColumns().map((column) => `${column.getSize()}px`).join(' ');
 
   const { handleRowKeyDown } = useTableKeyboardGrid({
     modelRowsLength: modelRows.length,
@@ -416,7 +438,7 @@ export const TableModuleSkin = ({
   const isEmpty = modelRows.length === 0;
 
   return (
-    <section className="module-sheet flex h-full min-h-0 flex-col" aria-label="Table module">
+    <section className={cn('module-sheet flex min-h-0 flex-col', previewMode ? 'w-full' : 'h-full')} aria-label="Table module">
       <TableHeader
         table={table}
         templateColumns={templateColumns}
@@ -425,6 +447,7 @@ export const TableModuleSkin = ({
         fieldColumnOrder={fieldColumnOrder}
         canReorderColumns={canReorderColumns}
         readOnly={readOnly}
+        previewMode={previewMode}
         onResizeKeyDown={handleResizeKeyDown}
         selectedRecordIds={selectedRecordIds}
         clearSelection={clearSelection}
@@ -453,7 +476,7 @@ export const TableModuleSkin = ({
         role="grid"
         aria-rowcount={modelRows.length}
         aria-colcount={table.getVisibleLeafColumns().length}
-        className="relative min-h-0 flex-1"
+        className={cn('relative min-h-0', previewMode ? 'w-full' : 'flex-1')}
       >
         {isEmpty ? (
           <div className="p-3">
@@ -465,6 +488,27 @@ export const TableModuleSkin = ({
               onCta={canCreate ? () => createTitleInputRef.current?.focus() : undefined}
               sizeTier={sizeTier}
             />
+          </div>
+        ) : previewMode ? (
+          <div className="flex min-h-0 w-full flex-col">
+            {modelRows.map((row, index) => (
+              <TableRow
+                key={row.id}
+                row={row}
+                rowIndex={index}
+                templateColumns={templateColumns}
+                setRowRef={(rowIndex, node) => {
+                  rowRefs.current[rowIndex] = node;
+                }}
+                onRowKeyDown={handleRowKeyDown}
+                editableCell={editableCell}
+                fieldById={fieldById}
+                setEditableCell={setEditableCell}
+                handleEditableCellBlur={handleEditableCellBlur}
+                handleEditableCellKeyDown={handleEditableCellKeyDown}
+                previewMode
+              />
+            ))}
           </div>
         ) : (
           <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
@@ -493,7 +537,7 @@ export const TableModuleSkin = ({
       </div>
 
       <TableCreateRow
-        canCreate={canCreate}
+        canCreate={canCreate && !previewMode}
         templateColumns={templateColumns}
         createRowVisibleColumns={createRowVisibleColumns}
         fieldById={fieldById}

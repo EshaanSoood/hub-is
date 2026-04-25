@@ -25,6 +25,7 @@ interface FilesModuleSkinProps {
   onOpenFile: (file: FilesModuleItem) => void;
   onInsertToEditor?: (item: ModuleInsertPayload) => void;
   readOnly?: boolean;
+  previewMode?: boolean;
 }
 
 type SortKey = 'name' | 'date' | 'size' | 'type';
@@ -286,6 +287,7 @@ const FileRow = ({
   setActiveItem,
   clearActiveItem,
   onInsertToEditor,
+  previewMode = false,
 }: {
   file: FilesModuleItem;
   onOpen: (file: FilesModuleItem) => void;
@@ -294,18 +296,29 @@ const FileRow = ({
   setActiveItem: ModuleInsertState['setActiveItem'];
   clearActiveItem: ModuleInsertState['clearActiveItem'];
   onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
+  previewMode?: boolean;
 }) => {
   const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
   const longPressHandlers = useLongPress(() => {
-    if (!uploading) {
+    if (!previewMode && !uploading) {
       setActiveItem(file.id, 'file', file.name);
     }
   });
   const showInsertAction = activeItemId === file.id && activeItemType === 'file';
 
   return (
-    <div className="relative" {...longPressHandlers}>
-      <button
+    <div className="relative" {...(!previewMode ? longPressHandlers : {})}>
+      {previewMode ? (
+        <div className="paper-card relative flex w-full items-center gap-xs overflow-visible px-sm py-xs text-left">
+          <FileRecordSummary
+            name={file.name}
+            ext={file.ext}
+            metaLabel={uploadLabel(file)}
+            thumbnailUrl={file.thumbnailUrl}
+          />
+        </div>
+      ) : (
+        <button
         type="button"
         onClick={() => {
           if (!uploading) {
@@ -337,8 +350,9 @@ const FileRow = ({
           className="absolute inset-0 rounded-control bg-primary/5 opacity-0 transition-opacity group-hover:opacity-100"
         />
         {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
-      </button>
-      {showInsertAction ? (
+        </button>
+      )}
+      {showInsertAction && !previewMode ? (
         <button
           type="button"
           data-module-insert-ignore="true"
@@ -363,6 +377,7 @@ const FileTile = ({
   setActiveItem,
   clearActiveItem,
   onInsertToEditor,
+  previewMode = false,
 }: {
   file: FilesModuleItem;
   onOpen: (file: FilesModuleItem) => void;
@@ -371,18 +386,30 @@ const FileTile = ({
   setActiveItem: ModuleInsertState['setActiveItem'];
   clearActiveItem: ModuleInsertState['clearActiveItem'];
   onInsertToEditor?: ModuleInsertState['onInsertToEditor'];
+  previewMode?: boolean;
 }) => {
   const uploading = file.uploadProgress !== undefined && file.uploadProgress < 100;
   const longPressHandlers = useLongPress(() => {
-    if (!uploading) {
+    if (!previewMode && !uploading) {
       setActiveItem(file.id, 'file', file.name);
     }
   });
   const showInsertAction = activeItemId === file.id && activeItemType === 'file';
 
   return (
-    <div role="listitem" className="relative" {...longPressHandlers}>
-      <button
+    <div role="listitem" className="relative" {...(!previewMode ? longPressHandlers : {})}>
+      {previewMode ? (
+        <div className="paper-card relative w-full overflow-visible text-left">
+          <FileRecordSummary
+            name={file.name}
+            ext={file.ext}
+            metaLabel={uploadLabel(file)}
+            thumbnailUrl={file.thumbnailUrl}
+            presentation="tile"
+          />
+        </div>
+      ) : (
+        <button
         type="button"
         onClick={() => {
           if (!uploading) {
@@ -411,8 +438,9 @@ const FileTile = ({
           presentation="tile"
         />
         {file.uploadProgress !== undefined ? <UploadProgressBar progress={file.uploadProgress} /> : null}
-      </button>
-      {showInsertAction ? (
+        </button>
+      )}
+      {showInsertAction && !previewMode ? (
         <button
           type="button"
           data-module-insert-ignore="true"
@@ -457,18 +485,20 @@ const FilesModuleSmall = ({
   onOpenFile,
   insertState,
   readOnly = false,
+  previewMode = false,
 }: {
   files: FilesModuleItem[];
   onUpload: (files: File[]) => void;
   onOpenFile: (file: FilesModuleItem) => void;
   insertState: ModuleInsertState;
   readOnly?: boolean;
+  previewMode?: boolean;
 }) => {
   const visible = useMemo(() => files.slice(0, 4), [files]);
 
   return (
     <div className="module-sheet flex h-full min-h-0 flex-col gap-xs p-sm">
-      <DropZone sizeTier="S" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
+      {!previewMode ? <DropZone sizeTier="S" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} /> : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-[2px] pr-1">
@@ -487,6 +517,7 @@ const FilesModuleSmall = ({
               setActiveItem={insertState.setActiveItem}
               clearActiveItem={insertState.clearActiveItem}
               onInsertToEditor={insertState.onInsertToEditor}
+              previewMode={previewMode}
             />
           ))}
         </div>
@@ -501,26 +532,28 @@ const FilesModuleMedium = ({
   onOpenFile,
   insertState,
   readOnly = false,
+  previewMode = false,
 }: {
   files: FilesModuleItem[];
   onUpload: (files: File[]) => void;
   onOpenFile: (file: FilesModuleItem) => void;
   insertState: ModuleInsertState;
   readOnly?: boolean;
+  previewMode?: boolean;
 }) => {
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const sorted = useMemo(() => sortFiles(files, sortKey), [files, sortKey]);
 
   return (
     <div className="module-sheet flex h-full min-h-0 flex-col gap-sm p-md">
-      <DropZone sizeTier="M" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
+      {!previewMode ? <DropZone sizeTier="M" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} /> : null}
 
-      <div role="toolbar" aria-label="Sort files" className="flex items-center gap-1">
+      {!previewMode ? <div role="toolbar" aria-label="Sort files" className="flex items-center gap-1">
         <span className="mr-1 text-xs text-muted">Sort:</span>
         {SORT_OPTIONS.map((option) => (
           <ToolbarButton key={option.key} active={sortKey === option.key} label={option.label} onClick={() => setSortKey(option.key)} />
         ))}
-      </div>
+      </div> : null}
 
       <div role="list" aria-label="Files" className="min-h-0 flex-1 overflow-y-auto pr-1">
         {sorted.length === 0 ? (
@@ -538,6 +571,7 @@ const FilesModuleMedium = ({
               setActiveItem={insertState.setActiveItem}
               clearActiveItem={insertState.clearActiveItem}
               onInsertToEditor={insertState.onInsertToEditor}
+              previewMode={previewMode}
             />
           </div>
         ))}
@@ -552,12 +586,14 @@ const FilesModuleLarge = ({
   onOpenFile,
   insertState,
   readOnly = false,
+  previewMode = false,
 }: {
   files: FilesModuleItem[];
   onUpload: (files: File[]) => void;
   onOpenFile: (file: FilesModuleItem) => void;
   insertState: ModuleInsertState;
   readOnly?: boolean;
+  previewMode?: boolean;
 }) => {
   const [filterKey, setFilterKey] = useState<FilterKey>('all');
   const [sortKey, setSortKey] = useState<SortKey>('date');
@@ -566,9 +602,9 @@ const FilesModuleLarge = ({
 
   return (
     <div className="module-sheet flex h-full min-h-0 flex-col gap-md p-md">
-      <DropZone sizeTier="L" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} />
+      {!previewMode ? <DropZone sizeTier="L" hasFiles={files.length > 0} onFiles={onUpload} readOnly={readOnly} /> : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-sm">
+      {!previewMode ? <div className="flex flex-wrap items-center justify-between gap-sm">
         <div role="toolbar" aria-label="Filter by file type" className="flex flex-wrap gap-1">
           {FILTER_OPTIONS.map((option) => (
             <ToolbarButton
@@ -586,7 +622,7 @@ const FilesModuleLarge = ({
             <ToolbarButton key={option.key} active={sortKey === option.key} label={option.label} onClick={() => setSortKey(option.key)} />
           ))}
         </div>
-      </div>
+      </div> : null}
 
       {visible.length === 0 ? (
         <p className="m-0 py-xl text-center text-sm text-muted">
@@ -605,6 +641,7 @@ const FilesModuleLarge = ({
                 setActiveItem={insertState.setActiveItem}
                 clearActiveItem={insertState.clearActiveItem}
                 onInsertToEditor={insertState.onInsertToEditor}
+                previewMode={previewMode}
               />
             ))}
           </div>
@@ -621,8 +658,9 @@ export const FilesModuleSkin = ({
   onOpenFile,
   onInsertToEditor,
   readOnly = false,
+  previewMode = false,
 }: FilesModuleSkinProps) => {
-  const insertState = useModuleInsertState({ onInsertToEditor });
+  const insertState = useModuleInsertState({ onInsertToEditor: previewMode ? undefined : onInsertToEditor });
   const liveMessage = useMemo(() => {
     const uploading = files.filter((file) => file.uploadProgress !== undefined && file.uploadProgress < 100);
     if (uploading.length > 0) {
@@ -636,9 +674,9 @@ export const FilesModuleSkin = ({
       <p className="sr-only" aria-live="polite">
         {liveMessage}
       </p>
-      {sizeTier === 'S' ? <FilesModuleSmall files={files} onUpload={onUpload} onOpenFile={onOpenFile} insertState={insertState} readOnly={readOnly} /> : null}
-      {sizeTier === 'M' ? <FilesModuleMedium files={files} onUpload={onUpload} onOpenFile={onOpenFile} insertState={insertState} readOnly={readOnly} /> : null}
-      {sizeTier === 'L' ? <FilesModuleLarge files={files} onUpload={onUpload} onOpenFile={onOpenFile} insertState={insertState} readOnly={readOnly} /> : null}
+      {sizeTier === 'S' ? <FilesModuleSmall files={files} onUpload={onUpload} onOpenFile={onOpenFile} insertState={insertState} readOnly={readOnly} previewMode={previewMode} /> : null}
+      {sizeTier === 'M' ? <FilesModuleMedium files={files} onUpload={onUpload} onOpenFile={onOpenFile} insertState={insertState} readOnly={readOnly} previewMode={previewMode} /> : null}
+      {sizeTier === 'L' ? <FilesModuleLarge files={files} onUpload={onUpload} onOpenFile={onOpenFile} insertState={insertState} readOnly={readOnly} previewMode={previewMode} /> : null}
     </section>
   );
 };

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DndContext, closestCorners, type Announcements } from '@dnd-kit/core';
+import { cn } from '../../../lib/cn';
 import { ModuleEmptyState, ModuleLoadingState } from '../ModuleFeedback';
 import { useModuleInsertState } from '../hooks/useModuleInsertState';
 import { KanbanColumn } from './KanbanColumn';
@@ -19,6 +20,7 @@ export const KanbanModuleSkin = ({
   loading,
   groupingConfigured,
   readOnly = false,
+  previewMode = false,
   groupingMessage,
   metadataFieldIds,
   groupableFields,
@@ -40,7 +42,7 @@ export const KanbanModuleSkin = ({
 
   const canMove = groupingConfigured && !readOnly;
   const canCreate = typeof onCreateRecord === 'function';
-  const shouldShowMoveHint = canMove || !groupingConfigured;
+  const shouldShowMoveHint = !previewMode && (canMove || !groupingConfigured);
   const groupingStatusMessage = groupingMessage ?? 'No grouping.';
   const emptyLimitState = { wipLimit: undefined, overLimit: false };
 
@@ -292,8 +294,8 @@ export const KanbanModuleSkin = ({
         }}
       >
         <div className="relative min-h-0 flex-1">
-          <div ref={scrollContainerRef} className="h-full overflow-x-auto pb-1">
-            <div ref={scrollContentRef} className="flex gap-3">
+          <div ref={scrollContainerRef} className={cn('h-full pb-1', previewMode ? 'overflow-hidden' : 'overflow-x-auto')}>
+            <div ref={scrollContentRef} className={cn('flex gap-3', previewMode && 'h-full min-w-0')}>
               {groups.map((group) => {
                 const limitState = getLimitState(group.id);
 
@@ -304,6 +306,7 @@ export const KanbanModuleSkin = ({
                     canMove={canMove}
                     canCreate={canCreate}
                     readOnly={readOnly}
+                    previewMode={previewMode}
                     metadataFieldIds={metadataFieldIds}
                     groupOptions={groupOptions}
                     isCollapsed={collapsedGroupIds.has(group.id)}

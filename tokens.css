@@ -117,6 +117,17 @@
   --dialog-panel-wide-max-w: 64rem;
   --dialog-panel-expanded-max-w: 96rem;
   --alert-dialog-panel-max-w: 36rem;
+  --module-picker-panel-width: 75vw;
+  --module-picker-panel-height: 75vh;
+  --module-picker-sidebar-width: 18rem;
+  --module-picker-preview-width-s: 18rem;
+  --module-picker-preview-width-m: 34rem;
+  --module-picker-preview-width-l: 100%;
+  --module-picker-preview-min-height: 34rem;
+  --module-picker-overlay-z: 400;
+  --module-picker-panel-z: 401;
+  --table-preview-title-column-min: 0rem;
+  --table-preview-field-column-min: 0rem;
   --home-overview-calendar-panel-min-h: 32rem;
   --sidebar-width-expanded: 15.5rem;
   --sidebar-width-collapsed: 3.5rem;
@@ -568,6 +579,58 @@
   width: min(calc(100vw - (var(--dialog-panel-inline-gap) * 2)), var(--alert-dialog-panel-max-w));
   min-width: min(var(--dialog-panel-min-w), calc(100vw - (var(--dialog-panel-inline-gap) * 2)));
   max-width: var(--alert-dialog-panel-max-w);
+}
+
+@utility module-picker-viewport-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--module-picker-overlay-z);
+  backdrop-filter: blur(var(--blur-frosted-panel));
+  -webkit-backdrop-filter: blur(var(--blur-frosted-panel));
+}
+
+@utility module-picker-viewport-panel {
+  position: fixed;
+  top: 50vh;
+  left: 50vw;
+  z-index: var(--module-picker-panel-z);
+  translate: -50% -50%;
+}
+
+@utility module-picker-panel-size {
+  width: min(calc(100vw - (var(--dialog-panel-inline-gap) * 2)), var(--module-picker-panel-width));
+  height: min(calc(100vh - (var(--dialog-panel-inline-gap) * 2)), var(--module-picker-panel-height));
+  max-width: var(--dialog-panel-expanded-max-w);
+  max-height: calc(100vh - (var(--dialog-panel-inline-gap) * 2));
+}
+
+@utility module-picker-sidebar-size {
+  width: min(var(--module-picker-sidebar-width), 100%);
+}
+
+@utility module-picker-preview-s {
+  width: min(100%, var(--module-picker-preview-width-s));
+}
+
+@utility module-picker-preview-m {
+  width: min(100%, var(--module-picker-preview-width-m));
+}
+
+@utility module-picker-preview-l {
+  width: var(--module-picker-preview-width-l);
+}
+
+@utility module-picker-readonly {
+  display: flex;
+  width: 100%;
+  max-height: 100%;
+  min-height: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+@utility module-picker-preview-card {
+  max-height: 100%;
 }
 
 @utility home-overview-calendar-panel-min-h {

@@ -9,6 +9,7 @@ interface SortableHeaderCellProps {
   header: Header<TableRowData, unknown>;
   isReorderable: boolean;
   dragDisabled: boolean;
+  previewMode?: boolean;
   onResizeKeyDown: (event: ReactKeyboardEvent<HTMLElement>, header: Header<TableRowData, unknown>) => void;
 }
 
@@ -16,6 +17,7 @@ export const SortableHeaderCell = ({
   header,
   isReorderable,
   dragDisabled,
+  previewMode = false,
   onResizeKeyDown,
 }: SortableHeaderCellProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -57,31 +59,37 @@ export const SortableHeaderCell = ({
           </button>
         ) : null}
 
-        <button
-          type="button"
-          tabIndex={canSort ? 0 : -1}
-          onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-          onKeyDown={(event) => {
-            if (!canSort) {
-              return;
-            }
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              header.column.getToggleSortingHandler()?.(event);
-            }
-          }}
-          className={cn(
-            'inline-flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-[11px] font-bold uppercase tracking-wide text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-            !canSort && 'cursor-default',
-          )}
-        >
-          <span className="truncate">{flexRender(header.column.columnDef.header, header.getContext())}</span>
-          {sorted === 'asc' ? <span aria-hidden="true">↑</span> : null}
-          {sorted === 'desc' ? <span aria-hidden="true">↓</span> : null}
-        </button>
+        {previewMode ? (
+          <span className="block min-w-0 flex-1 whitespace-normal break-words text-[11px] font-bold uppercase tracking-wide text-muted">
+            {flexRender(header.column.columnDef.header, header.getContext())}
+          </span>
+        ) : (
+          <button
+            type="button"
+            tabIndex={canSort ? 0 : -1}
+            onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+            onKeyDown={(event) => {
+              if (!canSort) {
+                return;
+              }
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                header.column.getToggleSortingHandler()?.(event);
+              }
+            }}
+            className={cn(
+              'inline-flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-[11px] font-bold uppercase tracking-wide text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+              !canSort && 'cursor-default',
+            )}
+          >
+            <span className="truncate">{flexRender(header.column.columnDef.header, header.getContext())}</span>
+            {sorted === 'asc' ? <span aria-hidden="true">↑</span> : null}
+            {sorted === 'desc' ? <span aria-hidden="true">↓</span> : null}
+          </button>
+        )}
       </div>
 
-      {canResize ? (
+      {canResize && !previewMode ? (
         <button
           type="button"
           aria-label={`Resize ${String(flexRender(header.column.columnDef.header, header.getContext()))} column`}

@@ -11,6 +11,7 @@ interface TableCellProps {
   setEditableCell: React.Dispatch<React.SetStateAction<EditableCellState | null>>;
   handleEditableCellBlur: () => Promise<void>;
   handleEditableCellKeyDown: (event: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => Promise<void>;
+  previewMode?: boolean;
 }
 
 export const TableCell = ({
@@ -21,6 +22,7 @@ export const TableCell = ({
   setEditableCell,
   handleEditableCellBlur,
   handleEditableCellKeyDown,
+  previewMode = false,
 }: TableCellProps) => {
   const field = cell.column.id === 'title' || cell.column.id === 'select' ? null : fieldById.get(cell.column.id) ?? null;
 
@@ -28,7 +30,8 @@ export const TableCell = ({
     <div
       role="gridcell"
       className={cn(
-        'min-w-0 overflow-hidden border-r border-border-muted/50 px-3 py-2 last:border-r-0',
+        'min-w-0 border-r border-border-muted/50 px-3 py-2 last:border-r-0',
+        previewMode ? 'overflow-visible' : 'overflow-hidden',
         isEditing && 'rounded-control ring-2 ring-focus-ring bg-surface-elevated',
       )}
     >
