@@ -110,6 +110,23 @@
   --module-card-min-h-l: 24rem;
   --module-card-max-h-l: 40rem;
   --daily-brief-collapsed-height: clamp(6rem, 10vh, 7.5rem);
+  --daily-brief-rail-width: clamp(9.5rem, 16vw, 13.5rem);
+  --daily-brief-column-gap: clamp(1.5rem, 3vw, 3rem);
+  --daily-brief-collapsed-timeline-height: clamp(3.25rem, 6vh, 4.25rem);
+  --daily-brief-collapsed-stack-gap: 0.5rem;
+  --daily-brief-prompt-max-width: 24rem;
+  --daily-brief-backlog-button-width: 10rem;
+  --daily-brief-backlog-button-height: 2.75rem;
+  --daily-brief-right-rail-gap: 0.125rem;
+  --home-ground-overview-indent: clamp(1rem, 1.6vw, 1.5rem);
+  --home-ground-band-height: clamp(26rem, 64vh, 42rem);
+  --timeline-node-size: 0.625rem;
+  --timeline-entry-gap: 0.75rem;
+  --timeline-spine-x: calc(var(--timeline-node-size) / 2);
+  --timeline-entry-content-offset: calc(var(--timeline-spine-x) + (var(--timeline-node-size) / 2) + var(--timeline-entry-gap));
+  --timeline-mast-width: 1px;
+  --timeline-mast-color-top: var(--color-border-subtle);
+  --timeline-mast-color: var(--color-muted);
   --dialog-panel-inline-gap: 1rem;
   --dialog-panel-min-w: 20rem;
   --dialog-panel-max-w: 42rem;
@@ -400,6 +417,40 @@
   box-shadow:
     var(--shadow-soft),
     inset 0 1px 0 var(--color-border-score);
+}
+
+@utility timeline-feed-scroll {
+  --timeline-spine-x: calc(var(--timeline-node-size) / 2);
+  --timeline-entry-content-offset: calc(var(--timeline-spine-x) + (var(--timeline-node-size) / 2) + var(--timeline-entry-gap));
+}
+
+@utility timeline-mast {
+  background-image: linear-gradient(
+    to bottom,
+    var(--timeline-mast-color-top),
+    var(--timeline-mast-color) 35%,
+    var(--timeline-mast-color)
+  );
+  background-position: calc(var(--timeline-spine-x) - (var(--timeline-mast-width) / 2)) 0;
+  background-repeat: no-repeat;
+  background-size: var(--timeline-mast-width) 100%;
+}
+
+@utility timeline-date-label {
+  display: block;
+  padding-inline-start: var(--timeline-entry-content-offset);
+}
+
+@utility timeline-entry-row {
+  position: relative;
+  min-height: var(--timeline-node-size);
+  padding-inline-start: var(--timeline-entry-content-offset);
+}
+
+@utility timeline-entry-dot {
+  position: absolute;
+  left: calc(var(--timeline-spine-x) - (var(--timeline-node-size) / 2));
+  top: 0.25rem;
 }
 
 @utility sidebar-fold {
