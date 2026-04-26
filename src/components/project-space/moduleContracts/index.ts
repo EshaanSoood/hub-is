@@ -3,7 +3,7 @@ import type { HubCollectionField, HubRecordSummary } from '../../../services/hub
 import type { CalendarScope } from '../CalendarModuleSkin';
 import type { FilesModuleItem } from '../FilesModuleSkin';
 import type { TaskItem } from '../TasksTab';
-import type { TimelineCluster, TimelineEventType } from '../TimelineFeed';
+import type { TimelineCluster, TimelineEventType, TimelineFilterValue } from '../TimelineFeed';
 
 interface BoundViewSummary {
   view_id: string;
@@ -144,7 +144,7 @@ export interface TimelineModuleContract {
   activeFilters: TimelineEventType[];
   loading: boolean;
   hasMore: boolean;
-  onFilterToggle: (type: TimelineEventType) => void;
+  onFilterToggle: (type: TimelineFilterValue) => void;
   onLoadMore: () => void;
   onItemClick: (recordId: string, recordType: string) => void;
 }

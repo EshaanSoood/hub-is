@@ -76,6 +76,7 @@ describe('DayStripSection', () => {
 
     expect(screen.getByTestId('daily-brief-collapsed-strip')).toBeInTheDocument();
     expect(screen.getByText('Chill day ahead?')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Backlog\s*0\s*items/i })).toBeDisabled();
     expect(screen.queryByText(/Shakespeare/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId('daily-brief-backlog')).not.toBeInTheDocument();
   });
@@ -101,6 +102,7 @@ describe('DayStripSection', () => {
 
     expect(screen.getByTestId('daily-brief-collapsed-strip')).toBeInTheDocument();
     expect(screen.getByTestId('daily-brief-backlog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Backlog\s*1\s*item/i })).toBeEnabled();
     expect(screen.getAllByText('Backlog').length).toBeGreaterThan(0);
     expect(screen.getByText('1 item')).toBeInTheDocument();
   });

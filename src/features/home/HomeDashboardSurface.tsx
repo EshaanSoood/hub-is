@@ -72,7 +72,7 @@ export const HomeDashboardSurface = ({
   const greeting = greetingForHour(now.getHours());
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {homeError ? (
         <InlineNotice variant="danger" title="Home unavailable">
           {homeError}

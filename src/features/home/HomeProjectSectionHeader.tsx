@@ -5,6 +5,7 @@ interface HomeProjectSectionHeaderProps {
   activeOverlay: HomeOverlayId | null;
   activeTab: HomeTabId;
   autoFocusTabs?: boolean;
+  embedded?: boolean;
   onSelectTab: (tab: HomeTabId) => void;
   projectName: string;
 }
@@ -24,6 +25,7 @@ export const HomeProjectSectionHeader = ({
   activeOverlay,
   activeTab,
   autoFocusTabs = false,
+  embedded = false,
   onSelectTab,
   projectName,
 }: HomeProjectSectionHeaderProps) => {
@@ -53,35 +55,40 @@ export const HomeProjectSectionHeader = ({
     };
   }, [activeOverlay, activeTab, autoFocusTabs]);
 
+  const content = (
+    <div className="flex flex-wrap items-baseline justify-between gap-4">
+      <h1 className="heading-3 text-text">{projectName}</h1>
+
+      <nav aria-label="Home tabs" className="flex flex-wrap items-center gap-2">
+        {(['overview', 'work'] as HomeTabId[]).map((tab) => {
+          const selected = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              ref={selected ? selectedTabRef : null}
+              type="button"
+              data-home-launcher={tab}
+              onClick={() => onSelectTab(tab)}
+              aria-current={selected ? 'page' : undefined}
+              className={`interactive rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                selected ? 'interactive-fold cta-primary text-on-primary' : 'bg-surface-low text-secondary hover:bg-surface hover:text-secondary-strong'
+              }`}
+            >
+              {homeTabLabels[tab]}
+            </button>
+          );
+        })}
+      </nav>
+    </div>
+  );
+
+  if (embedded) {
+    return <header>{content}</header>;
+  }
+
   return (
     <header className="section-scored rounded-panel bg-surface-container p-4">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="heading-3 text-text">{projectName}</h1>
-          <p className="font-serif text-xl font-semibold text-text">{homeTabLabels[activeTab]}</p>
-        </div>
-
-        <nav aria-label="Home tabs" className="flex flex-wrap items-center gap-2">
-          {(['overview', 'work'] as HomeTabId[]).map((tab) => {
-            const selected = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                ref={selected ? selectedTabRef : null}
-                type="button"
-                data-home-launcher={tab}
-                onClick={() => onSelectTab(tab)}
-                aria-current={selected ? 'page' : undefined}
-                className={`interactive rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                  selected ? 'interactive-fold cta-primary text-on-primary' : 'bg-surface-low text-secondary hover:bg-surface hover:text-secondary-strong'
-                }`}
-              >
-                {homeTabLabels[tab]}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+      {content}
     </header>
   );
 };

@@ -154,8 +154,8 @@ export const DayStripSection = ({
     <section
       aria-labelledby="daily-brief-heading"
       className={cn(
-        'section-scored mt-4 rounded-panel bg-surface shadow-soft',
-        showCollapsedBrief ? 'p-3' : 'p-4',
+        'section-scored rounded-panel bg-surface shadow-soft',
+        showCollapsedBrief ? 'px-5 pb-2 pt-3' : 'p-4',
       )}
       data-daily-brief-state={briefState}
       data-testid="daily-brief"
@@ -172,7 +172,7 @@ export const DayStripSection = ({
         >
           {showCollapsedBrief ? (
             <>
-              <div className="grid gap-3 xl:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_auto] xl:items-center">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,var(--daily-brief-rail-width))_minmax(0,1fr)_minmax(0,var(--daily-brief-rail-width))] xl:items-start xl:gap-[var(--daily-brief-column-gap)]">
                 <div className="min-w-0 space-y-1">
                   <h2 id="daily-brief-heading" className="font-serif text-xl font-semibold text-text">Daily Brief</h2>
                   <p className="text-sm font-semibold text-text">{compactGreeting}</p>
@@ -191,8 +191,8 @@ export const DayStripSection = ({
                   presentation="collapsed-empty"
                 />
 
-                <div className="flex flex-wrap items-center justify-end gap-2 xl:max-w-[24rem]">
-                  <div className="flex flex-wrap items-center justify-end gap-2" role="group" aria-label="Daily brief totals">
+                <div className="flex min-w-0 flex-col gap-[var(--daily-brief-right-rail-gap)]">
+                  <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end" role="group" aria-label="Daily brief totals">
                     <DailyBriefCountPill
                       count={dayCounts.events}
                       iconName="calendar"
@@ -209,18 +209,17 @@ export const DayStripSection = ({
                       label={nounForCount(dayCounts.reminders, 'reminder', 'reminders')}
                     />
                   </div>
-                  {briefState === 'empty-backlog' ? (
-                    <button
-                      type="button"
-                      className="ghost-button inline-flex items-center gap-2 rounded-panel bg-surface px-3 py-2 text-sm font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                      onClick={focusBacklog}
-                    >
-                      <span>Backlog</span>
-                      <span className="text-text-secondary">
-                        {dayCounts.backlog} {nounForCount(dayCounts.backlog, 'item', 'items')}
-                      </span>
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    className="ghost-button inline-flex h-[var(--daily-brief-backlog-button-height)] w-[var(--daily-brief-backlog-button-width)] max-w-full items-center justify-between gap-2 self-start rounded-control bg-surface-highest px-3 py-2 text-sm font-semibold text-text shadow-soft-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60 xl:self-end"
+                    onClick={focusBacklog}
+                    disabled={briefState !== 'empty-backlog'}
+                  >
+                    <span>Backlog</span>
+                    <span className="text-text-secondary">
+                      {dayCounts.backlog} {nounForCount(dayCounts.backlog, 'item', 'items')}
+                    </span>
+                  </button>
                 </div>
               </div>
 

@@ -139,7 +139,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       <SidebarShell />
 
       <main id="main-content" className="min-w-0 flex-1 overflow-y-auto bg-bg">
-        <div className="mx-auto w-full max-w-7xl px-4 pb-6 pt-6">
+        <div className="mx-auto w-full max-w-7xl px-4 pb-2 pt-6">
           <AppCommandBar
             accessToken={accessToken}
             currentPaneId={currentPaneId}

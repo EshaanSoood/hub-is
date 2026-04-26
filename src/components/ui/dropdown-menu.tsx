@@ -55,7 +55,7 @@ export const DropdownMenuCheckboxItem = React.forwardRef<
     checked={checked}
     {...props}
   >
-    <span className="absolute left-2 inline-flex h-4 w-4 items-center justify-center">
+    <span aria-hidden="true" className="absolute left-2 inline-flex h-4 w-4 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>✓</DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}
@@ -75,7 +75,7 @@ export const DropdownMenuRadioItem = React.forwardRef<
     )}
     {...props}
   >
-    <span className="absolute left-2 inline-flex h-4 w-4 items-center justify-center">
+    <span aria-hidden="true" className="absolute left-2 inline-flex h-4 w-4 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>•</DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}

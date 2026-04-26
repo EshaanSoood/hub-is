@@ -23,7 +23,7 @@ export const AppCommandBar = ({
   onOpenQuickThoughts,
   personalProject,
 }: AppCommandBarProps) => (
-  <header className="command-center-surface rounded-panel px-4 py-3">
+  <header className="command-center-surface rounded-panel px-5 py-3">
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4">
       <div className="shrink-0 xl:w-28">
         <p className="text-sm font-semibold text-secondary-strong">Capture.</p>
