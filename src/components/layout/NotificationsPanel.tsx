@@ -41,8 +41,10 @@ export const NotificationsPanel: FC<NotificationsPanelProps> = ({
       ref={panelRef}
       role="dialog"
       ariaLabel="Notifications"
-      transformOrigin="bottom right"
-      className="absolute bottom-[calc(100%+8px)] right-0 z-[100] w-[360px] rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
+      aria-modal="true"
+      tabIndex={-1}
+      transformOrigin="top right"
+      className="absolute right-0 top-[calc(100%+8px)] z-[100] w-[min(360px,calc(100vw-2rem))] rounded-panel border border-border-muted bg-surface-elevated shadow-soft"
     >
       <div className="flex items-center gap-sm border-b border-border-muted px-md py-sm">
         {(['unread', 'all'] as NotificationFilter[]).map((nextFilter) => (

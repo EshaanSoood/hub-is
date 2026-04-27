@@ -157,6 +157,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               }));
             }}
             personalProject={personalProject}
+            spaces={projects}
           />
         </div>
         <div className="mx-auto w-full max-w-7xl px-4 pb-6">
