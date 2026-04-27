@@ -273,7 +273,48 @@ vi.mock('../features/home/HomeDashboardSurface', () => ({
 }));
 
 vi.mock('../features/home/HomeOverviewSurface', () => ({
-  HomeOverviewSurface: () => <section data-testid="overview-surface">Overview surface</section>,
+  HomeOverviewSurface: ({
+    activeTab,
+    autoFocusTabs,
+    onSelectTab,
+    projectName,
+  }: {
+    activeTab: 'overview' | 'work';
+    autoFocusTabs?: boolean;
+    onSelectTab: (tab: 'overview' | 'work') => void;
+    projectName: string;
+  }) => {
+    const selectedTabRef = React.useRef<HTMLButtonElement | null>(null);
+
+    React.useEffect(() => {
+      if (autoFocusTabs) {
+        selectedTabRef.current?.focus();
+      }
+    }, [autoFocusTabs, activeTab]);
+
+    return (
+      <section data-testid="overview-surface">
+        <header>
+          <h1>{projectName}</h1>
+          <nav aria-label="Home tabs">
+            {(['overview', 'work'] as const).map((tab) => (
+              <button
+                key={tab}
+                ref={activeTab === tab ? selectedTabRef : null}
+                type="button"
+                data-home-launcher={tab}
+                aria-current={activeTab === tab ? 'page' : undefined}
+                onClick={() => onSelectTab(tab)}
+              >
+                {tab === 'overview' ? 'Overview' : 'Work'}
+              </button>
+            ))}
+          </nav>
+        </header>
+        Overview surface
+      </section>
+    );
+  },
 }));
 
 vi.mock('../features/home/HomeProjectWorkSection', () => ({
@@ -459,7 +500,7 @@ describe('ProjectsPage', () => {
     expect(screen.getByText('Capture.')).toBeInTheDocument();
     expect(screen.getByText('Capture anything and experience the magic.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Sunday Desk', level: 1 })).toBeInTheDocument();
-    expect(screen.getByText('Overview', { selector: 'p' })).toBeInTheDocument();
+    expect(screen.queryByText('Overview', { selector: 'p' })).not.toBeInTheDocument();
     expect(overviewTab).toHaveAttribute('aria-current', 'page');
     expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
     expect(screen.getByTestId('overview-surface')).toHaveTextContent('Overview surface');

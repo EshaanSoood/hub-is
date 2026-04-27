@@ -9,7 +9,7 @@ import { Button, Card, InlineNotice, TabButton, Tabs, TabsList } from '../primit
 import { OverviewHeader } from './OverviewHeader';
 import { TaskCreateDialog } from './TaskCreateDialog';
 import { TasksTab, type SortChain } from './TasksTab';
-import { TimelineFeed, type TimelineCluster, type TimelineEventType } from './TimelineFeed';
+import { TimelineFeed, type TimelineCluster, type TimelineEventType, type TimelineFilterValue } from './TimelineFeed';
 import { adaptTaskSummaries } from './taskAdapter';
 import type { ClientReference, Collaborator, OverviewViewId } from './types';
 
@@ -22,7 +22,7 @@ interface OverviewViewProps {
   onSelectView: (viewId: OverviewViewId) => void;
   timelineClusters: TimelineCluster[];
   timelineFilters: TimelineEventType[];
-  onTimelineFilterToggle: (type: TimelineEventType) => void;
+  onTimelineFilterToggle: (type: TimelineFilterValue) => void;
   onOpenTimelineRecord: (recordId: string) => void;
   accessToken: string;
   projectId: string;

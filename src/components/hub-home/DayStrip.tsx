@@ -559,33 +559,12 @@ export const DayStrip = ({
 
   if (useCollapsedEmptyPresentation) {
     return (
-      <div className={cn('relative min-h-[var(--daily-brief-collapsed-height)] overflow-hidden rounded-panel', className)}>
-        <div aria-hidden="true" className="frosted-panel absolute inset-0 rounded-panel" />
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-x-4 top-1/2 h-12 -translate-y-1/2 rounded-panel bg-surface/35" />
-          <div className="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-border-muted/55" />
-          {ticks.map((tick) => {
-            if (!tick.major && !tick.midnight) {
-              return null;
-            }
-            const left = percentForMs(tick.ms);
-            return (
-              <span
-                key={tick.key}
-                className={cn(
-                  'absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-border-muted/40',
-                  tick.midnight ? 'h-12 w-[2px]' : 'h-8 w-px',
-                )}
-                style={{ left: `${left}%` }}
-              />
-            );
-          })}
-        </div>
+      <div className={cn('grid gap-[var(--daily-brief-collapsed-stack-gap)]', className)}>
         <div
           ref={timelineRef}
           data-testid="daily-brief-collapsed-strip"
           className={cn(
-            'relative flex min-h-[var(--daily-brief-collapsed-height)] items-center justify-center px-4 py-3 transition-colors',
+            'paper-well flex min-h-[var(--daily-brief-collapsed-timeline-height)] items-center overflow-hidden rounded-panel px-4 py-3 transition-colors',
             dragOver && 'bg-primary/6',
           )}
           onDragOver={(event) => {
@@ -601,15 +580,16 @@ export const DayStrip = ({
           }}
           onDrop={handleDrop}
         >
-          <div
-            className={cn(
-              'rounded-panel border border-border-muted/60 bg-surface/65 px-5 py-3 text-center shadow-soft-subtle transition-colors',
-              dragOver && 'border-primary/35 bg-primary/10',
-            )}
-          >
-            <p className="text-sm font-semibold text-text">{EMPTY_DAY_PROMPT_TITLE}</p>
-            <p className="mt-1 text-xs text-text-secondary">{EMPTY_DAY_PROMPT_BODY}</p>
+          <div aria-hidden="true" className="flex w-full items-center">
+            <span className="h-6 w-px bg-border-muted" />
+            <span className="h-px flex-1 bg-border-muted/70" />
+            <span className="h-6 w-px bg-border-muted" />
           </div>
+        </div>
+
+        <div className="mx-auto max-w-[var(--daily-brief-prompt-max-width)] px-3 text-center">
+          <p className="text-sm font-semibold text-text">{EMPTY_DAY_PROMPT_TITLE}</p>
+          <p className="mt-0.5 text-xs text-text-secondary">{EMPTY_DAY_PROMPT_BODY}</p>
         </div>
       </div>
     );

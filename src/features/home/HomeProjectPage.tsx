@@ -205,16 +205,12 @@ export const HomeProjectPage = () => {
     </InlineNotice>
   ) : (
     <>
-      <HomeProjectSectionHeader
-        activeOverlay={activeOverlay}
-        activeTab={activeTab}
-        autoFocusTabs={autoFocusHeading}
-        onSelectTab={onSelectTab}
-        projectName={projectBootstrap.project.name}
-      />
       <HomeOverviewSurface
         accessToken={accessToken ?? ''}
+        activeOverlay={activeOverlay}
+        activeTab={activeTab}
         activeView={activeOverviewView}
+        autoFocusTabs={autoFocusHeading}
         calendarEvents={calendarRuntime.calendarEvents}
         calendarLoading={calendarRuntime.calendarLoading}
         calendarScope={calendarRuntime.calendarMode}
@@ -225,6 +221,7 @@ export const HomeProjectPage = () => {
         onRefreshTasks={() => {
           void tasksRuntime.loadProjectTaskPage();
         }}
+        onSelectTab={onSelectTab}
         onSelectView={(view) => {
           setSearchParams((current) => {
             const next = new URLSearchParams(current);
@@ -238,6 +235,7 @@ export const HomeProjectPage = () => {
         }}
         onSnoozeReminder={homeReminderMutations.onSnoozeReminder}
         projectId={projectBootstrap.project.project_id}
+        projectName={projectBootstrap.project.name}
         reminders={projectRemindersRuntime.reminders}
         remindersError={projectRemindersRuntime.error}
         remindersLoading={projectRemindersRuntime.loading}

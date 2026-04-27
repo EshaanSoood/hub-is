@@ -1,3 +1,5 @@
+import { projectCreatedTimelineMessage } from '../helpers/timelineStart.mjs';
+
 export const createProjectRoutes = (deps) => {
   const projectIdPattern = /^[A-Za-z0-9_-]+$/;
   const projectNameMaxLength = 120;
@@ -134,7 +136,7 @@ export const createProjectRoutes = (deps) => {
       eventType: 'project.created',
       primaryEntityType: 'project',
       primaryEntityId: projectId,
-      summary: { message: `Space created: ${name}` },
+      summary: { message: projectCreatedTimelineMessage({ name }) },
     });
 
     const project = projectForMemberStmt.get(projectId, auth.user.user_id);

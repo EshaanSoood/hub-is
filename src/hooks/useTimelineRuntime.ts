@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import { listTimeline } from '../services/hub/records';
-import type { TimelineCluster, TimelineEventType } from '../components/project-space/TimelineFeed';
+import { TIMELINE_FILTER_TYPES, type TimelineCluster, type TimelineEventType, type TimelineFilterValue } from '../components/project-space/TimelineFeed';
 
 type ProjectTimelineItem = {
   timeline_event_id: string;
@@ -110,13 +110,7 @@ export const useTimelineRuntime = ({
   timeline,
   setTimeline,
 }: UseTimelineRuntimeParams) => {
-  const [timelineFilters, setTimelineFilters] = useState<TimelineEventType[]>([
-    'task',
-    'event',
-    'milestone',
-    'file',
-    'workspace',
-  ]);
+  const [timelineFilters, setTimelineFilters] = useState<TimelineEventType[]>(() => [...TIMELINE_FILTER_TYPES]);
 
   const refreshTimeline = useCallback(async () => {
     const nextTimeline = await listTimeline(accessToken, projectId);
@@ -149,6 +143,7 @@ export const useTimelineRuntime = ({
         type,
         label: message,
         timestamp: date.toLocaleString(),
+        timestampIso: item.created_at,
         timestampRelative: relativeTime(item.created_at),
         dotColor: timelineDotColor[type],
         linkedRecordId: item.primary_entity_type === 'record' ? item.primary_entity_id : undefined,
@@ -162,7 +157,12 @@ export const useTimelineRuntime = ({
     }));
   }, [timeline, timelineFilters]);
 
-  const toggleTimelineFilter = useCallback((type: TimelineEventType) => {
+  const toggleTimelineFilter = useCallback((type: TimelineFilterValue) => {
+    if (type === 'all') {
+      setTimelineFilters([...TIMELINE_FILTER_TYPES]);
+      return;
+    }
+
     setTimelineFilters((current) => (current.includes(type) ? current.filter((item) => item !== type) : [...current, type]));
   }, []);
 

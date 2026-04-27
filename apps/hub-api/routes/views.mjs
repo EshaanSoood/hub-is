@@ -1,4 +1,5 @@
 import { validateCreateEventRequest } from '../lib/validators.mjs';
+import { ensureProjectCreatedTimelineStart } from '../helpers/timelineStart.mjs';
 
 const escapeIcsText = (value) =>
   String(value || '')
@@ -759,7 +760,8 @@ export const createViewRoutes = (deps) => {
 
     const limit = asInteger(requestUrl.searchParams.get('limit'), 50, 1, 200);
     const offset = parseCursorOffset(requestUrl.searchParams.get('cursor'));
-    const rows = timelineByProjectStmt.all(projectId).map(timelineRecord);
+    const project = projectByIdStmt.get(projectId);
+    const rows = ensureProjectCreatedTimelineStart(timelineByProjectStmt.all(projectId).map(timelineRecord), project);
     const page = buildTimelinePage(rows.slice(offset, offset + limit));
     const nextOffset = offset + page.length;
     const nextCursor = nextOffset < rows.length ? encodeCursorOffset(nextOffset) : null;

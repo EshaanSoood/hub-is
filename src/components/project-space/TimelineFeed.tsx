@@ -1,14 +1,25 @@
 import { useMemo } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../primitives/Menu';
+import { Icon } from '../primitives/Icon';
 import { cn } from '../../lib/cn';
 import { PRIORITY_DOT_CLASS } from '../../lib/priorityStyles';
 
 export type TimelineEventType = 'task' | 'event' | 'milestone' | 'file' | 'workspace';
+export type TimelineFilterValue = 'all' | TimelineEventType;
 
 export interface TimelineItem {
   id: string;
   type: TimelineEventType;
   label: string;
   timestamp: string;
+  timestampIso?: string;
   timestampRelative: string;
   dotColor: string;
   linkedRecordId?: string;
@@ -25,11 +36,16 @@ interface TimelineFeedProps {
   activeFilters: TimelineEventType[];
   isLoading: boolean;
   hasMore: boolean;
-  onFilterToggle: (type: TimelineEventType) => void;
+  onFilterToggle: (type: TimelineFilterValue) => void;
   onLoadMore: () => void;
   onItemClick: (recordId: string, recordType: string) => void;
+  bottomAnchor?: boolean;
+  className?: string;
   previewMode?: boolean;
+  showFilters?: boolean;
 }
+
+export const TIMELINE_FILTER_TYPES: TimelineEventType[] = ['task', 'event', 'milestone', 'file', 'workspace'];
 
 const FILTER_LABELS: Record<TimelineEventType, string> = {
   task: 'Tasks',
@@ -47,6 +63,104 @@ const TIMELINE_DOT_CLASS: Record<TimelineEventType, string> = {
   workspace: 'bg-capture-rail',
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const parseTimelineDate = (value: string): Date | null => {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+};
+
+const startOfLocalDay = (date: Date): number =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+
+const formatAbsoluteDate = (date: Date, includeYear: boolean): string =>
+  new Intl.DateTimeFormat([], {
+    month: 'short',
+    day: 'numeric',
+    ...(includeYear ? { year: 'numeric' } : {}),
+  }).format(date);
+
+const formatTimelineDateLabel = (cluster: TimelineCluster): string => {
+  const firstItem = cluster.items[0];
+  const date = parseTimelineDate(firstItem?.timestampIso ?? '') ?? parseTimelineDate(firstItem?.timestamp ?? '') ?? parseTimelineDate(cluster.date);
+  if (!date) {
+    return cluster.date;
+  }
+
+  const now = new Date();
+  const dayDelta = Math.floor((startOfLocalDay(now) - startOfLocalDay(date)) / DAY_MS);
+  if (dayDelta <= 0) {
+    return 'Today';
+  }
+  if (dayDelta === 1) {
+    return 'Yesterday';
+  }
+  if (dayDelta < 7) {
+    return `${dayDelta} days ago`;
+  }
+  return formatAbsoluteDate(date, date.getFullYear() !== now.getFullYear());
+};
+
+const timelineFilterSummary = (activeFilters: TimelineEventType[]): string => {
+  const allFiltersSelected = TIMELINE_FILTER_TYPES.every((type) => activeFilters.includes(type));
+  if (allFiltersSelected) {
+    return 'All';
+  }
+  if (activeFilters.length === 0) {
+    return 'None';
+  }
+  return activeFilters.map((type) => FILTER_LABELS[type]).join(', ');
+};
+
+export const TimelineFilterMenu = ({
+  activeFilters,
+  onFilterToggle,
+}: {
+  activeFilters: TimelineEventType[];
+  onFilterToggle: (type: TimelineFilterValue) => void;
+}) => {
+  const allFiltersSelected = TIMELINE_FILTER_TYPES.every((type) => activeFilters.includes(type));
+  const filterSummary = timelineFilterSummary(activeFilters);
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Timeline filters: ${filterSummary}`}
+          className="inline-flex max-w-full items-center gap-xs rounded-control border border-subtle bg-surface px-sm py-xs text-xs text-text shadow-soft-subtle transition-colors hover:bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        >
+          <Icon name="filter" className="h-3.5 w-3.5 shrink-0" />
+          <span className="shrink-0">Filters:</span>
+          <span className="max-w-48 truncate text-muted">{filterSummary}</span>
+          <Icon name="chevron-down" className="h-3.5 w-3.5 shrink-0" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-52">
+        <DropdownMenuLabel>Timeline filters</DropdownMenuLabel>
+        <DropdownMenuCheckboxItem
+          checked={allFiltersSelected}
+          onSelect={(event) => event.preventDefault()}
+          onCheckedChange={() => onFilterToggle('all')}
+        >
+          All
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuSeparator />
+        {TIMELINE_FILTER_TYPES.map((type) => (
+          <DropdownMenuCheckboxItem
+            key={type}
+            checked={activeFilters.includes(type)}
+            onSelect={(event) => event.preventDefault()}
+            onCheckedChange={() => onFilterToggle(type)}
+          >
+            {FILTER_LABELS[type]}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 export const TimelineFeed = ({
   clusters,
   activeFilters,
@@ -55,7 +169,10 @@ export const TimelineFeed = ({
   onFilterToggle,
   onLoadMore,
   onItemClick,
+  bottomAnchor = false,
+  className,
   previewMode = false,
+  showFilters = true,
 }: TimelineFeedProps) => {
   const visibleClusters = useMemo(
     () =>
@@ -69,83 +186,77 @@ export const TimelineFeed = ({
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-sm">
-      {!previewMode ? <div role="group" aria-label="Filter timeline" className="flex flex-wrap gap-xs">
-        {(Object.keys(FILTER_LABELS) as TimelineEventType[]).map((type) => {
-          const active = activeFilters.includes(type);
-          return (
-            <button
-              key={type}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onFilterToggle(type)}
-              className="rounded-control border px-sm py-[3px] text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              style={{
-                background: active ? 'color-mix(in srgb, var(--color-primary) 15%, transparent)' : 'transparent',
-                borderColor: active ? 'var(--color-primary)' : 'var(--color-border-muted)',
-                color: active ? 'var(--color-primary)' : 'var(--color-muted)',
-              }}
-            >
-              {FILTER_LABELS[type]}
-            </button>
-          );
-        })}
-      </div> : null}
+    <div className={cn('flex h-full min-h-0 flex-col gap-sm', className)}>
+      {!previewMode && showFilters ? (
+        <div className="self-start">
+          <TimelineFilterMenu activeFilters={activeFilters} onFilterToggle={onFilterToggle} />
+        </div>
+      ) : null}
 
-      <div role="feed" aria-busy={isLoading} className="min-h-0 flex-1 overflow-y-auto">
-        {visibleClusters.length === 0 && !isLoading ? <p className="text-sm text-muted">No timeline events match filters.</p> : null}
+      <div role="feed" aria-busy={isLoading} className="timeline-feed-scroll min-h-0 flex-1 overflow-y-auto">
+        <div className={cn('timeline-mast pb-6', bottomAnchor && 'flex min-h-full flex-col justify-end')}>
+          {visibleClusters.length === 0 && !isLoading ? <p className="text-sm text-muted">No timeline events match filters.</p> : null}
 
-        {visibleClusters.map((cluster) => (
-          <section key={cluster.date}>
-            <h3 className="sticky top-0 z-[1] bg-surface py-xs text-xs font-medium uppercase tracking-wide text-muted">{cluster.date}</h3>
-            <div className="space-y-0">
-              {cluster.items.map((item, index) => {
-                const isLast = index === cluster.items.length - 1;
-                const clickable = Boolean(item.linkedRecordId && item.linkedRecordType);
-                return (
-                  <div key={item.id} className="flex gap-sm">
-                    <div className="flex w-3 shrink-0 flex-col items-center">
-                      <span className={cn('mt-1 h-2.5 w-2.5 rounded-full', TIMELINE_DOT_CLASS[item.type])} />
-                      {!isLast ? <span className="mt-1 w-px flex-1 bg-border-muted" /> : null}
-                    </div>
+          {visibleClusters.map((cluster) => (
+            <section key={cluster.date}>
+              <h3 className="timeline-date-label py-xs text-sm font-semibold text-muted">{formatTimelineDateLabel(cluster)}</h3>
+              <div className="space-y-0">
+                {cluster.items.map((item) => {
+                  const clickable = Boolean(item.linkedRecordId && item.linkedRecordType);
+                  const itemLabel = `${item.type}: ${item.label}. ${item.timestamp}`;
+                  return (
+                    <div
+                      key={item.id}
+                      role="article"
+                      aria-label={itemLabel}
+                      title={item.timestamp}
+                      className="timeline-entry-row pb-sm"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'timeline-entry-dot h-[var(--timeline-node-size)] w-[var(--timeline-node-size)] rounded-full ring-2 ring-surface',
+                          TIMELINE_DOT_CLASS[item.type],
+                        )}
+                      />
 
-                    <div className="flex flex-1 items-start justify-between gap-sm pb-sm">
                       <div className="flex min-w-0 flex-wrap items-center gap-xs">
                         <span className="text-xs text-muted">{item.type}</span>
                         {clickable && !previewMode ? (
                           <button
                             type="button"
                             onClick={() => onItemClick(item.linkedRecordId!, item.linkedRecordType!)}
+                            aria-label={itemLabel}
+                            title={item.timestamp}
                             className="truncate text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                           >
                             {item.label}
                           </button>
                         ) : (
-                          <span className="truncate text-sm text-text">{item.label}</span>
+                          <span aria-label={itemLabel} title={item.timestamp} className="truncate text-sm text-text">
+                            {item.label}
+                          </span>
                         )}
                       </div>
-                      <span className="shrink-0 text-xs text-muted" title={item.timestamp}>
-                        {item.timestampRelative}
-                      </span>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                  );
+                })}
+              </div>
+            </section>
+          ))}
 
-        {isLoading ? <div className="my-sm h-5 rounded-control bg-muted/20" /> : null}
+          {isLoading ? <div className="my-sm h-5 rounded-control bg-muted/20" /> : null}
 
-        {hasMore && !isLoading && !previewMode ? (
-          <button
-            type="button"
-            onClick={onLoadMore}
-            className="py-sm text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          >
-            Load earlier
-          </button>
-        ) : null}
+          {hasMore && !isLoading && !previewMode ? (
+            <button
+              type="button"
+              onClick={onLoadMore}
+              className="py-sm text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            >
+              Load earlier
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
