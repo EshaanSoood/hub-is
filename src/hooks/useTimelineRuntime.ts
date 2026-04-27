@@ -110,7 +110,7 @@ export const useTimelineRuntime = ({
   timeline,
   setTimeline,
 }: UseTimelineRuntimeParams) => {
-  const [timelineFilters, setTimelineFilters] = useState<TimelineEventType[]>(TIMELINE_FILTER_TYPES);
+  const [timelineFilters, setTimelineFilters] = useState<TimelineEventType[]>(() => [...TIMELINE_FILTER_TYPES]);
 
   const refreshTimeline = useCallback(async () => {
     const nextTimeline = await listTimeline(accessToken, projectId);
@@ -159,7 +159,7 @@ export const useTimelineRuntime = ({
 
   const toggleTimelineFilter = useCallback((type: TimelineFilterValue) => {
     if (type === 'all') {
-      setTimelineFilters(TIMELINE_FILTER_TYPES);
+      setTimelineFilters([...TIMELINE_FILTER_TYPES]);
       return;
     }
 

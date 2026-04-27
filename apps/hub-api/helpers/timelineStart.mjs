@@ -21,13 +21,13 @@ const sortTimelineRecordsDescending = (left, right) => {
 const projectCreatedTimelineRecord = (project) => ({
   timeline_event_id: `project_created_${project.project_id}`,
   project_id: project.project_id,
-  actor_user_id: project.created_by,
+  actor_user_id: project.created_by || null,
   event_type: 'project.created',
   primary_entity_type: 'project',
   primary_entity_id: project.project_id,
   secondary_entities: [],
   summary_json: { message: projectCreatedTimelineMessage(project) },
-  created_at: project.created_at,
+  created_at: project.created_at || new Date().toISOString(),
 });
 
 export const ensureProjectCreatedTimelineStart = (rows, project) => {

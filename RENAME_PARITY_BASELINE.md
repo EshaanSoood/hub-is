@@ -18,8 +18,13 @@ npx playwright install
 E2E command:
 
 ```bash
-PLAYWRIGHT_E2E_ENABLED=true PLAYWRIGHT_BASE_URL=https://eshaansood.org HUB_API_BASE_URL=https://api.eshaansood.org npm run test:e2e
+PLAYWRIGHT_E2E_ENABLED=true \
+PLAYWRIGHT_BASE_URL=<YOUR_TEST_BASE_URL> \
+HUB_API_BASE_URL=<YOUR_API_BASE_URL> \
+npm run test:e2e
 ```
+
+`PLAYWRIGHT_BASE_URL` and `HUB_API_BASE_URL` are placeholders. Replace them with local or dedicated test environment URLs before running so the suite does not target production by accident.
 
 ## Pre-existing Failures
 
@@ -37,8 +42,8 @@ These failures were present before any rename work.
 > hub-os@1.0.0 test:e2e
 > bash scripts/run-playwright-regression.sh
 
-Error: Cannot find module '/Users/eshaansood/hub-os-rename/e2e/support/surfaceAudit.ts' imported from /Users/eshaansood/hub-os-rename/e2e/support/hubHomeAudit.ts
-Error: ENOENT: no such file or directory, open '/Users/eshaansood/hub-os-rename/e2e/.env.tokens.local'
+Error: Cannot find module '<REPO_ROOT>/e2e/support/surfaceAudit.ts' imported from <REPO_ROOT>/e2e/support/hubHomeAudit.ts
+Error: ENOENT: no such file or directory, open '<REPO_ROOT>/e2e/.env.tokens.local'
 
    at helpers/auth.ts:85
 
@@ -49,10 +54,10 @@ Error: ENOENT: no such file or directory, open '/Users/eshaansood/hub-os-rename/
   86 |   const token = (envMap[tokenKey] || '').trim();
   87 |   if (!token) {
   88 |     throw new Error(`${tokenKey} missing in ${tokensPath}`);
-    at readTokenFromFile (/Users/eshaansood/hub-os-rename/e2e/helpers/auth.ts:85:31)
-    at readTokenAFromFile (/Users/eshaansood/hub-os-rename/e2e/helpers/auth.ts:94:10)
-    at /Users/eshaansood/hub-os-rename/e2e/tests/hub-home-daily-brief-states.spec.ts:37:17
-    at /Users/eshaansood/hub-os-rename/e2e/tests/hub-home-daily-brief-states.spec.ts:36:15
+    at readTokenFromFile (<REPO_ROOT>/e2e/helpers/auth.ts:85:31)
+    at readTokenAFromFile (<REPO_ROOT>/e2e/helpers/auth.ts:94:10)
+    at <REPO_ROOT>/e2e/tests/hub-home-daily-brief-states.spec.ts:37:17
+    at <REPO_ROOT>/e2e/tests/hub-home-daily-brief-states.spec.ts:36:15
 
 === Hub OS E2E AUDIT REPORT ===
 
