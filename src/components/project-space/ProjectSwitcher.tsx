@@ -1,47 +1,47 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { useMemo, useRef, useState } from 'react';
 import { cn } from '../../lib/cn';
-import type { PaneLateralSource } from '../motion/hubMotion';
+import type { ProjectLateralSource } from '../motion/hubMotion';
 
-export interface PaneSwitcherPane {
+export interface ProjectSwitcherProject {
   id: string;
   label: string;
   shortcutNumber?: number;
   disabled?: boolean;
 }
 
-interface PaneSwitcherProps {
+interface ProjectSwitcherProps {
   id?: string;
-  panes: PaneSwitcherPane[];
-  activePaneId: string | null;
-  onPaneChange: (paneId: string, source: PaneLateralSource) => void;
-  onMovePane?: (paneId: string, direction: 'up' | 'down') => void;
+  projects: ProjectSwitcherProject[];
+  activeProjectId: string | null;
+  onProjectChange: (projectId: string, source: ProjectLateralSource) => void;
+  onMoveProject?: (projectId: string, direction: 'up' | 'down') => void;
 }
 
-export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane }: PaneSwitcherProps) => {
+export const ProjectSwitcher = ({ id, projects, activeProjectId, onProjectChange, onMoveProject }: ProjectSwitcherProps) => {
   const prefersReducedMotion = useReducedMotion();
-  const [hoveredPaneId, setHoveredPaneId] = useState<string | null>(null);
-  const paneRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
+  const projectRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  const paneByShortcut = useMemo(() => {
-    const map = new Map<number, PaneSwitcherPane>();
-    for (const pane of panes) {
-      if (pane.shortcutNumber) {
-        map.set(pane.shortcutNumber, pane);
+  const projectByShortcut = useMemo(() => {
+    const map = new Map<number, ProjectSwitcherProject>();
+    for (const project of projects) {
+      if (project.shortcutNumber) {
+        map.set(project.shortcutNumber, project);
       }
     }
     return map;
-  }, [panes]);
+  }, [projects]);
 
   const focusByIndex = (index: number) => {
-    if (panes.length === 0) {
+    if (projects.length === 0) {
       return;
     }
-    const clamped = (index + panes.length) % panes.length;
-    paneRefs.current[clamped]?.focus();
+    const clamped = (index + projects.length) % projects.length;
+    projectRefs.current[clamped]?.focus();
   };
 
-  if (panes.length === 0) {
+  if (projects.length === 0) {
     return <p className="text-xs text-muted">No projects available.</p>;
   }
 
@@ -50,50 +50,50 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
       <span className="sr-only">
         Use Left and Right arrows to navigate between projects. Use Home and End to move focus to first and last projects. Use Ctrl plus arrows to reorder projects.
       </span>
-      {panes.map((pane, index) => {
-        const isActive = pane.id === activePaneId;
-        const isHovered = hoveredPaneId === pane.id;
+      {projects.map((project, index) => {
+        const isActive = project.id === activeProjectId;
+        const isHovered = hoveredProjectId === project.id;
         const revealLabel = isHovered || isActive;
 
         return (
           <motion.button
-            key={pane.id}
-            layoutId={!prefersReducedMotion ? `pane-${pane.id}` : undefined}
+            key={project.id}
+            layoutId={!prefersReducedMotion ? `project-${project.id}` : undefined}
             ref={(node) => {
-              paneRefs.current[index] = node;
+              projectRefs.current[index] = node;
             }}
             type="button"
             aria-pressed={isActive}
-            aria-label={`${pane.label}${pane.shortcutNumber ? `, project ${pane.shortcutNumber}` : ''}`}
-            disabled={pane.disabled}
-            onClick={() => onPaneChange(pane.id, 'click')}
-            aria-keyshortcuts={onMovePane ? 'Control+ArrowLeft Control+ArrowRight' : undefined}
-            onMouseEnter={() => setHoveredPaneId(pane.id)}
-            onMouseLeave={() => setHoveredPaneId((current) => (current === pane.id ? null : current))}
-            onFocus={() => setHoveredPaneId(pane.id)}
-            onBlur={() => setHoveredPaneId((current) => (current === pane.id ? null : current))}
+            aria-label={`${project.label}${project.shortcutNumber ? `, project ${project.shortcutNumber}` : ''}`}
+            disabled={project.disabled}
+            onClick={() => onProjectChange(project.id, 'click')}
+            aria-keyshortcuts={onMoveProject ? 'Control+ArrowLeft Control+ArrowRight' : undefined}
+            onMouseEnter={() => setHoveredProjectId(project.id)}
+            onMouseLeave={() => setHoveredProjectId((current) => (current === project.id ? null : current))}
+            onFocus={() => setHoveredProjectId(project.id)}
+            onBlur={() => setHoveredProjectId((current) => (current === project.id ? null : current))}
             onKeyDown={(event) => {
-              if (event.ctrlKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight') && onMovePane) {
+              if (event.ctrlKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight') && onMoveProject) {
                 event.preventDefault();
-                onMovePane(pane.id, event.key === 'ArrowLeft' ? 'up' : 'down');
+                onMoveProject(project.id, event.key === 'ArrowLeft' ? 'up' : 'down');
                 return;
               }
 
               if (event.key === 'ArrowRight') {
                 event.preventDefault();
-                const nextPane = panes[(index + 1) % panes.length];
-                if (nextPane) {
-                  onPaneChange(nextPane.id, 'arrow-right');
+                const nextProject = projects[(index + 1) % projects.length];
+                if (nextProject) {
+                  onProjectChange(nextProject.id, 'arrow-right');
                 }
                 return;
               }
 
               if (event.key === 'ArrowLeft') {
                 event.preventDefault();
-                const nextIndex = (index - 1 + panes.length) % panes.length;
-                const nextPane = panes[nextIndex];
-                if (nextPane) {
-                  onPaneChange(nextPane.id, 'arrow-left');
+                const nextIndex = (index - 1 + projects.length) % projects.length;
+                const nextProject = projects[nextIndex];
+                if (nextProject) {
+                  onProjectChange(nextProject.id, 'arrow-left');
                 }
                 return;
               }
@@ -106,16 +106,16 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
 
               if (event.key === 'End') {
                 event.preventDefault();
-                focusByIndex(panes.length - 1);
+                focusByIndex(projects.length - 1);
                 return;
               }
 
               if (event.ctrlKey && event.shiftKey && /^Digit[1-9]$/.test(event.code)) {
                 const shortcut = Number.parseInt(event.code.slice('Digit'.length), 10);
-                const targetPane = paneByShortcut.get(shortcut);
-                if (targetPane) {
+                const targetProject = projectByShortcut.get(shortcut);
+                if (targetProject) {
                   event.preventDefault();
-                  onPaneChange(targetPane.id, 'digit');
+                  onProjectChange(targetProject.id, 'digit');
                 }
               }
             }}
@@ -134,8 +134,8 @@ export const PaneSwitcher = ({ id, panes, activePaneId, onPaneChange, onMovePane
             >
               {revealLabel ? (
                 <>
-                  {pane.shortcutNumber ? <span className="opacity-60">{pane.shortcutNumber}</span> : null}
-                  <span>{pane.label}</span>
+                  {project.shortcutNumber ? <span className="opacity-60">{project.shortcutNumber}</span> : null}
+                  <span>{project.label}</span>
                 </>
               ) : (
                 <span

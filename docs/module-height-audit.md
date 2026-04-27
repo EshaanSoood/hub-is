@@ -5,7 +5,7 @@
 ### `src/pages/ProjectSpacePage.tsx`
 - Height chain role: this page does **not** create a viewport-bound layout container for Work view content.
 - Explicit height/min/max: none for the Work page containers (`<div className="space-y-4">`, `<section className="space-y-4">`).
-- Flex grow/shrink: no `flex-1`, `grow`, `shrink`, or split-pane height contract between modules and editor.
+- Flex grow/shrink: no `flex-1`, `grow`, `shrink`, or split-project height contract between modules and editor.
 - Overflow: no page-level `overflow-y-auto` / `overflow-hidden` around the work content chain. The only `h-screen overflow-y-auto` in this file is the inspector dialog panel, not the module area.
 - Grid row sizing: none at page level.
 - Tailwind height classes: no `h-full` / `h-screen` in the module chain (again, except inspector dialog).
@@ -74,14 +74,14 @@
 ## 3. Module Wrappers (per module)
 
 ### `TableModule` (`src/components/project-space/modules/TableModule.tsx`)
-- Props received: `module`, `runtime`, `canEditPane`, `onOpenRecord`, `onSetModuleBinding`.
+- Props received: `module`, `runtime`, edit capability, `onOpenRecord`, `onSetModuleBinding`.
 - Dimension-related data: receives `module.size_tier` but does not use/pass it.
 - Wrapper container: `<div className="space-y-3">` (no fixed/flex height).
 - Passes height constraints to skin: no.
 - Skin outer behavior from wrapper perspective: unconstrained; skin handles its own internal scroller.
 
 ### `KanbanModule` (`src/components/project-space/modules/KanbanModule.tsx`)
-- Props: `module`, `runtime`, `canEditPane`, `onOpenRecord`, `onSetModuleBinding`.
+- Props: `module`, `runtime`, edit capability, `onOpenRecord`, `onSetModuleBinding`.
 - Dimension-related data: `module.size_tier` available but unused.
 - Wrapper container: `<div className="space-y-3">`.
 - Passes height constraints to skin: no.
@@ -93,13 +93,13 @@
 - Passes height constraints to skin: no.
 
 ### `TasksModule` (`src/components/project-space/modules/TasksModule.tsx`)
-- Props: `module`, `runtime`, `canEditPane`.
+- Props: `module`, `runtime`, edit capability.
 - Dimension-related data: passes `sizeTier={module.size_tier || 'M'}`.
 - Wrapper container: none besides `Suspense`.
 - Passes height constraints to skin: only semantic tier; no explicit px/min/max height.
 
 ### `FilesModule` (`src/components/project-space/modules/FilesModule.tsx`)
-- Props: `module`, `runtime`, `canEditPane`.
+- Props: `module`, `runtime`, edit capability.
 - Dimension-related data: passes `sizeTier={module.size_tier}`.
 - Wrapper container: none besides `Suspense`.
 - Passes height constraints to skin: tier only; no explicit height contract.
@@ -111,7 +111,7 @@
 - Passes height constraints to skin: tier only.
 
 ### `QuickThoughtsModule` (`src/components/project-space/modules/QuickThoughtsModule.tsx`)
-- Props: `module`, `runtime`, `pane`, `canEditPane`.
+- Props: `module`, `runtime`, `project`, edit capability.
 - Dimension-related data: passes `sizeTier={module.size_tier}`.
 - Wrapper container: none besides `Suspense`.
 - Passes height constraints to skin: tier only.

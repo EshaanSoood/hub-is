@@ -21,7 +21,7 @@ interface HubEnvelope<T> {
 export interface HubTaskSummary {
   record_id: string;
   title: string;
-  project_id: string | null;
+  space_id: string | null;
   task_state: {
     status: string;
     priority: string | null;
@@ -33,7 +33,7 @@ export interface HubReminderSummary {
   reminder_id: string;
   record_id: string;
   record_title: string;
-  project_id: string;
+  space_id: string;
   remind_at: string;
   overdue: boolean;
 }
@@ -43,16 +43,16 @@ interface HubCollection {
   name: string;
 }
 
-interface HubPaneSummary {
-  pane_id: string;
+interface HubProjectSummary {
   project_id: string;
+  space_id: string;
   name: string;
   layout_config: Record<string, unknown>;
 }
 
 interface HubHomeResponse {
   home: {
-    personal_project_id: string | null;
+    personal_space_id: string | null;
     tasks: HubTaskSummary[];
     tasks_next_cursor: string | null;
     captures: Array<Record<string, unknown>>;
@@ -181,7 +181,7 @@ export const createReminderViaApi = async (
       reminder_id: data.reminder_id,
       record_id: data.record_id,
       record_title: data.record_title || payload.title,
-      project_id: data.project_id || '',
+      space_id: data.space_id || '',
       remind_at: data.remind_at,
       overdue: Boolean(data.overdue),
     };
@@ -209,7 +209,7 @@ export const dismissReminderViaApi = async (token: string, reminderId: string): 
 const listProjectCollections = async (token: string, projectId: string): Promise<HubCollection[]> => {
   const data = await apiRequest<{ collections: HubCollection[] }>(
     token,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/collections`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/collections`,
   );
   return data.collections;
 };
@@ -217,11 +217,11 @@ const listProjectCollections = async (token: string, projectId: string): Promise
 export const createTaskInPersonalProject = async (
   token: string,
   payload: { title: string; due_at: string; priority?: string | null; status?: string },
-): Promise<{ record_id: string; project_id: string }> => {
+): Promise<{ record_id: string; space_id: string }> => {
   const home = await getHubHome(token, { tasks_limit: 1, events_limit: 1, captures_limit: 1, notifications_limit: 1 });
-  const projectId = home.personal_project_id;
+  const projectId = home.personal_space_id;
   if (!projectId) {
-    throw new Error('Expected personal_project_id from /api/hub/home');
+    throw new Error('Expected personal_space_id from /api/hub/home');
   }
 
   const collections = await listProjectCollections(token, projectId);
@@ -232,7 +232,7 @@ export const createTaskInPersonalProject = async (
 
   const created = await apiRequest<{ record_id: string }>(
     token,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/records`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/records`,
     {
       method: 'POST',
       body: JSON.stringify({
@@ -248,7 +248,7 @@ export const createTaskInPersonalProject = async (
     },
   );
 
-  return { record_id: created.record_id, project_id: projectId };
+  return { record_id: created.record_id, space_id: projectId };
 };
 
 export const archiveRecordViaApi = async (token: string, recordId: string): Promise<void> => {
@@ -275,29 +275,29 @@ export const archiveMostRecentTaskByTitleIncludes = async (token: string, needle
   }
 };
 
-export const createProjectViaApi = async (token: string, name: string): Promise<{ project_id: string; name: string }> => {
-  const data = await apiRequest<{ project: { project_id: string; name: string } }>(
+export const createProjectViaApi = async (token: string, name: string): Promise<{ space_id: string; name: string }> => {
+  const data = await apiRequest<{ space: { space_id: string; name: string } }>(
     token,
-    '/api/hub/projects',
+    '/api/hub/spaces',
     {
       method: 'POST',
       body: JSON.stringify({ name }),
     },
   );
-  return data.project;
+  return data.space;
 };
 
 export const deleteProjectViaApi = async (token: string, projectId: string): Promise<void> => {
   await apiRequest(
     token,
-    `/api/hub/projects/${encodeURIComponent(projectId)}`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}`,
     {
       method: 'DELETE',
     },
   );
 };
 
-export const createPaneViaApi = async (
+export const createProjectViaApi = async (
   token: string,
   projectId: string,
   payload: {
@@ -305,16 +305,16 @@ export const createPaneViaApi = async (
     member_user_ids?: string[];
     layout_config: Record<string, unknown>;
   },
-): Promise<HubPaneSummary> => {
-  const data = await apiRequest<{ pane: HubPaneSummary }>(
+): Promise<HubProjectSummary> => {
+  const data = await apiRequest<{ project: HubProjectSummary }>(
     token,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/panes`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`,
     {
       method: 'POST',
       body: JSON.stringify(payload),
     },
   );
-  return data.pane;
+  return data.project;
 };
 
 const waitForHomeMatch = async <T>(

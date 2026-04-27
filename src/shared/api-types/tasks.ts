@@ -5,17 +5,15 @@ export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 /** Identifies where a task originated in Hub workflows. */
-export type TaskOriginKind = 'pane' | 'project' | 'personal';
+export type TaskOriginKind = 'project' | 'space' | 'personal';
 
-export interface SourcePaneContext {
-  /** Stable pane identifier when the record is tied to a pane. */
-  pane_id: string | null;
-  /** Human-readable pane name at the time the context was generated. */
-  pane_name: string | null;
-  /** Backing document identifier for the pane, if one exists. */
+export interface SourceProjectContext {
+  /** Stable project identifier when the record is tied to a project. */
+  project_id: string | null;
+  /** Human-readable project name at the time the context was generated. */
+  project_name: string | null;
+  /** Backing document identifier for the project, if one exists. */
   doc_id: string | null;
-  /** Associated room identifier when the pane belongs to a room. */
-  room_id?: string | null;
 }
 
 export interface TaskState {
@@ -43,10 +41,10 @@ export interface TaskAssignment {
 export interface TaskSummary {
   /** Stable record identifier for the task. */
   record_id: string;
-  /** Parent project identifier; null for personal task shortcuts in some views. */
-  project_id: string | null;
-  /** Project display name; null when unknown or omitted. */
-  project_name: string | null;
+  /** Parent space identifier; null for personal task shortcuts in some views. */
+  space_id: string | null;
+  /** Space display name; null when unknown or omitted. */
+  space_name: string | null;
   /** Collection identifier containing the task record. */
   collection_id: string;
   /** Collection display name; null when unknown. */
@@ -63,12 +61,12 @@ export interface TaskSummary {
   task_state: TaskState;
   /** Users currently assigned to this task. */
   assignments: TaskAssignment[];
-  /** Indicates whether this task came from pane, project, or personal context. */
+  /** Indicates whether this task came from project, space, or personal context. */
   origin_kind: TaskOriginKind;
   /** Source view identifier for traceability; null when none exists. */
   source_view_id: string | null;
-  /** Pane context used for route reconstruction; null when not pane-bound. */
-  source_pane: SourcePaneContext | null;
+  /** Project context used for route reconstruction; null when not project-bound. */
+  source_project: SourceProjectContext | null;
 }
 
 export interface TaskPage {
@@ -79,10 +77,10 @@ export interface TaskPage {
 }
 
 export interface CreateTaskRequest {
-  /** Optional destination project ID; defaults to the caller's personal project when omitted by backend policy. */
-  project_id?: string;
-  /** Optional pane context used for write authorization and origin linkage. */
-  source_pane_id?: string;
+  /** Optional destination space ID; defaults to the caller's personal space when omitted by backend policy. */
+  space_id?: string;
+  /** Optional project context used for write authorization and origin linkage. */
+  source_project_id?: string;
   /** Optional parent task/record ID when creating a subtask. */
   parent_record_id?: string | null;
   /** Required non-empty task title. */

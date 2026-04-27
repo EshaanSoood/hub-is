@@ -1,13 +1,13 @@
-import type { HubPaneSummary, HubView } from '../../../services/hub/types';
+import type { HubProjectSummary, HubView } from '../../../services/hub/types';
 import { isStandaloneKanbanView } from '../../../hooks/projectViewsRuntime/shared';
 
-export const paneCanEditForUser = (pane: HubPaneSummary | null | undefined, userId: string): boolean => {
-  // User-level pane permissions are not enforced yet; current gating is pane.can_edit.
+export const projectCanEditForUser = (project: HubProjectSummary | null | undefined, userId: string): boolean => {
+  // User-level project permissions are not enforced yet; current gating is project.can_edit.
   void userId;
-  return pane?.can_edit === true;
+  return project?.can_edit === true;
 };
 
-export const collectPaneTaskCollectionIds = (
+export const collectProjectTaskCollectionIds = (
   layoutConfig: Record<string, unknown> | null | undefined,
   availableViews: HubView[],
 ): string[] => {

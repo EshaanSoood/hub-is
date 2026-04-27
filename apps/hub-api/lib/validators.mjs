@@ -236,9 +236,9 @@ export const validateCreateTaskRequest = (body) => {
     request.project_id = projectId;
   }
 
-  const sourcePaneId = asOptionalString(body.source_pane_id, 'source_pane_id');
-  if (sourcePaneId) {
-    request.source_pane_id = sourcePaneId;
+  const sourceProjectId = asOptionalString(body.source_project_id, 'source_project_id');
+  if (sourceProjectId) {
+    request.source_project_id = sourceProjectId;
   }
 
   if (typeof body.parent_record_id !== 'undefined') {
@@ -299,11 +299,11 @@ export const validateCreateReminderRequest = (body) => {
   const effectiveScope = request.scope || 'personal';
 
   const projectId = asOptionalString(body.project_id, 'project_id');
-  const paneId = asOptionalString(body.pane_id, 'pane_id');
+  const sourceProjectId = asOptionalString(body.source_project_id, 'source_project_id');
   const hasSourceViewId = typeof body.source_view_id !== 'undefined';
 
-  if (effectiveScope !== 'project' && (projectId || paneId || hasSourceViewId)) {
-    throw new Error('project_id, pane_id, and source_view_id are only allowed when scope is "project".');
+  if (effectiveScope !== 'project' && (projectId || sourceProjectId || hasSourceViewId)) {
+    throw new Error('project_id, source_project_id, and source_view_id are only allowed when scope is "project".');
   }
   if (effectiveScope === 'project' && !projectId) {
     throw new Error('project_id is required when scope is "project".');
@@ -312,9 +312,12 @@ export const validateCreateReminderRequest = (body) => {
   if (projectId) {
     request.project_id = projectId;
   }
+  if (sourceProjectId) {
+    request.source_project_id = sourceProjectId;
+  }
 
-  if (paneId) {
-    request.pane_id = paneId;
+  if (projectId) {
+    request.project_id = projectId;
   }
 
   if (hasSourceViewId) {
@@ -350,14 +353,14 @@ export const validateCreateEventRequest = (body) => {
     end_dt: endDt,
   };
 
-  const paneId = asOptionalString(body.pane_id, 'pane_id');
-  if (paneId) {
-    request.pane_id = paneId;
+  const projectId = asOptionalString(body.project_id, 'project_id');
+  if (projectId) {
+    request.project_id = projectId;
   }
 
-  const sourcePaneId = asOptionalString(body.source_pane_id, 'source_pane_id');
-  if (sourcePaneId) {
-    request.source_pane_id = sourcePaneId;
+  const sourceProjectId = asOptionalString(body.source_project_id, 'source_project_id');
+  if (sourceProjectId) {
+    request.source_project_id = sourceProjectId;
   }
 
   const sourceDocId = asOptionalString(body.source_doc_id, 'source_doc_id');

@@ -68,8 +68,8 @@ test.describe('Authentication & Session', () => {
     await waitForHubHome(page);
 
     const home = await getHubHome(fixture.apiBaseUrl, fixture.owner.token);
-    expect(home.personal_project_id).toBeTruthy();
-    await expect(page.locator(`a[href="/projects/${home.personal_project_id}/overview"]`)).toBeVisible();
+    expect(home.personal_space_id).toBeTruthy();
+    await expect(page.locator(`a[href="/projects/${home.personal_space_id}/overview"]`)).toBeVisible();
   });
 
   test('Session persists across navigation', async ({ page }) => {
@@ -118,43 +118,43 @@ test.describe('Projects', () => {
     await expect(page).toHaveURL(new RegExp(`/projects/${fixture.project.id}/overview$`));
   });
 
-  test('Project space page renders with the panes sidebar', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
-    await expect(page.getByRole('toolbar', { name: 'Open panes' })).toBeVisible();
-    await expect(page.getByText('Work Panes')).toBeVisible();
+  test('Project space page renders with the projects sidebar', async ({ page }) => {
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
+    await expect(page.getByRole('toolbar', { name: 'Open projects' })).toBeVisible();
+    await expect(page.getByText('Work Projects')).toBeVisible();
   });
 });
 
-test.describe('Panes', () => {
-  test('Pane list renders inside a project and can navigate to another pane', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
-    const paneToolbar = page.getByRole('toolbar', { name: 'Open panes' });
-    await expect(paneToolbar).toBeVisible();
+test.describe('Projects', () => {
+  test('Project list renders inside a project and can navigate to another project', async ({ page }) => {
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
+    const projectToolbar = page.getByRole('toolbar', { name: 'Open projects' });
+    await expect(projectToolbar).toBeVisible();
     await page.getByRole('button', { name: /Audit Private/i }).click();
-    await expect(page).toHaveURL(new RegExp(`/projects/${fixture.project.id}/work/${fixture.panes.privateId}`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${fixture.project.id}/work/${fixture.projects.privateId}`));
   });
 
-  test('Pane content area loads', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
+  test('Project content area loads', async ({ page }) => {
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
     await expect(page.getByLabel('Table module')).toBeVisible();
     await expect(page.getByLabel('Project note editor')).toBeVisible();
   });
 
-  test('Create pane form appears for users with write permission', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
-    await expect(page.getByLabel('New pane name')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Create pane' })).toBeVisible();
+  test('Create project form appears for users with write permission', async ({ page }) => {
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
+    await expect(page.getByLabel('New project name')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create project' })).toBeVisible();
   });
 
-  test('Create pane form is hidden for users without write permission', async ({ browser }, testInfo) => {
-    const { context, page } = await openAuditedPage(browser, testInfo, 'viewer-pane-permissions', {
+  test('Create project form is hidden for users without write permission', async ({ browser }, testInfo) => {
+    const { context, page } = await openAuditedPage(browser, testInfo, 'viewer-project-permissions', {
       baseURL: fixture.baseUrl,
       storageState: VIEWER_STORAGE_STATE_PATH,
     });
     try {
-      await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
-      await expect(page.getByLabel('New pane name')).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'Create pane' })).toHaveCount(0);
+      await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
+      await expect(page.getByLabel('New project name')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Create project' })).toHaveCount(0);
     } finally {
       await flushPageAudit(page);
       await context.close();
@@ -163,8 +163,8 @@ test.describe('Panes', () => {
 });
 
 test.describe('Document Editor (Collaborative Lexical Editor)', () => {
-  test('Doc pane loads the editor', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
+  test('Doc project loads the editor', async ({ page }) => {
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
     await expect(page.getByLabel('Project note editor')).toBeVisible();
   });
 
@@ -181,8 +181,8 @@ test.describe('Document Editor (Collaborative Lexical Editor)', () => {
 
     try {
       await Promise.all([
-        gotoReady(first.page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`),
-        gotoReady(second.page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`),
+        gotoReady(first.page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`),
+        gotoReady(second.page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`),
       ]);
 
       const editorA = first.page.getByLabel('Project note editor');
@@ -214,29 +214,29 @@ test.describe('Document Editor (Collaborative Lexical Editor)', () => {
 });
 
 test.describe('Collections & Records', () => {
-  test('Collection records list renders in a pane table view', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}?view_id=${fixture.views.tableId}`);
+  test('Collection records list renders in a project table view', async ({ page }) => {
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}?view_id=${fixture.views.tableId}`);
     const tableModule = page.getByLabel('Table module').first();
     await expect(tableModule).toBeVisible();
     await expect(tableModule.getByRole('button', { name: `Open record ${fixture.tasks.todoTitle}` })).toBeVisible();
   });
 
   test('Record detail inspector opens from the table view', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}?view_id=${fixture.views.tableId}`);
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}?view_id=${fixture.views.tableId}`);
     const tableModule = page.getByLabel('Table module').first();
     await tableModule.getByRole('button', { name: `Open record ${fixture.tasks.todoTitle}` }).click();
     await expect(page.getByRole('dialog', { name: 'Record Inspector' })).toBeVisible();
   });
 
   test('Kanban view renders when configured', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}?view_id=${fixture.views.kanbanId}`);
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}?view_id=${fixture.views.kanbanId}`);
     const todoColumn = page.getByLabel('todo column').first();
     await expect(todoColumn).toBeVisible();
     await expect(todoColumn.getByLabel(`Card ${fixture.tasks.todoTitle}`)).toBeVisible();
   });
 
   test('Table view renders when configured', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}?view_id=${fixture.views.tableId}`);
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}?view_id=${fixture.views.tableId}`);
     await expect(page.getByLabel('Table module').first().getByRole('grid')).toBeVisible();
   });
 });
@@ -287,8 +287,8 @@ test.describe('Tasks', () => {
 });
 
 test.describe('Files', () => {
-  test('Files module renders in a pane, the file list loads, and upload controls exist', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
+  test('Files module renders in a project, the file list loads, and upload controls exist', async ({ page }) => {
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
     const filesModule = page.getByLabel('Files module');
     await expect(filesModule).toBeVisible();
     await expect(filesModule.getByRole('list', { name: 'Files' })).toBeVisible();
@@ -310,26 +310,26 @@ test.describe('Notifications', () => {
 
 test.describe('Permissions & Role Gating', () => {
   test('Owner sees create and edit controls', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
-    await expect(page.getByRole('button', { name: 'Create pane' })).toBeVisible();
-    await expect(page.locator('#pane-name-input')).toBeEnabled();
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
+    await expect(page.getByRole('button', { name: 'Create project' })).toBeVisible();
+    await expect(page.locator('#project-name-input')).toBeEnabled();
     await expect(page.getByTestId('add-module-table')).toBeVisible();
   });
 
-  test('Member sees only the controls appropriate to the role and pane membership', async ({ browser }, testInfo) => {
+  test('Member sees only the controls appropriate to the role and project membership', async ({ browser }, testInfo) => {
     const { context, page } = await openAuditedPage(browser, testInfo, 'viewer-role-gating', {
       baseURL: fixture.baseUrl,
       storageState: VIEWER_STORAGE_STATE_PATH,
     });
     try {
-      await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
+      await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
       annotateKnownGap(
         testInfo,
-        'This fixture grants the secondary user project member access plus explicit membership on the shared pane, so pane-title editing remains enabled while project-level create/module controls stay hidden.',
+        'This fixture grants the secondary user project member access plus explicit membership on the shared project, so project-title editing remains enabled while project-level create/module controls stay hidden.',
       );
-      await expect(page.locator('#pane-name-input')).toBeEnabled();
-      await expect(page.getByRole('button', { name: 'Create pane' })).toHaveCount(0);
-      await expect(page.getByText('Editable pane management')).toHaveCount(0);
+      await expect(page.locator('#project-name-input')).toBeEnabled();
+      await expect(page.getByRole('button', { name: 'Create project' })).toHaveCount(0);
+      await expect(page.getByText('Editable project management')).toHaveCount(0);
       await expect(page.getByTestId('add-module-table')).toHaveCount(0);
     } finally {
       await flushPageAudit(page);
@@ -343,7 +343,7 @@ test.describe('Permissions & Role Gating', () => {
       storageState: VIEWER_STORAGE_STATE_PATH,
     });
     try {
-      await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
+      await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
       await expect(page.getByRole('button', { name: /Pin|Unpin/ })).toBeVisible();
     } finally {
       await flushPageAudit(page);
@@ -392,10 +392,10 @@ test.describe('Navigation & Shell', () => {
     await expect(page).toHaveURL(new RegExp(`/projects/${fixture.auxProject.id}/overview$`));
   });
 
-  test('Navigation between panes works and myHub is reachable from a project', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
+  test('Navigation between projects works and myHub is reachable from a project', async ({ page }) => {
+    await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
     await page.getByRole('button', { name: /Audit Private/i }).click();
-    await expect(page).toHaveURL(new RegExp(`/projects/${fixture.project.id}/work/${fixture.panes.privateId}`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${fixture.project.id}/work/${fixture.projects.privateId}`));
     await page.getByRole('button', { name: 'Go home' }).click();
     await expect(page).toHaveURL(/\/projects$/);
   });
@@ -409,10 +409,10 @@ test.describe('Error States', () => {
     await expect(page.getByRole('link', { name: 'Return to Projects' })).toBeVisible();
   });
 
-  test('Visiting a nonexistent pane path returns an error state', async ({ page }) => {
-    await gotoReady(page, `/projects/${fixture.project.id}/work/nonexistent-pane`);
+  test('Visiting a nonexistent project path returns an error state', async ({ page }) => {
+    await gotoReady(page, `/projects/${fixture.project.id}/work/nonexistent-project`);
     await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible();
-    await expect(page.getByText('Pane not found in this project.')).toBeVisible();
+    await expect(page.getByText('Project not found in this project.')).toBeVisible();
   });
 
   test('API errors do not crash the app shell', async ({ page }) => {

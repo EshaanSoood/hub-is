@@ -14,16 +14,13 @@ import {
 } from '../../features/home/navigation';
 import { buildProjectOverviewHref } from '../../lib/hubRoutes';
 import { cn } from '../../lib/cn';
-import { useRooms } from '../../features/rooms';
-import { buildRoomProjectHref } from '../../features/rooms/navigation';
 import { fadeThroughVariants } from '../motion/hubMotion';
-import { useProjectPanes } from '../../hooks/useProjectPanes';
+import { useProjectProjects } from '../../hooks/useProjectProjects';
 import { useSidebarNavigationState } from './hooks/useSidebarNavigationState';
 import { sidebarMotionDurations, sidebarShellVariants } from './motion/sidebarMotion';
 import { ProjectsTree } from './ProjectsTree';
 import { ProfileBadge } from './ProfileBadge';
 import { RecentPlaces } from './RecentPlaces';
-import { RoomsSection } from './RoomsSection';
 import { SearchButton } from './SearchButton';
 import { Surfaces, type SidebarSurfaceId } from './Surfaces';
 import { useSidebarCollapse } from './hooks/useSidebarCollapse';
@@ -47,7 +44,6 @@ export const SidebarShell = () => {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const { accessToken } = useAuthz();
   const { projects } = useProjects();
-  const { createRoom, error: roomsError, loading: roomsLoading, rooms } = useRooms({ accessToken });
   const { collapseSidebar, expandSidebar, isCollapsed } = useSidebarCollapse();
   const [searchAutoFocusKey, setSearchAutoFocusKey] = useState(0);
   const [profileAutoOpenKey, setProfileAutoOpenKey] = useState(0);
@@ -62,47 +58,33 @@ export const SidebarShell = () => {
     }
     return decodePathSegment(normalizedPathname.match(/^\/projects\/([^/]+)/)?.[1] || null);
   }, [normalizedPathname]);
-  const currentProjectPaneId = useMemo(
+  const currentWorkProjectId = useMemo(
     () => decodePathSegment(normalizedPathname.match(/^\/projects\/[^/]+\/work\/([^/]+)/)?.[1] || null),
     [normalizedPathname],
   );
-  const currentRoomId = useMemo(
-    () => decodePathSegment(normalizedPathname.match(/^\/rooms\/([^/]+)/)?.[1] || null),
-    [normalizedPathname],
-  );
-  const currentRoomProjectPaneId = useMemo(
-    () => decodePathSegment(normalizedPathname.match(/^\/rooms\/[^/]+\/projects\/([^/]+)/)?.[1] || null),
-    [normalizedPathname],
-  );
-  const currentRoom = useMemo(
-    () => rooms.find((room) => room.id === currentRoomId) || null,
-    [currentRoomId, rooms],
-  );
-  const activeSpaceId = currentProjectId ?? currentRoom?.spaceId ?? null;
+  const activeSpaceId = currentProjectId;
   const currentProject = useMemo(
     () => projects.find((project) => project.id === activeSpaceId) || null,
     [activeSpaceId, projects],
   );
-  const currentSpacePaneId = currentProjectPaneId ?? currentRoomProjectPaneId ?? null;
-  const { panes: activeCurrentProjectPanes } = useProjectPanes(accessToken, activeSpaceId);
+  const currentSpaceProjectId = currentWorkProjectId;
+  const { projects: activeCurrentProjectProjects } = useProjectProjects(accessToken, activeSpaceId);
   const currentRecentPlace = useMemo(() => {
-    if (!activeSpaceId || !currentSpacePaneId || !currentProject) {
+    if (!activeSpaceId || !currentSpaceProjectId || !currentProject) {
       return null;
     }
-    const currentPane = activeCurrentProjectPanes.find((pane) => pane.pane_id === currentSpacePaneId) || null;
-    if (!currentPane) {
+    const currentWorkProject = activeCurrentProjectProjects.find((project) => project.project_id === currentSpaceProjectId) || null;
+    if (!currentWorkProject) {
       return null;
     }
     return {
-      href: currentRoomId
-        ? buildRoomProjectHref(currentRoomId, currentPane.pane_id)
-        : buildProjectWorkHref(activeSpaceId, currentPane.pane_id),
-      paneId: currentPane.pane_id,
-      paneName: currentPane.name,
+      href: buildProjectWorkHref(activeSpaceId, currentWorkProject.project_id),
+      projectId: currentWorkProject.project_id,
+      projectName: currentWorkProject.name,
       spaceId: activeSpaceId,
       spaceName: currentProject.name,
     };
-  }, [activeCurrentProjectPanes, activeSpaceId, currentProject, currentRoomId, currentSpacePaneId]);
+  }, [activeCurrentProjectProjects, activeSpaceId, currentProject, currentSpaceProjectId]);
   const currentHomeTab = useMemo<HomeTabId>(() => parseHomeTabId(new URLSearchParams(location.search).get('tab')), [location.search]);
   const currentHomeContentView = useMemo<HomeContentViewId>(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -120,14 +102,10 @@ export const SidebarShell = () => {
     }
     return parseHomeOverlayId(new URLSearchParams(location.search).get('surface'));
   }, [isOnHome, location.search]);
-  const teamProjects = useMemo(
-    () => projects.filter((project) => !project.isPersonal),
-    [projects],
-  );
   const resolvedVisualCollapsed = prefersReducedMotion ? isCollapsed : visualCollapsed;
   const resolvedShowLabels = prefersReducedMotion ? !isCollapsed : showLabels;
-  const sidebarContextKey = currentSpacePaneId
-    ? `pane:${currentSpacePaneId}`
+  const sidebarContextKey = currentSpaceProjectId
+    ? `project:${currentSpaceProjectId}`
     : activeSpaceId
       ? `space:${activeSpaceId}`
       : `hub:${currentSurface ?? `${currentHomeTab}:${currentHomeContentView}`}`;
@@ -265,47 +243,24 @@ export const SidebarShell = () => {
                 />
 
                 <div className="min-h-0 flex-1 overflow-hidden">
-                  <div className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', resolvedVisualCollapsed ? 'items-center gap-2' : 'gap-2')}>
-                    <div className="min-h-0 flex-1 overflow-hidden">
-                      <ProjectsTree
-                        activeSpaceId={activeSpaceId}
-                        currentProjectPanes={activeCurrentProjectPanes}
-                        currentSpacePaneId={currentSpacePaneId}
-                        expandedProjectId={sidebarState.expandedProjectId}
-                        isCollapsed={resolvedVisualCollapsed}
-                        onOpenProject={openProject}
-                        onExpandSidebar={expandSidebar}
-                        onToggleProjectExpansion={(projectId) => {
-                          sidebarState.setExpandedProjectId((current) => (current === projectId ? null : projectId));
-                        }}
-                        onToggleSection={() => {
-                          sidebarState.setProjectsSectionExpanded((current) => !current);
-                        }}
-                        sectionExpanded={sidebarState.projectsSectionExpanded}
-                        spaceFocused={Boolean(activeSpaceId)}
-                        showLabels={resolvedShowLabels}
-                      />
-                    </div>
-
-                    <div className={cn('shrink-0', resolvedVisualCollapsed ? 'w-full' : undefined)}>
-                      <RoomsSection
-                        accessToken={accessToken}
-                        createRoom={createRoom}
-                        currentRoomId={currentRoomId}
-                        error={roomsError}
-                        isCollapsed={resolvedVisualCollapsed}
-                        loading={roomsLoading}
-                        onExpandSidebar={expandSidebar}
-                        onToggleSection={() => {
-                          sidebarState.setRoomsSectionExpanded((current) => !current);
-                        }}
-                        projectOptions={teamProjects}
-                        rooms={rooms}
-                        sectionExpanded={sidebarState.roomsSectionExpanded}
-                        showLabels={resolvedShowLabels}
-                      />
-                    </div>
-                  </div>
+                  <ProjectsTree
+                    activeSpaceId={activeSpaceId}
+                    currentProjectProjects={activeCurrentProjectProjects}
+                    currentSpaceProjectId={currentSpaceProjectId}
+                    expandedProjectId={sidebarState.expandedProjectId}
+                    isCollapsed={resolvedVisualCollapsed}
+                    onOpenProject={openProject}
+                    onExpandSidebar={expandSidebar}
+                    onToggleProjectExpansion={(projectId) => {
+                      sidebarState.setExpandedProjectId((current) => (current === projectId ? null : projectId));
+                    }}
+                    onToggleSection={() => {
+                      sidebarState.setProjectsSectionExpanded((current) => !current);
+                    }}
+                    sectionExpanded={sidebarState.projectsSectionExpanded}
+                    spaceFocused={Boolean(activeSpaceId)}
+                    showLabels={resolvedShowLabels}
+                  />
                 </div>
               </motion.div>
             </AnimatePresence>

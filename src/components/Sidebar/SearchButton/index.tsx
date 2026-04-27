@@ -315,8 +315,8 @@ export const SearchButton = ({
                           </span>
                           <span className="min-w-0 truncate text-sm font-medium text-text">{result.title}</span>
                         </div>
-                        {result.project_name ? (
-                          <span className="text-xs text-muted">{result.project_name}</span>
+                        {result.space_name ? (
+                          <span className="text-xs text-muted">{result.space_name}</span>
                         ) : null}
                       </button>
                     </motion.li>

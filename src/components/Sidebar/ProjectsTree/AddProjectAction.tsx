@@ -2,22 +2,22 @@ import { startTransition, useId, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../../context/AuthzContext';
 import { buildProjectWorkHref } from '../../../lib/hubRoutes';
-import { buildDefaultPaneCreatePayload } from '../../../lib/paneTemplates';
-import { createPane } from '../../../services/hub/panes';
-import type { HubPaneSummary } from '../../../services/hub/types';
+import { buildDefaultProjectCreatePayload } from '../../../lib/projectTemplates';
+import { createProject } from '../../../services/hub/projects';
+import type { HubProjectSummary } from '../../../services/hub/types';
 import { Dialog, Icon } from '../../primitives';
 
-interface AddPaneActionProps {
-  panes: HubPaneSummary[];
+interface AddProjectActionProps {
+  projects: HubProjectSummary[];
   projectId: string;
-  onPaneCreated: (pane: HubPaneSummary) => void;
+  onProjectCreated: (project: HubProjectSummary) => void;
 }
 
-export const AddPaneAction = ({
-  panes,
+export const AddProjectAction = ({
+  projects,
   projectId,
-  onPaneCreated,
-}: AddPaneActionProps) => {
+  onProjectCreated,
+}: AddProjectActionProps) => {
   const navigate = useNavigate();
   const { accessToken, sessionSummary } = useAuthz();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -46,20 +46,20 @@ export const AddPaneAction = ({
     setSubmitting(true);
     setError(null);
     try {
-      const pane = await createPane(
+      const project = await createProject(
         accessToken,
         projectId,
-        buildDefaultPaneCreatePayload({
-          existingPanes: panes,
+        buildDefaultProjectCreatePayload({
+          existingProjects: projects,
           name: trimmedName,
           sessionUserId: sessionSummary.userId,
         }),
       );
-      onPaneCreated(pane);
+      onProjectCreated(project);
       setName('');
       setOpen(false);
       startTransition(() => {
-        navigate(buildProjectWorkHref(projectId, pane.pane_id));
+        navigate(buildProjectWorkHref(projectId, project.project_id));
       });
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : 'Project creation failed.');

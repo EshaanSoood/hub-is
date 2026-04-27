@@ -3,7 +3,7 @@ import { hubRequest, normalizeRecordSummary } from './transport.ts';
 import type { HubCollectionField, HubRecordSummary, HubView } from './types.ts';
 
 export const listViews = async (accessToken: string, projectId: string): Promise<HubView[]> => {
-  const data = await hubRequest<{ views: HubView[] }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/views`, {
+  const data = await hubRequest<{ views: HubView[] }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/views`, {
     method: 'GET',
   });
   return data.views;
@@ -17,10 +17,10 @@ export const createView = async (
     type: string;
     name: string;
     config?: Record<string, unknown>;
-    mutation_context_pane_id?: string | null;
+    mutation_context_project_id?: string | null;
   },
 ): Promise<{ view_id: string }> => {
-  return hubRequest<{ view_id: string }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/views`, {
+  return hubRequest<{ view_id: string }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/views`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -32,7 +32,7 @@ export const updateView = async (
   payload: {
     name?: string;
     config?: Record<string, unknown>;
-    mutation_context_pane_id?: string | null;
+    mutation_context_project_id?: string | null;
   },
 ): Promise<{ view: HubView }> => {
   return hubRequest<{ view: HubView }>(accessToken, `/api/hub/views/${encodeURIComponent(viewId)}`, {

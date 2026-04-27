@@ -2,94 +2,94 @@ import { useCallback, useRef, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { buildProjectWorkHref } from '../../../lib/hubRoutes';
 import { DialogDescription, DialogHeader, DialogTitle } from '../../../components/project-space/ProjectSpaceDialogPrimitives';
-import type { HubPaneSummary, HubProjectMember } from '../../../services/hub/types';
+import type { HubProjectSummary, HubProjectMember } from '../../../services/hub/types';
 
-type ProjectSpacePaneSettingsDialogProps = {
+type ProjectSpaceProjectSettingsDialogProps = {
   projectId: string;
-  activePane: HubPaneSummary;
-  activePaneCanEdit: boolean;
-  activeEditablePaneIndex: number;
-  orderedEditablePanes: HubPaneSummary[];
+  activeProject: HubProjectSummary;
+  activeProjectCanEdit: boolean;
+  activeEditableProjectIndex: number;
+  orderedEditableProjects: HubProjectSummary[];
   projectMemberList: HubProjectMember[];
   sessionUserId: string;
   modulesEnabled: boolean;
   workspaceEnabled: boolean;
   onRequestClose: () => void;
-  onTogglePinned: (pane: HubPaneSummary) => Promise<void>;
-  onMovePane: (pane: HubPaneSummary, direction: 'up' | 'down') => Promise<void>;
-  onTogglePaneMember: (pane: HubPaneSummary, memberUserId: string) => Promise<void>;
-  onDeletePane: (pane: HubPaneSummary) => Promise<void>;
-  onUpdatePane: (paneId: string, patch: { name?: string; layout_config?: Record<string, unknown> }) => Promise<void>;
-  onToggleActivePaneRegion: (region: 'modules_enabled' | 'workspace_enabled') => void;
+  onTogglePinned: (project: HubProjectSummary) => Promise<void>;
+  onMoveProject: (project: HubProjectSummary, direction: 'up' | 'down') => Promise<void>;
+  onToggleProjectMember: (project: HubProjectSummary, memberUserId: string) => Promise<void>;
+  onDeleteProject: (project: HubProjectSummary) => Promise<void>;
+  onUpdateProject: (projectId: string, patch: { name?: string; layout_config?: Record<string, unknown> }) => Promise<void>;
+  onToggleActiveProjectRegion: (region: 'modules_enabled' | 'workspace_enabled') => void;
 };
 
-export const ProjectSpacePaneSettingsDialog = ({
+export const ProjectSpaceProjectSettingsDialog = ({
   projectId,
-  activePane,
-  activePaneCanEdit,
-  activeEditablePaneIndex,
-  orderedEditablePanes,
+  activeProject,
+  activeProjectCanEdit,
+  activeEditableProjectIndex,
+  orderedEditableProjects,
   projectMemberList,
   sessionUserId,
   modulesEnabled,
   workspaceEnabled,
   onRequestClose,
   onTogglePinned,
-  onMovePane,
-  onTogglePaneMember,
-  onDeletePane,
-  onUpdatePane,
-  onToggleActivePaneRegion,
-}: ProjectSpacePaneSettingsDialogProps): ReactElement => {
-  const paneSettingsNameInputRef = useRef<HTMLInputElement | null>(null);
+  onMoveProject,
+  onToggleProjectMember,
+  onDeleteProject,
+  onUpdateProject,
+  onToggleActiveProjectRegion,
+}: ProjectSpaceProjectSettingsDialogProps): ReactElement => {
+  const projectSettingsNameInputRef = useRef<HTMLInputElement | null>(null);
 
-  const commitActivePaneSettingsName = useCallback(() => {
-    if (!activePaneCanEdit) {
+  const commitActiveProjectSettingsName = useCallback(() => {
+    if (!activeProjectCanEdit) {
       return;
     }
-    const nextName = paneSettingsNameInputRef.current?.value.trim();
+    const nextName = projectSettingsNameInputRef.current?.value.trim();
     if (!nextName) {
-      if (paneSettingsNameInputRef.current) {
-        paneSettingsNameInputRef.current.value = activePane.name;
+      if (projectSettingsNameInputRef.current) {
+        projectSettingsNameInputRef.current.value = activeProject.name;
       }
       return;
     }
-    if (nextName !== activePane.name) {
-      void onUpdatePane(activePane.pane_id, { name: nextName });
+    if (nextName !== activeProject.name) {
+      void onUpdateProject(activeProject.project_id, { name: nextName });
     }
-    if (paneSettingsNameInputRef.current) {
-      paneSettingsNameInputRef.current.value = nextName;
+    if (projectSettingsNameInputRef.current) {
+      projectSettingsNameInputRef.current.value = nextName;
     }
-  }, [activePane, activePaneCanEdit, onUpdatePane]);
+  }, [activeProject, activeProjectCanEdit, onUpdateProject]);
 
   return (
     <>
       <DialogHeader>
         <DialogTitle>Project Settings</DialogTitle>
         <DialogDescription className="sr-only">
-          Manage settings for project {activePane.name}.
+          Manage settings for project {activeProject.name}.
         </DialogDescription>
       </DialogHeader>
 
       <div className="mt-4 space-y-4">
         <div className="space-y-1">
-          <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="pane-settings-name">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="project-settings-name">
             Project name
           </label>
           <input
-            key={activePane.pane_id}
-            ref={paneSettingsNameInputRef}
-            id="pane-settings-name"
-            defaultValue={activePane.name}
+            key={activeProject.project_id}
+            ref={projectSettingsNameInputRef}
+            id="project-settings-name"
+            defaultValue={activeProject.name}
             autoFocus
-            disabled={!activePaneCanEdit}
+            disabled={!activeProjectCanEdit}
             className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-text"
             aria-label="Project name"
-            onBlur={() => commitActivePaneSettingsName()}
+            onBlur={() => commitActiveProjectSettingsName()}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault();
-                commitActivePaneSettingsName();
+                commitActiveProjectSettingsName();
               }
             }}
           />
@@ -97,7 +97,7 @@ export const ProjectSpacePaneSettingsDialog = ({
 
         <div className="flex flex-wrap gap-2">
           <Link
-            to={buildProjectWorkHref(projectId, activePane.pane_id)}
+            to={buildProjectWorkHref(projectId, activeProject.project_id)}
             onClick={() => onRequestClose()}
             className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary"
           >
@@ -107,19 +107,19 @@ export const ProjectSpacePaneSettingsDialog = ({
             type="button"
             className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
             onClick={() => {
-              void onTogglePinned(activePane);
+              void onTogglePinned(activeProject);
             }}
-            disabled={!activePaneCanEdit}
+            disabled={!activeProjectCanEdit}
           >
-            {activePane.pinned ? 'Unpin' : 'Pin'}
+            {activeProject.pinned ? 'Unpin' : 'Pin'}
           </button>
           <button
             type="button"
             className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
             onClick={() => {
-              void onMovePane(activePane, 'up');
+              void onMoveProject(activeProject, 'up');
             }}
-            disabled={!activePaneCanEdit || activeEditablePaneIndex <= 0}
+            disabled={!activeProjectCanEdit || activeEditableProjectIndex <= 0}
           >
             Move up
           </button>
@@ -127,21 +127,21 @@ export const ProjectSpacePaneSettingsDialog = ({
             type="button"
             className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
             onClick={() => {
-              void onMovePane(activePane, 'down');
+              void onMoveProject(activeProject, 'down');
             }}
-            disabled={!activePaneCanEdit || activeEditablePaneIndex < 0 || activeEditablePaneIndex >= orderedEditablePanes.length - 1}
+            disabled={!activeProjectCanEdit || activeEditableProjectIndex < 0 || activeEditableProjectIndex >= orderedEditableProjects.length - 1}
           >
             Move down
           </button>
-          {orderedEditablePanes.length > 1 ? (
+          {orderedEditableProjects.length > 1 ? (
             <button
               type="button"
               className="rounded-panel border border-danger px-3 py-1.5 text-sm font-semibold text-danger disabled:opacity-60"
               onClick={() => {
                 onRequestClose();
-                void onDeletePane(activePane);
+                void onDeleteProject(activeProject);
               }}
-              disabled={!activePaneCanEdit}
+              disabled={!activeProjectCanEdit}
             >
               Delete project
             </button>
@@ -154,16 +154,16 @@ export const ProjectSpacePaneSettingsDialog = ({
             <button
               type="button"
               className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
-              onClick={() => onToggleActivePaneRegion('modules_enabled')}
-              disabled={!activePaneCanEdit}
+              onClick={() => onToggleActiveProjectRegion('modules_enabled')}
+              disabled={!activeProjectCanEdit}
             >
               {modulesEnabled ? 'Hide modules' : 'Show modules'}
             </button>
             <button
               type="button"
               className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
-              onClick={() => onToggleActivePaneRegion('workspace_enabled')}
-              disabled={!activePaneCanEdit}
+              onClick={() => onToggleActiveProjectRegion('workspace_enabled')}
+              disabled={!activeProjectCanEdit}
             >
               {workspaceEnabled ? 'Hide workspace doc' : 'Show workspace doc'}
             </button>
@@ -175,9 +175,9 @@ export const ProjectSpacePaneSettingsDialog = ({
           <div className="flex flex-wrap gap-2">
             {projectMemberList
               .filter((member) => String(member.role).toLowerCase() !== 'owner'
-                || activePane.members.some((entry) => entry.user_id === member.user_id))
+                || activeProject.members.some((entry) => entry.user_id === member.user_id))
               .map((member) => {
-                const selected = activePane.members.some((entry) => entry.user_id === member.user_id);
+                const selected = activeProject.members.some((entry) => entry.user_id === member.user_id);
                 return (
                   <label
                     key={member.user_id}
@@ -190,9 +190,9 @@ export const ProjectSpacePaneSettingsDialog = ({
                       className="mr-1"
                       checked={selected}
                       onChange={() => {
-                        void onTogglePaneMember(activePane, member.user_id);
+                        void onToggleProjectMember(activeProject, member.user_id);
                       }}
-                      disabled={!activePaneCanEdit || member.user_id === sessionUserId}
+                      disabled={!activeProjectCanEdit || member.user_id === sessionUserId}
                     />
                     {member.display_name}
                   </label>
@@ -201,7 +201,7 @@ export const ProjectSpacePaneSettingsDialog = ({
           </div>
         </div>
 
-        {!activePaneCanEdit ? <p className="text-xs text-muted">Read-only project.</p> : null}
+        {!activeProjectCanEdit ? <p className="text-xs text-muted">Read-only project.</p> : null}
       </div>
     </>
   );

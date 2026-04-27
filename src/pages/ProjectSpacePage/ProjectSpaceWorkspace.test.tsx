@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ProjectSpaceWorkspace } from './ProjectSpaceWorkspace';
-import { ProjectSpacePaneSettingsDialog } from './ProjectSpaceWorkspace/ProjectSpacePaneSettingsDialog';
+import { ProjectSpaceProjectSettingsDialog } from './ProjectSpaceWorkspace/ProjectSpaceProjectSettingsDialog';
 import { ProjectSpaceWorkspaceDocSection } from './ProjectSpaceWorkspace/ProjectSpaceWorkspaceDocSection';
 import {
   getActiveInspectorFocusTarget,
@@ -12,10 +12,10 @@ import {
   resolveInspectorFocusTarget,
 } from './ProjectSpaceWorkspace/domFocus';
 import {
-  collectPaneTaskCollectionIds,
-  paneCanEditForUser,
+  collectProjectTaskCollectionIds,
+  projectCanEditForUser,
   relationFieldTargetCollectionId,
-} from './ProjectSpaceWorkspace/paneModel';
+} from './ProjectSpaceWorkspace/projectModel';
 import { readOverviewView } from './ProjectSpaceWorkspace/overviewState';
 import { toBase64 } from './ProjectSpaceWorkspace/encoding';
 import { createProjectSpaceWorkspaceFixture } from './testUtils/projectSpaceWorkspaceTestFixture';
@@ -132,12 +132,12 @@ vi.mock('../../components/project-space/OverviewView', () => ({
   ),
 }));
 
-vi.mock('../../components/project-space/PaneSwitcher', () => ({
-  PaneSwitcher: ({ panes, onPaneChange }: { panes: Array<{ id: string; label: string }>; onPaneChange: (paneId: string, source: 'click') => void }) => (
+vi.mock('../../components/project-space/ProjectSwitcher', () => ({
+  ProjectSwitcher: ({ projects, onProjectChange }: { projects: Array<{ id: string; label: string }>; onProjectChange: (projectId: string, source: 'click') => void }) => (
     <div role="toolbar" aria-label="Open projects">
-      {panes.map((pane) => (
-        <button key={pane.id} type="button" onClick={() => onPaneChange(pane.id, 'click')}>
-          {pane.label}
+      {projects.map((project) => (
+        <button key={project.id} type="button" onClick={() => onProjectChange(project.id, 'click')}>
+          {project.label}
         </button>
       ))}
     </div>
@@ -146,16 +146,16 @@ vi.mock('../../components/project-space/PaneSwitcher', () => ({
 
 vi.mock('../../components/project-space/WorkView', () => ({
   WorkView: ({
-    pane,
+    project,
     modulesEnabled,
     onOpenRecord,
   }: {
-    pane: { name: string } | null;
+    project: { name: string } | null;
     modulesEnabled?: boolean;
     onOpenRecord?: (recordId: string) => void;
   }) => (
     <section aria-label="Work view">
-      <p>{pane?.name ?? 'No project'}</p>
+      <p>{project?.name ?? 'No project'}</p>
       <p>{modulesEnabled ? 'Modules enabled' : 'Modules disabled'}</p>
       <button type="button" onClick={() => onOpenRecord?.('record-work')}>Open work record</button>
     </section>
@@ -207,13 +207,13 @@ vi.mock('../../components/project-space/FileInspectorActionBar', () => ({
   }: {
     fileName: string;
     onRename?: (nextName: string) => void;
-    onMove?: (paneId: string) => void;
+    onMove?: (projectId: string) => void;
     onRemove?: () => void;
   }) => (
     <div>
       <span>File action bar {fileName}</span>
       <button type="button" onClick={() => onRename?.('renamed-attachment.txt')}>Rename attachment</button>
-      <button type="button" onClick={() => onMove?.('pane-private')}>Move attachment</button>
+      <button type="button" onClick={() => onMove?.('project-private')}>Move attachment</button>
       <button type="button" onClick={() => onRemove?.()}>Remove attachment</button>
     </div>
   ),
@@ -268,7 +268,7 @@ vi.mock('../../features/notes/CollaborativeLexicalEditor', () => ({
 
 const openInspectorMock = vi.fn();
 const closeInspectorMock = vi.fn();
-const onUpdatePaneFromWorkViewMock = vi.fn();
+const onUpdateProjectFromWorkViewMock = vi.fn();
 
 const projectViewsRuntimeState = {
   collections: [{ collection_id: 'collection-1', name: 'Tasks' }],
@@ -360,8 +360,8 @@ const recordInspectorState = {
   inspectorCommentText: '',
   inspectorError: null,
   inspectorLoading: false,
-  inspectorMutationPane: fixture.sharedPane,
-  inspectorMutationPaneCanEdit: true,
+  inspectorMutationProject: fixture.sharedProject,
+  inspectorMutationProjectCanEdit: true,
   inspectorRecord: null as null | typeof fixture.inspectorRecord,
   inspectorRecordId: null as string | null,
   inspectorRelationFields: [],
@@ -386,11 +386,11 @@ const recordInspectorState = {
 
 const projectFilesRuntimeState = {
   ensureProjectAssetRoot: vi.fn(),
-  onOpenPaneFile: vi.fn(),
-  onUploadPaneFiles: vi.fn(),
+  onOpenProjectFile: vi.fn(),
   onUploadProjectFiles: vi.fn(),
-  paneFiles: [],
+  onUploadSpaceFiles: vi.fn(),
   projectFiles: [],
+  spaceFiles: [],
   refreshTrackedProjectFiles: vi.fn(),
 };
 
@@ -430,16 +430,16 @@ vi.mock('../../hooks/useProjectMembers', () => ({
   }),
 }));
 
-vi.mock('../../hooks/usePaneMutations', () => ({
-  usePaneMutations: () => ({
-    onCreatePane: vi.fn(async () => ({ pane_id: 'pane-new', name: 'New Pane' })),
-    onDeletePane: vi.fn(async () => '/projects/project-1/work/pane-shared'),
-    onMovePane: vi.fn(),
-    onTogglePaneMember: vi.fn(),
+vi.mock('../../hooks/useProjectMutations', () => ({
+  useProjectMutations: () => ({
+    onCreateProject: vi.fn(async () => ({ space_id: 'project-new', name: 'New Project' })),
+    onDeleteProject: vi.fn(async () => '/projects/project-1/work/project-shared'),
+    onMoveProject: vi.fn(),
+    onToggleProjectMember: vi.fn(),
     onTogglePinned: vi.fn(),
-    onUpdatePaneFromWorkView: onUpdatePaneFromWorkViewMock,
-    paneMutationError: null,
-    setPaneMutationError: vi.fn(),
+    onUpdateProjectFromWorkView: onUpdateProjectFromWorkViewMock,
+    projectMutationError: null,
+    setProjectMutationError: vi.fn(),
   }),
 }));
 
@@ -501,10 +501,10 @@ vi.mock('./hooks/useWorkViewModuleRuntime', () => ({
       onScopeChange: vi.fn(),
     },
     filesContract: {
-      paneFiles: [],
       projectFiles: [],
-      onUploadPaneFiles: vi.fn(),
+      spaceFiles: [],
       onUploadProjectFiles: vi.fn(),
+      onUploadSpaceFiles: vi.fn(),
       onOpenFile: vi.fn(),
     },
     quickThoughtsContract: {
@@ -560,8 +560,8 @@ const renderWorkspace = ({
             <ProjectSpaceWorkspace
               activeTab={activeTab}
               project={fixture.project}
-              panes={fixture.panes}
-              setPanes={vi.fn()}
+              projects={fixture.projects}
+              setProjects={vi.fn()}
               projectMembers={fixture.projectMembers}
               accessToken="token"
               sessionUserId="user-1"
@@ -573,15 +573,15 @@ const renderWorkspace = ({
         }
       />
       <Route
-        path="/projects/:projectId/work/:paneId"
+        path="/projects/:projectId/work/:projectId"
         element={
           <>
             <LocationEcho />
             <ProjectSpaceWorkspace
               activeTab={activeTab}
               project={fixture.project}
-              panes={fixture.panes}
-              setPanes={vi.fn()}
+              projects={fixture.projects}
+              setProjects={vi.fn()}
               projectMembers={fixture.projectMembers}
               accessToken="token"
               sessionUserId="user-1"
@@ -597,17 +597,17 @@ const renderWorkspace = ({
 );
 
 const renderWorkspaceDocSection = ({
-  activePane = fixture.sharedPane,
-  activePaneCanEdit = true,
+  activeProject = fixture.sharedProject,
+  activeProjectCanEdit = true,
   workspaceEnabled = true,
-  activePaneDocId = 'doc-shared',
+  activeProjectDocId = 'doc-shared',
   uploadingDocAsset = false,
   onUploadDocAsset = vi.fn<(event: React.FormEvent<HTMLFormElement>) => void>(),
 }: {
-  activePane?: typeof fixture.sharedPane | typeof fixture.privatePane | null;
-  activePaneCanEdit?: boolean;
+  activeProject?: typeof fixture.sharedProject | typeof fixture.privateProject | null;
+  activeProjectCanEdit?: boolean;
   workspaceEnabled?: boolean;
-  activePaneDocId?: string | null;
+  activeProjectDocId?: string | null;
   uploadingDocAsset?: boolean;
   onUploadDocAsset?: (event: React.FormEvent<HTMLFormElement>) => void;
 } = {}) => render(
@@ -617,10 +617,10 @@ const renderWorkspaceDocSection = ({
       projectId="project-1"
       projectMembers={fixture.projectMembers}
       sessionUserId="user-1"
-      activePane={activePane}
-      activePaneCanEdit={activePaneCanEdit}
+      activeProject={activeProject}
+      activeProjectCanEdit={activeProjectCanEdit}
       workspaceEnabled={workspaceEnabled}
-      activePaneDocId={activePaneDocId}
+      activeProjectDocId={activeProjectDocId}
       docBootstrapReady
       docBootstrapLexicalState={{}}
       collabSession={null}
@@ -670,7 +670,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
   beforeEach(() => {
     openInspectorMock.mockReset();
     closeInspectorMock.mockReset();
-    onUpdatePaneFromWorkViewMock.mockReset();
+    onUpdateProjectFromWorkViewMock.mockReset();
     projectViewsRuntimeState.focusedWorkView = null;
     projectViewsRuntimeState.focusedWorkViewId = '';
     workspaceDocRuntimeState.docBootstrapReady = true;
@@ -682,7 +682,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     projectViewsRuntimeState.recordsError = null;
     recordInspectorState.inspectorRecord = null;
     recordInspectorState.inspectorRecordId = null;
-    recordInspectorState.inspectorMutationPaneCanEdit = true;
+    recordInspectorState.inspectorMutationProjectCanEdit = true;
     recordInspectorState.inspectorBacklinks = [];
     recordInspectorState.inspectorBacklinksError = null;
     recordInspectorState.inspectorCommentText = '';
@@ -747,9 +747,9 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(screen.queryByRole('button', { name: 'Tools' })).not.toBeInTheDocument();
   });
 
-  it('hides the pane switcher for pinned routes until the user reveals it', async () => {
+  it('hides the project switcher for pinned routes until the user reveals it', async () => {
     renderWorkspace({
-      entry: '/projects/project-1/work/pane-private?pinned=1',
+      entry: '/projects/project-1/work/project-private?pinned=1',
       activeTab: 'work',
     });
 
@@ -761,9 +761,9 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(screen.getByLabelText('Project switcher')).toBeInTheDocument();
   });
 
-  it('opens pane settings with the current pane details and keeps region toggle wiring intact', async () => {
+  it('opens project settings with the current project details and keeps region toggle wiring intact', async () => {
     renderWorkspace({
-      entry: '/projects/project-1/work/pane-shared',
+      entry: '/projects/project-1/work/project-shared',
       activeTab: 'work',
     });
 
@@ -773,10 +773,10 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(screen.getByRole('heading', { name: 'Project Settings' })).toBeInTheDocument();
     expect(screen.getByText('Manage settings for project Shared Work.')).toBeInTheDocument();
     expect(screen.getByLabelText('Project name')).toHaveValue('Shared Work');
-    expect(screen.getByRole('link', { name: 'Open project' })).toHaveAttribute('href', '/projects/project-1/work/pane-shared');
+    expect(screen.getByRole('link', { name: 'Open project' })).toHaveAttribute('href', '/projects/project-1/work/project-shared');
 
     await userEvent.click(screen.getByRole('button', { name: 'Hide modules' }));
-    expect(onUpdatePaneFromWorkViewMock).toHaveBeenCalledWith('pane-shared', expect.objectContaining({
+    expect(onUpdateProjectFromWorkViewMock).toHaveBeenCalledWith('project-shared', expect.objectContaining({
       layout_config: expect.objectContaining({
         modules_enabled: false,
         workspace_enabled: true,
@@ -784,7 +784,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     }));
 
     await userEvent.click(screen.getByRole('button', { name: 'Hide workspace doc' }));
-    expect(onUpdatePaneFromWorkViewMock).toHaveBeenCalledWith('pane-shared', expect.objectContaining({
+    expect(onUpdateProjectFromWorkViewMock).toHaveBeenCalledWith('project-shared', expect.objectContaining({
       layout_config: expect.objectContaining({
         modules_enabled: true,
         workspace_enabled: false,
@@ -797,7 +797,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     projectViewsRuntimeState.focusedWorkViewId = fixture.tableView.view_id;
 
     renderWorkspace({
-      entry: `/projects/project-1/work/pane-shared?view_id=${fixture.tableView.view_id}`,
+      entry: `/projects/project-1/work/project-shared?view_id=${fixture.tableView.view_id}`,
       activeTab: 'work',
     });
 
@@ -806,28 +806,28 @@ describe('ProjectSpaceWorkspace characterization', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Close focused view' }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('location-state')).toHaveTextContent('/projects/project-1/work/pane-shared');
+      expect(screen.getByTestId('location-state')).toHaveTextContent('/projects/project-1/work/project-shared');
       expect(screen.getByTestId('location-state')).not.toHaveTextContent('view_id=');
     });
   });
 
-  it('renders the workspace doc hidden state when the pane disables workspace content', () => {
-    const originalLayout = { ...fixture.sharedPane.layout_config };
+  it('renders the workspace doc hidden state when the project disables workspace content', () => {
+    const originalLayout = { ...fixture.sharedProject.layout_config };
 
     try {
-      fixture.sharedPane.layout_config = {
-        ...fixture.sharedPane.layout_config,
+      fixture.sharedProject.layout_config = {
+        ...fixture.sharedProject.layout_config,
         workspace_enabled: false,
       };
 
       renderWorkspace({
-        entry: '/projects/project-1/work/pane-shared',
+        entry: '/projects/project-1/work/project-shared',
         activeTab: 'work',
       });
 
       expect(screen.getByText('This project is set to modules-only mode. The workspace doc is hidden here.')).toBeInTheDocument();
     } finally {
-      fixture.sharedPane.layout_config = originalLayout;
+      fixture.sharedProject.layout_config = originalLayout;
     }
   });
 
@@ -837,7 +837,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     workspaceDocRuntimeState.docCommentText = 'Comment body';
 
     renderWorkspace({
-      entry: '/projects/project-1/work/pane-shared',
+      entry: '/projects/project-1/work/project-shared',
       activeTab: 'work',
     });
 
@@ -849,7 +849,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
   it('shows the upload control for editable docs and hides it for read-only docs', () => {
     renderWorkspace({
-      entry: '/projects/project-1/work/pane-shared',
+      entry: '/projects/project-1/work/project-shared',
       activeTab: 'work',
     });
 
@@ -857,7 +857,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     cleanup();
 
     renderWorkspace({
-      entry: '/projects/project-1/work/pane-private',
+      entry: '/projects/project-1/work/project-private',
       activeTab: 'work',
     });
 
@@ -870,7 +870,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     recordInspectorState.inspectorRecordId = fixture.inspectorRecord.record_id;
 
     renderWorkspace({
-      entry: '/projects/project-1/work/pane-shared',
+      entry: '/projects/project-1/work/project-shared',
       activeTab: 'work',
     });
 
@@ -905,7 +905,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     },
     {
       label: 'event',
-      entry: '/projects/project-1/work/pane-shared',
+      entry: '/projects/project-1/work/project-shared',
       activeTab: 'work' as const,
       record: createInspectorRecord({
         title: 'Design review',
@@ -942,12 +942,12 @@ describe('ProjectSpaceWorkspace characterization', () => {
     },
     {
       label: 'generic',
-      entry: '/projects/project-1/work/pane-shared',
+      entry: '/projects/project-1/work/project-shared',
       activeTab: 'work' as const,
       record: createInspectorRecord({
         title: 'Knowledge base entry',
         collection_id: 'collection-reference',
-        source_pane: null,
+        source_project: null,
         schema: {
           collection_id: 'collection-reference',
           name: 'Reference',
@@ -1045,8 +1045,8 @@ describe('ProjectSpaceWorkspace characterization', () => {
         context: null,
         source: {
           doc_id: 'doc-1',
-          pane_id: 'pane-private',
-          pane_name: 'Private Work',
+          space_id: 'project-private',
+          space_name: 'Private Work',
           node_key: 'node-1',
           comment_target_entity_type: null,
           comment_target_entity_id: null,
@@ -1057,7 +1057,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     recordInspectorState.relationMutationError = 'Relation mutation failed';
 
     renderWorkspace({
-      entry: '/projects/project-1/work/pane-shared',
+      entry: '/projects/project-1/work/project-shared',
       activeTab: 'work',
     });
 
@@ -1071,7 +1071,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(recordInspectorState.onRenameInspectorAttachment).toHaveBeenCalledWith('attachment-1', 'renamed-attachment.txt');
 
     await userEvent.click(screen.getByRole('button', { name: 'Move attachment' }));
-    expect(recordInspectorState.onMoveInspectorAttachment).toHaveBeenCalledWith('attachment-1', 'pane-private');
+    expect(recordInspectorState.onMoveInspectorAttachment).toHaveBeenCalledWith('attachment-1', 'project-private');
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove attachment' }));
     expect(recordInspectorState.onDetachInspectorAttachment).toHaveBeenCalledWith('attachment-1');
@@ -1087,13 +1087,13 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Open backlink doc' }));
     await waitFor(() => {
-      expect(screen.getByTestId('location-state')).toHaveTextContent('/projects/project-1/work/pane-private');
+      expect(screen.getByTestId('location-state')).toHaveTextContent('/projects/project-1/work/project-private');
     });
   });
 
   it('keeps the overview and work shell behavior stable after the tools surface removal', () => {
     renderWorkspace({
-      entry: '/projects/project-1/work/pane-private?pinned=1',
+      entry: '/projects/project-1/work/project-private?pinned=1',
       activeTab: 'work',
     });
 
@@ -1112,14 +1112,14 @@ describe('ProjectSpaceWorkspace helpers', () => {
     expect(readOverviewView(new URLSearchParams('view=unknown'))).toBe('timeline');
   });
 
-  it('uses pane edit flags and ignores unrelated user identity for current gating', () => {
-    expect(paneCanEditForUser(fixture.sharedPane, 'user-1')).toBe(true);
-    expect(paneCanEditForUser(fixture.privatePane, 'user-1')).toBe(false);
-    expect(paneCanEditForUser(null, 'user-1')).toBe(false);
+  it('uses project edit flags and ignores unrelated user identity for current gating', () => {
+    expect(projectCanEditForUser(fixture.sharedProject, 'user-1')).toBe(true);
+    expect(projectCanEditForUser(fixture.privateProject, 'user-1')).toBe(false);
+    expect(projectCanEditForUser(null, 'user-1')).toBe(false);
   });
 
   it('collects task collection ids from table and non-standalone kanban modules only', () => {
-    const collectionIds = collectPaneTaskCollectionIds(
+    const collectionIds = collectProjectTaskCollectionIds(
       {
         modules: [
           { module_type: 'table', binding: { view_id: fixture.tableView.view_id } },
@@ -1202,72 +1202,72 @@ describe('ProjectSpaceWorkspace helpers', () => {
   });
 });
 
-describe('ProjectSpacePaneSettingsDialog', () => {
+describe('ProjectSpaceProjectSettingsDialog', () => {
   afterEach(() => {
     cleanup();
   });
 
-  it('commits renamed pane names on blur and ignores unchanged values', async () => {
-    const onUpdatePane = vi.fn();
+  it('commits renamed project names on blur and ignores unchanged values', async () => {
+    const onUpdateProject = vi.fn();
 
     render(
       <MemoryRouter>
-        <ProjectSpacePaneSettingsDialog
+        <ProjectSpaceProjectSettingsDialog
           projectId="project-1"
-          activePane={fixture.sharedPane}
-          activePaneCanEdit
-          activeEditablePaneIndex={0}
-          orderedEditablePanes={[fixture.sharedPane, { ...fixture.privatePane, can_edit: true }]}
+          activeProject={fixture.sharedProject}
+          activeProjectCanEdit
+          activeEditableProjectIndex={0}
+          orderedEditableProjects={[fixture.sharedProject, { ...fixture.privateProject, can_edit: true }]}
           projectMemberList={fixture.projectMembers}
           sessionUserId="user-1"
           modulesEnabled
           workspaceEnabled
           onRequestClose={vi.fn()}
           onTogglePinned={vi.fn(async () => undefined)}
-          onMovePane={vi.fn(async () => undefined)}
-          onTogglePaneMember={vi.fn(async () => undefined)}
-          onDeletePane={vi.fn(async () => undefined)}
-          onUpdatePane={onUpdatePane}
-          onToggleActivePaneRegion={vi.fn()}
+          onMoveProject={vi.fn(async () => undefined)}
+          onToggleProjectMember={vi.fn(async () => undefined)}
+          onDeleteProject={vi.fn(async () => undefined)}
+          onUpdateProject={onUpdateProject}
+          onToggleActiveProjectRegion={vi.fn()}
         />
       </MemoryRouter>,
     );
 
-    const paneNameInput = screen.getByLabelText('Project name');
-    await userEvent.clear(paneNameInput);
-    await userEvent.type(paneNameInput, 'Renamed Pane');
-    fireEvent.blur(paneNameInput);
+    const projectNameInput = screen.getByLabelText('Project name');
+    await userEvent.clear(projectNameInput);
+    await userEvent.type(projectNameInput, 'Renamed Project');
+    fireEvent.blur(projectNameInput);
 
-    expect(onUpdatePane).toHaveBeenCalledWith('pane-shared', { name: 'Renamed Pane' });
+    expect(onUpdateProject).toHaveBeenCalledWith('project-shared', { name: 'Renamed Project' });
 
-    onUpdatePane.mockClear();
-    await userEvent.clear(paneNameInput);
-    await userEvent.type(paneNameInput, 'Shared Work');
-    fireEvent.blur(paneNameInput);
+    onUpdateProject.mockClear();
+    await userEvent.clear(projectNameInput);
+    await userEvent.type(projectNameInput, 'Shared Work');
+    fireEvent.blur(projectNameInput);
 
-    expect(onUpdatePane).not.toHaveBeenCalled();
+    expect(onUpdateProject).not.toHaveBeenCalled();
   });
 
   it('renders read-only dialog state and keeps mutation controls disabled', () => {
     render(
       <MemoryRouter>
-        <ProjectSpacePaneSettingsDialog
+        <ProjectSpaceProjectSettingsDialog
           projectId="project-1"
-          activePane={fixture.privatePane}
-          activePaneCanEdit={false}
-          activeEditablePaneIndex={1}
-          orderedEditablePanes={[fixture.sharedPane, { ...fixture.privatePane, can_edit: true }]}
+          activeProject={fixture.privateProject}
+          activeProjectCanEdit={false}
+          activeEditableProjectIndex={1}
+          orderedEditableProjects={[fixture.sharedProject, { ...fixture.privateProject, can_edit: true }]}
           projectMemberList={fixture.projectMembers}
           sessionUserId="user-1"
           modulesEnabled
           workspaceEnabled
           onRequestClose={vi.fn()}
           onTogglePinned={vi.fn(async () => undefined)}
-          onMovePane={vi.fn(async () => undefined)}
-          onTogglePaneMember={vi.fn(async () => undefined)}
-          onDeletePane={vi.fn(async () => undefined)}
-          onUpdatePane={vi.fn(async () => undefined)}
-          onToggleActivePaneRegion={vi.fn()}
+          onMoveProject={vi.fn(async () => undefined)}
+          onToggleProjectMember={vi.fn(async () => undefined)}
+          onDeleteProject={vi.fn(async () => undefined)}
+          onUpdateProject={vi.fn(async () => undefined)}
+          onToggleActiveProjectRegion={vi.fn()}
         />
       </MemoryRouter>,
     );
@@ -1280,28 +1280,28 @@ describe('ProjectSpacePaneSettingsDialog', () => {
     expect(screen.getByText('Read-only project.')).toBeInTheDocument();
   });
 
-  it('wires pane member toggles and keeps the current user checkbox disabled', async () => {
-    const onTogglePaneMember = vi.fn(async () => undefined);
+  it('wires project member toggles and keeps the current user checkbox disabled', async () => {
+    const onToggleProjectMember = vi.fn(async () => undefined);
 
     render(
       <MemoryRouter>
-        <ProjectSpacePaneSettingsDialog
+        <ProjectSpaceProjectSettingsDialog
           projectId="project-1"
-          activePane={fixture.sharedPane}
-          activePaneCanEdit
-          activeEditablePaneIndex={0}
-          orderedEditablePanes={[fixture.sharedPane, { ...fixture.privatePane, can_edit: true }]}
+          activeProject={fixture.sharedProject}
+          activeProjectCanEdit
+          activeEditableProjectIndex={0}
+          orderedEditableProjects={[fixture.sharedProject, { ...fixture.privateProject, can_edit: true }]}
           projectMemberList={fixture.projectMembers}
           sessionUserId="user-1"
           modulesEnabled
           workspaceEnabled
           onRequestClose={vi.fn()}
           onTogglePinned={vi.fn(async () => undefined)}
-          onMovePane={vi.fn(async () => undefined)}
-          onTogglePaneMember={onTogglePaneMember}
-          onDeletePane={vi.fn(async () => undefined)}
-          onUpdatePane={vi.fn(async () => undefined)}
-          onToggleActivePaneRegion={vi.fn()}
+          onMoveProject={vi.fn(async () => undefined)}
+          onToggleProjectMember={onToggleProjectMember}
+          onDeleteProject={vi.fn(async () => undefined)}
+          onUpdateProject={vi.fn(async () => undefined)}
+          onToggleActiveProjectRegion={vi.fn()}
         />
       </MemoryRouter>,
     );
@@ -1313,7 +1313,7 @@ describe('ProjectSpacePaneSettingsDialog', () => {
     expect(viewerCheckbox).toBeEnabled();
 
     await userEvent.click(viewerCheckbox);
-    expect(onTogglePaneMember).toHaveBeenCalledWith(fixture.sharedPane, 'user-2');
+    expect(onToggleProjectMember).toHaveBeenCalledWith(fixture.sharedProject, 'user-2');
   });
 });
 

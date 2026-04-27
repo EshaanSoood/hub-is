@@ -44,9 +44,9 @@ Note: current UI text is `Hub OS` + `Continue with Keycloak` (not literal `Welco
 ## Loading states in `ProjectRouteGuard.tsx` and `ProjectSpacePage.tsx`
 
 ### `src/components/auth/ProjectRouteGuard.tsx`
-- Pulls `{ projects, loading, initialized }` from `useProjects()`.
+- Pulls the space list plus loading state from `useProjects()`.
 - Shows `Loading project...` when `loading || !initialized`.
-- Redirects personal projects to `/projects`.
+- Redirects personal spaces to the spaces home route.
 - Denies access when missing `project.view` capability.
 
 ### `src/pages/ProjectSpacePage.tsx`
@@ -55,14 +55,14 @@ Note: current UI text is `Hub OS` + `Continue with Keycloak` (not literal `Welco
 - Shows auth error when `accessToken` missing.
 - Shows `Project load failed` when `error || !project`.
 
-## Hooks that fetch project data (metadata, panes, members)
+## Hooks that fetch space data (metadata, work projects, members)
 
 ### 1) `useProjectBootstrap`
 - **File:** `src/hooks/useProjectBootstrap.ts`
 - **Primary fetch function:** `refreshProjectData` (useCallback deps: `[accessToken, projectId]`)
 - **What it fetches (parallel):**
-  - `getProject(...)` (project metadata)
-  - `listPanes(...)` (panes)
+  - `getProject(...)` (space metadata; function name retained for compatibility)
+  - `listProjects(...)` (work projects)
   - `listTimeline(...)`
   - `listProjectMembers(...)` (members; errors converted to warning + empty members)
 - **Load trigger effect:** `useEffect` deps `[accessToken, projectId, refreshProjectData, refreshProjects]`
@@ -70,7 +70,7 @@ Note: current UI text is `Hub OS` + `Continue with Keycloak` (not literal `Welco
   - Early no-token/no-project branch sets `setLoading(false)`.
   - Main load path sets `setLoading(false)` in `finally`.
 
-### 2) `ProjectsContext` (drives `ProjectRouteGuard` loading)
+### 2) `ProjectsContext` (drives space route loading)
 - **File:** `src/context/ProjectsContext.tsx`
 - **Fetch function:** `refreshProjects` (useCallback deps `[accessToken, signedIn]`)
 - **Load trigger effect:** `useEffect` deps `[refreshProjects]`
@@ -111,7 +111,7 @@ return subscribeHubLive(accessToken, (message) => {
 });
 ```
 
-2. **Projects dashboard refetches myHub on every `task.changed`**
+2. **Spaces dashboard refetches myHub on every `task.changed`**
 - **File/lines:** `src/pages/ProjectsPage.tsx:185-198`
 - **Dependency array:** `[accessToken, refreshHome, refreshSelectedRecord]`
 - **Pattern:** live callback always calls `refreshHome()` and conditionally `refreshSelectedRecord(...)`.
@@ -125,11 +125,11 @@ return subscribeHubLive(accessToken, (message) => {
 - **Pattern:** both channels call `refresh()` directly.
 - **Risk:** the same underlying reminder change can trigger duplicated refreshes back-to-back.
 
-4. **Pane file refetch tied to full `activePane` object identity**
+4. **Project file refetch tied to full active project object identity**
 - **File/lines:** `src/hooks/useProjectFilesRuntime.ts:167-172`
-- **Dependency array:** `[activePane, refreshTrackedPaneFiles]`
-- **Pattern:** effect refetches pane files whenever `activePane` reference changes.
-- **Risk:** if parent recreates pane objects during unrelated updates, this refires unnecessary pane file fetches.
+- **Dependency array:** active project object plus tracked-file refresh callback.
+- **Pattern:** effect refetches project files whenever the active project reference changes.
+- **Risk:** if parent recreates project objects during unrelated updates, this refires unnecessary project file fetches.
 
 5. **`setTimeout` inside effect without timeout cleanup (focus)**
 - **File/lines:** `src/components/project-space/RelationPicker.tsx:102-110`

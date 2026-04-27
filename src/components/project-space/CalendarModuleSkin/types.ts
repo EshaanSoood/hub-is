@@ -19,9 +19,9 @@ export interface RescheduleCalendarEventPayload {
 export interface CalendarEventSummary {
   record_id: string;
   title: string;
-  project_id?: string | null;
-  project_name?: string | null;
-  source_pane?: { pane_id: string | null; pane_name: string | null; doc_id: string | null } | null;
+  space_id?: string | null;
+  space_name?: string | null;
+  source_project?: { project_id: string | null; project_name: string | null; doc_id: string | null } | null;
   event_state: {
     start_dt: string;
     end_dt: string;

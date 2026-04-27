@@ -16,19 +16,14 @@ const CONTRACT_TABLES = [
   'schema_version',
   'users',
   'calendar_feed_tokens',
+  'spaces',
+  'space_members',
+  'pending_space_invites',
   'projects',
   'project_members',
-  'pending_project_invites',
-  'panes',
-  'pane_members',
   'docs',
   'doc_storage',
   'doc_presence',
-  'rooms',
-  'room_members',
-  'room_docs',
-  'room_doc_storage',
-  'room_doc_presence',
   'collections',
   'collection_fields',
   'records',
@@ -61,56 +56,48 @@ const CONTRACT_TABLES = [
 ];
 
 const CONTRACT_TRIGGERS = [
-  'rooms_archive_consistency_insert',
-  'rooms_archive_consistency_update',
-  'rooms_coordination_pane_space_insert',
-  'rooms_coordination_pane_space_update',
-  'pane_members_must_be_project_members',
-  'room_members_must_be_project_members_insert',
-  'room_members_must_be_project_members_update',
-  'room_members_removed_with_project_member',
-  'records_collection_project_consistency_insert',
-  'records_collection_project_consistency_update',
-  'record_relations_project_consistency_insert',
-  'record_relations_project_consistency_update',
+  'project_members_must_be_space_members',
+  'records_collection_space_consistency_insert',
+  'records_collection_space_consistency_update',
+  'record_relations_space_consistency_insert',
+  'record_relations_space_consistency_update',
   'comment_anchor_requires_doc_target',
   'comment_anchor_requires_node_key_insert',
   'comment_anchor_requires_node_key_update',
 ];
 
 const CONTRACT_INDEXES = [
+  'idx_space_members_user_space',
   'idx_project_members_user_project',
-  'idx_pane_members_user_pane',
-  'idx_panes_project_sort',
-  'idx_docs_pane_unique',
-  'idx_rooms_space_status_created',
-  'idx_room_members_user_room',
-  'idx_room_docs_room_unique',
-  'idx_records_project_collection_updated',
+  'idx_projects_space_sort',
+  'idx_docs_project_unique',
+  'idx_records_space_collection_updated',
+  'idx_records_space_source_project',
+  'idx_records_space_source_view',
   'idx_record_values_field_record',
   'idx_record_values_record_field',
   'idx_record_relations_unique_edge',
-  'idx_record_relations_project_from',
-  'idx_record_relations_project_to',
-  'idx_views_project_collection_type',
+  'idx_record_relations_space_from',
+  'idx_record_relations_space_to',
+  'idx_views_space_collection_type',
   'idx_event_state_start',
   'idx_event_participants_user_record',
   'idx_reminders_due_active',
   'idx_reminders_visible_undismissed',
   'idx_attachments_entity_lookup',
   'idx_attachments_asset_lookup',
-  'idx_files_project_asset_path',
+  'idx_files_space_asset_path',
   'idx_comments_entity_lookup',
   'idx_mentions_target_lookup',
-  'idx_timeline_project_created',
+  'idx_timeline_space_created',
   'idx_timeline_primary_lookup',
   'idx_notifications_user_unread_created',
-  'idx_pending_project_invites_project_status_created',
-  'idx_pending_project_invites_email_status',
+  'idx_pending_space_invites_space_status_created',
+  'idx_pending_space_invites_email_status',
   'idx_personal_tasks_user_updated',
-  'idx_chat_snapshots_project_created',
+  'idx_chat_snapshots_space_created',
   'idx_automation_runs_rule_started',
-  'idx_projects_personal_owner',
+  'idx_spaces_personal_owner',
   'idx_bug_reports_public_created',
   'idx_module_picker_seed_module_size',
 ];
@@ -178,12 +165,12 @@ const resetSchemaToContractV1 = (db) => {
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
       );
 
-      CREATE TABLE projects (
-        project_id TEXT PRIMARY KEY,
+      CREATE TABLE spaces (
+        space_id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         created_by TEXT NOT NULL,
         is_personal INTEGER NOT NULL DEFAULT 0 CHECK (is_personal IN (0, 1)),
-        project_type TEXT NOT NULL DEFAULT 'team' CHECK (project_type IN ('team', 'personal')),
+        space_type TEXT NOT NULL DEFAULT 'team' CHECK (space_type IN ('team', 'personal')),
         tasks_collection_id TEXT,
         reminders_collection_id TEXT,
         position INTEGER,
@@ -191,25 +178,25 @@ const resetSchemaToContractV1 = (db) => {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         CHECK (
-          (is_personal = 0 AND project_type = 'team')
-          OR (is_personal = 1 AND project_type = 'personal')
+          (is_personal = 0 AND space_type = 'team')
+          OR (is_personal = 1 AND space_type = 'personal')
         ),
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
 
-      CREATE TABLE project_members (
-        project_id TEXT NOT NULL,
+      CREATE TABLE space_members (
+        space_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
         role TEXT CHECK (role IN ('owner', 'member')),
         joined_at TEXT NOT NULL,
-        PRIMARY KEY(project_id, user_id),
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        PRIMARY KEY(space_id, user_id),
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
       );
 
-      CREATE TABLE pending_project_invites (
+      CREATE TABLE pending_space_invites (
         invite_request_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         email TEXT NOT NULL,
         role TEXT NOT NULL CHECK (role IN ('member')),
         requested_by_user_id TEXT NOT NULL,
@@ -219,12 +206,12 @@ const resetSchemaToContractV1 = (db) => {
         reviewed_at TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE
       );
 
-      CREATE TABLE panes (
-        pane_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+      CREATE TABLE projects (
+        project_id TEXT PRIMARY KEY,
+        space_id TEXT NOT NULL,
         name TEXT NOT NULL,
         sort_order INTEGER NOT NULL,
         position INTEGER,
@@ -233,25 +220,25 @@ const resetSchemaToContractV1 = (db) => {
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
 
-      CREATE TABLE pane_members (
-        pane_id TEXT NOT NULL,
+      CREATE TABLE project_members (
+        project_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
         joined_at TEXT NOT NULL,
-        PRIMARY KEY(pane_id, user_id),
-        FOREIGN KEY(pane_id) REFERENCES panes(pane_id) ON DELETE CASCADE,
+        PRIMARY KEY(project_id, user_id),
+        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
       );
 
       CREATE TABLE docs (
         doc_id TEXT PRIMARY KEY,
-        pane_id TEXT NOT NULL UNIQUE,
+        project_id TEXT NOT NULL UNIQUE,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(pane_id) REFERENCES panes(pane_id) ON DELETE CASCADE
+        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
       );
 
       CREATE TABLE doc_storage (
@@ -272,69 +259,15 @@ const resetSchemaToContractV1 = (db) => {
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
       );
 
-      CREATE TABLE rooms (
-        room_id TEXT PRIMARY KEY,
-        space_id TEXT NOT NULL,
-        display_name TEXT NOT NULL,
-        coordination_pane_id TEXT,
-        status TEXT NOT NULL CHECK (status IN ('active', 'archived')),
-        created_by TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        archived_at TEXT,
-        CHECK (
-          (status = 'active' AND archived_at IS NULL)
-          OR (status = 'archived' AND archived_at IS NOT NULL)
-        ),
-        FOREIGN KEY(space_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-        FOREIGN KEY(coordination_pane_id) REFERENCES panes(pane_id) ON DELETE SET NULL,
-        FOREIGN KEY(created_by) REFERENCES users(user_id)
-      );
-
-      CREATE TABLE room_members (
-        room_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        role TEXT NOT NULL CHECK (role IN ('owner', 'participant')),
-        joined_at TEXT NOT NULL,
-        PRIMARY KEY(room_id, user_id),
-        FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE room_docs (
-        doc_id TEXT PRIMARY KEY,
-        room_id TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE room_doc_storage (
-        doc_id TEXT PRIMARY KEY,
-        snapshot_version INTEGER NOT NULL DEFAULT 0,
-        snapshot_payload TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(doc_id) REFERENCES room_docs(doc_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE room_doc_presence (
-        doc_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        cursor_payload TEXT,
-        last_seen_at TEXT NOT NULL,
-        PRIMARY KEY(doc_id, user_id),
-        FOREIGN KEY(doc_id) REFERENCES room_docs(doc_id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-      );
-
       CREATE TABLE collections (
         collection_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         name TEXT NOT NULL,
         icon TEXT,
         color TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE
       );
 
       CREATE TABLE collection_fields (
@@ -351,19 +284,19 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE records (
         record_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         collection_id TEXT NOT NULL,
         title TEXT NOT NULL,
-        source_pane_id TEXT,
+        source_project_id TEXT,
         source_view_id TEXT,
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         archived_at TEXT,
         parent_record_id TEXT REFERENCES records(record_id),
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(collection_id) REFERENCES collections(collection_id) ON DELETE CASCADE,
-        FOREIGN KEY(source_pane_id) REFERENCES panes(pane_id) ON DELETE SET NULL,
+        FOREIGN KEY(source_project_id) REFERENCES projects(project_id) ON DELETE SET NULL,
         FOREIGN KEY(source_view_id) REFERENCES views(view_id) ON DELETE SET NULL,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
@@ -380,13 +313,13 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE record_relations (
         relation_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         from_record_id TEXT NOT NULL,
         to_record_id TEXT NOT NULL,
         via_field_id TEXT NOT NULL,
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(from_record_id) REFERENCES records(record_id) ON DELETE CASCADE,
         FOREIGN KEY(to_record_id) REFERENCES records(record_id) ON DELETE CASCADE,
         FOREIGN KEY(via_field_id) REFERENCES collection_fields(field_id) ON DELETE CASCADE,
@@ -395,7 +328,7 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE views (
         view_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         collection_id TEXT NOT NULL,
         type TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -403,7 +336,7 @@ const resetSchemaToContractV1 = (db) => {
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(collection_id) REFERENCES collections(collection_id) ON DELETE CASCADE,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
@@ -477,7 +410,7 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE files (
         file_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         asset_root_id TEXT NOT NULL,
         provider TEXT NOT NULL,
         provider_path TEXT NOT NULL,
@@ -488,7 +421,7 @@ const resetSchemaToContractV1 = (db) => {
         metadata_json TEXT NOT NULL,
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(asset_root_id) REFERENCES asset_roots(asset_root_id) ON DELETE CASCADE,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
@@ -502,7 +435,7 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE entity_attachments (
         attachment_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         entity_type TEXT NOT NULL,
         entity_id TEXT NOT NULL,
         provider TEXT NOT NULL,
@@ -514,25 +447,25 @@ const resetSchemaToContractV1 = (db) => {
         metadata_json TEXT NOT NULL,
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(asset_root_id) REFERENCES asset_roots(asset_root_id) ON DELETE CASCADE,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
 
       CREATE TABLE asset_roots (
         asset_root_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         provider TEXT NOT NULL,
         root_path TEXT NOT NULL,
         connection_ref TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE
       );
 
       CREATE TABLE comments (
         comment_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         author_user_id TEXT NOT NULL,
         target_entity_type TEXT NOT NULL,
         target_entity_id TEXT NOT NULL,
@@ -540,7 +473,7 @@ const resetSchemaToContractV1 = (db) => {
         status TEXT NOT NULL CHECK (status IN ('open', 'resolved')),
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(author_user_id) REFERENCES users(user_id)
       );
 
@@ -556,19 +489,19 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE mentions (
         mention_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         source_entity_type TEXT NOT NULL,
         source_entity_id TEXT NOT NULL,
         target_entity_type TEXT NOT NULL,
         target_entity_id TEXT NOT NULL,
         context TEXT,
         created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE
       );
 
       CREATE TABLE timeline_events (
         timeline_event_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         actor_user_id TEXT NOT NULL,
         event_type TEXT NOT NULL,
         primary_entity_type TEXT NOT NULL,
@@ -576,13 +509,13 @@ const resetSchemaToContractV1 = (db) => {
         secondary_entities_json TEXT NOT NULL,
         summary_json TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(actor_user_id) REFERENCES users(user_id)
       );
 
       CREATE TABLE notifications (
         notification_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
         reason TEXT NOT NULL CHECK (reason IN (${notificationReasonCheckSql})),
         entity_type TEXT NOT NULL,
@@ -594,7 +527,7 @@ const resetSchemaToContractV1 = (db) => {
         notification_scope TEXT NOT NULL DEFAULT 'network' CHECK (notification_scope IN ('network', 'local')),
         read_at TEXT,
         created_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
       );
 
@@ -611,14 +544,14 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE chat_snapshots (
         snapshot_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         conversation_room_id TEXT NOT NULL,
         message_sender_display_name TEXT NOT NULL,
         message_text TEXT NOT NULL,
         message_timestamp TEXT NOT NULL,
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
 
@@ -633,7 +566,7 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE automation_rules (
         automation_rule_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         name TEXT NOT NULL,
         enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
         trigger_json TEXT NOT NULL,
@@ -641,20 +574,20 @@ const resetSchemaToContractV1 = (db) => {
         created_by TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
 
       CREATE TABLE automation_runs (
         automation_run_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        space_id TEXT NOT NULL,
         automation_rule_id TEXT NOT NULL,
         status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'success', 'failed')),
         input_event_json TEXT NOT NULL,
         output_json TEXT NOT NULL,
         started_at TEXT,
         finished_at TEXT,
-        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+        FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(automation_rule_id) REFERENCES automation_rules(automation_rule_id) ON DELETE CASCADE
       );
 
@@ -670,133 +603,24 @@ const resetSchemaToContractV1 = (db) => {
         notes TEXT
       );
 
-      CREATE TRIGGER rooms_archive_consistency_insert
-      BEFORE INSERT ON rooms
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN (
-              (NEW.status = 'active' AND NEW.archived_at IS NOT NULL)
-              OR (NEW.status = 'archived' AND NEW.archived_at IS NULL)
-            )
-            THEN RAISE(ABORT, 'rooms archived_at must match status')
-          END;
-      END;
-
-      CREATE TRIGGER rooms_archive_consistency_update
-      BEFORE UPDATE OF status, archived_at ON rooms
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN (
-              (NEW.status = 'active' AND NEW.archived_at IS NOT NULL)
-              OR (NEW.status = 'archived' AND NEW.archived_at IS NULL)
-            )
-            THEN RAISE(ABORT, 'rooms archived_at must match status')
-          END;
-      END;
-
-      CREATE TRIGGER rooms_coordination_pane_space_insert
-      BEFORE INSERT ON rooms
-      FOR EACH ROW
-      WHEN NEW.coordination_pane_id IS NOT NULL
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM panes p
-              WHERE p.pane_id = NEW.coordination_pane_id
-                AND p.project_id = NEW.space_id
-            )
-            THEN RAISE(ABORT, 'rooms.coordination_pane_id must belong to rooms.space_id')
-          END;
-      END;
-
-      CREATE TRIGGER rooms_coordination_pane_space_update
-      BEFORE UPDATE OF space_id, coordination_pane_id ON rooms
-      FOR EACH ROW
-      WHEN NEW.coordination_pane_id IS NOT NULL
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM panes p
-              WHERE p.pane_id = NEW.coordination_pane_id
-                AND p.project_id = NEW.space_id
-            )
-            THEN RAISE(ABORT, 'rooms.coordination_pane_id must belong to rooms.space_id')
-          END;
-      END;
-
-      CREATE TRIGGER pane_members_must_be_project_members
-      BEFORE INSERT ON pane_members
+      CREATE TRIGGER project_members_must_be_space_members
+      BEFORE INSERT ON project_members
       FOR EACH ROW
       BEGIN
         SELECT
           CASE
             WHEN NOT EXISTS (
               SELECT 1
-              FROM panes p
-              JOIN project_members pm ON pm.project_id = p.project_id
-              WHERE p.pane_id = NEW.pane_id
+              FROM projects p
+              JOIN space_members pm ON pm.space_id = p.space_id
+              WHERE p.project_id = NEW.project_id
                 AND pm.user_id = NEW.user_id
             )
-            THEN RAISE(ABORT, 'pane_members must be a subset of project_members')
+            THEN RAISE(ABORT, 'project_members must be a subset of space_members')
           END;
       END;
 
-      CREATE TRIGGER room_members_must_be_project_members_insert
-      BEFORE INSERT ON room_members
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM rooms r
-              JOIN project_members pm ON pm.project_id = r.space_id
-              WHERE r.room_id = NEW.room_id
-                AND pm.user_id = NEW.user_id
-            )
-            THEN RAISE(ABORT, 'room_members must be a subset of project_members')
-          END;
-      END;
-
-      CREATE TRIGGER room_members_must_be_project_members_update
-      BEFORE UPDATE OF room_id, user_id ON room_members
-      FOR EACH ROW
-      BEGIN
-        SELECT
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM rooms r
-              JOIN project_members pm ON pm.project_id = r.space_id
-              WHERE r.room_id = NEW.room_id
-                AND pm.user_id = NEW.user_id
-            )
-            THEN RAISE(ABORT, 'room_members must be a subset of project_members')
-          END;
-      END;
-
-      CREATE TRIGGER room_members_removed_with_project_member
-      AFTER DELETE ON project_members
-      FOR EACH ROW
-      BEGIN
-        DELETE FROM room_members
-        WHERE user_id = OLD.user_id
-          AND room_id IN (
-            SELECT room_id
-            FROM rooms
-            WHERE space_id = OLD.project_id
-          );
-      END;
-
-      CREATE TRIGGER records_collection_project_consistency_insert
+      CREATE TRIGGER records_collection_space_consistency_insert
       BEFORE INSERT ON records
       FOR EACH ROW
       BEGIN
@@ -806,14 +630,14 @@ const resetSchemaToContractV1 = (db) => {
               SELECT 1
               FROM collections c
               WHERE c.collection_id = NEW.collection_id
-                AND c.project_id = NEW.project_id
+                AND c.space_id = NEW.space_id
             )
-            THEN RAISE(ABORT, 'records.project_id must match collections.project_id')
+            THEN RAISE(ABORT, 'records.space_id must match collections.space_id')
           END;
       END;
 
-      CREATE TRIGGER records_collection_project_consistency_update
-      BEFORE UPDATE OF project_id, collection_id ON records
+      CREATE TRIGGER records_collection_space_consistency_update
+      BEFORE UPDATE OF space_id, collection_id ON records
       FOR EACH ROW
       BEGIN
         SELECT
@@ -822,13 +646,13 @@ const resetSchemaToContractV1 = (db) => {
               SELECT 1
               FROM collections c
               WHERE c.collection_id = NEW.collection_id
-                AND c.project_id = NEW.project_id
+                AND c.space_id = NEW.space_id
             )
-            THEN RAISE(ABORT, 'records.project_id must match collections.project_id')
+            THEN RAISE(ABORT, 'records.space_id must match collections.space_id')
           END;
       END;
 
-      CREATE TRIGGER record_relations_project_consistency_insert
+      CREATE TRIGGER record_relations_space_consistency_insert
       BEFORE INSERT ON record_relations
       FOR EACH ROW
       BEGIN
@@ -839,15 +663,15 @@ const resetSchemaToContractV1 = (db) => {
               FROM records rf
               JOIN records rt ON rt.record_id = NEW.to_record_id
               WHERE rf.record_id = NEW.from_record_id
-                AND rf.project_id = NEW.project_id
-                AND rt.project_id = NEW.project_id
+                AND rf.space_id = NEW.space_id
+                AND rt.space_id = NEW.space_id
             )
-            THEN RAISE(ABORT, 'record_relations records must match relation project_id')
+            THEN RAISE(ABORT, 'record_relations records must match relation space_id')
           END;
       END;
 
-      CREATE TRIGGER record_relations_project_consistency_update
-      BEFORE UPDATE OF project_id, from_record_id, to_record_id ON record_relations
+      CREATE TRIGGER record_relations_space_consistency_update
+      BEFORE UPDATE OF space_id, from_record_id, to_record_id ON record_relations
       FOR EACH ROW
       BEGIN
         SELECT
@@ -857,10 +681,10 @@ const resetSchemaToContractV1 = (db) => {
               FROM records rf
               JOIN records rt ON rt.record_id = NEW.to_record_id
               WHERE rf.record_id = NEW.from_record_id
-                AND rf.project_id = NEW.project_id
-                AND rt.project_id = NEW.project_id
+                AND rf.space_id = NEW.space_id
+                AND rt.space_id = NEW.space_id
             )
-            THEN RAISE(ABORT, 'record_relations records must match relation project_id')
+            THEN RAISE(ABORT, 'record_relations records must match relation space_id')
           END;
       END;
 
@@ -905,48 +729,45 @@ const resetSchemaToContractV1 = (db) => {
           END;
       END;
 
+      CREATE INDEX idx_space_members_user_space ON space_members(user_id, space_id);
       CREATE INDEX idx_project_members_user_project ON project_members(user_id, project_id);
-      CREATE INDEX idx_pane_members_user_pane ON pane_members(user_id, pane_id);
-      CREATE INDEX idx_panes_project_sort ON panes(project_id, sort_order);
-      CREATE UNIQUE INDEX idx_docs_pane_unique ON docs(pane_id);
-      CREATE INDEX idx_rooms_space_status_created ON rooms(space_id, status, created_at DESC, room_id DESC);
-      CREATE INDEX idx_room_members_user_room ON room_members(user_id, room_id);
-      CREATE UNIQUE INDEX idx_room_docs_room_unique ON room_docs(room_id);
-      CREATE INDEX idx_records_project_collection_updated ON records(project_id, collection_id, updated_at DESC);
-      CREATE INDEX idx_records_project_source_pane ON records(project_id, source_pane_id);
-      CREATE INDEX idx_records_project_source_view ON records(project_id, source_view_id);
+      CREATE INDEX idx_projects_space_sort ON projects(space_id, sort_order);
+      CREATE UNIQUE INDEX idx_docs_project_unique ON docs(project_id);
+      CREATE INDEX idx_records_space_collection_updated ON records(space_id, collection_id, updated_at DESC);
+      CREATE INDEX idx_records_space_source_project ON records(space_id, source_project_id);
+      CREATE INDEX idx_records_space_source_view ON records(space_id, source_view_id);
       CREATE INDEX IF NOT EXISTS idx_records_parent ON records(parent_record_id);
       CREATE INDEX idx_record_values_field_record ON record_values(field_id, record_id);
       CREATE INDEX idx_record_values_record_field ON record_values(record_id, field_id);
-      CREATE INDEX idx_record_relations_project_from ON record_relations(project_id, from_record_id);
-      CREATE INDEX idx_record_relations_project_to ON record_relations(project_id, to_record_id);
-      CREATE UNIQUE INDEX idx_record_relations_unique_edge ON record_relations(project_id, from_record_id, to_record_id, via_field_id);
-      CREATE INDEX idx_views_project_collection_type ON views(project_id, collection_id, type);
+      CREATE INDEX idx_record_relations_space_from ON record_relations(space_id, from_record_id);
+      CREATE INDEX idx_record_relations_space_to ON record_relations(space_id, to_record_id);
+      CREATE UNIQUE INDEX idx_record_relations_unique_edge ON record_relations(space_id, from_record_id, to_record_id, via_field_id);
+      CREATE INDEX idx_views_space_collection_type ON views(space_id, collection_id, type);
       CREATE INDEX idx_event_state_start ON event_state(start_dt);
       CREATE INDEX idx_event_participants_user_record ON event_participants(user_id, record_id);
       CREATE INDEX idx_reminders_due_active ON reminders(remind_at)
         WHERE fired_at IS NULL AND dismissed_at IS NULL;
       CREATE INDEX idx_reminders_visible_undismissed ON reminders(remind_at)
         WHERE dismissed_at IS NULL;
-      CREATE INDEX idx_attachments_entity_lookup ON entity_attachments(project_id, entity_type, entity_id);
+      CREATE INDEX idx_attachments_entity_lookup ON entity_attachments(space_id, entity_type, entity_id);
       CREATE INDEX idx_attachments_asset_lookup ON entity_attachments(asset_root_id, asset_path);
-      CREATE INDEX idx_files_project_asset_path ON files(project_id, asset_root_id, provider_path);
-      CREATE INDEX idx_comments_entity_lookup ON comments(project_id, target_entity_type, target_entity_id, created_at DESC);
-      CREATE INDEX idx_mentions_target_lookup ON mentions(project_id, target_entity_type, target_entity_id);
-      CREATE INDEX idx_timeline_project_created ON timeline_events(project_id, created_at DESC);
-      CREATE INDEX idx_timeline_primary_lookup ON timeline_events(project_id, primary_entity_type, primary_entity_id, created_at DESC);
+      CREATE INDEX idx_files_space_asset_path ON files(space_id, asset_root_id, provider_path);
+      CREATE INDEX idx_comments_entity_lookup ON comments(space_id, target_entity_type, target_entity_id, created_at DESC);
+      CREATE INDEX idx_mentions_target_lookup ON mentions(space_id, target_entity_type, target_entity_id);
+      CREATE INDEX idx_timeline_space_created ON timeline_events(space_id, created_at DESC);
+      CREATE INDEX idx_timeline_primary_lookup ON timeline_events(space_id, primary_entity_type, primary_entity_id, created_at DESC);
       CREATE INDEX idx_notifications_user_unread_created ON notifications(user_id, read_at, created_at DESC);
-      CREATE INDEX idx_pending_project_invites_project_status_created
-        ON pending_project_invites(project_id, status, created_at DESC);
-      CREATE INDEX idx_pending_project_invites_email_status
-        ON pending_project_invites(LOWER(email), status);
+      CREATE INDEX idx_pending_space_invites_space_status_created
+        ON pending_space_invites(space_id, status, created_at DESC);
+      CREATE INDEX idx_pending_space_invites_email_status
+        ON pending_space_invites(LOWER(email), status);
       CREATE INDEX idx_personal_tasks_user_updated
         ON personal_tasks(user_id, updated_at DESC, task_id DESC);
-      CREATE INDEX idx_chat_snapshots_project_created
-        ON chat_snapshots(project_id, created_at DESC, snapshot_id DESC);
+      CREATE INDEX idx_chat_snapshots_space_created
+        ON chat_snapshots(space_id, created_at DESC, snapshot_id DESC);
       CREATE INDEX idx_automation_runs_rule_started ON automation_runs(automation_rule_id, started_at DESC);
-      CREATE UNIQUE INDEX idx_projects_personal_owner ON projects(created_by)
-        WHERE project_type = 'personal';
+      CREATE UNIQUE INDEX idx_spaces_personal_owner ON spaces(created_by)
+        WHERE space_type = 'personal';
       CREATE INDEX idx_bug_reports_public_created ON bug_reports("public", created_at DESC, id DESC);
     `);
 

@@ -1,7 +1,7 @@
 import type { Transition, Variants } from 'framer-motion';
 import { motionDirection, motionDistances, motionDurations, motionEasings, type MotionDirection } from '../../styles/motion';
 
-export type PaneLateralSource = 'click' | 'digit' | 'arrow-left' | 'arrow-right';
+export type ProjectLateralSource = 'click' | 'digit' | 'arrow-left' | 'arrow-right';
 
 export const transitionEnter: Transition = {
   duration: motionDurations.enter,
@@ -187,7 +187,7 @@ export const fadeThroughVariants = (reducedMotion: boolean): Variants => ({
   },
 });
 
-export const paneDirectionFromSource = (source: PaneLateralSource): MotionDirection => {
+export const projectDirectionFromSource = (source: ProjectLateralSource): MotionDirection => {
   if (source === 'arrow-right') {
     return motionDirection.right;
   }

@@ -43,7 +43,7 @@ Relevant files:
 
 Key observations:
 
-- Global runtime depends on React context providers for auth, projects, smart wake, and activity.
+- Global runtime depends on React context providers for auth, spaces, smart wake, and activity.
 - Routing is browser-native and path-based.
 - The app shell owns major cross-cutting behavior: navigation, search, quick add, notifications, personal reminders/calendar, dialogs, focus restoration.
 - The project-space surface is large and state-dense, with overview/work/tools tabs and many runtime hooks.
@@ -62,7 +62,7 @@ Relevant files:
 Key observations:
 
 - The server is not incidental infrastructure; it contains core product logic.
-- There are route modules for projects, panes, docs, collections, records, views, tasks, reminders, files, search, chat, notifications, automations, and users.
+- There are route modules for spaces, work projects, docs, collections, records, views, tasks, reminders, files, search, chat, notifications, automations, and users.
 - The SQLite schema is substantial and normalized.
 - Permission gating, validation, notifications, reminders, and timeline emission live here.
 
@@ -280,7 +280,7 @@ Relevant file:
 Why this is a rewrite:
 
 - This is one of the densest orchestration files in the codebase.
-- It ties routing, pane selection, search params, editor wiring, files, comments, relations, views, and workspace behavior together.
+- It ties routing, project selection, search params, editor wiring, files, comments, relations, views, and workspace behavior together.
 
 Swift consequence:
 
@@ -348,7 +348,7 @@ The app behaves more like a desktop workspace than a simple content app.
 
 Examples:
 
-- multi-pane navigation
+- multi-project navigation
 - large command/search surfaces
 - dense tables and kanban boards
 - nested dialogs/popovers
@@ -397,8 +397,8 @@ This is closer to rebuilding an application platform than rebuilding a frontend.
 
 There is evidence that the contract inventory needs tightening before migration. For example:
 
-- `apps/hub-api/hub-api.mjs` contains `REGISTERED_ROUTE_COUNT = 79`
-- `apps/hub-api/api-snapshot.json` records `route_count = 72`
+- `apps/hub-api/hub-api.mjs` contains `REGISTERED_ROUTE_COUNT = 86`
+- `apps/hub-api/api-snapshot.json` records `route_count = 86`
 
 This does not necessarily mean the app is wrong, but it does mean a Swift parity rewrite needs a single verified contract source first.
 
@@ -504,7 +504,7 @@ Deliverables:
 Recommended order under a parity requirement:
 
 1. home/search/notifications
-2. projects and pane bootstrap
+2. spaces and project bootstrap
 3. tasks/reminders/calendar
 4. files/assets
 5. views/tables/kanban

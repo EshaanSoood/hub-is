@@ -50,7 +50,7 @@ interface InspectionReport {
   outputPath: string;
   scenario: string;
   projectId: string;
-  paneId: string;
+  projectId: string;
   generatedAt: string;
   phases: Record<string, PhaseDump>;
   network: {
@@ -63,17 +63,17 @@ const waitForProjectsHome = async (page: Page): Promise<void> => {
   await expect(page.getByRole('navigation', { name: 'Home tabs' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
-const navigateToSeededPane = async (
+const navigateToSeededProject = async (
   page: Page,
   context: Awaited<ReturnType<typeof readJourneyContext>>,
 ): Promise<void> => {
   await waitForProjectsHome(page);
-  await page.goto(`/projects/${context.project.id}/work/${context.panes.primaryId}`, {
+  await page.goto(`/projects/${context.project.id}/work/${context.projects.primaryId}`, {
     waitUntil: 'domcontentloaded',
     timeout: LIVE_TIMEOUT_MS,
   });
 
-  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work/${escapeRegExp(context.panes.primaryId)}(?:\\?|$)`), {
+  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work/${escapeRegExp(context.projects.primaryId)}(?:\\?|$)`), {
     timeout: LIVE_TIMEOUT_MS,
   });
 };
@@ -308,7 +308,7 @@ const main = async (): Promise<void> => {
     outputPath: toRepoRelativePath(outputPath),
     scenario: context.scenario,
     projectId: context.project.id,
-    paneId: context.panes.primaryId,
+    projectId: context.projects.primaryId,
     generatedAt: new Date().toISOString(),
     phases: {},
     network: {
@@ -351,7 +351,7 @@ const main = async (): Promise<void> => {
 
     await runPhase(report, desktopPage, 'navigation', async () => {
       await loginThroughKeycloak(desktopPage, accountA);
-      await navigateToSeededPane(desktopPage, context);
+      await navigateToSeededProject(desktopPage, context);
       return {
         toolbar: await snapshotLocator(desktopPage.getByRole('toolbar', { name: 'Open projects' })),
         pageHeader: await snapshotLocator(desktopPage.getByRole('heading', { name: new RegExp(`^${escapeRegExp(context.project.name)}$`, 'i') })),
@@ -604,7 +604,7 @@ const main = async (): Promise<void> => {
       const responsivePage = await responsiveContext.newPage();
       try {
         await loginThroughKeycloak(responsivePage, accountA);
-        await navigateToSeededPane(responsivePage, context);
+        await navigateToSeededProject(responsivePage, context);
 
         let modulesDialog = null;
         const modulesButton = responsivePage.getByRole('button', { name: /^Modules$/i }).first();

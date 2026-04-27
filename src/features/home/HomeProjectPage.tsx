@@ -9,7 +9,7 @@ import { useProjectBootstrap } from '../../hooks/useProjectBootstrap';
 import { useProjectTasksRuntime } from '../../hooks/useProjectTasksRuntime';
 import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
 import { useTimelineRuntime } from '../../hooks/useTimelineRuntime';
-import { updateProject } from '../../services/hub/projects';
+import { updateSpace } from '../../services/hub/spaces';
 import { HomeDashboardSurface } from './HomeDashboardSurface';
 import { HomeOverviewSurface } from './HomeOverviewSurface';
 import { HomeProjectNamingDialog } from './HomeProjectNamingDialog';
@@ -23,7 +23,7 @@ import {
   parseHomeContentViewId,
   parseHomeOverviewViewId,
   parseHomeOverlayId,
-  parseHomePaneId,
+  parseHomeProjectId,
   parseHomeTabId,
   parseHomeTaskRecordId,
   type HomeOverviewViewId,
@@ -54,11 +54,11 @@ export const HomeProjectPage = () => {
   const activeContentView = parseHomeContentViewId(searchParams.get('content') ?? searchParams.get('view'));
   const activeOverviewView = parseHomeOverviewViewId(searchParams.get('overview'));
   const activeOverlay = parseHomeOverlayId(searchParams.get('surface'));
-  const activePaneId = parseHomePaneId(searchParams.get('pane'));
+  const activeProjectId = parseHomeProjectId(searchParams.get('project'));
   const homeRuntime = useHomeRuntime({ accessToken, activeOverlay });
   const homeRecordInspector = useHomeRecordInspectorRuntime({ accessToken });
   const homeIdentity = useHomeSurfaceIdentity({
-    backendPersonalProjectId: homeRuntime.homeData.personal_project_id,
+    backendPersonalProjectId: homeRuntime.homeData.personal_space_id,
     projects,
   });
   const { openRecord } = homeRecordInspector;
@@ -136,7 +136,7 @@ export const HomeProjectPage = () => {
       next.delete('view_id');
       if (tab === 'overview') {
         next.delete('tab');
-        next.delete('pane');
+        next.delete('project');
         next.delete('pinned');
       } else {
         next.set('tab', 'work');
@@ -180,7 +180,7 @@ export const HomeProjectPage = () => {
     setProjectNameSaving(true);
     setProjectNameError(null);
     try {
-      await updateProject(accessToken, homeIdentity.backingProjectId, {
+      await updateSpace(accessToken, homeIdentity.backingProjectId, {
         name: nextName,
       });
       await refreshProjects();
@@ -234,7 +234,7 @@ export const HomeProjectPage = () => {
           }, { replace: true });
         }}
         onSnoozeReminder={homeReminderMutations.onSnoozeReminder}
-        projectId={projectBootstrap.project.project_id}
+        projectId={projectBootstrap.project.space_id}
         projectName={projectBootstrap.project.name}
         reminders={projectRemindersRuntime.reminders}
         remindersError={projectRemindersRuntime.error}
@@ -280,8 +280,8 @@ export const HomeProjectPage = () => {
         locationPathname={location.pathname}
         locationState={location.state}
         navigate={navigate}
-        paneId={activePaneId}
-        panes={projectBootstrap.panes}
+        projectId={activeProjectId}
+        projects={projectBootstrap.projects}
         project={projectBootstrap.project}
         projectMembers={projectBootstrap.projectMembers}
         projectTasksLoading={tasksRuntime.projectTasksLoading}
@@ -289,7 +289,7 @@ export const HomeProjectPage = () => {
         refreshProjectData={projectBootstrap.refreshProjectData}
         searchParams={searchParams}
         sessionUserId={sessionSummary.userId}
-        setPanes={projectBootstrap.setPanes}
+        setProjects={projectBootstrap.setProjects}
         setSearchParams={setSearchParams}
         setTimeline={projectBootstrap.setTimeline}
         setCalendarMode={calendarRuntime.setCalendarMode}

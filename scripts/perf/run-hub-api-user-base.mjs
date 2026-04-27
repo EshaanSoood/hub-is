@@ -161,8 +161,8 @@ const buildArtilleryScript = ({ baseUrl, profile, processorPath, enableMutations
             remind_at: "{{ remindAtIso }}"
       - think: "{{ thinkShortSeconds }}"
       - post:
-          url: "/api/hub/projects/{{ projectId }}/events/from-nlp"
-          name: "POST /api/hub/projects/:projectId/events/from-nlp"
+          url: "/api/hub/spaces/{{ projectId }}/events/from-nlp"
+          name: "POST /api/hub/spaces/:projectId/events/from-nlp"
           headers:
             Authorization: "{{ authHeader }}"
             Content-Type: "application/json"
@@ -240,41 +240,41 @@ scenarios:
     flow:
       - function: "seedSessionState"
       - get:
-          url: "/api/hub/projects"
-          name: "GET /api/hub/projects"
+          url: "/api/hub/spaces"
+          name: "GET /api/hub/spaces"
           headers:
             Authorization: "{{ authHeader }}"
       - think: "{{ thinkShortSeconds }}"
       - get:
-          url: "/api/hub/projects/{{ projectId }}"
-          name: "GET /api/hub/projects/:projectId"
+          url: "/api/hub/spaces/{{ projectId }}"
+          name: "GET /api/hub/spaces/:projectId"
           headers:
             Authorization: "{{ authHeader }}"
       - get:
-          url: "/api/hub/projects/{{ projectId }}/panes"
-          name: "GET /api/hub/projects/:projectId/panes"
+          url: "/api/hub/spaces/{{ projectId }}/projects"
+          name: "GET /api/hub/spaces/:projectId/projects"
           headers:
             Authorization: "{{ authHeader }}"
       - think: "{{ thinkShortSeconds }}"
       - get:
-          url: "/api/hub/projects/{{ projectId }}/collections"
-          name: "GET /api/hub/projects/:projectId/collections"
+          url: "/api/hub/spaces/{{ projectId }}/collections"
+          name: "GET /api/hub/spaces/:projectId/collections"
           headers:
             Authorization: "{{ authHeader }}"
       - get:
-          url: "/api/hub/projects/{{ projectId }}/tasks?limit=20{{ paneQuery }}"
-          name: "GET /api/hub/projects/:projectId/tasks"
+          url: "/api/hub/spaces/{{ projectId }}/tasks?limit=20{{ projectQuery }}"
+          name: "GET /api/hub/spaces/:projectId/tasks"
           headers:
             Authorization: "{{ authHeader }}"
       - think: "{{ thinkMediumSeconds }}"
       - get:
-          url: "/api/hub/projects/{{ projectId }}/timeline"
-          name: "GET /api/hub/projects/:projectId/timeline"
+          url: "/api/hub/spaces/{{ projectId }}/timeline"
+          name: "GET /api/hub/spaces/:projectId/timeline"
           headers:
             Authorization: "{{ authHeader }}"
       - get:
-          url: "/api/hub/projects/{{ projectId }}/calendar?mode=relevant"
-          name: "GET /api/hub/projects/:projectId/calendar"
+          url: "/api/hub/spaces/{{ projectId }}/calendar?mode=relevant"
+          name: "GET /api/hub/spaces/:projectId/calendar"
           headers:
             Authorization: "{{ authHeader }}"
   - name: workspace_search_session
@@ -282,25 +282,25 @@ scenarios:
     flow:
       - function: "seedSessionState"
       - get:
-          url: "/api/hub/projects/{{ projectId }}/panes"
-          name: "GET /api/hub/projects/:projectId/panes"
+          url: "/api/hub/spaces/{{ projectId }}/projects"
+          name: "GET /api/hub/spaces/:projectId/projects"
           headers:
             Authorization: "{{ authHeader }}"
       - think: "{{ thinkShortSeconds }}"
       - get:
-          url: "/api/hub/projects/{{ projectId }}/mentions/search?q={{ mentionQuery }}&limit=12"
-          name: "GET /api/hub/projects/:projectId/mentions/search"
+          url: "/api/hub/spaces/{{ projectId }}/mentions/search?q={{ mentionQuery }}&limit=12"
+          name: "GET /api/hub/spaces/:projectId/mentions/search"
           headers:
             Authorization: "{{ authHeader }}"
       - get:
-          url: "/api/hub/projects/{{ projectId }}/records/search?query={{ searchTerm }}&limit=12"
-          name: "GET /api/hub/projects/:projectId/records/search"
+          url: "/api/hub/spaces/{{ projectId }}/records/search?query={{ searchTerm }}&limit=12"
+          name: "GET /api/hub/spaces/:projectId/records/search"
           headers:
             Authorization: "{{ authHeader }}"
       - think: "{{ thinkShortSeconds }}"
       - get:
-          url: "/api/hub/projects/{{ projectId }}/tasks?limit=12{{ paneQuery }}"
-          name: "GET /api/hub/projects/:projectId/tasks"
+          url: "/api/hub/spaces/{{ projectId }}/tasks?limit=12{{ projectQuery }}"
+          name: "GET /api/hub/spaces/:projectId/tasks"
           headers:
             Authorization: "{{ authHeader }}"
       - get:

@@ -114,15 +114,6 @@ const getEnvelopeData = (payload) => {
   return payload;
 };
 
-const parseDocIdPayload = (payload) => {
-  const data = getEnvelopeData(payload);
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    return '';
-  }
-
-  return data.doc?.doc_id || data.doc_id || data.pane?.doc_id || '';
-};
-
 const parseAuthorizationPayload = (payload) => {
   const data = getEnvelopeData(payload);
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
@@ -421,58 +412,33 @@ const resolveDocId = async (accessToken) => {
     return config.docId;
   }
 
-  const panesResult = await requestHubJson(
-    `/api/hub/projects/${encodeURIComponent(config.projectId)}/panes`,
+  const projectsResult = await requestHubJson(
+    `/api/hub/spaces/${encodeURIComponent(config.projectId)}/projects`,
     accessToken,
     { method: 'GET' },
   );
 
-  if (!panesResult.response.ok) {
-    throw new Error(describeHttpError('Project pane lookup', panesResult.response, panesResult.body));
+  if (!projectsResult.response.ok) {
+    throw new Error(describeHttpError('Project lookup', projectsResult.response, projectsResult.body));
   }
 
-  const panesPayload = getEnvelopeData(panesResult.body.json);
-  const panes = Array.isArray(panesPayload?.panes) ? panesPayload.panes : [];
+  const projectsPayload = getEnvelopeData(projectsResult.body.json);
+  const projects = Array.isArray(projectsPayload?.projects) ? projectsPayload.projects : [];
 
-  if (panes.length === 0) {
-    throw new Error(`No panes available for project ${config.projectId}.`);
+  if (projects.length === 0) {
+    throw new Error(`No projects available for space ${config.projectId}.`);
   }
 
-  let lastPaneError = null;
-  for (const pane of panes) {
-    if (!pane || typeof pane.pane_id !== 'string' || pane.pane_id.length === 0) {
+  for (const project of projects) {
+    if (!project || typeof project.project_id !== 'string' || project.project_id.length === 0) {
       continue;
     }
-
-    try {
-      const paneDocResult = await requestHubJson(`/api/hub/panes/${encodeURIComponent(pane.pane_id)}/doc`, accessToken, {
-        method: 'GET',
-      });
-
-      if (paneDocResult.response.ok) {
-        const docId = parseDocIdPayload(paneDocResult.body.json);
-        if (docId) {
-          return docId;
-        }
-        lastPaneError = new Error(`Pane doc lookup succeeded but did not return a doc_id for pane ${pane.pane_id}.`);
-        continue;
-      }
-
-      if ((paneDocResult.response.status === 404 || paneDocResult.response.status === 405) && typeof pane.doc_id === 'string' && pane.doc_id.length > 0) {
-        return pane.doc_id;
-      }
-
-      lastPaneError = new Error(describeHttpError(`Pane doc lookup for ${pane.pane_id}`, paneDocResult.response, paneDocResult.body));
-    } catch (error) {
-      lastPaneError = error instanceof Error ? error : new Error(String(error));
+    if (typeof project.doc_id === 'string' && project.doc_id.length > 0) {
+      return project.doc_id;
     }
   }
 
-  if (lastPaneError) {
-    throw lastPaneError;
-  }
-
-  throw new Error(`No pane-backed doc was available for project ${config.projectId}.`);
+  throw new Error(`No project-backed doc was available for space ${config.projectId}.`);
 };
 
 const authorizeCollabTicket = async ({ accessToken, docId, label }) => {

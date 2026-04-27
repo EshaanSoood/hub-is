@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { recordRecentPaneVisit } from './store';
-import type { RecentPanePlaceInput } from './types';
+import { recordRecentProjectVisit } from './store';
+import type { RecentProjectPlaceInput } from './types';
 
 const VISIT_TRACKING_DELAY_MS = 2000;
 
-export const useRecentPaneVisitTracker = (place: RecentPanePlaceInput | null) => {
-  const latestPlaceRef = useRef<RecentPanePlaceInput | null>(place);
-  const stablePlaceKey = place ? `${place.spaceId}:${place.paneId}:${place.href ?? ''}` : null;
+export const useRecentProjectVisitTracker = (place: RecentProjectPlaceInput | null) => {
+  const latestPlaceRef = useRef<RecentProjectPlaceInput | null>(place);
+  const stablePlaceKey = place ? `${place.spaceId}:${place.projectId}:${place.href ?? ''}` : null;
 
   useEffect(() => {
     latestPlaceRef.current = place;
@@ -19,7 +19,7 @@ export const useRecentPaneVisitTracker = (place: RecentPanePlaceInput | null) =>
 
     const timeoutId = window.setTimeout(() => {
       if (latestPlaceRef.current) {
-        recordRecentPaneVisit(latestPlaceRef.current);
+        recordRecentProjectVisit(latestPlaceRef.current);
       }
     }, VISIT_TRACKING_DELAY_MS);
 

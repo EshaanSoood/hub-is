@@ -1,6 +1,5 @@
 import { Server } from '@hocuspocus/server';
 import * as Y from 'yjs';
-import { isRoomDocumentId } from './roomDocuments.mjs';
 
 const PORT = Number(process.env.PORT || '1234');
 const HOST = (process.env.HOST || '0.0.0.0').trim();
@@ -38,11 +37,7 @@ const buildHubApiAuthHeaders = (token, { hasBody = false } = {}) => ({
   ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
 });
 const encodeDocUpdateBase64 = (document) => Buffer.from(Y.encodeStateAsUpdate(document)).toString('base64');
-const buildDocSnapshotPath = (docId) => (
-  isRoomDocumentId(docId)
-    ? `/api/hub/room-docs/${encodeURIComponent(docId)}`
-    : `/api/hub/docs/${encodeURIComponent(docId)}`
-);
+const buildDocSnapshotPath = (docId) => `/api/hub/docs/${encodeURIComponent(docId)}`;
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = HUB_API_FETCH_TIMEOUT_MS) => {
   const controller = new AbortController();
@@ -96,7 +91,7 @@ const getDocumentMeta = (document) => {
       lastPersistedYjsUpdate: '',
       accessToken: '',
       projectId: '',
-      paneId: '',
+      projectId: '',
     };
     documentMetadata.set(document, meta);
   }
@@ -125,7 +120,7 @@ const authorizeToken = async (token, docId) => {
   const authorization = payload.data.authorization;
   return {
     docId: asText(authorization.doc_id),
-    paneId: asText(authorization.pane_id),
+    projectId: asText(authorization.project_id),
     projectId: asText(authorization.project_id),
     userId: asText(authorization.user_id),
     displayName: asText(authorization.display_name) || 'Collaborator',
@@ -282,7 +277,7 @@ const server = new Server({
       meta.accessToken = editorAccessToken;
     }
     meta.projectId = asText(context?.projectId || meta.projectId);
-    meta.paneId = asText(context?.paneId || meta.paneId);
+    meta.projectId = asText(context?.projectId || meta.projectId);
 
     const snapshot = await loadSnapshot({
       accessToken: snapshotAccessToken,

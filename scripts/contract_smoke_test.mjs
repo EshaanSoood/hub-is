@@ -183,7 +183,7 @@ const run = async () => {
 
   const createProjectResponse = await requestJson({
     method: 'POST',
-    path: '/api/hub/projects',
+    path: '/api/hub/spaces',
     token: tokenA,
     body: {
       name: `Contract Smoke ${Date.now()}`,
@@ -198,7 +198,7 @@ const run = async () => {
 
   const addMemberResponse = await requestJson({
     method: 'POST',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/members`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/members`,
     token: tokenA,
     body: {
       user_id: meB.user.user_id,
@@ -210,96 +210,96 @@ const run = async () => {
     return;
   }
 
-  const createPaneByBResponse = await requestJson({
+  const createProjectByBResponse = await requestJson({
     method: 'POST',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/panes`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`,
     token: tokenB,
     body: {
-      name: 'B Project Pane',
+      name: 'B Project Project',
       member_user_ids: [meB.user.user_id],
     },
   });
-  if (!requireErrorEnvelope('3. Project member cannot create pane', createPaneByBResponse, 403)) {
+  if (!requireErrorEnvelope('3. Project member cannot create project', createProjectByBResponse, 403)) {
     failed = true;
     return;
   }
 
-  const createPaneByAResponse = await requestJson({
+  const createProjectByAResponse = await requestJson({
     method: 'POST',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/panes`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`,
     token: tokenA,
     body: {
-      name: 'Owner Project Pane',
+      name: 'Owner Project Project',
       member_user_ids: [meA.user.user_id],
     },
   });
-  if (!requireSuccess('Bootstrap owner pane', createPaneByAResponse, 201)) {
+  if (!requireSuccess('Bootstrap owner project', createProjectByAResponse, 201)) {
     return;
   }
 
-  const listPanesAResponse = await requestJson({
+  const listProjectsAResponse = await requestJson({
     method: 'GET',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/panes`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`,
     token: tokenA,
   });
-  const panesA = requireSuccess('Bootstrap pane list (A)', listPanesAResponse, 200);
-  if (!panesA?.panes || !Array.isArray(panesA.panes) || panesA.panes.length === 0) {
+  const projectsA = requireSuccess('Bootstrap project list (A)', listProjectsAResponse, 200);
+  if (!projectsA?.projects || !Array.isArray(projectsA.projects) || projectsA.projects.length === 0) {
     failed = true;
     return;
   }
 
-  let targetPane = panesA.panes.find((pane) => !pane.members.some((member) => member.user_id === meB.user.user_id));
+  let targetProject = projectsA.projects.find((project) => !project.members.some((member) => member.user_id === meB.user.user_id));
 
-  if (!targetPane) {
-    const createAOnlyPaneResponse = await requestJson({
+  if (!targetProject) {
+    const createAOnlyProjectResponse = await requestJson({
       method: 'POST',
-      path: `/api/hub/projects/${encodeURIComponent(projectId)}/panes`,
+      path: `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`,
       token: tokenA,
       body: {
-        name: 'A Only Pane',
+        name: 'A Only Project',
         member_user_ids: [meA.user.user_id],
       },
     });
-    const created = requireSuccess('Bootstrap A-only pane', createAOnlyPaneResponse, 201);
-    if (!created?.pane) {
+    const created = requireSuccess('Bootstrap A-only project', createAOnlyProjectResponse, 201);
+    if (!created?.project) {
       failed = true;
       return;
     }
-    targetPane = created.pane;
+    targetProject = created.project;
   }
 
   const deniedDocResponse = await requestJson({
     method: 'GET',
-    path: `/api/hub/docs/${encodeURIComponent(targetPane.doc_id)}`,
+    path: `/api/hub/docs/${encodeURIComponent(targetProject.doc_id)}`,
     token: tokenB,
   });
-  const nonPaneDoc = requireSuccess('4. Project member can access doc snapshot without pane edit rights', deniedDocResponse, 200);
-  if (!nonPaneDoc?.doc?.doc_id) {
+  const nonProjectDoc = requireSuccess('4. Project member can access doc snapshot without project edit rights', deniedDocResponse, 200);
+  if (!nonProjectDoc?.doc?.doc_id) {
     failed = true;
   }
 
-  const deniedCollabAuth = await requestCollabAuthorization({ docId: targetPane.doc_id, token: tokenB });
-  const nonPaneCollabAuth = requireSuccess(
-    '5a. Project member can obtain collab ticket without pane edit rights',
+  const deniedCollabAuth = await requestCollabAuthorization({ docId: targetProject.doc_id, token: tokenB });
+  const nonProjectCollabAuth = requireSuccess(
+    '5a. Project member can obtain collab ticket without project edit rights',
     deniedCollabAuth,
     200,
   );
-  const nonPaneCollabReadOnly = Boolean(nonPaneCollabAuth?.authorization?.can_edit === false);
+  const nonProjectCollabReadOnly = Boolean(nonProjectCollabAuth?.authorization?.can_edit === false);
   recordResult(
-    '5a2. Non-pane-member collab ticket is read-only',
-    nonPaneCollabReadOnly,
-    `can_edit=${String(nonPaneCollabAuth?.authorization?.can_edit)}`,
+    '5a2. Non-project-member collab ticket is read-only',
+    nonProjectCollabReadOnly,
+    `can_edit=${String(nonProjectCollabAuth?.authorization?.can_edit)}`,
   );
   const forgedTicket = `wst_forged_${Date.now()}`;
-  const wsDenied = await waitForWsDenied({ docId: targetPane.doc_id, wsTicket: forgedTicket });
-  recordResult('5b. Non-pane-member cannot join collab room', wsDenied, wsDenied ? 'join denied' : 'unexpected room join');
-  if (!nonPaneCollabAuth || !nonPaneCollabReadOnly || !wsDenied) {
+  const wsDenied = await waitForWsDenied({ docId: targetProject.doc_id, wsTicket: forgedTicket });
+  recordResult('5b. Non-project-member cannot join collab room', wsDenied, wsDenied ? 'join denied' : 'unexpected room join');
+  if (!nonProjectCollabAuth || !nonProjectCollabReadOnly || !wsDenied) {
     failed = true;
   }
 
   const createCollectionResponse = await requestJson({
     method: 'POST',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/collections`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/collections`,
     token: tokenA,
     body: {
       name: 'Tasks',
@@ -346,7 +346,7 @@ const run = async () => {
 
   const createViewResponse = await requestJson({
     method: 'POST',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/views`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/views`,
     token: tokenA,
     body: {
       collection_id: createdCollection.collection_id,
@@ -363,7 +363,7 @@ const run = async () => {
 
   const createRecordResponse = await requestJson({
     method: 'POST',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/records`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/records`,
     token: tokenA,
     body: {
       collection_id: createdCollection.collection_id,
@@ -381,7 +381,7 @@ const run = async () => {
 
   const createRelatedRecordResponse = await requestJson({
     method: 'POST',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/records`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/records`,
     token: tokenA,
     body: {
       collection_id: createdCollection.collection_id,
@@ -397,7 +397,7 @@ const run = async () => {
 
   const relationSearchResponse = await requestJson({
     method: 'GET',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/records/search?query=Related&collection_id=${encodeURIComponent(createdCollection.collection_id)}&exclude_record_id=${encodeURIComponent(recordId)}`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/records/search?query=Related&collection_id=${encodeURIComponent(createdCollection.collection_id)}&exclude_record_id=${encodeURIComponent(recordId)}`,
     token: tokenA,
   });
   const relationSearchData = requireSuccess('6b. Relation candidate search returns records', relationSearchResponse, 200);
@@ -510,9 +510,9 @@ const run = async () => {
       pagination: { limit: 25 },
     },
   });
-  const bViewQuery = requireSuccess('6. Non-pane-member CAN access project records', bViewQueryResponse, 200);
+  const bViewQuery = requireSuccess('6. Non-project-member CAN access project records', bViewQueryResponse, 200);
   if (!bViewQuery?.records || !Array.isArray(bViewQuery.records) || bViewQuery.records.length === 0) {
-    recordResult('6. Non-pane-member CAN access project records', false, 'query succeeded but no records returned');
+    recordResult('6. Non-project-member CAN access project records', false, 'query succeeded but no records returned');
     failed = true;
   }
 
@@ -520,7 +520,7 @@ const run = async () => {
   const end = new Date(Date.now() + 90 * 60 * 1000).toISOString();
   const createEventResponse = await requestJson({
     method: 'POST',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/events/from-nlp`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/events/from-nlp`,
     token: tokenA,
     body: {
       nlp_fields_json: {
@@ -539,22 +539,22 @@ const run = async () => {
 
   const calendarARelevant = await requestJson({
     method: 'GET',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/calendar?mode=relevant`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/calendar?mode=relevant`,
     token: tokenA,
   });
   const calendarAAll = await requestJson({
     method: 'GET',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/calendar?mode=all`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/calendar?mode=all`,
     token: tokenA,
   });
   const calendarBRelevant = await requestJson({
     method: 'GET',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/calendar?mode=relevant`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/calendar?mode=relevant`,
     token: tokenB,
   });
   const calendarBAll = await requestJson({
     method: 'GET',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/calendar?mode=all`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/calendar?mode=all`,
     token: tokenB,
   });
 
@@ -579,15 +579,15 @@ const run = async () => {
     failed = true;
   }
 
-  const envelopeCasePass = isErrorEnvelope(tamperedMe.payload) && isErrorEnvelope(createPaneByBResponse.payload);
-  recordResult('8. Envelope correctness on failures', envelopeCasePass, 'checked tampered-token and denied-pane-create responses');
+  const envelopeCasePass = isErrorEnvelope(tamperedMe.payload) && isErrorEnvelope(createProjectByBResponse.payload);
+  recordResult('8. Envelope correctness on failures', envelopeCasePass, 'checked tampered-token and denied-project-create responses');
   if (!envelopeCasePass) {
     failed = true;
   }
 
   const nodeA = `node-a-${Date.now()}`;
   const nodeB = `node-b-${Date.now()}`;
-  const docId = targetPane.doc_id;
+  const docId = targetProject.doc_id;
   const putInitialDoc = await requestJson({
     method: 'PUT',
     path: `/api/hub/docs/${encodeURIComponent(docId)}`,
@@ -880,7 +880,7 @@ const run = async () => {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     latestBacklinksResponse = await requestJson({
       method: 'GET',
-      path: `/api/hub/projects/${encodeURIComponent(projectId)}/backlinks?target_entity_type=record&target_entity_id=${encodeURIComponent(recordId)}`,
+      path: `/api/hub/spaces/${encodeURIComponent(projectId)}/backlinks?target_entity_type=record&target_entity_id=${encodeURIComponent(recordId)}`,
       token: tokenA,
     });
     if (isSuccessEnvelope(latestBacklinksResponse, 200)) {
@@ -948,17 +948,17 @@ const run = async () => {
       ],
     },
   });
-  if (!requireSuccess('12f. Pane member can materialize mention from doc-targeted comment source', materializeDocCommentByA, 200)) {
+  if (!requireSuccess('12f. Project member can materialize mention from doc-targeted comment source', materializeDocCommentByA, 200)) {
     failed = true;
     return;
   }
 
   const backlinksByB = await requestJson({
     method: 'GET',
-    path: `/api/hub/projects/${encodeURIComponent(projectId)}/backlinks?target_entity_type=record&target_entity_id=${encodeURIComponent(recordId)}`,
+    path: `/api/hub/spaces/${encodeURIComponent(projectId)}/backlinks?target_entity_type=record&target_entity_id=${encodeURIComponent(recordId)}`,
     token: tokenB,
   });
-  const backlinksDataByB = requireSuccess('12g. Non-pane-member backlinks query remains project-visible', backlinksByB, 200);
+  const backlinksDataByB = requireSuccess('12g. Non-project-member backlinks query remains project-visible', backlinksByB, 200);
   const backlinksLeakDocOrCommentDoc = Boolean(
     backlinksDataByB?.backlinks?.some(
       (entry) =>
@@ -967,7 +967,7 @@ const run = async () => {
     ),
   );
   recordResult(
-    '12h. Non-pane-member backlinks exclude doc and doc-comment sources',
+    '12h. Non-project-member backlinks exclude doc and doc-comment sources',
     !backlinksLeakDocOrCommentDoc,
     `doc_id=${docId}; comment_id=${docSourceComment.comment_id}`,
   );
@@ -997,7 +997,7 @@ const run = async () => {
     },
   });
   const materializeDocCommentByBDenied = requireErrorEnvelope(
-    '12i. Non-pane-member cannot materialize mentions from doc-targeted comment source',
+    '12i. Non-project-member cannot materialize mentions from doc-targeted comment source',
     materializeDocCommentByB,
     403,
   );
@@ -1041,7 +1041,7 @@ const run = async () => {
     path: `/api/hub/docs/${encodeURIComponent(docId)}`,
     token: tokenA,
   });
-  const docWithViewRef = requireSuccess('13b. Pane member can read doc snapshot with ViewRef', docWithViewRefResponse, 200);
+  const docWithViewRef = requireSuccess('13b. Project member can read doc snapshot with ViewRef', docWithViewRefResponse, 200);
   const hasViewRefNode = Boolean(
     docWithViewRef?.doc?.snapshot_payload?.lexical_state?.root?.children?.some((node) => node.type === 'view-ref'),
   );
@@ -1059,7 +1059,7 @@ const run = async () => {
       pagination: { limit: 10 },
     },
   });
-  const embedQueryData = requireSuccess('13d. Embedded view query succeeds for pane member', queryViewForEmbed, 200);
+  const embedQueryData = requireSuccess('13d. Embedded view query succeeds for project member', queryViewForEmbed, 200);
   const embedViewMatches = Boolean(embedQueryData?.view?.view_id === createdView.view_id);
   recordResult('13e. Embedded view response matches inserted ViewRef', embedViewMatches, `view_id=${createdView.view_id}`);
   if (!embedViewMatches) {
@@ -1071,7 +1071,7 @@ const run = async () => {
     path: `/api/hub/docs/${encodeURIComponent(docId)}`,
     token: tokenB,
   });
-  const viewRefDocGatePass = requireSuccess('13f. Project member can read ViewRef doc snapshot without pane edit rights', deniedDocViewRef, 200);
+  const viewRefDocGatePass = requireSuccess('13f. Project member can read ViewRef doc snapshot without project edit rights', deniedDocViewRef, 200);
   if (!viewRefDocGatePass?.doc?.doc_id) {
     failed = true;
   }

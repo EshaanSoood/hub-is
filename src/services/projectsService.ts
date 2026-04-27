@@ -85,7 +85,7 @@ const toProjectRecord = (project: HubProject): ProjectRecord => {
       : null;
 
   return {
-    id: project.project_id,
+    id: project.space_id,
     name: project.name,
     status: 'active',
     summary: '',
@@ -103,17 +103,17 @@ const toProjectRecord = (project: HubProject): ProjectRecord => {
 
 export const listHubProjects = async (accessToken: string): Promise<IntegrationOutcome<ProjectRecord[]>> => {
   try {
-    const response = await fetch('/api/hub/projects', {
+    const response = await fetch('/api/hub/spaces', {
       method: 'GET',
       headers: authHeaders(accessToken),
     });
-    const result = await parseResponse<HubProject[]>(response, 'projects', 'Project list request failed');
+    const result = await parseResponse<HubProject[]>(response, 'spaces', 'Space list request failed');
     if (result.error || !result.data) {
       return { error: result.error };
     }
     return { data: result.data.map(toProjectRecord) };
   } catch {
-    return { error: 'Unable to reach project service endpoint.' };
+    return { error: 'Unable to reach space service endpoint.' };
   }
 };
 
@@ -126,21 +126,21 @@ export const createHubProject = async (
       name: payload.name,
     };
     if (payload.id && payload.id.trim()) {
-      requestBody.project_id = payload.id.trim();
+      requestBody.space_id = payload.id.trim();
     }
 
-    const response = await fetch('/api/hub/projects', {
+    const response = await fetch('/api/hub/spaces', {
       method: 'POST',
       headers: authHeaders(accessToken),
       body: JSON.stringify(requestBody),
     });
-    const result = await parseResponse<HubProject>(response, 'project', 'Project create request failed');
+    const result = await parseResponse<HubProject>(response, 'space', 'Space create request failed');
     if (result.error || !result.data) {
       return { error: result.error };
     }
     return { data: toProjectRecord(result.data) };
   } catch {
-    return { error: 'Unable to create project.' };
+    return { error: 'Unable to create space.' };
   }
 };
 
@@ -206,7 +206,7 @@ export const listProjectNotes = async (
   try {
     const effectiveQuery = query?.trim() || '';
     const search = effectiveQuery ? `?q=${encodeURIComponent(effectiveQuery)}` : '';
-    const response = await fetch(`/api/hub/projects/${encodeURIComponent(projectId)}/notes${search}`, {
+    const response = await fetch(`/api/hub/spaces/${encodeURIComponent(projectId)}/notes${search}`, {
       method: 'GET',
       headers: authHeaders(accessToken),
     });
@@ -222,7 +222,7 @@ export const createProjectNote = async (
   payload: { title: string; lexicalState: Record<string, unknown> },
 ): Promise<IntegrationOutcome<HubProjectNote>> => {
   try {
-    const response = await fetch(`/api/hub/projects/${encodeURIComponent(projectId)}/notes`, {
+    const response = await fetch(`/api/hub/spaces/${encodeURIComponent(projectId)}/notes`, {
       method: 'POST',
       headers: authHeaders(accessToken),
       body: JSON.stringify(payload),
@@ -247,7 +247,7 @@ export const updateProjectNote = async (
   },
 ): Promise<IntegrationOutcome<HubProjectNote | null>> => {
   try {
-    const response = await fetch(`/api/hub/projects/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}`, {
+    const response = await fetch(`/api/hub/spaces/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}`, {
       method: 'PATCH',
       headers: authHeaders(accessToken),
       body: JSON.stringify(payload),
@@ -271,7 +271,7 @@ export const createProjectNoteSnapshot = async (
 ): Promise<IntegrationOutcome<HubProjectNote>> => {
   try {
     const response = await fetch(
-      `/api/hub/projects/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/snapshots`,
+      `/api/hub/spaces/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/snapshots`,
       {
         method: 'POST',
         headers: authHeaders(accessToken),
@@ -291,7 +291,7 @@ export const createProjectNoteCollaborationSession = async (
 ): Promise<IntegrationOutcome<HubNoteCollaborationSession>> => {
   try {
     const response = await fetch(
-      `/api/hub/projects/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/collab/session`,
+      `/api/hub/spaces/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/collab/session`,
       {
         method: 'POST',
         headers: authHeaders(accessToken),
@@ -316,7 +316,7 @@ export const acknowledgeProjectNoteRevision = async (
 ): Promise<IntegrationOutcome<HubProjectNote>> => {
   try {
     const response = await fetch(
-      `/api/hub/projects/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/views`,
+      `/api/hub/spaces/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/views`,
       {
         method: 'POST',
         headers: authHeaders(accessToken),
@@ -337,7 +337,7 @@ export const notifyProjectNoteUpdated = async (
 ): Promise<IntegrationOutcome<HubNoteUpdateEvent>> => {
   try {
     const response = await fetch(
-      `/api/hub/projects/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/notify`,
+      `/api/hub/spaces/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/notify`,
       {
         method: 'POST',
         headers: authHeaders(accessToken),
@@ -389,7 +389,7 @@ export const listHubSnapshots = async (
 
 export const registerHubSnapshot = async (
   accessToken: string,
-  payload: { scope: 'global' | 'project'; projectId?: string; storageRef: string; note?: string },
+  payload: { scope: 'global' | 'space'; projectId?: string; storageRef: string; note?: string },
 ): Promise<IntegrationOutcome<HubSnapshotRecord>> => {
   try {
     const response = await fetch('/api/hub/snapshots', {

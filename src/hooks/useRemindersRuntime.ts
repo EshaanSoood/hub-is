@@ -19,7 +19,7 @@ interface UseRemindersRuntimeOptions {
   subscribeToLive?: boolean;
   scope?: ListRemindersOptions['scope'];
   projectId?: string;
-  paneId?: string | null;
+  sourceProjectId?: string | null;
   sourceViewId?: string | null;
 }
 
@@ -29,7 +29,7 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
   const subscribeToLive = options?.subscribeToLive ?? true;
   const reminderScope = options?.scope ?? 'personal';
   const projectId = options?.projectId;
-  const paneId = options?.paneId ?? null;
+  const sourceProjectId = options?.sourceProjectId ?? null;
   const sourceViewId = options?.sourceViewId ?? null;
   const [reminders, setReminders] = useState<HubReminderSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,7 +72,7 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
     setError(null);
     try {
       const reminderOptions: ListRemindersOptions | undefined = reminderScope === 'project' && projectId
-        ? { scope: 'project', projectId, paneId }
+        ? { scope: 'project', spaceId: projectId, projectId: sourceProjectId }
         : undefined;
       const data = await listReminders(accessToken, reminderOptions);
       if (mountedRef.current && sequence === refreshSequenceRef.current) {
@@ -87,7 +87,7 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
         setLoading(false);
       }
     }
-  }, [accessToken, paneId, projectId, reminderScope]);
+  }, [accessToken, projectId, sourceProjectId, reminderScope]);
 
   const refreshWithDebounce = useCallback(() => {
     if (reminderRefreshTimerRef.current !== null) {
@@ -111,7 +111,7 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       setLoading(false);
       setError(null);
     }
-  }, [accessToken, paneId, projectId, reminderScope]);
+  }, [accessToken, projectId, sourceProjectId, reminderScope]);
 
   useEffect(() => {
     if (!autoload) {
@@ -169,15 +169,15 @@ export const useRemindersRuntime = (accessToken: string | null, options?: UseRem
       ? {
           ...payload,
           scope: 'project' as const,
-          project_id: projectId,
-          ...(paneId ? { pane_id: paneId } : {}),
+          space_id: projectId,
+          ...(sourceProjectId ? { project_id: sourceProjectId } : {}),
           ...(sourceViewId ? { source_view_id: sourceViewId } : {}),
         }
       : payload;
 
     await createReminder(accessToken, requestPayload);
     await refresh();
-  }, [accessToken, paneId, projectId, refresh, reminderScope, sourceViewId]);
+  }, [accessToken, projectId, sourceProjectId, refresh, reminderScope, sourceViewId]);
 
   return { reminders, loading, error, refresh, dismiss, create };
 };

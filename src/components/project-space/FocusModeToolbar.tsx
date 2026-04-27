@@ -1,14 +1,14 @@
 import { useMemo, useRef } from 'react';
 import { Button, Dialog } from '../primitives';
-import type { PaneModule } from './types';
+import type { ProjectModule } from './types';
 import { cn } from '../../lib/cn';
 
 interface FocusModeToolbarProps {
   visible: boolean;
-  modules: PaneModule[];
+  modules: ProjectModule[];
   activeModuleId: string | null;
   onActiveModuleChange: (moduleId: string | null) => void;
-  renderModuleDialogContent?: (module: PaneModule) => React.ReactNode;
+  renderModuleDialogContent?: (module: ProjectModule) => React.ReactNode;
 }
 
 const moduleIcon = (moduleLabel: string): string =>

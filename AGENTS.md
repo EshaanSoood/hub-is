@@ -15,7 +15,7 @@
   so pivots mostly change composition, not ownership.
 
 - Do not hard-bind movable capabilities to one shell.
-  If a capability may later move between Home, Sidebar, Project Space,
+  If a capability may later move between Home, Sidebar, Space Workspace,
   or overlays, keep it importable unless the task explicitly requires
   tight coupling.
 

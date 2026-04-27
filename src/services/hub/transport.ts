@@ -1,7 +1,7 @@
 import { buildHubAuthHeaders } from '../hubAuthHeaders.ts';
 import { HubEnvelopeUnknownSchema } from './schemas';
 
-import type { HubEnvelope, HubLiveAuthorization, HubRecordDetail, HubRecordSummary, HubSourcePaneContext } from './types.ts';
+import type { HubEnvelope, HubLiveAuthorization, HubRecordDetail, HubRecordSummary, HubSourceProjectContext } from './types.ts';
 
 const authHeaders = (accessToken: string, hasBody = false): Headers => buildHubAuthHeaders(accessToken, hasBody);
 
@@ -16,27 +16,26 @@ export class HubRequestError extends Error {
   }
 }
 
-// Normalize source-pane payloads once so the rest of the client only deals with a value or null.
-export const normalizeSourcePane = (sourcePane: HubSourcePaneContext | null | undefined): HubSourcePaneContext | null => {
-  if (!sourcePane) {
+// Normalize source-project payloads once so the rest of the client only deals with a value or null.
+export const normalizeSourceProject = (sourceProject: HubSourceProjectContext | null | undefined): HubSourceProjectContext | null => {
+  if (!sourceProject) {
     return null;
   }
   return {
-    pane_id: sourcePane.pane_id ?? null,
-    pane_name: sourcePane.pane_name ?? null,
-    doc_id: sourcePane.doc_id ?? null,
-    room_id: sourcePane.room_id ?? null,
+    project_id: sourceProject.project_id ?? null,
+    project_name: sourceProject.project_name ?? null,
+    doc_id: sourceProject.doc_id ?? null,
   };
 };
 
 export const normalizeRecordSummary = (record: HubRecordSummary): HubRecordSummary => ({
   ...record,
-  source_pane: normalizeSourcePane(record.source_pane),
+  source_project: normalizeSourceProject(record.source_project),
 });
 
 export const normalizeRecordDetail = (record: HubRecordDetail): HubRecordDetail => ({
   ...record,
-  source_pane: normalizeSourcePane(record.source_pane),
+  source_project: normalizeSourceProject(record.source_project),
 });
 
 const readHubEnvelopeJson = async (response: Response): Promise<HubEnvelope<unknown>> => {

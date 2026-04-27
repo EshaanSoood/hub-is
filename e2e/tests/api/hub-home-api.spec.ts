@@ -4,8 +4,8 @@ import { HUB_API_BASE_URL, HubApiClient, type HubEnvelope, loadTokenFromLocalEnv
 interface HubHomeTask {
   record_id: string;
   title: string;
-  project_id: string | null;
-  project_name: string | null;
+  space_id: string | null;
+  space_name: string | null;
   task_state: {
     status: string;
     priority: string | null;
@@ -17,8 +17,8 @@ interface HubHomeTask {
 interface HubHomeEvent {
   record_id: string;
   title: string;
-  project_id: string;
-  project_name: string | null;
+  space_id: string;
+  space_name: string | null;
   event_state: {
     start_dt: string;
     end_dt: string;
@@ -30,14 +30,14 @@ interface HubHomeEvent {
 interface HubHomeCapture {
   record_id: string;
   title: string;
-  project_id: string;
+  space_id: string;
   collection_id: string;
   created_at: string;
 }
 
 interface HubHomePayload {
   home: {
-    personal_project_id: string | null;
+    personal_space_id: string | null;
     tasks: HubHomeTask[];
     events: HubHomeEvent[];
     captures: HubHomeCapture[];
@@ -87,7 +87,7 @@ const extractRecordId = (data: unknown): string => {
 
 test.describe('myHub data contract tests', () => {
   let client: HubApiClient;
-  let personalProjectId = '';
+  let personalSpaceId = '';
   const createdRecordIds = new Set<string>();
 
   const getHome = async (): Promise<HubHomePayload['home']> => {
@@ -116,8 +116,8 @@ test.describe('myHub data contract tests', () => {
     client = new HubApiClient(HUB_API_BASE_URL, token);
 
     const home = await getHome();
-    personalProjectId = String(home.personal_project_id || '');
-    expect(personalProjectId).toBeTruthy();
+    personalSpaceId = String(home.personal_space_id || '');
+    expect(personalSpaceId).toBeTruthy();
   });
 
   test.afterEach(async () => {
@@ -133,13 +133,13 @@ test.describe('myHub data contract tests', () => {
     expect(Array.isArray(home.tasks)).toBe(true);
     expect(Array.isArray(home.events)).toBe(true);
     expect(Array.isArray(home.captures)).toBe(true);
-    expect(typeof home.personal_project_id).toBe('string');
+    expect(typeof home.personal_space_id).toBe('string');
 
     for (const task of home.tasks) {
       expect(typeof task.record_id).toBe('string');
       expect(typeof task.title).toBe('string');
-      expect('project_id' in task).toBe(true);
-      expect('project_name' in task).toBe(true);
+      expect('space_id' in task).toBe(true);
+      expect('space_name' in task).toBe(true);
       expect(typeof task.updated_at).toBe('string');
       expect(task.task_state).toBeTruthy();
       expect(typeof task.task_state.status).toBe('string');
@@ -150,8 +150,8 @@ test.describe('myHub data contract tests', () => {
     for (const event of home.events) {
       expect(typeof event.record_id).toBe('string');
       expect(typeof event.title).toBe('string');
-      expect(typeof event.project_id).toBe('string');
-      expect('project_name' in event).toBe(true);
+      expect(typeof event.space_id).toBe('string');
+      expect('space_name' in event).toBe(true);
       expect(typeof event.updated_at).toBe('string');
       expect(event.event_state).toBeTruthy();
       expect(typeof event.event_state.start_dt).toBe('string');
@@ -162,7 +162,7 @@ test.describe('myHub data contract tests', () => {
 
   test('GET /api/hub/home includes tasks from personal project', async () => {
     const createResponse = await client.post('/api/hub/tasks', {
-      project_id: personalProjectId,
+      space_id: personalSpaceId,
       title: uniqueTitle('api-home-personal-task'),
       status: 'todo',
       priority: 'medium',
@@ -178,12 +178,12 @@ test.describe('myHub data contract tests', () => {
 
     const task = await waitForTaskInHome(recordId);
     expect(task).toBeTruthy();
-    expect(task?.project_id).toBe(personalProjectId);
+    expect(task?.space_id).toBe(personalSpaceId);
   });
 
   test('GET /api/hub/home includes both assigned and created tasks', async () => {
     const createResponse = await client.post('/api/hub/tasks', {
-      project_id: personalProjectId,
+      space_id: personalSpaceId,
       title: uniqueTitle('api-home-assigned-created-task'),
       status: 'todo',
       priority: 'high',

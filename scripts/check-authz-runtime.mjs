@@ -112,8 +112,8 @@ expectStatus('GET /api/hub/invites (owner)', ownerInvites, [200, 404]);
 const memberInvites = await requestJson('/api/hub/invites', { token: memberToken });
 expectStatus('GET /api/hub/invites (member)', memberInvites, [403, 404]);
 
-const memberProjects = await requestJson('/api/hub/projects', { token: memberToken });
-const hasProjectsPayload = expectStatus('GET /api/hub/projects (member)', memberProjects, 200);
+const memberProjects = await requestJson('/api/hub/spaces', { token: memberToken });
+const hasProjectsPayload = expectStatus('GET /api/hub/spaces (member)', memberProjects, 200);
 const memberProjectsData = responseData(memberProjects);
 const memberProjectRows = hasProjectsPayload && Array.isArray(memberProjectsData?.projects)
   ? memberProjectsData.projects
@@ -130,13 +130,13 @@ expectCondition(
 );
 
 const memberIntegrations = await requestJson(
-  `/api/hub/projects/${encodedProjectId}/integrations/status`,
+  `/api/hub/spaces/${encodedProjectId}/integrations/status`,
   { token: memberToken },
 );
-expectStatus(`GET /api/hub/projects/${memberProjectId}/integrations/status (member)`, memberIntegrations, [200, 404]);
+expectStatus(`GET /api/hub/spaces/${memberProjectId}/integrations/status (member)`, memberIntegrations, [200, 404]);
 
 if (!otherProjectId) {
-  const ownerProjects = await requestJson('/api/hub/projects', { token: ownerToken });
+  const ownerProjects = await requestJson('/api/hub/spaces', { token: ownerToken });
   const ownerProjectsData = responseData(ownerProjects);
   if (ownerProjects.status === 200 && Array.isArray(ownerProjectsData?.projects)) {
     const memberProjectSet = new Set(memberProjectRows.map((project) => String(project?.project_id || project?.id || '')));
@@ -152,7 +152,7 @@ if (!otherProjectId) {
 
 if (!otherProjectId) {
   const probeId = `authz-runtime-${Date.now().toString(36)}`;
-  const createProbe = await requestJson('/api/hub/projects', {
+  const createProbe = await requestJson('/api/hub/spaces', {
     method: 'POST',
     token: ownerToken,
     body: {
@@ -176,52 +176,52 @@ if (!otherProjectId) {
 if (otherProjectId) {
   const encodedOtherProjectId = encodeURIComponent(otherProjectId);
   const otherProjectIsolation = await requestJson(
-    `/api/hub/projects/${encodedOtherProjectId}/integrations/status`,
+    `/api/hub/spaces/${encodedOtherProjectId}/integrations/status`,
     { token: memberToken },
   );
   expectStatus(
-    `GET /api/hub/projects/${otherProjectId}/integrations/status (member)`,
+    `GET /api/hub/spaces/${otherProjectId}/integrations/status (member)`,
     otherProjectIsolation,
     [403, 404],
   );
 }
 
 const memberOpenProject = await requestJson(
-  `/api/hub/projects/${encodedProjectId}/openproject/work-packages`,
+  `/api/hub/spaces/${encodedProjectId}/openproject/work-packages`,
   { token: memberToken },
 );
 expectStatus(
-  `GET /api/hub/projects/${memberProjectId}/openproject/work-packages (member)`,
+  `GET /api/hub/spaces/${memberProjectId}/openproject/work-packages (member)`,
   memberOpenProject,
   [200, 404, 409],
 );
 
 const nonMemberOpenProject = await requestJson(
-  `/api/hub/projects/${encodedProjectId}/openproject/work-packages`,
+  `/api/hub/spaces/${encodedProjectId}/openproject/work-packages`,
   { token: nonMemberToken },
 );
 expectStatus(
-  `GET /api/hub/projects/${memberProjectId}/openproject/work-packages (non-member)`,
+  `GET /api/hub/spaces/${memberProjectId}/openproject/work-packages (non-member)`,
   nonMemberOpenProject,
   [403, 404],
 );
 
 const memberNextcloud = await requestJson(
-  `/api/hub/projects/${encodedProjectId}/files`,
+  `/api/hub/spaces/${encodedProjectId}/files`,
   { token: memberToken },
 );
 expectStatus(
-  `GET /api/hub/projects/${memberProjectId}/files (member)`,
+  `GET /api/hub/spaces/${memberProjectId}/files (member)`,
   memberNextcloud,
   [200, 409],
 );
 
 const nonMemberNextcloud = await requestJson(
-  `/api/hub/projects/${encodedProjectId}/files`,
+  `/api/hub/spaces/${encodedProjectId}/files`,
   { token: nonMemberToken },
 );
 expectStatus(
-  `GET /api/hub/projects/${memberProjectId}/files (non-member)`,
+  `GET /api/hub/spaces/${memberProjectId}/files (non-member)`,
   nonMemberNextcloud,
   403,
 );

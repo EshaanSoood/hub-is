@@ -1,7 +1,69 @@
 {
-  "base_url": "http://127.0.0.1:3001",
-  "route_count": 72,
+  "base_url": "http://127.0.0.1:43123",
+  "route_count": 86,
   "routes": [
+    {
+      "method": "POST",
+      "path": "/public/bug-reports",
+      "path_pattern": "/public/bug-reports",
+      "status_code": 400,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/public/bugs",
+      "path_pattern": "/public/bugs",
+      "status_code": 200,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": {
+          "bugs": [],
+          "page": {
+            "has_more": "boolean",
+            "limit": "number",
+            "next_cursor": "null"
+          }
+        },
+        "error": "null",
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/public/bug-report-screenshots/placeholder",
+      "path_pattern": "/public/bug-report-screenshots/([^/]+)",
+      "status_code": 404,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "path_pattern": "/api/health",
+      "status_code": 200,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "status": "string",
+        "timestamp": "string",
+        "uptime": "number",
+        "version": "string"
+      }
+    },
     {
       "method": "GET",
       "path": "/api/hub/health",
@@ -10,7 +72,9 @@
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
         "data": {
-          "audience": [],
+          "audience": [
+            "string"
+          ],
           "db_path": "string",
           "issuer": "string",
           "jwks_url": "string",
@@ -26,6 +90,21 @@
       "path": "/api/hub/me",
       "path_pattern": "/api/hub/me",
       "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/dev/bootstrap-auth",
+      "path_pattern": "/api/hub/dev/bootstrap-auth",
+      "status_code": 404,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
         "data": "null",
@@ -128,6 +207,21 @@
     },
     {
       "method": "GET",
+      "path": "/api/hub/module-picker/seed-data",
+      "path_pattern": "/api/hub/module-picker/seed-data",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
       "path": "/api/hub/tasks",
       "path_pattern": "/api/hub/tasks",
       "status_code": 401,
@@ -158,8 +252,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects",
-      "path_pattern": "/api/hub/projects",
+      "path": "/api/hub/reminders",
+      "path_pattern": "/api/hub/reminders",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -173,8 +267,23 @@
     },
     {
       "method": "POST",
-      "path": "/api/hub/projects",
-      "path_pattern": "/api/hub/projects",
+      "path": "/api/hub/reminders",
+      "path_pattern": "/api/hub/reminders",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/reminders/placeholder/dismiss",
+      "path_pattern": "/api/hub/reminders/([^/]+)/dismiss",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -188,6 +297,186 @@
     },
     {
       "method": "GET",
+      "path": "/api/hub/spaces",
+      "path_pattern": "/api/hub/spaces",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/spaces",
+      "path_pattern": "/api/hub/spaces",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/spaces/placeholder",
+      "path_pattern": "/api/hub/spaces/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/hub/spaces/placeholder",
+      "path_pattern": "/api/hub/spaces/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/spaces/placeholder/members",
+      "path_pattern": "/api/hub/spaces/([^/]+)/members",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/spaces/placeholder/members",
+      "path_pattern": "/api/hub/spaces/([^/]+)/members",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/spaces/placeholder/invites",
+      "path_pattern": "/api/hub/spaces/([^/]+)/invites",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/spaces/placeholder/invites/placeholder",
+      "path_pattern": "/api/hub/spaces/([^/]+)/invites/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/hub/spaces/placeholder/members/placeholder",
+      "path_pattern": "/api/hub/spaces/([^/]+)/members/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/spaces/placeholder/projects",
+      "path_pattern": "/api/hub/spaces/([^/]+)/projects",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/spaces/placeholder/projects",
+      "path_pattern": "/api/hub/spaces/([^/]+)/projects",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/spaces/placeholder/tasks",
+      "path_pattern": "/api/hub/spaces/([^/]+)/tasks",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "PATCH",
       "path": "/api/hub/projects/placeholder",
       "path_pattern": "/api/hub/projects/([^/]+)",
       "status_code": 401,
@@ -202,9 +491,9 @@
       }
     },
     {
-      "method": "GET",
-      "path": "/api/hub/projects/placeholder/members",
-      "path_pattern": "/api/hub/projects/([^/]+)/members",
+      "method": "DELETE",
+      "path": "/api/hub/projects/placeholder",
+      "path_pattern": "/api/hub/projects/([^/]+)",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -220,36 +509,6 @@
       "method": "POST",
       "path": "/api/hub/projects/placeholder/members",
       "path_pattern": "/api/hub/projects/([^/]+)/members",
-      "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/api/hub/projects/placeholder/invites",
-      "path_pattern": "/api/hub/projects/([^/]+)/invites",
-      "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/api/hub/projects/placeholder/invites/placeholder",
-      "path_pattern": "/api/hub/projects/([^/]+)/invites/([^/]+)",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -265,111 +524,6 @@
       "method": "DELETE",
       "path": "/api/hub/projects/placeholder/members/placeholder",
       "path_pattern": "/api/hub/projects/([^/]+)/members/([^/]+)",
-      "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/api/hub/projects/placeholder/panes",
-      "path_pattern": "/api/hub/projects/([^/]+)/panes",
-      "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/api/hub/projects/placeholder/panes",
-      "path_pattern": "/api/hub/projects/([^/]+)/panes",
-      "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/api/hub/projects/placeholder/tasks",
-      "path_pattern": "/api/hub/projects/([^/]+)/tasks",
-      "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/hub/panes/placeholder",
-      "path_pattern": "/api/hub/panes/([^/]+)",
-      "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/hub/panes/placeholder",
-      "path_pattern": "/api/hub/panes/([^/]+)",
-      "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/api/hub/panes/placeholder/members",
-      "path_pattern": "/api/hub/panes/([^/]+)/members",
-      "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/hub/panes/placeholder/members/placeholder",
-      "path_pattern": "/api/hub/panes/([^/]+)/members/([^/]+)",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -428,8 +582,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/collections",
-      "path_pattern": "/api/hub/projects/([^/]+)/collections",
+      "path": "/api/hub/spaces/placeholder/collections",
+      "path_pattern": "/api/hub/spaces/([^/]+)/collections",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -443,8 +597,8 @@
     },
     {
       "method": "POST",
-      "path": "/api/hub/projects/placeholder/collections",
-      "path_pattern": "/api/hub/projects/([^/]+)/collections",
+      "path": "/api/hub/spaces/placeholder/collections",
+      "path_pattern": "/api/hub/spaces/([^/]+)/collections",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -488,8 +642,8 @@
     },
     {
       "method": "POST",
-      "path": "/api/hub/projects/placeholder/records",
-      "path_pattern": "/api/hub/projects/([^/]+)/records",
+      "path": "/api/hub/spaces/placeholder/records",
+      "path_pattern": "/api/hub/spaces/([^/]+)/records",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -503,8 +657,38 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/records/search",
-      "path_pattern": "/api/hub/projects/([^/]+)/records/search",
+      "path": "/api/hub/spaces/placeholder/records/search",
+      "path_pattern": "/api/hub/spaces/([^/]+)/records/search",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/records/placeholder/convert",
+      "path_pattern": "/api/hub/records/([^/]+)/convert",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/records/placeholder/subtasks",
+      "path_pattern": "/api/hub/records/([^/]+)/subtasks",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -593,8 +777,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/mentions/search",
-      "path_pattern": "/api/hub/projects/([^/]+)/mentions/search",
+      "path": "/api/hub/spaces/placeholder/mentions/search",
+      "path_pattern": "/api/hub/spaces/([^/]+)/mentions/search",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -608,8 +792,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/backlinks",
-      "path_pattern": "/api/hub/projects/([^/]+)/backlinks",
+      "path": "/api/hub/spaces/placeholder/backlinks",
+      "path_pattern": "/api/hub/spaces/([^/]+)/backlinks",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -623,8 +807,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/views",
-      "path_pattern": "/api/hub/projects/([^/]+)/views",
+      "path": "/api/hub/spaces/placeholder/views",
+      "path_pattern": "/api/hub/spaces/([^/]+)/views",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -638,8 +822,8 @@
     },
     {
       "method": "POST",
-      "path": "/api/hub/projects/placeholder/views",
-      "path_pattern": "/api/hub/projects/([^/]+)/views",
+      "path": "/api/hub/spaces/placeholder/views",
+      "path_pattern": "/api/hub/spaces/([^/]+)/views",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -667,9 +851,9 @@
       }
     },
     {
-      "method": "POST",
-      "path": "/api/hub/projects/placeholder/events/from-nlp",
-      "path_pattern": "/api/hub/projects/([^/]+)/events/from-nlp",
+      "method": "PATCH",
+      "path": "/api/hub/views/placeholder",
+      "path_pattern": "/api/hub/views/([^/]+)",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -683,8 +867,53 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/calendar",
-      "path_pattern": "/api/hub/projects/([^/]+)/calendar",
+      "path": "/api/hub/calendar",
+      "path_pattern": "/api/hub/calendar",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/calendar.ics",
+      "path_pattern": "/api/hub/calendar.ics",
+      "status_code": 400,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/hub/spaces/placeholder/events/from-nlp",
+      "path_pattern": "/api/hub/spaces/([^/]+)/events/from-nlp",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/hub/spaces/placeholder/calendar",
+      "path_pattern": "/api/hub/spaces/([^/]+)/calendar",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -773,8 +1002,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/timeline",
-      "path_pattern": "/api/hub/projects/([^/]+)/timeline",
+      "path": "/api/hub/spaces/placeholder/timeline",
+      "path_pattern": "/api/hub/spaces/([^/]+)/timeline",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -878,8 +1107,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/asset-roots",
-      "path_pattern": "/api/hub/projects/([^/]+)/asset-roots",
+      "path": "/api/hub/spaces/placeholder/asset-roots",
+      "path_pattern": "/api/hub/spaces/([^/]+)/asset-roots",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -893,8 +1122,8 @@
     },
     {
       "method": "POST",
-      "path": "/api/hub/projects/placeholder/asset-roots",
-      "path_pattern": "/api/hub/projects/([^/]+)/asset-roots",
+      "path": "/api/hub/spaces/placeholder/asset-roots",
+      "path_pattern": "/api/hub/spaces/([^/]+)/asset-roots",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -908,8 +1137,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/files",
-      "path_pattern": "/api/hub/projects/([^/]+)/files",
+      "path": "/api/hub/spaces/placeholder/files",
+      "path_pattern": "/api/hub/spaces/([^/]+)/files",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -923,8 +1152,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/assets/list",
-      "path_pattern": "/api/hub/projects/([^/]+)/assets/list",
+      "path": "/api/hub/spaces/placeholder/assets/list",
+      "path_pattern": "/api/hub/spaces/([^/]+)/assets/list",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -938,8 +1167,8 @@
     },
     {
       "method": "POST",
-      "path": "/api/hub/projects/placeholder/assets/upload",
-      "path_pattern": "/api/hub/projects/([^/]+)/assets/upload",
+      "path": "/api/hub/spaces/placeholder/assets/upload",
+      "path_pattern": "/api/hub/spaces/([^/]+)/assets/upload",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -953,8 +1182,8 @@
     },
     {
       "method": "DELETE",
-      "path": "/api/hub/projects/placeholder/assets/delete",
-      "path_pattern": "/api/hub/projects/([^/]+)/assets/delete",
+      "path": "/api/hub/spaces/placeholder/assets/delete",
+      "path_pattern": "/api/hub/spaces/([^/]+)/assets/delete",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -968,8 +1197,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/assets/proxy",
-      "path_pattern": "/api/hub/projects/([^/]+)/assets/proxy",
+      "path": "/api/hub/spaces/placeholder/assets/proxy",
+      "path_pattern": "/api/hub/spaces/([^/]+)/assets/proxy",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -983,8 +1212,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/automation-rules",
-      "path_pattern": "/api/hub/projects/([^/]+)/automation-rules",
+      "path": "/api/hub/spaces/placeholder/automation-rules",
+      "path_pattern": "/api/hub/spaces/([^/]+)/automation-rules",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -998,8 +1227,8 @@
     },
     {
       "method": "POST",
-      "path": "/api/hub/projects/placeholder/automation-rules",
-      "path_pattern": "/api/hub/projects/([^/]+)/automation-rules",
+      "path": "/api/hub/spaces/placeholder/automation-rules",
+      "path_pattern": "/api/hub/spaces/([^/]+)/automation-rules",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -1043,8 +1272,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/projects/placeholder/automation-runs",
-      "path_pattern": "/api/hub/projects/([^/]+)/automation-runs",
+      "path": "/api/hub/spaces/placeholder/automation-runs",
+      "path_pattern": "/api/hub/spaces/([^/]+)/automation-runs",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
@@ -1061,21 +1290,6 @@
       "path": "/api/hub/collab/authorize",
       "path_pattern": "/api/hub/collab/authorize",
       "status_code": 401,
-      "content_type": "application/json; charset=utf-8",
-      "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
-        },
-        "ok": "boolean"
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/api/hub/collab/tickets/consume",
-      "path_pattern": "/api/hub/collab/tickets/consume",
-      "status_code": 400,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
         "data": "null",

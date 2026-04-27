@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const HUB_API_FILE = path.join(__dirname, 'hub-api.mjs');
+const HUB_API_FILE = path.join(__dirname, 'routes', 'requestRouter.mjs');
 const DEFAULT_PORT = Number(process.env.PORT || '3001');
 const DEFAULT_OUT_FILE = path.join(__dirname, 'api-snapshot.json');
 

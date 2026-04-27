@@ -8,11 +8,11 @@ import type { RecordInspectorBodyProps } from './recordInspectorTypes';
 
 export const ReminderRecordInspector = ({
   inspectorRecord,
-  inspectorMutationPane,
-  inspectorMutationPaneCanEdit,
+  inspectorMutationProject,
+  inspectorMutationProjectCanEdit,
   savingValues,
   onSaveRecordField,
-  onOpenSourcePane,
+  onOpenSourceProject,
   ...sharedSectionProps
 }: RecordInspectorBodyProps): ReactElement => {
   const nextReminder = inspectorRecord.capabilities.reminders[0] ?? null;
@@ -39,22 +39,22 @@ export const ReminderRecordInspector = ({
           </div>
         ) : null}
         <div className="mt-2 text-xs text-muted">Active reminders: {inspectorRecord.capabilities.reminders.length}</div>
-        {inspectorRecord.source_pane?.pane_id ? (
+        {inspectorRecord.source_project?.project_id ? (
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-            <span>Origin: {inspectorRecord.source_pane.pane_name || inspectorRecord.source_pane.pane_id}</span>
+            <span>Origin: {inspectorRecord.source_project.project_name || inspectorRecord.source_project.project_id}</span>
             <button
               type="button"
               className="rounded-panel border border-border-muted px-2 py-1 text-xs font-semibold text-primary"
-              onClick={() => onOpenSourcePane?.()}
+              onClick={() => onOpenSourceProject?.()}
             >
               Open source project
             </button>
           </div>
         ) : null}
-        {!inspectorMutationPaneCanEdit ? (
+        {!inspectorMutationProjectCanEdit ? (
           <p className="mt-2 text-xs text-muted">
-            {inspectorMutationPane?.pane_id
-              ? `Opened in read-only project ${inspectorMutationPane.name || inspectorMutationPane.pane_id}.`
+            {inspectorMutationProject?.space_id
+              ? `Opened in read-only project ${inspectorMutationProject.name || inspectorMutationProject.project_id}.`
               : 'Opened outside a project edit context.'}{' '}
             You can review this reminder and add comments, but only project editors can change fields, attachments, or relations.
           </p>
@@ -63,7 +63,7 @@ export const ReminderRecordInspector = ({
           recordId={inspectorRecord.record_id}
           fields={inspectorRecord.schema?.fields}
           values={inspectorRecord.values}
-          canEdit={inspectorMutationPaneCanEdit}
+          canEdit={inspectorMutationProjectCanEdit}
           onSaveRecordField={onSaveRecordField}
         />
         {savingValues ? <p className="mt-2 text-xs text-muted">Saving...</p> : null}
@@ -78,16 +78,16 @@ export const ReminderRecordInspector = ({
         incoming={inspectorRecord.relations.incoming}
         removingRelationId={sharedSectionProps.removingRelationId}
         mutationError={sharedSectionProps.relationMutationError}
-        readOnly={!inspectorMutationPaneCanEdit}
+        readOnly={!inspectorMutationProjectCanEdit}
         onAddRelation={sharedSectionProps.onAddRelation}
         onRemoveRelation={sharedSectionProps.onRemoveRelation}
       />
 
       <RecordInspectorAttachmentsSection
         attachments={inspectorRecord.attachments}
-        panes={sharedSectionProps.panes}
+        projects={sharedSectionProps.projects}
         selectedAttachmentId={sharedSectionProps.selectedAttachmentId}
-        inspectorMutationPaneCanEdit={inspectorMutationPaneCanEdit}
+        inspectorMutationProjectCanEdit={inspectorMutationProjectCanEdit}
         uploadingAttachment={sharedSectionProps.uploadingAttachment}
         setSelectedAttachmentId={sharedSectionProps.setSelectedAttachmentId}
         onRenameAttachment={sharedSectionProps.onRenameInspectorAttachment}

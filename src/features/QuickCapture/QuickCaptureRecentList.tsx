@@ -73,9 +73,9 @@ export const QuickCaptureRecentList = ({
           const assignmentMode = assignmentExpanded ? expandedCaptureAssignment.mode : 'thought';
           const assignmentInteractionDisabled = captureAssignmentSavingId !== null;
           const titleExpanded = expandedHoverCaptureId === capture.record_id;
-          const captureSourceLabel = capture.project_id === personalProjectId
+          const captureSourceLabel = capture.space_id === personalProjectId
             ? 'Home'
-            : visibleProjects.find((project) => project.id === capture.project_id)?.name || 'Space';
+            : visibleProjects.find((project) => project.id === capture.space_id)?.name || 'Space';
 
           return (
             <QuickCaptureCaptureRow

@@ -119,27 +119,27 @@ const createProject = async (
   baseUrl: string,
   accessToken: string,
   name: string,
-): Promise<{ project_id: string }> =>
-  hubRequest<{ project: { project_id: string } }>(baseUrl, accessToken, '/api/hub/projects', {
+): Promise<{ space_id: string }> =>
+  hubRequest<{ space: { space_id: string } }>(baseUrl, accessToken, '/api/hub/spaces', {
     method: 'POST',
     body: JSON.stringify({ name }),
-  }).then((data) => data.project);
+  }).then((data) => data.space);
 
-const createPane = async (
+const createProject = async (
   baseUrl: string,
   accessToken: string,
   projectId: string,
   payload: Record<string, unknown>,
-): Promise<{ pane_id: string }> =>
-  hubRequest<{ pane: { pane_id: string } }>(
+): Promise<{ project_id: string }> =>
+  hubRequest<{ project: { project_id: string } }>(
     baseUrl,
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/panes`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`,
     {
       method: 'POST',
       body: JSON.stringify(payload),
     },
-  ).then((data) => data.pane);
+  ).then((data) => data.project);
 
 const createCollection = async (
   baseUrl: string,
@@ -147,7 +147,7 @@ const createCollection = async (
   projectId: string,
   name: string,
 ): Promise<{ collection_id: string }> =>
-  hubRequest<{ collection_id: string }>(baseUrl, accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/collections`, {
+  hubRequest<{ collection_id: string }>(baseUrl, accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/collections`, {
     method: 'POST',
     body: JSON.stringify({ name }),
   });
@@ -169,7 +169,7 @@ const createView = async (
   projectId: string,
   payload: Record<string, unknown>,
 ): Promise<{ view_id: string }> =>
-  hubRequest<{ view_id: string }>(baseUrl, accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/views`, {
+  hubRequest<{ view_id: string }>(baseUrl, accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/views`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -180,7 +180,7 @@ const createRecord = async (
   projectId: string,
   payload: Record<string, unknown>,
 ): Promise<{ record_id: string }> =>
-  hubRequest<{ record_id: string }>(baseUrl, accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/records`, {
+  hubRequest<{ record_id: string }>(baseUrl, accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/records`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -231,7 +231,7 @@ const main = async (): Promise<void> => {
 
   const session = await loadSessionSummary(apiBaseUrl, ownerToken);
   const project = await createProject(apiBaseUrl, ownerToken, `Local Table Overflow ${stamp}`);
-  const collection = await createCollection(apiBaseUrl, ownerToken, project.project_id, `Overflow Dataset ${stamp}`);
+  const collection = await createCollection(apiBaseUrl, ownerToken, project.space_id, `Overflow Dataset ${stamp}`);
   const statusField = await createField(apiBaseUrl, ownerToken, collection.collection_id, {
     name: 'Status',
     type: 'select',
@@ -244,14 +244,14 @@ const main = async (): Promise<void> => {
     sort_order: 2,
     config: {},
   });
-  const tableView = await createView(apiBaseUrl, ownerToken, project.project_id, {
+  const tableView = await createView(apiBaseUrl, ownerToken, project.space_id, {
     collection_id: collection.collection_id,
     type: 'table',
     name: `Overflow Table ${stamp}`,
     config: { visible_field_ids: [statusField.field_id, notesField.field_id] },
   });
-  const pane = await createPane(apiBaseUrl, ownerToken, project.project_id, {
-    name: `Overflow Pane ${stamp}`,
+  const project = await createWorkProject(apiBaseUrl, ownerToken, project.space_id, {
+    name: `Overflow Project ${stamp}`,
     member_user_ids: [session.userId],
     layout_config: {
       modules_enabled: true,
@@ -273,10 +273,10 @@ const main = async (): Promise<void> => {
 
   for (let index = 0; index < 18; index += 1) {
     const title = index === 0 ? targetTitle : createStressTitle(index, stamp);
-    await createRecord(apiBaseUrl, ownerToken, project.project_id, {
+    await createRecord(apiBaseUrl, ownerToken, project.space_id, {
       collection_id: collection.collection_id,
       title,
-      source_pane_id: pane.pane_id,
+      source_project_id: project.project_id,
       values: {
         [statusField.field_id]: statuses[index % statuses.length],
         [notesField.field_id]: `Overflow notes row ${index + 1}`,
@@ -294,7 +294,7 @@ const main = async (): Promise<void> => {
     });
     const page = await context.newPage();
 
-    await page.goto(`${appBaseUrl}/projects/${project.project_id}/work/${pane.pane_id}`, {
+    await page.goto(`${appBaseUrl}/projects/${project.space_id}/work/${project.project_id}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60_000,
     });
@@ -360,8 +360,8 @@ const main = async (): Promise<void> => {
     const summary = {
       appBaseUrl,
       apiBaseUrl,
+      projectId: project.space_id,
       projectId: project.project_id,
-      paneId: pane.pane_id,
       viewId: tableView.view_id,
       screenshotPath: path.relative(resolveRepoPath(), screenshotPath),
       metrics,

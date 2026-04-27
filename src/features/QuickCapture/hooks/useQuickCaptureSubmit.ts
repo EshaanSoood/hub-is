@@ -85,7 +85,7 @@ export const useQuickCaptureSubmit = ({
             setCaptureError('Personal capture is unavailable right now.');
             return;
           }
-          await createPersonalTask(accessToken, { project_id: personalProjectId, title: trimmed });
+          await createPersonalTask(accessToken, { space_id: personalProjectId, title: trimmed });
           requestHubHomeRefresh();
           await onCaptureComplete();
           setCaptureNotice('Saved');

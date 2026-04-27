@@ -279,7 +279,7 @@ const main = async (): Promise<void> => {
 
   const onProjectApiResponse = async (response: Response): Promise<void> => {
     const url = response.url();
-    if (!url.includes('/api/hub/projects')) {
+    if (!url.includes('/api/hub/spaces')) {
       return;
     }
 

@@ -1,29 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
-import { listPanes } from '../services/hub/panes';
-import type { HubPaneSummary } from '../services/hub/types';
+import { listProjects } from '../services/hub/projects';
+import type { HubProjectSummary } from '../services/hub/types';
 
-interface ProjectPanesState {
+interface ProjectProjectsState {
   error: unknown;
   loading: boolean;
-  panes: HubPaneSummary[];
+  projects: HubProjectSummary[];
   projectId: string | null;
 }
 
-interface UseProjectPanesResult {
+interface UseProjectProjectsResult {
   error: unknown;
   loading: boolean;
-  panes: HubPaneSummary[];
+  projects: HubProjectSummary[];
   refetch: () => void;
 }
 
-export const useProjectPanes = (
+export const useProjectProjects = (
   accessToken: string | null | undefined,
   projectId: string | null,
-): UseProjectPanesResult => {
-  const [state, setState] = useState<ProjectPanesState>({
+): UseProjectProjectsResult => {
+  const [state, setState] = useState<ProjectProjectsState>({
     error: null,
     loading: false,
-    panes: [],
+    projects: [],
     projectId: null,
   });
   const [requestVersion, setRequestVersion] = useState(0);
@@ -48,13 +48,13 @@ export const useProjectPanes = (
 
     let cancelled = false;
 
-    void listPanes(accessToken, projectId)
-      .then((panes) => {
+    void listProjects(accessToken, projectId)
+      .then((projects) => {
         if (!cancelled) {
           setState({
             error: null,
             loading: false,
-            panes,
+            projects,
             projectId,
           });
         }
@@ -78,7 +78,7 @@ export const useProjectPanes = (
   return {
     error: accessToken && projectId && state.projectId === projectId ? state.error : null,
     loading: accessToken && projectId ? state.projectId !== projectId || state.loading : false,
-    panes: accessToken && projectId ? state.panes : [],
+    projects: accessToken && projectId ? state.projects : [],
     refetch,
   };
 };

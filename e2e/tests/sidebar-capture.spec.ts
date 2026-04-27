@@ -86,7 +86,7 @@ test('sidebar Calendar quick-input creates an event that appears without reload'
     await expect(saveButton).toBeEnabled({ timeout: LIVE_TIMEOUT_MS });
     const createRequest = page.waitForResponse(
       (response) =>
-        response.url().includes('/api/hub/projects/')
+        response.url().includes('/api/hub/spaces/')
         && response.url().includes('/events/from-nlp')
         && response.request().method() === 'POST',
       { timeout: LIVE_TIMEOUT_MS },

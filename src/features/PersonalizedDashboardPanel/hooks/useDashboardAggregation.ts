@@ -11,8 +11,8 @@ export const buildTaskItems = (tasks: HubTask[]): HubDashboardItem[] =>
     kind: 'task',
     recordId: task.record_id,
     title: task.title,
-    projectId: task.project_id,
-    projectName: task.project_name,
+    projectId: task.space_id,
+    projectName: task.space_name,
     dueAt: task.task_state.due_at ?? null,
     updatedAt: task.updated_at,
     unread: false,
@@ -28,8 +28,8 @@ const buildEventItems = (events: HubHomeData['events']): HubDashboardItem[] =>
     kind: 'event',
     recordId: event.record_id,
     title: event.title,
-    projectId: event.project_id,
-    projectName: event.project_name,
+    projectId: event.space_id,
+    projectName: event.space_name,
     dueAt: event.event_state.start_dt,
     updatedAt: event.updated_at,
     unread: false,
@@ -79,8 +79,8 @@ export const useDashboardAggregation = ({
       return [{
         id: `event:${event.record_id}`,
         recordId: event.record_id,
-        projectId: event.project_id,
-        projectName: event.project_name,
+        projectId: event.space_id,
+        projectName: event.space_name,
         title: event.title,
         startAtIso: startAt.toISOString(),
         endAtIso: endAt.toISOString(),
@@ -102,8 +102,8 @@ export const useDashboardAggregation = ({
         overdueTasks.push({
           id: `backlog-overdue:${task.record_id}`,
           recordId: task.record_id,
-          projectId: task.project_id,
-          projectName: task.project_name,
+          projectId: task.space_id,
+          projectName: task.space_name,
           title: task.title,
           dueAtIso: dueAt.toISOString(),
           priority: task.task_state.priority,
@@ -118,8 +118,8 @@ export const useDashboardAggregation = ({
         untimedTasks.push({
           id: `backlog-untimed:${task.record_id}`,
           recordId: task.record_id,
-          projectId: task.project_id,
-          projectName: task.project_name,
+          projectId: task.space_id,
+          projectName: task.space_name,
           title: task.title,
           dueAtIso: dueAt.toISOString(),
           priority: task.task_state.priority,
@@ -128,8 +128,8 @@ export const useDashboardAggregation = ({
         timedTasks.push({
           id: `task:${task.record_id}`,
           recordId: task.record_id,
-          projectId: task.project_id,
-          projectName: task.project_name,
+          projectId: task.space_id,
+          projectName: task.space_name,
           title: task.title,
           dueAtIso: dueAt.toISOString(),
           status: task.task_state.status,
@@ -145,13 +145,13 @@ export const useDashboardAggregation = ({
       if (!remindAt) {
         continue;
       }
-      const projectName = projectNameById.get(reminder.project_id) || null;
+      const projectName = projectNameById.get(reminder.space_id) || null;
       if (remindAt < now) {
         missedReminders.push({
           id: `backlog-reminder:${reminder.reminder_id}`,
           reminderId: reminder.reminder_id,
           recordId: reminder.record_id,
-          projectId: reminder.project_id,
+          projectId: reminder.space_id,
           projectName,
           title: reminder.record_title || 'Untitled reminder',
           remindAtIso: remindAt.toISOString(),
@@ -164,7 +164,7 @@ export const useDashboardAggregation = ({
           id: `reminder:${reminder.reminder_id}`,
           reminderId: reminder.reminder_id,
           recordId: reminder.record_id,
-          projectId: reminder.project_id,
+          projectId: reminder.space_id,
           projectName,
           title: reminder.record_title || 'Untitled reminder',
           remindAtIso: remindAt.toISOString(),

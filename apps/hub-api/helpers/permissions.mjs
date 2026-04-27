@@ -1,9 +1,9 @@
 export const createPermissionHelpers = ({
   asText,
   projectMembershipRoleStmt,
-  paneByIdStmt,
-  paneEditorExistsStmt,
-  paneForDocStmt,
+  workProjectByIdStmt,
+  workProjectEditorExistsStmt,
+  workProjectForDocStmt,
 }) => {
   const fieldTypeSet = new Set([
     'text',
@@ -24,7 +24,7 @@ export const createPermissionHelpers = ({
   ]);
   const notificationReasonSet = new Set(notificationReasons);
   const projectPolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage_members']);
-  const panePolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage']);
+  const workProjectPolicyCapabilitySet = new Set(['view', 'comment', 'write', 'manage']);
   const docPolicyCapabilitySet = new Set(['view', 'comment', 'write']);
   const ownerProjectCapabilities = Object.freeze([
     'project.view',
@@ -90,22 +90,22 @@ export const createPermissionHelpers = ({
     };
   };
 
-  const withPanePolicyGate = ({ userId, paneId, requiredCapability }) => {
-    if (!panePolicyCapabilitySet.has(requiredCapability)) {
+  const withWorkProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
+    if (!workProjectPolicyCapabilitySet.has(requiredCapability)) {
       throw new Error(`Unknown project capability: ${requiredCapability}`);
     }
 
-    const pane = paneByIdStmt.get(paneId);
-    if (!pane) {
+    const project = workProjectByIdStmt.get(projectId);
+    if (!project) {
       return { error: { status: 404, code: 'not_found', message: 'Project not found.' } };
     }
 
-    const projectGate = withProjectPolicyGate({ userId, projectId: pane.project_id, requiredCapability: 'view' });
+    const projectGate = withProjectPolicyGate({ userId, projectId: project.space_id, requiredCapability: 'view' });
     if (projectGate.error) {
       return projectGate;
     }
 
-    const isExplicitEditor = Boolean(paneEditorExistsStmt.get(paneId, userId)?.ok);
+    const isExplicitEditor = Boolean(workProjectEditorExistsStmt.get(projectId, userId)?.ok);
     const canWrite = projectGate.is_owner || isExplicitEditor;
     const capabilities = new Set(canWrite ? ['view', 'comment', 'write', 'manage'] : ['view', 'comment']);
     if (!capabilities.has(requiredCapability)) {
@@ -119,9 +119,9 @@ export const createPermissionHelpers = ({
     }
 
     return {
-      pane_id: paneId,
-      project_id: pane.project_id,
-      pane,
+      project_id: projectId,
+      space_id: project.space_id,
+      project,
       is_owner: projectGate.is_owner,
       is_explicit_editor: isExplicitEditor,
       can_edit: canWrite,
@@ -133,21 +133,21 @@ export const createPermissionHelpers = ({
       throw new Error(`Unknown doc capability: ${requiredCapability}`);
     }
 
-    const doc = paneForDocStmt.get(docId);
+    const doc = workProjectForDocStmt.get(docId);
     if (!doc) {
       return { error: { status: 404, code: 'not_found', message: 'Doc not found.' } };
     }
 
-    const paneGate = withPanePolicyGate({
+    const projectGate = withWorkProjectPolicyGate({
       userId,
-      paneId: doc.pane_id,
+      projectId: doc.project_id,
       requiredCapability: requiredCapability === 'write' ? 'write' : 'view',
     });
-    if (paneGate.error) {
-      return paneGate;
+    if (projectGate.error) {
+      return projectGate;
     }
     if (requiredCapability === 'comment') {
-      const commentGate = withPanePolicyGate({ userId, paneId: doc.pane_id, requiredCapability: 'comment' });
+      const commentGate = withWorkProjectPolicyGate({ userId, projectId: doc.project_id, requiredCapability: 'comment' });
       if (commentGate.error) {
         return commentGate;
       }
@@ -155,9 +155,9 @@ export const createPermissionHelpers = ({
 
     return {
       doc_id: doc.doc_id,
-      pane_id: doc.pane_id,
       project_id: doc.project_id,
-      can_edit: paneGate.can_edit,
+      space_id: doc.space_id,
+      can_edit: projectGate.can_edit,
     };
   };
 
@@ -170,9 +170,9 @@ export const createPermissionHelpers = ({
     requiredCapability: 'view',
   });
 
-  const requirePaneMember = (paneId, userId) => withPanePolicyGate({
+  const requireWorkProjectMember = (projectId, userId) => withWorkProjectPolicyGate({
     userId,
-    paneId,
+    projectId,
     requiredCapability: 'view',
   });
 
@@ -190,7 +190,7 @@ export const createPermissionHelpers = ({
     notificationReasons,
     notificationReasonSet,
     projectPolicyCapabilitySet,
-    panePolicyCapabilitySet,
+    workProjectPolicyCapabilitySet,
     docPolicyCapabilitySet,
     ownerProjectCapabilities,
     collaboratorProjectCapabilities,
@@ -200,11 +200,11 @@ export const createPermissionHelpers = ({
     normalizeProjectRole,
     membershipRoleLabel,
     withProjectPolicyGate,
-    withPanePolicyGate,
+    withWorkProjectPolicyGate,
     withDocPolicyGate,
     ensureProjectMembership,
     requireProjectMember,
-    requirePaneMember,
+    requireWorkProjectMember,
     requireDocAccess,
   };
 };

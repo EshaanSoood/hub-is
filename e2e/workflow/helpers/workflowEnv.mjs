@@ -19,8 +19,8 @@ const calendarMode = ['project', 'hub', 'both'].includes(calendarModeRaw) ? cale
 export const workflowConfig = Object.freeze({
   baseUrl: String(process.env.BASE_URL || process.env.HUB_BASE_URL || 'http://127.0.0.1:5173').trim(),
   projectId: String(process.env.PROJECT_ID || '').trim(),
-  paneId: String(process.env.PANE_ID || '').trim(),
-  privatePaneId: String(process.env.PRIVATE_PANE_ID || '').trim(),
+  workProjectId: String(process.env.WORK_PROJECT_ID || '').trim(),
+  privateProjectId: String(process.env.PRIVATE_PROJECT_ID || '').trim(),
   calendarMode,
   modulesEnabled: parseBoolean(process.env.WORKFLOW_MODULES, true),
   invitesEnabled: parseBoolean(process.env.WORKFLOW_INVITES, false),

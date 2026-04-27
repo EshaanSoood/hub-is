@@ -1,19 +1,19 @@
 import { useCallback, useMemo, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
-import type { HubBacklink, HubPaneSummary, HubProject } from '../../../../services/hub/types';
+import type { HubBacklink, HubProjectSummary, HubProject } from '../../../../services/hub/types';
 import { useRecordInspector } from '../../../../hooks/useRecordInspector';
 import { ProjectSpaceInspectorOverlay } from '../ProjectSpaceInspectorOverlay';
 import { getActiveInspectorFocusTarget, readElementRect, resolveInspectorFocusTarget } from '../domFocus';
 import { toBase64 } from '../encoding';
-import { paneCanEditForUser, relationFieldTargetCollectionId } from '../paneModel';
+import { projectCanEditForUser, relationFieldTargetCollectionId } from '../projectModel';
 import type { TimelineEvent, TopLevelProjectTab } from '../types';
 
 interface UseProjectSpaceInspectorRuntimeParams {
   accessToken: string;
   project: HubProject;
-  panes: HubPaneSummary[];
+  projects: HubProjectSummary[];
   activeTab: TopLevelProjectTab;
-  activePaneId: string | null;
+  activeProjectId: string | null;
   sessionUserId: string;
   refreshViewsAndRecords: () => Promise<void>;
   setTimeline: Dispatch<SetStateAction<TimelineEvent[]>>;
@@ -25,16 +25,16 @@ interface UseProjectSpaceInspectorRuntimeParams {
 }
 
 interface UseProjectSpaceInspectorRuntimeResult {
-  openRecordInspector: (recordId: string, options?: { mutationPaneId?: string | null }) => Promise<void>;
+  openRecordInspector: (recordId: string, options?: { mutationProjectId?: string | null }) => Promise<void>;
   recordInspectorOverlayProps: ComponentProps<typeof ProjectSpaceInspectorOverlay>;
 }
 
 export const useProjectSpaceInspectorRuntime = ({
   accessToken,
   project,
-  panes,
+  projects,
   activeTab,
-  activePaneId,
+  activeProjectId,
   sessionUserId,
   refreshViewsAndRecords,
   setTimeline,
@@ -54,8 +54,8 @@ export const useProjectSpaceInspectorRuntime = ({
     inspectorCommentText,
     inspectorError,
     inspectorLoading,
-    inspectorMutationPane,
-    inspectorMutationPaneCanEdit,
+    inspectorMutationProject,
+    inspectorMutationProjectCanEdit,
     inspectorRecord,
     inspectorRecordId,
     inspectorRelationFields,
@@ -78,23 +78,23 @@ export const useProjectSpaceInspectorRuntime = ({
     uploadingAttachment,
   } = useRecordInspector({
     accessToken,
-    projectId: project.project_id,
+    projectId: project.space_id,
     projectName: project.name,
-    panes,
+    projects,
     activeTab,
-    activePaneId,
+    activeProjectId,
     sessionUserId,
     refreshViewsAndRecords,
     setTimeline,
     ensureProjectAssetRoot,
     refreshTrackedProjectFiles,
-    paneCanEditForUser,
+    projectCanEditForUser,
     relationFieldTargetCollectionId,
     toBase64,
   });
 
   const openRecordInspector = useCallback(
-    async (recordId: string, options?: { mutationPaneId?: string | null }) => {
+    async (recordId: string, options?: { mutationProjectId?: string | null }) => {
       inspectorTriggerRef.current = getActiveInspectorFocusTarget();
       setInspectorTriggerRect(readElementRect(inspectorTriggerRef.current));
       await openInspector(recordId, options);
@@ -110,7 +110,7 @@ export const useProjectSpaceInspectorRuntime = ({
   const recordInspectorOverlayProps = useMemo(() => ({
     accessToken,
     project,
-    panes,
+    projects,
     inspectorTriggerRect,
     inspectorTriggerRef,
     prefersReducedMotion,
@@ -118,8 +118,8 @@ export const useProjectSpaceInspectorRuntime = ({
     inspectorError,
     inspectorRecord,
     inspectorRecordId,
-    inspectorMutationPane,
-    inspectorMutationPaneCanEdit,
+    inspectorMutationProject,
+    inspectorMutationProjectCanEdit,
     inspectorRelationFields,
     inspectorBacklinks,
     inspectorBacklinksLoading,
@@ -153,8 +153,8 @@ export const useProjectSpaceInspectorRuntime = ({
     inspectorCommentText,
     inspectorError,
     inspectorLoading,
-    inspectorMutationPane,
-    inspectorMutationPaneCanEdit,
+    inspectorMutationProject,
+    inspectorMutationProjectCanEdit,
     inspectorRecord,
     inspectorRecordId,
     inspectorRelationFields,
@@ -170,7 +170,7 @@ export const useProjectSpaceInspectorRuntime = ({
     onRemoveRelation,
     onRenameInspectorAttachment,
     onSaveRecordField,
-    panes,
+    projects,
     prefersReducedMotion,
     project,
     relationMutationError,

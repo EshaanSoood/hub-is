@@ -11,7 +11,7 @@ interface TaskCreateDialogProps {
   onCreated: () => void;
   accessToken: string;
   projectId: string;
-  sourcePaneId?: string;
+  sourceProjectId?: string;
   projectMembers: Array<{ user_id: string; display_name: string }>;
   parentRecordId?: string | null;
   parentTaskTitle?: string | null;
@@ -78,7 +78,7 @@ export const TaskCreateDialog = ({
   onCreated,
   accessToken,
   projectId,
-  sourcePaneId,
+  sourceProjectId,
   projectMembers,
   parentRecordId = null,
   parentTaskTitle = null,
@@ -242,8 +242,8 @@ export const TaskCreateDialog = ({
       }
 
       await createTask(accessToken, {
-        project_id: effectiveProjectId,
-        ...(sourcePaneId && effectiveProjectId === projectId ? { source_pane_id: sourcePaneId } : {}),
+        space_id: effectiveProjectId,
+        ...(sourceProjectId && effectiveProjectId === projectId ? { source_project_id: sourceProjectId } : {}),
         parent_record_id: parentRecordId || null,
         title: effectiveTitle,
         status: statusValue,

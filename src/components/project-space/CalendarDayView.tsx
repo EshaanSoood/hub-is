@@ -80,9 +80,9 @@ type EventTypeKind = 'event' | 'task' | 'reminder';
 export interface CalendarDayEvent {
   record_id: string;
   title: string;
-  project_id?: string | null;
-  project_name?: string | null;
-  source_pane?: { pane_id: string | null; pane_name: string | null; doc_id: string | null } | null;
+  space_id?: string | null;
+  space_name?: string | null;
+  source_project?: { project_id: string | null; project_name: string | null; doc_id: string | null } | null;
   item_kind?: EventTypeKind;
   event_state: {
     start_dt: string;
@@ -221,8 +221,8 @@ const eventAccentClassName = (kind: EventTypeKind): string => {
 };
 
 const extractProjectLabel = (event: CalendarDayEvent): { projectLabel: string; projectKey: string } => {
-  const projectLabel = event.project_name || event.source_pane?.pane_name || 'Calendar';
-  const projectKey = event.project_id || event.source_pane?.pane_id || projectLabel;
+  const projectLabel = event.space_name || event.source_project?.project_name || 'Calendar';
+  const projectKey = event.space_id || event.source_project?.project_id || projectLabel;
   return { projectLabel, projectKey: projectKey ?? projectLabel };
 };
 

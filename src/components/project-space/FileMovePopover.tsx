@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatedSurface } from '../motion/AnimatedSurface';
 
 interface FileMovePopoverProps {
-  panes: Array<{ id: string; name: string }>;
+  projects: Array<{ id: string; name: string }>;
   currentFileName: string;
-  onSelect: (paneId: string) => void;
+  onSelect: (projectId: string) => void;
   onClose: (options?: { restoreFocus?: boolean }) => void;
 }
 
-export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: FileMovePopoverProps) => {
-  const [pendingPaneId, setPendingPaneId] = useState<string | null>(null);
+export const FileMovePopover = ({ projects, currentFileName, onSelect, onClose }: FileMovePopoverProps) => {
+  const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
   useEffect(() => {
     const focusTarget = popoverRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
     focusTarget?.focus();
-  }, [pendingPaneId]);
+  }, [pendingProjectId]);
 
   return (
     <AnimatedSurface
@@ -61,23 +61,23 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
       transformOrigin="top left"
       className="absolute left-0 top-[calc(100%+4px)] z-[200] min-w-[220px] rounded-panel border border-border-muted bg-surface-elevated p-xs shadow-soft"
     >
-      {pendingPaneId ? (
+      {pendingProjectId ? (
         <div className="space-y-xs p-xs">
           <p className="text-sm text-text">
-            Move to <strong>{panes.find((pane) => pane.id === pendingPaneId)?.name || 'selected project'}</strong>?
+            Move to <strong>{projects.find((project) => project.id === pendingProjectId)?.name || 'selected project'}</strong>?
           </p>
           <div className="flex gap-xs">
             <button
               type="button"
               autoFocus
-              onClick={() => onSelect(pendingPaneId)}
+              onClick={() => onSelect(pendingProjectId)}
               className="interactive interactive-fold flex-1 rounded-control bg-primary px-sm py-xs text-xs font-medium text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               Move
             </button>
             <button
               type="button"
-              onClick={() => setPendingPaneId(null)}
+              onClick={() => setPendingProjectId(null)}
               className="flex-1 rounded-control border border-border-muted px-sm py-xs text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               Cancel
@@ -87,19 +87,19 @@ export const FileMovePopover = ({ panes, currentFileName, onSelect, onClose }: F
       ) : (
         <ul className="space-y-[2px]">
           <li className="px-xs py-[2px] text-[11px] text-muted">Move to project</li>
-          {panes.length === 0 ? (
+          {projects.length === 0 ? (
             <li className="rounded-control px-sm py-xs text-sm text-muted">
               No destination projects available.
             </li>
           ) : (
-            panes.map((pane) => (
-              <li key={pane.id}>
+            projects.map((project) => (
+              <li key={project.id}>
                 <button
                   type="button"
-                  onClick={() => setPendingPaneId(pane.id)}
+                  onClick={() => setPendingProjectId(project.id)}
                   className="block w-full rounded-control px-sm py-xs text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring hover:bg-primary/10"
                 >
-                  {pane.name}
+                  {project.name}
                 </button>
               </li>
             ))

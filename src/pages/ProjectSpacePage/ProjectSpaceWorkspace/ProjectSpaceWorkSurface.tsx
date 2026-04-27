@@ -3,46 +3,46 @@ import { AccessDeniedView } from '../../../components/auth/AccessDeniedView';
 import { WorkspaceDocSurface } from '../../../components/project-space/WorkspaceDocSurface';
 import { InlineNotice } from '../../../components/primitives';
 import { WorkView } from '../../../components/project-space/WorkView';
-import type { HubPaneSummary } from '../../../services/hub/types';
+import type { HubProjectSummary } from '../../../services/hub/types';
 import { ProjectSpaceFocusedViewSection } from './ProjectSpaceFocusedViewSection';
-import { ProjectSpaceWorkPaneChrome } from './ProjectSpaceWorkPaneChrome';
+import { ProjectSpaceWorkProjectChrome } from './ProjectSpaceWorkProjectChrome';
 
-type PaneChromeProps = ComponentProps<typeof ProjectSpaceWorkPaneChrome>;
+type ProjectChromeProps = ComponentProps<typeof ProjectSpaceWorkProjectChrome>;
 type FocusedViewProps = ComponentProps<typeof ProjectSpaceFocusedViewSection>;
 type WorkViewProps = ComponentProps<typeof WorkView>;
 type WorkspaceDocProps = ComponentProps<typeof WorkspaceDocSurface>;
 
 export interface ProjectSpaceWorkSurfaceProps {
-  paneId?: string;
-  hasRequestedPane: boolean;
-  activePane: HubPaneSummary | null;
-  activePaneCanEdit: boolean;
+  projectId?: string;
+  hasRequestedProject: boolean;
+  activeProject: HubProjectSummary | null;
+  activeProjectCanEdit: boolean;
   modulesEnabled: boolean;
   workLayoutId?: string;
   recordsError: string | null;
-  paneChromeProps: PaneChromeProps;
+  projectChromeProps: ProjectChromeProps;
   focusedViewProps: FocusedViewProps;
-  workViewProps: Omit<WorkViewProps, 'layoutId' | 'pane' | 'canEditPane' | 'modulesEnabled' | 'showWorkspaceDocPlaceholder'>;
+  workViewProps: Omit<WorkViewProps, 'layoutId' | 'project' | 'canEditProject' | 'modulesEnabled' | 'showWorkspaceDocPlaceholder'>;
   workspaceDocProps: WorkspaceDocProps;
 }
 
 export const ProjectSpaceWorkSurface = ({
-  paneId,
-  hasRequestedPane,
-  activePane,
-  activePaneCanEdit,
+  projectId,
+  hasRequestedProject,
+  activeProject,
+  activeProjectCanEdit,
   modulesEnabled,
   workLayoutId,
   recordsError,
-  paneChromeProps,
+  projectChromeProps,
   focusedViewProps,
   workViewProps,
   workspaceDocProps,
 }: ProjectSpaceWorkSurfaceProps): ReactElement => (
   <section className="space-y-4">
-    <ProjectSpaceWorkPaneChrome {...paneChromeProps} />
+    <ProjectSpaceWorkProjectChrome {...projectChromeProps} />
 
-    {paneId && !hasRequestedPane ? (
+    {projectId && !hasRequestedProject ? (
       <AccessDeniedView message="Project not found in this space." />
     ) : (
       <>
@@ -51,8 +51,8 @@ export const ProjectSpaceWorkSurface = ({
         <WorkView
           {...workViewProps}
           layoutId={workLayoutId}
-          pane={activePane}
-          canEditPane={activePaneCanEdit}
+          project={activeProject}
+          canEditProject={activeProjectCanEdit}
           modulesEnabled={modulesEnabled}
           showWorkspaceDocPlaceholder={false}
         />

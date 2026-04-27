@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { createProjectInvite } from '../services/hub/projects';
+import { createSpaceInvite } from '../services/hub/spaces';
 import type { HubProjectMember } from '../services/hub/types';
 
 interface UseProjectMembersParams {
@@ -49,7 +49,7 @@ export const useProjectMembers = ({
       setIsSubmittingInvite(true);
 
       try {
-        await createProjectInvite(accessToken, projectId, {
+        await createSpaceInvite(accessToken, projectId, {
           email,
           role: 'member',
         });

@@ -1,5 +1,5 @@
 import { buildProjectWorkHref } from '../../lib/hubRoutes';
-import type { RecentPanePlaceInput, RecentPlaceEntry, RecentPlaceKind } from './types';
+import type { RecentProjectPlaceInput, RecentPlaceEntry, RecentPlaceKind } from './types';
 
 const RECENT_PLACES_STORAGE_KEY = 'hub:sidebar:recent-places';
 const RECENT_PLACES_UPDATED_EVENT = 'hub:recent-places-updated';
@@ -48,7 +48,7 @@ const recentPlaceSort = (left: RecentPlaceEntry, right: RecentPlaceEntry): numbe
 };
 
 const isRecentPlaceKind = (value: unknown): value is RecentPlaceKind =>
-  value === 'pane' || value === 'space';
+  value === 'project' || value === 'space';
 
 const sanitizeRecentPlaceEntry = (value: unknown): RecentPlaceEntry | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -61,10 +61,10 @@ const sanitizeRecentPlaceEntry = (value: unknown): RecentPlaceEntry | null => {
     || !isRecentPlaceKind(candidate.kind)
     || typeof candidate.spaceId !== 'string'
     || typeof candidate.spaceName !== 'string'
-    || typeof candidate.paneName !== 'string'
+    || typeof candidate.projectName !== 'string'
     || typeof candidate.href !== 'string'
     || typeof candidate.lastVisitedAt !== 'string'
-    || (candidate.paneId !== null && typeof candidate.paneId !== 'string')
+    || (candidate.projectId !== null && typeof candidate.projectId !== 'string')
     || (candidate.lastContributedAt !== null && typeof candidate.lastContributedAt !== 'string')
     || (candidate.lastContributionKind !== null && typeof candidate.lastContributionKind !== 'string')
     || typeof candidate.visitCount !== 'number'
@@ -77,7 +77,7 @@ const sanitizeRecentPlaceEntry = (value: unknown): RecentPlaceEntry | null => {
     return null;
   }
 
-  if (candidate.kind === 'pane' && (candidate.paneId === null || !candidate.paneName.trim())) {
+  if (candidate.kind === 'project' && (candidate.projectId === null || !candidate.projectName.trim())) {
     return null;
   }
 
@@ -89,8 +89,8 @@ const sanitizeRecentPlaceEntry = (value: unknown): RecentPlaceEntry | null => {
     lastContributedAt: candidate.lastContributedAt,
     lastContributionKind: candidate.lastContributionKind,
     lastVisitedAt: candidate.lastVisitedAt,
-    paneId: candidate.paneId,
-    paneName: candidate.paneName,
+    projectId: candidate.projectId,
+    projectName: candidate.projectName,
     spaceId: candidate.spaceId,
     spaceName: candidate.spaceName,
     visitCount: Math.max(0, Math.floor(candidate.visitCount)),
@@ -126,10 +126,10 @@ const writeRecentPlaces = (entries: RecentPlaceEntry[]) => {
   }
 };
 
-const panePlaceKey = (spaceId: string, paneId: string): string => `pane:${spaceId}:${paneId}`;
+const projectPlaceKey = (spaceId: string, projectId: string): string => `project:${spaceId}:${projectId}`;
 
-const paneHref = (input: RecentPanePlaceInput): string =>
-  input.href ?? buildProjectWorkHref(input.spaceId, input.paneId);
+const projectHref = (input: RecentProjectPlaceInput): string =>
+  input.href ?? buildProjectWorkHref(input.spaceId, input.projectId);
 
 const upsertRecentPlace = (
   currentEntries: RecentPlaceEntry[],
@@ -180,47 +180,47 @@ export const subscribeRecentPlaces = (callback: () => void): (() => void) => {
   };
 };
 
-export const recordRecentPaneVisit = (input: RecentPanePlaceInput) => {
+export const recordRecentProjectVisit = (input: RecentProjectPlaceInput) => {
   const nowIso = nextRecentPlaceTimestamp();
   const currentEntries = readRecentPlaces();
-  const key = panePlaceKey(input.spaceId, input.paneId);
+  const key = projectPlaceKey(input.spaceId, input.projectId);
   const existing = currentEntries.find((entry) => entry.key === key) || null;
 
   writeRecentPlaces(upsertRecentPlace(currentEntries, {
     contributionCount: existing?.contributionCount ?? 0,
-    href: paneHref(input),
+    href: projectHref(input),
     key,
-    kind: 'pane',
+    kind: 'project',
     lastContributedAt: existing?.lastContributedAt ?? null,
     lastContributionKind: existing?.lastContributionKind ?? null,
     lastVisitedAt: nowIso,
-    paneId: input.paneId,
-    paneName: input.paneName,
+    projectId: input.projectId,
+    projectName: input.projectName,
     spaceId: input.spaceId,
     spaceName: input.spaceName,
     visitCount: (existing?.visitCount ?? 0) + 1,
   }));
 };
 
-export const recordRecentPaneContribution = (
-  input: RecentPanePlaceInput,
+export const recordRecentProjectContribution = (
+  input: RecentProjectPlaceInput,
   contributionKind: string,
 ) => {
   const nowIso = nextRecentPlaceTimestamp();
   const currentEntries = readRecentPlaces();
-  const key = panePlaceKey(input.spaceId, input.paneId);
+  const key = projectPlaceKey(input.spaceId, input.projectId);
   const existing = currentEntries.find((entry) => entry.key === key) || null;
 
   writeRecentPlaces(upsertRecentPlace(currentEntries, {
     contributionCount: (existing?.contributionCount ?? 0) + 1,
-    href: paneHref(input),
+    href: projectHref(input),
     key,
-    kind: 'pane',
+    kind: 'project',
     lastContributedAt: nowIso,
     lastContributionKind: contributionKind,
     lastVisitedAt: nowIso,
-    paneId: input.paneId,
-    paneName: input.paneName,
+    projectId: input.projectId,
+    projectName: input.projectName,
     spaceId: input.spaceId,
     spaceName: input.spaceName,
     visitCount: (existing?.visitCount ?? 0) + 1,

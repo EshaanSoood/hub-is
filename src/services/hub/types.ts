@@ -3,8 +3,8 @@ import type {
   HubRecordDetail as SharedHubRecordDetail,
   HomeCaptureSummary,
   NotificationSummary,
-  ProjectSummary,
-  SourcePaneContext,
+  SpaceSummary,
+  SourceProjectContext,
   TaskPage,
   TaskSummary,
 } from '../../shared/api-types';
@@ -20,7 +20,8 @@ export interface HubEnvelope<T> {
   error: HubErrorPayload | null;
 }
 
-export type HubProject = ProjectSummary;
+export type HubSpace = SpaceSummary;
+export type HubProject = HubSpace;
 
 export interface HubUserSummary {
   user_id: string;
@@ -39,7 +40,7 @@ export interface HubProjectMember {
 
 export interface HubProjectInvite {
   invite_request_id: string;
-  project_id: string;
+  space_id: string;
   email: string;
   role: string;
   requested_by_user_id: string;
@@ -51,9 +52,9 @@ export interface HubProjectInvite {
   updated_at: string;
 }
 
-export interface HubPaneSummary {
-  pane_id: string;
+export interface HubProjectSummary {
   project_id: string;
+  space_id: string;
   name: string;
   sort_order: number;
   position: number | null;
@@ -64,7 +65,7 @@ export interface HubPaneSummary {
   can_edit?: boolean;
 }
 
-export type HubSourcePaneContext = SourcePaneContext;
+export type HubSourceProjectContext = SourceProjectContext;
 
 export interface HubLiveAuthorization {
   user_id: string;
@@ -76,7 +77,7 @@ export interface HubLiveAuthorization {
 
 export interface HubCollection {
   collection_id: string;
-  project_id: string;
+  space_id: string;
   name: string;
   icon: string | null;
   color: string | null;
@@ -95,7 +96,7 @@ export interface HubCollectionField {
 
 export interface HubView {
   view_id: string;
-  project_id: string;
+  space_id: string;
   collection_id: string;
   type: string;
   name: string;
@@ -125,8 +126,10 @@ export interface HubBacklink {
   context: Record<string, unknown> | null;
   source: {
     doc_id: string | null;
-    pane_id: string | null;
-    pane_name: string | null;
+    project_id: string | null;
+    project_name: string | null;
+    source_project_id?: string | null;
+    source_project_name?: string | null;
     node_key: string | null;
     comment_target_entity_type: string | null;
     comment_target_entity_id: string | null;
@@ -136,7 +139,7 @@ export interface HubBacklink {
 
 export interface HubMaterializedMention {
   mention_id: string;
-  project_id: string;
+  space_id: string;
   source_entity_type: string;
   source_entity_id: string;
   target_entity_type: string;
@@ -150,7 +153,7 @@ export interface HubRecordSummary {
   title: string;
   fields: Record<string, unknown>;
   updated_at: string;
-  source_pane: HubSourcePaneContext | null;
+  source_project: HubSourceProjectContext | null;
 }
 
 export type HubRecordDetail = SharedHubRecordDetail;
@@ -165,7 +168,7 @@ export interface HubRelationSearchRecord {
 
 export interface HubTrackedFile {
   file_id: string;
-  project_id: string;
+  space_id: string;
   asset_root_id: string;
   provider: string;
   asset_path: string;
@@ -175,8 +178,8 @@ export interface HubTrackedFile {
   size_bytes: number;
   created_by: string;
   created_at: string;
-  scope: 'project' | 'pane';
-  pane_id: string | null;
+  scope: 'space' | 'project';
+  project_id: string | null;
   metadata: Record<string, unknown>;
   proxy_url: string;
 }

@@ -1,10 +1,9 @@
-import type { PaneLateralSource } from '../components/motion/hubMotion';
+import type { ProjectLateralSource } from '../components/motion/hubMotion';
 
 export interface HubMotionState {
   hubAnnouncement?: string;
   hubProjectName?: string;
-  hubPaneName?: string;
-  hubPaneSource?: PaneLateralSource;
+  hubProjectSource?: ProjectLateralSource;
 }
 
 export const withHubMotionState = (state: unknown, motion: HubMotionState): HubMotionState => {

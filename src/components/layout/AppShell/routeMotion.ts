@@ -1,23 +1,23 @@
 import type { NavigationType } from 'react-router-dom';
 import type { MotionDirection } from '../../../styles/motion';
 import { motionDirection } from '../../../styles/motion';
-import type { PaneLateralSource } from '../../motion/hubMotion';
-import { paneDirectionFromSource } from '../../motion/hubMotion';
+import type { ProjectLateralSource } from '../../motion/hubMotion';
+import { projectDirectionFromSource } from '../../motion/hubMotion';
 import type { HubMotionState } from '../../../lib/hubMotionState';
 
 export interface HubRouteDescriptor {
   pathname: string;
-  layer: 'myhub' | 'project' | 'pane' | 'other';
+  layer: 'myhub' | 'project' | 'work-project' | 'other';
   rank: 0 | 1 | 2 | 3;
   projectId: string | null;
-  paneId: string | null;
+  workProjectId: string | null;
 }
 
 export interface RouteTransitionDecision {
   isBack: boolean;
   animation: 'fade' | 'fade-through' | 'shared-axis-x';
-  paneSource: PaneLateralSource;
-  paneDirection: MotionDirection;
+  projectSource: ProjectLateralSource;
+  projectDirection: MotionDirection;
   announcement: string;
   descriptor: HubRouteDescriptor;
 }
@@ -39,19 +39,19 @@ export const parseHubRouteDescriptor = (pathname: string): HubRouteDescriptor =>
       pathname,
       layer: 'myhub',
       rank: 0,
+      workProjectId: null,
       projectId: null,
-      paneId: null,
     };
   }
 
-  const paneMatch = pathname.match(/^\/projects\/([^/]+)\/work\/([^/]+)$/);
-  if (paneMatch) {
+  const workProjectMatch = pathname.match(/^\/projects\/([^/]+)\/work\/([^/]+)$/);
+  if (workProjectMatch) {
     return {
       pathname,
-      layer: 'pane',
+      layer: 'work-project',
       rank: 2,
-      projectId: decodeSegment(paneMatch[1]),
-      paneId: decodeSegment(paneMatch[2]),
+      projectId: decodeSegment(workProjectMatch[1]),
+      workProjectId: decodeSegment(workProjectMatch[2]),
     };
   }
 
@@ -62,7 +62,7 @@ export const parseHubRouteDescriptor = (pathname: string): HubRouteDescriptor =>
       layer: 'project',
       rank: 1,
       projectId: decodeSegment(projectMatch[1]),
-      paneId: null,
+      workProjectId: null,
     };
   }
 
@@ -70,8 +70,8 @@ export const parseHubRouteDescriptor = (pathname: string): HubRouteDescriptor =>
     pathname,
     layer: 'other',
     rank: 3,
+    workProjectId: null,
     projectId: null,
-    paneId: null,
   };
 };
 
@@ -83,13 +83,12 @@ const readLocationMotionState = (value: unknown): HubMotionState => {
   return {
     hubAnnouncement: typeof state.hubAnnouncement === 'string' ? state.hubAnnouncement : undefined,
     hubProjectName: typeof state.hubProjectName === 'string' ? state.hubProjectName : undefined,
-    hubPaneName: typeof state.hubPaneName === 'string' ? state.hubPaneName : undefined,
-    hubPaneSource:
-      state.hubPaneSource === 'click'
-      || state.hubPaneSource === 'digit'
-      || state.hubPaneSource === 'arrow-left'
-      || state.hubPaneSource === 'arrow-right'
-        ? state.hubPaneSource
+    hubProjectSource:
+      state.hubProjectSource === 'click'
+      || state.hubProjectSource === 'digit'
+      || state.hubProjectSource === 'arrow-left'
+      || state.hubProjectSource === 'arrow-right'
+        ? state.hubProjectSource
         : undefined,
   };
 };
@@ -106,7 +105,7 @@ const isPathPrefix = (shortPath: string, longPath: string): boolean => {
   return shortParts.every((segment, index) => longParts[index] === segment);
 };
 
-const reversePaneSource = (source: PaneLateralSource): PaneLateralSource => {
+const reverseProjectSource = (source: ProjectLateralSource): ProjectLateralSource => {
   if (source === 'arrow-right') {
     return 'arrow-left';
   }
@@ -124,12 +123,8 @@ const resolveProjectName = (
   return state.hubProjectName || getProjectName(descriptor.projectId) || 'Space';
 };
 
-const resolvePaneName = (
-  descriptor: HubRouteDescriptor,
-  state: HubMotionState,
-): string => {
-  return state.hubPaneName || descriptor.paneId || 'Project';
-};
+const resolveWorkProjectName = (descriptor: HubRouteDescriptor, state: HubMotionState): string =>
+  state.hubProjectName || descriptor.workProjectId || 'Project';
 
 export const decideRouteTransition = ({
   currentPathname,
@@ -153,8 +148,8 @@ export const decideRouteTransition = ({
     return {
       isBack: false,
       animation: 'fade',
-      paneSource: 'click',
-      paneDirection: motionDirection.none,
+      projectSource: 'click',
+      projectDirection: motionDirection.none,
       announcement: currentMotionState.hubAnnouncement || '',
       descriptor,
     };
@@ -167,40 +162,42 @@ export const decideRouteTransition = ({
   const prefixBackPush = navigationType === 'PUSH' && isPathPrefix(currentPathname, previousPathname);
   const isBack = navigationType === 'POP' || shallowerHierarchyPush || prefixBackPush;
 
-  let paneSource: PaneLateralSource = currentMotionState.hubPaneSource || 'click';
-  if (isBack && previousMotionState.hubPaneSource) {
-    paneSource = reversePaneSource(previousMotionState.hubPaneSource);
+  let projectSource: ProjectLateralSource = currentMotionState.hubProjectSource || 'click';
+  if (isBack && previousMotionState.hubProjectSource) {
+    projectSource = reverseProjectSource(previousMotionState.hubProjectSource);
   }
 
   let announcement = currentMotionState.hubAnnouncement || '';
 
   const isMyHubToProject = previousDescriptor.layer === 'myhub' && descriptor.layer === 'project';
-  const isProjectToPane = previousDescriptor.layer === 'project' && descriptor.layer === 'pane';
-  const isPaneToPane =
-    previousDescriptor.layer === 'pane'
-    && descriptor.layer === 'pane'
+  const isProjectToWorkProject =
+    previousDescriptor.layer === 'project'
+    && descriptor.layer === 'work-project';
+  const isWorkProjectToWorkProject =
+    previousDescriptor.layer === 'work-project'
+    && descriptor.layer === 'work-project'
     && previousDescriptor.projectId === descriptor.projectId
-    && previousDescriptor.paneId !== descriptor.paneId;
+    && previousDescriptor.workProjectId !== descriptor.workProjectId;
   const isProjectToMyHubBack = previousDescriptor.layer === 'project' && descriptor.layer === 'myhub' && isBack;
-  const isPaneToProjectBack = previousDescriptor.layer === 'pane' && descriptor.layer === 'project' && isBack;
+  const isWorkProjectToProjectBack = previousDescriptor.layer === 'work-project' && descriptor.layer === 'project' && isBack;
 
   if (!announcement) {
     if (isMyHubToProject) {
       announcement = `Entered ${resolveProjectName(descriptor, currentMotionState, getProjectName)}`;
-    } else if (isProjectToPane) {
-      announcement = `Opened ${resolvePaneName(descriptor, currentMotionState)}`;
-    } else if (isPaneToPane) {
-      announcement = `Switched to ${resolvePaneName(descriptor, currentMotionState)}`;
+    } else if (isProjectToWorkProject) {
+      announcement = `Opened ${resolveWorkProjectName(descriptor, currentMotionState)}`;
+    } else if (isWorkProjectToWorkProject) {
+      announcement = `Switched to ${resolveWorkProjectName(descriptor, currentMotionState)}`;
     } else if (isProjectToMyHubBack) {
       announcement = 'Back to Home';
-    } else if (isPaneToProjectBack) {
+    } else if (isWorkProjectToProjectBack) {
       announcement = `Back to ${resolveProjectName(descriptor, currentMotionState, getProjectName)}`;
     }
   }
 
-  const paneDirection = paneDirectionFromSource(paneSource);
-  const animation = isPaneToPane
-    ? paneDirection === motionDirection.none
+  const projectDirection = projectDirectionFromSource(projectSource);
+  const animation = isWorkProjectToWorkProject
+    ? projectDirection === motionDirection.none
       ? 'fade-through'
       : 'shared-axis-x'
     : 'fade';
@@ -208,8 +205,8 @@ export const decideRouteTransition = ({
   return {
     isBack,
     animation,
-    paneSource,
-    paneDirection,
+    projectSource,
+    projectDirection,
     announcement,
     descriptor,
   };

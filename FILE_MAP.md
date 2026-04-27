@@ -31,19 +31,19 @@ apps/hub-api/lib/requestContext.mjs — Applies per-request context including ID
 
 ## apps/hub-api/routes
 Route handler modules for Hub API resources and request policy enforcement.
-apps/hub-api/routes/automation.mjs — Handles GET/POST/PATCH/DELETE automation routes for /api/hub/projects/:id/automation-* and rules/:id.
+apps/hub-api/routes/automation.mjs — Handles GET/POST/PATCH/DELETE automation routes for /api/hub/spaces/:id/automation-* and rules/:id.
 apps/hub-api/routes/chat.mjs — Handles POST /api/hub/chat/provision and GET/POST/DELETE /api/hub/chat/snapshots for chat provisioning/history.
-apps/hub-api/routes/collections.mjs — Handles GET/POST/PATCH/DELETE collection/record APIs under /api/hub/projects/:id and /api/hub/records/:id.
+apps/hub-api/routes/collections.mjs — Handles GET/POST/PATCH/DELETE collection/record APIs under /api/hub/spaces/:id and /api/hub/records/:id.
 apps/hub-api/routes/docs.mjs — Handles GET/PUT /api/hub/docs/:id plus POST comment/collab routes under /api/hub/comments and /api/hub/collab/*.
-apps/hub-api/routes/files.mjs — Handles GET/POST/DELETE asset/file routes under /api/hub/projects/:id/* plus POST /api/hub/files/upload.
+apps/hub-api/routes/files.mjs — Handles GET/POST/DELETE asset/file routes under /api/hub/spaces/:id/* plus POST /api/hub/files/upload.
 apps/hub-api/routes/notifications.mjs — Handles GET /api/hub/notifications, POST /api/hub/notifications/:id/read, and GET /api/hub/live/authorize.
-apps/hub-api/routes/panes.mjs — Handles GET/POST /api/hub/projects/:id/panes and PATCH/DELETE /api/hub/panes/:id with member updates.
-apps/hub-api/routes/projects.mjs — Handles GET/POST /api/hub/projects, GET /api/hub/projects/:id, and member/invite management routes.
+apps/hub-api/routes/projects.mjs — Handles GET/POST /api/hub/spaces/:id/projects and PATCH/DELETE /api/hub/projects/:id with member updates.
+apps/hub-api/routes/projects.mjs — Handles GET/POST /api/hub/spaces, GET /api/hub/spaces/:id, and member/invite management routes.
 apps/hub-api/routes/reminders.mjs — Handles GET/POST /api/hub/reminders and POST /api/hub/reminders/:id/dismiss for reminder lifecycle.
-apps/hub-api/routes/search.mjs — Handles GET /api/hub/search; executes global search across records, projects, and panes.
-apps/hub-api/routes/tasks.mjs — Handles GET /api/hub/home, GET/POST /api/hub/tasks, and GET /api/hub/projects/:id/tasks task feeds.
+apps/hub-api/routes/search.mjs — Handles GET /api/hub/search; executes global search across records, spaces, and projects.
+apps/hub-api/routes/tasks.mjs — Handles GET /api/hub/home, GET/POST /api/hub/tasks, and GET /api/hub/spaces/:id/tasks task feeds.
 apps/hub-api/routes/users.mjs — Handles GET /api/hub/me to return authenticated session and user identity metadata.
-apps/hub-api/routes/views.mjs — Handles view APIs: GET/POST /api/hub/projects/:id/views, POST /api/hub/views/query, and calendar routes.
+apps/hub-api/routes/views.mjs — Handles view APIs: GET/POST /api/hub/spaces/:id/views, POST /api/hub/views/query, and calendar routes.
 
 ## apps/hub-collab
 apps/hub-collab/collab-server.mjs — WebSocket collaboration server handling Yjs doc sessions, sync, awareness, and persistence.
@@ -169,9 +169,9 @@ src/components/project-space/ModuleLensControl.tsx — Renders module lens contr
 src/components/project-space/ModuleSettingsPopover.tsx — Renders module settings popover.
 src/components/project-space/OverviewHeader.tsx — Renders overview header UI; uses state, memoized data.
 src/components/project-space/OverviewView.tsx — Renders overview view UI; uses state, memoized data, refs.
-src/components/project-space/PaneHeaderControls.tsx — Renders pane header controls UI; uses state, memoized data.
-src/components/project-space/PaneSwitcher.tsx — Renders pane switcher UI; uses state, memoized data, refs.
-src/components/project-space/PinnedPanesTabs.tsx — Renders pinned panes tabs tab.
+src/components/project-space/ProjectHeaderControls.tsx — Renders project header controls UI; uses state, memoized data.
+src/components/project-space/ProjectSwitcher.tsx — Renders project switcher UI; uses state, memoized data, refs.
+src/components/project-space/PinnedProjectsTabs.tsx — Renders pinned projects tabs.
 src/components/project-space/ProjectSpaceDialogPrimitives.ts — Exports Dialog, DialogClose, DialogContent for project space dialog primitives; used by ProjectSpacePage.
 src/components/project-space/RelationPicker.tsx — Renders relation picker UI; uses state, memoized data, effects, refs, useId.
 src/components/project-space/RelationRow.tsx — Renders relation row UI.
@@ -222,7 +222,7 @@ src/components/ui/tooltip.tsx — Renders tooltip provider UI.
 ## src/context
 src/context/ActivityContext.tsx — Renders activity provider context provider; uses state, memoized data, useActivity.
 src/context/AuthzContext.tsx — Renders authz provider context provider; uses state, memoized data, effects, useAuthz.
-src/context/ProjectsContext.tsx — Renders projects provider context provider; uses state, memoized data, effects, useAuthz.
+src/context/ProjectsContext.tsx — Renders spaces provider context provider; uses state, memoized data, effects, useAuthz.
 src/context/SmartWakeContext.tsx — Renders smart wake provider context provider; uses state, memoized data, effects, refs, useSmartWakeContext.
 
 ## src/data
@@ -249,7 +249,7 @@ Custom React hooks coordinating app runtime state, server sync, and project-spac
 src/hooks/useAutomationRuntime.ts — Custom hook useAutomationRuntime orchestrating use automation runtime state and side-effect flows.
 src/hooks/useCalendarRuntime.ts — Custom hook useCalendarRuntime orchestrating use calendar runtime state and side-effect flows.
 src/hooks/useLiveRegion.ts — Custom hook useLiveRegion orchestrating use live region state and side-effect flows.
-src/hooks/usePaneMutations.ts — Custom hook usePaneMutations orchestrating use pane mutations state and side-effect flows.
+src/hooks/useProjectMutations.ts — Custom hook useProjectMutations orchestrating project mutation state and side-effect flows.
 src/hooks/usePersonalCalendarRuntime.ts — Custom hook usePersonalCalendarRuntime orchestrating use personal calendar runtime state and side-effect flows.
 src/hooks/useProjectBootstrap.ts — Custom hook useProjectBootstrap orchestrating use project bootstrap state and side-effect flows.
 src/hooks/useProjectFilesRuntime.ts — Custom hook useProjectFilesRuntime orchestrating use project files runtime state and side-effect flows.
@@ -275,7 +275,7 @@ src/lib/dashboardCards.ts — Defines dashboard card registry constants and filt
 src/lib/env.ts — Exports env for env; used by useWorkspaceDocRuntime and blockingInputs.
 src/lib/focusWhenReady.ts — Exports focusWhenReady for focus when ready; used by QuickCapture and LoginPage.
 src/lib/hubHomeRefresh.ts — Exports HUB_HOME_REFRESH_EVENT, requestHubHomeRefresh, subscribeHubHomeRefresh for myHub refresh; used by AppShell.
-src/lib/hubRoutes.ts — Builds Hub deep-link/context hrefs from records, panes, and lexical node metadata.
+src/lib/hubRoutes.ts — Builds Hub deep-link/context hrefs from records, projects, and lexical node metadata.
 src/lib/keycloak.ts — Exports isKeycloakConfigured, getKeycloak for keycloak; used by AuthzContext.
 src/lib/policy.ts — Exports appTabs, hasGlobalCapability, getMembershipForProject for policy; used by AppShell and AuthzContext.
 src/lib/serviceRegistry.ts — Exports serviceRegistry, canAccessServiceExternalUi for service registry; used by SmartWakeContext.
@@ -365,7 +365,7 @@ src/lib/nlp/task-parser/passes/titlePass.ts — NLP pipeline pass applying title
 src/pages/LoginPage.tsx — Renders login page; uses effects, refs, useAuthz.
 src/pages/NotFoundPage.tsx — Renders not found page.
 src/pages/ProjectSpacePage.tsx — Renders project space page; uses state, memoized data, effects, refs, useLocation.
-src/pages/ProjectsPage.tsx — Renders projects page; uses state, memoized data, effects, refs, useNavigate.
+src/pages/ProjectsPage.tsx — Renders spaces landing page; uses state, memoized data, effects, refs, useNavigate.
 
 ## src/server
 src/server/routes.ts — Exports serverRouteContracts for routes.
@@ -383,7 +383,7 @@ src/services/mediaWorkflowService.ts — Service module implementing media workf
 src/services/nextcloudService.ts — Service module implementing nextcloud service integration and transport logic.
 src/services/notificationService.ts — Service module implementing notification service integration and transport logic.
 src/services/openProjectService.ts — Service module implementing open project service integration and transport logic.
-src/services/projectsService.ts — Service module implementing projects service integration and transport logic.
+src/services/projectsService.ts — Service module implementing space service integration and transport logic.
 src/services/sessionService.ts — Service module implementing session service integration and transport logic.
 src/services/smartWakeService.ts — Service module implementing smart wake service integration and transport logic.
 
@@ -394,13 +394,13 @@ src/services/hub/docs.ts — Hub API client for docs; exports authorizeCollabDoc
 src/services/hub/files.ts — Hub API client for files; exports uploadFile, listTrackedFiles, listAssetRoots.
 src/services/hub/index.ts — Hub API client for hub; exports searchHub.
 src/services/hub/notifications.ts — Hub API client for notifications; exports listNotifications, markNotificationRead.
-src/services/hub/panes.ts — Hub API client for panes; exports listPanes, createPane, updatePane.
-src/services/hub/projects.ts — Hub API client for projects; exports listProjects, createProject, getProject.
+src/services/hub/spaces.ts — Hub API client for spaces; exports listSpaces, createSpace, getSpace.
+src/services/hub/projects.ts — Hub API client for work projects; exports listProjects, createProject, updateProject.
 src/services/hub/records.ts — Hub API client for records; exports createRecord, updateRecord, archiveRecord.
 src/services/hub/reminders.ts — Hub API client for reminders; exports listReminders, dismissReminder, createReminder.
 src/services/hub/search.ts — Hub API client for search; exports searchHub, HubSearchResult.
-src/services/hub/transport.ts — Hub API client for transport; exports normalizeSourcePane, normalizeRecordSummary, normalizeRecordDetail.
-src/services/hub/types.ts — Hub API client for hub; exports HubProject, HubSourcePaneContext, HubRecordDetail.
+src/services/hub/transport.ts — Hub API client for transport; exports normalizeSourceProject, normalizeRecordSummary, normalizeRecordDetail.
+src/services/hub/types.ts — Hub API client for hub; exports HubProject, HubSourceProjectContext, HubRecordDetail.
 src/services/hub/views.ts — Hub API client for views; exports listViews, createView, queryView.
 
 ## src/services/hub/__tests__
@@ -411,7 +411,7 @@ src/shared/api-types/auth.ts — Shared API type definitions for auth.
 src/shared/api-types/events.ts — Shared API type definitions for events.
 src/shared/api-types/hub-home.ts — Shared API type definitions for myHub.
 src/shared/api-types/index.ts — Barrel export for shared API contracts and runtime validators.
-src/shared/api-types/projects.ts — Shared API type definitions for projects.
+src/shared/api-types/projects.ts — Shared API type definitions for work projects and compatibility aliases.
 src/shared/api-types/records.ts — Shared API type definitions for records.
 src/shared/api-types/reminders.ts — Shared API type definitions for reminders.
 src/shared/api-types/tasks.ts — Shared API type definitions for tasks.

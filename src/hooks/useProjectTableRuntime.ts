@@ -1,18 +1,18 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 
 import { createRecord, listTimeline, setRecordValues, updateRecord } from '../services/hub/records';
-import { recordRecentPaneContribution } from '../features/recentPlaces/store';
-import type { HubPaneSummary, HubView } from '../services/hub/types';
+import { recordRecentProjectContribution } from '../features/recentPlaces/store';
+import type { HubProjectSummary, HubView } from '../services/hub/types';
 import { loadCompleteViewQuery, type ProjectTimelineItem, type TableViewRuntimeState } from './projectViewsRuntime/shared';
 
 interface UseProjectTableRuntimeParams {
   accessToken: string;
   projectId: string;
   projectName: string;
-  panes: HubPaneSummary[];
+  projects: HubProjectSummary[];
   sessionUserId: string;
   setTimeline: Dispatch<SetStateAction<ProjectTimelineItem[]>>;
-  paneCanEditForUser: (pane: HubPaneSummary | null | undefined, userId: string) => boolean;
+  projectCanEditForUser: (project: HubProjectSummary | null | undefined, userId: string) => boolean;
   setRecordsError: Dispatch<SetStateAction<string | null>>;
   refreshViewsAndRecordsRef: MutableRefObject<() => Promise<void>>;
 }
@@ -21,10 +21,10 @@ export const useProjectTableRuntime = ({
   accessToken,
   projectId,
   projectName,
-  panes,
+  projects,
   sessionUserId,
   setTimeline,
-  paneCanEditForUser,
+  projectCanEditForUser,
   setRecordsError,
   refreshViewsAndRecordsRef,
 }: UseProjectTableRuntimeParams) => {
@@ -86,27 +86,27 @@ export const useProjectTableRuntime = ({
     setTableLoading(false);
   }, []);
 
-  const resolveEditableMutationPane = useCallback(
-    (mutationPaneId: string | null, message: string): HubPaneSummary | null => {
-      const mutationPane = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId) || null : null;
-      if (!mutationPane || !paneCanEditForUser(mutationPane, sessionUserId)) {
+  const resolveEditableMutationProject = useCallback(
+    (mutationProjectId: string | null, message: string): HubProjectSummary | null => {
+      const mutationProject = mutationProjectId ? projects.find((project) => project.project_id === mutationProjectId) || null : null;
+      if (!mutationProject || !projectCanEditForUser(mutationProject, sessionUserId)) {
         setRecordsError(message);
         return null;
       }
-      return mutationPane;
+      return mutationProject;
     },
-    [paneCanEditForUser, panes, sessionUserId, setRecordsError],
+    [projectCanEditForUser, projects, sessionUserId, setRecordsError],
   );
 
   const onCreateTableRecord = useCallback(
     async (
       viewId: string,
       payload: { title: string; fields: Record<string, unknown> },
-      mutationPaneId: string | null,
+      mutationProjectId: string | null,
     ) => {
       setRecordsError(null);
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before creating records.');
-      if (!mutationPane) {
+      const mutationProject = resolveEditableMutationProject(mutationProjectId, 'Open an editable project before creating records.');
+      if (!mutationProject) {
         const message = 'Open an editable project before creating records.';
         throw new Error(message);
       }
@@ -122,16 +122,16 @@ export const useProjectTableRuntime = ({
         await createRecord(accessToken, projectId, {
           collection_id: collectionId,
           title: payload.title,
-          source_pane_id: mutationPane.pane_id,
+          source_project_id: mutationProject.project_id,
           source_view_id: viewId,
           values: payload.fields,
         });
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
-        recordRecentPaneContribution({
-          paneId: mutationPane.pane_id,
-          paneName: mutationPane.name,
+        recordRecentProjectContribution({
+          projectId: mutationProject.project_id,
+          projectName: mutationProject.name,
           spaceId: projectId,
           spaceName: projectName,
         }, 'table-create');
@@ -145,7 +145,7 @@ export const useProjectTableRuntime = ({
       accessToken,
       projectId,
       refreshViewsAndRecordsRef,
-      resolveEditableMutationPane,
+      resolveEditableMutationProject,
       setRecordsError,
       setTimeline,
       projectName,
@@ -158,11 +158,11 @@ export const useProjectTableRuntime = ({
       _viewId: string,
       recordId: string,
       fields: Record<string, unknown>,
-      mutationPaneId: string | null,
+      mutationProjectId: string | null,
     ) => {
       setRecordsError(null);
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before editing records.');
-      if (!mutationPane) {
+      const mutationProject = resolveEditableMutationProject(mutationProjectId, 'Open an editable project before editing records.');
+      if (!mutationProject) {
         const message = 'Open an editable project before editing records.';
         throw new Error(message);
       }
@@ -174,14 +174,14 @@ export const useProjectTableRuntime = ({
 
         if (typeof title === 'string') {
           updateOperations.push({
-            promise: updateRecord(accessToken, recordId, { title }, { mutation_context_pane_id: mutationPane.pane_id }),
+            promise: updateRecord(accessToken, recordId, { title }, { mutation_context_project_id: mutationProject.project_id }),
           });
         }
 
         if (Object.keys(valueFields).length > 0) {
           updateOperations.push({
             promise: setRecordValues(accessToken, recordId, valueFields, {
-              mutation_context_pane_id: mutationPane.pane_id,
+              mutation_context_project_id: mutationProject.project_id,
             }),
           });
         }
@@ -190,9 +190,9 @@ export const useProjectTableRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
-        recordRecentPaneContribution({
-          paneId: mutationPane.pane_id,
-          paneName: mutationPane.name,
+        recordRecentProjectContribution({
+          projectId: mutationProject.project_id,
+          projectName: mutationProject.name,
           spaceId: projectId,
           spaceName: projectName,
         }, 'table-update');
@@ -202,18 +202,18 @@ export const useProjectTableRuntime = ({
         throw new Error(message);
       }
     },
-    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setRecordsError, setTimeline],
   );
 
   const onDeleteTableRecords = useCallback(
     async (
       _viewId: string,
       recordIds: string[],
-      mutationPaneId: string | null,
+      mutationProjectId: string | null,
     ) => {
       setRecordsError(null);
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before deleting records.');
-      if (!mutationPane) {
+      const mutationProject = resolveEditableMutationProject(mutationProjectId, 'Open an editable project before deleting records.');
+      if (!mutationProject) {
         const message = 'Open an editable project before deleting records.';
         throw new Error(message);
       }
@@ -221,14 +221,14 @@ export const useProjectTableRuntime = ({
       try {
         await Promise.all(
           recordIds.map((recordId) =>
-            updateRecord(accessToken, recordId, { archived: true }, { mutation_context_pane_id: mutationPane.pane_id })),
+            updateRecord(accessToken, recordId, { archived: true }, { mutation_context_project_id: mutationProject.project_id })),
         );
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
-        recordRecentPaneContribution({
-          paneId: mutationPane.pane_id,
-          paneName: mutationPane.name,
+        recordRecentProjectContribution({
+          projectId: mutationProject.project_id,
+          projectName: mutationProject.name,
           spaceId: projectId,
           spaceName: projectName,
         }, 'table-delete');
@@ -238,7 +238,7 @@ export const useProjectTableRuntime = ({
         throw new Error(message);
       }
     },
-    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setRecordsError, setTimeline],
   );
 
   const onBulkUpdateTableRecords = useCallback(
@@ -246,14 +246,14 @@ export const useProjectTableRuntime = ({
       _viewId: string,
       recordIds: string[],
       fields: Record<string, unknown>,
-      mutationPaneId: string | null,
+      mutationProjectId: string | null,
     ) => {
       setRecordsError(null);
-      const mutationPane = resolveEditableMutationPane(
-        mutationPaneId,
+      const mutationProject = resolveEditableMutationProject(
+        mutationProjectId,
         'Open an editable project before bulk updating records.',
       );
-      if (!mutationPane) {
+      if (!mutationProject) {
         const message = 'Open an editable project before bulk updating records.';
         throw new Error(message);
       }
@@ -262,15 +262,15 @@ export const useProjectTableRuntime = ({
         await Promise.all(
           recordIds.map((recordId) =>
             setRecordValues(accessToken, recordId, fields, {
-              mutation_context_pane_id: mutationPane.pane_id,
+              mutation_context_project_id: mutationProject.project_id,
             })),
         );
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
-        recordRecentPaneContribution({
-          paneId: mutationPane.pane_id,
-          paneName: mutationPane.name,
+        recordRecentProjectContribution({
+          projectId: mutationProject.project_id,
+          projectName: mutationProject.name,
           spaceId: projectId,
           spaceName: projectName,
         }, 'table-bulk-update');
@@ -280,7 +280,7 @@ export const useProjectTableRuntime = ({
         throw new Error(message);
       }
     },
-    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setRecordsError, setTimeline],
   );
 
   const tableViewRuntimeDataById = useMemo(

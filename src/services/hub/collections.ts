@@ -5,7 +5,7 @@ import type { HubCollection, HubCollectionField } from './types.ts';
 export const listCollections = async (accessToken: string, projectId: string): Promise<HubCollection[]> => {
   const data = await hubRequest<{ collections: HubCollection[] }>(
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/collections`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/collections`,
     {
       method: 'GET',
     },
@@ -18,7 +18,7 @@ export const createCollection = async (
   projectId: string,
   payload: { name: string; icon?: string; color?: string },
 ): Promise<{ collection_id: string }> => {
-  return hubRequest<{ collection_id: string }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/collections`, {
+  return hubRequest<{ collection_id: string }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/collections`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });

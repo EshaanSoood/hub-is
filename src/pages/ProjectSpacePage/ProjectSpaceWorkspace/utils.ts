@@ -1,9 +1,9 @@
 export { readPlainComment } from './commentModel';
 export { readOverviewView } from './overviewState';
 export {
-  collectPaneTaskCollectionIds,
-  paneCanEditForUser,
+  collectProjectTaskCollectionIds,
+  projectCanEditForUser,
   readLayoutBool,
   relationFieldTargetCollectionId,
-} from './paneModel';
+} from './projectModel';
 export { toBase64 } from './encoding';

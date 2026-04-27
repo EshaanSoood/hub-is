@@ -33,7 +33,7 @@ export const createCollectionRoutes = (deps) => {
     materializeMentions,
     mapMentionRowToBacklink,
     resolveProjectContentWriteGate,
-    resolveMutationContextPaneId,
+    resolveMutationContextProjectId,
     normalizeParticipants,
     fieldTypeSet,
     capabilitySet,
@@ -305,7 +305,7 @@ export const createCollectionRoutes = (deps) => {
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId,
-      paneId: body.source_pane_id,
+      sourceProjectId: body.source_project_id,
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -334,7 +334,7 @@ export const createCollectionRoutes = (deps) => {
     const recordId = newId('rec');
     const title = asText(body.title) || 'Untitled Record';
     const timestamp = nowIso();
-    const sourcePaneId = asText(body.source_pane_id) || null;
+    const sourceProjectId = asText(body.source_project_id) || null;
     let sourceViewId = asText(body.source_view_id) || null;
     if (sourceViewId) {
       const sourceView = viewByIdStmt.get(sourceViewId);
@@ -345,7 +345,7 @@ export const createCollectionRoutes = (deps) => {
     }
     const notificationContext = buildNotificationRouteContext({
       projectId,
-      sourcePaneId,
+      sourceProjectId,
       sourceDocId: body.source_doc_id,
       sourceNodeKey: body.source_node_key,
     });
@@ -358,7 +358,7 @@ export const createCollectionRoutes = (deps) => {
           projectId,
           collectionId,
           title,
-          sourcePaneId,
+          sourceProjectId,
           sourceViewId,
           auth.user.user_id,
           timestamp,
@@ -579,7 +579,7 @@ export const createCollectionRoutes = (deps) => {
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId: record.project_id,
-      paneId: resolveMutationContextPaneId({ body, requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -753,8 +753,8 @@ export const createCollectionRoutes = (deps) => {
     }
 
     const personalProjectId = personalProjectIdForUser(auth.user.user_id);
-    const sourcePaneContextCache = new Map();
-    const subtasks = subtasksByParentStmt.all(recordId).map((row) => buildTaskSummaryForUser(row, personalProjectId, sourcePaneContextCache));
+    const sourceProjectContextCache = new Map();
+    const subtasks = subtasksByParentStmt.all(recordId).map((row) => buildTaskSummaryForUser(row, personalProjectId, sourceProjectContextCache));
 
     send(response, jsonResponse(200, okEnvelope({ subtasks })));
   };
@@ -789,7 +789,7 @@ export const createCollectionRoutes = (deps) => {
     const sourceWriteGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId: sourceRecord.project_id,
-      paneId: resolveMutationContextPaneId({ body, requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (sourceWriteGate.error) {
       send(response, jsonResponse(sourceWriteGate.error.status, errorEnvelope(sourceWriteGate.error.code, sourceWriteGate.error.message)));
@@ -829,7 +829,7 @@ export const createCollectionRoutes = (deps) => {
     const targetWriteGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId: targetProjectId,
-      paneId: resolveMutationContextPaneId({ body, requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (targetWriteGate.error) {
       send(response, jsonResponse(targetWriteGate.error.status, errorEnvelope(targetWriteGate.error.code, targetWriteGate.error.message)));
@@ -868,14 +868,14 @@ export const createCollectionRoutes = (deps) => {
           }
 
           targetRecordId = newId('rec');
-          const nextSourcePaneId = targetProjectId === sourceRecord.project_id ? sourceRecord.source_pane_id || null : null;
+          const nextSourceProjectId = targetProjectId === sourceRecord.project_id ? sourceRecord.source_project_id || null : null;
           const nextSourceViewId = targetProjectId === sourceRecord.project_id ? sourceRecord.source_view_id || null : null;
           insertRecordStmt.run(
             targetRecordId,
             targetProjectId,
             targetCollectionId,
             title,
-            nextSourcePaneId,
+            nextSourceProjectId,
             nextSourceViewId,
             auth.user.user_id,
             timestamp,
@@ -979,7 +979,7 @@ export const createCollectionRoutes = (deps) => {
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId: record.project_id,
-      paneId: resolveMutationContextPaneId({ body, requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -1067,7 +1067,7 @@ export const createCollectionRoutes = (deps) => {
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId: fromRecord.project_id,
-      paneId: resolveMutationContextPaneId({ body, requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -1187,7 +1187,7 @@ export const createCollectionRoutes = (deps) => {
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId: relation.project_id,
-      paneId: resolveMutationContextPaneId({ requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ requestUrl }),
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));

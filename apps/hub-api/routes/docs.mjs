@@ -25,7 +25,7 @@ export const createDocRoutes = (deps) => {
     materializeMentions,
     assignmentsByRecordStmt,
     docByIdStmt,
-    paneMembersByPaneStmt,
+    workProjectMembersByProjectStmt,
     projectMembersByProjectStmt,
     recordByIdStmt,
     updateDocStorageStmt,
@@ -42,14 +42,14 @@ export const createDocRoutes = (deps) => {
     membershipRoleLabel,
   } = deps;
 
-  const docCollaboratorUserIds = ({ paneId, projectId }) => {
+  const docCollaboratorUserIds = ({ projectId, spaceId }) => {
     const userIds = new Set();
-    if (paneId) {
-      for (const member of paneMembersByPaneStmt?.all(paneId) || []) {
+    if (projectId) {
+      for (const member of workProjectMembersByProjectStmt?.all(projectId) || []) {
         userIds.add(member.user_id);
       }
     }
-    for (const member of projectMembersByProjectStmt?.all(projectId) || []) {
+    for (const member of projectMembersByProjectStmt?.all(spaceId) || []) {
       if (membershipRoleLabel(member.role) === 'owner') {
         userIds.add(member.user_id);
       }
@@ -83,7 +83,7 @@ export const createDocRoutes = (deps) => {
         okEnvelope({
           doc: {
             doc_id: doc.doc_id,
-            pane_id: doc.pane_id,
+            project_id: doc.project_id,
             snapshot_version: doc.snapshot_version || 0,
             snapshot_payload: parseJson(doc.snapshot_payload, {}),
             updated_at: doc.storage_updated_at || doc.updated_at,
@@ -328,7 +328,7 @@ export const createDocRoutes = (deps) => {
     }
     if (targetEntityType === 'doc') {
       try {
-        for (const userId of docCollaboratorUserIds({ paneId: targetDocGate?.pane_id, projectId })) {
+        for (const userId of docCollaboratorUserIds({ projectId: targetDocGate?.project_id, spaceId: projectId })) {
           if (userId === auth.user.user_id) {
             continue;
           }
@@ -453,7 +453,7 @@ export const createDocRoutes = (deps) => {
       context: { nodeKey },
     });
     try {
-      for (const userId of docCollaboratorUserIds({ paneId: docGate.pane_id, projectId })) {
+      for (const userId of docCollaboratorUserIds({ projectId: docGate.project_id, spaceId: projectId })) {
         if (userId === auth.user.user_id) {
           continue;
         }
@@ -760,7 +760,6 @@ export const createDocRoutes = (deps) => {
         okEnvelope({
           authorization: {
             doc_id: docId,
-            pane_id: docGate.pane_id,
             project_id: docGate.project_id,
             user_id: auth.user.user_id,
             display_name: auth.user.display_name,

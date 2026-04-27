@@ -6,9 +6,9 @@ We need an automated verification pipeline that walks every surface of the Hub O
 
 The existing E2E infrastructure lives in `e2e/`. Key files to read before starting:
 
-- `e2e/auth.setup.ts` — shows the full seed pattern: token minting, project/collection/field/view/pane/record creation via API helpers
+- `e2e/auth.setup.ts` — shows the full seed pattern: token minting, space/project/collection/field/view/record creation via API helpers
 - `e2e/utils/tokenMint.ts` — `resolveLinkedTestAccounts()` and `mintTokensForAccounts()` for PKCE auth
-- `e2e/support/audit.ts` — all the API helper functions (`createProject`, `createPane`, `createCollection`, `createRecord`, `createView`, `createField`, `createEventFromNlp`, `loadSessionSummary`, `getHubHome`, `resolveApiBaseUrl`, `resolveAppBaseUrl`, `writeAuthStateFiles`, etc.)
+- `e2e/support/audit.ts` — all the API helper functions for spaces, projects, collections, records, views, fields, event creation, session summaries, Hub home, base URLs, and auth state files.
 - `playwright.config.ts` — base Playwright config at repo root
 
 Read all four files before writing any code to understand the existing patterns, type signatures, and conventions.
@@ -32,11 +32,11 @@ Create a standalone Playwright config for this verification suite:
 
 - Test directory: the current folder (`e2e/project-verification/`)
 - No `webServer` — tests run against the live deployed app
-- Three named projects corresponding to viewports:
+- Three named Playwright projects corresponding to viewports:
   - `desktop`: 1280×800
   - `tablet`: 768×1024
   - `mobile`: 375×812
-- All projects use Chromium
+- All Playwright projects use Chromium
 - Global setup: runs `seed.ts` (use Playwright's `globalSetup` option)
 - Output screenshots to `e2e/project-verification/screenshots/`
 - Timeout: 60 seconds per test, 120 seconds for the global setup
@@ -46,11 +46,11 @@ Create a standalone Playwright config for this verification suite:
 
 This creates all the test data needed via API calls (no browser). Import and reuse the helper functions from `e2e/support/audit.ts` and `e2e/utils/tokenMint.ts`. Do NOT modify those files.
 
-The seed must create a project with enough data to exercise every project space surface:
+The seed must create a space with enough data to exercise every project workspace surface:
 
 1. **Mint tokens** using `resolveLinkedTestAccounts()` and `mintTokensForAccounts()`.
 
-2. **Create a project** named `Verify Project Space ${runId}` where `runId` is a short timestamp-based ID.
+2. **Create a space** named `Verify Space ${runId}` where `runId` is a short timestamp-based ID.
 
 3. **Create a collection** with these fields:
    - `Status` (select: `todo`, `in-progress`, `done`)
@@ -62,9 +62,9 @@ The seed must create a project with enough data to exercise every project space 
    - A `table` view bound to the collection (all fields visible)
    - A `kanban` view grouped by Status field
 
-5. **Create two panes**:
+5. **Create two work projects**:
 
-   **Pane A — "Verify Main Pane"**: `modules_enabled: true`, `workspace_enabled: true`. Modules:
+   **Work project A — "Verify Main Project"**: `modules_enabled: true`, `workspace_enabled: true`. Modules:
    - `table` module, size tier `L`, lens `project`, bound to the table view
    - `kanban` module, size tier `L`, lens `project`, bound to the kanban view
    - `calendar` module, size tier `M`, lens `project`
@@ -73,7 +73,7 @@ The seed must create a project with enough data to exercise every project space 
    - `files` module, size tier `M`, lens `project`
    - `quick-thoughts` module, size tier `S`, lens `project`
 
-   **Pane B — "Verify Private Pane"**: `modules_enabled: true`, `workspace_enabled: true`. Modules:
+   **Work project B — "Verify Private Project"**: `modules_enabled: true`, `workspace_enabled: true`. Modules:
    - `table` module, size tier `M`, lens `project`, bound to table view
    - `tasks` module, size tier `L`, lens `project`
 
@@ -83,7 +83,7 @@ The seed must create a project with enough data to exercise every project space 
 
 8. **Write auth state files** using `writeAuthStateFiles` so Playwright can inject browser auth.
 
-9. **Write a fixture JSON file** to `e2e/project-verification/fixture.json` containing all created IDs (project ID, pane IDs, collection ID, field IDs, view IDs, record titles, event title) so the test spec can read them.
+9. **Write a fixture JSON file** to `e2e/project-verification/fixture.json` containing all created IDs (space ID, work project IDs, collection ID, field IDs, view IDs, record titles, event title) so the test spec can read them.
 
 10. After creating everything, poll `getHubHome` in a retry loop (up to 10 attempts, 750ms apart) until at least one of the seeded task titles appears in the home feed — confirming the data has propagated.
 
@@ -100,14 +100,14 @@ The viewport name comes from `test.info().project.name` (which will be `desktop`
 
 ### Phase 1 — Shell & Navigation
 
-Navigate to the project's overview URL (`/projects/{projectId}/overview`).
+Navigate to the space overview URL (`/projects/{spaceId}/overview`).
 
 Checks:
 - Page loads without "Loading project space..." text persisting beyond 10 seconds
 - `TopNavTabs` are visible — look for tab elements or links labeled "Overview", "Work", "Tools"
 - Project name appears somewhere in the header area
-- `PaneSwitcher` is accessible — look for a pane selector or dropdown that lists pane names
-- Clicking the "Work" tab navigates to the work view (URL changes to include `/work` or the pane ID)
+- The work project switcher is accessible and lists work project names
+- Clicking the "Work" tab navigates to the work view (URL changes to include `/work` or the space ID)
 - No console errors during navigation (attach a console listener, collect errors, assert empty at end)
 
 ### Phase 2 — Overview Tab
@@ -122,7 +122,7 @@ Checks:
 
 ### Phase 3 — Module Grid
 
-Navigate to the project's work view, selecting Pane A (the main pane with 7 modules).
+Navigate to the project's work view, selecting Project A (the main project with 7 modules).
 
 Checks:
 - `ModuleGrid` container is present
@@ -133,7 +133,7 @@ Checks:
 
 ### Phase 4 — Individual Module Skins
 
-Stay on the work view with Pane A. For each module type, locate it and verify its content:
+Stay on the work view with Project A. For each module type, locate it and verify its content:
 
 **Table module:**
 - Table element or grid role is present
@@ -168,7 +168,7 @@ Stay on the work view with Pane A. For each module type, locate it and verify it
 
 ### Phase 5 — Lexical Editor
 
-Navigate to the work view, Pane A. The editor should be present if `workspace_enabled: true` on the pane.
+Navigate to the work view, Project A. The editor should be present if `workspace_enabled: true` on the project.
 
 Checks:
 - Lexical editor container is present (look for the `EditorShell` wrapper or a `contenteditable` element)
@@ -189,7 +189,7 @@ Checks:
 
 ### Phase 7 — File Operations
 
-Navigate to the work view, Pane A, and locate the Files module.
+Navigate to the work view, Project A, and locate the Files module.
 
 Checks:
 - Files module is present and shows empty state or file listing

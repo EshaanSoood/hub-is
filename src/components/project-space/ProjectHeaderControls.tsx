@@ -15,8 +15,8 @@ interface RegionOption {
   disabled?: boolean;
 }
 
-interface PaneHeaderControlsProps {
-  paneName: string;
+interface ProjectHeaderControlsProps {
+  projectName: string;
   onRename: (name: string) => void;
   isPinned: boolean;
   onPinToggle: () => void;
@@ -30,8 +30,8 @@ interface PaneHeaderControlsProps {
   disabled?: boolean;
 }
 
-export const PaneHeaderControls = ({
-  paneName,
+export const ProjectHeaderControls = ({
+  projectName,
   onRename,
   isPinned,
   onPinToggle,
@@ -43,7 +43,7 @@ export const PaneHeaderControls = ({
   regions,
   onRegionToggle,
   disabled = false,
-}: PaneHeaderControlsProps) => {
+}: ProjectHeaderControlsProps) => {
   const [configOpen, setConfigOpen] = useState(false);
 
   const activeAudienceLabel = useMemo(
@@ -55,7 +55,7 @@ export const PaneHeaderControls = ({
     <div className="module-toolbar flex flex-wrap items-center gap-2 p-2">
       <input
         type="text"
-        value={paneName}
+        value={projectName}
         onChange={(event) => onRename(event.target.value)}
         aria-label="Project name"
         disabled={disabled}

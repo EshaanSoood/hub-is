@@ -36,121 +36,121 @@ export const createStatements = (db) => ({
           created_at = EXCLUDED.created_at
     `),
   },
-  projects: {
+  spaces: {
     updateTasksCollection: db.prepare(`
-      UPDATE projects
+      UPDATE spaces
       SET tasks_collection_id = ?, updated_at = ?
-      WHERE project_id = ?
+      WHERE space_id = ?
     `),
     updateRemindersCollection: db.prepare(`
-      UPDATE projects
+      UPDATE spaces
       SET reminders_collection_id = ?, updated_at = ?
-      WHERE project_id = ?
+      WHERE space_id = ?
     `),
-    findById: db.prepare('SELECT * FROM projects WHERE project_id = ?'),
+    findById: db.prepare('SELECT * FROM spaces WHERE space_id = ?'),
     findByIdWithMembership: db.prepare(`
       SELECT p.*, pm.role AS membership_role, pm.joined_at
-      FROM projects p
-      JOIN project_members pm ON pm.project_id = p.project_id
-      WHERE p.project_id = ? AND pm.user_id = ?
+      FROM spaces p
+      JOIN space_members pm ON pm.space_id = p.space_id
+      WHERE p.space_id = ? AND pm.user_id = ?
     `),
-    findPersonalProject: db.prepare(`
+    findPersonalSpace: db.prepare(`
       SELECT p.*, pm.role AS membership_role, pm.joined_at
-      FROM projects p
-      JOIN project_members pm ON pm.project_id = p.project_id
+      FROM spaces p
+      JOIN space_members pm ON pm.space_id = p.space_id
       WHERE pm.user_id = ?
         AND p.created_by = ?
-        AND p.project_type = 'personal'
+        AND p.space_type = 'personal'
       ORDER BY p.created_at ASC
       LIMIT 1
     `),
     listPersonalMissingTasksCollectionIds: db.prepare(`
-      SELECT p.project_id
-      FROM projects p
-      WHERE p.project_type = 'personal'
+      SELECT p.space_id
+      FROM spaces p
+      WHERE p.space_type = 'personal'
         AND COALESCE(p.tasks_collection_id, '') = ''
-      ORDER BY p.created_at ASC, p.project_id ASC
+      ORDER BY p.created_at ASC, p.space_id ASC
     `),
     listPersonalMissingRemindersCollectionIds: db.prepare(`
-      SELECT p.project_id
-      FROM projects p
-      WHERE p.project_type = 'personal'
+      SELECT p.space_id
+      FROM spaces p
+      WHERE p.space_type = 'personal'
         AND COALESCE(p.reminders_collection_id, '') = ''
-      ORDER BY p.created_at ASC, p.project_id ASC
+      ORDER BY p.created_at ASC, p.space_id ASC
     `),
     listForUser: db.prepare(`
       SELECT p.*, pm.role AS membership_role, pm.joined_at
-      FROM projects p
-      JOIN project_members pm ON pm.project_id = p.project_id
+      FROM spaces p
+      JOIN space_members pm ON pm.space_id = p.space_id
       WHERE pm.user_id = ?
       ORDER BY
         CASE WHEN p.position IS NULL THEN 1 ELSE 0 END ASC,
         p.position ASC,
         p.created_at DESC,
-        p.project_id DESC
+        p.space_id DESC
     `),
     updatePosition: db.prepare(`
-      UPDATE projects
+      UPDATE spaces
       SET position = ?, updated_at = ?
-      WHERE project_id = ?
+      WHERE space_id = ?
     `),
     updateName: db.prepare(`
-      UPDATE projects
+      UPDATE spaces
       SET name = ?, name_prompt_completed = 1, updated_at = ?
-      WHERE project_id = ?
+      WHERE space_id = ?
     `),
     insert: db.prepare(`
-      INSERT INTO projects (project_id, name, created_by, created_at, updated_at)
+      INSERT INTO spaces (space_id, name, created_by, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?)
     `),
     insertWithType: db.prepare(`
-      INSERT INTO projects (project_id, name, created_by, project_type, is_personal, created_at, updated_at)
+      INSERT INTO spaces (space_id, name, created_by, space_type, is_personal, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `),
   },
-  projectMembers: {
+  spaceMembers: {
     listForUser: db.prepare(`
-      SELECT project_id, role, joined_at
-      FROM project_members
+      SELECT space_id, role, joined_at
+      FROM space_members
       WHERE user_id = ?
       ORDER BY joined_at ASC
     `),
     listWithUsers: db.prepare(`
-      SELECT pm.project_id, pm.user_id, pm.role, pm.joined_at, u.display_name, u.email
-      FROM project_members pm
+      SELECT pm.space_id, pm.user_id, pm.role, pm.joined_at, u.display_name, u.email
+      FROM space_members pm
       JOIN users u ON u.user_id = pm.user_id
-      WHERE pm.project_id = ?
+      WHERE pm.space_id = ?
       ORDER BY pm.joined_at ASC
     `),
     countOwners: db.prepare(`
       SELECT COUNT(*) AS owner_count
-      FROM project_members
-      WHERE project_id = ? AND role = 'owner'
+      FROM space_members
+      WHERE space_id = ? AND role = 'owner'
     `),
     insert: db.prepare(`
-      INSERT OR REPLACE INTO project_members (project_id, user_id, role, joined_at)
+      INSERT OR REPLACE INTO space_members (space_id, user_id, role, joined_at)
       VALUES (?, ?, ?, ?)
     `),
-    delete: db.prepare('DELETE FROM project_members WHERE project_id = ? AND user_id = ?'),
+    delete: db.prepare('DELETE FROM space_members WHERE space_id = ? AND user_id = ?'),
     listPendingInvites: db.prepare(`
       SELECT *
-      FROM pending_project_invites
-      WHERE project_id = ? AND status = 'pending'
+      FROM pending_space_invites
+      WHERE space_id = ? AND status = 'pending'
       ORDER BY created_at DESC, invite_request_id DESC
     `),
-    findInvite: db.prepare('SELECT * FROM pending_project_invites WHERE invite_request_id = ? LIMIT 1'),
+    findInvite: db.prepare('SELECT * FROM pending_space_invites WHERE invite_request_id = ? LIMIT 1'),
     findPendingByEmail: db.prepare(`
       SELECT *
-      FROM pending_project_invites
-      WHERE project_id = ?
+      FROM pending_space_invites
+      WHERE space_id = ?
         AND LOWER(email) = LOWER(?)
         AND status = 'pending'
       LIMIT 1
     `),
     insertInvite: db.prepare(`
-      INSERT INTO pending_project_invites (
+      INSERT INTO pending_space_invites (
         invite_request_id,
-        project_id,
+        space_id,
         email,
         role,
         requested_by_user_id,
@@ -163,126 +163,68 @@ export const createStatements = (db) => ({
       ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
     `),
     updateInvite: db.prepare(`
-      UPDATE pending_project_invites
+      UPDATE pending_space_invites
       SET status = ?, target_user_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ?
       WHERE invite_request_id = ?
     `),
-    deleteInvite: db.prepare('DELETE FROM pending_project_invites WHERE invite_request_id = ?'),
-    isMember: db.prepare('SELECT 1 AS ok FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1'),
-    getRole: db.prepare('SELECT role FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1'),
+    deleteInvite: db.prepare('DELETE FROM pending_space_invites WHERE invite_request_id = ?'),
+    isMember: db.prepare('SELECT 1 AS ok FROM space_members WHERE space_id = ? AND user_id = ? LIMIT 1'),
+    getRole: db.prepare('SELECT role FROM space_members WHERE space_id = ? AND user_id = ? LIMIT 1'),
   },
-  rooms: {
-    findById: db.prepare('SELECT * FROM rooms WHERE room_id = ? LIMIT 1'),
-    findByIdForUser: db.prepare(`
-      SELECT r.*
-      FROM rooms r
-      JOIN room_members rm ON rm.room_id = r.room_id
-      WHERE r.room_id = ? AND rm.user_id = ?
-      LIMIT 1
-    `),
-    listForUser: db.prepare(`
-      SELECT r.*
-      FROM rooms r
-      JOIN room_members rm ON rm.room_id = r.room_id
-      WHERE rm.user_id = ?
-      ORDER BY
-        CASE WHEN r.status = 'active' THEN 0 ELSE 1 END ASC,
-        r.created_at DESC,
-        r.room_id DESC
-    `),
-    insert: db.prepare(`
-      INSERT INTO rooms (room_id, space_id, display_name, coordination_pane_id, status, created_by, created_at, archived_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `),
-    updateCoordinationPane: db.prepare(`
-      UPDATE rooms
-      SET coordination_pane_id = ?
-      WHERE room_id = ?
-    `),
-    archive: db.prepare(`
-      UPDATE rooms
-      SET status = 'archived', archived_at = ?
-      WHERE room_id = ? AND status != 'archived'
-    `),
-  },
-  roomMembers: {
-    listUserIds: db.prepare(`
-      SELECT user_id
-      FROM room_members
-      WHERE room_id = ?
-      ORDER BY joined_at ASC, user_id ASC
-    `),
-    listWithUsers: db.prepare(`
-      SELECT rm.room_id, rm.user_id, rm.role, rm.joined_at, u.display_name, u.email
-      FROM room_members rm
-      JOIN users u ON u.user_id = rm.user_id
-      WHERE rm.room_id = ?
-      ORDER BY
-        CASE WHEN rm.role = 'owner' THEN 0 ELSE 1 END ASC,
-        rm.joined_at ASC,
-        rm.user_id ASC
-    `),
-    insert: db.prepare(`
-      INSERT INTO room_members (room_id, user_id, role, joined_at)
-      VALUES (?, ?, ?, ?)
-    `),
-    isMember: db.prepare('SELECT 1 AS ok FROM room_members WHERE room_id = ? AND user_id = ? LIMIT 1'),
-    getRole: db.prepare('SELECT role FROM room_members WHERE room_id = ? AND user_id = ? LIMIT 1'),
-  },
-  panes: {
-    findById: db.prepare('SELECT * FROM panes WHERE pane_id = ?'),
+  projects: {
+    findById: db.prepare('SELECT * FROM projects WHERE project_id = ?'),
     listMembers: db.prepare(`
       SELECT pm.user_id, u.display_name
-      FROM pane_members pm
+      FROM project_members pm
       JOIN users u ON u.user_id = pm.user_id
-      LEFT JOIN project_members prj ON prj.project_id = (SELECT project_id FROM panes WHERE pane_id = pm.pane_id) AND prj.user_id = pm.user_id
-      WHERE pm.pane_id = ?
+      LEFT JOIN space_members prj ON prj.space_id = (SELECT space_id FROM projects WHERE project_id = pm.project_id) AND prj.user_id = pm.user_id
+      WHERE pm.project_id = ?
         AND COALESCE(prj.role, 'member') != 'owner'
       ORDER BY pm.joined_at ASC
     `),
-    listForProject: db.prepare(`
+    listForSpace: db.prepare(`
       SELECT p.*
-      FROM panes p
-      WHERE p.project_id = ?
+      FROM projects p
+      WHERE p.space_id = ?
       ORDER BY
         CASE WHEN p.position IS NULL THEN 1 ELSE 0 END ASC,
         p.position ASC,
         p.sort_order ASC,
         p.created_at ASC
     `),
-    nextSortOrder: db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM panes WHERE project_id = ?'),
+    nextSortOrder: db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM projects WHERE space_id = ?'),
     insert: db.prepare(`
-      INSERT INTO panes (pane_id, project_id, name, sort_order, position, pinned, layout_config, created_by, created_at, updated_at)
+      INSERT INTO projects (project_id, space_id, name, sort_order, position, pinned, layout_config, created_by, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     update: db.prepare(`
-      UPDATE panes
+      UPDATE projects
       SET name = ?, sort_order = ?, position = ?, pinned = ?, layout_config = ?, updated_at = ?
-      WHERE pane_id = ?
+      WHERE project_id = ?
     `),
-    delete: db.prepare('DELETE FROM panes WHERE pane_id = ?'),
+    delete: db.prepare('DELETE FROM projects WHERE project_id = ?'),
   },
-  paneMembers: {
-    isMember: db.prepare('SELECT 1 AS ok FROM pane_members WHERE pane_id = ? AND user_id = ? LIMIT 1'),
-    listUserIds: db.prepare('SELECT user_id FROM pane_members WHERE pane_id = ? ORDER BY joined_at ASC'),
-    insert: db.prepare('INSERT OR REPLACE INTO pane_members (pane_id, user_id, joined_at) VALUES (?, ?, ?)'),
-    delete: db.prepare('DELETE FROM pane_members WHERE pane_id = ? AND user_id = ?'),
-    deleteByUserInProject: db.prepare('DELETE FROM pane_members WHERE user_id = ? AND pane_id IN (SELECT pane_id FROM panes WHERE project_id = ?)'),
+  projectMembers: {
+    isMember: db.prepare('SELECT 1 AS ok FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1'),
+    listUserIds: db.prepare('SELECT user_id FROM project_members WHERE project_id = ? ORDER BY joined_at ASC'),
+    insert: db.prepare('INSERT OR REPLACE INTO project_members (project_id, user_id, joined_at) VALUES (?, ?, ?)'),
+    delete: db.prepare('DELETE FROM project_members WHERE project_id = ? AND user_id = ?'),
+    deleteByUserInSpace: db.prepare('DELETE FROM project_members WHERE user_id = ? AND project_id IN (SELECT project_id FROM projects WHERE space_id = ?)'),
   },
   docs: {
-    insert: db.prepare('INSERT INTO docs (doc_id, pane_id, created_at, updated_at) VALUES (?, ?, ?, ?)'),
+    insert: db.prepare('INSERT INTO docs (doc_id, project_id, created_at, updated_at) VALUES (?, ?, ?, ?)'),
     insertStorage: db.prepare('INSERT INTO doc_storage (doc_id, snapshot_version, snapshot_payload, updated_at) VALUES (?, ?, ?, ?)'),
-    findByPaneId: db.prepare('SELECT * FROM docs WHERE pane_id = ?'),
+    findByProjectId: db.prepare('SELECT * FROM docs WHERE project_id = ?'),
     findById: db.prepare(`
-      SELECT d.doc_id, d.pane_id, d.created_at, d.updated_at, ds.snapshot_version, ds.snapshot_payload, ds.updated_at AS storage_updated_at
+      SELECT d.doc_id, d.project_id, d.created_at, d.updated_at, ds.snapshot_version, ds.snapshot_payload, ds.updated_at AS storage_updated_at
       FROM docs d
       LEFT JOIN doc_storage ds ON ds.doc_id = d.doc_id
       WHERE d.doc_id = ?
     `),
-    findDocProject: db.prepare(`
-      SELECT d.doc_id, d.pane_id, p.project_id
+    findDocSpace: db.prepare(`
+      SELECT d.doc_id, d.project_id, p.space_id
       FROM docs d
-      JOIN panes p ON p.pane_id = d.pane_id
+      JOIN projects p ON p.project_id = d.project_id
       WHERE d.doc_id = ?
     `),
     updateStorage: db.prepare(`
@@ -298,56 +240,16 @@ export const createStatements = (db) => ({
       DO UPDATE SET cursor_payload = excluded.cursor_payload, last_seen_at = excluded.last_seen_at
     `),
   },
-  roomDocs: {
-    insert: db.prepare('INSERT INTO room_docs (doc_id, room_id, created_at, updated_at) VALUES (?, ?, ?, ?)'),
-    insertStorage: db.prepare(`
-      INSERT INTO room_doc_storage (doc_id, snapshot_version, snapshot_payload, updated_at)
-      VALUES (?, ?, ?, ?)
-    `),
-    findById: db.prepare(`
-      SELECT
-        rd.doc_id,
-        rd.room_id,
-        rd.created_at,
-        rd.updated_at,
-        r.space_id,
-        r.status AS room_status,
-        r.archived_at,
-        r.created_by,
-        r.display_name,
-        r.created_at AS room_created_at,
-        rds.snapshot_version,
-        rds.snapshot_payload,
-        rds.updated_at AS storage_updated_at
-      FROM room_docs rd
-      JOIN rooms r ON r.room_id = rd.room_id
-      LEFT JOIN room_doc_storage rds ON rds.doc_id = rd.doc_id
-      WHERE rd.doc_id = ?
-      LIMIT 1
-    `),
-    updateStorage: db.prepare(`
-      UPDATE room_doc_storage
-      SET snapshot_version = ?, snapshot_payload = ?, updated_at = ?
-      WHERE doc_id = ? AND snapshot_version = ?
-    `),
-    updateTimestamp: db.prepare('UPDATE room_docs SET updated_at = ? WHERE doc_id = ?'),
-    upsertPresence: db.prepare(`
-      INSERT INTO room_doc_presence (doc_id, user_id, cursor_payload, last_seen_at)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(doc_id, user_id)
-      DO UPDATE SET cursor_payload = excluded.cursor_payload, last_seen_at = excluded.last_seen_at
-    `),
-  },
   collections: {
-    listForProject: db.prepare('SELECT * FROM collections WHERE project_id = ? ORDER BY created_at ASC'),
+    listForSpace: db.prepare('SELECT * FROM collections WHERE space_id = ? ORDER BY created_at ASC'),
     findById: db.prepare('SELECT * FROM collections WHERE collection_id = ?'),
-    findByName: db.prepare('SELECT * FROM collections WHERE project_id = ? AND name = ? LIMIT 1'),
+    findByName: db.prepare('SELECT * FROM collections WHERE space_id = ? AND name = ? LIMIT 1'),
     insert: db.prepare(`
-      INSERT INTO collections (collection_id, project_id, name, icon, color, created_at, updated_at)
+      INSERT INTO collections (collection_id, space_id, name, icon, color, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `),
     insertMinimal: db.prepare(`
-      INSERT INTO collections (collection_id, project_id, name, created_at, updated_at)
+      INSERT INTO collections (collection_id, space_id, name, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?)
     `),
     listFields: db.prepare('SELECT * FROM collection_fields WHERE collection_id = ? ORDER BY sort_order ASC, created_at ASC'),
@@ -363,15 +265,15 @@ export const createStatements = (db) => ({
     listForCollection: db.prepare(`
       SELECT *
       FROM records
-      WHERE project_id = ? AND collection_id = ? AND archived_at IS NULL
+      WHERE space_id = ? AND collection_id = ? AND archived_at IS NULL
       ORDER BY updated_at DESC, record_id DESC
     `),
     listPersonalCaptures: db.prepare(`
-      SELECT r.record_id, r.project_id, r.collection_id, r.title, r.created_at
+      SELECT r.record_id, r.space_id, r.collection_id, r.title, r.created_at
       FROM records r
       LEFT JOIN task_state ts ON ts.record_id = r.record_id
       LEFT JOIN event_state es ON es.record_id = r.record_id
-      WHERE r.project_id = ?
+      WHERE r.space_id = ?
         AND r.archived_at IS NULL
         AND ts.record_id IS NULL
         AND es.record_id IS NULL
@@ -381,10 +283,10 @@ export const createStatements = (db) => ({
     insert: db.prepare(`
       INSERT INTO records (
         record_id,
-        project_id,
+        space_id,
         collection_id,
         title,
-        source_pane_id,
+        source_project_id,
         source_view_id,
         created_by,
         created_at,
@@ -411,14 +313,14 @@ export const createStatements = (db) => ({
   },
   recordRelations: {
     insert: db.prepare(`
-      INSERT INTO record_relations (relation_id, project_id, from_record_id, to_record_id, via_field_id, created_by, created_at)
+      INSERT INTO record_relations (relation_id, space_id, from_record_id, to_record_id, via_field_id, created_by, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `),
     findById: db.prepare('SELECT * FROM record_relations WHERE relation_id = ?'),
     findDuplicate: db.prepare(`
       SELECT relation_id
       FROM record_relations
-      WHERE project_id = ? AND from_record_id = ? AND to_record_id = ? AND via_field_id = ?
+      WHERE space_id = ? AND from_record_id = ? AND to_record_id = ? AND via_field_id = ?
       LIMIT 1
     `),
     delete: db.prepare('DELETE FROM record_relations WHERE relation_id = ?'),
@@ -448,10 +350,10 @@ export const createStatements = (db) => ({
     `),
   },
   views: {
-    listForProject: db.prepare('SELECT * FROM views WHERE project_id = ? ORDER BY created_at ASC'),
+    listForSpace: db.prepare('SELECT * FROM views WHERE space_id = ? ORDER BY created_at ASC'),
     findById: db.prepare('SELECT * FROM views WHERE view_id = ?'),
     insert: db.prepare(`
-      INSERT INTO views (view_id, project_id, collection_id, type, name, config, created_by, created_at, updated_at)
+      INSERT INTO views (view_id, space_id, collection_id, type, name, config, created_by, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     update: db.prepare(`
@@ -462,11 +364,11 @@ export const createStatements = (db) => ({
   },
   search: {},
   userSearch: {
-    searchProjectMembers: db.prepare(`
+    searchSpaceMembers: db.prepare(`
       SELECT u.user_id, u.display_name, u.email
-      FROM project_members pm
+      FROM space_members pm
       JOIN users u ON u.user_id = pm.user_id
-      WHERE pm.project_id = ?
+      WHERE pm.space_id = ?
         AND (
           ? = ''
           OR LOWER(u.display_name) LIKE ?
@@ -479,7 +381,7 @@ export const createStatements = (db) => ({
       SELECT r.record_id, r.title, r.collection_id, c.name AS collection_name
       FROM records r
       LEFT JOIN collections c ON c.collection_id = r.collection_id
-      WHERE r.project_id = ? AND r.archived_at IS NULL
+      WHERE r.space_id = ? AND r.archived_at IS NULL
         AND (
           ? = ''
           OR LOWER(r.title) LIKE ?
@@ -491,7 +393,7 @@ export const createStatements = (db) => ({
       SELECT r.record_id, r.title, r.collection_id, c.name AS collection_name, c.icon AS collection_icon
       FROM records r
       LEFT JOIN collections c ON c.collection_id = r.collection_id
-      WHERE r.project_id = ? AND r.archived_at IS NULL
+      WHERE r.space_id = ? AND r.archived_at IS NULL
         AND (
           ? = ''
           OR LOWER(r.title) LIKE ?
@@ -513,11 +415,11 @@ export const createStatements = (db) => ({
     listForRecord: db.prepare('SELECT capability_type FROM record_capabilities WHERE record_id = ? ORDER BY capability_type ASC'),
   },
   tasks: {
-    listVisibleForProject: db.prepare(`
+    listVisibleForSpace: db.prepare(`
       SELECT r.*, ts.category
       FROM records r
       JOIN task_state ts ON ts.record_id = r.record_id
-      WHERE r.project_id = ? AND r.archived_at IS NULL AND r.parent_record_id IS NULL
+      WHERE r.space_id = ? AND r.archived_at IS NULL AND r.parent_record_id IS NULL
       ORDER BY COALESCE(ts.updated_at, r.updated_at) DESC, r.record_id DESC
     `),
     listAssignedForUser: db.prepare(`
@@ -556,18 +458,18 @@ export const createStatements = (db) => ({
     deleteAssignments: db.prepare('DELETE FROM assignments WHERE record_id = ?'),
     insertAssignment: db.prepare('INSERT OR REPLACE INTO assignments (record_id, user_id, assigned_at) VALUES (?, ?, ?)'),
     listAssignments: db.prepare('SELECT * FROM assignments WHERE record_id = ? ORDER BY assigned_at ASC'),
-    listAssignedForUserInProject: db.prepare(`
-      SELECT r.record_id, r.project_id, r.title, r.updated_at, ts.status, ts.priority
+    listAssignedForUserInSpace: db.prepare(`
+      SELECT r.record_id, r.space_id, r.title, r.updated_at, ts.status, ts.priority
       FROM assignments a
       JOIN records r ON r.record_id = a.record_id
       LEFT JOIN task_state ts ON ts.record_id = r.record_id
       WHERE a.user_id = ?
-        AND r.project_id = ?
+        AND r.space_id = ?
         AND r.archived_at IS NULL
       ORDER BY r.updated_at DESC, r.record_id DESC
     `),
     listDueReminders: db.prepare(`
-      SELECT r.*, rec.title AS record_title, rec.project_id
+      SELECT r.*, rec.title AS record_title, rec.space_id
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
       WHERE r.fired_at IS NULL AND r.dismissed_at IS NULL AND r.remind_at <= ? AND rec.archived_at IS NULL
@@ -575,19 +477,19 @@ export const createStatements = (db) => ({
     deleteAssignment: db.prepare('DELETE FROM assignments WHERE record_id = ? AND user_id = ?'),
   },
   calendar: {
-    listEventsForProject: db.prepare(`
+    listEventsForSpace: db.prepare(`
       SELECT r.*, es.start_dt, es.end_dt
       FROM records r
       JOIN event_state es ON es.record_id = r.record_id
-      WHERE r.project_id = ? AND r.archived_at IS NULL
+      WHERE r.space_id = ? AND r.archived_at IS NULL
       ORDER BY es.start_dt ASC, r.record_id ASC
     `),
-    listCalendarRecordsForProject: db.prepare(`
+    listCalendarRecordsForSpace: db.prepare(`
       SELECT r.*
       FROM records r
       JOIN record_capabilities rc ON rc.record_id = r.record_id AND rc.capability_type = 'calendar_event'
       JOIN event_state es ON es.record_id = r.record_id
-      WHERE r.project_id = ? AND r.archived_at IS NULL
+      WHERE r.space_id = ? AND r.archived_at IS NULL
       ORDER BY es.start_dt ASC
     `),
     upsertEventState: db.prepare(`
@@ -620,27 +522,27 @@ export const createStatements = (db) => ({
   },
   reminders: {
     listDue: db.prepare(`
-      SELECT r.*, rec.title AS record_title, rec.project_id
+      SELECT r.*, rec.title AS record_title, rec.space_id
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
       WHERE r.fired_at IS NULL AND r.dismissed_at IS NULL AND r.remind_at <= ? AND rec.archived_at IS NULL
     `),
     claimFired: db.prepare('UPDATE reminders SET fired_at = ? WHERE reminder_id = ? AND fired_at IS NULL'),
     listForUser: db.prepare(`
-      -- Parameter order: user_id, scope, personal_project_id, scope, project_id, pane_id, pane_id.
-      -- pane_id is bound twice to support (? = '' OR rec.source_pane_id = ?).
-      SELECT r.*, rec.title AS record_title, rec.project_id
+      -- Parameter order: user_id, scope, personal_space_id, scope, space_id, project_id, project_id.
+      -- project_id is bound twice to support (? = '' OR rec.source_project_id = ?).
+      SELECT r.*, rec.title AS record_title, rec.space_id
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
-      JOIN project_members pm ON pm.project_id = rec.project_id AND pm.user_id = ?
+      JOIN space_members pm ON pm.space_id = rec.space_id AND pm.user_id = ?
       WHERE r.dismissed_at IS NULL
         AND rec.archived_at IS NULL
         AND (
-          (? = 'personal' AND rec.project_id = ?)
+          (? = 'personal' AND rec.space_id = ?)
           OR (
-            ? = 'project'
-            AND rec.project_id = ?
-            AND (? = '' OR rec.source_pane_id = ?)
+            ? = 'space'
+            AND rec.space_id = ?
+            AND (? = '' OR rec.source_project_id = ?)
           )
         )
       ORDER BY r.remind_at ASC
@@ -653,7 +555,7 @@ export const createStatements = (db) => ({
       VALUES (?, ?, ?, ?, ?, ?)
     `),
     findById: db.prepare(`
-      SELECT r.*, rec.title AS record_title, rec.project_id, rec.archived_at AS record_archived_at
+      SELECT r.*, rec.title AS record_title, rec.space_id, rec.archived_at AS record_archived_at
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
       WHERE r.reminder_id = ?
@@ -686,20 +588,20 @@ export const createStatements = (db) => ({
   },
   files: {
     insert: db.prepare(`
-      INSERT INTO files (file_id, project_id, asset_root_id, provider, provider_path, name, mime_type, size_bytes, hash, metadata_json, created_by, created_at)
+      INSERT INTO files (file_id, space_id, asset_root_id, provider, provider_path, name, mime_type, size_bytes, hash, metadata_json, created_by, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
-    listForProject: db.prepare(`
+    listForSpace: db.prepare(`
       SELECT *
       FROM files
-      WHERE project_id = ?
+      WHERE space_id = ?
       ORDER BY created_at DESC, file_id DESC
     `),
     insertBlob: db.prepare('INSERT INTO file_blobs (file_id, storage_pointer, created_at) VALUES (?, ?, ?)'),
     insertAttachment: db.prepare(`
       INSERT INTO entity_attachments (
         attachment_id,
-        project_id,
+        space_id,
         entity_type,
         entity_id,
         provider,
@@ -718,24 +620,24 @@ export const createStatements = (db) => ({
     listAttachmentsForEntity: db.prepare(`
       SELECT ea.*
       FROM entity_attachments ea
-      WHERE ea.project_id = ? AND ea.entity_type = ? AND ea.entity_id = ?
+      WHERE ea.space_id = ? AND ea.entity_type = ? AND ea.entity_id = ?
       ORDER BY ea.created_at DESC
     `),
     findAttachmentById: db.prepare('SELECT * FROM entity_attachments WHERE attachment_id = ?'),
   },
   assetRoots: {
-    findDefaultForProject: db.prepare(`
+    findDefaultForSpace: db.prepare(`
       SELECT *
       FROM asset_roots
-      WHERE project_id = ?
+      WHERE space_id = ?
       ORDER BY created_at ASC
       LIMIT 1
     `),
     insert: db.prepare(`
-      INSERT INTO asset_roots (asset_root_id, project_id, provider, root_path, connection_ref, created_at, updated_at)
+      INSERT INTO asset_roots (asset_root_id, space_id, provider, root_path, connection_ref, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `),
-    listForProject: db.prepare('SELECT * FROM asset_roots WHERE project_id = ? ORDER BY created_at ASC'),
+    listForSpace: db.prepare('SELECT * FROM asset_roots WHERE space_id = ? ORDER BY created_at ASC'),
     findById: db.prepare('SELECT * FROM asset_roots WHERE asset_root_id = ?'),
   },
   chat: {
@@ -762,7 +664,7 @@ export const createStatements = (db) => ({
     insertSnapshot: db.prepare(`
       INSERT INTO chat_snapshots (
         snapshot_id,
-        project_id,
+        space_id,
         conversation_room_id,
         message_sender_display_name,
         message_text,
@@ -772,10 +674,10 @@ export const createStatements = (db) => ({
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `),
     findSnapshotById: db.prepare('SELECT * FROM chat_snapshots WHERE snapshot_id = ?'),
-    listSnapshotsByProject: db.prepare(`
+    listSnapshotsBySpace: db.prepare(`
       SELECT *
       FROM chat_snapshots
-      WHERE project_id = ?
+      WHERE space_id = ?
       ORDER BY created_at DESC, snapshot_id DESC
       LIMIT ? OFFSET ?
     `),
@@ -783,14 +685,14 @@ export const createStatements = (db) => ({
   },
   comments: {
     insert: db.prepare(`
-      INSERT INTO comments (comment_id, project_id, author_user_id, target_entity_type, target_entity_id, body_json, status, created_at, updated_at)
+      INSERT INTO comments (comment_id, space_id, author_user_id, target_entity_type, target_entity_id, body_json, status, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     findById: db.prepare('SELECT * FROM comments WHERE comment_id = ?'),
     listForEntity: db.prepare(`
       SELECT *
       FROM comments
-      WHERE project_id = ? AND target_entity_type = ? AND target_entity_id = ?
+      WHERE space_id = ? AND target_entity_type = ? AND target_entity_id = ?
       ORDER BY created_at ASC
     `),
     updateStatus: db.prepare('UPDATE comments SET status = ?, updated_at = ? WHERE comment_id = ?'),
@@ -811,12 +713,12 @@ export const createStatements = (db) => ({
   },
   mentions: {
     insert: db.prepare(`
-      INSERT INTO mentions (mention_id, project_id, source_entity_type, source_entity_id, target_entity_type, target_entity_id, context, created_at)
+      INSERT INTO mentions (mention_id, space_id, source_entity_type, source_entity_id, target_entity_type, target_entity_id, context, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `),
     listForSource: db.prepare(`
       SELECT * FROM mentions
-      WHERE project_id = ? AND source_entity_type = ? AND source_entity_id = ?
+      WHERE space_id = ? AND source_entity_type = ? AND source_entity_id = ?
       ORDER BY created_at ASC
     `),
     delete: db.prepare('DELETE FROM mentions WHERE mention_id = ?'),
@@ -824,32 +726,32 @@ export const createStatements = (db) => ({
     countForTarget: db.prepare(`
       SELECT COUNT(*) AS mention_count
       FROM mentions
-      WHERE project_id = ? AND target_entity_type = ? AND target_entity_id = ?
+      WHERE space_id = ? AND target_entity_type = ? AND target_entity_id = ?
     `),
     listInboxForUser: db.prepare(`
       SELECT
         m.*,
-        d.pane_id AS source_doc_pane_id,
-        p.name AS source_doc_pane_name,
+        d.project_id AS source_doc_project_id,
+        p.name AS source_doc_project_name,
         c.target_entity_type AS source_comment_target_entity_type,
         c.target_entity_id AS source_comment_target_entity_id,
         c.author_user_id AS source_comment_author_user_id,
         cdoc.doc_id AS source_comment_doc_id,
-        cp.pane_id AS source_comment_pane_id,
-        cp.name AS source_comment_pane_name,
+        cp.project_id AS source_comment_project_id,
+        cp.name AS source_comment_project_name,
         ca.anchor_payload AS source_comment_anchor_payload
       FROM mentions m
       LEFT JOIN docs d ON m.source_entity_type = 'doc' AND d.doc_id = m.source_entity_id
-      LEFT JOIN panes p ON p.pane_id = d.pane_id
+      LEFT JOIN projects p ON p.project_id = d.project_id
       LEFT JOIN comments c ON m.source_entity_type = 'comment' AND c.comment_id = m.source_entity_id
       LEFT JOIN docs cdoc ON c.target_entity_type = 'doc' AND cdoc.doc_id = c.target_entity_id
-      LEFT JOIN panes cp ON cp.pane_id = cdoc.pane_id
-      LEFT JOIN pane_members spm ON spm.pane_id = d.pane_id AND spm.user_id = ?
-      LEFT JOIN pane_members cpm ON cpm.pane_id = cdoc.pane_id AND cpm.user_id = ?
-      LEFT JOIN project_members spj ON spj.project_id = p.project_id AND spj.user_id = ? AND spj.role = 'owner'
-      LEFT JOIN project_members cpj ON cpj.project_id = cp.project_id AND cpj.user_id = ? AND cpj.role = 'owner'
+      LEFT JOIN projects cp ON cp.project_id = cdoc.project_id
+      LEFT JOIN project_members spm ON spm.project_id = d.project_id AND spm.user_id = ?
+      LEFT JOIN project_members cpm ON cpm.project_id = cdoc.project_id AND cpm.user_id = ?
+      LEFT JOIN space_members spj ON spj.space_id = p.space_id AND spj.user_id = ? AND spj.role = 'owner'
+      LEFT JOIN space_members cpj ON cpj.space_id = cp.space_id AND cpj.user_id = ? AND cpj.role = 'owner'
       LEFT JOIN comment_anchors ca ON ca.comment_id = c.comment_id
-      WHERE m.project_id = ? AND m.target_entity_type = ? AND m.target_entity_id = ?
+      WHERE m.space_id = ? AND m.target_entity_type = ? AND m.target_entity_id = ?
         AND (
           (m.source_entity_type = 'doc' AND (spm.user_id IS NOT NULL OR spj.user_id IS NOT NULL))
           OR (
@@ -870,7 +772,7 @@ export const createStatements = (db) => ({
     insert: db.prepare(`
       INSERT INTO timeline_events (
         timeline_event_id,
-        project_id,
+        space_id,
         actor_user_id,
         event_type,
         primary_entity_type,
@@ -880,16 +782,16 @@ export const createStatements = (db) => ({
         created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
-    listForProject: db.prepare(`
+    listForSpace: db.prepare(`
       SELECT *
       FROM timeline_events
-      WHERE project_id = ?
+      WHERE space_id = ?
       ORDER BY created_at DESC, timeline_event_id DESC
     `),
     listForEntity: db.prepare(`
       SELECT *
       FROM timeline_events
-      WHERE project_id = ? AND primary_entity_type = ? AND primary_entity_id = ?
+      WHERE space_id = ? AND primary_entity_type = ? AND primary_entity_id = ?
       ORDER BY created_at DESC
       LIMIT 100
     `),
@@ -898,7 +800,7 @@ export const createStatements = (db) => ({
     insert: db.prepare(`
       INSERT INTO notifications (
         notification_id,
-        project_id,
+        space_id,
         user_id,
         reason,
         entity_type,
@@ -918,7 +820,7 @@ export const createStatements = (db) => ({
     insertRule: db.prepare(`
       INSERT INTO automation_rules (
         automation_rule_id,
-        project_id,
+        space_id,
         name,
         enabled,
         trigger_json,
@@ -928,7 +830,7 @@ export const createStatements = (db) => ({
         updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
-    listRules: db.prepare('SELECT * FROM automation_rules WHERE project_id = ? ORDER BY created_at DESC'),
+    listRules: db.prepare('SELECT * FROM automation_rules WHERE space_id = ? ORDER BY created_at DESC'),
     findRule: db.prepare('SELECT * FROM automation_rules WHERE automation_rule_id = ?'),
     updateRule: db.prepare(`
       UPDATE automation_rules
@@ -936,6 +838,6 @@ export const createStatements = (db) => ({
       WHERE automation_rule_id = ?
     `),
     deleteRule: db.prepare('DELETE FROM automation_rules WHERE automation_rule_id = ?'),
-    listRuns: db.prepare('SELECT * FROM automation_runs WHERE project_id = ? ORDER BY started_at DESC, automation_run_id DESC'),
+    listRuns: db.prepare('SELECT * FROM automation_runs WHERE space_id = ? ORDER BY started_at DESC, automation_run_id DESC'),
   },
 });

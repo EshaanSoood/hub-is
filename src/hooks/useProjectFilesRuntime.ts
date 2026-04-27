@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { recordRecentPaneContribution } from '../features/recentPlaces/store';
+import { recordRecentProjectContribution } from '../features/recentPlaces/store';
 import {
   createAssetRoot,
   listAssetRoots,
@@ -58,7 +58,7 @@ const trackedFileToModuleItem = (file: HubTrackedFile): FilesModuleItem => {
 
 interface AssetRootSummary {
   asset_root_id: string;
-  project_id: string;
+  space_id: string;
   provider: string;
   root_path: string;
   connection_ref: Record<string, unknown> | null;
@@ -66,8 +66,8 @@ interface AssetRootSummary {
   updated_at: string;
 }
 
-interface ActivePaneSummary {
-  pane_id: string;
+interface ActiveProjectSummary {
+  project_id?: string;
   name: string;
 }
 
@@ -75,7 +75,7 @@ interface UseProjectFilesRuntimeParams {
   accessToken: string;
   projectId: string;
   projectName: string;
-  activePane: ActivePaneSummary | null;
+  activeProject: ActiveProjectSummary | null;
   onError: (message: string) => void;
 }
 
@@ -83,15 +83,15 @@ export const useProjectFilesRuntime = ({
   accessToken,
   projectId,
   projectName,
-  activePane,
+  activeProject,
   onError,
 }: UseProjectFilesRuntimeParams) => {
   const [assetRoots, setAssetRoots] = useState<AssetRootSummary[]>([]);
   const [pendingProjectFiles, setPendingProjectFiles] = useState<FilesModuleItem[]>([]);
   const [trackedProjectFiles, setTrackedProjectFiles] = useState<FilesModuleItem[]>([]);
-  const [pendingPaneFilesByPaneId, setPendingPaneFilesByPaneId] = useState<Record<string, FilesModuleItem[]>>({});
-  const [trackedPaneFilesByPaneId, setTrackedPaneFilesByPaneId] = useState<Record<string, FilesModuleItem[]>>({});
-  const activePaneId = activePane?.pane_id ?? null;
+  const [pendingProjectFilesByProjectId, setPendingProjectFilesByProjectId] = useState<Record<string, FilesModuleItem[]>>({});
+  const [trackedProjectFilesByProjectId, setTrackedProjectFilesByProjectId] = useState<Record<string, FilesModuleItem[]>>({});
+  const activeProjectId = activeProject?.project_id ?? null;
 
   const fileUploadTimersRef = useRef<Record<string, number>>({});
   const fileRemovalTimersRef = useRef<Record<string, number>>({});
@@ -135,20 +135,20 @@ export const useProjectFilesRuntime = ({
     }
   }, [accessToken, assetRoots, projectId, projectName]);
 
-  const refreshTrackedProjectFiles = useCallback(async () => {
-    const files = await listTrackedFiles(accessToken, projectId, { scope: 'project' });
+  const refreshTrackedSpaceFiles = useCallback(async () => {
+    const files = await listTrackedFiles(accessToken, projectId, { scope: 'space' });
     setTrackedProjectFiles(files.map(trackedFileToModuleItem));
   }, [accessToken, projectId]);
 
-  const refreshTrackedPaneFiles = useCallback(
-    async (paneIdToLoad: string) => {
+  const refreshTrackedProjectFiles = useCallback(
+    async (projectIdToLoad: string) => {
       const files = await listTrackedFiles(accessToken, projectId, {
-        scope: 'pane',
-        pane_id: paneIdToLoad,
+        scope: 'project',
+        project_id: projectIdToLoad,
       });
-      setTrackedPaneFilesByPaneId((current) => ({
+      setTrackedProjectFilesByProjectId((current) => ({
         ...current,
-        [paneIdToLoad]: files.map(trackedFileToModuleItem),
+        [projectIdToLoad]: files.map(trackedFileToModuleItem),
       }));
     },
     [accessToken, projectId],
@@ -159,15 +159,15 @@ export const useProjectFilesRuntime = ({
   }, [refreshAssetRoots]);
 
   useEffect(() => {
-    void refreshTrackedProjectFiles();
-  }, [refreshTrackedProjectFiles]);
+    void refreshTrackedSpaceFiles();
+  }, [refreshTrackedSpaceFiles]);
 
   useEffect(() => {
-    if (!activePaneId) {
+    if (!activeProjectId) {
       return;
     }
-    void refreshTrackedPaneFiles(activePaneId);
-  }, [activePaneId, refreshTrackedPaneFiles]);
+    void refreshTrackedProjectFiles(activeProjectId);
+  }, [activeProjectId, refreshTrackedProjectFiles]);
 
   useEffect(() => {
     return () => {
@@ -182,36 +182,36 @@ export const useProjectFilesRuntime = ({
     };
   }, []);
 
-  const updatePendingPaneFile = useCallback(
-    (paneIdToUpdate: string, fileId: string, mapFn: (current: FilesModuleItem) => FilesModuleItem) => {
-      setPendingPaneFilesByPaneId((current) => {
-        const paneFiles = current[paneIdToUpdate] ?? [];
-        const nextPaneFiles = paneFiles.map((item) => (item.id === fileId ? mapFn(item) : item));
+  const updatePendingProjectFile = useCallback(
+    (projectIdToUpdate: string, fileId: string, mapFn: (current: FilesModuleItem) => FilesModuleItem) => {
+      setPendingProjectFilesByProjectId((current) => {
+        const currentFiles = current[projectIdToUpdate] ?? [];
+        const nextProjectFiles = currentFiles.map((item) => (item.id === fileId ? mapFn(item) : item));
         return {
           ...current,
-          [paneIdToUpdate]: nextPaneFiles,
+          [projectIdToUpdate]: nextProjectFiles,
         };
       });
     },
     [],
   );
 
-  const updatePendingProjectFile = useCallback((fileId: string, mapFn: (current: FilesModuleItem) => FilesModuleItem) => {
+  const updatePendingSpaceFile = useCallback((fileId: string, mapFn: (current: FilesModuleItem) => FilesModuleItem) => {
     setPendingProjectFiles((current) => current.map((item) => (item.id === fileId ? mapFn(item) : item)));
   }, []);
 
-  const removePendingPaneFile = useCallback((paneIdToUpdate: string, fileId: string) => {
-    setPendingPaneFilesByPaneId((current) => ({
+  const removePendingProjectFile = useCallback((projectIdToUpdate: string, fileId: string) => {
+    setPendingProjectFilesByProjectId((current) => ({
       ...current,
-      [paneIdToUpdate]: (current[paneIdToUpdate] ?? []).filter((item) => item.id !== fileId),
+      [projectIdToUpdate]: (current[projectIdToUpdate] ?? []).filter((item) => item.id !== fileId),
     }));
   }, []);
 
-  const removePendingProjectFile = useCallback((fileId: string) => {
+  const removePendingSpaceFile = useCallback((fileId: string) => {
     setPendingProjectFiles((current) => current.filter((item) => item.id !== fileId));
   }, []);
 
-  const onUploadProjectFiles = useCallback(
+  const onUploadSpaceFiles = useCallback(
     (nextFiles: File[]) => {
       if (nextFiles.length === 0) {
         return;
@@ -237,7 +237,7 @@ export const useProjectFilesRuntime = ({
 
       for (const entry of queued) {
         const timer = window.setInterval(() => {
-          updatePendingProjectFile(entry.item.id, (current) => {
+          updatePendingSpaceFile(entry.item.id, (current) => {
             if (current.uploadProgress === undefined || current.uploadProgress >= 90) {
               return current;
             }
@@ -253,19 +253,19 @@ export const useProjectFilesRuntime = ({
           try {
             const [base64, assetRootId] = await Promise.all([toBase64(entry.localFile), ensureProjectAssetRoot()]);
             const uploaded = await uploadFile(accessToken, {
-              project_id: projectId,
+              space_id: projectId,
               asset_root_id: assetRootId,
               name: entry.localFile.name,
               mime_type: entry.localFile.type || 'application/octet-stream',
               content_base64: base64,
               path: 'Space Files',
-              mutation_context_pane_id: activePane?.pane_id || undefined,
+              mutation_context_project_id: activeProjectId || undefined,
               metadata: {
-                scope: 'project',
+                scope: 'space',
               },
             });
 
-            updatePendingProjectFile(entry.item.id, (current) => ({
+            updatePendingSpaceFile(entry.item.id, (current) => ({
               ...current,
               uploadProgress: 100,
               uploadedAt: new Date().toLocaleString(),
@@ -276,22 +276,22 @@ export const useProjectFilesRuntime = ({
               thumbnailUrl: uploaded.file.proxy_url,
             }));
 
-            await refreshTrackedProjectFiles();
-            if (activePane) {
-              recordRecentPaneContribution({
-                paneId: activePane.pane_id,
-                paneName: activePane.name,
+            await refreshTrackedSpaceFiles();
+            if (activeProject && activeProjectId) {
+              recordRecentProjectContribution({
+                projectId: activeProjectId,
+                projectName: activeProject.name,
                 spaceId: projectId,
                 spaceName: projectName,
               }, 'file-upload');
             }
             const removalTimer = window.setTimeout(() => {
-              removePendingProjectFile(entry.item.id);
+              removePendingSpaceFile(entry.item.id);
               delete fileRemovalTimersRef.current[entry.item.id];
             }, 450);
             fileRemovalTimersRef.current[entry.item.id] = removalTimer;
           } catch (error) {
-            updatePendingProjectFile(entry.item.id, (current) => ({
+            updatePendingSpaceFile(entry.item.id, (current) => ({
               ...current,
               uploadProgress: undefined,
               uploadedAt: 'Upload failed',
@@ -310,31 +310,32 @@ export const useProjectFilesRuntime = ({
     },
     [
       accessToken,
-      activePane,
+      activeProject,
+      activeProjectId,
       ensureProjectAssetRoot,
       onError,
       projectId,
       projectName,
-      refreshTrackedProjectFiles,
-      removePendingProjectFile,
-      updatePendingProjectFile,
+      refreshTrackedSpaceFiles,
+      removePendingSpaceFile,
+      updatePendingSpaceFile,
     ],
   );
 
-  const onUploadPaneFiles = useCallback(
+  const onUploadProjectFiles = useCallback(
     (nextFiles: File[]) => {
-      if (!activePane || nextFiles.length === 0) {
+      if (!activeProject || !activeProjectId || nextFiles.length === 0) {
         return;
       }
 
-      const paneIdForUpload = activePane.pane_id;
-      const panePath = `Pane Files/${paneIdForUpload}`;
+      const projectIdForUpload = activeProjectId;
+      const projectPath = `Project Files/${projectIdForUpload}`;
       const startedAt = new Date().toLocaleString();
       const startedAtTimestamp = Date.now();
       const queued = nextFiles.map((file) => ({
         localFile: file,
         item: {
-          id: `pane-file-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+          id: `project-file-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
           name: file.name,
           ext: fileExt(file.name),
           sizeLabel: formatFileSize(file.size),
@@ -345,14 +346,14 @@ export const useProjectFilesRuntime = ({
         } satisfies FilesModuleItem,
       }));
 
-      setPendingPaneFilesByPaneId((current) => ({
+      setPendingProjectFilesByProjectId((current) => ({
         ...current,
-        [paneIdForUpload]: [...queued.map((entry) => entry.item), ...(current[paneIdForUpload] ?? [])],
+        [projectIdForUpload]: [...queued.map((entry) => entry.item), ...(current[projectIdForUpload] ?? [])],
       }));
 
       for (const entry of queued) {
         const timer = window.setInterval(() => {
-          updatePendingPaneFile(paneIdForUpload, entry.item.id, (current) => {
+          updatePendingProjectFile(projectIdForUpload, entry.item.id, (current) => {
             if (current.uploadProgress === undefined || current.uploadProgress >= 90) {
               return current;
             }
@@ -368,21 +369,21 @@ export const useProjectFilesRuntime = ({
           try {
             const [base64, assetRootId] = await Promise.all([toBase64(entry.localFile), ensureProjectAssetRoot()]);
             const uploaded = await uploadFile(accessToken, {
-              project_id: projectId,
+              space_id: projectId,
               asset_root_id: assetRootId,
               name: entry.localFile.name,
               mime_type: entry.localFile.type || 'application/octet-stream',
               content_base64: base64,
-              path: panePath,
-              mutation_context_pane_id: paneIdForUpload,
+              path: projectPath,
+              mutation_context_project_id: projectIdForUpload,
               metadata: {
-                scope: 'pane',
-                pane_id: paneIdForUpload,
-                pane_name: activePane.name,
+                scope: 'project',
+                project_id: projectIdForUpload,
+                project_name: activeProject.name,
               },
             });
 
-            updatePendingPaneFile(paneIdForUpload, entry.item.id, (current) => ({
+            updatePendingProjectFile(projectIdForUpload, entry.item.id, (current) => ({
               ...current,
               uploadProgress: 100,
               uploadedAt: new Date().toLocaleString(),
@@ -393,20 +394,20 @@ export const useProjectFilesRuntime = ({
               thumbnailUrl: uploaded.file.proxy_url,
             }));
 
-            await Promise.all([refreshTrackedProjectFiles(), refreshTrackedPaneFiles(paneIdForUpload)]);
-            recordRecentPaneContribution({
-              paneId: paneIdForUpload,
-              paneName: activePane.name,
+            await Promise.all([refreshTrackedSpaceFiles(), refreshTrackedProjectFiles(projectIdForUpload)]);
+            recordRecentProjectContribution({
+              projectId: projectIdForUpload,
+              projectName: activeProject.name,
               spaceId: projectId,
               spaceName: projectName,
-            }, 'pane-file-upload');
+            }, 'project-file-upload');
             const removalTimer = window.setTimeout(() => {
-              removePendingPaneFile(paneIdForUpload, entry.item.id);
+              removePendingProjectFile(projectIdForUpload, entry.item.id);
               delete fileRemovalTimersRef.current[entry.item.id];
             }, 450);
             fileRemovalTimersRef.current[entry.item.id] = removalTimer;
           } catch (error) {
-            updatePendingPaneFile(paneIdForUpload, entry.item.id, (current) => ({
+            updatePendingProjectFile(projectIdForUpload, entry.item.id, (current) => ({
               ...current,
               uploadProgress: undefined,
               uploadedAt: 'Upload failed',
@@ -425,29 +426,33 @@ export const useProjectFilesRuntime = ({
     },
     [
       accessToken,
-      activePane,
+      activeProject,
+      activeProjectId,
       ensureProjectAssetRoot,
       onError,
       projectId,
       projectName,
-      refreshTrackedPaneFiles,
+      refreshTrackedSpaceFiles,
       refreshTrackedProjectFiles,
-      removePendingPaneFile,
-      updatePendingPaneFile,
+      removePendingProjectFile,
+      updatePendingProjectFile,
     ],
   );
 
-  const onOpenPaneFile = useCallback((file: FilesModuleItem) => {
+  const onOpenProjectFile = useCallback((file: FilesModuleItem) => {
     if (file.openUrl) {
       window.open(file.openUrl, '_blank', 'noopener');
     }
   }, []);
 
-  const paneFiles = useMemo(() => {
-    if (!activePane) {
+  const activeProjectFiles = useMemo(() => {
+    if (!activeProject) {
       return [];
     }
-    const combined = [...(pendingPaneFilesByPaneId[activePane.pane_id] ?? []), ...(trackedPaneFilesByPaneId[activePane.pane_id] ?? [])];
+    if (!activeProjectId) {
+      return [];
+    }
+    const combined = [...(pendingProjectFilesByProjectId[activeProjectId] ?? []), ...(trackedProjectFilesByProjectId[activeProjectId] ?? [])];
     return combined.sort((left, right) => {
       const leftTime = left.uploadedAtTimestamp ?? Number(new Date(left.uploadedAt));
       const rightTime = right.uploadedAtTimestamp ?? Number(new Date(right.uploadedAt));
@@ -455,9 +460,9 @@ export const useProjectFilesRuntime = ({
       const safeRight = Number.isFinite(rightTime) ? rightTime : Number.NEGATIVE_INFINITY;
       return safeRight - safeLeft;
     });
-  }, [activePane, pendingPaneFilesByPaneId, trackedPaneFilesByPaneId]);
+  }, [activeProject, activeProjectId, pendingProjectFilesByProjectId, trackedProjectFilesByProjectId]);
 
-  const projectFiles = useMemo(
+  const spaceFiles = useMemo(
     () =>
       [...pendingProjectFiles, ...trackedProjectFiles].sort((left, right) => {
         const leftTime = left.uploadedAtTimestamp ?? Number(new Date(left.uploadedAt));
@@ -471,11 +476,11 @@ export const useProjectFilesRuntime = ({
 
   return {
     ensureProjectAssetRoot,
-    onOpenPaneFile,
-    onUploadPaneFiles,
+    onOpenProjectFile,
     onUploadProjectFiles,
-    paneFiles,
-    projectFiles,
-    refreshTrackedProjectFiles,
+    onUploadSpaceFiles,
+    projectFiles: activeProjectFiles,
+    spaceFiles,
+    refreshTrackedSpaceFiles,
   };
 };

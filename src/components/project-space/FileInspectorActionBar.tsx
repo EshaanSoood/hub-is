@@ -8,10 +8,10 @@ interface FileInspectorActionBarProps {
   fileName: string;
   downloadUrl: string;
   shareableLink: string;
-  panes: Array<{ id: string; name: string }>;
+  projects: Array<{ id: string; name: string }>;
   readOnly?: boolean;
   onRename: (nextName: string) => void | Promise<void>;
-  onMove: (destinationPaneId: string) => void;
+  onMove: (destinationProjectId: string) => void;
   onRemove: () => void;
 }
 
@@ -50,7 +50,7 @@ export const FileInspectorActionBar = ({
   fileName,
   downloadUrl,
   shareableLink,
-  panes,
+  projects,
   readOnly = false,
   onRename,
   onMove,
@@ -242,10 +242,10 @@ export const FileInspectorActionBar = ({
               <AnimatePresence>
                 {moveOpen ? (
                   <FileMovePopover
-                    panes={panes}
+                    projects={projects}
                     currentFileName={fileName}
-                    onSelect={(paneId) => {
-                      onMove(paneId);
+                    onSelect={(projectId) => {
+                      onMove(projectId);
                       closeMove({ restoreFocus: true });
                     }}
                     onClose={(options) => closeMove(options)}

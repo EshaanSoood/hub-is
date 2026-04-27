@@ -39,7 +39,7 @@ if (!projectId) {
 }
 
 const encodedProjectId = encodeURIComponent(projectId);
-const workPackagesPath = `/api/hub/projects/${encodedProjectId}/openproject/work-packages`;
+const workPackagesPath = `/api/hub/spaces/${encodedProjectId}/openproject/work-packages`;
 
 const health = await request('/api/hub/integrations/openproject/health');
 assert(health.status === 200, `OpenProject health endpoint failed (${health.status}).`);

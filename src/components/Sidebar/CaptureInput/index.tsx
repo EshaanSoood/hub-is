@@ -10,11 +10,11 @@ import { parseReminderInput } from '../../../lib/nlp/reminder-parser';
 import { parseTaskInput } from '../../../lib/nlp/task-parser';
 import { createEventFromNlp, createPersonalTask, createRecord } from '../../../services/hub/records';
 import { createReminder } from '../../../services/hub/reminders';
-import type { HubPaneSummary } from '../../../services/hub/types';
+import type { HubProjectSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
 import { cn } from '../../../lib/cn';
 import { SidebarLabel } from '../motion/SidebarLabel';
-import { recordRecentPaneContribution } from '../../../features/recentPlaces/store';
+import { recordRecentProjectContribution } from '../../../features/recentPlaces/store';
 import {
   sidebarCaptureFocusVariants,
   sidebarMotionLayoutIds,
@@ -28,7 +28,7 @@ import {
   createQuickThoughtEntry,
   moduleTypesByCaptureKind,
   readQuickThoughtStorageKey,
-  readPaneHasModuleType,
+  readProjectHasModuleType,
   selectCollectionId,
 } from './shared';
 
@@ -41,9 +41,9 @@ const CaptureDialog = lazy(async () => {
 interface CaptureInputProps {
   accessToken: string | null | undefined;
   autoFocusKey: number;
-  currentPaneId: string | null;
+  currentProjectId: string | null;
   currentProject: ProjectRecord | null;
-  currentProjectPanes: HubPaneSummary[];
+  currentProjectProjects: HubProjectSummary[];
   currentSurface: SidebarCaptureSurface;
   currentSurfaceLabel: string | null;
   isCollapsed: boolean;
@@ -121,9 +121,9 @@ const parseEventPreview = async (
 export const CaptureInput = ({
   accessToken,
   autoFocusKey,
-  currentPaneId,
+  currentProjectId,
   currentProject,
-  currentProjectPanes,
+  currentProjectProjects,
   currentSurface,
   currentSurfaceLabel,
   isCollapsed,
@@ -146,7 +146,7 @@ export const CaptureInput = ({
   const isSubmittingRef = useRef(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const paneDestinations = useMemo<Record<CaptureKind, CaptureDestination | null>>(() => {
+  const projectDestinations = useMemo<Record<CaptureKind, CaptureDestination | null>>(() => {
     if (!currentProject) {
       return {
         thought: null,
@@ -155,45 +155,45 @@ export const CaptureInput = ({
         reminder: null,
       };
     }
-    const activePane = currentPaneId
-      ? currentProjectPanes.find((pane) => pane.pane_id === currentPaneId) || null
+    const activeProject = currentProjectId
+      ? currentProjectProjects.find((project) => project.project_id === currentProjectId) || null
       : null;
-    const resolvePaneDestination = (kind: CaptureKind): CaptureDestination | null => {
+    const resolveProjectDestination = (kind: CaptureKind): CaptureDestination | null => {
       const requiredModuleType = moduleTypesByCaptureKind[kind];
-      const matchingPane = activePane && readPaneHasModuleType(activePane, requiredModuleType)
-        ? activePane
-        : currentProjectPanes.find((pane) => readPaneHasModuleType(pane, requiredModuleType)) || null;
-      if (!matchingPane) {
+      const matchingProject = activeProject && readProjectHasModuleType(activeProject, requiredModuleType)
+        ? activeProject
+        : currentProjectProjects.find((project) => readProjectHasModuleType(project, requiredModuleType)) || null;
+      if (!matchingProject) {
         return null;
       }
       return {
-        kind: 'pane',
-        label: `${currentProject.name} / ${matchingPane.name}`,
-        pane: matchingPane,
-        project: currentProject,
+        kind: 'project',
+        label: `${currentProject.name} / ${matchingProject.name}`,
+        project: matchingProject,
+        space: currentProject,
       };
     };
     return {
-      thought: resolvePaneDestination('thought'),
-      task: resolvePaneDestination('task'),
-      event: resolvePaneDestination('event'),
-      reminder: resolvePaneDestination('reminder'),
+      thought: resolveProjectDestination('thought'),
+      task: resolveProjectDestination('task'),
+      event: resolveProjectDestination('event'),
+      reminder: resolveProjectDestination('reminder'),
     };
-  }, [currentPaneId, currentProject, currentProjectPanes]);
+  }, [currentProjectId, currentProject, currentProjectProjects]);
 
-  const paneDestination = paneDestinations[captureKind];
+  const projectDestination = projectDestinations[captureKind];
 
   const destinations = useMemo<CaptureDestination[]>(
     () => [
-      { kind: 'hub', label: 'Home', project: personalProject, pane: null },
-      ...(paneDestination ? [paneDestination] : []),
+      { kind: 'hub', label: 'Home', space: personalProject, project: null },
+      ...(projectDestination ? [projectDestination] : []),
     ],
-    [paneDestination, personalProject],
+    [projectDestination, personalProject],
   );
 
-  const defaultDestinationValue = useMemo<'hub' | 'pane'>(
-    () => (currentProject && paneDestination ? 'pane' : 'hub'),
-    [currentProject, paneDestination],
+  const defaultDestinationValue = useMemo<'hub' | 'project'>(
+    () => (currentProject && projectDestination ? 'project' : 'hub'),
+    [currentProject, projectDestination],
   );
   const isCommandBarVariant = variant === 'command-bar';
   const resolvedPlaceholder = placeholder ?? (currentSurfaceLabel ? `Capture for ${currentSurfaceLabel.toLowerCase()}…` : 'Capture anything…');
@@ -226,8 +226,8 @@ export const CaptureInput = ({
     }
 
     const destination = currentProject
-      ? paneDestinations[resolvedCaptureKind]
-      : { kind: 'hub', label: 'Home', project: personalProject, pane: null } satisfies CaptureDestination;
+      ? projectDestinations[resolvedCaptureKind]
+      : { kind: 'hub', label: 'Home', space: personalProject, project: null } satisfies CaptureDestination;
     if (!destination) {
       return false;
     }
@@ -236,23 +236,23 @@ export const CaptureInput = ({
     setIsSubmitting(true);
     try {
       if (resolvedCaptureKind === 'thought') {
-        if (destination.kind === 'pane' && destination.pane) {
-          const pane = destination.pane;
-          const storageKey = readQuickThoughtStorageKey(pane);
+        if (destination.kind === 'project' && destination.project) {
+          const project = destination.project;
+          const storageKey = readQuickThoughtStorageKey(project);
           if (!storageKey) {
             return false;
           }
           createQuickThoughtEntry(storageKey, trimmedDraft);
           if (currentProject) {
-            recordRecentPaneContribution({
-              paneId: pane.pane_id,
-              paneName: pane.name,
-              spaceId: pane.project_id,
+            recordRecentProjectContribution({
+              projectId: project.project_id,
+              projectName: project.name,
+              spaceId: project.space_id,
               spaceName: currentProject.name,
             }, 'quick-thought');
           }
           startTransition(() => {
-            navigate(buildProjectWorkHref(pane.project_id, pane.pane_id));
+            navigate(buildProjectWorkHref(project.space_id, project.project_id));
           });
         } else {
           if (!personalProject?.id) {
@@ -279,13 +279,13 @@ export const CaptureInput = ({
           return false;
         }
 
-        if (destination.kind === 'pane' && destination.pane) {
-          const pane = destination.pane;
-          const collectionId = await selectCollectionId(accessToken, pane.project_id, ['task', 'todo']);
+        if (destination.kind === 'project' && destination.project) {
+          const project = destination.project;
+          const collectionId = await selectCollectionId(accessToken, project.space_id, ['task', 'todo']);
           if (!collectionId) {
             return false;
           }
-          await createRecord(accessToken, pane.project_id, {
+          await createRecord(accessToken, project.space_id, {
             collection_id: collectionId,
             title: normalizedTaskTitle,
             capability_types: ['task'],
@@ -294,26 +294,26 @@ export const CaptureInput = ({
               priority: parsedTask.fields.priority,
               due_at: dueAtDate ? dueAtDate.toISOString() : null,
             },
-            source_pane_id: pane.pane_id,
+            source_project_id: project.project_id,
           });
           requestHubHomeRefresh();
           if (currentProject) {
-            recordRecentPaneContribution({
-              paneId: pane.pane_id,
-              paneName: pane.name,
-              spaceId: pane.project_id,
+            recordRecentProjectContribution({
+              projectId: project.project_id,
+              projectName: project.name,
+              spaceId: project.space_id,
               spaceName: currentProject.name,
             }, 'capture-task');
           }
           startTransition(() => {
-            navigate(buildProjectWorkHref(pane.project_id, pane.pane_id));
+            navigate(buildProjectWorkHref(project.space_id, project.project_id));
           });
         } else {
           if (!personalProject?.id) {
             return false;
           }
           await createPersonalTask(accessToken, {
-            project_id: personalProject.id,
+            space_id: personalProject.id,
             title: normalizedTaskTitle,
             priority: parsedTask.fields.priority,
             due_at: dueAtDate ? dueAtDate.toISOString() : null,
@@ -335,22 +335,22 @@ export const CaptureInput = ({
         }
         await createReminder(accessToken, {
           ...reminderPayload.payload,
-          ...(destination.kind === 'pane' && destination.pane
-            ? {
-                scope: 'project',
-                project_id: destination.pane.project_id,
-                pane_id: destination.pane.pane_id,
-              }
+          ...(destination.kind === 'project' && destination.project
+              ? {
+                  scope: 'project',
+                  space_id: destination.project.space_id,
+                  project_id: destination.project.project_id,
+                }
             : {
                 scope: 'personal',
               }),
         });
         requestHubHomeRefresh();
-        if (destination.kind === 'pane' && destination.pane && currentProject) {
-          recordRecentPaneContribution({
-            paneId: destination.pane.pane_id,
-            paneName: destination.pane.name,
-            spaceId: destination.pane.project_id,
+        if (destination.kind === 'project' && destination.project && currentProject) {
+          recordRecentProjectContribution({
+            projectId: destination.project.project_id,
+            projectName: destination.project.name,
+            spaceId: destination.project.space_id,
             spaceName: currentProject.name,
           }, 'capture-reminder');
         }
@@ -375,8 +375,8 @@ export const CaptureInput = ({
           return false;
         }
 
-        const projectId = destination.kind === 'pane' && destination.pane
-          ? destination.pane.project_id
+        const projectId = destination.kind === 'project' && destination.project
+          ? destination.project.space_id
           : personalProject?.id;
         if (!projectId) {
           return false;
@@ -386,19 +386,19 @@ export const CaptureInput = ({
           start_dt: startDate.toISOString(),
           end_dt: endDate.toISOString(),
           timezone,
-          ...(destination.kind === 'pane' && destination.pane
-            ? {
-                pane_id: destination.pane.pane_id,
-                source_pane_id: destination.pane.pane_id,
-              }
+          ...(destination.kind === 'project' && destination.project
+              ? {
+                  project_id: destination.project.project_id,
+                  source_project_id: destination.project.project_id,
+                }
             : {}),
         });
         requestHubHomeRefresh();
-        if (destination.kind === 'pane' && destination.pane && currentProject) {
-          recordRecentPaneContribution({
-            paneId: destination.pane.pane_id,
-            paneName: destination.pane.name,
-            spaceId: destination.pane.project_id,
+        if (destination.kind === 'project' && destination.project && currentProject) {
+          recordRecentProjectContribution({
+            projectId: destination.project.project_id,
+            projectName: destination.project.name,
+            spaceId: destination.project.space_id,
             spaceName: currentProject.name,
           }, 'capture-event');
         }

@@ -7,13 +7,13 @@ import {
   parseHomeContentViewId,
   parseHomeOverviewViewId,
   parseHomeOverlayId,
-  parseHomePaneId,
+  parseHomeProjectId,
   parseHomeTabId,
   type HomeContentViewId,
   type HomeOverviewViewId,
   type HomeTabId,
 } from '../../../features/home/navigation';
-import { useProjectPanes } from '../../../hooks/useProjectPanes';
+import { useProjectProjects } from '../../../hooks/useProjectProjects';
 import { useRouteFocusReset } from '../../../hooks/useRouteFocusReset';
 import { useLiveRegion } from '../../../hooks/useLiveRegion';
 import { SidebarShell } from '../../Sidebar';
@@ -35,7 +35,7 @@ const decodePathSegment = (value: string | null): string | null => {
 interface HomeRouteState {
   content: HomeContentViewId;
   overview: HomeOverviewViewId;
-  paneId: string | null;
+  projectId: string | null;
   pinned: boolean;
   tab: HomeTabId;
 }
@@ -43,7 +43,7 @@ interface HomeRouteState {
 const defaultHomeRouteState: HomeRouteState = {
   content: 'project',
   overview: 'timeline',
-  paneId: null,
+  projectId: null,
   pinned: false,
   tab: 'overview',
 };
@@ -62,7 +62,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   const normalizedPathname = location.pathname.replace(/\/+$/, '') || '/';
   const isOnHome = normalizedPathname === '/projects';
-  const currentProjectId = useMemo(
+  const currentSpaceId = useMemo(
     () => decodePathSegment(normalizedPathname.match(/^\/projects\/([^/]+)/)?.[1] || null),
     [normalizedPathname],
   );
@@ -75,7 +75,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     return {
       content: parseHomeContentViewId(searchParams.get('content') ?? searchParams.get('view')),
       overview: parseHomeOverviewViewId(searchParams.get('overview')),
-      paneId: parseHomePaneId(searchParams.get('pane')),
+      projectId: parseHomeProjectId(searchParams.get('project')),
       pinned: searchParams.get('pinned') === '1',
       tab: parseHomeTabId(searchParams.get('tab')),
     };
@@ -84,20 +84,20 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     () => (isOnHome ? parseHomeOverlayId(new URLSearchParams(location.search).get('surface')) : null),
     [isOnHome, location.search],
   );
-  const currentPaneId = useMemo(
+  const currentProjectId = useMemo(
     () => (isOnHome
-      ? decodePathSegment(currentHomeState.paneId)
+      ? decodePathSegment(currentHomeState.projectId)
       : decodePathSegment(normalizedPathname.match(/^\/projects\/[^/]+\/work\/([^/]+)/)?.[1] || null)),
-    [currentHomeState.paneId, isOnHome, normalizedPathname],
+    [currentHomeState.projectId, isOnHome, normalizedPathname],
   );
   const currentProject = useMemo(() => {
     if (isOnHome) {
       return personalProject;
     }
-    return projects.find((project) => project.id === currentProjectId) || null;
-  }, [currentProjectId, isOnHome, personalProject, projects]);
-  const currentProjectPanesProjectId = currentProject?.id ?? null;
-  const { panes: currentProjectPanes } = useProjectPanes(accessToken, currentProjectPanesProjectId);
+    return projects.find((project) => project.id === currentSpaceId) || null;
+  }, [currentSpaceId, isOnHome, personalProject, projects]);
+  const currentProjectProjectsProjectId = currentProject?.id ?? null;
+  const { projects: currentProjectProjects } = useProjectProjects(accessToken, currentProjectProjectsProjectId);
 
   useEffect(() => {
     if (!isOnHome) {
@@ -142,16 +142,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         <div className="mx-auto w-full max-w-7xl px-4 pb-2 pt-6">
           <AppCommandBar
             accessToken={accessToken}
-            currentPaneId={currentPaneId}
+            currentProjectId={currentProjectId}
             currentProject={currentProject}
-            currentProjectPanes={currentProjectPanes}
+            currentProjectProjects={currentProjectProjects}
             currentSurface={currentSurface}
             onOpenQuickThoughts={() => {
               const homeRoute = isOnHome ? currentHomeState : lastHomeRouteRef.current;
               navigate(buildHomeOverlayHref('thoughts', {
                 content: homeRoute.content,
                 overview: homeRoute.overview,
-                paneId: homeRoute.paneId,
+                projectId: homeRoute.projectId,
                 pinned: homeRoute.pinned,
                 tab: homeRoute.tab,
               }));

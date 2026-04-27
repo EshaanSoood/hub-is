@@ -5,7 +5,7 @@ interface HubReminderSummary {
   reminder_id: string;
   record_id: string;
   record_title: string;
-  project_id: string;
+  space_id: string;
   remind_at: string;
   channels: string[];
   created_at: string;
@@ -41,7 +41,7 @@ const extractReminder = (data: unknown): HubReminderSummary => {
     reminder_id?: string;
     record_id?: string;
     title?: string;
-    project_id?: string;
+    space_id?: string;
     remind_at?: string;
     channels?: string[];
     created_at?: string;
@@ -57,7 +57,7 @@ const extractReminder = (data: unknown): HubReminderSummary => {
       reminder_id: payload.reminder_id,
       record_id: payload.record_id,
       record_title: String(payload.title || ''),
-      project_id: String(payload.project_id || ''),
+      space_id: String(payload.space_id || ''),
       remind_at: payload.remind_at,
       channels: Array.isArray(payload.channels) ? payload.channels : ['in_app'],
       created_at: String(payload.created_at || ''),

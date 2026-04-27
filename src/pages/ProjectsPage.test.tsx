@@ -83,10 +83,10 @@ const homeRuntime = {
 const projectBootstrap = {
   error: null,
   loading: false,
-  panes: [
+  projects: [
     {
-      pane_id: 'pane-1',
-      project_id: personalProject.id,
+      project_id: 'project-1',
+      space_id: personalProject.id,
       name: 'Main Work',
       sort_order: 1,
       position: 1,
@@ -98,7 +98,7 @@ const projectBootstrap = {
     },
   ],
   project: {
-    project_id: personalProject.id,
+    space_id: personalProject.id,
     name: personalProject.name,
     created_by: 'user-1',
     created_at: '2026-04-20T00:00:00.000Z',
@@ -110,7 +110,7 @@ const projectBootstrap = {
   },
   projectMembers: [],
   refreshProjectData: vi.fn(),
-  setPanes: vi.fn(),
+  setProjects: vi.fn(),
   setTimeline: vi.fn(),
   timeline: [],
 };
@@ -176,11 +176,11 @@ vi.mock('../hooks/useProjectBootstrap', () => ({
   useProjectBootstrap: () => projectBootstrap,
 }));
 
-vi.mock('../hooks/useProjectPanes', () => ({
-  useProjectPanes: () => ({
+vi.mock('../hooks/useProjectProjects', () => ({
+  useProjectProjects: () => ({
     error: null,
     loading: false,
-    panes: projectBootstrap.panes,
+    projects: projectBootstrap.projects,
     refetch: vi.fn(),
   }),
 }));
@@ -224,15 +224,6 @@ vi.mock('../hooks/useTimelineRuntime', () => ({
     timelineClusters: [],
     timelineFilters: ['task', 'event', 'milestone', 'file', 'workspace'],
     toggleTimelineFilter: vi.fn(),
-  }),
-}));
-
-vi.mock('../features/rooms', () => ({
-  useRooms: () => ({
-    createRoom: vi.fn(),
-    error: null,
-    loading: false,
-    rooms: [],
   }),
 }));
 
@@ -463,7 +454,7 @@ beforeEach(() => {
   mockRefreshProjects.mockResolvedValue(undefined);
   mockUpdateProject.mockReset();
   mockUpdateProject.mockResolvedValue({
-    project_id: personalProject.id,
+    space_id: personalProject.id,
     name: 'Sunday Desk',
     created_by: 'user-1',
     created_at: '2026-04-20T00:00:00.000Z',
@@ -553,7 +544,7 @@ describe('ProjectsPage', () => {
 
   it('does not treat Home work routes as the remembered Home destination', async () => {
     const user = userEvent.setup();
-    renderProjectsPage('/projects?tab=work&pane=pane-1');
+    renderProjectsPage('/projects?tab=work&project=project-1');
 
     await user.click(screen.getByRole('button', { name: 'Go external' }));
     await waitFor(() => {
@@ -589,14 +580,14 @@ describe('ProjectsPage', () => {
     });
   });
 
-  it('preserves the Home work pane when Quick thoughts is opened from the command bar', async () => {
+  it('preserves the Home work project when Quick thoughts is opened from the command bar', async () => {
     const user = userEvent.setup();
-    renderProjectsPage('/projects?tab=work&pane=pane-1');
+    renderProjectsPage('/projects?tab=work&project=project-1');
 
     await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Quick thoughts' }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?tab=work&pane=pane-1&surface=thoughts');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?tab=work&project=project-1&surface=thoughts');
     });
   });
 

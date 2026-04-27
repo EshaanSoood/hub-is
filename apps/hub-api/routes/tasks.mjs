@@ -37,8 +37,6 @@ export const createTaskRoutes = (deps) => {
     assignedTasksStmt,
     homeEventsByProjectStmt,
     personalCapturesStmt,
-    paneByIdStmt,
-    roomMembershipExistsStmt,
     collectionsByProjectStmt,
     insertCollectionStmt,
     insertRecordStmt,
@@ -62,34 +60,12 @@ export const createTaskRoutes = (deps) => {
 
   const elapsedMs = (startedAtMs) => Number((performance.now() - startedAtMs).toFixed(2));
 
-  const roomIdForRecord = (record) => {
-    const paneId = asText(record?.source_pane_id);
-    if (!paneId) {
-      return '';
-    }
-    const pane = paneByIdStmt.get(paneId);
-    if (!pane) {
-      return '';
-    }
-    try {
-      const layoutConfig = JSON.parse(pane.layout_config || '{}');
-      return asText(layoutConfig?.room_id);
-    } catch {
-      return '';
-    }
-  };
-
-  const canUserAccessTaskRecord = (userId, record) => {
-    const roomId = roomIdForRecord(record);
-    return !roomId || Boolean(roomMembershipExistsStmt.get(roomId, userId)?.ok);
-  };
-
   // buildTaskSummaryForUser keeps project_id/project_name/task_state.category aligned across task endpoints.
   // visibleProjectTasksStmt excludes subtasks from top-level listings with r.parent_record_id IS NULL.
   const listVisibleProjectTasksForUser = ({ userId, projectId = '' }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
     const personalProjectId = personalProjectIdForUser(userId);
-    const sourcePaneContextCache = new Map();
+    const sourceProjectContextCache = new Map();
     const tasks = [];
     for (const visibleProjectId of visibleProjectIds) {
       if (projectId && visibleProjectId !== projectId) {
@@ -97,10 +73,7 @@ export const createTaskRoutes = (deps) => {
       }
       const records = visibleProjectTasksStmt.all(visibleProjectId);
       for (const record of records) {
-        if (!canUserAccessTaskRecord(userId, record)) {
-          continue;
-        }
-        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourceProjectContextCache));
       }
     }
     return tasks.sort(compareTasksByUpdatedAt);
@@ -113,7 +86,7 @@ export const createTaskRoutes = (deps) => {
       if (!rowsByProject.has(visibleProjectId)) {
         rowsByProject.set(
           visibleProjectId,
-          visibleProjectTasksStmt.all(visibleProjectId).filter((record) => canUserAccessTaskRecord(userId, record)),
+          visibleProjectTasksStmt.all(visibleProjectId),
         );
       }
     }
@@ -125,7 +98,7 @@ export const createTaskRoutes = (deps) => {
 
   const listAssignedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
     const personalProjectId = personalProjectIdForUser(userId);
-    const sourcePaneContextCache = new Map();
+    const sourceProjectContextCache = new Map();
     const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
     const assignedRecordIds = new Set(
       assignedTasksStmt
@@ -140,7 +113,7 @@ export const createTaskRoutes = (deps) => {
         if (!assignedRecordIds.has(record.record_id)) {
           continue;
         }
-        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourceProjectContextCache));
       }
     }
     return tasks.sort(compareTasksByUpdatedAt);
@@ -148,7 +121,7 @@ export const createTaskRoutes = (deps) => {
 
   const listCreatedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
     const personalProjectId = personalProjectIdForUser(userId);
-    const sourcePaneContextCache = new Map();
+    const sourceProjectContextCache = new Map();
     const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
     const tasks = [];
     for (const visibleProjectId of visibleProjectIds) {
@@ -157,7 +130,7 @@ export const createTaskRoutes = (deps) => {
         if (record.created_by !== userId) {
           continue;
         }
-        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourceProjectContextCache));
       }
     }
     return tasks;
@@ -186,17 +159,17 @@ export const createTaskRoutes = (deps) => {
     return [...byRecordId.values()];
   };
 
-  const filterTasksByPane = (tasks, paneId = '') => {
-    const normalizedPaneId = asText(paneId);
-    if (!normalizedPaneId) {
+  const filterTasksByProject = (tasks, projectId = '') => {
+    const normalizedProjectId = asText(projectId);
+    if (!normalizedProjectId) {
       return tasks;
     }
-    return tasks.filter((task) => asText(task?.source_pane?.pane_id) === normalizedPaneId);
+    return tasks.filter((task) => asText(task?.source_project?.project_id) === normalizedProjectId);
   };
 
   const listHomeEventsForUser = ({ userId, limit }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
-    const sourcePaneContextCache = new Map();
+    const sourceProjectContextCache = new Map();
     const rows = [];
     for (const projectId of visibleProjectIds) {
       const projectRows = homeEventsByProjectStmt.all(projectId);
@@ -211,7 +184,7 @@ export const createTaskRoutes = (deps) => {
         return leftStart - rightStart;
       })
       .slice(0, limit)
-      .map((row) => buildHomeEventSummary(row, sourcePaneContextCache));
+      .map((row) => buildHomeEventSummary(row, sourceProjectContextCache));
   };
 
   const listPersonalCapturesForUser = ({ projectId, limit }) =>
@@ -225,15 +198,15 @@ export const createTaskRoutes = (deps) => {
 
   const getHubTasks = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
     const lens = asText(requestUrl.searchParams.get('lens')).toLowerCase() || 'assigned';
-    const projectId = asText(requestUrl.searchParams.get('project_id'));
-    const paneId = asText(requestUrl.searchParams.get('pane_id') || requestUrl.searchParams.get('source_pane_id'));
+    const projectId = asText(requestUrl.searchParams.get('space_id'));
+    const sourceProjectId = asText(requestUrl.searchParams.get('project_id') || requestUrl.searchParams.get('source_project_id'));
     const limit = asInteger(requestUrl.searchParams.get('limit'), 50, 1, 200);
     const offset = parseCursorOffset(requestUrl.searchParams.get('cursor'));
 
     let tasks = [];
-    if (lens === 'pane') {
-      if (!projectId || !paneId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane lens requires project_id and pane_id.')));
+    if (lens === 'project') {
+      if (!projectId || !sourceProjectId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project lens requires space_id and project_id.')));
         return;
       }
       const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'view' });
@@ -241,13 +214,13 @@ export const createTaskRoutes = (deps) => {
         send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
         return;
       }
-      tasks = filterTasksByPane(
+      tasks = filterTasksByProject(
         listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
-        paneId,
+        sourceProjectId,
       );
-    } else if (lens === 'project') {
+    } else if (lens === 'space') {
       if (!projectId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project lens requires project_id.')));
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space lens requires space_id.')));
         return;
       }
       const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'view' });
@@ -255,19 +228,19 @@ export const createTaskRoutes = (deps) => {
         send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
         return;
       }
-      tasks = filterTasksByPane(
+      tasks = filterTasksByProject(
         listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
-        paneId,
+        projectId,
       );
     } else if (lens === 'assigned') {
-      tasks = filterTasksByPane(
+      tasks = filterTasksByProject(
         listAssignedTasksForUser({ userId: auth.user.user_id, projectId }),
-        paneId,
+        projectId,
       );
     } else {
-      tasks = filterTasksByPane(
+      tasks = filterTasksByProject(
         listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
-        paneId,
+        projectId,
       );
     }
 
@@ -303,11 +276,11 @@ export const createTaskRoutes = (deps) => {
       return;
     }
 
-    const sourcePaneId = asText(validated.source_pane_id);
+    const sourceProjectId = asText(validated.source_project_id);
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId,
-      paneId: sourcePaneId,
+      sourceProjectId,
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -352,7 +325,7 @@ export const createTaskRoutes = (deps) => {
           projectId,
           collectionId,
           title,
-          sourcePaneId || null,
+          sourceProjectId || null,
           null,
           auth.user.user_id,
           timestamp,

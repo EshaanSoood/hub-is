@@ -284,24 +284,24 @@ const waitForTaskChangedMessage = async ({ apiBaseUrl, token, trigger }) => {
 };
 
 const setupFixture = async ({ apiBaseUrl, ownerToken, ownerId, readerId, name }) => {
-  const projectResult = await expectOk(apiBaseUrl, ownerToken, '/api/hub/projects', {
+  const projectResult = await expectOk(apiBaseUrl, ownerToken, '/api/hub/spaces', {
     method: 'POST',
     body: JSON.stringify({ name }),
   });
   const projectId = projectResult.project.project_id;
 
-  await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${projectId}/members`, {
+  await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${projectId}/members`, {
     method: 'POST',
     body: JSON.stringify({ user_id: readerId, role: 'member' }),
   });
 
-  const paneList = await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${projectId}/panes`, {
+  const projectList = await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${projectId}/projects`, {
     method: 'GET',
   });
-  const pane = paneList.panes[0];
-  assert.ok(pane?.pane_id, 'Expected default pane');
+  const project = projectList.projects[0];
+  assert.ok(project?.project_id, 'Expected default project');
 
-  const collection = await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${projectId}/collections`, {
+  const collection = await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${projectId}/collections`, {
     method: 'POST',
     body: JSON.stringify({ name: `${name} Tasks`, icon: 'table', color: 'blue' }),
   });
@@ -315,27 +315,27 @@ const setupFixture = async ({ apiBaseUrl, ownerToken, ownerId, readerId, name })
     }),
   });
 
-  const sourceRecord = await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${projectId}/records`, {
+  const sourceRecord = await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${projectId}/records`, {
     method: 'POST',
     body: JSON.stringify({
       collection_id: collection.collection_id,
       title: `${name} Source`,
-      source_pane_id: pane.pane_id,
+      source_project_id: project.project_id,
     }),
   });
-  const targetRecord = await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${projectId}/records`, {
+  const targetRecord = await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${projectId}/records`, {
     method: 'POST',
     body: JSON.stringify({
       collection_id: collection.collection_id,
       title: `${name} Target`,
-      source_pane_id: pane.pane_id,
+      source_project_id: project.project_id,
     }),
   });
 
   return {
     projectId,
-    paneId: pane.pane_id,
-    docId: pane.doc_id,
+    workProjectId: project.project_id,
+    docId: project.doc_id,
     collectionId: collection.collection_id,
     relationFieldId: relationField.field_id,
     sourceRecordId: sourceRecord.record_id,
@@ -345,13 +345,13 @@ const setupFixture = async ({ apiBaseUrl, ownerToken, ownerId, readerId, name })
   };
 };
 
-const createTaskRecord = async ({ apiBaseUrl, ownerToken, projectId, collectionId, paneId, assigneeUserIds, title }) => {
-  const result = await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${projectId}/records`, {
+const createTaskRecord = async ({ apiBaseUrl, ownerToken, projectId, collectionId, sourceProjectId, assigneeUserIds, title }) => {
+  const result = await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${projectId}/records`, {
     method: 'POST',
     body: JSON.stringify({
       collection_id: collectionId,
       title,
-      ...(paneId ? { source_pane_id: paneId } : {}),
+      ...(sourceProjectId ? { source_project_id: sourceProjectId } : {}),
       task_state: {
         status: 'todo',
         priority: 'high',
@@ -362,14 +362,14 @@ const createTaskRecord = async ({ apiBaseUrl, ownerToken, projectId, collectionI
   return result.record_id;
 };
 
-const createEventRecord = async ({ apiBaseUrl, ownerToken, projectId, paneId, participantUserIds, title, startDt, endDt }) => {
-  const result = await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${projectId}/events/from-nlp`, {
+const createEventRecord = async ({ apiBaseUrl, ownerToken, projectId, sourceProjectId, participantUserIds, title, startDt, endDt }) => {
+  const result = await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${projectId}/events/from-nlp`, {
     method: 'POST',
     body: JSON.stringify({
       title,
       start_dt: startDt,
       end_dt: endDt,
-      source_pane_id: paneId,
+      source_project_id: sourceProjectId,
       participants_user_ids: participantUserIds,
     }),
   });
@@ -412,7 +412,7 @@ const addBulkAssignedTasks = ({ dbPath, projectId, collectionId, userId, count }
   }
 };
 
-test('hub provenance, notifications, and pane permissions', async (t) => {
+test('hub provenance, notifications, and project permissions', async (t) => {
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'hub-provenance-'));
   const dbPath = path.join(tmpDir, 'hub.sqlite');
   const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -504,11 +504,11 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       name: 'Regression Project',
     });
 
-    await t.test('pane visibility, collab read-only, and doc comment status', async () => {
-      const readerPanes = await expectOk(apiBaseUrl, readerToken, `/api/hub/projects/${fixture.projectId}/panes`, { method: 'GET' });
-      const visiblePane = readerPanes.panes.find((pane) => pane.pane_id === fixture.paneId);
-      assert.ok(visiblePane, 'Reader should see pane in project list');
-      assert.equal(visiblePane.can_edit, false, 'Reader should see pane as read-only');
+    await t.test('project visibility, collab read-only, and doc comment status', async () => {
+      const readerProjects = await expectOk(apiBaseUrl, readerToken, `/api/hub/spaces/${fixture.projectId}/projects`, { method: 'GET' });
+      const visibleProject = readerProjects.projects.find((project) => project.project_id === fixture.projectId);
+      assert.ok(visibleProject, 'Reader should see project in project list');
+      assert.equal(visibleProject.can_edit, false, 'Reader should see project as read-only');
 
       const docSnapshot = await expectOk(apiBaseUrl, readerToken, `/api/hub/docs/${fixture.docId}`, { method: 'GET' });
       assert.equal(docSnapshot.doc.doc_id, fixture.docId);
@@ -590,49 +590,49 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       });
     });
 
-    await t.test('pane-scoped uploads and inspector mutation permissions', async () => {
+    await t.test('project-scoped uploads and inspector mutation permissions', async () => {
       await expectStatus(apiBaseUrl, readerToken, '/api/hub/files/upload', 403, {
         method: 'POST',
         body: JSON.stringify({
           project_id: fixture.projectId,
-          name: 'reader-pane.txt',
+          name: 'reader-project.txt',
           mime_type: 'text/plain',
-          content_base64: Buffer.from('reader-pane').toString('base64'),
+          content_base64: Buffer.from('reader-project').toString('base64'),
           metadata: {
-            scope: 'pane',
-            pane_id: fixture.paneId,
+            scope: 'project',
+            project_id: fixture.projectId,
           },
         }),
       });
 
-      const paneUpload = await expectOk(apiBaseUrl, ownerToken, '/api/hub/files/upload', {
+      const projectUpload = await expectOk(apiBaseUrl, ownerToken, '/api/hub/files/upload', {
         method: 'POST',
         body: JSON.stringify({
           project_id: fixture.projectId,
-          name: 'owner-pane.txt',
+          name: 'owner-project.txt',
           mime_type: 'text/plain',
-          content_base64: Buffer.from('owner-pane').toString('base64'),
+          content_base64: Buffer.from('owner-project').toString('base64'),
           metadata: {
-            scope: 'pane',
-            pane_id: fixture.paneId,
+            scope: 'project',
+            project_id: fixture.projectId,
           },
         }),
       });
-      assert.equal(paneUpload.file.metadata.pane_id, fixture.paneId);
+      assert.equal(projectUpload.file.metadata.project_id, fixture.projectId);
 
-      await expectStatus(apiBaseUrl, readerToken, `/api/hub/projects/${fixture.projectId}/records`, 403, {
+      await expectStatus(apiBaseUrl, readerToken, `/api/hub/spaces/${fixture.projectId}/records`, 403, {
         method: 'POST',
         body: JSON.stringify({
           collection_id: fixture.collectionId,
           title: 'Reader created record',
-          source_pane_id: fixture.paneId,
+          source_project_id: fixture.projectId,
         }),
       });
 
       await expectStatus(apiBaseUrl, readerToken, `/api/hub/records/${fixture.sourceRecordId}/values`, 403, {
         method: 'POST',
         body: JSON.stringify({
-          mutation_context_pane_id: fixture.paneId,
+          mutation_context_project_id: fixture.projectId,
           values: { non_existent: 'reader edit' },
         }),
       });
@@ -640,8 +640,8 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       await expectStatus(apiBaseUrl, readerToken, `/api/hub/records/${fixture.sourceRecordId}`, 403, {
         method: 'PATCH',
         body: JSON.stringify({
-          title: 'Reader renamed pane record',
-          mutation_context_pane_id: fixture.paneId,
+          title: 'Reader renamed project record',
+          mutation_context_project_id: fixture.projectId,
         }),
       });
 
@@ -651,26 +651,26 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
           project_id: fixture.projectId,
           entity_type: 'record',
           entity_id: fixture.sourceRecordId,
-          provider: paneUpload.file.provider,
-          asset_root_id: paneUpload.file.asset_root_id,
-          asset_path: paneUpload.file.asset_path,
-          name: paneUpload.file.name,
-          mime_type: paneUpload.file.mime_type,
-          size_bytes: paneUpload.file.size_bytes,
-          mutation_context_pane_id: fixture.paneId,
+          provider: projectUpload.file.provider,
+          asset_root_id: projectUpload.file.asset_root_id,
+          asset_path: projectUpload.file.asset_path,
+          name: projectUpload.file.name,
+          mime_type: projectUpload.file.mime_type,
+          size_bytes: projectUpload.file.size_bytes,
+          mutation_context_project_id: fixture.projectId,
           metadata: {
-            pane_id: fixture.paneId,
+            project_id: fixture.projectId,
           },
         }),
       });
-      assert.equal(attachDenied.error?.code, 'pane_edit_required');
+      assert.equal(attachDenied.error?.code, 'project_edit_required');
 
       await expectStatus(apiBaseUrl, readerToken, `/api/hub/records/${fixture.sourceRecordId}/relations`, 403, {
         method: 'POST',
         body: JSON.stringify({
           to_record_id: fixture.targetRecordId,
           via_field_id: fixture.relationFieldId,
-          mutation_context_pane_id: fixture.paneId,
+          mutation_context_project_id: fixture.projectId,
         }),
       });
 
@@ -688,19 +688,19 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${fixture.sourceRecordId}/values`, {
         method: 'POST',
         body: JSON.stringify({
-          mutation_context_pane_id: fixture.paneId,
+          mutation_context_project_id: fixture.projectId,
           values: {},
         }),
       });
 
-      const renamedPaneRecord = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${fixture.sourceRecordId}`, {
+      const renamedProjectRecord = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${fixture.sourceRecordId}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          title: 'Owner Renamed Pane Record',
-          mutation_context_pane_id: fixture.paneId,
+          title: 'Owner Renamed Project Record',
+          mutation_context_project_id: fixture.projectId,
         }),
       });
-      assert.equal(renamedPaneRecord.record.title, 'Owner Renamed Pane Record', 'Pane editors should be able to rename pane-origin records');
+      assert.equal(renamedProjectRecord.record.title, 'Owner Renamed Project Record', 'Project editors should be able to rename project-origin records');
 
       const ownerAttachment = await expectOk(apiBaseUrl, ownerToken, '/api/hub/attachments', {
         method: 'POST',
@@ -708,42 +708,42 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
           project_id: fixture.projectId,
           entity_type: 'record',
           entity_id: fixture.sourceRecordId,
-          provider: paneUpload.file.provider,
-          asset_root_id: paneUpload.file.asset_root_id,
-          asset_path: paneUpload.file.asset_path,
-          name: paneUpload.file.name,
-          mime_type: paneUpload.file.mime_type,
-          size_bytes: paneUpload.file.size_bytes,
-          mutation_context_pane_id: fixture.paneId,
+          provider: projectUpload.file.provider,
+          asset_root_id: projectUpload.file.asset_root_id,
+          asset_path: projectUpload.file.asset_path,
+          name: projectUpload.file.name,
+          mime_type: projectUpload.file.mime_type,
+          size_bytes: projectUpload.file.size_bytes,
+          mutation_context_project_id: fixture.projectId,
           metadata: {
-            pane_id: fixture.paneId,
+            project_id: fixture.projectId,
           },
         }),
       });
-      assert.ok(ownerAttachment.attachment_id, 'Pane editor should be able to attach file');
+      assert.ok(ownerAttachment.attachment_id, 'Project editor should be able to attach file');
 
       const ownerRelation = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${fixture.sourceRecordId}/relations`, {
         method: 'POST',
         body: JSON.stringify({
           to_record_id: fixture.targetRecordId,
           via_field_id: fixture.relationFieldId,
-          mutation_context_pane_id: fixture.paneId,
+          mutation_context_project_id: fixture.projectId,
         }),
       });
       await expectOk(
         apiBaseUrl,
         ownerToken,
-        `/api/hub/relations/${ownerRelation.relation.relation_id}?mutation_context_pane_id=${encodeURIComponent(fixture.paneId)}`,
+        `/api/hub/relations/${ownerRelation.relation.relation_id}?mutation_context_project_id=${encodeURIComponent(fixture.projectId)}`,
         { method: 'DELETE' },
       );
       await expectOk(
         apiBaseUrl,
         ownerToken,
-        `/api/hub/attachments/${ownerAttachment.attachment_id}?mutation_context_pane_id=${encodeURIComponent(fixture.paneId)}`,
+        `/api/hub/attachments/${ownerAttachment.attachment_id}?mutation_context_project_id=${encodeURIComponent(fixture.projectId)}`,
         { method: 'DELETE' },
       );
 
-      const projectOriginRecord = await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${fixture.projectId}/records`, {
+      const projectOriginRecord = await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${fixture.projectId}/records`, {
         method: 'POST',
         body: JSON.stringify({
           collection_id: fixture.collectionId,
@@ -767,10 +767,10 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       assert.equal(
         renamedProjectOriginRecord.record.title,
         'Renamed Project Origin Record',
-        'Project-origin records should still update without pane mutation context',
+        'Project-origin records should still update without project mutation context',
       );
 
-      const projectUpload = await expectOk(apiBaseUrl, ownerToken, '/api/hub/files/upload', {
+      const projectOriginUpload = await expectOk(apiBaseUrl, ownerToken, '/api/hub/files/upload', {
         method: 'POST',
         body: JSON.stringify({
           project_id: fixture.projectId,
@@ -783,7 +783,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
           },
         }),
       });
-      assert.equal(projectUpload.file.metadata.scope, 'project', 'Project-origin uploads should remain project scoped');
+      assert.equal(projectOriginUpload.file.metadata.scope, 'project', 'Project-origin uploads should remain project scoped');
 
       const projectAttachment = await expectOk(apiBaseUrl, ownerToken, '/api/hub/attachments', {
         method: 'POST',
@@ -791,12 +791,12 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
           project_id: fixture.projectId,
           entity_type: 'record',
           entity_id: projectOriginRecord.record_id,
-          provider: projectUpload.file.provider,
-          asset_root_id: projectUpload.file.asset_root_id,
-          asset_path: projectUpload.file.asset_path,
-          name: projectUpload.file.name,
-          mime_type: projectUpload.file.mime_type,
-          size_bytes: projectUpload.file.size_bytes,
+          provider: projectOriginUpload.file.provider,
+          asset_root_id: projectOriginUpload.file.asset_root_id,
+          asset_path: projectOriginUpload.file.asset_path,
+          name: projectOriginUpload.file.name,
+          mime_type: projectOriginUpload.file.mime_type,
+          size_bytes: projectOriginUpload.file.size_bytes,
           metadata: {},
         }),
       });
@@ -850,7 +850,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       const personalTaskDetail = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${createdTask.record_id}`, { method: 'GET' });
       assert.equal(personalTaskDetail.record.origin_kind, 'personal', 'Record detail should preserve personal origin');
 
-      const visibleProjects = await expectOk(apiBaseUrl, ownerToken, '/api/hub/projects', { method: 'GET' });
+      const visibleProjects = await expectOk(apiBaseUrl, ownerToken, '/api/hub/spaces', { method: 'GET' });
       assert.equal(
         visibleProjects.projects.some((project) => project.name === 'Hub'),
         false,
@@ -896,7 +896,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
         ownerToken,
         projectId: membershipFixture.projectId,
         collectionId: membershipFixture.collectionId,
-        paneId: membershipFixture.paneId,
+        sourceProjectId: membershipFixture.workProjectId,
         assigneeUserIds: [readerId],
         title: 'Removed Member Task',
       });
@@ -911,11 +911,11 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       await expectOk(
         apiBaseUrl,
         ownerToken,
-        `/api/hub/projects/${membershipFixture.projectId}/members/${readerId}`,
+        `/api/hub/spaces/${membershipFixture.projectId}/members/${readerId}`,
         { method: 'DELETE' },
       );
 
-      const visibleProjects = await expectOk(apiBaseUrl, readerToken, '/api/hub/projects', { method: 'GET' });
+      const visibleProjects = await expectOk(apiBaseUrl, readerToken, '/api/hub/spaces', { method: 'GET' });
       assert.equal(
         visibleProjects.projects.some((project) => project.project_id === membershipFixture.projectId),
         false,
@@ -948,7 +948,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
         name: 'Member Admin Guard',
       });
 
-      await expectStatus(apiBaseUrl, readerToken, `/api/hub/projects/${membershipFixture.projectId}/members`, 403, {
+      await expectStatus(apiBaseUrl, readerToken, `/api/hub/spaces/${membershipFixture.projectId}/members`, 403, {
         method: 'POST',
         body: JSON.stringify({ user_id: ownerId, role: 'member' }),
       });
@@ -956,7 +956,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       await expectStatus(
         apiBaseUrl,
         readerToken,
-        `/api/hub/projects/${membershipFixture.projectId}/members/${ownerId}`,
+        `/api/hub/spaces/${membershipFixture.projectId}/members/${ownerId}`,
         403,
         { method: 'DELETE' },
       );
@@ -964,12 +964,12 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       await expectStatus(
         apiBaseUrl,
         ownerToken,
-        `/api/hub/projects/${membershipFixture.projectId}/members/${ownerId}`,
+        `/api/hub/spaces/${membershipFixture.projectId}/members/${ownerId}`,
         409,
         { method: 'DELETE' },
       );
 
-      await expectStatus(apiBaseUrl, ownerToken, `/api/hub/projects/${membershipFixture.projectId}/members`, 409, {
+      await expectStatus(apiBaseUrl, ownerToken, `/api/hub/spaces/${membershipFixture.projectId}/members`, 409, {
         method: 'POST',
         body: JSON.stringify({ user_id: ownerId, role: 'member' }),
       });
@@ -981,12 +981,12 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       const staleStart = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
       const staleEnd = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
 
-      await expectStatus(apiBaseUrl, ownerToken, `/api/hub/projects/${fixture.projectId}/records`, 400, {
+      await expectStatus(apiBaseUrl, ownerToken, `/api/hub/spaces/${fixture.projectId}/records`, 400, {
         method: 'POST',
         body: JSON.stringify({
           collection_id: fixture.collectionId,
           title: 'Invalid Structured Event',
-          source_pane_id: fixture.paneId,
+          source_project_id: fixture.projectId,
           event_state: {
             start_dt: currentStart,
             end_dt: currentStart,
@@ -994,13 +994,13 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
         }),
       });
 
-      await expectStatus(apiBaseUrl, ownerToken, `/api/hub/projects/${fixture.projectId}/events/from-nlp`, 400, {
+      await expectStatus(apiBaseUrl, ownerToken, `/api/hub/spaces/${fixture.projectId}/events/from-nlp`, 400, {
         method: 'POST',
         body: JSON.stringify({
           title: 'Invalid NLP Event',
           start_dt: currentEnd,
           end_dt: currentStart,
-          source_pane_id: fixture.paneId,
+          source_project_id: fixture.projectId,
           participants_user_ids: [readerId],
         }),
       });
@@ -1010,16 +1010,16 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
         ownerToken,
         projectId: fixture.projectId,
         collectionId: fixture.collectionId,
-        paneId: fixture.paneId,
+        sourceProjectId: fixture.workProjectId,
         assigneeUserIds: [readerId],
-        title: 'Pane Task',
+        title: 'Project Task',
       });
       const projectTaskRecordId = await createTaskRecord({
         apiBaseUrl,
         ownerToken,
         projectId: fixture.projectId,
         collectionId: fixture.collectionId,
-        paneId: '',
+        sourceProjectId: '',
         assigneeUserIds: [],
         title: 'Project Task',
       });
@@ -1028,7 +1028,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
         apiBaseUrl,
         ownerToken,
         projectId: fixture.projectId,
-        paneId: fixture.paneId,
+        sourceProjectId: fixture.workProjectId,
         participantUserIds: [readerId, ownerId],
         title: 'Current Event',
         startDt: currentStart,
@@ -1039,7 +1039,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
         apiBaseUrl,
         ownerToken,
         projectId: fixture.projectId,
-        paneId: fixture.paneId,
+        sourceProjectId: fixture.workProjectId,
         participantUserIds: [readerId, ownerId],
         title: 'Stale Event',
         startDt: staleStart,
@@ -1047,7 +1047,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       });
 
       const taskDetail = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${taskRecordId}`, { method: 'GET' });
-      assert.equal(taskDetail.record.source_pane?.pane_id, fixture.paneId, 'Record detail should expose durable source pane');
+      assert.equal(taskDetail.record.source_project?.project_id, fixture.projectId, 'Record detail should expose durable source project');
 
       const patchedProjectTask = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${projectTaskRecordId}`, {
         method: 'PATCH',
@@ -1066,13 +1066,13 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       assert.equal(patchedProjectTask.record.capabilities.task_state?.due_at, currentEnd, 'PATCH should update task due dates');
       assert.ok(patchedProjectTask.record.capabilities.task_state?.completed_at, 'PATCH should stamp completion timestamps when status becomes done');
 
-      const projectTasks = await expectOk(apiBaseUrl, readerToken, `/api/hub/projects/${fixture.projectId}/tasks`, { method: 'GET' });
+      const projectTasks = await expectOk(apiBaseUrl, readerToken, `/api/hub/spaces/${fixture.projectId}/tasks`, { method: 'GET' });
       const projectTask = projectTasks.tasks.find((task) => task.record_id === taskRecordId);
       const projectOriginTask = projectTasks.tasks.find((task) => task.record_id === projectTaskRecordId);
-      assert.equal(projectTask?.source_pane?.pane_id, fixture.paneId, 'Project overview tasks should preserve source pane');
-      assert.equal(projectTask?.origin_kind, 'pane', 'Pane task should retain pane origin');
+      assert.equal(projectTask?.source_project?.project_id, fixture.projectId, 'Project overview tasks should preserve source project');
+      assert.equal(projectTask?.origin_kind, 'project', 'Project task should retain project origin');
       assert.equal(projectOriginTask?.origin_kind, 'project', 'Project task should retain project origin');
-      assert.equal(projectOriginTask?.source_pane, null, 'Project task should not synthesize pane provenance');
+      assert.equal(projectOriginTask?.source_project, null, 'Project task should not synthesize project provenance');
       assert.equal(projectOriginTask?.title, 'Updated Project Task', 'Project task list should reflect patched titles');
       assert.equal(projectOriginTask?.task_state.status, 'done', 'Project task list should reflect patched task status');
       assert.equal(projectOriginTask?.task_state.priority, 'low', 'Project task list should reflect patched task priority');
@@ -1084,7 +1084,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
         `/api/hub/tasks?lens=project&project_id=${fixture.projectId}&limit=10`,
         { method: 'GET' },
       );
-      assert.equal(projectLens.tasks.some((task) => task.record_id === taskRecordId), true, 'Project lens should include pane-originated tasks');
+      assert.equal(projectLens.tasks.some((task) => task.record_id === taskRecordId), true, 'Project lens should include project-originated tasks');
       assert.equal(projectLens.tasks.some((task) => task.record_id === projectTaskRecordId), true, 'Project lens should include project-originated tasks');
 
       const assignedLens = await expectOk(apiBaseUrl, readerToken, '/api/hub/tasks?lens=assigned&limit=10', { method: 'GET' });
@@ -1093,77 +1093,77 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
       const projectCalendar = await expectOk(
         apiBaseUrl,
         readerToken,
-        `/api/hub/projects/${fixture.projectId}/calendar?mode=all`,
+        `/api/hub/spaces/${fixture.projectId}/calendar?mode=all`,
         { method: 'GET' },
       );
       const currentEvent = projectCalendar.events.find((event) => event.record_id === eventRecordId);
-      assert.equal(currentEvent?.source_pane?.pane_id, fixture.paneId, 'Project calendar should preserve source pane');
+      assert.equal(currentEvent?.source_project?.project_id, fixture.projectId, 'Project calendar should preserve source project');
 
       const readerHome = await expectOk(apiBaseUrl, readerToken, '/api/hub/home?tasks_limit=8&events_limit=8&notifications_limit=20&unread=1', {
         method: 'GET',
       });
       const homeTask = readerHome.home.tasks.find((task) => task.record_id === taskRecordId);
       assert.ok(homeTask, 'Expected home task entry');
-      assert.equal(homeTask?.source_pane?.pane_id, fixture.paneId, 'myHub tasks should preserve source pane');
+      assert.equal(homeTask?.source_project?.project_id, fixture.projectId, 'myHub tasks should preserve source project');
       const homeEvent = readerHome.home.events.find((event) => event.record_id === eventRecordId);
       assert.ok(homeEvent, 'Expected home event entry');
-      assert.equal(homeEvent?.source_pane?.pane_id, fixture.paneId, 'myHub events should preserve source pane');
+      assert.equal(homeEvent?.source_project?.project_id, fixture.projectId, 'myHub events should preserve source project');
       assert.equal(
         readerHome.home.events.some((event) => event.title === 'Stale Event'),
         false,
         'myHub should prefer current/upcoming events over stale past ones',
       );
 
-      const deletedPane = await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${fixture.projectId}/panes`, {
+      const deletedProject = await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${fixture.projectId}/projects`, {
         method: 'POST',
-        body: JSON.stringify({ name: 'Archived Pane' }),
+        body: JSON.stringify({ name: 'Archived Project' }),
       });
-      const deletedPaneTaskId = await createTaskRecord({
+      const deletedProjectTaskId = await createTaskRecord({
         apiBaseUrl,
         ownerToken,
         projectId: fixture.projectId,
         collectionId: fixture.collectionId,
-        paneId: deletedPane.pane.pane_id,
+        sourceProjectId: deletedProject.project.project_id,
         assigneeUserIds: [readerId],
-        title: 'Deleted Pane Task',
+        title: 'Deleted Project Task',
       });
-      await expectOk(apiBaseUrl, ownerToken, `/api/hub/panes/${deletedPane.pane.pane_id}`, { method: 'DELETE' });
+      await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${deletedProject.project.project_id}`, { method: 'DELETE' });
 
-      const deletedPaneTask = await expectOk(apiBaseUrl, readerToken, `/api/hub/records/${deletedPaneTaskId}`, { method: 'GET' });
-      assert.equal(deletedPaneTask.record.origin_kind, 'pane', 'Pane-origin tasks should retain pane origin after pane deletion');
-      assert.equal(deletedPaneTask.record.source_pane, null, 'Deleted panes should clear source_pane_id instead of deleting task provenance');
+      const deletedProjectTask = await expectOk(apiBaseUrl, readerToken, `/api/hub/records/${deletedProjectTaskId}`, { method: 'GET' });
+      assert.equal(deletedProjectTask.record.origin_kind, 'project', 'Project-origin tasks should retain project origin after project deletion');
+      assert.equal(deletedProjectTask.record.source_project, null, 'Deleted projects should clear source_project_id instead of deleting task provenance');
 
       const notifications = await expectOk(apiBaseUrl, readerToken, '/api/hub/notifications?unread=1&limit=20', { method: 'GET' });
       const assignmentNotification = notifications.notifications.find(
         (notification) => notification.entity_id === taskRecordId && notification.reason === 'assignment',
       );
       assert.equal(
-        assignmentNotification?.payload?.source_pane_id,
-        fixture.paneId,
-        'Assignment notification payload should carry pane provenance',
+        assignmentNotification?.payload?.source_project_id,
+        fixture.projectId,
+        'Assignment notification payload should carry project provenance',
       );
 
       assert.equal(
         buildTaskDestinationHref(homeTask),
-        `/projects/${fixture.projectId}/work/${fixture.paneId}`,
-        'Task destination should route back to source pane',
+        `/projects/${fixture.projectId}/work/${fixture.projectId}`,
+        'Task destination should route back to source project',
       );
       assert.equal(
         buildEventDestinationHref(homeEvent),
-        `/projects/${fixture.projectId}/work/${fixture.paneId}`,
-        'Event destination should route back to source pane',
+        `/projects/${fixture.projectId}/work/${fixture.projectId}`,
+        'Event destination should route back to source project',
       );
       assert.equal(
         buildNotificationDestinationHref({
           projectId: fixture.projectId,
           payload: {
-            source_pane_id: fixture.paneId,
+            source_project_id: fixture.projectId,
             source_node_key: 'node-42',
           },
           fallbackHref: `/projects/${fixture.projectId}/work`,
         }),
-        `/projects/${fixture.projectId}/work/${fixture.paneId}?focus_node_key=node-42`,
-        'Notification destination helper should route to source pane with focus key',
+        `/projects/${fixture.projectId}/work/${fixture.projectId}?focus_node_key=node-42`,
+        'Notification destination helper should route to source project with focus key',
       );
       assert.equal(
         buildNotificationDestinationHref({
@@ -1172,7 +1172,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
           fallbackHref: `/projects/${fixture.projectId}/overview?view=calendar`,
         }),
         `/projects/${fixture.projectId}/overview?view=calendar`,
-        'Notification destination should fall back cleanly when no source pane exists',
+        'Notification destination should fall back cleanly when no source project exists',
       );
 
       addBulkAssignedTasks({
@@ -1189,7 +1189,7 @@ test('hub provenance, notifications, and pane permissions', async (t) => {
         const bulkTasks = await expectOk(
           apiBaseUrl,
           readerToken,
-          `/api/hub/projects/${fixture.projectId}/tasks?limit=50${bulkCursor ? `&cursor=${encodeURIComponent(bulkCursor)}` : ''}`,
+          `/api/hub/spaces/${fixture.projectId}/tasks?limit=50${bulkCursor ? `&cursor=${encodeURIComponent(bulkCursor)}` : ''}`,
           { method: 'GET' },
         );
         bulkCount += bulkTasks.tasks.length;

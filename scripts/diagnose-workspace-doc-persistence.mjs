@@ -134,23 +134,23 @@ const ensureAccessToken = async () => {
 };
 
 const listProjects = async (token) => {
-  const { response, payload } = await requestJson(token, '/api/hub/projects');
+  const { response, payload } = await requestJson(token, '/api/hub/spaces');
   if (!response.ok) {
-    throw new Error(`GET /api/hub/projects failed (${response.status}).`);
+    throw new Error(`GET /api/hub/spaces failed (${response.status}).`);
+  }
+  return Array.isArray(payload?.data?.spaces) ? payload.data.spaces : [];
+};
+
+const listWorkProjects = async (token, projectId) => {
+  const { response, payload } = await requestJson(token, `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`);
+  if (!response.ok) {
+    throw new Error(`GET /api/hub/spaces/${projectId}/projects failed (${response.status}).`);
   }
   return Array.isArray(payload?.data?.projects) ? payload.data.projects : [];
 };
 
-const listPanes = async (token, projectId) => {
-  const { response, payload } = await requestJson(token, `/api/hub/projects/${encodeURIComponent(projectId)}/panes`);
-  if (!response.ok) {
-    throw new Error(`GET /api/hub/projects/${projectId}/panes failed (${response.status}).`);
-  }
-  return Array.isArray(payload?.data?.panes) ? payload.data.panes : [];
-};
-
-const createPane = async (token, projectId, name) => {
-  const { response, payload } = await requestJson(token, `/api/hub/projects/${encodeURIComponent(projectId)}/panes`, {
+const createProject = async (token, projectId, name) => {
+  const { response, payload } = await requestJson(token, `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`, {
     method: 'POST',
     body: JSON.stringify({
       name,
@@ -161,21 +161,21 @@ const createPane = async (token, projectId, name) => {
     }),
   });
   if (!response.ok) {
-    throw new Error(`POST /api/hub/projects/${projectId}/panes failed (${response.status}).`);
+    throw new Error(`POST /api/hub/spaces/${projectId}/projects failed (${response.status}).`);
   }
-  const pane = payload?.data?.pane;
-  if (!pane?.pane_id || !pane?.doc_id) {
-    throw new Error('Created pane response did not include pane_id/doc_id.');
+  const project = payload?.data?.project;
+  if (!project?.project_id || !project?.doc_id) {
+    throw new Error('Created project response did not include project_id/doc_id.');
   }
-  return pane;
+  return project;
 };
 
-const deletePane = async (token, paneId) => {
-  const { response } = await requestJson(token, `/api/hub/panes/${encodeURIComponent(paneId)}`, {
+const deleteProject = async (token, projectId) => {
+  const { response } = await requestJson(token, `/api/hub/projects/${encodeURIComponent(projectId)}`, {
     method: 'DELETE',
   });
   if (!response.ok) {
-    throw new Error(`DELETE /api/hub/panes/${paneId} failed (${response.status}).`);
+    throw new Error(`DELETE /api/hub/projects/${projectId} failed (${response.status}).`);
   }
 };
 
@@ -195,21 +195,21 @@ const chooseProject = async (token) => {
 
   const projects = await listProjects(token);
   for (const project of projects) {
-    const projectId = String(project?.id || project?.project_id || '').trim();
+    const projectId = String(project?.id || project?.space_id || '').trim();
     if (!projectId) {
       continue;
     }
-    const panes = await listPanes(token, projectId).catch(() => []);
-    const editablePane = panes.find((pane) => pane && pane.can_edit !== false);
-    if (editablePane) {
+    const projects = await listWorkProjects(token, projectId).catch(() => []);
+    const editableProject = projects.find((project) => project && project.can_edit !== false);
+    if (editableProject) {
       return projectId;
     }
   }
 
-  throw new Error('Unable to find a project with an editable pane.');
+  throw new Error('Unable to find a project with an editable project.');
 };
 
-const buildWorkUrl = (projectId, paneId) => `${baseUrl}/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(paneId)}`;
+const buildWorkUrl = (projectId, workProjectId) => `${baseUrl}/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(workProjectId)}`;
 const buildOverviewUrl = (projectId) => `${baseUrl}/projects/${encodeURIComponent(projectId)}/overview`;
 
 const readEditorText = async (page) => {
@@ -422,17 +422,17 @@ const main = async () => {
 
   const token = await ensureAccessToken();
   const projectId = await chooseProject(token);
-  const paneName = `Workspace Persistence Diagnostic ${new Date().toISOString()}`;
-  const pane = await createPane(token, projectId, paneName);
-  const docId = String(pane.doc_id);
-  const workUrl = buildWorkUrl(projectId, pane.pane_id);
+  const projectName = `Workspace Persistence Diagnostic ${new Date().toISOString()}`;
+  const project = await createProject(token, projectId, projectName);
+  const docId = String(project.doc_id);
+  const workUrl = buildWorkUrl(projectId, project.project_id);
   const overviewUrl = buildOverviewUrl(projectId);
 
   const diagnostics = {
     startedAt: timestamp,
     baseUrl,
     projectId,
-    paneId: pane.pane_id,
+    workProjectId: project.project_id,
     docId,
     workUrl,
     overviewUrl,
@@ -509,7 +509,7 @@ const main = async () => {
     await freshContext?.close().catch(() => {});
     await context?.close().catch(() => {});
     await browser.close().catch(() => {});
-    await deletePane(token, pane.pane_id).catch((error) => {
+    await deleteProject(token, project.project_id).catch((error) => {
       diagnostics.cleanupError = error instanceof Error ? error.message : String(error);
     });
   }
@@ -520,7 +520,7 @@ const main = async () => {
   summary.push(`- Started: ${timestamp}`);
   summary.push(`- Base URL: ${baseUrl}`);
   summary.push(`- Project: ${projectId}`);
-  summary.push(`- Temporary pane: ${pane.pane_id}`);
+  summary.push(`- Temporary project: ${project.project_id}`);
   summary.push(`- Doc: ${docId}`);
   summary.push(`- Marker: ${diagnosticLabel}`);
   summary.push(`- Snapshot contained marker after wait: ${diagnostics.checks.snapshotMatchedAfterWait ? 'yes' : 'no'}`);

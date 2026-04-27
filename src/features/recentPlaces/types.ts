@@ -1,4 +1,4 @@
-export type RecentPlaceKind = 'pane' | 'space';
+export type RecentPlaceKind = 'project' | 'space';
 
 export interface RecentPlaceEntry {
   contributionCount: number;
@@ -8,17 +8,17 @@ export interface RecentPlaceEntry {
   lastContributedAt: string | null;
   lastContributionKind: string | null;
   lastVisitedAt: string;
-  paneId: string | null;
-  paneName: string;
+  projectId: string | null;
+  projectName: string;
   spaceId: string;
   spaceName: string;
   visitCount: number;
 }
 
-export interface RecentPanePlaceInput {
+export interface RecentProjectPlaceInput {
   href?: string;
-  paneId: string;
-  paneName: string;
+  projectId: string;
+  projectName: string;
   spaceId: string;
   spaceName: string;
 }

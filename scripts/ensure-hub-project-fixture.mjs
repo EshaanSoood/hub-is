@@ -2,8 +2,8 @@
 
 const baseUrl = (process.env.HUB_BASE_URL || 'https://eshaansood.org').replace(/\/$/, '');
 const fixtureToken = (process.env.HUB_OWNER_ACCESS_TOKEN || process.env.HUB_ACCESS_TOKEN || '').trim();
-const projectId = (process.env.HUB_PROJECT_ID || '').trim();
-const projectName = (process.env.HUB_PROJECT_NAME || '').trim();
+const spaceId = (process.env.HUB_PROJECT_ID || process.env.HUB_SPACE_ID || '').trim();
+const spaceName = (process.env.HUB_PROJECT_NAME || process.env.HUB_SPACE_NAME || '').trim();
 const requestTimeoutMsRaw = Number(process.env.HUB_REQUEST_TIMEOUT_MS || '15000');
 const requestTimeoutMs = Number.isFinite(requestTimeoutMsRaw) && requestTimeoutMsRaw > 0 ? Math.floor(requestTimeoutMsRaw) : 15000;
 
@@ -12,13 +12,13 @@ if (!fixtureToken) {
   process.exit(1);
 }
 
-if (!projectId) {
-  console.error('BLOCKING INPUTS REQUIRED: HUB_PROJECT_ID is required.');
+if (!spaceId) {
+  console.error('BLOCKING INPUTS REQUIRED: HUB_PROJECT_ID or HUB_SPACE_ID is required.');
   process.exit(1);
 }
 
-if (!projectName) {
-  console.error('BLOCKING INPUTS REQUIRED: HUB_PROJECT_NAME is required.');
+if (!spaceName) {
+  console.error('BLOCKING INPUTS REQUIRED: HUB_PROJECT_NAME or HUB_SPACE_NAME is required.');
   process.exit(1);
 }
 
@@ -61,37 +61,37 @@ const fail = (message) => {
   process.exit(1);
 };
 
-const projects = await requestJson('/api/hub/projects');
-if (projects.status !== 200) {
-  fail(`GET /api/hub/projects failed (${projects.status})${projects.networkError ? `: ${projects.networkError}` : ''}.`);
+const spaces = await requestJson('/api/hub/spaces');
+if (spaces.status !== 200) {
+  fail(`GET /api/hub/spaces failed (${spaces.status})${spaces.networkError ? `: ${spaces.networkError}` : ''}.`);
 }
 
-const list = Array.isArray(projects.payload?.data?.projects) ? projects.payload.data.projects : [];
-const existing = list.find((project) => {
-  const id = String(project?.id || project?.project_id || '').trim();
-  return id === projectId;
+const list = Array.isArray(spaces.payload?.data?.spaces) ? spaces.payload.data.spaces : [];
+const existing = list.find((space) => {
+  const id = String(space?.id || space?.space_id || '').trim();
+  return id === spaceId;
 });
 
 if (existing) {
-  console.log(`Fixture project already exists: ${projectId}`);
+  console.log(`Fixture space already exists: ${spaceId}`);
   process.exit(0);
 }
 
-const created = await requestJson('/api/hub/projects', {
+const created = await requestJson('/api/hub/spaces', {
   method: 'POST',
   body: {
-    project_id: projectId,
-    name: projectName,
+    space_id: spaceId,
+    name: spaceName,
   },
 });
 
 if (created.status === 409) {
-  console.log(`Fixture project already exists (conflict): ${projectId}`);
+  console.log(`Fixture space already exists (conflict): ${spaceId}`);
   process.exit(0);
 }
 
 if (!(created.status === 200 || created.status === 201)) {
-  fail(`POST /api/hub/projects failed (${created.status})${created.networkError ? `: ${created.networkError}` : ''}.`);
+  fail(`POST /api/hub/spaces failed (${created.status})${created.networkError ? `: ${created.networkError}` : ''}.`);
 }
 
-console.log(`Fixture project created: ${projectId}`);
+console.log(`Fixture space created: ${spaceId}`);

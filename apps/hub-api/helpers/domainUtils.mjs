@@ -3,7 +3,7 @@ export const createDomainUtils = ({
   asNullableText,
   parseJson,
   parseJsonObject,
-  paneForDocStmt,
+  workProjectForDocStmt,
 }) => {
   const relationTargetCollectionIdFromField = (field) => {
     const config = parseJsonObject(field?.config, {});
@@ -148,27 +148,26 @@ export const createDomainUtils = ({
 
   const buildNotificationRouteContext = ({
     projectId,
-    sourcePaneId = null,
+    sourceProjectId = null,
     sourceDocId = null,
     sourceNodeKey = null,
     originKind = null,
   }) => {
     const normalizedDocId = asNullableText(sourceDocId);
-    const doc = normalizedDocId ? paneForDocStmt.get(normalizedDocId) : null;
-    const resolvedPaneId = asNullableText(sourcePaneId) || asNullableText(doc?.pane_id);
-    const resolvedProjectId = asNullableText(doc?.project_id) || projectId;
+    const doc = normalizedDocId ? workProjectForDocStmt.get(normalizedDocId) : null;
+    const resolvedProjectId = asNullableText(sourceProjectId) || asNullableText(doc?.project_id);
+    const resolvedSpaceId = asNullableText(doc?.space_id) || projectId;
     return {
-      sourcePaneId: resolvedPaneId,
       sourceProjectId: resolvedProjectId,
+      spaceId: resolvedSpaceId,
       sourceDocId: normalizedDocId,
       sourceNodeKey: asNullableText(sourceNodeKey),
-      originKind: resolvedPaneId ? 'pane' : asNullableText(originKind) || 'project',
+      originKind: resolvedProjectId ? 'project' : asNullableText(originKind) || 'space',
     };
   };
 
   const buildNotificationPayload = ({
     message = null,
-    sourcePaneId = null,
     sourceProjectId = null,
     sourceDocId = null,
     sourceNodeKey = null,
@@ -177,7 +176,6 @@ export const createDomainUtils = ({
   }) => ({
     ...extras,
     message: message ?? null,
-    source_pane_id: sourcePaneId ?? null,
     source_project_id: sourceProjectId ?? null,
     source_doc_id: sourceDocId ?? null,
     source_node_key: sourceNodeKey ?? null,

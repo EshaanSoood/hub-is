@@ -11,26 +11,26 @@ const FilesModuleSkin = lazy(async () => {
 interface Props {
   module: ContractModuleConfig;
   contract: FilesModuleContract;
-  canEditPane: boolean;
+  canEditProject: boolean;
   previewMode?: boolean;
 }
 
-export const FilesModule = ({ module, contract, canEditPane, previewMode = false }: Props) => {
-  const uploadHandler = previewMode || !canEditPane
+export const FilesModule = ({ module, contract, canEditProject, previewMode = false }: Props) => {
+  const uploadHandler = previewMode || !canEditProject
     ? () => undefined
-    : module.lens === 'project'
-      ? contract.onUploadProjectFiles
-      : contract.onUploadPaneFiles;
+    : module.lens === 'space'
+      ? contract.onUploadSpaceFiles
+      : contract.onUploadProjectFiles;
 
   return (
     <Suspense fallback={<ModuleLoadingState label="Loading files module" rows={4} />}>
       <FilesModuleSkin
         sizeTier={module.size_tier}
-        files={module.lens === 'project' ? contract.projectFiles : contract.paneFiles}
+        files={module.lens === 'space' ? contract.spaceFiles : contract.projectFiles}
         onUpload={uploadHandler}
         onOpenFile={contract.onOpenFile}
         onInsertToEditor={previewMode ? undefined : contract.onInsertToEditor}
-        readOnly={previewMode || !canEditPane}
+        readOnly={previewMode || !canEditProject}
         previewMode={previewMode}
       />
     </Suspense>

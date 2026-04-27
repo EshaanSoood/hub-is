@@ -1,7 +1,7 @@
-const SEARCH_TYPES = new Set(['record', 'project', 'pane']);
+const SEARCH_TYPES = new Set(['record', 'project']);
 const TYPE_ORDER = {
   record: 0,
-  pane: 1,
+  project: 1,
   project: 2,
 };
 
@@ -167,58 +167,6 @@ export const createSearchRoutes = (deps) => {
     }
   };
 
-  const searchPanes = ({ query, limit, visibleProjectIds, requestLog = null }) => {
-    const placeholders = visibleProjectIds.map(() => '?').join(', ');
-    const matchSql = `
-      SELECT
-        panes.pane_id AS id,
-        panes.project_id AS project_id,
-        panes.name AS title,
-        projects.name AS project_name,
-        bm25(search_panes_fts) AS score
-      FROM search_panes_fts
-      JOIN panes ON panes.pane_id = search_panes_fts.pane_id
-      JOIN projects ON projects.project_id = panes.project_id
-      WHERE search_panes_fts MATCH ?
-        AND panes.project_id IN (${placeholders})
-      ORDER BY score ASC, panes.updated_at DESC, panes.pane_id DESC
-      LIMIT ?
-    `;
-    const loweredQuery = query.toLowerCase();
-    const escapedQuery = escapeLikePattern(loweredQuery);
-    const fallbackSql = `
-      SELECT
-        panes.pane_id AS id,
-        panes.project_id AS project_id,
-        panes.name AS title,
-        projects.name AS project_name,
-        CASE
-          WHEN LOWER(panes.name) = ? THEN 0
-          WHEN LOWER(panes.name) LIKE ? ESCAPE '\\' THEN 1
-          ELSE 2
-        END AS score
-      FROM panes
-      JOIN projects ON projects.project_id = panes.project_id
-      WHERE panes.project_id IN (${placeholders})
-        AND LOWER(panes.name) LIKE ? ESCAPE '\\'
-      ORDER BY score ASC, panes.updated_at DESC, panes.pane_id DESC
-      LIMIT ?
-    `;
-
-    try {
-      return db.prepare(matchSql).all(query, ...visibleProjectIds, limit);
-    } catch (error) {
-      requestLog?.warn?.('FTS pane search failed; using LIKE fallback.', { error });
-      return db.prepare(fallbackSql).all(
-        loweredQuery,
-        `${escapedQuery}%`,
-        ...visibleProjectIds,
-        `%${escapedQuery}%`,
-        limit,
-      );
-    }
-  };
-
   const globalSearch = withPolicyGate('hub.view', async ({ request, response, requestUrl, auth }) => {
     const query = asText(requestUrl.searchParams.get('q'));
     if (!query) {
@@ -229,7 +177,7 @@ export const createSearchRoutes = (deps) => {
     const limit = asInteger(requestUrl.searchParams.get('limit'), 20, 1, 50);
     const requestedType = asText(requestUrl.searchParams.get('type')).toLowerCase();
     if (requestedType && !SEARCH_TYPES.has(requestedType)) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'type must be record, project, or pane.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'type must be record or project.')));
       return;
     }
 
@@ -239,7 +187,7 @@ export const createSearchRoutes = (deps) => {
       return;
     }
 
-    const typesToSearch = requestedType ? [requestedType] : ['record', 'project', 'pane'];
+    const typesToSearch = requestedType ? [requestedType] : ['record', 'project'];
     const results = [];
 
     for (const type of typesToSearch) {
@@ -259,17 +207,6 @@ export const createSearchRoutes = (deps) => {
         results.push(
           ...searchProjects({ query, limit, visibleProjectIds, requestLog: request.log }).map((row) => ({
             type: 'project',
-            id: row.id,
-            title: row.title,
-            project_id: row.project_id,
-            project_name: row.project_name,
-            score: row.score,
-          })),
-        );
-      } else if (type === 'pane') {
-        results.push(
-          ...searchPanes({ query, limit, visibleProjectIds, requestLog: request.log }).map((row) => ({
-            type: 'pane',
             id: row.id,
             title: row.title,
             project_id: row.project_id,

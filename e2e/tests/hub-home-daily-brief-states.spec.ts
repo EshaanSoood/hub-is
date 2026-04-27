@@ -42,8 +42,8 @@ test.describe.serial('Hub Home Daily Brief states', () => {
 
   test.beforeAll(async () => {
     const anchorProject = await createProjectViaApi(token, `${runTag}-anchor`);
-    createdProjectIds.push(anchorProject.project_id);
-    const anchorTask = await createTaskInProject(token, anchorProject.project_id, {
+    createdProjectIds.push(anchorProject.space_id);
+    const anchorTask = await createTaskInProject(token, anchorProject.space_id, {
       title: `${runTag} anchor task`,
       due_at: isoFromNow(2 * HOUR_MS),
     });
@@ -68,15 +68,15 @@ test.describe.serial('Hub Home Daily Brief states', () => {
     const activeProject = await createProjectViaApi(token, `${testTag}-active-state`);
     const backlogProject = await createProjectViaApi(token, `${testTag}-backlog-state`);
     const zeroProject = await createProjectViaApi(token, `${testTag}-zero-state`);
-    createdProjectIds.push(activeProject.project_id, backlogProject.project_id, zeroProject.project_id);
+    createdProjectIds.push(activeProject.space_id, backlogProject.space_id, zeroProject.space_id);
     const activeTitle = `${testTag} active task`;
     const backlogTitle = `${testTag} overdue task`;
 
-    const activeTask = await createTaskInProject(token, activeProject.project_id, {
+    const activeTask = await createTaskInProject(token, activeProject.space_id, {
       title: activeTitle,
       due_at: isoFromNow(2 * HOUR_MS),
     });
-    const backlogTask = await createTaskInProject(token, backlogProject.project_id, {
+    const backlogTask = await createTaskInProject(token, backlogProject.space_id, {
       title: backlogTitle,
       due_at: isoFromNow(-1 * HOUR_MS),
     });
@@ -116,14 +116,14 @@ test.describe.serial('Hub Home Daily Brief states', () => {
   test('reactively transitions from True Zero to Active Day when a task enters the forward window', async ({ page }) => {
     const testTag = `${runTag}-zero-active-${Date.now()}`;
     const targetProject = await createProjectViaApi(token, `${testTag}-project`);
-    createdProjectIds.push(targetProject.project_id);
+    createdProjectIds.push(targetProject.space_id);
     const taskTitle = `${testTag} transition active task`;
 
     await openHubHome(page);
     await selectDailyBriefProject(page, targetProject.name);
     await expect(dailyBrief(page)).toHaveAttribute('data-daily-brief-state', 'true-zero');
 
-    const createdTask = await createTaskInProject(token, targetProject.project_id, {
+    const createdTask = await createTaskInProject(token, targetProject.space_id, {
       title: taskTitle,
       due_at: isoFromNow(2 * HOUR_MS),
     });
@@ -138,9 +138,9 @@ test.describe.serial('Hub Home Daily Brief states', () => {
   test('reactively transitions from Empty+Backlog to Active Day when a backlog item is dropped onto the timeline', async ({ page }) => {
     const testTag = `${runTag}-drop-${Date.now()}`;
     const targetProject = await createProjectViaApi(token, `${testTag}-project`);
-    createdProjectIds.push(targetProject.project_id);
+    createdProjectIds.push(targetProject.space_id);
     const taskTitle = `${testTag} drag task`;
-    const createdTask = await createTaskInProject(token, targetProject.project_id, {
+    const createdTask = await createTaskInProject(token, targetProject.space_id, {
       title: taskTitle,
       due_at: isoFromNow(-1 * HOUR_MS),
     });
@@ -167,9 +167,9 @@ test.describe.serial('Hub Home Daily Brief states', () => {
   test('supports keyboard pickup, timeline movement, and drop for backlog scheduling', async ({ page }) => {
     const testTag = `${runTag}-keyboard-${Date.now()}`;
     const targetProject = await createProjectViaApi(token, `${testTag}-project`);
-    createdProjectIds.push(targetProject.project_id);
+    createdProjectIds.push(targetProject.space_id);
     const taskTitle = `${testTag} keyboard task`;
-    const createdTask = await createTaskInProject(token, targetProject.project_id, {
+    const createdTask = await createTaskInProject(token, targetProject.space_id, {
       title: taskTitle,
       due_at: isoFromNow(-1 * HOUR_MS),
     });

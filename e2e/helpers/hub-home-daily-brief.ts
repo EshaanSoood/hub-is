@@ -100,7 +100,7 @@ const apiRequest = async <T>(
 const listProjectCollections = async (token: string, projectId: string): Promise<HubCollection[]> => {
   const data = await apiRequest<{ collections: HubCollection[] }>(
     token,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/collections`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/collections`,
   );
   return data.collections;
 };
@@ -109,13 +109,13 @@ export const createTaskInProject = async (
   token: string,
   projectId: string,
   payload: { title: string; due_at: string; priority?: string | null; status?: string },
-): Promise<{ record_id: string; project_id: string }> => {
+): Promise<{ record_id: string; space_id: string }> => {
   const collections = await listProjectCollections(token, projectId);
   const taskCollection = pickTaskCollection(collections);
 
   const created = await apiRequest<{ record_id: string }>(
     token,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/records`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/records`,
     {
       method: 'POST',
       body: JSON.stringify({
@@ -131,5 +131,5 @@ export const createTaskInProject = async (
     },
   );
 
-  return { record_id: created.record_id, project_id: projectId };
+  return { record_id: created.record_id, space_id: projectId };
 };

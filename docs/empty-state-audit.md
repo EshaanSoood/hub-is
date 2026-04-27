@@ -3,7 +3,7 @@
 ## Standard
 The target empty state pattern is:
 - Visual indicator (icon or illustration)
-- Clear explanatory message ("No tasks in this pane yet")
+- Clear explanatory message ("No tasks in this project yet")
 - Actionable CTA when applicable ("Create a task" button or link)
 - The message should distinguish between "no data exists" vs "data exists but is filtered out" vs "not configured"
 
@@ -13,9 +13,9 @@ Audit note on shared wrapper behavior:
 
 ## ModuleGrid (zero modules)
 - Trigger: `modules.length === 0`.
-- What renders: Dashed empty card with `Icon name="plus"`, heading `"Let's get this pane started!"`, body copy `"Add a first module to shape the pane, then keep building from there."`, and `"Add a module"` button (when `showAddControls` is true).
+- What renders: Dashed empty card with `Icon name="plus"`, heading `"Let's get this project started!"`, body copy `"Add a first module to shape the project, then keep building from there."`, and `"Add a module"` button (when `showAddControls` is true).
 - Has icon: yes (`plus`)
-- Has message: yes (`"Let's get this pane started!"` + explanatory body copy)
+- Has message: yes (`"Let's get this project started!"` + explanatory body copy)
 - Has CTA: yes (`"Add a module"`, can be disabled by `disableAdd`)
 - Meets standard: yes (when add controls are enabled)
 - Notes: If `showAddControls` is false, CTA is intentionally absent.
@@ -157,7 +157,7 @@ Audit note on shared wrapper behavior:
 ## TasksModuleSkin
 ### Empty state 1 (M tier): No tasks
 - Trigger: `sizeTier === 'M'`, `!tasksLoading`, and `displayedTasks.length === 0`.
-- What renders: Text `"No tasks in this pane."`.
+- What renders: Text `"No tasks in this project."`.
 - Has icon: no
 - Has message: yes
 - Has CTA: no
@@ -234,8 +234,8 @@ Audit note on shared wrapper behavior:
 - Trigger: `sizeTier === 'S' && visible.length === 0`.
 - What renders:
   - `"No files match"` when search query is active
-  - `"No files in this pane (read-only)"` in read-only mode
-  - `"Add files to this pane"` otherwise
+  - `"No files in this project (read-only)"` in read-only mode
+  - `"Add files to this project"` otherwise
 - Has icon: no dedicated empty-state icon (drop zone has upload icon)
 - Has message: yes
 - Has CTA: yes (DropZone upload button)
@@ -244,7 +244,7 @@ Audit note on shared wrapper behavior:
 
 ### Empty state 2 (M tier): No files
 - Trigger: `sizeTier === 'M' && sorted.length === 0`.
-- What renders: `"No files in this pane (read-only)"` or `"Add files to this pane"`.
+- What renders: `"No files in this project (read-only)"` or `"Add files to this project"`.
 - Has icon: no dedicated empty-state icon
 - Has message: yes
 - Has CTA: yes (DropZone upload button)
@@ -273,7 +273,7 @@ Audit note on shared wrapper behavior:
 ## QuickThoughtsModuleSkin
 ### Empty state
 - Trigger: `visibleEntries.length === 0`.
-- What renders: Text `"Nothing captured for this pane yet."`.
+- What renders: Text `"Nothing captured for this project yet."`.
 - Has icon: no dedicated empty-state icon (header has `thought-pile` icon)
 - Has message: yes
 - Has CTA: yes (always-visible `"New Quick Thought"` plus button, disabled when read-only)
@@ -397,14 +397,14 @@ For each state that does not meet the standard:
 
 11. `Tasks M no tasks`
 - Icon: `Icon name="tasks"`
-- Message: `"No tasks in this pane yet."`
+- Message: `"No tasks in this project yet."`
 - CTA: `"New Task"`
 - Per-tier: for `M`, keep compact icon and single-line CTA.
 
 12. `Tasks L no tasks vs filtered out`
 - Icon: `Icon name="tasks"` (no data) and `Icon name="menu"` (filtered)
 - Message:
-  - no tasks: `"No tasks in this pane yet."`
+  - no tasks: `"No tasks in this project yet."`
   - filtered: `"No tasks match current filters."`
 - CTA:
   - no tasks: `"New Task"`
@@ -413,7 +413,7 @@ For each state that does not meet the standard:
 
 13. `Tasks S read-only info`
 - Icon: `Icon name="tasks"`
-- Message: `"Tasks are read-only in this pane."`
+- Message: `"Tasks are read-only in this project."`
 - CTA: if applicable, `"Open full tasks view"`; otherwise omit CTA intentionally
 - Per-tier: keep compact with icon-only + short copy in `S`
 
@@ -432,7 +432,7 @@ For each state that does not meet the standard:
 16. `Files empty states (S/M/L)`
 - Icon: `Icon name="upload"`
 - Message must stay mode-specific:
-  - no data: `"No files in this pane yet."`
+  - no data: `"No files in this project yet."`
   - filtered/search: `"No files match your filters."`
   - read-only: `"No files are available in read-only mode."`
 - CTA: `"Upload files"` (or `"Clear filters"` for filtered/search case)
@@ -440,6 +440,6 @@ For each state that does not meet the standard:
 
 17. `QuickThoughts empty list`
 - Icon: `Icon name="thought-pile"` in the empty card itself (not only header)
-- Message: `"No quick thoughts captured for this pane yet."`
+- Message: `"No quick thoughts captured for this project yet."`
 - CTA: `"Capture thought"` (focus composer or open editor)
 - Per-tier: in `S`, keep one-button CTA; in `L`, also show `"View archived"` when archived items exist.

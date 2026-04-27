@@ -107,7 +107,7 @@ const projectAlpha: ProjectRecord = {
 const personalCollections: HubCollection[] = [
   {
     collection_id: 'collection-inbox',
-    project_id: personalProject.id,
+    space_id: personalProject.id,
     name: 'Inbox',
     icon: null,
     color: null,
@@ -119,7 +119,7 @@ const personalCollections: HubCollection[] = [
 const projectTaskCollections: HubCollection[] = [
   {
     collection_id: 'collection-task',
-    project_id: projectAlpha.id,
+    space_id: projectAlpha.id,
     name: 'Task Queue',
     icon: null,
     color: null,
@@ -131,14 +131,14 @@ const projectTaskCollections: HubCollection[] = [
 const baseCaptures: HubHomeCapture[] = [
   {
     record_id: 'capture-new',
-    project_id: personalProject.id,
+    space_id: personalProject.id,
     collection_id: 'collection-inbox',
     title: 'Newest capture',
     created_at: '2026-04-19T11:00:00.000Z',
   },
   {
     record_id: 'capture-old',
-    project_id: personalProject.id,
+    space_id: personalProject.id,
     collection_id: 'collection-inbox',
     title: 'Older capture',
     created_at: '2026-04-18T11:00:00.000Z',
@@ -296,7 +296,7 @@ describe('QuickCapturePanel characterization', () => {
 
     await waitFor(() => {
       expect(mockCreatePersonalTask).toHaveBeenCalledWith('access-token', {
-        project_id: personalProject.id,
+        space_id: personalProject.id,
         title: 'Buy coffee',
       });
     });
@@ -411,7 +411,7 @@ describe('QuickCapturePanel characterization', () => {
       captures: [
         {
           record_id: 'capture-long',
-          project_id: personalProject.id,
+          space_id: personalProject.id,
           collection_id: 'collection-inbox',
           title: longTitle,
           created_at: '2026-04-19T11:00:00.000Z',

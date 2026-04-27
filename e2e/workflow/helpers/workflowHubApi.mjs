@@ -61,27 +61,27 @@ export const loadSessionSummary = async (accessToken) => {
   throw new Error('Unexpected /api/hub/me response shape.');
 };
 
-export const listProjectPanes = async (accessToken, projectId) => {
-  const data = await hubRequestOk(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/panes`, {
+export const listProjectProjects = async (accessToken, projectId) => {
+  const data = await hubRequestOk(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`, {
     method: 'GET',
   });
-  return Array.isArray(data?.panes) ? data.panes : [];
+  return Array.isArray(data?.projects) ? data.projects : [];
 };
 
-export const waitForProjectPane = async (accessToken, projectId, predicate, label, timeoutMs = 15_000, intervalMs = 250) => {
+export const waitForProjectProject = async (accessToken, projectId, predicate, label, timeoutMs = 15_000, intervalMs = 250) => {
   const deadline = Date.now() + timeoutMs;
-  let lastPanes = [];
+  let lastProjects = [];
 
   while (Date.now() < deadline) {
-    lastPanes = await listProjectPanes(accessToken, projectId);
-    const match = lastPanes.find(predicate);
+    lastProjects = await listProjectProjects(accessToken, projectId);
+    const match = lastProjects.find(predicate);
     if (match) {
       return match;
     }
     await sleep(intervalMs);
   }
 
-  const match = lastPanes.find(predicate);
+  const match = lastProjects.find(predicate);
   if (match) {
     return match;
   }
@@ -90,7 +90,7 @@ export const waitForProjectPane = async (accessToken, projectId, predicate, labe
 };
 
 export const listProjectMembers = async (accessToken, projectId) => {
-  const data = await hubRequestOk(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/members`, {
+  const data = await hubRequestOk(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/members`, {
     method: 'GET',
   });
   return {

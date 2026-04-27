@@ -1,17 +1,17 @@
-import type { HubPaneSummary } from '../services/hub/types';
+import type { HubProjectSummary } from '../services/hub/types';
 
-export const buildDefaultPaneCreatePayload = ({
-  existingPanes,
+export const buildDefaultProjectCreatePayload = ({
+  existingProjects,
   name,
   sessionUserId,
 }: {
-  existingPanes: HubPaneSummary[];
+  existingProjects: HubProjectSummary[];
   name: string;
   sessionUserId: string;
 }) => {
   const nextOrder =
-    existingPanes.reduce(
-      (maxOrder, pane) => Math.max(maxOrder, pane.position ?? pane.sort_order ?? 0),
+    existingProjects.reduce(
+      (maxOrder, project) => Math.max(maxOrder, project.position ?? project.sort_order ?? 0),
       0,
     ) + 1;
 

@@ -36,23 +36,23 @@ export interface ProjectSpaceFocusedViewSectionProps {
     records: TableModuleProps['records'];
   } | null;
   focusedKanbanRuntime: FocusedKanbanRuntime | null;
-  activePaneCanEdit: boolean;
-  activePaneId: string | null;
+  activeProjectCanEdit: boolean;
+  activeProjectId: string | null;
   onCloseFocusedView: () => void;
   onOpenRecord: (recordId: string) => void;
   onCreateKanbanRecord: (
     viewId: string,
     payload: Parameters<NonNullable<KanbanModuleProps['onCreateRecord']>>[0],
-    paneId: string | null,
+    projectId: string | null,
   ) => Promise<void>;
-  onConfigureKanbanGrouping: (viewId: string, fieldId: string, paneId: string | null) => Promise<void>;
-  onDeleteKanbanRecord: (recordId: string, paneId: string | null) => Promise<void>;
-  onMoveKanbanRecord: (viewId: string, recordId: string, nextGroup: string, paneId: string | null) => void;
+  onConfigureKanbanGrouping: (viewId: string, fieldId: string, projectId: string | null) => Promise<void>;
+  onDeleteKanbanRecord: (recordId: string, projectId: string | null) => Promise<void>;
+  onMoveKanbanRecord: (viewId: string, recordId: string, nextGroup: string, projectId: string | null) => void;
   onUpdateKanbanRecord: (
     viewId: string,
     recordId: string,
     fields: Parameters<NonNullable<KanbanModuleProps['onUpdateRecord']>>[1],
-    paneId: string | null,
+    projectId: string | null,
   ) => Promise<void>;
 }
 
@@ -62,8 +62,8 @@ export const ProjectSpaceFocusedViewSection = ({
   focusedWorkViewLoading,
   focusedWorkViewData,
   focusedKanbanRuntime,
-  activePaneCanEdit,
-  activePaneId,
+  activeProjectCanEdit,
+  activeProjectId,
   onCloseFocusedView,
   onOpenRecord,
   onCreateKanbanRecord,
@@ -106,42 +106,42 @@ export const ProjectSpaceFocusedViewSection = ({
               groupOptions={focusedKanbanRuntime?.groupOptions || []}
               loading={focusedKanbanRuntime?.loading ?? false}
               groupingConfigured={focusedKanbanRuntime?.groupingConfigured ?? false}
-              readOnly={!activePaneCanEdit}
+              readOnly={!activeProjectCanEdit}
               groupingMessage={focusedKanbanRuntime?.groupingMessage}
               groupableFields={focusedKanbanRuntime?.groupableFields}
               metadataFieldIds={focusedKanbanRuntime?.metadataFieldIds}
               wipLimits={focusedKanbanRuntime?.wipLimits}
               onOpenRecord={onOpenRecord}
               onCreateRecord={
-                activePaneCanEdit
+                activeProjectCanEdit
                   ? async (payload) => {
-                      await onCreateKanbanRecord(focusedWorkView.view_id, payload, activePaneId);
+                      await onCreateKanbanRecord(focusedWorkView.view_id, payload, activeProjectId);
                     }
                   : undefined
               }
               onConfigureGrouping={
-                activePaneCanEdit
+                activeProjectCanEdit
                   ? async (fieldId) => {
-                      await onConfigureKanbanGrouping(focusedWorkView.view_id, fieldId, activePaneId);
+                      await onConfigureKanbanGrouping(focusedWorkView.view_id, fieldId, activeProjectId);
                     }
                   : undefined
               }
               onDeleteRecord={
-                activePaneCanEdit
+                activeProjectCanEdit
                   ? async (recordId) => {
-                      await onDeleteKanbanRecord(recordId, activePaneId);
+                      await onDeleteKanbanRecord(recordId, activeProjectId);
                     }
                   : undefined
               }
               onMoveRecord={(recordId, nextGroup) => {
-                if (activePaneCanEdit) {
-                  onMoveKanbanRecord(focusedWorkView.view_id, recordId, nextGroup, activePaneId);
+                if (activeProjectCanEdit) {
+                  onMoveKanbanRecord(focusedWorkView.view_id, recordId, nextGroup, activeProjectId);
                 }
               }}
               onUpdateRecord={
-                activePaneCanEdit
+                activeProjectCanEdit
                   ? async (recordId, fields) => {
-                      await onUpdateKanbanRecord(focusedWorkView.view_id, recordId, fields, activePaneId);
+                      await onUpdateKanbanRecord(focusedWorkView.view_id, recordId, fields, activeProjectId);
                     }
                   : undefined
               }

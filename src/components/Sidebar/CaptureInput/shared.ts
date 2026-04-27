@@ -1,17 +1,17 @@
 import { listCollections } from '../../../services/hub/collections';
-import type { HubPaneSummary } from '../../../services/hub/types';
+import type { HubProjectSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
 import type { SidebarSurfaceId } from '../Surfaces';
 
 export type CaptureKind = 'thought' | 'task' | 'event' | 'reminder';
-export type DestinationKind = 'hub' | 'pane';
+export type DestinationKind = 'hub' | 'project';
 export type SidebarCaptureSurface = SidebarSurfaceId | null;
 
 export interface CaptureDestination {
   kind: DestinationKind;
   label: string;
-  pane?: HubPaneSummary | null;
-  project?: ProjectRecord | null;
+  project?: HubProjectSummary | null;
+  space?: ProjectRecord | null;
 }
 
 export const moduleTypesByCaptureKind: Record<CaptureKind, string> = {
@@ -32,20 +32,20 @@ export const captureKindBySidebarSurface: Record<Exclude<SidebarCaptureSurface, 
   thoughts: 'thought',
 };
 
-export const readPaneHasModuleType = (pane: HubPaneSummary, moduleType: string): boolean => {
-  const modules = Array.isArray(pane.layout_config?.modules) ? pane.layout_config.modules : [];
+export const readProjectHasModuleType = (project: HubProjectSummary, moduleType: string): boolean => {
+  const modules = Array.isArray(project.layout_config?.modules) ? project.layout_config.modules : [];
   return modules.some((entry) => entry && typeof entry === 'object' && !Array.isArray(entry) && entry.module_type === moduleType);
 };
 
-export const readQuickThoughtStorageKey = (pane: HubPaneSummary): string | null => {
-  const modules = Array.isArray(pane.layout_config?.modules) ? pane.layout_config.modules : [];
+export const readQuickThoughtStorageKey = (project: HubProjectSummary): string | null => {
+  const modules = Array.isArray(project.layout_config?.modules) ? project.layout_config.modules : [];
   const matchingModule = modules.find(
     (entry) => entry && typeof entry === 'object' && !Array.isArray(entry) && entry.module_type === 'quick_thoughts',
   ) as { module_instance_id?: unknown } | undefined;
   if (!matchingModule || typeof matchingModule.module_instance_id !== 'string' || !matchingModule.module_instance_id.trim()) {
     return null;
   }
-  return `hub:quick-thoughts:${pane.project_id}:${pane.pane_id}:${matchingModule.module_instance_id}`;
+  return `hub:quick-thoughts:${project.space_id}:${project.project_id}:${matchingModule.module_instance_id}`;
 };
 
 export const selectCollectionId = async (

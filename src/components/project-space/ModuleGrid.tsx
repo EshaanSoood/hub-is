@@ -5,7 +5,7 @@ import { dialogLayoutIds } from '../../styles/motion';
 import { AddModuleDialog } from './AddModuleDialog';
 import { ModuleShell } from './ModuleShell';
 
-export type ContractModuleLens = 'project' | 'pane' | 'pane_scratch';
+export type ContractModuleLens = 'space' | 'project' | 'project_scratch';
 
 export interface ContractModuleConfig {
   module_instance_id: string;

@@ -19,6 +19,7 @@
     "test:ui:project-space": "vitest run src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx",
     "test:ui:quick-capture": "vitest run src/features/QuickCapture/QuickCapturePanel.test.tsx",
     "test:e2e": "bash scripts/run-playwright-regression.sh",
+    "test:e2e:rename-parity": "node --test scripts/rename-functional-parity.e2e.test.mjs",
     "test:e2e:project-space": "npm --prefix e2e test -- -c project-space-workspace/playwright.config.ts",
     "test:e2e:workflow": "bash scripts/run-playwright-workflow.sh",
     "test:nlp": "node --experimental-strip-types --test scripts/calendar-nlp/corpus.test.mjs scripts/calendar-nlp/weekday-semantics.test.mjs scripts/calendar-nlp/enhancements.test.mjs",

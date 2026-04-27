@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import type { ReactElement } from 'react';
-import type { HubPaneSummary, HubProject, HubProjectMember } from '../../../services/hub/types';
+import type { HubProjectSummary, HubProject, HubProjectMember } from '../../../services/hub/types';
 import { ProjectSpaceInspectorOverlay } from './ProjectSpaceInspectorOverlay';
 import { ProjectSpaceOverviewSurface } from './ProjectSpaceOverviewSurface';
 import { ProjectSpaceWorkSurface } from './ProjectSpaceWorkSurface';
@@ -17,8 +17,8 @@ const primarySurfaceLabels: Record<TopLevelProjectTab, string> = {
 export const ProjectSpaceWorkspace = ({
   activeTab,
   project,
-  panes,
-  setPanes,
+  projects,
+  setProjects,
   projectMembers,
   accessToken,
   sessionUserId,
@@ -28,8 +28,8 @@ export const ProjectSpaceWorkspace = ({
 }: {
   activeTab: TopLevelProjectTab;
   project: HubProject;
-  panes: HubPaneSummary[];
-  setPanes: React.Dispatch<React.SetStateAction<HubPaneSummary[]>>;
+  projects: HubProjectSummary[];
+  setProjects: React.Dispatch<React.SetStateAction<HubProjectSummary[]>>;
   projectMembers: HubProjectMember[];
   accessToken: string;
   sessionUserId: string;
@@ -47,8 +47,8 @@ export const ProjectSpaceWorkspace = ({
   } = useProjectSpacePageRuntime({
     activeTab,
     project,
-    panes,
-    setPanes,
+    projects,
+    setProjects,
     projectMembers,
     accessToken,
     sessionUserId,
@@ -95,23 +95,23 @@ export const ProjectSpaceWorkspace = ({
             );
           })}
 
-          {navigatorProps.pinnedPanes.map((pane) => {
-            const selected = navigatorProps.currentPaneId === pane.pane_id && navigatorProps.openedFromPinned;
+          {navigatorProps.pinnedProjects.map((project) => {
+            const selected = navigatorProps.currentProjectId === project.project_id && navigatorProps.openedFromPinned;
             return (
               <button
-                key={pane.pane_id}
+                key={project.project_id}
                 type="button"
-                onClick={() => navigatorProps.onNavigatePinnedPane(pane)}
+                onClick={() => navigatorProps.onNavigatePinnedProject(project)}
                 className={`cursor-pointer rounded-panel border px-3 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
                   selected
                     ? 'border-primary bg-primary text-on-primary'
                     : 'border-border-muted bg-surface text-primary hover:border-primary hover:bg-primary/10'
                 }`}
                 aria-current={selected ? 'page' : undefined}
-                aria-label={`Open pinned project ${pane.name}`}
+                aria-label={`Open pinned project ${project.name}`}
               >
                 <span className="flex flex-col items-center leading-tight">
-                  <span>{pane.name}</span>
+                  <span>{project.name}</span>
                   <span className={selected ? 'mt-1 h-1 w-1 rounded-full bg-on-primary' : 'mt-1 h-1 w-1 rounded-full bg-muted'} aria-hidden="true" />
                 </span>
               </button>

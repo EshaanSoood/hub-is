@@ -48,7 +48,7 @@ const nextReminderAtForFrequency = (isoValue, frequency, interval = 1) => {
   return date.toISOString();
 };
 
-const reminderScopeFromValue = (value) => (value === 'project' ? 'project' : 'personal');
+const reminderScopeFromValue = (value) => (value === 'space' || value === 'project' ? 'space' : 'personal');
 
 export const createReminderRoutes = (deps) => {
   const {
@@ -68,7 +68,7 @@ export const createReminderRoutes = (deps) => {
     collectionByNameStmt,
     insertCollectionStmt,
     projectByIdStmt,
-    paneByIdStmt,
+    workProjectByIdStmt,
     viewByIdStmt,
     personalProjectByUserStmt,
     insertRecordStmt,
@@ -91,11 +91,11 @@ export const createReminderRoutes = (deps) => {
     }
 
     let projectId = personalProject.project_id;
-    let paneId = '';
-    if (scope === 'project') {
-      projectId = asText(requestUrl.searchParams.get('project_id'));
+    let sourceProjectId = '';
+    if (scope === 'space') {
+      projectId = asText(requestUrl.searchParams.get('space_id'));
       if (!projectId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for space-scoped reminders.')));
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required for space-scoped reminders.')));
         return;
       }
 
@@ -109,18 +109,18 @@ export const createReminderRoutes = (deps) => {
         return;
       }
 
-      paneId = asText(requestUrl.searchParams.get('pane_id'));
-      if (paneId) {
-        const pane = paneByIdStmt.get(paneId);
-        if (!pane || pane.project_id !== projectId) {
-          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested space.')));
+      sourceProjectId = asText(requestUrl.searchParams.get('project_id') || requestUrl.searchParams.get('source_project_id'));
+      if (sourceProjectId) {
+        const project = workProjectByIdStmt.get(sourceProjectId);
+        if (!project || project.space_id !== projectId) {
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must belong to the requested space.')));
           return;
         }
       }
     }
 
-    // Keep this argument order aligned with statements.mjs:listForUser, including the duplicated paneId binding.
-    const rows = listRemindersForUserStmt.all(auth.user.user_id, scope, personalProject.project_id, scope, projectId, paneId, paneId);
+    // Keep this argument order aligned with statements.mjs:listForUser, including the duplicated projectId binding.
+    const rows = listRemindersForUserStmt.all(auth.user.user_id, scope, personalProject.project_id, scope, projectId, sourceProjectId, sourceProjectId);
     request.log.debug('Reminder listing query completed.', { durationMs: elapsedMs(listQueryStartedAt) });
     const now = nowIso();
 
@@ -251,14 +251,15 @@ export const createReminderRoutes = (deps) => {
     const remindAt = validated.remind_at;
     const recurrenceJson = validated.recurrence_json ? toJson(validated.recurrence_json) : null;
     const scope = reminderScopeFromValue(validated.scope);
-    const paneId = asText(validated.pane_id) || null;
+    const projectId = asText(validated.project_id) || null;
+    const sourceProjectId = asText(validated.source_project_id) || null;
     const sourceViewId = typeof validated.source_view_id === 'string' && validated.source_view_id ? validated.source_view_id : null;
 
     let targetProject;
-    if (scope === 'project') {
+    if (scope === 'space') {
       const projectId = asText(validated.project_id);
       if (!projectId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for space-scoped reminders.')));
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required for space-scoped reminders.')));
         return;
       }
 
@@ -278,10 +279,10 @@ export const createReminderRoutes = (deps) => {
         return;
       }
 
-      if (paneId) {
-        const pane = paneByIdStmt.get(paneId);
-        if (!pane || pane.project_id !== projectId) {
-          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested space.')));
+      if (sourceProjectId) {
+        const project = workProjectByIdStmt.get(sourceProjectId);
+        if (!project || project.space_id !== projectId) {
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must belong to the requested space.')));
           return;
         }
       }
@@ -325,7 +326,7 @@ export const createReminderRoutes = (deps) => {
           targetProject.project_id,
           collectionId,
           title,
-          paneId,
+          sourceProjectId,
           sourceViewId,
           auth.user.user_id,
           timestamp,

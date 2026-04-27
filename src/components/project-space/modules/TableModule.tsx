@@ -11,7 +11,7 @@ const TableModuleSkin = lazy(async () => {
 interface Props {
   module: ContractModuleConfig;
   contract: TableModuleContract;
-  canEditPane: boolean;
+  canEditProject: boolean;
   previewMode?: boolean;
   onOpenRecord?: (recordId: string) => void;
   onSetModuleBinding: (moduleInstanceId: string, binding: ContractModuleConfig['binding']) => void;
@@ -32,17 +32,17 @@ const resolveBoundViewId = (
 export const TableModule = ({
   module,
   contract,
-  canEditPane,
+  canEditProject,
   previewMode = false,
   onOpenRecord,
   onSetModuleBinding,
 }: Props) => {
   const selectedViewId = resolveBoundViewId(module, contract.views, contract.defaultViewId);
   const viewData = selectedViewId ? contract.dataByViewId[selectedViewId] : undefined;
-  const createRecord = canEditPane && selectedViewId ? contract.onCreateRecord : undefined;
-  const updateRecord = canEditPane && selectedViewId ? contract.onUpdateRecord : undefined;
-  const deleteRecords = canEditPane && selectedViewId ? contract.onDeleteRecords : undefined;
-  const bulkUpdateRecords = canEditPane && selectedViewId ? contract.onBulkUpdateRecords : undefined;
+  const createRecord = canEditProject && selectedViewId ? contract.onCreateRecord : undefined;
+  const updateRecord = canEditProject && selectedViewId ? contract.onUpdateRecord : undefined;
+  const deleteRecords = canEditProject && selectedViewId ? contract.onDeleteRecords : undefined;
+  const bulkUpdateRecords = canEditProject && selectedViewId ? contract.onBulkUpdateRecords : undefined;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
@@ -51,7 +51,7 @@ export const TableModule = ({
           Source view
           <select
             value={selectedViewId || ''}
-            disabled={!canEditPane}
+            disabled={!canEditProject}
             onChange={(event) => onSetModuleBinding(
               module.module_instance_id,
               event.target.value ? { view_id: event.target.value } : undefined,

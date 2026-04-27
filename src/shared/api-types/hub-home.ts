@@ -4,8 +4,8 @@ import type { TaskSummary } from './tasks';
 export interface HomeCaptureSummary {
   /** Stable record identifier for a personal capture item. */
   record_id: string;
-  /** Personal project identifier that owns the capture. */
-  project_id: string;
+  /** Personal space identifier that owns the capture. */
+  space_id: string;
   /** Collection identifier containing the capture record. */
   collection_id: string;
   /** Capture title shown in the inbox section. */
@@ -17,8 +17,8 @@ export interface HomeCaptureSummary {
 export interface NotificationSummary {
   /** Stable notification identifier. */
   notification_id: string;
-  /** Project identifier scoped to the notification. */
-  project_id: string;
+  /** Space identifier scoped to the notification. */
+  space_id: string;
   /** Recipient user identifier. */
   user_id: string;
   /** Notification reason/category key. */
@@ -38,8 +38,8 @@ export interface NotificationSummary {
 }
 
 export interface HubHomeResponse {
-  /** Personal project identifier for the authenticated user. */
-  personal_project_id: string | null;
+  /** Personal space identifier for the authenticated user. */
+  personal_space_id: string | null;
   /** Assigned/personal task summaries for home view. */
   tasks: TaskSummary[];
   /** Opaque cursor for loading more home tasks. */

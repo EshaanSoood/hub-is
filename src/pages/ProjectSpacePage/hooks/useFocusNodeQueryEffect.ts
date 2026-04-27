@@ -29,7 +29,7 @@ const readFocusNodeKeyFromSearchParams = (params: URLSearchParams): string | nul
 };
 
 interface UseFocusNodeQueryEffectParams {
-  activePaneDocId: string | null;
+  activeProjectDocId: string | null;
   locationPathname: string;
   locationState: unknown;
   navigate: NavigateFunction;
@@ -38,7 +38,7 @@ interface UseFocusNodeQueryEffectParams {
 }
 
 export const useFocusNodeQueryEffect = ({
-  activePaneDocId,
+  activeProjectDocId,
   locationPathname,
   locationState,
   navigate,
@@ -46,7 +46,7 @@ export const useFocusNodeQueryEffect = ({
   setPendingDocFocusNodeKey,
 }: UseFocusNodeQueryEffectParams): void => {
   useEffect(() => {
-    if (!activePaneDocId) {
+    if (!activeProjectDocId) {
       return;
     }
     const focusNodeKey = readFocusNodeKeyFromLocationState(locationState) || readFocusNodeKeyFromSearchParams(searchParams);
@@ -58,5 +58,5 @@ export const useFocusNodeQueryEffect = ({
     nextParams.delete('focus_node_key');
     const query = nextParams.toString();
     navigate(query ? `${locationPathname}?${query}` : locationPathname, { replace: true, state: null });
-  }, [activePaneDocId, locationPathname, locationState, navigate, searchParams, setPendingDocFocusNodeKey]);
+  }, [activeProjectDocId, locationPathname, locationState, navigate, searchParams, setPendingDocFocusNodeKey]);
 };

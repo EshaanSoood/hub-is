@@ -4,8 +4,8 @@ import { HUB_API_BASE_URL, HubApiClient, type HubEnvelope, loadTokenFromLocalEnv
 interface HubHomeEvent {
   record_id: string;
   title: string;
-  project_id: string;
-  project_name: string | null;
+  space_id: string;
+  space_name: string | null;
   event_state: {
     start_dt: string;
     end_dt: string;
@@ -16,7 +16,7 @@ interface HubHomeEvent {
 
 interface HubHomePayload {
   home: {
-    personal_project_id: string | null;
+    personal_space_id: string | null;
     events: HubHomeEvent[];
   };
 }
@@ -60,7 +60,7 @@ const extractRecordId = (data: unknown): string => {
 
 test.describe('Event API contract tests', () => {
   let client: HubApiClient;
-  let personalProjectId = '';
+  let personalSpaceId = '';
   const createdRecordIds = new Set<string>();
 
   const getHome = async (): Promise<HubHomePayload['home']> => {
@@ -89,8 +89,8 @@ test.describe('Event API contract tests', () => {
     client = new HubApiClient(HUB_API_BASE_URL, token);
 
     const home = await getHome();
-    personalProjectId = String(home.personal_project_id || '');
-    expect(personalProjectId).toBeTruthy();
+    personalSpaceId = String(home.personal_space_id || '');
+    expect(personalSpaceId).toBeTruthy();
   });
 
   test.afterEach(async () => {
@@ -104,7 +104,7 @@ test.describe('Event API contract tests', () => {
     const startInput = '2026-03-22T14:00:00-04:00';
     const endInput = '2026-03-22T15:00:00-04:00';
 
-    const createResponse = await client.post(`/api/hub/projects/${encodeURIComponent(personalProjectId)}/events/from-nlp`, {
+    const createResponse = await client.post(`/api/hub/spaces/${encodeURIComponent(personalSpaceId)}/events/from-nlp`, {
       title: uniqueTitle('api-event-iso-normalize'),
       start_dt: startInput,
       end_dt: endInput,
@@ -124,7 +124,7 @@ test.describe('Event API contract tests', () => {
   });
 
   test('POST event creation currently accepts end before start (known backend bug)', async () => {
-    const createResponse = await client.post(`/api/hub/projects/${encodeURIComponent(personalProjectId)}/events/from-nlp`, {
+    const createResponse = await client.post(`/api/hub/spaces/${encodeURIComponent(personalSpaceId)}/events/from-nlp`, {
       title: uniqueTitle('api-event-invalid-order'),
       start_dt: '2026-03-22T18:00:00.000Z',
       end_dt: '2026-03-22T17:00:00.000Z',
@@ -135,7 +135,7 @@ test.describe('Event API contract tests', () => {
   });
 
   test('POST event creation rejects invalid timestamps', async () => {
-    const createResponse = await client.post(`/api/hub/projects/${encodeURIComponent(personalProjectId)}/events/from-nlp`, {
+    const createResponse = await client.post(`/api/hub/spaces/${encodeURIComponent(personalSpaceId)}/events/from-nlp`, {
       title: uniqueTitle('api-event-invalid-timestamp'),
       start_dt: 'not a date',
       end_dt: '2026-03-22T19:00:00.000Z',

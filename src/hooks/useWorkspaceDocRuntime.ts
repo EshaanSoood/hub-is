@@ -177,9 +177,9 @@ const hashWorkspaceDocSnapshotPayload = (payload: WorkspaceDocSnapshotPayload): 
 
 interface UseWorkspaceDocRuntimeParams {
   accessToken: string;
-  activePaneDocId: string | null;
+  activeProjectDocId: string | null;
   projectId: string;
-  activePaneId: string | null;
+  activeProjectId: string | null;
   activeTab: ProjectSpaceTab;
   ensureProjectAssetRoot: () => Promise<string>;
   refreshTrackedProjectFiles: () => Promise<void>;
@@ -188,9 +188,9 @@ interface UseWorkspaceDocRuntimeParams {
 
 export const useWorkspaceDocRuntime = ({
   accessToken,
-  activePaneDocId,
+  activeProjectDocId,
   projectId,
-  activePaneId,
+  activeProjectId,
   activeTab,
   ensureProjectAssetRoot,
   refreshTrackedProjectFiles,
@@ -212,7 +212,7 @@ export const useWorkspaceDocRuntime = ({
   const [pendingDocFocusNodeKey, setPendingDocFocusNodeKey] = useState<string | null>(null);
   const [docBootstrapLexicalState, setDocBootstrapLexicalState] = useState<Record<string, unknown>>(() => emptyLexicalState());
   const [docBootstrapYjsUpdateBase64, setDocBootstrapYjsUpdateBase64] = useState<string | null>(null);
-  const [docBootstrapReady, setDocBootstrapReady] = useState(activePaneDocId === null);
+  const [docBootstrapReady, setDocBootstrapReady] = useState(activeProjectDocId === null);
   const [collabSessionError, setCollabSessionError] = useState<string | null>(null);
 
   const docSnapshotSaveTimerRef = useRef<number | null>(null);
@@ -231,7 +231,7 @@ export const useWorkspaceDocRuntime = ({
   }, []);
 
   const refreshDocComments = useCallback(async () => {
-    if (!activePaneDocId) {
+    if (!activeProjectDocId) {
       setDocComments([]);
       setOrphanedDocComments([]);
       return;
@@ -241,7 +241,7 @@ export const useWorkspaceDocRuntime = ({
     try {
       const response = await listComments(accessToken, {
         project_id: projectId,
-        doc_id: activePaneDocId,
+        doc_id: activeProjectDocId,
       });
       if (requestId !== latestDocCommentsRequestRef.current) {
         return;
@@ -281,7 +281,7 @@ export const useWorkspaceDocRuntime = ({
       setDocComments([]);
       setOrphanedDocComments([]);
     }
-  }, [accessToken, activePaneDocId, projectId]);
+  }, [accessToken, activeProjectDocId, projectId]);
 
   const clearDocSnapshotSaveTimer = useCallback(() => {
     if (docSnapshotSaveTimerRef.current !== null) {
@@ -405,10 +405,10 @@ export const useWorkspaceDocRuntime = ({
     setDocCommentError(null);
     setDocBootstrapLexicalState(emptyLexicalState());
     setDocBootstrapYjsUpdateBase64(null);
-    setDocBootstrapReady(activePaneDocId === null);
+    setDocBootstrapReady(activeProjectDocId === null);
     setCollabSessionError(null);
     clearDocSnapshotSaveTimer();
-  }, [activePaneDocId, clearDocSnapshotSaveTimer]);
+  }, [activeProjectDocId, clearDocSnapshotSaveTimer]);
 
   const getCollabAccessToken = useCallback(async () => {
     const token = accessTokenRef.current;
@@ -424,7 +424,7 @@ export const useWorkspaceDocRuntime = ({
 
   useEffect(() => {
     let cancelled = false;
-    if (!activePaneDocId) {
+    if (!activeProjectDocId) {
       setDocBootstrapLexicalState(emptyLexicalState());
       setDocBootstrapYjsUpdateBase64(null);
       setDocBootstrapReady(true);
@@ -441,13 +441,13 @@ export const useWorkspaceDocRuntime = ({
 
     const loadBootstrapSnapshot = async () => {
       try {
-        const doc = await getDocSnapshot(accessToken, activePaneDocId);
+        const doc = await getDocSnapshot(accessToken, activeProjectDocId);
         if (cancelled) {
           return;
         }
 
         const snapshotPayload = normalizeWorkspaceDocSnapshotPayload(doc.snapshot_payload);
-        const docSnapshotState = getDocSnapshotSaveState(activePaneDocId);
+        const docSnapshotState = getDocSnapshotSaveState(activeProjectDocId);
         docSnapshotState.version = doc.snapshot_version;
         docSnapshotState.lastSavedHash = hashWorkspaceDocSnapshotPayload(snapshotPayload);
         setDocBootstrapLexicalState(snapshotPayload.lexical_state);
@@ -470,18 +470,18 @@ export const useWorkspaceDocRuntime = ({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, activePaneDocId, activeTab, getDocSnapshotSaveState]);
+  }, [accessToken, activeProjectDocId, activeTab, getDocSnapshotSaveState]);
 
   useEffect(() => {
-    if (!activePaneDocId) {
+    if (!activeProjectDocId) {
       return;
     }
 
     const syncPresence = async () => {
       try {
-        await postDocPresence(accessToken, activePaneDocId, {
+        await postDocPresence(accessToken, activeProjectDocId, {
           surface: activeTab,
-          pane_id: activePaneId,
+          project_id: activeProjectId,
         });
       } catch {
         // best-effort presence
@@ -496,28 +496,28 @@ export const useWorkspaceDocRuntime = ({
     return () => {
       window.clearInterval(timer);
     };
-  }, [accessToken, activePaneDocId, activePaneId, activeTab]);
+  }, [accessToken, activeProjectDocId, activeProjectId, activeTab]);
 
   useEffect(() => {
-    if (!activePaneDocId) {
+    if (!activeProjectDocId) {
       return;
     }
 
     return () => {
-      flushPendingDocSnapshot(activePaneDocId);
+      flushPendingDocSnapshot(activeProjectDocId);
     };
-  }, [activePaneDocId, flushPendingDocSnapshot]);
+  }, [activeProjectDocId, flushPendingDocSnapshot]);
 
   const onDocEditorChange = useCallback(
     (payload: { lexicalState: Record<string, unknown>; plainText: string; yjsUpdateBase64?: string | null }) => {
-      if (!activePaneDocId) {
+      if (!activeProjectDocId) {
         return;
       }
 
       setDocBootstrapLexicalState(payload.lexicalState);
       setDocBootstrapYjsUpdateBase64(payload.yjsUpdateBase64 || null);
 
-      const docSnapshotState = getDocSnapshotSaveState(activePaneDocId);
+      const docSnapshotState = getDocSnapshotSaveState(activeProjectDocId);
       const snapshotPayload = buildWorkspaceDocSnapshotPayload(payload.lexicalState, payload.plainText, payload.yjsUpdateBase64);
       const nextHash = hashWorkspaceDocSnapshotPayload(snapshotPayload);
       if (nextHash === docSnapshotState.lastSavedHash) {
@@ -525,7 +525,7 @@ export const useWorkspaceDocRuntime = ({
       }
 
       docSnapshotState.queuedEntry = {
-        docId: activePaneDocId,
+        docId: activeProjectDocId,
         lexicalState: payload.lexicalState,
         snapshotPayload,
         hash: nextHash,
@@ -533,10 +533,10 @@ export const useWorkspaceDocRuntime = ({
 
       clearDocSnapshotSaveTimer();
       docSnapshotSaveTimerRef.current = window.setTimeout(() => {
-        flushPendingDocSnapshot(activePaneDocId);
+        flushPendingDocSnapshot(activeProjectDocId);
       }, DOC_SNAPSHOT_SAVE_DEBOUNCE_MS);
     },
-    [activePaneDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot, getDocSnapshotSaveState],
+    [activeProjectDocId, clearDocSnapshotSaveTimer, flushPendingDocSnapshot, getDocSnapshotSaveState],
   );
 
   const onInsertDocMention = useCallback((target: HubMentionTarget) => {
@@ -582,10 +582,10 @@ export const useWorkspaceDocRuntime = ({
   const onUploadDocAsset = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      if (!activePaneDocId) {
+      if (!activeProjectDocId) {
         return;
       }
-      const uploadDocId = activePaneDocId;
+      const uploadDocId = activeProjectDocId;
 
       const form = event.currentTarget;
       const input = form.elements.namedItem('doc-asset-file') as HTMLInputElement | null;
@@ -604,7 +604,7 @@ export const useWorkspaceDocRuntime = ({
           mime_type: file.type || 'application/octet-stream',
           content_base64: base64,
           path: 'Uploads',
-          mutation_context_pane_id: activePaneId || undefined,
+          mutation_context_project_id: activeProjectId || undefined,
           metadata: {
             scope: 'doc_attachment',
             attached_entity_type: 'doc',
@@ -631,8 +631,8 @@ export const useWorkspaceDocRuntime = ({
     },
     [
       accessToken,
-      activePaneDocId,
-      activePaneId,
+      activeProjectDocId,
+      activeProjectId,
       ensureProjectAssetRoot,
       projectId,
       refreshTimeline,
@@ -641,7 +641,7 @@ export const useWorkspaceDocRuntime = ({
   );
 
   const onAddDocComment = useCallback(async () => {
-    if (!activePaneDocId || !selectedDocNodeKey) {
+    if (!activeProjectDocId || !selectedDocNodeKey) {
       return;
     }
 
@@ -663,7 +663,7 @@ export const useWorkspaceDocRuntime = ({
     try {
       await createDocAnchorComment(accessToken, {
         project_id: projectId,
-        doc_id: activePaneDocId,
+        doc_id: activeProjectDocId,
         anchor_payload: {
           kind: 'node',
           nodeKey: selectedDocNodeKey,
@@ -686,7 +686,7 @@ export const useWorkspaceDocRuntime = ({
       console.warn('[workspace-doc] failed to add doc comment', error);
       setDocCommentError(error instanceof Error ? error.message : 'Failed to add doc comment.');
     }
-  }, [accessToken, activePaneDocId, docCommentText, projectId, refreshDocComments, refreshTimeline, selectedDocNodeKey]);
+  }, [accessToken, activeProjectDocId, docCommentText, projectId, refreshDocComments, refreshTimeline, selectedDocNodeKey]);
 
   const onDocCommentDialogOpenChange = useCallback((open: boolean) => {
     setDocCommentComposerOpen(open);
@@ -709,14 +709,14 @@ export const useWorkspaceDocRuntime = ({
 
   const collabSession = useMemo(
     () =>
-      activePaneDocId && activeTab === 'work' && docBootstrapReady
+      activeProjectDocId && activeTab === 'work' && docBootstrapReady
         ? {
-            roomId: activePaneDocId,
+            roomId: activeProjectDocId,
             serverUrl: env.hubCollabWsUrl,
             getAccessToken: getCollabAccessToken,
           }
         : null,
-    [activePaneDocId, activeTab, docBootstrapReady, getCollabAccessToken],
+    [activeProjectDocId, activeTab, docBootstrapReady, getCollabAccessToken],
   );
 
   return {

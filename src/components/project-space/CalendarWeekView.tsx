@@ -71,7 +71,7 @@ const eventPipColorClassName = (event: CalendarDayEvent): string => {
 };
 
 const extractProjectLabel = (event: CalendarDayEvent): string =>
-  event.project_name || event.source_pane?.pane_name || 'Calendar';
+  event.space_name || event.source_project?.project_name || 'Calendar';
 
 const formatWeekRangeLabel = (start: Date, end: Date): string => {
   const left = start.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });

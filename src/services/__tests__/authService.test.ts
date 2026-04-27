@@ -8,14 +8,14 @@ describe('buildCurrentAuthRedirectUri', () => {
   test('preserves the active route for deep links', () => {
     const redirectUri = buildCurrentAuthRedirectUri({
       origin: 'https://hub.example.com',
-      pathname: '/projects/project-1/work/pane-3',
+      pathname: '/projects/project-1/work/project-3',
       search: '?view=calendar&record_id=task-9',
       hash: '#details',
     });
 
     assert.equal(
       redirectUri,
-      'https://hub.example.com/projects/project-1/work/pane-3?view=calendar&record_id=task-9#details',
+      'https://hub.example.com/projects/project-1/work/project-3?view=calendar&record_id=task-9#details',
     );
   });
 
@@ -93,7 +93,7 @@ describe('buildCurrentAuthRedirectUri', () => {
       },
       {
         origin: 'https://hub.example.com',
-        pathname: '/projects/project-1/work/pane-1',
+        pathname: '/projects/project-1/work/project-1',
         search: '?view=calendar',
         hash: '',
       },

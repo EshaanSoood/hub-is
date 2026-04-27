@@ -4,9 +4,9 @@ import { EventCard } from '../../cards/EventCard';
 interface CalendarWeekStripEvent {
   record_id: string;
   title: string;
-  project_id?: string | null;
-  project_name?: string | null;
-  source_pane?: { pane_id: string | null; pane_name: string | null; doc_id: string | null } | null;
+  space_id?: string | null;
+  space_name?: string | null;
+  source_project?: { project_id: string | null; project_name: string | null; doc_id: string | null } | null;
   event_state: {
     start_dt: string;
     end_dt: string;
@@ -139,8 +139,8 @@ export const CalendarMediumWeekStrip = ({
                 <ul className="space-y-2">
                   {selectedDay.events.map((event) => {
                     const timeLabel = formatEventTime(event.event_state.start_dt);
-                    const projectName = event.project_name || event.source_pane?.pane_name || 'Calendar';
-                    const projectId = event.project_id || event.source_pane?.pane_id || null;
+                    const projectName = event.space_name || event.source_project?.project_name || 'Calendar';
+                    const projectId = event.space_id || event.source_project?.project_id || null;
                     return (
                       <li key={`${event.record_id}-${event.event_state.start_dt}`}>
                         {previewMode ? (

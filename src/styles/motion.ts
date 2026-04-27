@@ -52,7 +52,7 @@ export const dialogLayoutIds = {
   toolbarTasks: 'dialog-toolbar-tasks',
   toolbarReminders: 'dialog-toolbar-reminders',
   myHubRecordInspector: 'dialog-myhub-record-inspector',
-  paneSettings: 'dialog-pane-settings',
+  projectSettings: 'dialog-project-settings',
   commentOnBlock: 'dialog-comment-on-block',
   addModule: 'dialog-add-module',
   taskCreate: 'dialog-task-create',

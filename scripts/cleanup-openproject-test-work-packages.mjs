@@ -32,7 +32,7 @@ if (!projectId) {
 }
 
 const encodedProjectId = encodeURIComponent(projectId);
-const workPackagesPath = `/api/hub/projects/${encodedProjectId}/openproject/work-packages`;
+const workPackagesPath = `/api/hub/spaces/${encodedProjectId}/openproject/work-packages`;
 
 const listed = await request(workPackagesPath);
 if (listed.status !== 200 || !Array.isArray(listed.payload)) {

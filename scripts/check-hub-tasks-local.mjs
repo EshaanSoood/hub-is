@@ -16,7 +16,7 @@ const __dirname = dirname(__filename);
 const hubApiEntry = resolve(__dirname, '../apps/hub-api/hub-api.mjs');
 
 const PROJECT_ID = 'backend-pilot';
-const projectPath = `/api/hub/projects/${PROJECT_ID}`;
+const projectPath = `/api/hub/spaces/${PROJECT_ID}`;
 const nextcloudUser = 'codex-user';
 const REQUEST_TIMEOUT_MS = Number.isFinite(Number(process.env.HUB_REQUEST_TIMEOUT_MS))
   ? Math.max(1_000, Number(process.env.HUB_REQUEST_TIMEOUT_MS))

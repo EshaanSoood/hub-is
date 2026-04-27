@@ -1,5 +1,5 @@
 import type { HubRecordDetail } from './records';
-import type { SourcePaneContext } from './tasks';
+import type { SourceProjectContext } from './tasks';
 
 export interface EventState {
   /** ISO 8601 event start datetime. */
@@ -33,10 +33,10 @@ export interface EventReminderSeed {
 export interface EventSummary {
   /** Stable record identifier for the event. */
   record_id: string;
-  /** Parent project identifier for the event record. */
-  project_id: string;
-  /** Project display name; null when unavailable. */
-  project_name: string | null;
+  /** Parent space identifier for the event record. */
+  space_id: string;
+  /** Space display name; null when unavailable. */
+  space_name: string | null;
   /** Collection identifier containing the event record. */
   collection_id: string;
   /** Collection display name; null when unavailable. */
@@ -49,15 +49,15 @@ export interface EventSummary {
   event_state: EventState;
   /** Event participants visible to the current user. */
   participants: EventParticipant[];
-  /** Optional pane context used to deep-link into work views. */
-  source_pane: SourcePaneContext | null;
+  /** Optional project context used to deep-link into work views. */
+  source_project: SourceProjectContext | null;
 }
 
 export interface CreateEventRequest {
-  /** Optional destination pane identifier for the new event record. */
-  pane_id?: string;
-  /** Optional source pane identifier for routing and provenance. */
-  source_pane_id?: string;
+  /** Optional destination project identifier for the new event record. */
+  project_id?: string;
+  /** Optional source project identifier for routing and provenance. */
+  source_project_id?: string;
   /** Optional source document identifier for provenance metadata. */
   source_doc_id?: string;
   /** Optional source node key for provenance metadata. */
