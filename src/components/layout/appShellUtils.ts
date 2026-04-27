@@ -227,16 +227,16 @@ export const toToolbarNotification = (entry: HubNotification): ToolbarNotificati
     body: payloadMessage,
     authorInitial: notificationAuthorInitial(entry.reason, payloadMessage),
     avatarColor: notificationAvatarColor(`${entry.notification_id}:${entry.reason}`),
-    projectId: entry.project_id,
+    projectId: entry.space_id,
     createdAt: entry.created_at,
     read: Boolean(entry.read_at),
     payload: entry.payload || {},
     href: buildNotificationDestinationHref({
-      projectId: entry.project_id,
+      projectId: entry.space_id,
       entityType: entry.entity_type,
       entityId: entry.entity_id,
       payload: entry.payload || {},
-      fallbackHref: `/projects/${encodeURIComponent(entry.project_id)}/work`,
+      fallbackHref: `/projects/${encodeURIComponent(entry.space_id)}/work`,
     }),
   };
 };
@@ -285,19 +285,19 @@ export const emptyReminderPreview = (): ReminderParseResult =>
 
 export const SEARCH_RESULT_TYPE_LABELS: Record<HubSearchResult['type'], string> = {
   record: 'Record',
-  project: 'Space',
-  pane: 'Project',
+  space: 'Space',
+  project: 'Project',
 };
 
 export const buildSearchResultHref = (result: HubSearchResult): string | null => {
-  if (result.type === 'project') {
+  if (result.type === 'space') {
     return `/projects/${encodeURIComponent(result.id)}/overview`;
   }
-  if (result.type === 'pane' && result.project_id) {
-    return `/projects/${encodeURIComponent(result.project_id)}/work/${encodeURIComponent(result.id)}`;
+  if (result.type === 'project' && result.space_id) {
+    return `/projects/${encodeURIComponent(result.space_id)}/work/${encodeURIComponent(result.id)}`;
   }
-  if (result.type === 'record' && result.project_id) {
-    return `/projects/${encodeURIComponent(result.project_id)}/work?record_id=${encodeURIComponent(result.id)}`;
+  if (result.type === 'record' && result.space_id) {
+    return `/projects/${encodeURIComponent(result.space_id)}/work?record_id=${encodeURIComponent(result.id)}`;
   }
   return null;
 };

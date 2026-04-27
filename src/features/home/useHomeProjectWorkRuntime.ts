@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, type ComponentProps } from 'react';
 import type { NavigateFunction, SetURLSearchParams } from 'react-router-dom';
-import type { HubBacklink, HubPaneSummary, HubProject, HubProjectMember, HubTaskSummary } from '../../services/hub/types';
-import { usePaneMutations } from '../../hooks/usePaneMutations';
+import type { HubBacklink, HubProjectSummary, HubProject, HubProjectMember, HubTaskSummary } from '../../services/hub/types';
+import { useProjectMutations } from '../../hooks/useProjectMutations';
 import { useProjectFilesRuntime } from '../../hooks/useProjectFilesRuntime';
 import { useProjectViewsRuntime } from '../../hooks/useProjectViewsRuntime';
 import { useRemindersRuntime } from '../../hooks/useRemindersRuntime';
@@ -13,12 +13,12 @@ import { CalendarModuleSkin } from '../../components/project-space/CalendarModul
 import { useFocusNodeQueryEffect } from '../../pages/ProjectSpacePage/hooks/useFocusNodeQueryEffect';
 import { useWorkViewModuleRuntime } from '../../pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime';
 import { useProjectSpaceInspectorRuntime } from '../../pages/ProjectSpacePage/ProjectSpaceWorkspace/hooks/useProjectSpaceInspectorRuntime';
-import { paneCanEditForUser, readLayoutBool, collectPaneTaskCollectionIds } from '../../pages/ProjectSpacePage/ProjectSpaceWorkspace/paneModel';
+import { projectCanEditForUser, readLayoutBool, collectProjectTaskCollectionIds } from '../../pages/ProjectSpacePage/ProjectSpaceWorkspace/projectModel';
 import { buildHomeTabHref, type HomeTabId } from './navigation';
 import { ProjectSpaceInspectorOverlay } from '../../pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceInspectorOverlay';
 import { ProjectSpaceWorkSurface } from '../../pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkSurface';
 import type { TimelineEvent } from '../../pages/ProjectSpacePage/ProjectSpaceWorkspace/types';
-import type { PaneLateralSource } from '../../components/motion/hubMotion';
+import type { ProjectLateralSource } from '../../components/motion/hubMotion';
 
 interface UseHomeProjectWorkRuntimeParams {
   accessToken: string;
@@ -30,8 +30,8 @@ interface UseHomeProjectWorkRuntimeParams {
   locationPathname: string;
   locationState: unknown;
   navigate: NavigateFunction;
-  paneId: string | null;
-  panes: HubPaneSummary[];
+  projectId: string | null;
+  projects: HubProjectSummary[];
   prefersReducedMotion: boolean;
   project: HubProject;
   projectMembers: HubProjectMember[];
@@ -40,7 +40,7 @@ interface UseHomeProjectWorkRuntimeParams {
   refreshProjectData: () => Promise<void>;
   searchParams: URLSearchParams;
   sessionUserId: string;
-  setPanes: React.Dispatch<React.SetStateAction<HubPaneSummary[]>>;
+  setProjects: React.Dispatch<React.SetStateAction<HubProjectSummary[]>>;
   setSearchParams: SetURLSearchParams;
   setTimeline: React.Dispatch<React.SetStateAction<TimelineEvent[]>>;
   setCalendarMode: React.Dispatch<React.SetStateAction<'relevant' | 'all'>>;
@@ -73,8 +73,8 @@ export const useHomeProjectWorkRuntime = ({
   locationPathname,
   locationState,
   navigate,
-  paneId,
-  panes,
+  projectId,
+  projects,
   prefersReducedMotion,
   project,
   projectMembers,
@@ -83,28 +83,28 @@ export const useHomeProjectWorkRuntime = ({
   refreshProjectData,
   searchParams,
   sessionUserId,
-  setPanes,
+  setProjects,
   setSearchParams,
   setTimeline,
   setCalendarMode,
   tasksOverviewRows,
   timeline,
 }: UseHomeProjectWorkRuntimeParams): HomeProjectWorkRuntime => {
-  const activePane = useMemo(
-    () => (paneId ? panes.find((pane) => pane.pane_id === paneId) || null : panes[0] || null),
-    [paneId, panes],
+  const activeProject = useMemo(
+    () => (projectId ? projects.find((project) => project.project_id === projectId) || null : projects[0] || null),
+    [projectId, projects],
   );
-  const hasRequestedPane = useMemo(
-    () => (paneId ? panes.some((pane) => pane.pane_id === paneId) : false),
-    [paneId, panes],
+  const hasRequestedProject = useMemo(
+    () => (projectId ? projects.some((project) => project.project_id === projectId) : false),
+    [projectId, projects],
   );
-  const editablePanes = useMemo(
-    () => panes.filter((pane) => paneCanEditForUser(pane, sessionUserId)),
-    [panes, sessionUserId],
+  const editableProjects = useMemo(
+    () => projects.filter((project) => projectCanEditForUser(project, sessionUserId)),
+    [projects, sessionUserId],
   );
-  const orderedEditablePanes = useMemo(
+  const orderedEditableProjects = useMemo(
     () =>
-      [...editablePanes].sort((left, right) => {
+      [...editableProjects].sort((left, right) => {
         const leftPosition = left.position ?? Number.MAX_SAFE_INTEGER;
         const rightPosition = right.position ?? Number.MAX_SAFE_INTEGER;
         if (leftPosition !== rightPosition) {
@@ -112,77 +112,76 @@ export const useHomeProjectWorkRuntime = ({
         }
         return (left.sort_order ?? Number.MAX_SAFE_INTEGER) - (right.sort_order ?? Number.MAX_SAFE_INTEGER);
       }),
-    [editablePanes],
+    [editableProjects],
   );
-  const readOnlyPanes = useMemo(
-    () => panes.filter((pane) => !paneCanEditForUser(pane, sessionUserId)),
-    [panes, sessionUserId],
+  const readOnlyProjects = useMemo(
+    () => projects.filter((project) => !projectCanEditForUser(project, sessionUserId)),
+    [projects, sessionUserId],
   );
-  const activePaneCanEdit = useMemo(
-    () => paneCanEditForUser(activePane, sessionUserId),
-    [activePane, sessionUserId],
+  const activeProjectCanEdit = useMemo(
+    () => projectCanEditForUser(activeProject, sessionUserId),
+    [activeProject, sessionUserId],
   );
   const canWriteProject = typeof project.membership_role === 'string' && project.membership_role.toLowerCase() !== 'viewer';
-  const activeEditablePaneIndex = useMemo(
-    () => orderedEditablePanes.findIndex((pane) => pane.pane_id === activePane?.pane_id),
-    [activePane?.pane_id, orderedEditablePanes],
+  const activeEditableProjectIndex = useMemo(
+    () => orderedEditableProjects.findIndex((project) => project.project_id === activeProject?.project_id),
+    [activeProject?.project_id, orderedEditableProjects],
   );
   const openedFromPinned = searchParams.get('pinned') === '1';
-  const activePaneId = activePane?.pane_id ?? null;
-  const activePaneDocId = activePane?.doc_id ?? null;
+  const activeProjectId = activeProject?.project_id ?? null;
+  const activeProjectDocId = activeProject?.doc_id ?? null;
 
-  const buildPaneNavigationState = useCallback(({
-    paneName,
-    paneSource,
+  const buildProjectNavigationState = useCallback(({
+    projectName,
+    projectSource,
     extraState,
   }: {
-    paneName?: string | null;
-    paneSource?: PaneLateralSource;
+    projectName?: string | null;
+    projectSource?: ProjectLateralSource;
     extraState?: unknown;
   }) => withHubMotionState(extraState, {
-    hubProjectName: project.name,
-    hubPaneName: paneName ?? undefined,
-    hubPaneSource: paneSource,
+    hubProjectName: projectName ?? project.name,
+    hubProjectSource: projectSource,
   }), [project.name]);
 
-  const navigateToPane = useCallback(({
-    paneId: nextPaneId,
-    paneName,
-    paneSource,
+  const navigateToProject = useCallback(({
+    projectId: nextProjectId,
+    projectName,
+    projectSource,
     query,
     extraState,
   }: {
-    paneId: string;
-    paneName?: string | null;
-    paneSource?: PaneLateralSource;
+    projectId: string;
+    projectName?: string | null;
+    projectSource?: ProjectLateralSource;
     query?: string;
     extraState?: unknown;
   }) => {
     const { extraParams, pinned } = parseHomeWorkQuery(query);
     navigate(buildHomeTabHref('work', {
-      paneId: nextPaneId,
+      projectId: nextProjectId,
       pinned,
       extraParams,
     }), {
-      state: buildPaneNavigationState({
-        paneName,
-        paneSource,
+      state: buildProjectNavigationState({
+        projectName,
+        projectSource,
         extraState,
       }),
     });
-  }, [buildPaneNavigationState, navigate]);
+  }, [buildProjectNavigationState, navigate]);
 
   const onOpenBacklink = useCallback((backlink: HubBacklink) => {
-    if (!backlink.source.pane_id) {
+    if (!backlink.source.project_id) {
       return;
     }
-    navigateToPane({
-      paneId: backlink.source.pane_id,
-      paneName: backlink.source.pane_name,
-      paneSource: 'click',
+    navigateToProject({
+      projectId: backlink.source.project_id,
+      projectName: backlink.source.project_name,
+      projectSource: 'click',
       extraState: backlink.source.node_key ? { focusNodeKey: backlink.source.node_key } : undefined,
     });
-  }, [navigateToPane]);
+  }, [navigateToProject]);
 
   const {
     views,
@@ -213,61 +212,61 @@ export const useHomeProjectWorkRuntime = ({
     tableViews,
   } = useProjectViewsRuntime({
     accessToken,
-    projectId: project.project_id,
+    projectId: project.space_id,
     projectName: project.name,
     activeTab,
-    panes,
+    projects,
     sessionUserId,
     setTimeline,
-    paneCanEditForUser,
+    projectCanEditForUser,
   });
   const {
     ensureProjectAssetRoot,
-    onOpenPaneFile,
-    onUploadPaneFiles,
+    onOpenProjectFile,
     onUploadProjectFiles,
-    paneFiles,
+    onUploadSpaceFiles,
     projectFiles,
-    refreshTrackedProjectFiles,
+    spaceFiles,
+    refreshTrackedSpaceFiles,
   } = useProjectFilesRuntime({
     accessToken,
-    projectId: project.project_id,
+    projectId: project.space_id,
     projectName: project.name,
-    activePane: activePane ? { pane_id: activePane.pane_id, name: activePane.name } : null,
+    activeProject: activeProject ? { project_id: activeProject.project_id, name: activeProject.name } : null,
     onError: (message) => setRecordsError(message),
   });
   const {
-    onCreatePane,
-    onDeletePane,
-    onMovePane,
-    onTogglePaneMember,
+    onCreateProject,
+    onDeleteProject,
+    onMoveProject,
+    onToggleProjectMember,
     onTogglePinned,
-    onUpdatePaneFromWorkView,
-    paneMutationError,
-    setPaneMutationError,
-  } = usePaneMutations({
+    onUpdateProjectFromWorkView,
+    projectMutationError,
+    setProjectMutationError,
+  } = useProjectMutations({
     accessToken,
-    projectId: project.project_id,
+    projectId: project.space_id,
     projectName: project.name,
-    panes,
+    projects,
     refreshProjectData,
-    setPanes,
+    setProjects,
     sessionUserId,
     setTimeline,
   });
   const { refreshTimeline, timelineClusters, timelineFilters, toggleTimelineFilter } = useTimelineRuntime({
     accessToken,
-    projectId: project.project_id,
+    projectId: project.space_id,
     timeline,
     setTimeline,
   });
   const remindersRuntime = useRemindersRuntime(accessToken, {
-    autoload: activeTab === 'work' && Boolean(activePane?.pane_id),
-    subscribeToHomeRefresh: activeTab === 'work' && Boolean(activePane?.pane_id),
-    subscribeToLive: activeTab === 'work' && Boolean(activePane?.pane_id),
+    autoload: activeTab === 'work' && Boolean(activeProject?.project_id),
+    subscribeToHomeRefresh: activeTab === 'work' && Boolean(activeProject?.project_id),
+    subscribeToLive: activeTab === 'work' && Boolean(activeProject?.project_id),
     scope: 'project',
-    projectId: project.project_id,
-    paneId: activeTab === 'work' ? activePane?.pane_id ?? null : null,
+    projectId: project.space_id,
+    sourceProjectId: activeTab === 'work' ? activeProject?.project_id ?? null : null,
     sourceViewId: activeTab === 'work' ? focusedWorkViewId || null : null,
   });
   const {
@@ -276,14 +275,14 @@ export const useHomeProjectWorkRuntime = ({
   } = useProjectSpaceInspectorRuntime({
     accessToken,
     project,
-    panes,
+    projects,
     activeTab,
-    activePaneId,
+    activeProjectId,
     sessionUserId,
     refreshViewsAndRecords,
     setTimeline,
     ensureProjectAssetRoot,
-    refreshTrackedProjectFiles,
+    refreshTrackedProjectFiles: refreshTrackedSpaceFiles,
     prefersReducedMotion,
     navigate,
     onOpenBacklink,
@@ -296,19 +295,19 @@ export const useHomeProjectWorkRuntime = ({
     if (activeTab !== 'work') {
       return;
     }
-    if (activePane && ((!paneId) || (activePane.pane_id !== paneId && hasRequestedPane))) {
+    if (activeProject && ((!projectId) || (activeProject.project_id !== projectId && hasRequestedProject))) {
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
         next.set('tab', 'work');
-        next.set('pane', activePane.pane_id);
+        next.set('project', activeProject.project_id);
         return next;
       }, { replace: true });
     }
-  }, [activePane, activeTab, hasRequestedPane, paneId, setSearchParams]);
+  }, [activeProject, activeTab, hasRequestedProject, projectId, setSearchParams]);
 
   useEffect(() => {
     const recordId = searchParams.get('record_id');
-    if (activeTab !== 'work' || !recordId || !activePane || (paneId && !hasRequestedPane)) {
+    if (activeTab !== 'work' || !recordId || !activeProject || (projectId && !hasRequestedProject)) {
       return;
     }
     let cancelled = false;
@@ -330,20 +329,20 @@ export const useHomeProjectWorkRuntime = ({
     return () => {
       cancelled = true;
     };
-  }, [activePane, activeTab, hasRequestedPane, openRecordInspector, paneId, searchParams, setSearchParams]);
+  }, [activeProject, activeTab, hasRequestedProject, openRecordInspector, projectId, searchParams, setSearchParams]);
 
-  const onDeletePaneWithNavigation = useCallback(async (pane: HubPaneSummary) => {
-    const nextPath = await onDeletePane(pane, activePane?.pane_id ?? null);
+  const onDeleteProjectWithNavigation = useCallback(async (project: HubProjectSummary) => {
+    const nextPath = await onDeleteProject(project, activeProject?.project_id ?? null);
     if (nextPath) {
-      const remaining = panes.filter((entry) => entry.pane_id !== pane.pane_id);
-      const fallbackPane = remaining[0] ?? null;
-      navigate(buildHomeTabHref(fallbackPane ? 'work' : 'overview', fallbackPane ? { paneId: fallbackPane.pane_id } : undefined), {
+      const remaining = projects.filter((entry) => entry.project_id !== project.project_id);
+      const fallbackProject = remaining[0] ?? null;
+      navigate(buildHomeTabHref(fallbackProject ? 'work' : 'overview', fallbackProject ? { projectId: fallbackProject.project_id } : undefined), {
         state: withHubMotionState(undefined, {
           hubProjectName: project.name,
         }),
       });
     }
-  }, [activePane?.pane_id, navigate, onDeletePane, panes, project.name]);
+  }, [activeProject?.project_id, navigate, onDeleteProject, projects, project.name]);
 
   const {
     collabSession,
@@ -380,12 +379,12 @@ export const useHomeProjectWorkRuntime = ({
     uploadingDocAsset,
   } = useWorkspaceDocRuntime({
     accessToken,
-    activePaneDocId,
-    projectId: project.project_id,
-    activePaneId: activePane?.pane_id || null,
+    activeProjectDocId,
+    projectId: project.space_id,
+    activeProjectId: activeProject?.project_id || null,
     activeTab,
     ensureProjectAssetRoot,
-    refreshTrackedProjectFiles,
+    refreshTrackedProjectFiles: refreshTrackedSpaceFiles,
     refreshTimeline,
   });
 
@@ -406,12 +405,12 @@ export const useHomeProjectWorkRuntime = ({
 
   const onOpenEmbeddedView = useCallback((viewId: string) => {
     const targetView = views.find((view) => view.view_id === viewId);
-    if (!activePane || !targetView) {
-      if (activePane) {
-        navigateToPane({
-          paneId: activePane.pane_id,
-          paneName: activePane.name,
-          paneSource: 'click',
+    if (!activeProject || !targetView) {
+      if (activeProject) {
+        navigateToProject({
+          projectId: activeProject.project_id,
+          projectName: activeProject.name,
+          projectSource: 'click',
         });
       }
       return;
@@ -432,16 +431,16 @@ export const useHomeProjectWorkRuntime = ({
       });
       return;
     }
-    navigateToPane({
-      paneId: activePane.pane_id,
-      paneName: activePane.name,
-      paneSource: 'click',
+    navigateToProject({
+      projectId: activeProject.project_id,
+      projectName: activeProject.name,
+      projectSource: 'click',
       query: `view_id=${encodeURIComponent(viewId)}`,
     });
-  }, [activePane, navigate, navigateToPane, project.name, views]);
+  }, [activeProject, navigate, navigateToProject, project.name, views]);
 
   useFocusNodeQueryEffect({
-    activePaneDocId,
+    activeProjectDocId,
     locationPathname,
     locationState,
     navigate,
@@ -450,62 +449,62 @@ export const useHomeProjectWorkRuntime = ({
   });
 
   const modulesEnabled = useMemo(
-    () => (activePane ? readLayoutBool(activePane.layout_config, 'modules_enabled', true) : true),
-    [activePane],
+    () => (activeProject ? readLayoutBool(activeProject.layout_config, 'modules_enabled', true) : true),
+    [activeProject],
   );
   const workspaceEnabled = useMemo(
-    () => (activePane ? readLayoutBool(activePane.layout_config, 'workspace_enabled', true) : true),
-    [activePane],
+    () => (activeProject ? readLayoutBool(activeProject.layout_config, 'workspace_enabled', true) : true),
+    [activeProject],
   );
-  const handleToggleActivePaneRegion = useCallback(
+  const handleToggleActiveProjectRegion = useCallback(
     (region: 'modules_enabled' | 'workspace_enabled') => {
-      if (!activePane || !activePaneCanEdit) {
+      if (!activeProject || !activeProjectCanEdit) {
         return;
       }
 
       const nextModulesEnabled = region === 'modules_enabled' ? !modulesEnabled : modulesEnabled;
       const nextWorkspaceEnabled = region === 'workspace_enabled' ? !workspaceEnabled : workspaceEnabled;
       if (!nextModulesEnabled && !nextWorkspaceEnabled) {
-        setPaneMutationError('A pane must keep at least one region enabled.');
+        setProjectMutationError('A project must keep at least one region enabled.');
         return;
       }
 
-      void onUpdatePaneFromWorkView(activePane.pane_id, {
+      void onUpdateProjectFromWorkView(activeProject.project_id, {
         layout_config: {
-          ...activePane.layout_config,
+          ...activeProject.layout_config,
           modules_enabled: nextModulesEnabled,
           workspace_enabled: nextWorkspaceEnabled,
         },
       });
     },
     [
-      activePane,
-      activePaneCanEdit,
+      activeProject,
+      activeProjectCanEdit,
       modulesEnabled,
-      onUpdatePaneFromWorkView,
-      setPaneMutationError,
+      onUpdateProjectFromWorkView,
+      setProjectMutationError,
       workspaceEnabled,
     ],
   );
-  const paneTaskCollectionIds = useMemo(
-    () => collectPaneTaskCollectionIds(activePane?.layout_config, views),
-    [activePane?.layout_config, views],
+  const projectTaskCollectionIds = useMemo(
+    () => collectProjectTaskCollectionIds(activeProject?.layout_config, views),
+    [activeProject?.layout_config, views],
   );
-  const paneTaskItems = useMemo(
+  const projectTaskItems = useMemo(
     () =>
       adaptTaskSummaries(tasksOverviewRows.filter((task) => {
-        if (!activePaneId) {
+        if (!activeProjectId) {
           return false;
         }
-        return task.source_pane?.pane_id === activePaneId;
+        return task.source_project?.project_id === activeProjectId;
       })),
-    [activePaneId, tasksOverviewRows],
+    [activeProjectId, tasksOverviewRows],
   );
-  const activePaneTaskCollectionId = useMemo(
-    () => tasksOverviewRows.find((task) => task.source_pane?.pane_id === activePaneId)?.collection_id ?? null,
-    [activePaneId, tasksOverviewRows],
+  const activeProjectTaskCollectionId = useMemo(
+    () => tasksOverviewRows.find((task) => task.source_project?.project_id === activeProjectId)?.collection_id ?? null,
+    [activeProjectId, tasksOverviewRows],
   );
-  const taskCollectionId = paneTaskCollectionIds[0] || activePaneTaskCollectionId;
+  const taskCollectionId = projectTaskCollectionIds[0] || activeProjectTaskCollectionId;
   const {
     tableContract,
     kanbanContract,
@@ -516,12 +515,12 @@ export const useHomeProjectWorkRuntime = ({
     timelineContract,
     remindersContract,
   } = useWorkViewModuleRuntime({
-    activePaneId: activePane?.pane_id ?? null,
-    activePaneName: activePane?.name ?? null,
-    activePaneCanEdit,
+    activeProjectId: activeProject?.project_id ?? null,
+    activeProjectName: activeProject?.name ?? null,
+    activeProjectCanEdit,
     accessToken,
     canWriteProject,
-    projectId: project.project_id,
+    projectId: project.space_id,
     projectName: project.name,
     setRecordsError,
     tableViews,
@@ -544,12 +543,12 @@ export const useHomeProjectWorkRuntime = ({
     calendarMode,
     refreshCalendar,
     setCalendarMode,
-    paneFiles,
     projectFiles,
-    onUploadPaneFiles,
+    spaceFiles,
     onUploadProjectFiles,
-    onOpenPaneFile,
-    paneTaskItems,
+    onUploadSpaceFiles,
+    onOpenProjectFile,
+    projectTaskItems,
     projectTasksLoading,
     taskCollectionId,
     loadProjectTaskPage,
@@ -565,40 +564,40 @@ export const useHomeProjectWorkRuntime = ({
     onCreateReminder: remindersRuntime.create,
   });
   const focusedKanbanRuntime = focusedWorkView ? kanbanRuntimeDataByViewId[focusedWorkView.view_id] ?? null : null;
-  const workLayoutId = !prefersReducedMotion && activePane ? `pane-${activePane.pane_id}` : undefined;
+  const workLayoutId = !prefersReducedMotion && activeProject ? `project-${activeProject.project_id}` : undefined;
 
   return {
     inspectorOverlayProps: recordInspectorOverlayProps,
     workSurfaceProps: {
-      paneId: paneId ?? undefined,
-      hasRequestedPane,
-      activePane,
-      activePaneCanEdit,
+      projectId: projectId ?? undefined,
+      hasRequestedProject,
+      activeProject,
+      activeProjectCanEdit,
       modulesEnabled,
       workLayoutId,
       recordsError,
-      paneChromeProps: {
-        projectId: project.project_id,
-        activePane,
-        activePaneCanEdit,
+      projectChromeProps: {
+        projectId: project.space_id,
+        activeProject,
+        activeProjectCanEdit,
         canWriteProject,
         openedFromPinned,
-        orderedEditablePanes,
-        readOnlyPanes,
+        orderedEditableProjects,
+        readOnlyProjects,
         projectMemberList: projectMembers,
         sessionUserId,
-        activeEditablePaneIndex,
+        activeEditableProjectIndex,
         modulesEnabled,
         workspaceEnabled,
-        paneMutationError,
-        onNavigateToPane: navigateToPane,
-        onCreatePane,
-        onMovePane,
+        projectMutationError,
+        onNavigateToProject: navigateToProject,
+        onCreateProject,
+        onMoveProject,
         onTogglePinned,
-        onTogglePaneMember,
-        onDeletePane: onDeletePaneWithNavigation,
-        onUpdatePane: onUpdatePaneFromWorkView,
-        onToggleActivePaneRegion: handleToggleActivePaneRegion,
+        onToggleProjectMember,
+        onDeleteProject: onDeleteProjectWithNavigation,
+        onUpdateProject: onUpdateProjectFromWorkView,
+        onToggleActiveProjectRegion: handleToggleActiveProjectRegion,
       },
       focusedViewProps: {
         focusedWorkView,
@@ -606,8 +605,8 @@ export const useHomeProjectWorkRuntime = ({
         focusedWorkViewLoading,
         focusedWorkViewData,
         focusedKanbanRuntime,
-        activePaneCanEdit,
-        activePaneId: activePane?.pane_id ?? null,
+        activeProjectCanEdit,
+        activeProjectId: activeProject?.project_id ?? null,
         onCloseFocusedView,
         onOpenRecord,
         onCreateKanbanRecord,
@@ -617,7 +616,7 @@ export const useHomeProjectWorkRuntime = ({
         onUpdateKanbanRecord,
       },
       workViewProps: {
-        onUpdatePane: onUpdatePaneFromWorkView,
+        onUpdateProject: onUpdateProjectFromWorkView,
         onOpenRecord,
         tableContract,
         kanbanContract,
@@ -630,13 +629,13 @@ export const useHomeProjectWorkRuntime = ({
       },
       workspaceDocProps: {
         accessToken,
-        projectId: project.project_id,
+        projectId: project.space_id,
         projectMembers,
         sessionUserId,
-        activePane,
-        activePaneCanEdit,
+        activeProject,
+        activeProjectCanEdit,
         workspaceEnabled,
-        activePaneDocId,
+        activeProjectDocId,
         docBootstrapReady,
         docBootstrapLexicalState,
         collabSession,

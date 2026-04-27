@@ -26,7 +26,6 @@ export const createTaskRoutes = (deps) => {
     notificationRecord,
     buildTaskSummaryForUser,
     recordByIdStmt,
-    recordDetail,
     buildHomeEventSummary,
     personalProjectIdForUser,
     projectMembershipsByUserStmt,
@@ -37,8 +36,6 @@ export const createTaskRoutes = (deps) => {
     assignedTasksStmt,
     homeEventsByProjectStmt,
     personalCapturesStmt,
-    paneByIdStmt,
-    roomMembershipExistsStmt,
     collectionsByProjectStmt,
     insertCollectionStmt,
     insertRecordStmt,
@@ -49,7 +46,7 @@ export const createTaskRoutes = (deps) => {
   } = deps;
 
   const visibleProjectIdsForUser = (userId) =>
-    projectMembershipsByUserStmt.all(userId).map((membership) => membership.project_id);
+    projectMembershipsByUserStmt.all(userId).map((membership) => membership.space_id);
 
   const compareTasksByUpdatedAt = (left, right) => {
     const leftUpdatedAt = new Date(left.updated_at || 0).getTime();
@@ -62,34 +59,12 @@ export const createTaskRoutes = (deps) => {
 
   const elapsedMs = (startedAtMs) => Number((performance.now() - startedAtMs).toFixed(2));
 
-  const roomIdForRecord = (record) => {
-    const paneId = asText(record?.source_pane_id);
-    if (!paneId) {
-      return '';
-    }
-    const pane = paneByIdStmt.get(paneId);
-    if (!pane) {
-      return '';
-    }
-    try {
-      const layoutConfig = JSON.parse(pane.layout_config || '{}');
-      return asText(layoutConfig?.room_id);
-    } catch {
-      return '';
-    }
-  };
-
-  const canUserAccessTaskRecord = (userId, record) => {
-    const roomId = roomIdForRecord(record);
-    return !roomId || Boolean(roomMembershipExistsStmt.get(roomId, userId)?.ok);
-  };
-
   // buildTaskSummaryForUser keeps project_id/project_name/task_state.category aligned across task endpoints.
   // visibleProjectTasksStmt excludes subtasks from top-level listings with r.parent_record_id IS NULL.
   const listVisibleProjectTasksForUser = ({ userId, projectId = '' }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
     const personalProjectId = personalProjectIdForUser(userId);
-    const sourcePaneContextCache = new Map();
+    const sourceProjectContextCache = new Map();
     const tasks = [];
     for (const visibleProjectId of visibleProjectIds) {
       if (projectId && visibleProjectId !== projectId) {
@@ -97,10 +72,7 @@ export const createTaskRoutes = (deps) => {
       }
       const records = visibleProjectTasksStmt.all(visibleProjectId);
       for (const record of records) {
-        if (!canUserAccessTaskRecord(userId, record)) {
-          continue;
-        }
-        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourceProjectContextCache));
       }
     }
     return tasks.sort(compareTasksByUpdatedAt);
@@ -113,7 +85,7 @@ export const createTaskRoutes = (deps) => {
       if (!rowsByProject.has(visibleProjectId)) {
         rowsByProject.set(
           visibleProjectId,
-          visibleProjectTasksStmt.all(visibleProjectId).filter((record) => canUserAccessTaskRecord(userId, record)),
+          visibleProjectTasksStmt.all(visibleProjectId),
         );
       }
     }
@@ -125,12 +97,12 @@ export const createTaskRoutes = (deps) => {
 
   const listAssignedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
     const personalProjectId = personalProjectIdForUser(userId);
-    const sourcePaneContextCache = new Map();
+    const sourceProjectContextCache = new Map();
     const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
     const assignedRecordIds = new Set(
       assignedTasksStmt
         .all(userId)
-        .filter((row) => !projectId || row.project_id === projectId)
+        .filter((row) => !projectId || row.space_id === projectId)
         .map((row) => row.record_id),
     );
     const tasks = [];
@@ -140,7 +112,7 @@ export const createTaskRoutes = (deps) => {
         if (!assignedRecordIds.has(record.record_id)) {
           continue;
         }
-        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourceProjectContextCache));
       }
     }
     return tasks.sort(compareTasksByUpdatedAt);
@@ -148,7 +120,7 @@ export const createTaskRoutes = (deps) => {
 
   const listCreatedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
     const personalProjectId = personalProjectIdForUser(userId);
-    const sourcePaneContextCache = new Map();
+    const sourceProjectContextCache = new Map();
     const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
     const tasks = [];
     for (const visibleProjectId of visibleProjectIds) {
@@ -157,7 +129,7 @@ export const createTaskRoutes = (deps) => {
         if (record.created_by !== userId) {
           continue;
         }
-        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourcePaneContextCache));
+        tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourceProjectContextCache));
       }
     }
     return tasks;
@@ -186,17 +158,17 @@ export const createTaskRoutes = (deps) => {
     return [...byRecordId.values()];
   };
 
-  const filterTasksByPane = (tasks, paneId = '') => {
-    const normalizedPaneId = asText(paneId);
-    if (!normalizedPaneId) {
+  const filterTasksByProject = (tasks, projectId = '') => {
+    const normalizedProjectId = asText(projectId);
+    if (!normalizedProjectId) {
       return tasks;
     }
-    return tasks.filter((task) => asText(task?.source_pane?.pane_id) === normalizedPaneId);
+    return tasks.filter((task) => asText(task?.source_project?.project_id) === normalizedProjectId);
   };
 
   const listHomeEventsForUser = ({ userId, limit }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
-    const sourcePaneContextCache = new Map();
+    const sourceProjectContextCache = new Map();
     const rows = [];
     for (const projectId of visibleProjectIds) {
       const projectRows = homeEventsByProjectStmt.all(projectId);
@@ -211,13 +183,13 @@ export const createTaskRoutes = (deps) => {
         return leftStart - rightStart;
       })
       .slice(0, limit)
-      .map((row) => buildHomeEventSummary(row, sourcePaneContextCache));
+      .map((row) => buildHomeEventSummary(row, sourceProjectContextCache));
   };
 
   const listPersonalCapturesForUser = ({ projectId, limit }) =>
     personalCapturesStmt.all(projectId, limit).map((row) => ({
       record_id: row.record_id,
-      project_id: row.project_id,
+      space_id: row.space_id,
       collection_id: row.collection_id,
       title: row.title,
       created_at: row.created_at,
@@ -225,15 +197,15 @@ export const createTaskRoutes = (deps) => {
 
   const getHubTasks = withPolicyGate('hub.view', async ({ response, requestUrl, auth }) => {
     const lens = asText(requestUrl.searchParams.get('lens')).toLowerCase() || 'assigned';
-    const projectId = asText(requestUrl.searchParams.get('project_id'));
-    const paneId = asText(requestUrl.searchParams.get('pane_id') || requestUrl.searchParams.get('source_pane_id'));
+    const projectId = asText(requestUrl.searchParams.get('space_id'));
+    const sourceProjectId = asText(requestUrl.searchParams.get('project_id') || requestUrl.searchParams.get('source_project_id'));
     const limit = asInteger(requestUrl.searchParams.get('limit'), 50, 1, 200);
     const offset = parseCursorOffset(requestUrl.searchParams.get('cursor'));
 
     let tasks = [];
-    if (lens === 'pane') {
-      if (!projectId || !paneId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane lens requires project_id and pane_id.')));
+    if (lens === 'project') {
+      if (!projectId || !sourceProjectId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project lens requires space_id and project_id.')));
         return;
       }
       const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'view' });
@@ -241,13 +213,13 @@ export const createTaskRoutes = (deps) => {
         send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
         return;
       }
-      tasks = filterTasksByPane(
+      tasks = filterTasksByProject(
         listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
-        paneId,
+        sourceProjectId,
       );
-    } else if (lens === 'project') {
+    } else if (lens === 'space') {
       if (!projectId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project lens requires project_id.')));
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space lens requires space_id.')));
         return;
       }
       const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId, requiredCapability: 'view' });
@@ -255,20 +227,11 @@ export const createTaskRoutes = (deps) => {
         send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
         return;
       }
-      tasks = filterTasksByPane(
-        listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
-        paneId,
-      );
+      tasks = listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId });
     } else if (lens === 'assigned') {
-      tasks = filterTasksByPane(
-        listAssignedTasksForUser({ userId: auth.user.user_id, projectId }),
-        paneId,
-      );
+      tasks = listAssignedTasksForUser({ userId: auth.user.user_id, projectId });
     } else {
-      tasks = filterTasksByPane(
-        listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
-        paneId,
-      );
+      tasks = listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId });
     }
 
     const page = tasks.slice(offset, offset + limit);
@@ -297,17 +260,18 @@ export const createTaskRoutes = (deps) => {
       return;
     }
 
-    const projectId = asText(validated.project_id);
+    const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
+    const projectId = asText(validated.project_id) || asText(personalProject?.project_id);
     if (!projectId) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required.')));
       return;
     }
 
-    const sourcePaneId = asText(validated.source_pane_id);
+    const sourceProjectId = asText(validated.source_project_id);
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId,
-      paneId: sourcePaneId,
+      sourceProjectId,
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -352,7 +316,7 @@ export const createTaskRoutes = (deps) => {
           projectId,
           collectionId,
           title,
-          sourcePaneId || null,
+          sourceProjectId || null,
           null,
           auth.user.user_id,
           timestamp,
@@ -426,7 +390,9 @@ export const createTaskRoutes = (deps) => {
       // Best effort; task creation should still succeed.
     }
 
-    send(response, jsonResponse(201, okEnvelope({ record: recordDetail(recordByIdStmt.get(recordId)) })));
+    const createdRecord = recordByIdStmt.get(recordId);
+    const task = buildTaskSummaryForUser(createdRecord, personalProjectIdForUser(auth.user.user_id), new Map());
+    send(response, jsonResponse(201, okEnvelope({ task })));
   });
 
   const getHubHome = withPolicyGate('hub.view', async ({ request, response, requestUrl, auth }) => {
@@ -466,7 +432,7 @@ export const createTaskRoutes = (deps) => {
     });
 
     const capturesQueryStartedAt = performance.now();
-    const captures = listPersonalCapturesForUser({ projectId: personalProject.project_id, limit: capturesLimit });
+    const captures = listPersonalCapturesForUser({ projectId: personalProject.space_id, limit: capturesLimit });
     request.log.debug('myHub captures query completed.', {
       durationMs: elapsedMs(capturesQueryStartedAt),
     });
@@ -483,7 +449,7 @@ export const createTaskRoutes = (deps) => {
         200,
         okEnvelope({
           home: {
-            personal_project_id: personalProject.project_id,
+            personal_project_id: personalProject.space_id,
             tasks,
             tasks_next_cursor: tasksNextCursor,
             captures,

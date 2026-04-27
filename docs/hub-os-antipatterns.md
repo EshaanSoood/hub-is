@@ -52,11 +52,11 @@
 
 **Why it matters:** Visual identity and recognition consistency degrade as the same project appears with different dot colors.
 
-### Task rendering diverges across myHub, Overview, and pane module surfaces
+### Task rendering diverges across myHub, Overview, and project module surfaces
 
 **Files:** `src/features/PersonalizedDashboardPanel.tsx` (lines 303-358), `src/components/project-space/OverviewView.tsx` (lines 428-516), `src/components/project-space/TasksModuleSkin.tsx` (lines 142-229, 492-634)
 
-**What's happening:** myHub uses `ItemRow` cards, Overview wraps `TasksTab` with page-specific controls, and pane modules split S/M/L behavior with `TaskSummaryRow`/`TasksTab`. These are separate implementations of the same task-list concept with different interactions and copy.
+**What's happening:** myHub uses `ItemRow` cards, Overview wraps `TasksTab` with page-specific controls, and project modules split S/M/L behavior with `TaskSummaryRow`/`TasksTab`. These are separate implementations of the same task-list concept with different interactions and copy.
 
 **Why it matters:** Product behavior drifts by location, increasing maintenance cost and UX inconsistency.
 
@@ -198,11 +198,11 @@
 
 **Why it matters:** Naming inconsistency raises cognitive load when tracing module behavior across files.
 
-### “myHub” vs `/projects` route vocabulary is mixed
+### Space home route vocabulary is mixed
 
 **Files:** `src/components/layout/appShellUtils.ts` (lines 235-239), `src/App.tsx` (lines 114-117), `src/components/layout/AppShell.tsx` (line 167)
 
-**What's happening:** Breadcrumbs label root as “myHub,” while routing and tab naming center on `/projects` and project-space terminology, and the shell uses `isOnHubHome` derived from `/projects`. The same landing concept is named differently across routing and UI helpers.
+**What's happening:** Breadcrumbs label root as “myHub,” while routing and tab naming still include legacy frontend route vocabulary for the spaces home surface. The same landing concept is named differently across routing and UI helpers.
 
 **Why it matters:** Terminology drift makes navigation logic and UX copy harder to align.
 
@@ -228,7 +228,7 @@
 
 **Files:** `src/components/project-space/mockProjectSpace.ts` (lines 1-240)
 
-**What's happening:** The module defines a full mock pane/template system, but import search shows no active references from production route components.
+**What's happening:** The module defines a full mock project/template system, but import search shows no active references from production route components.
 
 **Why it matters:** Large unmounted support files make the project harder to scan and reason about.
 

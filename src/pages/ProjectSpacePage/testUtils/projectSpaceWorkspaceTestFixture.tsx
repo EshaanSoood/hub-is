@@ -1,23 +1,23 @@
-import type { HubPaneSummary, HubProject, HubProjectMember, HubView } from '../../../services/hub/types';
+import type { HubProjectSummary, HubProject, HubProjectMember, HubView } from '../../../services/hub/types';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
 import type { TimelineEvent } from '../ProjectSpaceWorkspace/types';
 
 export interface ProjectSpaceWorkspaceFixture {
   project: HubProject;
-  panes: HubPaneSummary[];
+  projects: HubProjectSummary[];
   projectMembers: HubProjectMember[];
   timeline: TimelineEvent[];
-  sharedPane: HubPaneSummary;
-  privatePane: HubPaneSummary;
+  sharedProject: HubProjectSummary;
+  privateProject: HubProjectSummary;
   tableView: HubView;
   kanbanView: HubView;
   inspectorRecord: HubRecordDetail;
 }
 
 export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixture => {
-  const sharedPane: HubPaneSummary = {
-    pane_id: 'pane-shared',
-    project_id: 'project-1',
+  const sharedProject: HubProjectSummary = {
+    project_id: 'project-shared',
+    space_id: 'project-1',
     name: 'Shared Work',
     sort_order: 1,
     position: 1,
@@ -34,9 +34,9 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
     can_edit: true,
   };
 
-  const privatePane: HubPaneSummary = {
-    pane_id: 'pane-private',
-    project_id: 'project-1',
+  const privateProject: HubProjectSummary = {
+    project_id: 'project-private',
+    space_id: 'project-1',
     name: 'Private Work',
     sort_order: 2,
     position: 2,
@@ -51,7 +51,7 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
   };
 
   const project: HubProject = {
-    project_id: 'project-1',
+    space_id: 'project-1',
     name: 'Project Atlas',
     created_by: 'user-1',
     created_at: '2026-04-19T00:00:00.000Z',
@@ -80,7 +80,7 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
 
   const tableView: HubView = {
     view_id: 'view-table',
-    project_id: 'project-1',
+    space_id: 'project-1',
     collection_id: 'collection-1',
     type: 'table',
     name: 'Tasks Table',
@@ -89,7 +89,7 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
 
   const kanbanView: HubView = {
     view_id: 'view-kanban',
-    project_id: 'project-1',
+    space_id: 'project-1',
     collection_id: 'collection-1',
     type: 'kanban',
     name: 'Tasks Board',
@@ -98,14 +98,14 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
 
   const inspectorRecord: HubRecordDetail = {
     record_id: 'record-1',
-    project_id: 'project-1',
+    space_id: 'project-1',
     collection_id: 'collection-1',
     title: 'Audit task',
-    origin_kind: 'pane',
+    origin_kind: 'project',
     source_view_id: 'view-table',
-    source_pane: {
-      pane_id: 'pane-shared',
-      pane_name: 'Shared Work',
+    source_project: {
+      project_id: 'project-shared',
+      project_name: 'Shared Work',
       doc_id: 'doc-shared',
     },
     schema: {
@@ -146,7 +146,7 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
 
   return {
     project,
-    panes: [sharedPane, privatePane],
+    projects: [sharedProject, privateProject],
     projectMembers,
     timeline: [
       {
@@ -158,8 +158,8 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
         created_at: '2026-04-19T00:00:00.000Z',
       },
     ],
-    sharedPane,
-    privatePane,
+    sharedProject,
+    privateProject,
     tableView,
     kanbanView,
     inspectorRecord,

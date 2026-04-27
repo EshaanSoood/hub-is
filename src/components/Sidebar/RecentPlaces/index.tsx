@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../primitives/Icon';
-import { useRecentPaneVisitTracker } from '../../../features/recentPlaces/useRecentPaneVisitTracker';
+import { useRecentProjectVisitTracker } from '../../../features/recentPlaces/useRecentProjectVisitTracker';
 import { useRecentPlaces } from '../../../features/recentPlaces/useRecentPlaces';
-import type { RecentPanePlaceInput } from '../../../features/recentPlaces/types';
+import type { RecentProjectPlaceInput } from '../../../features/recentPlaces/types';
 import { RecentPlaceItem } from './RecentPlaceItem';
 
 interface RecentPlacesProps {
-  currentPlace: RecentPanePlaceInput | null;
+  currentPlace: RecentProjectPlaceInput | null;
   isCollapsed: boolean;
   onExpandSidebar: () => void;
 }
@@ -20,11 +20,11 @@ export const RecentPlaces = ({
   const navigate = useNavigate();
   const recentPlaces = useRecentPlaces();
   const visiblePlaces = useMemo(
-    () => recentPlaces.filter((entry) => entry.kind === 'pane' && entry.paneId && entry.paneName.trim().length > 0),
+    () => recentPlaces.filter((entry) => entry.kind === 'project' && entry.projectId && entry.projectName.trim().length > 0),
     [recentPlaces],
   );
 
-  useRecentPaneVisitTracker(currentPlace);
+  useRecentProjectVisitTracker(currentPlace);
 
   if (visiblePlaces.length === 0) {
     return null;
@@ -54,7 +54,7 @@ export const RecentPlaces = ({
         {visiblePlaces.map((entry) => (
           <RecentPlaceItem
             key={entry.key}
-            label={entry.paneName}
+            label={entry.projectName}
             spaceName={entry.spaceName}
             onClick={() => navigate(entry.href)}
           />

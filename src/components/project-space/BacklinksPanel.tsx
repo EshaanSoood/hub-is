@@ -8,14 +8,14 @@ interface BacklinksPanelProps {
 }
 
 const backlinkLabel = (backlink: HubBacklink): string => {
-  const paneName = backlink.source.pane_name || backlink.source.pane_id || 'unknown project';
+  const projectName = backlink.source.project_name || backlink.source.project_id || 'unknown project';
   const nodeLabel = backlink.source.node_key ? `block ${backlink.source.node_key}` : 'unanchored block';
 
   if (backlink.source_entity_type === 'doc') {
-    return `Mentioned in project ${paneName}, ${nodeLabel}`;
+    return `Mentioned in project ${projectName}, ${nodeLabel}`;
   }
   if (backlink.source_entity_type === 'comment') {
-    return `Mentioned in comment in project ${paneName}, ${nodeLabel}`;
+    return `Mentioned in comment in project ${projectName}, ${nodeLabel}`;
   }
   return `Mentioned in ${backlink.source_entity_type}`;
 };
@@ -35,7 +35,7 @@ export const BacklinksPanel = ({ backlinks, loading, error, onOpenBacklink }: Ba
         <ul className="mt-2 space-y-2" aria-label="Backlink list">
           {backlinks.map((backlink) => {
             const label = backlinkLabel(backlink);
-            const hasDocTarget = Boolean(backlink.source.doc_id && backlink.source.pane_id);
+            const hasDocTarget = Boolean(backlink.source.doc_id && backlink.source.project_id);
             return (
               <li key={backlink.mention_id} className="rounded-panel border border-border-muted p-2">
                 <button

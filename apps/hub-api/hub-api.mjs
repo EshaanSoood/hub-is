@@ -30,13 +30,11 @@ import { createDocRoutes } from './routes/docs.mjs';
 import { createFileRoutes } from './routes/files.mjs';
 import { createNotificationRoutes } from './routes/notifications.mjs';
 import { createModulePickerSeedDataRoutes } from './routes/modulePickerSeedData.mjs';
-import { createPaneRoutes } from './routes/panes.mjs';
 import { createProjectRoutes } from './routes/projects.mjs';
+import { createSpaceRoutes } from './routes/spaces.mjs';
 import { createPublicRoutes } from './routes/public.mjs';
 import { createRecordRoutes } from './routes/records.mjs';
 import { createReminderRoutes } from './routes/reminders.mjs';
-import { createRoomDocRoutes } from './routes/roomDocs.mjs';
-import { createRoomRoutes } from './routes/rooms.mjs';
 import { createRequestRouter } from './routes/requestRouter.mjs';
 import { createSearchRoutes } from './routes/search.mjs';
 import { createTaskRoutes } from './routes/tasks.mjs';
@@ -85,7 +83,7 @@ const REMINDER_CHECK_INTERVAL_MS = 30_000;
 const HUB_PUBLIC_APP_URL = (process.env.HUB_PUBLIC_APP_URL || 'https://eshaansood.org').trim().replace(/\/+$/, '');
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
-const REGISTERED_ROUTE_COUNT = 93;
+const REGISTERED_ROUTE_COUNT = 86;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const {
@@ -231,6 +229,120 @@ const { db, stmts } = initializeDatabase(HUB_DB_PATH);
 
 const newId = (prefix) => `${prefix}_${randomUUID()}`;
 
+const mapStatementRows = (statement, mapRow) => ({
+  get: (...args) => {
+    const row = statement.get(...args);
+    return row ? mapRow(row) : row;
+  },
+  all: (...args) => statement.all(...args).map(mapRow),
+  run: (...args) => statement.run(...args),
+});
+
+const mapSpaceRow = (row) => ({
+  ...row,
+  project_type: row.space_type ?? row.project_type,
+});
+
+const mapProjectRow = (row) => ({
+  ...row,
+  space_id: row.space_id,
+});
+
+const mapDocRow = (row) => ({
+  ...row,
+  space_id: row.space_id,
+});
+
+const createRouteStatementAliases = (source) => ({
+  ...source,
+  spaces: {
+    ...source.spaces,
+    findById: mapStatementRows(source.spaces.findById, mapSpaceRow),
+    findByIdWithMembership: mapStatementRows(source.spaces.findByIdWithMembership, mapSpaceRow),
+    findPersonalProject: mapStatementRows(source.spaces.findPersonalSpace, mapSpaceRow),
+    listPersonalMissingTasksCollectionIds: mapStatementRows(source.spaces.listPersonalMissingTasksCollectionIds, mapSpaceRow),
+    listPersonalMissingRemindersCollectionIds: mapStatementRows(source.spaces.listPersonalMissingRemindersCollectionIds, mapSpaceRow),
+    listForUser: mapStatementRows(source.spaces.listForUser, mapSpaceRow),
+  },
+  spaceMembers: {
+    ...source.spaceMembers,
+  },
+  projects: {
+    ...source.projects,
+    findById: mapStatementRows(source.projects.findById, mapProjectRow),
+    listMembers: source.projects.listMembers,
+    listForProject: mapStatementRows(source.projects.listForSpace, mapProjectRow),
+  },
+  projectMembers: {
+    ...source.projectMembers,
+    deleteByUserInProject: source.projectMembers.deleteByUserInSpace,
+  },
+  docs: {
+    ...source.docs,
+    findByProjectId: mapStatementRows(source.docs.findByProjectId, mapDocRow),
+    findById: mapStatementRows(source.docs.findById, mapDocRow),
+    findDocProject: mapStatementRows(source.docs.findDocSpace, mapDocRow),
+  },
+  collections: {
+    ...source.collections,
+    listForProject: source.collections.listForSpace,
+  },
+  records: {
+    ...source.records,
+  },
+  views: {
+    ...source.views,
+    listForProject: source.views.listForSpace,
+  },
+  userSearch: {
+    ...source.userSearch,
+    searchProjectMembers: source.userSearch.searchSpaceMembers,
+  },
+  tasks: {
+    ...source.tasks,
+    listVisibleForProject: source.tasks.listVisibleForSpace,
+    listAssignedForUserInProject: source.tasks.listAssignedForUserInSpace,
+  },
+  calendar: {
+    ...source.calendar,
+    listEventsForProject: source.calendar.listEventsForSpace,
+    listCalendarRecordsForProject: source.calendar.listCalendarRecordsForSpace,
+  },
+  reminders: {
+    ...source.reminders,
+  },
+  files: {
+    ...source.files,
+    listForProject: source.files.listForSpace,
+  },
+  assetRoots: {
+    ...source.assetRoots,
+    findDefaultForProject: source.assetRoots.findDefaultForSpace,
+    listForProject: source.assetRoots.listForSpace,
+  },
+  chat: {
+    ...source.chat,
+    listSnapshotsByProject: source.chat.listSnapshotsBySpace,
+  },
+  comments: {
+    ...source.comments,
+  },
+  mentions: {
+    ...source.mentions,
+    listInboxForUser: mapStatementRows(source.mentions.listInboxForUser, mapProjectRow),
+  },
+  timeline: {
+    ...source.timeline,
+    listForProject: source.timeline.listForSpace,
+    listForEntity: source.timeline.listForEntity,
+  },
+  notifications: {
+    ...source.notifications,
+  },
+});
+
+const routeStmts = createRouteStatementAliases(stmts);
+
 const {
   users: {
     findBySub: userByKcSubStmt,
@@ -244,38 +356,34 @@ const {
     findByToken: calendarFeedTokenByTokenStmt,
     insert: insertCalendarFeedTokenStmt,
   },
-  projects: {
+  spaces: {
     updateTasksCollection: updateProjectTasksCollectionStmt,
     updateRemindersCollection: updateProjectRemindersCollectionStmt,
     findById: projectByIdStmt,
     findPersonalProject: personalProjectByUserStmt,
     listPersonalMissingTasksCollectionIds: personalProjectsMissingTasksCollectionIdStmt,
     listPersonalMissingRemindersCollectionIds: personalProjectsMissingRemindersCollectionIdStmt,
+    insert: insertProjectStmt,
     insertWithType: insertProjectWithTypeStmt,
   },
-  projectMembers: {
+  spaceMembers: {
     listForUser: projectMembershipsByUserStmt,
     insert: insertProjectMemberStmt,
     isMember: projectMembershipExistsStmt,
     getRole: projectMembershipRoleStmt,
   },
-  rooms: {
-    findById: roomByIdStmt,
+  projects: {
+    findById: workProjectByIdStmt,
+    listMembers: projectMembersStmt,
+    insert: insertWorkProjectStmt,
   },
-  roomMembers: {
-    isMember: roomMembershipExistsStmt,
-  },
-  panes: {
-    findById: paneByIdStmt,
-    listMembers: paneMembersStmt,
-    insert: insertPaneStmt,
-  },
-  paneMembers: {
-    isMember: paneEditorExistsStmt,
+  projectMembers: {
+    isMember: workProjectEditorExistsStmt,
+    insert: insertWorkProjectMemberStmt,
   },
   docs: {
-    findByPaneId: paneDocByPaneStmt,
-    findDocProject: paneForDocStmt,
+    findByProjectId: workProjectDocByProjectStmt,
+    findDocProject: workProjectForDocStmt,
     insert: insertDocStmt,
     insertStorage: insertDocStorageStmt,
   },
@@ -350,7 +458,7 @@ const {
   notifications: {
     insert: insertNotificationStmt,
   },
-} = stmts;
+} = routeStmts;
 
 const {
   fieldTypeSet,
@@ -366,15 +474,15 @@ const {
   sessionRolePriority,
   normalizeProjectRole,
   membershipRoleLabel,
-  withProjectPolicyGate,
-  withPanePolicyGate: baseWithPanePolicyGate,
+  withProjectPolicyGate: baseWithProjectPolicyGate,
+  withWorkProjectPolicyGate: baseWithWorkProjectPolicyGate,
   withDocPolicyGate: baseWithDocPolicyGate,
 } = createPermissionHelpers({
   asText,
   projectMembershipRoleStmt,
-  paneByIdStmt,
-  paneEditorExistsStmt,
-  paneForDocStmt,
+  workProjectByIdStmt,
+  workProjectEditorExistsStmt,
+  workProjectForDocStmt,
 });
 
 const {
@@ -426,7 +534,7 @@ const {
   asNullableText,
   parseJson,
   parseJsonObject,
-  paneForDocStmt,
+  workProjectForDocStmt,
 });
 
 const {
@@ -543,38 +651,37 @@ const broadcastHubLiveToUser = (userId, message) => {
 const notificationContextForSource = ({ projectId, sourceEntityType, sourceEntityId, context = null }) => {
   const sourceNodeKeyFromContext = asNullableText(context?.nodeKey);
   if (sourceEntityType === 'doc') {
-    const doc = paneForDocStmt.get(sourceEntityId);
+    const doc = workProjectForDocStmt.get(sourceEntityId);
+    const sourceProjectId = asNullableText(doc?.project_id);
     return {
-      sourcePaneId: asNullableText(doc?.pane_id),
-      sourceProjectId: asNullableText(doc?.project_id) || projectId,
+      sourceProjectId,
       sourceDocId: sourceEntityId,
       sourceNodeKey: sourceNodeKeyFromContext,
-      originKind: doc?.pane_id ? 'pane' : 'project',
+      originKind: sourceProjectId ? 'project' : 'space',
     };
   }
 
   if (sourceEntityType === 'comment') {
     const comment = commentByIdStmt.get(sourceEntityId);
     if (comment?.target_entity_type === 'doc') {
-      const doc = paneForDocStmt.get(comment.target_entity_id);
+      const doc = workProjectForDocStmt.get(comment.target_entity_id);
       const anchor = commentAnchorByCommentIdStmt.get(sourceEntityId);
       const anchorPayload = parseJsonObject(anchor?.anchor_payload, {});
+      const sourceProjectId = asNullableText(doc?.project_id);
       return {
-        sourcePaneId: asNullableText(doc?.pane_id),
-        sourceProjectId: asNullableText(doc?.project_id) || projectId,
+        sourceProjectId,
         sourceDocId: comment.target_entity_id,
         sourceNodeKey: sourceNodeKeyFromContext || asNullableText(anchorPayload.nodeKey),
-        originKind: doc?.pane_id ? 'pane' : 'project',
+        originKind: sourceProjectId ? 'project' : 'space',
       };
     }
   }
 
   return {
-    sourcePaneId: null,
-    sourceProjectId: projectId,
+    sourceProjectId: null,
     sourceDocId: null,
     sourceNodeKey: sourceNodeKeyFromContext,
-    originKind: 'project',
+    originKind: 'space',
   };
 };
 
@@ -651,7 +758,7 @@ const broadcastReminderChanged = (reminder, userId) => {
   }
   const reminderId = asText(reminder.reminder_id);
   const recordId = asText(reminder.record_id);
-  const projectId = asText(reminder.project_id) || null;
+  const spaceId = asText(reminder.space_id) || null;
   const action = asText(reminder.action);
   if (!reminderId || !recordId || (action !== 'created' && action !== 'dismissed')) {
     return;
@@ -661,7 +768,7 @@ const broadcastReminderChanged = (reminder, userId) => {
     reminder: {
       reminder_id: reminderId,
       record_id: recordId,
-      project_id: projectId,
+      space_id: spaceId,
       action,
     },
   });
@@ -791,7 +898,7 @@ const ensureUserFromRequest = async (request) => {
 };
 
 const projectRecord = (row) => ({
-  project_id: row.project_id,
+  space_id: row.space_id,
   name: row.name,
   created_by: row.created_by,
   created_at: row.created_at,
@@ -890,7 +997,7 @@ const recordDetail = (record) => {
   }));
 
   const attachments = attachmentsByEntityStmt
-    .all(record.project_id, 'record', record.record_id)
+    .all(record.space_id, 'record', record.record_id)
     .map((row) => ({
       attachment_id: row.attachment_id,
       provider: row.provider,
@@ -901,7 +1008,7 @@ const recordDetail = (record) => {
       size_bytes: row.size_bytes,
       metadata: parseJsonObject(row.metadata_json, {}),
       proxy_url: buildAssetProxyPath({
-        projectId: row.project_id,
+        projectId: row.space_id,
         assetRootId: row.asset_root_id,
         assetPath: row.asset_path,
       }),
@@ -909,7 +1016,7 @@ const recordDetail = (record) => {
     }));
 
   const comments = commentsByTargetStmt
-    .all(record.project_id, 'record', record.record_id)
+    .all(record.space_id, 'record', record.record_id)
     .map((row) => ({
       comment_id: row.comment_id,
       author_user_id: row.author_user_id,
@@ -920,17 +1027,18 @@ const recordDetail = (record) => {
     }));
 
   const activity = timelineByPrimaryEntityStmt
-    .all(record.project_id, 'record', record.record_id)
+    .all(record.space_id, 'record', record.record_id)
     .map(timelineRecord);
 
   return {
     record_id: record.record_id,
-    project_id: record.project_id,
+    space_id: record.space_id,
+    project_id: asNullableText(record.source_project_id),
     collection_id: record.collection_id,
     parent_record_id: record.parent_record_id || null,
-    origin_kind: record.source_pane_id ? 'pane' : 'project',
+    origin_kind: record.source_project_id ? 'project' : 'project',
     source_view_id: asNullableText(record.source_view_id),
-    source_pane: sourcePaneContextForRecord(record),
+    source_project: sourceProjectContextForRecord(record),
     subtask_count: subtaskCountByParentStmt.get(record.record_id)?.count ?? 0,
     title: record.title,
     schema,
@@ -974,117 +1082,41 @@ const recordDetail = (record) => {
   };
 };
 
-const paneSummary = (pane, userId = '') => {
-  const doc = paneDocByPaneStmt.get(pane.pane_id);
-  const members = paneMembersStmt.all(pane.pane_id).map((member) => ({
+const projectSummary = (project, userId = '') => {
+  const doc = workProjectDocByProjectStmt.get(project.project_id);
+  const members = projectMembersStmt.all(project.project_id).map((member) => ({
     user_id: member.user_id,
     display_name: member.display_name,
   }));
-  const projectRole = userId ? normalizeProjectRole(projectMembershipRoleStmt.get(pane.project_id, userId)?.role) : 'member';
-  const roomBinding = roomBindingForPane(pane);
-  const archivedRoom = roomBinding?.room?.status === 'archived' ? roomBinding.room : null;
-  const isRoomMember = !roomBinding || (userId ? Boolean(roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) : false);
-  const canEdit = isRoomMember && !archivedRoom && (
-    projectRole === 'owner' || Boolean(userId && paneEditorExistsStmt.get(pane.pane_id, userId)?.ok)
+  const projectRole = userId ? normalizeProjectRole(projectMembershipRoleStmt.get(project.space_id, userId)?.role) : 'member';
+  const canEdit = (
+    projectRole === 'owner' || Boolean(userId && workProjectEditorExistsStmt.get(project.project_id, userId)?.ok)
   );
 
   return {
-    pane_id: pane.pane_id,
-    project_id: pane.project_id,
-    name: pane.name,
-    sort_order: pane.sort_order,
-    position: typeof pane.position === 'number' ? pane.position : null,
-    pinned: pane.pinned === 1,
-    layout_config: parseJsonObject(pane.layout_config, {}),
+    project_id: project.project_id,
+    space_id: project.space_id,
+    name: project.name,
+    sort_order: project.sort_order,
+    position: typeof project.position === 'number' ? project.position : null,
+    pinned: project.pinned === 1,
+    layout_config: parseJsonObject(project.layout_config, {}),
     doc_id: doc?.doc_id || null,
     members,
     can_edit: canEdit,
   };
 };
 
-const roomBindingForPane = (paneOrPaneId) => {
-  const pane = typeof paneOrPaneId === 'string' ? paneByIdStmt.get(paneOrPaneId) : paneOrPaneId;
-  if (!pane) {
-    return null;
-  }
-
-  const layoutConfig = parseJsonObject(pane.layout_config, {});
-  const roomId = asText(layoutConfig.room_id);
-  if (!roomId) {
-    return null;
-  }
-
-  const room = roomByIdStmt.get(roomId);
-  return room ? { room, roomId } : null;
+const withProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
+  return baseWithProjectPolicyGate({ userId, projectId, requiredCapability });
 };
 
-const archivedRoomForPane = (paneOrPaneId) => {
-  const roomBinding = roomBindingForPane(paneOrPaneId);
-  return roomBinding?.room?.status === 'archived' ? roomBinding.room : null;
-};
-
-const archivedRoomError = () => ({
-  status: 403,
-  code: 'room_archived',
-  message: 'Archived rooms are read-only.',
-});
-
-const roomMemberRequiredError = () => ({
-  status: 403,
-  code: 'forbidden',
-  message: 'Room membership required.',
-});
-
-const withPanePolicyGate = ({ userId, paneId, requiredCapability }) => {
-  const paneGate = baseWithPanePolicyGate({ userId, paneId, requiredCapability });
-  if (paneGate.error) {
-    return paneGate;
-  }
-
-  const roomBinding = roomBindingForPane(paneGate.pane_id);
-  if (roomBinding && !roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) {
-    return { error: roomMemberRequiredError() };
-  }
-
-  const archivedRoom = roomBinding?.room?.status === 'archived' ? roomBinding.room : null;
-  if (!archivedRoom) {
-    return paneGate;
-  }
-
-  if (requiredCapability !== 'view') {
-    return { error: archivedRoomError() };
-  }
-
-  return {
-    ...paneGate,
-    can_edit: false,
-  };
+const withWorkProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
+  return baseWithWorkProjectPolicyGate({ userId, projectId, requiredCapability });
 };
 
 const withDocPolicyGate = ({ userId, docId, requiredCapability }) => {
-  const docGate = baseWithDocPolicyGate({ userId, docId, requiredCapability });
-  if (docGate.error) {
-    return docGate;
-  }
-
-  const roomBinding = roomBindingForPane(docGate.pane_id);
-  if (roomBinding && !roomMembershipExistsStmt.get(roomBinding.roomId, userId)?.ok) {
-    return { error: roomMemberRequiredError() };
-  }
-
-  const archivedRoom = archivedRoomForPane(docGate.pane_id);
-  if (!archivedRoom) {
-    return docGate;
-  }
-
-  if (requiredCapability !== 'view') {
-    return { error: archivedRoomError() };
-  }
-
-  return {
-    ...docGate,
-    can_edit: false,
-  };
+  return baseWithDocPolicyGate({ userId, docId, requiredCapability });
 };
 
 const requireDocAccess = (docId, userId) => withDocPolicyGate({
@@ -1095,7 +1127,7 @@ const requireDocAccess = (docId, userId) => withDocPolicyGate({
 
 const pendingInviteRecord = (row) => ({
   invite_request_id: row.invite_request_id,
-  project_id: row.project_id,
+  space_id: row.space_id,
   email: row.email,
   role: membershipRoleLabel(row.role),
   requested_by_user_id: row.requested_by_user_id,
@@ -1133,7 +1165,7 @@ const ensureUserForEmail = ({ email, displayName }) => {
 const assignedTaskListForUser = ({ projectId, userId }) =>
   assignedTasksByUserInProjectStmt.all(userId, projectId).map((row) => ({
     record_id: row.record_id,
-    project_id: row.project_id,
+    space_id: row.space_id,
     title: row.title,
     updated_at: row.updated_at,
     status: row.status || 'todo',
@@ -1153,38 +1185,36 @@ const reassignTasksForRemovedMember = ({ projectId, removedUserId, nextOwnerUser
   return assignedTasks;
 };
 
-const resolveMutationContextPaneId = ({ body = null, requestUrl = null }) =>
-  asText(body?.mutation_context_pane_id) || asText(requestUrl?.searchParams?.get('mutation_context_pane_id'));
+const resolveMutationContextProjectId = ({ body = null, requestUrl = null }) =>
+  asText(body?.mutation_context_project_id) || asText(requestUrl?.searchParams?.get('mutation_context_project_id'));
 
-const sourcePaneContextForRecord = (record, cache = null) => {
-  const paneId = asNullableText(record?.source_pane_id);
-  if (!paneId) {
+const sourceProjectContextForRecord = (record, cache = null) => {
+  const projectId = asNullableText(record?.source_project_id);
+  if (!projectId) {
     return null;
   }
-  if (cache?.has(paneId)) {
-    return cache.get(paneId);
+  if (cache?.has(projectId)) {
+    return cache.get(projectId);
   }
-  const pane = paneByIdStmt.get(paneId);
-  const doc = paneDocByPaneStmt.get(paneId);
-  const layoutConfig = parseJsonObject(pane?.layout_config, {});
+  const project = workProjectByIdStmt.get(projectId);
+  const doc = workProjectDocByProjectStmt.get(projectId);
   const context = {
-    pane_id: paneId,
-    pane_name: asNullableText(pane?.name),
+    project_id: projectId,
+    project_name: asNullableText(project?.name),
     doc_id: asNullableText(doc?.doc_id),
-    room_id: asNullableText(layoutConfig.room_id),
   };
-  cache?.set(paneId, context);
+  cache?.set(projectId, context);
   return context;
 };
 
 const trackedFileRecord = (row) => {
   const metadata = parseJsonObject(row.metadata_json, {});
-  const metadataPaneId = asNullableText(metadata.pane_id);
-  const pathPaneId = asText(row.provider_path).match(/^Pane Files\/([^/]+)(?:\/|$)/)?.[1] || null;
-  const paneId = metadataPaneId || pathPaneId;
+  const metadataProjectId = asNullableText(metadata.project_id);
+  const pathProjectId = asText(row.provider_path).match(/^Project Files\/([^/]+)(?:\/|$)/)?.[1] || null;
+  const projectId = metadataProjectId || pathProjectId;
   return {
     file_id: row.file_id,
-    project_id: row.project_id,
+    space_id: row.space_id,
     asset_root_id: row.asset_root_id,
     provider: row.provider,
     asset_path: row.provider_path,
@@ -1194,40 +1224,41 @@ const trackedFileRecord = (row) => {
     size_bytes: row.size_bytes,
     created_by: row.created_by,
     created_at: row.created_at,
-    scope: paneId ? 'pane' : 'project',
-    pane_id: paneId,
+    scope: projectId ? 'project' : 'space',
+    project_id: projectId,
     metadata,
     proxy_url: buildAssetProxyPath({
-      projectId: row.project_id,
+      projectId: row.space_id,
       assetRootId: row.asset_root_id,
       assetPath: row.provider_path,
     }),
   };
 };
 
-const resolveProjectContentWriteGate = ({ userId, projectId, paneId = '' }) => {
-  const normalizedPaneId = asText(paneId);
-  if (!normalizedPaneId) {
+const resolveProjectContentWriteGate = ({ userId, projectId, sourceProjectId = '' }) => {
+  const normalizedProjectId = asText(sourceProjectId);
+  if (!normalizedProjectId) {
     return withProjectPolicyGate({ userId, projectId, requiredCapability: 'write' });
   }
-  const paneGate = withPanePolicyGate({ userId, paneId: normalizedPaneId, requiredCapability: 'write' });
-  if (paneGate.error) {
-    return paneGate;
+  const projectGate = withWorkProjectPolicyGate({ userId, projectId: normalizedProjectId, requiredCapability: 'write' });
+  if (projectGate.error) {
+    return projectGate;
   }
-  if (paneGate.project_id !== projectId) {
-    return { error: { status: 404, code: 'not_found', message: 'Pane not found in project.' } };
+  if (projectGate.space_id !== projectId) {
+    return { error: { status: 404, code: 'not_found', message: 'Project not found in space.' } };
   }
-  return paneGate;
+  return projectGate;
 };
 
-const buildProjectTaskSummary = (record, sourcePaneContextCache = null) => {
-  const project = projectByIdStmt.get(record.project_id);
+const buildProjectTaskSummary = (record, sourceProjectContextCache = null) => {
+  const sourceProject = sourceProjectContextForRecord(record, sourceProjectContextCache);
   const collection = collectionByIdStmt.get(record.collection_id);
   const task = taskStateByRecordStmt.get(record.record_id);
   return {
     record_id: record.record_id,
-    project_id: record.project_id,
-    project_name: project?.name || null,
+    space_id: record.space_id,
+    project_id: sourceProject?.project_id || null,
+    project_name: sourceProject?.project_name || null,
     collection_id: record.collection_id,
     collection_name: collection?.name || null,
     title: record.title,
@@ -1255,18 +1286,19 @@ const buildProjectTaskSummary = (record, sourcePaneContextCache = null) => {
       user_id: row.user_id,
       assigned_at: row.assigned_at,
     })),
-    origin_kind: record.source_pane_id ? 'pane' : 'project',
+    origin_kind: record.source_project_id ? 'project' : 'project',
     source_view_id: asNullableText(record.source_view_id),
-    source_pane: sourcePaneContextForRecord(record, sourcePaneContextCache),
+    source_project: sourceProject,
   };
 };
 
 const buildPersonalTaskSummaryFromRecord = (record) => {
-  const project = projectByIdStmt.get(record.project_id);
+  const project = projectByIdStmt.get(record.space_id);
   const task = taskStateByRecordStmt.get(record.record_id);
   return {
     record_id: record.record_id,
-    project_id: record.project_id,
+    space_id: record.space_id,
+    project_id: null,
     project_name: project?.name || null,
     collection_id: 'personal',
     collection_name: 'Personal',
@@ -1288,16 +1320,16 @@ const buildPersonalTaskSummaryFromRecord = (record) => {
     })),
     origin_kind: 'personal',
     source_view_id: null,
-    source_pane: null,
+    source_project: null,
   };
 };
 
 const personalProjectIdForUser = (userId) => asNullableText(personalProjectByUserStmt.get(userId, userId)?.project_id);
 
-const buildTaskSummaryForUser = (record, personalProjectId, sourcePaneContextCache = null) =>
-  record.project_id === personalProjectId
+const buildTaskSummaryForUser = (record, personalProjectId, sourceProjectContextCache = null) =>
+  record.space_id === personalProjectId
     ? buildPersonalTaskSummaryFromRecord(record)
-    : buildProjectTaskSummary(record, sourcePaneContextCache);
+    : buildProjectTaskSummary(record, sourceProjectContextCache);
 
 const taskFieldMapForCollection = (collectionId) => {
   const fields = fieldsByCollectionStmt.all(collectionId);
@@ -1362,7 +1394,7 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
   const projectId = newId('prj');
   const collectionId = newId('col');
   const remindersCollectionId = newId('col');
-  const paneId = newId('pan');
+  const workProjectId = newId('prj');
   const docId = newId('doc');
   const assetRootId = newId('ast');
   const titleFieldId = newId('fld');
@@ -1371,8 +1403,8 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
 
   insertProjectWithTypeStmt.run(projectId, `${firstName}'s Project`, user.user_id, 'personal', 1, now, now);
   insertProjectMemberStmt.run(projectId, user.user_id, 'owner', now);
-  insertPaneStmt.run(
-    paneId,
+  insertWorkProjectStmt.run(
+    workProjectId,
     projectId,
     'Notes',
     1,
@@ -1383,7 +1415,7 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
     now,
     now,
   );
-  insertDocStmt.run(docId, paneId, now, now);
+  insertDocStmt.run(docId, workProjectId, now, now);
   insertDocStorageStmt.run(docId, 0, toJson({}), now);
   insertAssetRootStmt.run(
     assetRootId,
@@ -1511,25 +1543,26 @@ ensurePersonalProjectRemindersCollectionIds();
 
 const recordDetailForUser = (record, userId) => {
   const detail = recordDetail(record);
-  if (record.project_id !== personalProjectIdForUser(userId)) {
+  if (record.space_id !== personalProjectIdForUser(userId)) {
     return detail;
   }
   return {
     ...detail,
     origin_kind: 'personal',
     source_view_id: null,
-    source_pane: null,
+    source_project: null,
   };
 };
 
-const buildHomeEventSummary = (record, sourcePaneContextCache = null) => {
-  const project = projectByIdStmt.get(record.project_id);
+const buildHomeEventSummary = (record, sourceProjectContextCache = null) => {
+  const sourceProject = sourceProjectContextForRecord(record, sourceProjectContextCache);
   const collection = collectionByIdStmt.get(record.collection_id);
   const event = eventStateByRecordStmt.get(record.record_id);
   return {
     record_id: record.record_id,
-    project_id: record.project_id,
-    project_name: project?.name || null,
+    space_id: record.space_id,
+    project_id: sourceProject?.project_id || null,
+    project_name: sourceProject?.project_name || null,
     collection_id: record.collection_id,
     collection_name: collection?.name || null,
     title: record.title,
@@ -1548,7 +1581,7 @@ const buildHomeEventSummary = (record, sourcePaneContextCache = null) => {
       role: row.role,
       added_at: row.added_at,
     })),
-    source_pane: sourcePaneContextForRecord(record, sourcePaneContextCache),
+    source_project: sourceProject,
   };
 };
 
@@ -1601,7 +1634,7 @@ const normalizeMentionRefs = (projectId, mentionRefs) => {
 
     if (targetEntityType === 'record') {
       const record = recordByIdStmt.get(targetEntityId);
-      if (!record || record.project_id !== projectId || record.archived_at) {
+      if (!record || record.space_id !== projectId || record.archived_at) {
         continue;
       }
     }
@@ -1630,12 +1663,12 @@ const mapMentionRowToBacklink = (row) => {
   const commentAnchor = parseJson(row.source_comment_anchor_payload, null);
   const commentNodeKey = asText(commentAnchor?.nodeKey);
   const commentDocId = asText(row.source_comment_doc_id);
-  const docSourcePaneId = asText(row.source_doc_pane_id);
-  const docSourcePaneName = asText(row.source_doc_pane_name);
-  const commentSourcePaneId = asText(row.source_comment_pane_id);
-  const commentSourcePaneName = asText(row.source_comment_pane_name);
-  const sourcePaneId = row.source_entity_type === 'doc' ? docSourcePaneId : commentSourcePaneId;
-  const sourcePaneName = row.source_entity_type === 'doc' ? docSourcePaneName : commentSourcePaneName;
+  const docSourceProjectId = asText(row.source_doc_project_id);
+  const docSourceProjectName = asText(row.source_doc_project_name);
+  const commentSourceProjectId = asText(row.source_comment_project_id);
+  const commentSourceProjectName = asText(row.source_comment_project_name);
+  const sourceProjectId = row.source_entity_type === 'doc' ? docSourceProjectId : commentSourceProjectId;
+  const sourceProjectName = row.source_entity_type === 'doc' ? docSourceProjectName : commentSourceProjectName;
   const sourceDocId = row.source_entity_type === 'doc' ? asText(row.source_entity_id) : commentDocId;
   const nodeKeyFromContext = asText(context?.nodeKey);
   const sourceNodeKey = nodeKeyFromContext || commentNodeKey || null;
@@ -1650,8 +1683,8 @@ const mapMentionRowToBacklink = (row) => {
     context,
     source: {
       doc_id: sourceDocId || null,
-      pane_id: sourcePaneId || null,
-      pane_name: sourcePaneName || null,
+      project_id: sourceProjectId || null,
+      project_name: sourceProjectName || null,
       node_key: sourceNodeKey,
       comment_target_entity_type: asText(row.source_comment_target_entity_type) || null,
       comment_target_entity_id: asText(row.source_comment_target_entity_id) || null,
@@ -1831,7 +1864,7 @@ const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, maybeHan
 
 const routeDeps = buildRouteDeps({
   db,
-  stmts,
+  stmts: routeStmts,
   withTransaction,
   ALLOWED_ORIGIN,
   HUB_API_BASE_URL,
@@ -1891,7 +1924,7 @@ const routeDeps = buildRouteDeps({
   notificationRecord,
   nowIso,
   okEnvelope,
-  paneSummary,
+  projectSummary,
   parseBody,
   parseCursorOffset,
   parseJson,
@@ -1905,7 +1938,7 @@ const routeDeps = buildRouteDeps({
   recordSummary,
   relationTargetCollectionIdFromField,
   requireDocAccess,
-  resolveMutationContextPaneId,
+  resolveMutationContextProjectId,
   resolveProjectAssetRoot,
   resolveProjectContentWriteGate,
   reassignTasksForRemovedMember,
@@ -1914,6 +1947,7 @@ const routeDeps = buildRouteDeps({
   sendPublicBugReportEmail,
   safeTuwunelConfig,
   send,
+  sourceProjectContextForRecord,
   isFetchTimeoutError,
   getOrCreateCalendarFeedToken,
   publicBugScreenshotDir,
@@ -1923,19 +1957,17 @@ const routeDeps = buildRouteDeps({
   viewTypeSet,
   withAuth,
   withDocPolicyGate,
-  withPanePolicyGate,
-  withPolicyGate,
   withProjectPolicyGate,
+  withWorkProjectPolicyGate,
+  withPolicyGate,
   ensureKeycloakInviteOnboarding,
   uploadToNextcloud,
 });
 const userRoutes = createUserRoutes(routeDeps);
 const chatRoutes = createChatRoutes(routeDeps);
+const spaceRoutes = createSpaceRoutes(routeDeps);
 const projectRoutes = createProjectRoutes(routeDeps);
-const roomRoutes = createRoomRoutes(routeDeps);
-const paneRoutes = createPaneRoutes(routeDeps);
 const docRoutes = createDocRoutes(routeDeps);
-const roomDocRoutes = createRoomDocRoutes(routeDeps);
 const collectionRoutes = createCollectionRoutes(routeDeps);
 const recordRoutes = createRecordRoutes(routeDeps);
 const viewRoutes = createViewRoutes(routeDeps);
@@ -1984,11 +2016,9 @@ const requestRouter = createRequestRouter({
   taskRoutes,
   searchRoutes,
   reminderRoutes,
+  spaceRoutes,
   projectRoutes,
-  roomRoutes,
-  paneRoutes,
   docRoutes,
-  roomDocRoutes,
   collectionRoutes,
   recordRoutes,
   viewRoutes,

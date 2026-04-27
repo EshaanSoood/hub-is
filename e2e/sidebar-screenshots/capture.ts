@@ -145,24 +145,24 @@ const ensureProjectExpanded = async (page: Page, projectLabel: string): Promise<
   }
 };
 
-const openProjectPane = async (page: Page, projectLabel: string): Promise<void> => {
+const openProjectProject = async (page: Page, projectLabel: string): Promise<void> => {
   const nav = navigation(page);
   await ensureProjectsExpanded(page);
   await ensureProjectExpanded(page, projectLabel);
 
-  const preferredPaneLabels = ['Main Work', 'Sidebar Alpha', 'Sidebar Beta'];
-  for (const prefix of preferredPaneLabels) {
-    const paneButton = nav.locator('button').filter({ hasText: new RegExp(`^${prefix}`) }).first();
-    if (await paneButton.count() && await paneButton.isVisible().catch(() => false)) {
-      await paneButton.scrollIntoViewIfNeeded();
-      await paneButton.click({ force: true });
+  const preferredProjectLabels = ['Main Work', 'Sidebar Alpha', 'Sidebar Beta'];
+  for (const prefix of preferredProjectLabels) {
+    const projectButton = nav.locator('button').filter({ hasText: new RegExp(`^${prefix}`) }).first();
+    if (await projectButton.count() && await projectButton.isVisible().catch(() => false)) {
+      await projectButton.scrollIntoViewIfNeeded();
+      await projectButton.click({ force: true });
       await page.waitForURL(/\/projects\/[^/]+\/work\/[^/]+/, { timeout: 30_000 });
       await waitForShell(page);
       return;
     }
   }
 
-  throw new Error(`Unable to find a pane button for ${projectLabel}.`);
+  throw new Error(`Unable to find a project button for ${projectLabel}.`);
 };
 
 const captureSteps = (page: Page): Record<string, () => Promise<void>> => ({
@@ -174,7 +174,7 @@ const captureSteps = (page: Page): Record<string, () => Promise<void>> => ({
   'sidebar-expanded-project.png': async () => {
     await openHomeExpanded(page);
     const projectLabel = await resolveSidebarProjectLabel(page);
-    await openProjectPane(page, projectLabel);
+    await openProjectProject(page, projectLabel);
     await captureSidebar(page, 'sidebar-expanded-project.png');
   },
   'sidebar-rail-mode.png': async () => {

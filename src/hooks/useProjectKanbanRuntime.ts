@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 
 import { createCollection, createCollectionField } from '../services/hub/collections';
-import { recordRecentPaneContribution } from '../features/recentPlaces/store';
+import { recordRecentProjectContribution } from '../features/recentPlaces/store';
 import { archiveRecord, createRecord, listTimeline, setRecordValues, updateRecord } from '../services/hub/records';
 import { createView, listViews, updateView } from '../services/hub/views';
-import type { HubPaneSummary, HubView } from '../services/hub/types';
+import type { HubProjectSummary, HubView } from '../services/hub/types';
 import {
   EMPTY_KANBAN_RUNTIME,
   KANBAN_OWNED_VIEW_CONFIG_KEY,
@@ -20,11 +20,11 @@ interface UseProjectKanbanRuntimeParams {
   accessToken: string;
   projectId: string;
   projectName: string;
-  panes: HubPaneSummary[];
+  projects: HubProjectSummary[];
   views: HubView[];
   sessionUserId: string;
   setTimeline: Dispatch<SetStateAction<ProjectTimelineItem[]>>;
-  paneCanEditForUser: (pane: HubPaneSummary | null | undefined, userId: string) => boolean;
+  projectCanEditForUser: (project: HubProjectSummary | null | undefined, userId: string) => boolean;
   setRecordsError: Dispatch<SetStateAction<string | null>>;
   refreshViewsAndRecordsRef: MutableRefObject<() => Promise<void>>;
 }
@@ -33,11 +33,11 @@ export const useProjectKanbanRuntime = ({
   accessToken,
   projectId,
   projectName,
-  panes,
+  projects,
   views,
   sessionUserId,
   setTimeline,
-  paneCanEditForUser,
+  projectCanEditForUser,
   setRecordsError,
   refreshViewsAndRecordsRef,
 }: UseProjectKanbanRuntimeParams) => {
@@ -105,22 +105,22 @@ export const useProjectKanbanRuntime = ({
     ensureKanbanViewRef.current.clear();
   }, []);
 
-  const resolveEditableMutationPane = useCallback(
-    (mutationPaneId: string | null, message: string): HubPaneSummary | null => {
-      const mutationPane = mutationPaneId ? panes.find((pane) => pane.pane_id === mutationPaneId) || null : null;
-      if (!mutationPane || !paneCanEditForUser(mutationPane, sessionUserId)) {
+  const resolveEditableMutationProject = useCallback(
+    (mutationProjectId: string | null, message: string): HubProjectSummary | null => {
+      const mutationProject = mutationProjectId ? projects.find((project) => project.project_id === mutationProjectId) || null : null;
+      if (!mutationProject || !projectCanEditForUser(mutationProject, sessionUserId)) {
         setRecordsError(message);
         return null;
       }
-      return mutationPane;
+      return mutationProject;
     },
-    [paneCanEditForUser, panes, sessionUserId, setRecordsError],
+    [projectCanEditForUser, projects, sessionUserId, setRecordsError],
   );
 
   const onMoveKanbanRecord = useCallback(
-    async (viewId: string, recordId: string, nextGroup: string, mutationPaneId: string | null) => {
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before moving cards.');
-      if (!mutationPane) {
+    async (viewId: string, recordId: string, nextGroup: string, mutationProjectId: string | null) => {
+      const mutationProject = resolveEditableMutationProject(mutationProjectId, 'Open an editable project before moving cards.');
+      if (!mutationProject) {
         return;
       }
       const groupFieldId = kanbanRuntimeByViewId[viewId]?.groupFieldId;
@@ -132,13 +132,13 @@ export const useProjectKanbanRuntime = ({
         const nextGroupValue = nextGroup === KANBAN_UNASSIGNED_ID ? null : nextGroup || null;
         await setRecordValues(accessToken, recordId, {
           [groupFieldId]: nextGroupValue,
-        }, { mutation_context_pane_id: mutationPane.pane_id });
+        }, { mutation_context_project_id: mutationProject.project_id });
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
-        recordRecentPaneContribution({
-          paneId: mutationPane.pane_id,
-          paneName: mutationPane.name,
+        recordRecentProjectContribution({
+          projectId: mutationProject.project_id,
+          projectName: mutationProject.name,
           spaceId: projectId,
           spaceName: projectName,
         }, 'kanban-move');
@@ -146,17 +146,17 @@ export const useProjectKanbanRuntime = ({
         setRecordsError(error instanceof Error ? error.message : 'Failed to move kanban card.');
       }
     },
-    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setRecordsError, setTimeline],
   );
 
   const onCreateKanbanRecord = useCallback(
     async (
       viewId: string,
       payload: { title: string; groupFieldValue: string },
-      mutationPaneId: string | null,
+      mutationProjectId: string | null,
     ) => {
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before creating cards.');
-      if (!mutationPane) {
+      const mutationProject = resolveEditableMutationProject(mutationProjectId, 'Open an editable project before creating cards.');
+      if (!mutationProject) {
         const message = 'Open an editable project before creating cards.';
         throw new Error(message);
       }
@@ -172,7 +172,7 @@ export const useProjectKanbanRuntime = ({
         await createRecord(accessToken, projectId, {
           collection_id: runtime.collectionId,
           title: payload.title,
-          source_pane_id: mutationPane.pane_id,
+          source_project_id: mutationProject.project_id,
           source_view_id: viewId,
           values: runtime.groupFieldId
             ? {
@@ -183,9 +183,9 @@ export const useProjectKanbanRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
-        recordRecentPaneContribution({
-          paneId: mutationPane.pane_id,
-          paneName: mutationPane.name,
+        recordRecentProjectContribution({
+          projectId: mutationProject.project_id,
+          projectName: mutationProject.name,
           spaceId: projectId,
           spaceName: projectName,
         }, 'kanban-create');
@@ -195,7 +195,7 @@ export const useProjectKanbanRuntime = ({
         throw new Error(message);
       }
     },
-    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setRecordsError, setTimeline],
   );
 
   const onUpdateKanbanRecord = useCallback(
@@ -203,10 +203,10 @@ export const useProjectKanbanRuntime = ({
       viewId: string,
       recordId: string,
       fields: Record<string, unknown>,
-      mutationPaneId: string | null,
+      mutationProjectId: string | null,
     ) => {
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before editing cards.');
-      if (!mutationPane) {
+      const mutationProject = resolveEditableMutationProject(mutationProjectId, 'Open an editable project before editing cards.');
+      if (!mutationProject) {
         const message = 'Open an editable project before editing cards.';
         throw new Error(message);
       }
@@ -226,7 +226,7 @@ export const useProjectKanbanRuntime = ({
         if (typeof title === 'string') {
           updateOperations.push({
             label: 'title',
-            promise: updateRecord(accessToken, recordId, { title }, { mutation_context_pane_id: mutationPane.pane_id }),
+            promise: updateRecord(accessToken, recordId, { title }, { mutation_context_project_id: mutationProject.project_id }),
           });
         }
 
@@ -234,7 +234,7 @@ export const useProjectKanbanRuntime = ({
           updateOperations.push({
             label: 'fields',
             promise: setRecordValues(accessToken, recordId, valueFields, {
-              mutation_context_pane_id: mutationPane.pane_id,
+              mutation_context_project_id: mutationProject.project_id,
             }),
           });
         }
@@ -272,9 +272,9 @@ export const useProjectKanbanRuntime = ({
           setRecordsError(message);
           throw new Error(message);
         }
-        recordRecentPaneContribution({
-          paneId: mutationPane.pane_id,
-          paneName: mutationPane.name,
+        recordRecentProjectContribution({
+          projectId: mutationProject.project_id,
+          projectName: mutationProject.name,
           spaceId: projectId,
           spaceName: projectName,
         }, 'kanban-update');
@@ -284,13 +284,13 @@ export const useProjectKanbanRuntime = ({
         throw new Error(message);
       }
     },
-    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setRecordsError, setTimeline],
   );
 
   const onDeleteKanbanRecord = useCallback(
-    async (recordId: string, mutationPaneId: string | null) => {
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before deleting cards.');
-      if (!mutationPane) {
+    async (recordId: string, mutationProjectId: string | null) => {
+      const mutationProject = resolveEditableMutationProject(mutationProjectId, 'Open an editable project before deleting cards.');
+      if (!mutationProject) {
         const message = 'Open an editable project before deleting cards.';
         throw new Error(message);
       }
@@ -300,9 +300,9 @@ export const useProjectKanbanRuntime = ({
         await refreshViewsAndRecordsRef.current();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
-        recordRecentPaneContribution({
-          paneId: mutationPane.pane_id,
-          paneName: mutationPane.name,
+        recordRecentProjectContribution({
+          projectId: mutationProject.project_id,
+          projectName: mutationProject.name,
           spaceId: projectId,
           spaceName: projectName,
         }, 'kanban-delete');
@@ -312,19 +312,19 @@ export const useProjectKanbanRuntime = ({
         throw new Error(message);
       }
     },
-    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, setTimeline],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setRecordsError, setTimeline],
   );
 
   const onConfigureKanbanGrouping = useCallback(
-    async (viewId: string, fieldId: string, mutationPaneId: string | null) => {
+    async (viewId: string, fieldId: string, mutationProjectId: string | null) => {
       const runtime = kanbanRuntimeByViewId[viewId];
       const existingView = views.find((view) => view.view_id === viewId) || null;
       if (!runtime && !existingView) {
         setRecordsError('Cannot configure kanban grouping: view is unavailable.');
         return;
       }
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before configuring kanban grouping.');
-      if (!mutationPane) {
+      const mutationProject = resolveEditableMutationProject(mutationProjectId, 'Open an editable project before configuring kanban grouping.');
+      if (!mutationProject) {
         return;
       }
 
@@ -334,12 +334,12 @@ export const useProjectKanbanRuntime = ({
             ...(existingView?.config ?? runtime?.viewConfig ?? {}),
             group_by_field_id: fieldId,
           },
-          mutation_context_pane_id: mutationPane.pane_id,
+          mutation_context_project_id: mutationProject.project_id,
         });
         await refreshViewsAndRecordsRef.current();
-        recordRecentPaneContribution({
-          paneId: mutationPane.pane_id,
-          paneName: mutationPane.name,
+        recordRecentProjectContribution({
+          projectId: mutationProject.project_id,
+          projectName: mutationProject.name,
           spaceId: projectId,
           spaceName: projectName,
         }, 'kanban-configure');
@@ -347,22 +347,22 @@ export const useProjectKanbanRuntime = ({
         setRecordsError(error instanceof Error ? error.message : 'Failed to configure kanban grouping.');
       }
     },
-    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setRecordsError, views],
+    [accessToken, kanbanRuntimeByViewId, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setRecordsError, views],
   );
 
   const onEnsureKanbanView = useCallback(
-    async (moduleInstanceId: string, ownedViewId: string | null | undefined, mutationPaneId: string | null): Promise<string | null> => {
+    async (moduleInstanceId: string, ownedViewId: string | null | undefined, mutationProjectId: string | null): Promise<string | null> => {
       const pending = ensureKanbanViewRef.current.get(moduleInstanceId);
       if (pending) {
         return pending;
       }
-      const mutationPane = resolveEditableMutationPane(mutationPaneId, 'Open an editable project before creating a kanban board.');
-      if (!mutationPane) {
+      const mutationProject = resolveEditableMutationProject(mutationProjectId, 'Open an editable project before creating a kanban board.');
+      if (!mutationProject) {
         throw new Error('Open an editable project before creating a kanban board.');
       }
 
-      const paneName = mutationPane.name.trim();
-      const boardName = paneName ? `${paneName} Board` : 'Kanban Board';
+      const projectName = mutationProject.name.trim();
+      const boardName = projectName ? `${projectName} Board` : 'Kanban Board';
       const findOwnedView = (candidateViews: HubView[]) => {
         if (ownedViewId) {
           const matchedById = candidateViews.find((view) => view.view_id === ownedViewId && view.type === 'kanban') || null;
@@ -434,12 +434,12 @@ export const useProjectKanbanRuntime = ({
               due_date_field_id: dueDateField.field_id,
               [KANBAN_OWNED_VIEW_CONFIG_KEY]: moduleInstanceId,
             },
-            mutation_context_pane_id: mutationPane.pane_id,
+            mutation_context_project_id: mutationProject.project_id,
           });
           await refreshViewsAndRecordsRef.current();
-          recordRecentPaneContribution({
-            paneId: mutationPane.pane_id,
-            paneName: mutationPane.name,
+          recordRecentProjectContribution({
+            projectId: mutationProject.project_id,
+            projectName: mutationProject.name,
             spaceId: projectId,
             spaceName: projectName,
           }, 'kanban-view-create');
@@ -453,7 +453,7 @@ export const useProjectKanbanRuntime = ({
       ensureKanbanViewRef.current.set(moduleInstanceId, ensurePromise);
       return ensurePromise;
     },
-    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationPane, setCreatingKanbanView, views],
+    [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setCreatingKanbanView, views],
   );
 
   const kanbanRuntimeDataByViewId = useMemo(

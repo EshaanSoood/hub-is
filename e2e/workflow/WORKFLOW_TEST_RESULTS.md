@@ -30,15 +30,15 @@ Observed behavior:
 - The production overview surface rendered `PROJECT SPACE`, `Backend Pilot`, and the `Overview`, `Work`, and `Tools` tabs.
 - Backend membership verification confirmed both smoke users are project members.
 
-### 2. Work pane creation and persistence
+### 2. Work project creation and persistence
 Status: PASS
 
 Observed behavior:
 - User A opened the live Work surface through the real overview/work controls.
-- The harness created a new pane named `workflow-modules-*`.
+- The harness created a new project named `workflow-modules-*`.
 - A `Table` module was added through the browser UI.
-- The new pane and module count were verified through live Hub API pane data.
-- The pane was reopened on a fresh authenticated page and the module count still matched.
+- The new project and module count were verified through live Hub API project data.
+- The project was reopened on a fresh authenticated page and the module count still matched.
 
 Conclusion:
 - The browser flow and persisted backend state agree.
@@ -47,13 +47,13 @@ Conclusion:
 Status: PASS
 
 Observed behavior:
-- User B opened the same project and the created pane.
-- The pane appeared as a read-only pane behind `Other panes`, which matches production UI behavior.
+- User B opened the same project and the created project.
+- The project appeared as a read-only project behind `Other projects`, which matches production UI behavior.
 - The page showed read-only copy and disabled module controls.
 - Live collab authorization for User B against the created doc returned `403`.
 
 Conclusion:
-- The app is enforcing pane read-only boundaries correctly for User B.
+- The app is enforcing project read-only boundaries correctly for User B.
 
 ### 4. Collaborator surface and membership state
 Status: PASS
@@ -77,17 +77,17 @@ Conclusion:
 ## Harness fixes made during this run
 - Replaced brittle direct-route assumptions with real browser clicks where production uses visible project/work controls.
 - Added a fresh authenticated page reopen step after browser login to avoid Keycloak callback race conditions contaminating later assertions.
-- Added live Hub API assertions for membership, pane persistence, and collab authorization so the suite verifies actual backend state.
-- Updated read-only pane selection to use the `Other panes` surface when production hides read-only panes there.
+- Added live Hub API assertions for membership, project persistence, and collab authorization so the suite verifies actual backend state.
+- Updated read-only project selection to use the `Other projects` surface when production hides read-only projects there.
 - Corrected the calendar test so it always clicks the overview `Calendar` control instead of conditionally skipping it due to a false negative `isVisible()` check.
 
 ## Bottom line
 The Playwright workflow harness is now proving the live production path for:
 - browser login
 - project overview access
-- work pane creation
+- work project creation
 - module persistence
-- read-only pane access for User B
+- read-only project access for User B
 - collaborator surface presence
 - overview calendar capability reporting
 

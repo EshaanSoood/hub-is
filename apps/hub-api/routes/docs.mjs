@@ -25,7 +25,7 @@ export const createDocRoutes = (deps) => {
     materializeMentions,
     assignmentsByRecordStmt,
     docByIdStmt,
-    paneMembersByPaneStmt,
+    workProjectMembersByProjectStmt,
     projectMembersByProjectStmt,
     recordByIdStmt,
     updateDocStorageStmt,
@@ -42,14 +42,14 @@ export const createDocRoutes = (deps) => {
     membershipRoleLabel,
   } = deps;
 
-  const docCollaboratorUserIds = ({ paneId, projectId }) => {
+  const docCollaboratorUserIds = ({ projectId, spaceId }) => {
     const userIds = new Set();
-    if (paneId) {
-      for (const member of paneMembersByPaneStmt?.all(paneId) || []) {
+    if (projectId) {
+      for (const member of workProjectMembersByProjectStmt?.all(projectId) || []) {
         userIds.add(member.user_id);
       }
     }
-    for (const member of projectMembersByProjectStmt?.all(projectId) || []) {
+    for (const member of projectMembersByProjectStmt?.all(spaceId) || []) {
       if (membershipRoleLabel(member.role) === 'owner') {
         userIds.add(member.user_id);
       }
@@ -83,7 +83,7 @@ export const createDocRoutes = (deps) => {
         okEnvelope({
           doc: {
             doc_id: doc.doc_id,
-            pane_id: doc.pane_id,
+            project_id: doc.project_id,
             snapshot_version: doc.snapshot_version || 0,
             snapshot_payload: parseJson(doc.snapshot_payload, {}),
             updated_at: doc.storage_updated_at || doc.updated_at,
@@ -149,7 +149,7 @@ export const createDocRoutes = (deps) => {
 
     if (docGate.doc_id) {
       emitTimelineEvent({
-        projectId: docGate.project_id,
+        projectId: docGate.space_id,
         actorUserId: auth.user.user_id,
         eventType: 'doc.snapshot_saved',
         primaryEntityType: 'doc',
@@ -245,7 +245,7 @@ export const createDocRoutes = (deps) => {
         send(response, jsonResponse(targetDocGate.error.status, errorEnvelope(targetDocGate.error.code, targetDocGate.error.message)));
         return;
       }
-      if (targetDocGate.project_id !== projectId) {
+      if (targetDocGate.space_id !== projectId) {
         send(response, jsonResponse(404, errorEnvelope('not_found', 'Doc not found in project.')));
         return;
       }
@@ -328,7 +328,7 @@ export const createDocRoutes = (deps) => {
     }
     if (targetEntityType === 'doc') {
       try {
-        for (const userId of docCollaboratorUserIds({ paneId: targetDocGate?.pane_id, projectId })) {
+        for (const userId of docCollaboratorUserIds({ projectId: targetDocGate?.project_id, spaceId: projectId })) {
           if (userId === auth.user.user_id) {
             continue;
           }
@@ -410,7 +410,7 @@ export const createDocRoutes = (deps) => {
       send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
       return;
     }
-    if (docGate.project_id !== projectId) {
+    if (docGate.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Doc not found in project.')));
       return;
     }
@@ -453,7 +453,7 @@ export const createDocRoutes = (deps) => {
       context: { nodeKey },
     });
     try {
-      for (const userId of docCollaboratorUserIds({ paneId: docGate.pane_id, projectId })) {
+      for (const userId of docCollaboratorUserIds({ projectId: docGate.project_id, spaceId: projectId })) {
         if (userId === auth.user.user_id) {
           continue;
         }
@@ -506,7 +506,7 @@ export const createDocRoutes = (deps) => {
     } else {
       const projectGate = withProjectPolicyGate({
         userId: auth.user.user_id,
-        projectId: comment.project_id,
+        projectId: comment.space_id,
         requiredCapability: 'comment',
       });
       if (projectGate.error) {
@@ -533,7 +533,7 @@ export const createDocRoutes = (deps) => {
     updateCommentStatusStmt.run(status, nowIso(), commentId);
     if (status === 'resolved') {
       emitTimelineEvent({
-        projectId: comment.project_id,
+        projectId: comment.space_id,
         actorUserId: auth.user.user_id,
         eventType: 'comment.resolved',
         primaryEntityType: comment.target_entity_type,
@@ -578,7 +578,7 @@ export const createDocRoutes = (deps) => {
         send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
         return;
       }
-      if (docGate.project_id !== projectId) {
+      if (docGate.space_id !== projectId) {
         send(response, jsonResponse(404, errorEnvelope('not_found', 'Doc not found in project.')));
         return;
       }
@@ -630,7 +630,7 @@ export const createDocRoutes = (deps) => {
         send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
         return;
       }
-      if (docGate.project_id !== projectId) {
+      if (docGate.space_id !== projectId) {
         send(response, jsonResponse(404, errorEnvelope('not_found', 'Doc not found in project.')));
         return;
       }
@@ -638,7 +638,7 @@ export const createDocRoutes = (deps) => {
 
     const comments = commentsByTargetStmt.all(projectId, targetEntityType, targetEntityId).map((row) => ({
       comment_id: row.comment_id,
-      project_id: row.project_id,
+      space_id: row.space_id,
       author_user_id: row.author_user_id,
       target_entity_type: row.target_entity_type,
       target_entity_id: row.target_entity_id,
@@ -694,14 +694,14 @@ export const createDocRoutes = (deps) => {
         send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
         return;
       }
-      if (docGate.project_id !== projectId) {
+      if (docGate.space_id !== projectId) {
         send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Doc must belong to project_id.')));
         return;
       }
     }
     if (sourceEntityType === 'comment') {
       const comment = commentByIdStmt.get(sourceEntityId);
-      if (!comment || comment.project_id !== projectId) {
+      if (!comment || comment.space_id !== projectId) {
         send(response, jsonResponse(404, errorEnvelope('not_found', 'Comment source not found in project.')));
         return;
       }
@@ -760,7 +760,6 @@ export const createDocRoutes = (deps) => {
         okEnvelope({
           authorization: {
             doc_id: docId,
-            pane_id: docGate.pane_id,
             project_id: docGate.project_id,
             user_id: auth.user.user_id,
             display_name: auth.user.display_name,

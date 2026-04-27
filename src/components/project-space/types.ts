@@ -8,7 +8,7 @@ export type AudienceMode = 'project' | 'personal' | 'custom';
 
 export type ModuleSize = 'S' | 'M' | 'L';
 
-export type ModuleLens = 'project' | 'pane_scratch';
+export type ModuleLens = 'space' | 'project' | 'project_scratch';
 
 export type ModuleType =
   | 'tasks'
@@ -39,7 +39,7 @@ export interface ModuleTemplate {
   defaultLens: ModuleLens;
 }
 
-export interface PaneModule {
+export interface ProjectModule {
   id: string;
   type: ModuleType;
   label: string;
@@ -47,7 +47,7 @@ export interface PaneModule {
   lens: ModuleLens;
 }
 
-export interface WorkPane {
+export interface WorkProject {
   id: string;
   title: string;
   audienceMode: AudienceMode;
@@ -55,5 +55,5 @@ export interface WorkPane {
   modulesEnabled: boolean;
   workspaceEnabled: boolean;
   docBindingMode: 'owned';
-  modules: PaneModule[];
+  modules: ProjectModule[];
 }

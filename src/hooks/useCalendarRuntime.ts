@@ -12,7 +12,7 @@ interface CalendarEventSummary {
     updated_at: string;
   };
   participants: Array<{ user_id: string; role: string | null }>;
-  source_pane: { pane_id: string | null; pane_name: string | null; doc_id: string | null } | null;
+  source_project: { project_id: string | null; project_name: string | null; doc_id: string | null } | null;
 }
 
 interface UseCalendarRuntimeParams {

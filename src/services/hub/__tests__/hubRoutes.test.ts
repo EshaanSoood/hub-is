@@ -8,8 +8,8 @@ import type { HubHomeEvent, HubTaskSummary } from '../types.ts';
 
 const baseTask = (): HubTaskSummary => ({
   record_id: 'rec-1',
-  project_id: 'proj-1',
-  project_name: null,
+  space_id: 'proj-1',
+  space_name: null,
   collection_id: 'col-1',
   collection_name: null,
   title: 'Task',
@@ -25,15 +25,15 @@ const baseTask = (): HubTaskSummary => ({
     updated_at: '2026-03-22T00:00:00Z',
   },
   assignments: [],
-  origin_kind: 'pane',
+  origin_kind: 'project',
   source_view_id: null,
-  source_pane: null,
+  source_project: null,
 });
 
 const baseEvent = (): HubHomeEvent => ({
   record_id: 'evt-1',
-  project_id: 'proj-1',
-  project_name: null,
+  space_id: 'proj-1',
+  space_name: null,
   collection_id: 'col-1',
   collection_name: null,
   title: 'Event',
@@ -46,7 +46,7 @@ const baseEvent = (): HubHomeEvent => ({
     updated_at: '2026-03-22T00:00:00Z',
   },
   participants: [],
-  source_pane: null,
+  source_project: null,
 });
 
 describe('hubRoutes URL builders', () => {
@@ -55,28 +55,28 @@ describe('hubRoutes URL builders', () => {
     const personalTaskHref = buildTaskDestinationHref({
       ...baseTask(),
       origin_kind: 'personal',
-      project_id: null,
+      space_id: null,
     });
 
     assert.equal(projectTaskHref, '/projects/proj-1/work');
     assert.equal(personalTaskHref, '/projects?intent=open&task_id=rec-1');
   });
 
-  test('buildEventDestinationHref builds project overview and pane routes', () => {
+  test('buildEventDestinationHref builds project overview and project routes', () => {
     const eventOverviewHref = buildEventDestinationHref(baseEvent());
-    const eventPaneHref = buildEventDestinationHref({
+    const eventProjectHref = buildEventDestinationHref({
       ...baseEvent(),
-      source_pane: { pane_id: 'pane#1', pane_name: null, doc_id: null },
+      source_project: { project_id: 'project#1', project_name: null, doc_id: null },
     });
 
     assert.equal(eventOverviewHref, '/projects/proj-1/overview?view=calendar');
-    assert.equal(eventPaneHref, '/projects/proj-1/work/pane%231');
+    assert.equal(eventProjectHref, '/projects/proj-1/work/project%231');
   });
 
   test('handles missing IDs and encodes special characters', () => {
     const missingProjectTaskHref = buildTaskDestinationHref({
       ...baseTask(),
-      project_id: null,
+      space_id: null,
     });
     const missingRecordPersonalHref = buildTaskDestinationHref({
       ...baseTask(),
@@ -85,23 +85,23 @@ describe('hubRoutes URL builders', () => {
     });
     const missingProjectEventHref = buildEventDestinationHref({
       ...baseEvent(),
-      project_id: '',
+      space_id: '',
     });
     const encodedTaskHref = buildTaskDestinationHref({
       ...baseTask(),
-      project_id: 'proj/with spaces',
-      source_pane: { pane_id: 'pane/&?', pane_name: null, doc_id: null },
+      space_id: 'proj/with spaces',
+      source_project: { project_id: 'project/&?', project_name: null, doc_id: null },
     });
     const encodedEventHref = buildEventDestinationHref({
       ...baseEvent(),
-      project_id: 'proj id/%',
-      source_pane: { pane_id: 'pane id/&', pane_name: null, doc_id: null },
+      space_id: 'proj id/%',
+      source_project: { project_id: 'project id/&', project_name: null, doc_id: null },
     });
 
     assert.equal(missingProjectTaskHref, '/projects');
     assert.equal(missingRecordPersonalHref, '/projects?intent=open&task_id=');
     assert.equal(missingProjectEventHref, '/projects');
-    assert.equal(encodedTaskHref, '/projects/proj%2Fwith%20spaces/work/pane%2F%26%3F');
-    assert.equal(encodedEventHref, '/projects/proj%20id%2F%25/work/pane%20id%2F%26');
+    assert.equal(encodedTaskHref, '/projects/proj%2Fwith%20spaces/work/project%2F%26%3F');
+    assert.equal(encodedEventHref, '/projects/proj%20id%2F%25/work/project%20id%2F%26');
   });
 });

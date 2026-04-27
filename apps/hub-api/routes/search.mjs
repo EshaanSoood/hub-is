@@ -1,7 +1,7 @@
-const SEARCH_TYPES = new Set(['record', 'project', 'pane']);
+const SEARCH_TYPES = new Set(['record', 'project']);
 const TYPE_ORDER = {
   record: 0,
-  pane: 1,
+  project: 1,
   project: 2,
 };
 
@@ -27,15 +27,27 @@ export const createSearchRoutes = (deps) => {
     projectMembershipsByUserStmt,
   } = deps;
 
-  const visibleProjectIdsForUser = (userId) =>
+  const visibleSpaceIdsForUser = (userId) =>
     Array.from(
       new Set(
         projectMembershipsByUserStmt
           .all(userId)
-          .map((membership) => asText(membership.project_id))
+          .map((membership) => asText(membership.space_id))
           .filter(Boolean),
       ),
     );
+
+  const visibleWorkProjectIdsForUser = (visibleSpaceIds) => {
+    if (visibleSpaceIds.length === 0) {
+      return [];
+    }
+    const placeholders = visibleSpaceIds.map(() => '?').join(', ');
+    return db.prepare(`
+      SELECT project_id
+      FROM projects
+      WHERE space_id IN (${placeholders})
+    `).all(...visibleSpaceIds).map((row) => asText(row.project_id)).filter(Boolean);
+  };
 
   const compareResults = (left, right) => {
     const scoreDiff = normalizeScore(left.score) - normalizeScore(right.score);
@@ -49,14 +61,14 @@ export const createSearchRoutes = (deps) => {
     return String(left.title || '').localeCompare(String(right.title || ''));
   };
 
-  const searchRecords = ({ query, limit, visibleProjectIds, requestLog = null }) => {
-    const placeholders = visibleProjectIds.map(() => '?').join(', ');
+  const searchRecords = ({ query, limit, visibleSpaceIds, requestLog = null }) => {
+    const placeholders = visibleSpaceIds.map(() => '?').join(', ');
     const matchSql = `
       SELECT
         r.record_id AS id,
         r.title AS title,
-        r.project_id AS project_id,
-        p.name AS project_name,
+        r.space_id AS space_id,
+        s.name AS space_name,
         CASE
           WHEN ts.record_id IS NOT NULL THEN 'task'
           WHEN es.record_id IS NOT NULL THEN 'event'
@@ -65,12 +77,12 @@ export const createSearchRoutes = (deps) => {
         bm25(search_records_fts) AS score
       FROM search_records_fts
       JOIN records r ON r.record_id = search_records_fts.record_id
-      JOIN projects p ON p.project_id = r.project_id
+      JOIN spaces s ON s.space_id = r.space_id
       LEFT JOIN task_state ts ON ts.record_id = r.record_id
       LEFT JOIN event_state es ON es.record_id = r.record_id
       WHERE search_records_fts MATCH ?
         AND r.archived_at IS NULL
-        AND r.project_id IN (${placeholders})
+        AND r.space_id IN (${placeholders})
       ORDER BY score ASC, r.updated_at DESC, r.record_id DESC
       LIMIT ?
     `;
@@ -80,8 +92,8 @@ export const createSearchRoutes = (deps) => {
       SELECT
         r.record_id AS id,
         r.title AS title,
-        r.project_id AS project_id,
-        p.name AS project_name,
+        r.space_id AS space_id,
+        s.name AS space_name,
         CASE
           WHEN ts.record_id IS NOT NULL THEN 'task'
           WHEN es.record_id IS NOT NULL THEN 'event'
@@ -93,41 +105,42 @@ export const createSearchRoutes = (deps) => {
           ELSE 2
         END AS score
       FROM records r
-      JOIN projects p ON p.project_id = r.project_id
+      JOIN spaces s ON s.space_id = r.space_id
       LEFT JOIN task_state ts ON ts.record_id = r.record_id
       LEFT JOIN event_state es ON es.record_id = r.record_id
       WHERE r.archived_at IS NULL
-        AND r.project_id IN (${placeholders})
+        AND r.space_id IN (${placeholders})
         AND LOWER(r.title) LIKE ? ESCAPE '\\'
       ORDER BY score ASC, r.updated_at DESC, r.record_id DESC
       LIMIT ?
     `;
 
     try {
-      return db.prepare(matchSql).all(query, ...visibleProjectIds, limit);
+      return db.prepare(matchSql).all(query, ...visibleSpaceIds, limit);
     } catch (error) {
       requestLog?.warn?.('FTS record search failed; using LIKE fallback.', { error });
       return db.prepare(fallbackSql).all(
         loweredQuery,
         `${escapedQuery}%`,
-        ...visibleProjectIds,
+        ...visibleSpaceIds,
         `%${escapedQuery}%`,
         limit,
       );
     }
   };
 
-  const searchProjects = ({ query, limit, visibleProjectIds, requestLog = null }) => {
-    const placeholders = visibleProjectIds.map(() => '?').join(', ');
+  const searchProjects = ({ query, limit, visibleWorkProjectIds, requestLog = null }) => {
+    const placeholders = visibleWorkProjectIds.map(() => '?').join(', ');
     const matchSql = `
       SELECT
         p.project_id AS id,
-        p.project_id AS project_id,
         p.name AS title,
-        p.name AS project_name,
+        p.space_id AS space_id,
+        s.name AS space_name,
         bm25(search_projects_fts) AS score
       FROM search_projects_fts
       JOIN projects p ON p.project_id = search_projects_fts.project_id
+      JOIN spaces s ON s.space_id = p.space_id
       WHERE search_projects_fts MATCH ?
         AND p.project_id IN (${placeholders})
       ORDER BY score ASC, p.updated_at DESC, p.project_id DESC
@@ -138,15 +151,16 @@ export const createSearchRoutes = (deps) => {
     const fallbackSql = `
       SELECT
         p.project_id AS id,
-        p.project_id AS project_id,
         p.name AS title,
-        p.name AS project_name,
+        p.space_id AS space_id,
+        s.name AS space_name,
         CASE
           WHEN LOWER(p.name) = ? THEN 0
           WHEN LOWER(p.name) LIKE ? ESCAPE '\\' THEN 1
           ELSE 2
         END AS score
       FROM projects p
+      JOIN spaces s ON s.space_id = p.space_id
       WHERE p.project_id IN (${placeholders})
         AND LOWER(p.name) LIKE ? ESCAPE '\\'
       ORDER BY score ASC, p.updated_at DESC, p.project_id DESC
@@ -154,65 +168,13 @@ export const createSearchRoutes = (deps) => {
     `;
 
     try {
-      return db.prepare(matchSql).all(query, ...visibleProjectIds, limit);
+      return db.prepare(matchSql).all(query, ...visibleWorkProjectIds, limit);
     } catch (error) {
       requestLog?.warn?.('FTS project search failed; using LIKE fallback.', { error });
       return db.prepare(fallbackSql).all(
         loweredQuery,
         `${escapedQuery}%`,
-        ...visibleProjectIds,
-        `%${escapedQuery}%`,
-        limit,
-      );
-    }
-  };
-
-  const searchPanes = ({ query, limit, visibleProjectIds, requestLog = null }) => {
-    const placeholders = visibleProjectIds.map(() => '?').join(', ');
-    const matchSql = `
-      SELECT
-        panes.pane_id AS id,
-        panes.project_id AS project_id,
-        panes.name AS title,
-        projects.name AS project_name,
-        bm25(search_panes_fts) AS score
-      FROM search_panes_fts
-      JOIN panes ON panes.pane_id = search_panes_fts.pane_id
-      JOIN projects ON projects.project_id = panes.project_id
-      WHERE search_panes_fts MATCH ?
-        AND panes.project_id IN (${placeholders})
-      ORDER BY score ASC, panes.updated_at DESC, panes.pane_id DESC
-      LIMIT ?
-    `;
-    const loweredQuery = query.toLowerCase();
-    const escapedQuery = escapeLikePattern(loweredQuery);
-    const fallbackSql = `
-      SELECT
-        panes.pane_id AS id,
-        panes.project_id AS project_id,
-        panes.name AS title,
-        projects.name AS project_name,
-        CASE
-          WHEN LOWER(panes.name) = ? THEN 0
-          WHEN LOWER(panes.name) LIKE ? ESCAPE '\\' THEN 1
-          ELSE 2
-        END AS score
-      FROM panes
-      JOIN projects ON projects.project_id = panes.project_id
-      WHERE panes.project_id IN (${placeholders})
-        AND LOWER(panes.name) LIKE ? ESCAPE '\\'
-      ORDER BY score ASC, panes.updated_at DESC, panes.pane_id DESC
-      LIMIT ?
-    `;
-
-    try {
-      return db.prepare(matchSql).all(query, ...visibleProjectIds, limit);
-    } catch (error) {
-      requestLog?.warn?.('FTS pane search failed; using LIKE fallback.', { error });
-      return db.prepare(fallbackSql).all(
-        loweredQuery,
-        `${escapedQuery}%`,
-        ...visibleProjectIds,
+        ...visibleWorkProjectIds,
         `%${escapedQuery}%`,
         limit,
       );
@@ -229,51 +191,43 @@ export const createSearchRoutes = (deps) => {
     const limit = asInteger(requestUrl.searchParams.get('limit'), 20, 1, 50);
     const requestedType = asText(requestUrl.searchParams.get('type')).toLowerCase();
     if (requestedType && !SEARCH_TYPES.has(requestedType)) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'type must be record, project, or pane.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'type must be record or project.')));
       return;
     }
 
-    const visibleProjectIds = visibleProjectIdsForUser(auth.user.user_id);
-    if (visibleProjectIds.length === 0) {
+    const visibleSpaceIds = visibleSpaceIdsForUser(auth.user.user_id);
+    if (visibleSpaceIds.length === 0) {
       send(response, jsonResponse(200, okEnvelope({ query, results: [] })));
       return;
     }
-
-    const typesToSearch = requestedType ? [requestedType] : ['record', 'project', 'pane'];
+    const typesToSearch = requestedType ? [requestedType] : ['record', 'project'];
+    const visibleWorkProjectIds = typesToSearch.includes('project') ? visibleWorkProjectIdsForUser(visibleSpaceIds) : [];
     const results = [];
 
     for (const type of typesToSearch) {
       if (type === 'record') {
         results.push(
-          ...searchRecords({ query, limit, visibleProjectIds, requestLog: request.log }).map((row) => ({
+          ...searchRecords({ query, limit, visibleSpaceIds, requestLog: request.log }).map((row) => ({
             type: 'record',
             id: row.id,
             title: row.title,
-            project_id: row.project_id,
-            project_name: row.project_name,
+            space_id: row.space_id,
+            space_name: row.space_name,
             content_type: row.content_type,
             score: row.score,
           })),
         );
       } else if (type === 'project') {
+        if (visibleWorkProjectIds.length === 0) {
+          continue;
+        }
         results.push(
-          ...searchProjects({ query, limit, visibleProjectIds, requestLog: request.log }).map((row) => ({
+          ...searchProjects({ query, limit, visibleWorkProjectIds, requestLog: request.log }).map((row) => ({
             type: 'project',
             id: row.id,
             title: row.title,
-            project_id: row.project_id,
-            project_name: row.project_name,
-            score: row.score,
-          })),
-        );
-      } else if (type === 'pane') {
-        results.push(
-          ...searchPanes({ query, limit, visibleProjectIds, requestLog: request.log }).map((row) => ({
-            type: 'pane',
-            id: row.id,
-            title: row.title,
-            project_id: row.project_id,
-            project_name: row.project_name,
+            space_id: row.space_id,
+            space_name: row.space_name,
             score: row.score,
           })),
         );

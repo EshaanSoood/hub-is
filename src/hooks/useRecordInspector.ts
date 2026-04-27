@@ -12,8 +12,8 @@ import {
   detachFile,
 } from '../services/hub/records';
 import { uploadFile } from '../services/hub/files';
-import { recordRecentPaneContribution } from '../features/recentPlaces/store';
-import type { HubBacklink, HubPaneSummary, HubRecordDetail } from '../services/hub/types';
+import { recordRecentProjectContribution } from '../features/recentPlaces/store';
+import type { HubBacklink, HubProjectSummary, HubRecordDetail } from '../services/hub/types';
 import { appendMentionToken, extractMentionsFromText, mentionToken } from '../features/notes/mentionTokens';
 import type { RelationFieldOption } from '../components/project-space/RelationPicker';
 
@@ -30,15 +30,15 @@ interface UseRecordInspectorParams {
   accessToken: string;
   projectId: string;
   projectName: string;
-  panes: HubPaneSummary[];
+  projects: HubProjectSummary[];
   activeTab: 'overview' | 'work';
-  activePaneId: string | null;
+  activeProjectId: string | null;
   sessionUserId: string;
   refreshViewsAndRecords: () => Promise<void>;
   setTimeline: Dispatch<SetStateAction<ProjectTimelineItem[]>>;
   ensureProjectAssetRoot: () => Promise<string>;
   refreshTrackedProjectFiles: () => Promise<void>;
-  paneCanEditForUser: (pane: HubPaneSummary | null | undefined, userId: string) => boolean;
+  projectCanEditForUser: (project: HubProjectSummary | null | undefined, userId: string) => boolean;
   relationFieldTargetCollectionId: (config: Record<string, unknown>) => string | null;
   toBase64: (file: File) => Promise<string>;
 }
@@ -47,20 +47,20 @@ export const useRecordInspector = ({
   accessToken,
   projectId,
   projectName,
-  panes,
+  projects,
   activeTab,
-  activePaneId,
+  activeProjectId,
   sessionUserId,
   refreshViewsAndRecords,
   setTimeline,
   ensureProjectAssetRoot,
   refreshTrackedProjectFiles,
-  paneCanEditForUser,
+  projectCanEditForUser,
   relationFieldTargetCollectionId,
   toBase64,
 }: UseRecordInspectorParams) => {
   const [inspectorRecordId, setInspectorRecordId] = useState<string | null>(null);
-  const [inspectorMutationPaneId, setInspectorMutationPaneId] = useState<string | null>(null);
+  const [inspectorMutationProjectId, setInspectorMutationProjectId] = useState<string | null>(null);
   const [inspectorRecord, setInspectorRecord] = useState<HubRecordDetail | null>(null);
   const [inspectorLoading, setInspectorLoading] = useState(false);
   const [inspectorError, setInspectorError] = useState<string | null>(null);
@@ -74,13 +74,13 @@ export const useRecordInspector = ({
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [selectedAttachmentId, setSelectedAttachmentId] = useState<string | null>(null);
 
-  const inspectorMutationPane = useMemo(
-    () => (inspectorMutationPaneId ? panes.find((pane) => pane.pane_id === inspectorMutationPaneId) || null : null),
-    [inspectorMutationPaneId, panes],
+  const inspectorMutationProject = useMemo(
+    () => (inspectorMutationProjectId ? projects.find((project) => project.project_id === inspectorMutationProjectId) || null : null),
+    [inspectorMutationProjectId, projects],
   );
-  const inspectorMutationPaneCanEdit = useMemo(
-    () => paneCanEditForUser(inspectorMutationPane, sessionUserId),
-    [inspectorMutationPane, paneCanEditForUser, sessionUserId],
+  const inspectorMutationProjectCanEdit = useMemo(
+    () => projectCanEditForUser(inspectorMutationProject, sessionUserId),
+    [inspectorMutationProject, projectCanEditForUser, sessionUserId],
   );
   const inspectorRelationFields = useMemo<RelationFieldOption[]>(() => {
     if (!inspectorRecord?.schema?.fields) {
@@ -96,28 +96,28 @@ export const useRecordInspector = ({
   }, [inspectorRecord?.schema?.fields, relationFieldTargetCollectionId]);
 
   const inspectorRequestVersionRef = useRef(0);
-  const recordInspectorPaneContribution = useCallback((contributionKind: string) => {
-    if (!inspectorMutationPaneId) {
+  const recordInspectorProjectContribution = useCallback((contributionKind: string) => {
+    if (!inspectorMutationProjectId) {
       return;
     }
-    const pane = panes.find((entry) => entry.pane_id === inspectorMutationPaneId) || null;
-    if (!pane) {
+    const project = projects.find((entry) => entry.project_id === inspectorMutationProjectId) || null;
+    if (!project) {
       return;
     }
-    recordRecentPaneContribution({
-      paneId: pane.pane_id,
-      paneName: pane.name,
+    recordRecentProjectContribution({
+      projectId: project.project_id,
+      projectName: project.name,
       spaceId: projectId,
       spaceName: projectName,
     }, contributionKind);
-  }, [inspectorMutationPaneId, panes, projectId, projectName]);
+  }, [inspectorMutationProjectId, projects, projectId, projectName]);
 
   const openInspector = useCallback(
-    async (recordId: string, options?: { mutationPaneId?: string | null }) => {
+    async (recordId: string, options?: { mutationProjectId?: string | null }) => {
       const reqVer = ++inspectorRequestVersionRef.current;
-      const mutationPaneId = options?.mutationPaneId ?? (activeTab === 'work' ? activePaneId || null : null);
+      const mutationProjectId = options?.mutationProjectId ?? (activeTab === 'work' ? activeProjectId || null : null);
       setInspectorRecordId(recordId);
-      setInspectorMutationPaneId(mutationPaneId);
+      setInspectorMutationProjectId(mutationProjectId);
       setInspectorLoading(true);
       setInspectorError(null);
       setInspectorBacklinksLoading(true);
@@ -167,13 +167,13 @@ export const useRecordInspector = ({
         }
       }
     },
-    [accessToken, activePaneId, activeTab, projectId],
+    [accessToken, activeProjectId, activeTab, projectId],
   );
 
   const closeInspector = useCallback(() => {
     inspectorRequestVersionRef.current += 1;
     setInspectorRecordId(null);
-    setInspectorMutationPaneId(null);
+    setInspectorMutationProjectId(null);
     setInspectorRecord(null);
     setInspectorCommentText('');
     setInspectorBacklinks([]);
@@ -201,7 +201,7 @@ export const useRecordInspector = ({
       if (!inspectorRecord) {
         return;
       }
-      if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
+      if (!inspectorMutationProjectCanEdit || !inspectorMutationProjectId) {
         setInspectorError('Read-only project. Only project editors can change record fields.');
         return;
       }
@@ -215,14 +215,14 @@ export const useRecordInspector = ({
           {
             [fieldId]: rawValue,
           },
-          { mutation_context_pane_id: inspectorMutationPaneId },
+          { mutation_context_project_id: inspectorMutationProjectId },
         );
         const refreshed = await getRecordDetail(accessToken, inspectorRecord.record_id);
         setInspectorRecord(refreshed);
         await refreshViewsAndRecords();
         const nextTimeline = await listTimeline(accessToken, projectId);
         setTimeline(nextTimeline);
-        recordInspectorPaneContribution('record-field-update');
+        recordInspectorProjectContribution('record-field-update');
       } catch (error) {
         setInspectorError(error instanceof Error ? error.message : 'Failed to save field.');
       } finally {
@@ -231,11 +231,11 @@ export const useRecordInspector = ({
     },
     [
       accessToken,
-      inspectorMutationPaneCanEdit,
-      inspectorMutationPaneId,
+      inspectorMutationProjectCanEdit,
+      inspectorMutationProjectId,
       inspectorRecord,
       projectId,
-      recordInspectorPaneContribution,
+      recordInspectorProjectContribution,
       refreshViewsAndRecords,
       setTimeline,
     ],
@@ -262,7 +262,7 @@ export const useRecordInspector = ({
       }));
 
       await createComment(accessToken, {
-        project_id: projectId,
+        space_id: projectId,
         target_entity_type: 'record',
         target_entity_id: inspectorRecord.record_id,
         body_json: {
@@ -276,9 +276,9 @@ export const useRecordInspector = ({
       setInspectorRecord(refreshed);
       const backlinks = await listBacklinks(accessToken, projectId, 'record', inspectorRecord.record_id);
       setInspectorBacklinks(backlinks);
-      recordInspectorPaneContribution('record-comment');
+      recordInspectorProjectContribution('record-comment');
     },
-    [accessToken, inspectorCommentText, inspectorRecord, projectId, recordInspectorPaneContribution],
+    [accessToken, inspectorCommentText, inspectorRecord, projectId, recordInspectorProjectContribution],
   );
 
   const onAddRelation = useCallback(
@@ -286,7 +286,7 @@ export const useRecordInspector = ({
       if (!inspectorRecord) {
         return;
       }
-      if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
+      if (!inspectorMutationProjectCanEdit || !inspectorMutationProjectId) {
         setRelationMutationError('Read-only project. Only project editors can change relations.');
         return;
       }
@@ -295,11 +295,11 @@ export const useRecordInspector = ({
       setRelationMutationError(null);
       try {
         await addRelation(accessToken, recordId, {
-          project_id: projectId,
+          space_id: projectId,
           from_record_id: recordId,
           to_record_id: payload.to_record_id,
           via_field_id: payload.via_field_id,
-          mutation_context_pane_id: inspectorMutationPaneId,
+          mutation_context_project_id: inspectorMutationProjectId,
         });
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
@@ -318,7 +318,7 @@ export const useRecordInspector = ({
           return;
         }
         setTimeline(nextTimeline);
-        recordInspectorPaneContribution('relation-add');
+        recordInspectorProjectContribution('relation-add');
       } catch (error) {
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
@@ -329,11 +329,11 @@ export const useRecordInspector = ({
     },
     [
       accessToken,
-      inspectorMutationPaneCanEdit,
-      inspectorMutationPaneId,
+      inspectorMutationProjectCanEdit,
+      inspectorMutationProjectId,
       inspectorRecord,
       projectId,
-      recordInspectorPaneContribution,
+      recordInspectorProjectContribution,
       refreshViewsAndRecords,
       setTimeline,
     ],
@@ -344,7 +344,7 @@ export const useRecordInspector = ({
       if (!inspectorRecord) {
         return;
       }
-      if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
+      if (!inspectorMutationProjectCanEdit || !inspectorMutationProjectId) {
         setRelationMutationError('Read-only project. Only project editors can change relations.');
         return;
       }
@@ -353,7 +353,7 @@ export const useRecordInspector = ({
       setRelationMutationError(null);
       setRemovingRelationId(relationId);
       try {
-        await removeRelation(accessToken, relationId, { mutation_context_pane_id: inspectorMutationPaneId });
+        await removeRelation(accessToken, relationId, { mutation_context_project_id: inspectorMutationProjectId });
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
         }
@@ -371,7 +371,7 @@ export const useRecordInspector = ({
           return;
         }
         setTimeline(nextTimeline);
-        recordInspectorPaneContribution('relation-remove');
+        recordInspectorProjectContribution('relation-remove');
       } catch (error) {
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
@@ -385,11 +385,11 @@ export const useRecordInspector = ({
     },
     [
       accessToken,
-      inspectorMutationPaneCanEdit,
-      inspectorMutationPaneId,
+      inspectorMutationProjectCanEdit,
+      inspectorMutationProjectId,
       inspectorRecord,
       projectId,
-      recordInspectorPaneContribution,
+      recordInspectorProjectContribution,
       refreshViewsAndRecords,
       setTimeline,
     ],
@@ -401,7 +401,7 @@ export const useRecordInspector = ({
       if (!inspectorRecord) {
         return;
       }
-      if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
+      if (!inspectorMutationProjectCanEdit || !inspectorMutationProjectId) {
         setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
@@ -419,13 +419,13 @@ export const useRecordInspector = ({
       try {
         const [base64, assetRootId] = await Promise.all([toBase64(file), ensureProjectAssetRoot()]);
         const uploaded = await uploadFile(accessToken, {
-          project_id: projectId,
+          space_id: projectId,
           asset_root_id: assetRootId,
           name: file.name,
           mime_type: file.type || 'application/octet-stream',
           content_base64: base64,
           path: 'Uploads',
-          mutation_context_pane_id: inspectorMutationPaneId,
+          mutation_context_project_id: inspectorMutationProjectId,
           metadata: {
             scope: 'project',
             attached_entity_type: 'record',
@@ -437,7 +437,7 @@ export const useRecordInspector = ({
         }
 
         await attachFile(accessToken, {
-          project_id: projectId,
+          space_id: projectId,
           entity_type: 'record',
           entity_id: recordId,
           provider: uploaded.file.provider,
@@ -446,7 +446,7 @@ export const useRecordInspector = ({
           name: uploaded.file.name,
           mime_type: uploaded.file.mime_type,
           size_bytes: uploaded.file.size_bytes,
-          mutation_context_pane_id: inspectorMutationPaneId,
+          mutation_context_project_id: inspectorMutationProjectId,
           metadata: {},
         });
         if (inspectorRequestVersionRef.current !== requestVersion) {
@@ -464,7 +464,7 @@ export const useRecordInspector = ({
           return;
         }
         setTimeline(nextTimeline);
-        recordInspectorPaneContribution('attachment-add');
+        recordInspectorProjectContribution('attachment-add');
       } catch (error) {
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
@@ -478,11 +478,11 @@ export const useRecordInspector = ({
     [
       accessToken,
       ensureProjectAssetRoot,
-      inspectorMutationPaneCanEdit,
-      inspectorMutationPaneId,
+      inspectorMutationProjectCanEdit,
+      inspectorMutationProjectId,
       inspectorRecord,
       projectId,
-      recordInspectorPaneContribution,
+      recordInspectorProjectContribution,
       refreshTrackedProjectFiles,
       setTimeline,
       toBase64,
@@ -494,7 +494,7 @@ export const useRecordInspector = ({
       if (!inspectorRecord) {
         return;
       }
-      if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
+      if (!inspectorMutationProjectCanEdit || !inspectorMutationProjectId) {
         setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
@@ -502,7 +502,7 @@ export const useRecordInspector = ({
       const recordId = inspectorRecord.record_id;
       setInspectorError(null);
       try {
-        await detachFile(accessToken, attachmentId, { mutation_context_pane_id: inspectorMutationPaneId });
+        await detachFile(accessToken, attachmentId, { mutation_context_project_id: inspectorMutationProjectId });
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
         }
@@ -519,7 +519,7 @@ export const useRecordInspector = ({
           return;
         }
         setTimeline(nextTimeline);
-        recordInspectorPaneContribution('attachment-remove');
+        recordInspectorProjectContribution('attachment-remove');
       } catch (error) {
         if (inspectorRequestVersionRef.current !== requestVersion) {
           return;
@@ -527,7 +527,7 @@ export const useRecordInspector = ({
         setInspectorError(error instanceof Error ? error.message : 'Failed to remove attachment.');
       }
     },
-    [accessToken, inspectorMutationPaneCanEdit, inspectorMutationPaneId, inspectorRecord, projectId, recordInspectorPaneContribution, setTimeline],
+    [accessToken, inspectorMutationProjectCanEdit, inspectorMutationProjectId, inspectorRecord, projectId, recordInspectorProjectContribution, setTimeline],
   );
 
   const relinkInspectorAttachment = useCallback(
@@ -538,7 +538,7 @@ export const useRecordInspector = ({
       if (!inspectorRecord) {
         return;
       }
-      if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
+      if (!inspectorMutationProjectCanEdit || !inspectorMutationProjectId) {
         setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
@@ -553,7 +553,7 @@ export const useRecordInspector = ({
       const requestVersion = inspectorRequestVersionRef.current;
       const recordId = inspectorRecord.record_id;
       const attached = await attachFile(accessToken, {
-        project_id: projectId,
+        space_id: projectId,
         entity_type: 'record',
         entity_id: recordId,
         provider: attachment.provider,
@@ -562,22 +562,22 @@ export const useRecordInspector = ({
         name: options?.name || attachment.name,
         mime_type: attachment.mime_type,
         size_bytes: attachment.size_bytes,
-        mutation_context_pane_id: inspectorMutationPaneId,
+        mutation_context_project_id: inspectorMutationProjectId,
         metadata: options?.metadata || attachment.metadata || {},
       });
       if (inspectorRequestVersionRef.current !== requestVersion) {
         try {
-          await detachFile(accessToken, attached.attachment_id, { mutation_context_pane_id: inspectorMutationPaneId });
+          await detachFile(accessToken, attached.attachment_id, { mutation_context_project_id: inspectorMutationProjectId });
         } catch {
           // Best-effort rollback for stale inspector state.
         }
         return;
       }
       try {
-        await detachFile(accessToken, attachmentId, { mutation_context_pane_id: inspectorMutationPaneId });
+        await detachFile(accessToken, attachmentId, { mutation_context_project_id: inspectorMutationProjectId });
       } catch (error) {
         try {
-          await detachFile(accessToken, attached.attachment_id, { mutation_context_pane_id: inspectorMutationPaneId });
+          await detachFile(accessToken, attached.attachment_id, { mutation_context_project_id: inspectorMutationProjectId });
         } catch {
           throw new Error('Failed to update attachment and roll back the replacement copy.');
         }
@@ -598,7 +598,7 @@ export const useRecordInspector = ({
       }
       setTimeline(nextTimeline);
     },
-    [accessToken, inspectorMutationPaneCanEdit, inspectorMutationPaneId, inspectorRecord, projectId, setTimeline],
+    [accessToken, inspectorMutationProjectCanEdit, inspectorMutationProjectId, inspectorRecord, projectId, setTimeline],
   );
 
   const onRenameInspectorAttachment = useCallback(
@@ -608,7 +608,7 @@ export const useRecordInspector = ({
       if (!trimmed || !inspectorRecord) {
         return;
       }
-      if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
+      if (!inspectorMutationProjectCanEdit || !inspectorMutationProjectId) {
         setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
@@ -625,16 +625,16 @@ export const useRecordInspector = ({
         setInspectorError(error instanceof Error ? error.message : 'Failed to rename attachment.');
       }
     },
-    [inspectorMutationPaneCanEdit, inspectorMutationPaneId, inspectorRecord, relinkInspectorAttachment],
+    [inspectorMutationProjectCanEdit, inspectorMutationProjectId, inspectorRecord, relinkInspectorAttachment],
   );
 
   const onMoveInspectorAttachment = useCallback(
-    async (attachmentId: string, paneIdToMove: string) => {
+    async (attachmentId: string, projectIdToMove: string) => {
       const requestVersion = inspectorRequestVersionRef.current;
       if (!inspectorRecord) {
         return;
       }
-      if (!inspectorMutationPaneCanEdit || !inspectorMutationPaneId) {
+      if (!inspectorMutationProjectCanEdit || !inspectorMutationProjectId) {
         setInspectorError('Read-only project. Only project editors can manage attachments.');
         return;
       }
@@ -644,7 +644,7 @@ export const useRecordInspector = ({
       }
       const nextMetadata = {
         ...attachment.metadata,
-        pane_id: paneIdToMove,
+        space_id: projectIdToMove,
       };
       try {
         await relinkInspectorAttachment(attachmentId, {
@@ -657,7 +657,7 @@ export const useRecordInspector = ({
         setInspectorError(error instanceof Error ? error.message : 'Failed to move attachment.');
       }
     },
-    [inspectorMutationPaneCanEdit, inspectorMutationPaneId, inspectorRecord, relinkInspectorAttachment],
+    [inspectorMutationProjectCanEdit, inspectorMutationProjectId, inspectorRecord, relinkInspectorAttachment],
   );
 
   const onInsertRecordCommentMention = useCallback((target: { entity_type: 'user' | 'record'; entity_ref: { entity_id: string }; label: string }) => {
@@ -677,9 +677,9 @@ export const useRecordInspector = ({
     inspectorCommentText,
     inspectorError,
     inspectorLoading,
-    inspectorMutationPane,
-    inspectorMutationPaneCanEdit,
-    inspectorMutationPaneId,
+    inspectorMutationProject,
+    inspectorMutationProjectCanEdit,
+    inspectorMutationProjectId,
     inspectorRecord,
     inspectorRecordId,
     inspectorRelationFields,

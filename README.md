@@ -42,9 +42,9 @@ Generated files (`dist`, `node_modules`, `tsconfig.app.tsbuildinfo`) are build/r
 
 Access is invite-only at the hub policy layer.
 
-1. A project owner creates an invite for your email.
+1. A space owner creates an invite for your email.
 2. Sign in at the public URL configured for your deployment.
-3. Pending invites are consumed by the hub policy service to grant project membership.
+3. Pending invites are consumed by the hub policy service to grant space membership.
 
 ### Owner Invariant
 
@@ -55,8 +55,8 @@ Access is invite-only at the hub policy layer.
 ## Security + Governance
 
 - Edge gate grant flow (owner only): `POST /api/hub/edge/grants`
-- Notes (project-scoped, async): `GET/POST /api/hub/projects/:projectId/notes`, `PATCH /api/hub/projects/:projectId/notes/:noteId`
-- Notes collaboration session mint (project-scoped): `POST /api/hub/projects/:projectId/notes/:noteId/collab/session`
+- Collaboration authorization: `GET /api/hub/collab/authorize`
+- Document snapshots: `GET/PUT /api/hub/docs/:docId`
 - Governance trail (owner): `GET /api/hub/audit`
 - Snapshot registry (owner): `GET/POST /api/hub/snapshots`
 - Recovery workflows (owner): `POST /api/hub/recovery/restore-snapshot`, `POST /api/hub/recovery/revert-window`, `GET /api/hub/recovery/jobs`
@@ -109,7 +109,7 @@ Use the secure local stack when you need to verify frontend, API, auth, and coll
 - `npm run dev:secure`
   - Starts local Keycloak, provisions the synthetic users, then runs Vite, `hub-api`, and `hub-collab`.
 - `npm run dev:secure:verify`
-  - Mints local test tokens, ensures the local fixture project and memberships exist, and runs the local authz/policy/collab smoke checks against the running stack.
+  - Mints local test tokens, ensures the local fixture space and memberships exist, and runs the local authz/policy/collab smoke checks against the running stack.
 - `npm run dev:secure:auth:down`
   - Stops the local Keycloak container when you are done.
 

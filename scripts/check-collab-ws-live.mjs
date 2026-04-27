@@ -118,7 +118,7 @@ const expectWsDenied = async (room, params, label) => {
 };
 
 const createNote = async (token, title) => {
-  const response = await request(`/api/hub/projects/${encodeURIComponent(projectId)}/notes`, {
+  const response = await request(`/api/hub/spaces/${encodeURIComponent(projectId)}/notes`, {
     method: 'POST',
     token,
     body: {
@@ -151,7 +151,7 @@ const createNote = async (token, title) => {
 
 const createSession = async (token, noteId) => {
   const response = await request(
-    `/api/hub/projects/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/collab/session`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteId)}/collab/session`,
     {
       method: 'POST',
       token,
@@ -304,7 +304,7 @@ await expectWsDenied(
 );
 
 const nonMemberSessionAttempt = await request(
-  `/api/hub/projects/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteA.id)}/collab/session`,
+  `/api/hub/spaces/${encodeURIComponent(projectId)}/notes/${encodeURIComponent(noteA.id)}/collab/session`,
   {
     method: 'POST',
     token: nonMemberToken,

@@ -300,7 +300,7 @@ export const createChatRoutes = (deps) => {
       return;
     }
 
-    const projectId = asText(body.project_id);
+    const projectId = asText(body.space_id);
     const conversationRoomId = asText(body.conversation_room_id);
     const messageSenderDisplayName = asText(body.message_sender_display_name);
     const messageText = asText(body.message_text);
@@ -313,7 +313,7 @@ export const createChatRoutes = (deps) => {
           400,
           errorEnvelope(
             'invalid_input',
-            'project_id, conversation_room_id, message_sender_display_name, message_text, and message_timestamp are required.',
+            'space_id, conversation_room_id, message_sender_display_name, message_text, and message_timestamp are required.',
           ),
         ),
       );
@@ -363,8 +363,7 @@ export const createChatRoutes = (deps) => {
           notificationScope: 'network',
           payload: buildNotificationPayload({
             message: `New chat snapshot from ${messageSenderDisplayName}`,
-            sourceProjectId: projectId,
-            originKind: 'project',
+            originKind: 'space',
             extras: {
               snapshot_id: snapshot.snapshot_id,
               conversation_room_id: conversationRoomId,
@@ -384,9 +383,9 @@ export const createChatRoutes = (deps) => {
   });
 
   const listSnapshots = withPolicyGate('hub.chat.view', async ({ response, requestUrl, auth }) => {
-    const projectId = asText(requestUrl.searchParams.get('project_id'));
+    const projectId = asText(requestUrl.searchParams.get('space_id'));
     if (!projectId) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required.')));
       return;
     }
 
@@ -401,7 +400,7 @@ export const createChatRoutes = (deps) => {
     const rows = chatSnapshotsPageStmt.all(projectId, limit + 1, offset);
     const snapshots = rows.slice(0, limit).map((row) => ({
       snapshot_id: row.snapshot_id,
-      project_id: row.project_id,
+      space_id: row.space_id,
       conversation_room_id: row.conversation_room_id,
       message_sender_display_name: row.message_sender_display_name,
       message_text: row.message_text,
@@ -422,7 +421,7 @@ export const createChatRoutes = (deps) => {
       return;
     }
 
-    const membershipGate = requireProjectMembership({ projectId: snapshot.project_id, userId: auth.user.user_id });
+    const membershipGate = requireProjectMembership({ projectId: snapshot.space_id, userId: auth.user.user_id });
     if (membershipGate.error) {
       send(response, jsonResponse(membershipGate.error.status, errorEnvelope(membershipGate.error.code, membershipGate.error.message)));
       return;

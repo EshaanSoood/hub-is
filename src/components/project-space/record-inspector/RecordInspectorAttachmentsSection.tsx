@@ -1,27 +1,27 @@
 import { FileInspectorActionBar } from '../FileInspectorActionBar';
 import { Icon } from '../../primitives';
 import type { FormEvent, ReactElement } from 'react';
-import type { HubPaneSummary } from '../../../services/hub/types';
+import type { HubProjectSummary } from '../../../services/hub/types';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
 
 interface RecordInspectorAttachmentsSectionProps {
   attachments: HubRecordDetail['attachments'];
-  panes: HubPaneSummary[];
+  projects: HubProjectSummary[];
   selectedAttachmentId: string | null;
-  inspectorMutationPaneCanEdit: boolean;
+  inspectorMutationProjectCanEdit: boolean;
   uploadingAttachment: boolean;
   setSelectedAttachmentId: (attachmentId: string | null) => void;
   onRenameAttachment: (attachmentId: string, nextName: string) => Promise<void>;
-  onMoveAttachment: (attachmentId: string, paneIdToMove: string) => Promise<void>;
+  onMoveAttachment: (attachmentId: string, projectIdToMove: string) => Promise<void>;
   onDetachAttachment: (attachmentId: string) => Promise<void>;
   onAttachFile: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
 export const RecordInspectorAttachmentsSection = ({
   attachments,
-  panes,
+  projects,
   selectedAttachmentId,
-  inspectorMutationPaneCanEdit,
+  inspectorMutationProjectCanEdit,
   uploadingAttachment,
   setSelectedAttachmentId,
   onRenameAttachment,
@@ -62,13 +62,13 @@ export const RecordInspectorAttachmentsSection = ({
               fileName={selectedAttachment.name || 'Attachment'}
               downloadUrl={selectedAttachment.proxy_url || ''}
               shareableLink={selectedAttachment.proxy_url || ''}
-              panes={panes.map((pane) => ({ id: pane.pane_id, name: pane.name }))}
-              readOnly={!inspectorMutationPaneCanEdit}
+              projects={projects.map((project) => ({ id: project.project_id, name: project.name }))}
+              readOnly={!inspectorMutationProjectCanEdit}
               onRename={(nextName) => {
                 void onRenameAttachment(selectedAttachment.attachment_id, nextName);
               }}
-              onMove={(paneIdToMove) => {
-                void onMoveAttachment(selectedAttachment.attachment_id, paneIdToMove);
+              onMove={(projectIdToMove) => {
+                void onMoveAttachment(selectedAttachment.attachment_id, projectIdToMove);
               }}
               onRemove={() => {
                 void onDetachAttachment(selectedAttachment.attachment_id);
@@ -87,7 +87,7 @@ export const RecordInspectorAttachmentsSection = ({
       ) : (
         <p className="mt-2 text-sm text-muted">No attachments yet.</p>
       )}
-      {inspectorMutationPaneCanEdit ? (
+      {inspectorMutationProjectCanEdit ? (
         <form
           className="mt-2 flex flex-wrap items-center gap-2"
           onSubmit={(event) => {

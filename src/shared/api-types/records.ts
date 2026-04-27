@@ -1,13 +1,13 @@
-import type { SourcePaneContext } from './tasks';
+import type { SourceProjectContext } from './tasks';
 
 export interface HubRecordDetail {
   record_id: string;
-  project_id: string;
+  space_id: string;
   collection_id: string;
   title: string;
-  origin_kind?: 'pane' | 'project' | 'personal' | null;
+  origin_kind?: 'project' | 'space' | 'personal' | null;
   source_view_id?: string | null;
-  source_pane: SourcePaneContext | null;
+  source_project: SourceProjectContext | null;
   schema: {
     collection_id: string;
     name: string;

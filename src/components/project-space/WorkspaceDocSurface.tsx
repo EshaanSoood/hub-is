@@ -9,7 +9,7 @@ import {
   type SetStateAction,
 } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import type { HubPaneSummary, HubProjectMember, HubView } from '../../services/hub/types';
+import type { HubProjectSummary, HubProjectMember, HubView } from '../../services/hub/types';
 import { dialogLayoutIds } from '../../styles/motion';
 import { Icon, InlineNotice } from '../primitives';
 import { CommentComposer } from './CommentComposer';
@@ -38,10 +38,10 @@ export interface WorkspaceDocSurfaceProps {
   projectId: string;
   projectMembers: HubProjectMember[];
   sessionUserId: string;
-  activePane: HubPaneSummary | null;
-  activePaneCanEdit: boolean;
+  activeProject: HubProjectSummary | null;
+  activeProjectCanEdit: boolean;
   workspaceEnabled: boolean;
-  activePaneDocId: string | null;
+  activeProjectDocId: string | null;
   docBootstrapReady: boolean;
   docBootstrapLexicalState: CollaborativeLexicalEditorProps['initialLexicalState'];
   collabSession: CollaborativeLexicalEditorProps['collaborationSession'];
@@ -86,10 +86,10 @@ export const WorkspaceDocSurface = ({
   projectId,
   projectMembers,
   sessionUserId,
-  activePane,
-  activePaneCanEdit,
+  activeProject,
+  activeProjectCanEdit,
   workspaceEnabled,
-  activePaneDocId,
+  activeProjectDocId,
   docBootstrapReady,
   docBootstrapLexicalState,
   collabSession,
@@ -129,7 +129,7 @@ export const WorkspaceDocSurface = ({
   setShowResolvedDocComments,
 }: WorkspaceDocSurfaceProps): ReactElement | null => {
   const prefersReducedMotion = useReducedMotion();
-  const mountedDocId = docBootstrapReady ? activePaneDocId : null;
+  const mountedDocId = docBootstrapReady ? activeProjectDocId : null;
   const {
     docAssetFormRef,
     docAssetInputRef,
@@ -142,7 +142,7 @@ export const WorkspaceDocSurface = ({
     onUploadDocAsset,
   });
 
-  if (!activePane) {
+  if (!activeProject) {
     return null;
   }
 
@@ -169,7 +169,7 @@ export const WorkspaceDocSurface = ({
                   initialLexicalState={docBootstrapLexicalState}
                   collaborationSession={collabSession}
                   userName={projectMembers.find((member) => member.user_id === sessionUserId)?.display_name || 'Current user'}
-                  editable={activePaneCanEdit}
+                  editable={activeProjectCanEdit}
                   onDocumentChange={onDocEditorChange}
                   onSelectedNodeChange={setSelectedDocNodeKey}
                   focusNodeKey={pendingDocFocusNodeKey}
@@ -205,7 +205,7 @@ export const WorkspaceDocSurface = ({
                 {collabSessionError}
               </InlineNotice>
             ) : null}
-            {activePaneCanEdit ? (
+            {activeProjectCanEdit ? (
               <>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <MentionPicker

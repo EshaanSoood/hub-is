@@ -48,7 +48,7 @@ const summary = {
   alreadyDeletedKeycloakUsers: 0,
 };
 
-const projectsResponse = await requestHub('/api/hub/projects');
+const projectsResponse = await requestHub('/api/hub/spaces');
 if (projectsResponse.status !== 200 || !Array.isArray(projectsResponse.payload?.projects)) {
   fail(`Unable to list projects for cleanup (${projectsResponse.status}).`);
 }
@@ -59,7 +59,7 @@ for (const project of projects) {
     continue;
   }
 
-  const deleted = await requestHub(`/api/hub/projects/${encodeURIComponent(project.id)}`, {
+  const deleted = await requestHub(`/api/hub/spaces/${encodeURIComponent(project.id)}`, {
     method: 'DELETE',
   });
   if (deleted.status === 404) {
@@ -72,13 +72,13 @@ for (const project of projects) {
   summary.deletedProjects += 1;
 }
 
-const projectsAfterDeleteResponse = await requestHub('/api/hub/projects');
+const projectsAfterDeleteResponse = await requestHub('/api/hub/spaces');
 if (projectsAfterDeleteResponse.status !== 200 || !Array.isArray(projectsAfterDeleteResponse.payload?.projects)) {
   fail(`Unable to list projects after cleanup deletions (${projectsAfterDeleteResponse.status}).`);
 }
 
 for (const project of projectsAfterDeleteResponse.payload.projects) {
-  const notesResponse = await requestHub(`/api/hub/projects/${encodeURIComponent(project.id)}/notes`);
+  const notesResponse = await requestHub(`/api/hub/spaces/${encodeURIComponent(project.id)}/notes`);
   if (notesResponse.status !== 200 || !Array.isArray(notesResponse.payload?.notes)) {
     fail(`Unable to list notes for project ${project.id} (${notesResponse.status}).`);
   }
@@ -89,7 +89,7 @@ for (const project of projectsAfterDeleteResponse.payload.projects) {
     }
 
     const archived = await requestHub(
-      `/api/hub/projects/${encodeURIComponent(project.id)}/notes/${encodeURIComponent(note.id)}`,
+      `/api/hub/spaces/${encodeURIComponent(project.id)}/notes/${encodeURIComponent(note.id)}`,
       {
         method: 'PATCH',
         body: { archived: true },

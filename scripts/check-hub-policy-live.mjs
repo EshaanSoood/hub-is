@@ -79,7 +79,7 @@ const requestInviteSurface = async (token) => {
     return { mode: 'top-level', response: topLevel };
   }
 
-  const projectMembers = await request(`/api/hub/projects/${encodeURIComponent(projectId)}/members`, { token });
+  const projectMembers = await request(`/api/hub/spaces/${encodeURIComponent(projectId)}/members`, { token });
   return { mode: 'project-members', response: projectMembers };
 };
 
@@ -105,7 +105,7 @@ if (ownerInviteSurface.mode === 'project-members') {
   assert(Array.isArray(ownerInviteData?.pending_invites), 'Owner project member surface did not include pending_invites.');
 }
 
-const ownerCreateProbe = await request('/api/hub/projects', {
+const ownerCreateProbe = await request('/api/hub/spaces', {
   method: 'POST',
   token: ownerToken,
   body: { id: 'x', name: '', summary: '' },
@@ -147,7 +147,7 @@ if (collaboratorToken) {
       );
     }
 
-    const collaboratorProjectCreate = await request('/api/hub/projects', {
+    const collaboratorProjectCreate = await request('/api/hub/spaces', {
       method: 'POST',
       token: collaboratorToken,
       body: { id: 'x', name: '', summary: '' },

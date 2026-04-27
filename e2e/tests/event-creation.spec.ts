@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { authenticateAsUserA } from '../helpers/auth';
 import {
   archiveRecordViaApi,
-  createPaneViaApi,
+  createProjectViaApi,
   createProjectViaApi,
   deleteProjectViaApi,
   waitForHomeEventByTitleIncludes,
@@ -11,14 +11,14 @@ import {
 const LIVE_TIMEOUT_MS = 60_000;
 const TEST_TIMEOUT_MS = 120_000;
 
-const openCalendarWorkPane = async (
+const openCalendarWorkProject = async (
   page: Page,
   token: string,
-): Promise<{ projectId: string; paneId: string }> => {
+): Promise<{ projectId: string; projectId: string }> => {
   const runId = `calendar-e2e-${Date.now().toString(36)}`;
   const project = await createProjectViaApi(token, `Calendar Submit ${runId}`);
-  const pane = await createPaneViaApi(token, project.project_id, {
-    name: 'Calendar Pane',
+  const project = await createProjectViaApi(token, project.space_id, {
+    name: 'Calendar Project',
     member_user_ids: [],
     layout_config: {
       modules_enabled: true,
@@ -35,7 +35,7 @@ const openCalendarWorkPane = async (
     },
   });
 
-  await page.goto(`/projects/${encodeURIComponent(project.project_id)}/work/${encodeURIComponent(pane.pane_id)}`, {
+  await page.goto(`/projects/${encodeURIComponent(project.space_id)}/work/${encodeURIComponent(project.project_id)}`, {
     waitUntil: 'domcontentloaded',
     timeout: LIVE_TIMEOUT_MS,
   });
@@ -43,15 +43,15 @@ const openCalendarWorkPane = async (
   await expect(page.getByRole('button', { name: /^New Event$/i }).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
   return {
+    projectId: project.space_id,
     projectId: project.project_id,
-    paneId: pane.pane_id,
   };
 };
 
 test('calendar inline create submits from the Create button', async ({ page }) => {
   test.setTimeout(TEST_TIMEOUT_MS);
   const token = await authenticateAsUserA(page);
-  const { projectId } = await openCalendarWorkPane(page, token);
+  const { projectId } = await openCalendarWorkProject(page, token);
 
   const uniqueToken = Math.random().toString(36).replace(/[^a-z]+/g, '').slice(0, 8);
   const eventTitle = `inline click ${uniqueToken}`;
@@ -68,7 +68,7 @@ test('calendar inline create submits from the Create button', async ({ page }) =
 
     const createRequest = page.waitForResponse(
       (response) =>
-        response.url().includes('/api/hub/projects/')
+        response.url().includes('/api/hub/spaces/')
         && response.url().includes('/events/from-nlp')
         && response.request().method() === 'POST',
       { timeout: LIVE_TIMEOUT_MS },
@@ -94,7 +94,7 @@ test('calendar inline create submits from the Create button', async ({ page }) =
 test('calendar inline create submits when Enter is pressed in the form', async ({ page }) => {
   test.setTimeout(TEST_TIMEOUT_MS);
   const token = await authenticateAsUserA(page);
-  const { projectId } = await openCalendarWorkPane(page, token);
+  const { projectId } = await openCalendarWorkProject(page, token);
 
   const uniqueToken = Math.random().toString(36).replace(/[^a-z]+/g, '').slice(0, 8);
   const eventTitle = `inline enter ${uniqueToken}`;
@@ -111,7 +111,7 @@ test('calendar inline create submits when Enter is pressed in the form', async (
 
     const createRequest = page.waitForResponse(
       (response) =>
-        response.url().includes('/api/hub/projects/')
+        response.url().includes('/api/hub/spaces/')
         && response.url().includes('/events/from-nlp')
         && response.request().method() === 'POST',
       { timeout: LIVE_TIMEOUT_MS },

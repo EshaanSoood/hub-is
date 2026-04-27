@@ -11,7 +11,7 @@ const KanbanModuleSkin = lazy(async () => {
 interface Props {
   module: ContractModuleConfig;
   contract: KanbanModuleContract;
-  canEditPane: boolean;
+  canEditProject: boolean;
   previewMode?: boolean;
   onOpenRecord?: (recordId: string) => void;
   onSetModuleBinding: (moduleInstanceId: string, binding: ContractModuleConfig['binding']) => void;
@@ -39,7 +39,7 @@ const resolveBoundViewId = (
 export const KanbanModule = ({
   module,
   contract,
-  canEditPane,
+  canEditProject,
   previewMode = false,
   onOpenRecord,
   onSetModuleBinding,
@@ -51,11 +51,11 @@ export const KanbanModule = ({
   const isCreatingView = Boolean(contract.creatingViewByModuleId?.[module.module_instance_id]);
   const selectedViewId = resolveBoundViewId(module, contract.views, contract.defaultViewId);
   const viewData = selectedViewId ? contract.dataByViewId[selectedViewId] : undefined;
-  const createRecord = canEditPane && selectedViewId ? contract.onCreateRecord : undefined;
-  const configureGrouping = canEditPane && selectedViewId ? contract.onConfigureGrouping : undefined;
-  const updateRecord = canEditPane && selectedViewId ? contract.onUpdateRecord : undefined;
-  const deleteRecord = canEditPane && selectedViewId ? contract.onDeleteRecord : undefined;
-  const canEnsureView = !previewMode && canEditPane && typeof contract.onEnsureView === 'function';
+  const createRecord = canEditProject && selectedViewId ? contract.onCreateRecord : undefined;
+  const configureGrouping = canEditProject && selectedViewId ? contract.onConfigureGrouping : undefined;
+  const updateRecord = canEditProject && selectedViewId ? contract.onUpdateRecord : undefined;
+  const deleteRecord = canEditProject && selectedViewId ? contract.onDeleteRecord : undefined;
+  const canEnsureView = !previewMode && canEditProject && typeof contract.onEnsureView === 'function';
   const needsStandaloneBoard = !previewMode && !selectedViewId && (isOwnedMode || contract.views.length === 0);
   const acquireAutoEnsureLock = useCallback(() => {
     if (isCreatingView || autoEnsureAttemptedRef.current) {
@@ -116,7 +116,7 @@ export const KanbanModule = ({
         <ModuleEmptyState
           title="No kanban view found yet."
           iconName="kanban"
-          description={canEditPane ? 'Create a starter kanban board for this project.' : 'Open an editable project to create a kanban board.'}
+          description={canEditProject ? 'Create a starter kanban board for this project.' : 'Open an editable project to create a kanban board.'}
           ctaLabel={canEnsureView ? 'Create kanban view' : undefined}
           onCta={canEnsureView ? () => { void handleEnsureView(); } : undefined}
           sizeTier={module.size_tier}
@@ -133,7 +133,7 @@ export const KanbanModule = ({
           Source view
           <select
             value={selectedViewId || ''}
-            disabled={!canEditPane}
+            disabled={!canEditProject}
             onChange={(event) => onSetModuleBinding(module.module_instance_id, {
               ...module.binding,
               view_id: event.target.value,
@@ -164,7 +164,7 @@ export const KanbanModule = ({
             previewMode={previewMode}
             onOpenRecord={(recordId) => onOpenRecord?.(recordId)}
             onMoveRecord={(recordId, nextGroup) => {
-              if (canEditPane && selectedViewId) {
+              if (canEditProject && selectedViewId) {
                 contract.onMoveRecord(selectedViewId, recordId, nextGroup);
               }
             }}
@@ -189,7 +189,7 @@ export const KanbanModule = ({
                 : undefined
             }
             onInsertToEditor={previewMode ? undefined : contract.onInsertToEditor}
-            readOnly={previewMode || !canEditPane}
+            readOnly={previewMode || !canEditProject}
           />
         </Suspense>
       </div>

@@ -1,4 +1,4 @@
-import { hubRequest, normalizeRecordDetail, normalizeSourcePane } from './transport.ts';
+import { hubRequest, normalizeRecordDetail, normalizeSourceProject } from './transport.ts';
 import type {
   CreateEventRequest,
   CreateEventResponse,
@@ -15,7 +15,7 @@ import type {
   HubMentionTarget,
   HubRecordDetail,
   HubRelationSearchRecord,
-  HubSourcePaneContext,
+  HubSourceProjectContext,
 } from './types.ts';
 
 export const createRecord = async (
@@ -25,7 +25,7 @@ export const createRecord = async (
     collection_id: string;
     title: string;
     parent_record_id?: string | null;
-    source_pane_id?: string;
+    source_project_id?: string;
     source_view_id?: string;
     values?: Record<string, unknown>;
     capability_types?: string[];
@@ -41,7 +41,7 @@ export const createRecord = async (
     assignment_user_ids?: string[];
   },
 ): Promise<{ record_id: string }> => {
-  return hubRequest<{ record_id: string }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/records`, {
+  return hubRequest<{ record_id: string }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/records`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -61,13 +61,15 @@ export const updateRecord = async (
       category?: string | null;
     };
   },
-  options?: { mutation_context_pane_id?: string },
+  options?: { mutation_context_project_id?: string },
 ): Promise<HubRecordDetail> => {
   const data = await hubRequest<{ record: HubRecordDetail }>(accessToken, `/api/hub/records/${encodeURIComponent(recordId)}`, {
     method: 'PATCH',
     body: JSON.stringify({
       ...payload,
-      ...(options?.mutation_context_pane_id ? { mutation_context_pane_id: options.mutation_context_pane_id } : {}),
+      ...(options?.mutation_context_project_id || options?.mutation_context_project_id
+        ? { mutation_context_project_id: options.mutation_context_project_id }
+        : {}),
     }),
   });
   return normalizeRecordDetail(data.record);
@@ -113,7 +115,7 @@ export const setRecordValues = async (
   accessToken: string,
   recordId: string,
   values: Record<string, unknown>,
-  options?: { mutation_context_pane_id?: string },
+  options?: { mutation_context_project_id?: string },
 ): Promise<Record<string, unknown>> => {
   const data = await hubRequest<{ values: Record<string, unknown> }>(
     accessToken,
@@ -122,7 +124,9 @@ export const setRecordValues = async (
       method: 'POST',
       body: JSON.stringify({
         values,
-        ...(options?.mutation_context_pane_id ? { mutation_context_pane_id: options.mutation_context_pane_id } : {}),
+        ...(options?.mutation_context_project_id || options?.mutation_context_project_id
+          ? { mutation_context_project_id: options.mutation_context_project_id }
+          : {}),
       }),
     },
   );
@@ -133,16 +137,16 @@ export const addRelation = async (
   accessToken: string,
   recordId: string,
   payload: {
-    project_id?: string;
+    space_id?: string;
     from_record_id?: string;
     to_record_id: string;
     via_field_id: string;
-    mutation_context_pane_id?: string;
+    mutation_context_project_id?: string;
   },
 ): Promise<{
   relation: {
     relation_id: string;
-    project_id: string;
+    space_id: string;
     from_record_id: string;
     to_record_id: string;
     via_field_id: string;
@@ -153,7 +157,7 @@ export const addRelation = async (
   return hubRequest<{
     relation: {
       relation_id: string;
-      project_id: string;
+      space_id: string;
       from_record_id: string;
       to_record_id: string;
       via_field_id: string;
@@ -169,11 +173,12 @@ export const addRelation = async (
 export const removeRelation = async (
   accessToken: string,
   relationId: string,
-  options?: { mutation_context_pane_id?: string },
+  options?: { mutation_context_project_id?: string },
 ): Promise<void> => {
   const params = new URLSearchParams();
-  if (options?.mutation_context_pane_id) {
-    params.set('mutation_context_pane_id', options.mutation_context_pane_id);
+  const mutationContextProjectId = options?.mutation_context_project_id;
+  if (mutationContextProjectId) {
+    params.set('mutation_context_project_id', mutationContextProjectId);
   }
   const query = params.toString();
   await hubRequest<{ deleted: boolean }>(
@@ -206,7 +211,7 @@ export const searchRelationRecords = async (
   }
   const data = await hubRequest<{ query: string; items: HubRelationSearchRecord[] }>(
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/records/search?${params.toString()}`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/records/search?${params.toString()}`,
     {
       method: 'GET',
     },
@@ -225,7 +230,7 @@ export const searchMentionTargets = async (
   params.set('limit', String(limit));
   const data = await hubRequest<{ query: string; items: HubMentionTarget[] }>(
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/mentions/search?${params.toString()}`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/mentions/search?${params.toString()}`,
     {
       method: 'GET',
     },
@@ -244,7 +249,7 @@ export const listBacklinks = async (
   params.set('target_entity_id', targetEntityId);
   const data = await hubRequest<{ backlinks: HubBacklink[] }>(
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/backlinks?${params.toString()}`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/backlinks?${params.toString()}`,
     {
       method: 'GET',
     },
@@ -259,7 +264,7 @@ export const createEventFromNlp = async (
 ): Promise<CreateEventResponse> => {
   const data = await hubRequest<CreateEventResponse>(
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/events/from-nlp`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/events/from-nlp`,
     {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -287,7 +292,7 @@ export const queryCalendar = async (
       updated_at: string;
     };
     participants: Array<{ user_id: string; role: string | null }>;
-    source_pane: HubSourcePaneContext | null;
+    source_project: HubSourceProjectContext | null;
   }>;
 }> => {
   const data = await hubRequest<{
@@ -303,16 +308,16 @@ export const queryCalendar = async (
         updated_at: string;
       };
       participants: Array<{ user_id: string; role: string | null }>;
-      source_pane?: HubSourcePaneContext | null;
+      source_project?: HubSourceProjectContext | null;
     }>;
-  }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/calendar?mode=${encodeURIComponent(mode)}`, {
+  }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/calendar?mode=${encodeURIComponent(mode)}`, {
     method: 'GET',
   });
   return {
     ...data,
     events: data.events.map((event) => ({
       ...event,
-      source_pane: normalizeSourcePane(event.source_pane),
+      source_project: normalizeSourceProject(event.source_project),
     })),
   };
 };
@@ -325,8 +330,8 @@ export const queryPersonalCalendar = async (
   events: Array<{
     record_id: string;
     title: string;
-    project_id: string;
-    project_name: string | null;
+    space_id: string;
+    space_name: string | null;
     event_state: {
       start_dt: string;
       end_dt: string;
@@ -335,7 +340,7 @@ export const queryPersonalCalendar = async (
       updated_at: string;
     };
     participants: Array<{ user_id: string; role: string | null }>;
-    source_pane: HubSourcePaneContext | null;
+    source_project: HubSourceProjectContext | null;
   }>;
 }> => {
   const data = await hubRequest<{
@@ -343,8 +348,8 @@ export const queryPersonalCalendar = async (
     events: Array<{
       record_id: string;
       title: string;
-      project_id: string;
-      project_name: string | null;
+      space_id: string;
+      space_name: string | null;
       event_state: {
         start_dt: string;
         end_dt: string;
@@ -353,7 +358,7 @@ export const queryPersonalCalendar = async (
         updated_at: string;
       };
       participants: Array<{ user_id: string; role: string | null }>;
-      source_pane?: HubSourcePaneContext | null;
+      source_project?: HubSourceProjectContext | null;
     }>;
   }>(accessToken, `/api/hub/calendar?mode=${encodeURIComponent(mode)}`, {
     method: 'GET',
@@ -362,7 +367,7 @@ export const queryPersonalCalendar = async (
     ...data,
     events: data.events.map((event) => ({
       ...event,
-      source_pane: normalizeSourcePane(event.source_pane),
+      source_project: normalizeSourceProject(event.source_project),
     })),
   };
 };
@@ -370,7 +375,8 @@ export const queryPersonalCalendar = async (
 export const createComment = async (
   accessToken: string,
   payload: {
-    project_id: string;
+    space_id?: string;
+    project_id?: string;
     target_entity_type: string;
     target_entity_id: string;
     body_json: Record<string, unknown>;
@@ -393,7 +399,8 @@ export const createComment = async (
 export const createDocAnchorComment = async (
   accessToken: string,
   payload: {
-    project_id: string;
+    space_id?: string;
+    project_id?: string;
     doc_id: string;
     anchor_payload: {
       kind: 'node';
@@ -418,11 +425,11 @@ export const createDocAnchorComment = async (
 
 export const listComments = async (
   accessToken: string,
-  query: { project_id: string; target_entity_type?: string; target_entity_id?: string; doc_id?: string },
+  query: { space_id?: string; project_id?: string; target_entity_type?: string; target_entity_id?: string; doc_id?: string },
 ): Promise<{
   comments: Array<{
     comment_id: string;
-    project_id?: string;
+    space_id?: string;
     author_user_id: string;
     target_entity_type?: string;
     target_entity_id?: string;
@@ -441,7 +448,7 @@ export const listComments = async (
   }>;
   orphaned_comments: Array<{
     comment_id: string;
-    project_id?: string;
+    space_id?: string;
     author_user_id: string;
     target_entity_type?: string;
     target_entity_id?: string;
@@ -460,7 +467,7 @@ export const listComments = async (
   }>;
 }> => {
   const params = new URLSearchParams();
-  params.set('project_id', query.project_id);
+  params.set('project_id', query.project_id ?? '');
   if (query.target_entity_type) {
     params.set('target_entity_type', query.target_entity_type);
   }
@@ -474,7 +481,7 @@ export const listComments = async (
   const data = await hubRequest<{
     comments: Array<{
       comment_id: string;
-      project_id?: string;
+      space_id?: string;
       author_user_id: string;
       target_entity_type?: string;
       target_entity_id?: string;
@@ -493,7 +500,7 @@ export const listComments = async (
     }>;
     orphaned_comments?: Array<{
       comment_id: string;
-      project_id?: string;
+      space_id?: string;
       author_user_id: string;
       target_entity_type?: string;
       target_entity_id?: string;
@@ -538,7 +545,8 @@ export const setCommentStatus = async (
 export const materializeMentions = async (
   accessToken: string,
   payload: {
-    project_id: string;
+    space_id?: string;
+    project_id?: string;
     source_entity_type: string;
     source_entity_id: string;
     mentions: Array<{ target_entity_type: string; target_entity_id: string; context?: Record<string, unknown> }>;
@@ -560,7 +568,8 @@ export const listTimeline = async (
 ): Promise<
   Array<{
     timeline_event_id: string;
-    project_id: string;
+    space_id?: string;
+    project_id?: string;
     actor_user_id: string;
     event_type: string;
     primary_entity_type: string;
@@ -573,7 +582,7 @@ export const listTimeline = async (
   const data = await hubRequest<{
     timeline: Array<{
       timeline_event_id: string;
-      project_id: string;
+      space_id: string;
       actor_user_id: string;
       event_type: string;
       primary_entity_type: string;
@@ -582,7 +591,7 @@ export const listTimeline = async (
       summary_json: Record<string, unknown>;
       created_at: string;
     }>;
-  }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/timeline`, {
+  }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/timeline`, {
     method: 'GET',
   });
   return data.timeline;
@@ -591,7 +600,7 @@ export const listTimeline = async (
 export const listProjectTasks = async (
   accessToken: string,
   projectId: string,
-  options?: { limit?: number; cursor?: string; source_pane_id?: string },
+  options?: { limit?: number; cursor?: string; source_project_id?: string },
 ): Promise<TaskPage> => {
   const params = new URLSearchParams();
   if (typeof options?.limit === 'number') {
@@ -600,13 +609,14 @@ export const listProjectTasks = async (
   if (options?.cursor) {
     params.set('cursor', options.cursor);
   }
-  if (options?.source_pane_id) {
-    params.set('source_pane_id', options.source_pane_id);
+  const sourceProjectId = options?.source_project_id ?? options?.source_project_id;
+  if (sourceProjectId) {
+    params.set('source_project_id', sourceProjectId);
   }
   const query = params.toString();
   return hubRequest<TaskPage>(
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/tasks${query ? `?${query}` : ''}`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/tasks${query ? `?${query}` : ''}`,
     { method: 'GET' },
   );
 };
@@ -614,20 +624,20 @@ export const listProjectTasks = async (
 export const queryTasks = async (
   accessToken: string,
   options:
-    | { lens: 'project'; project_id: string; limit?: number; cursor?: string; source_pane_id?: string }
-    | { lens: 'assigned'; limit?: number; cursor?: string; project_id?: string }
-    | { lens: 'pane'; project_id: string; pane_id: string; limit?: number; cursor?: string },
+    | { lens: 'space'; space_id: string; limit?: number; cursor?: string; source_project_id?: string }
+    | { lens: 'assigned'; limit?: number; cursor?: string; space_id?: string }
+    | { lens: 'project'; space_id: string; project_id: string; limit?: number; cursor?: string },
 ): Promise<TaskPage> => {
   const params = new URLSearchParams();
   params.set('lens', options.lens);
   if ('project_id' in options && options.project_id) {
     params.set('project_id', options.project_id);
   }
-  if ('pane_id' in options && options.pane_id) {
-    params.set('pane_id', options.pane_id);
+  if ('space_id' in options && options.space_id) {
+    params.set('space_id', options.space_id);
   }
-  if ('source_pane_id' in options && options.source_pane_id) {
-    params.set('source_pane_id', options.source_pane_id);
+  if ('source_project_id' in options && options.source_project_id) {
+    params.set('source_project_id', options.source_project_id);
   }
   if (typeof options.limit === 'number') {
     params.set('limit', String(options.limit));
@@ -679,7 +689,7 @@ export const getHubHome = async (
     ...data.home,
     events: data.home.events.map((event) => ({
       ...event,
-      source_pane: normalizeSourcePane(event.source_pane),
+      source_project: normalizeSourceProject(event.source_project),
     })),
   };
 };
@@ -687,7 +697,8 @@ export const getHubHome = async (
 export const attachFile = async (
   accessToken: string,
   payload: {
-    project_id: string;
+    space_id?: string;
+    project_id?: string;
     entity_type: string;
     entity_id: string;
     provider: string;
@@ -696,7 +707,7 @@ export const attachFile = async (
     name: string;
     mime_type: string;
     size_bytes: number;
-    mutation_context_pane_id?: string;
+    mutation_context_project_id?: string;
     metadata?: Record<string, unknown>;
   },
 ): Promise<{ attachment_id: string }> => {
@@ -712,11 +723,12 @@ export const attachFile = async (
 export const detachFile = async (
   accessToken: string,
   attachmentId: string,
-  options?: { mutation_context_pane_id?: string },
+  options?: { mutation_context_project_id?: string },
 ): Promise<void> => {
   const params = new URLSearchParams();
-  if (options?.mutation_context_pane_id) {
-    params.set('mutation_context_pane_id', options.mutation_context_pane_id);
+  const mutationContextProjectId = options?.mutation_context_project_id;
+  if (mutationContextProjectId) {
+    params.set('mutation_context_project_id', mutationContextProjectId);
   }
   const query = params.toString();
   await hubRequest<{ deleted: boolean }>(
@@ -748,7 +760,7 @@ export const listAutomationRules = async (
       trigger_json: Record<string, unknown>;
       actions_json: unknown[];
     }>;
-  }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/automation-rules`, {
+  }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/automation-rules`, {
     method: 'GET',
   });
 
@@ -762,7 +774,7 @@ export const createAutomationRule = async (
 ): Promise<{ automation_rule_id: string }> => {
   return hubRequest<{ automation_rule_id: string }>(
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/automation-rules`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/automation-rules`,
     {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -807,7 +819,7 @@ export const listAutomationRuns = async (
       started_at: string;
       finished_at: string | null;
     }>;
-  }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/automation-runs`, {
+  }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/automation-runs`, {
     method: 'GET',
   });
 

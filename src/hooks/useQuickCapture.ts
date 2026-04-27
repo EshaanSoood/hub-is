@@ -1,9 +1,9 @@
 import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { TopLevelProjectTab } from '../components/project-space/types';
-import { recordRecentPaneContribution } from '../features/recentPlaces/store';
+import { recordRecentProjectContribution } from '../features/recentPlaces/store';
 import { requestHubHomeRefresh } from '../lib/hubHomeRefresh';
 import { createRecord } from '../services/hub/records';
-import type { HubCollection, HubPaneSummary } from '../services/hub/types';
+import type { HubCollection, HubProjectSummary } from '../services/hub/types';
 
 const captureTitleFromIntent = (intent: string | null): string => {
   if (intent === 'project-task') {
@@ -75,13 +75,13 @@ interface UseQuickCaptureParams {
   projectId: string;
   projectName: string;
   activeTab: TopLevelProjectTab;
-  activePane: HubPaneSummary | null;
-  activePaneCanEdit: boolean;
+  activeProject: HubProjectSummary | null;
+  activeProjectCanEdit: boolean;
   collections: HubCollection[];
   focusedWorkViewId: string | null;
-  openRecordInspector: (recordId: string, options?: { mutationPaneId?: string | null }) => Promise<void>;
+  openRecordInspector: (recordId: string, options?: { mutationProjectId?: string | null }) => Promise<void>;
   refreshViewsAndRecords: () => Promise<void>;
-  setPaneMutationError: Dispatch<SetStateAction<string | null>>;
+  setProjectMutationError: Dispatch<SetStateAction<string | null>>;
 }
 
 export const useQuickCapture = ({
@@ -89,13 +89,13 @@ export const useQuickCapture = ({
   projectId,
   projectName,
   activeTab,
-  activePane,
-  activePaneCanEdit,
+  activeProject,
+  activeProjectCanEdit,
   collections,
   focusedWorkViewId,
   openRecordInspector,
   refreshViewsAndRecords,
-  setPaneMutationError,
+  setProjectMutationError,
 }: UseQuickCaptureParams) => {
   const quickCaptureInFlightRef = useRef(false);
 
@@ -104,24 +104,24 @@ export const useQuickCapture = ({
       if (quickCaptureInFlightRef.current) {
         return false;
       }
-      const shouldUsePaneContext = activeTab === 'work';
-      if (shouldUsePaneContext && !activePane) {
-        setPaneMutationError('Open a project before creating project-local structured work.');
+      const shouldUseProjectContext = activeTab === 'work';
+      if (shouldUseProjectContext && !activeProject) {
+        setProjectMutationError('Open a project before creating project-local structured work.');
         return false;
       }
-      if (shouldUsePaneContext && !activePaneCanEdit) {
-        setPaneMutationError('Read-only project. Only project editors can create project-originated structured work.');
+      if (shouldUseProjectContext && !activeProjectCanEdit) {
+        setProjectMutationError('Read-only project. Only project editors can create project-originated structured work.');
         return false;
       }
       if (collections.length === 0) {
-        setPaneMutationError('No collection available for quick capture in this project.');
+        setProjectMutationError('No collection available for quick capture in this project.');
         return false;
       }
 
       quickCaptureInFlightRef.current = true;
       const targetCollection = selectCaptureCollection(collections, intent);
       if (!targetCollection) {
-        setPaneMutationError('No collection available for quick capture in this project.');
+        setProjectMutationError('No collection available for quick capture in this project.');
         quickCaptureInFlightRef.current = false;
         return false;
       }
@@ -131,8 +131,8 @@ export const useQuickCapture = ({
         created = await createRecord(accessToken, projectId, {
           collection_id: targetCollection.collection_id,
           title: captureTitleFromSeed(seedText, intent),
-          source_pane_id: shouldUsePaneContext ? activePane?.pane_id : undefined,
-          source_view_id: shouldUsePaneContext ? focusedWorkViewId ?? undefined : undefined,
+          source_project_id: shouldUseProjectContext ? activeProject?.project_id : undefined,
+          source_view_id: shouldUseProjectContext ? focusedWorkViewId ?? undefined : undefined,
           ...(intent === 'project-task'
             ? {
                 capability_types: ['task'],
@@ -148,23 +148,23 @@ export const useQuickCapture = ({
         }
       } catch (error) {
         quickCaptureInFlightRef.current = false;
-        setPaneMutationError(error instanceof Error ? error.message : 'Failed to create quick capture record.');
+        setProjectMutationError(error instanceof Error ? error.message : 'Failed to create quick capture record.');
         return false;
       }
 
       try {
         await refreshViewsAndRecords();
         await openRecordInspector(created.record_id);
-        if (shouldUsePaneContext && activePane) {
-          recordRecentPaneContribution({
-            paneId: activePane.pane_id,
-            paneName: activePane.name,
+        if (shouldUseProjectContext && activeProject) {
+          recordRecentProjectContribution({
+            projectId: activeProject.project_id,
+            projectName: activeProject.name,
             spaceId: projectId,
             spaceName: projectName,
           }, 'quick-capture');
         }
       } catch (error) {
-        setPaneMutationError(error instanceof Error ? error.message : 'Quick capture created, but follow-up UI refresh failed.');
+        setProjectMutationError(error instanceof Error ? error.message : 'Quick capture created, but follow-up UI refresh failed.');
       } finally {
         quickCaptureInFlightRef.current = false;
       }
@@ -172,8 +172,8 @@ export const useQuickCapture = ({
     },
     [
       accessToken,
-      activePane,
-      activePaneCanEdit,
+      activeProject,
+      activeProjectCanEdit,
       activeTab,
       collections,
       focusedWorkViewId,
@@ -181,7 +181,7 @@ export const useQuickCapture = ({
       projectId,
       projectName,
       refreshViewsAndRecords,
-      setPaneMutationError,
+      setProjectMutationError,
     ],
   );
 

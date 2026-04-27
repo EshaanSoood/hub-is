@@ -66,7 +66,7 @@ export const remindersContract = (seed: ModulePickerSeedPayload): RemindersModul
       reminder_id: `preview-reminder-${index}`,
       record_id: `preview-reminder-record-${index}`,
       record_title: asText(value.title, 'Preview reminder'),
-      project_id: 'preview-project',
+      space_id: 'preview-project',
       remind_at: addMinutes(Number(value.minutesFromNow ?? 60)),
       channels: ['in_app'],
       recurrence_json: null,
@@ -94,7 +94,7 @@ export const filesContract = (seed: ModulePickerSeedPayload): FilesModuleContrac
       uploadedAtTimestamp: Date.now() - index * 60_000,
     };
   });
-  return { paneFiles: files, projectFiles: files, onUploadPaneFiles: noop, onUploadProjectFiles: noop, onOpenFile: noop };
+  return { projectFiles: files, spaceFiles: files, onUploadProjectFiles: noop, onUploadSpaceFiles: noop, onOpenFile: noop };
 };
 
 export const timelineContract = (seed: ModulePickerSeedPayload): TimelineModuleContract => ({

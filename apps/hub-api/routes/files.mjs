@@ -5,7 +5,6 @@ export const createFileRoutes = (deps) => {
     withProjectPolicyGate,
     send,
     jsonResponse,
-    okEnvelope,
     errorEnvelope,
     parseBody,
     asText,
@@ -24,7 +23,7 @@ export const createFileRoutes = (deps) => {
     emitTimelineEvent,
     resolveProjectAssetRoot,
     resolveProjectContentWriteGate,
-    resolveMutationContextPaneId,
+    resolveMutationContextProjectId,
     uploadToNextcloud,
     safeNextcloudConfig,
     nextcloudUrl,
@@ -34,7 +33,7 @@ export const createFileRoutes = (deps) => {
     withTransaction,
     ALLOWED_ORIGIN,
     NEXTCLOUD_USER,
-    paneByIdStmt,
+    workProjectByIdStmt,
     projectByIdStmt,
     assetRootByIdStmt,
     assetRootsByProjectStmt,
@@ -47,6 +46,7 @@ export const createFileRoutes = (deps) => {
     deleteAttachmentStmt,
     attachmentByIdStmt,
   } = deps;
+  const fileOkEnvelope = (data) => ({ ok: true, data, error: null });
 
   const uploadFile = async ({ request, response, requestUrl }) => {
     const auth = await withAuth(request);
@@ -63,20 +63,20 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    const projectId = asText(body.project_id);
+    const projectId = asText(body.space_id);
     const name = asText(body.name);
     const mimeType = asText(body.mime_type) || 'application/octet-stream';
     const contentBase64 = asText(body.content_base64);
 
     if (!projectId || !name || !contentBase64) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id, name, content_base64 are required.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id, name, content_base64 are required.')));
       return;
     }
 
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId,
-      paneId: resolveMutationContextPaneId({ body, requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -98,15 +98,15 @@ export const createFileRoutes = (deps) => {
     const root = rootResult.root;
     const requestedDirectory = normalizeAssetRelativePath(body.path || body.directory || 'Uploads');
     const metadata = parseJsonObject(body.metadata, {});
-    const requestedPaneId = resolveMutationContextPaneId({ body, requestUrl });
-    const uploadProject = projectByIdStmt.get(projectId);
-    const uploadPane = requestedPaneId ? paneByIdStmt.get(requestedPaneId) : null;
+    const requestedProjectId = resolveMutationContextProjectId({ body, requestUrl });
+    const uploadSpace = projectByIdStmt.get(projectId);
+    const uploadProject = requestedProjectId ? workProjectByIdStmt.get(requestedProjectId) : null;
+    const spaceSegmentName = normalizeAssetPathSegment(uploadSpace?.name, '');
+    const spaceSegment = [projectId, spaceSegmentName].filter(Boolean).join('-');
     const projectSegmentName = normalizeAssetPathSegment(uploadProject?.name, '');
-    const projectSegment = [projectId, projectSegmentName].filter(Boolean).join('-');
-    const paneSegmentName = normalizeAssetPathSegment(uploadPane?.name, '');
-    const paneSegment = uploadPane?.pane_id ? [uploadPane.pane_id, paneSegmentName].filter(Boolean).join('-') : 'Unsorted';
+    const projectSegment = uploadProject?.project_id ? [uploadProject.project_id, projectSegmentName].filter(Boolean).join('-') : 'Unsorted';
     const uploadDirectory = asText(metadata.scope) === 'doc_attachment'
-      ? buildAssetRelativePath('z-Attachments', projectSegment, paneSegment)
+      ? buildAssetRelativePath('z-Attachments', spaceSegment, projectSegment)
       : requestedDirectory || 'Uploads';
     const safeName = asText(body.name);
     if (!safeName) {
@@ -114,6 +114,10 @@ export const createFileRoutes = (deps) => {
       return;
     }
     const providerPath = buildAssetRelativePath(uploadDirectory, safeName);
+    const storedMetadata = {
+      ...metadata,
+      ...(requestedProjectId ? { scope: 'project', project_id: requestedProjectId } : {}),
+    };
     const uploadResult = await uploadToNextcloud({
       rootPath: root.root_path,
       relativePath: providerPath,
@@ -139,7 +143,7 @@ export const createFileRoutes = (deps) => {
           mimeType,
           content.byteLength,
           null,
-          toJson(metadata),
+          toJson(storedMetadata),
           auth.user.user_id,
           createdAt,
         );
@@ -178,17 +182,17 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    send(response, jsonResponse(201, okEnvelope({
+    send(response, jsonResponse(201, fileOkEnvelope({
       file: {
         file_id: fileId,
-        project_id: projectId,
+        space_id: projectId,
         asset_root_id: root.asset_root_id,
         provider: 'nextcloud',
         asset_path: providerPath,
         name,
         mime_type: mimeType,
         size_bytes: content.byteLength,
-        metadata,
+        metadata: storedMetadata,
         proxy_url: buildAssetProxyPath({ projectId, assetRootId: root.asset_root_id, assetPath: providerPath }),
       },
     })));
@@ -210,7 +214,7 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    const projectId = asText(body.project_id);
+    const projectId = asText(body.space_id);
     const entityType = asText(body.entity_type);
     const entityId = asText(body.entity_id);
     const provider = asText(body.provider) || 'nextcloud';
@@ -218,14 +222,14 @@ export const createFileRoutes = (deps) => {
     const assetPath = normalizeAssetRelativePath(body.asset_path);
 
     if (!projectId || !entityType || !entityId || !provider || !assetRootId || !assetPath) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id, entity_type, entity_id, provider, asset_root_id, asset_path are required.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id, entity_type, entity_id, provider, asset_root_id, asset_path are required.')));
       return;
     }
 
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId,
-      paneId: resolveMutationContextPaneId({ body, requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -233,7 +237,7 @@ export const createFileRoutes = (deps) => {
     }
 
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found in project.')));
       return;
     }
@@ -266,11 +270,11 @@ export const createFileRoutes = (deps) => {
       },
     });
 
-    send(response, jsonResponse(201, okEnvelope({
+    send(response, jsonResponse(201, fileOkEnvelope({
       attachment_id: attachmentId,
       attachment: {
         attachment_id: attachmentId,
-        project_id: projectId,
+        space_id: projectId,
         entity_type: entityType,
         entity_id: entityId,
         provider,
@@ -300,8 +304,8 @@ export const createFileRoutes = (deps) => {
 
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
-      projectId: attachment.project_id,
-      paneId: resolveMutationContextPaneId({ requestUrl }),
+      projectId: attachment.space_id,
+      sourceProjectId: resolveMutationContextProjectId({ requestUrl }),
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -310,7 +314,7 @@ export const createFileRoutes = (deps) => {
 
     deleteAttachmentStmt.run(attachmentId);
     emitTimelineEvent({
-      projectId: attachment.project_id,
+      projectId: attachment.space_id,
       actorUserId: auth.user.user_id,
       eventType: 'file.detached',
       primaryEntityType: attachment.entity_type,
@@ -324,7 +328,7 @@ export const createFileRoutes = (deps) => {
       },
     });
 
-    send(response, jsonResponse(200, okEnvelope({ deleted: true })));
+    send(response, jsonResponse(200, fileOkEnvelope({ deleted: true })));
   };
 
   const listAssetRoots = async ({ request, response, params }) => {
@@ -342,14 +346,14 @@ export const createFileRoutes = (deps) => {
 
     const roots = assetRootsByProjectStmt.all(projectId).map((root) => ({
       asset_root_id: root.asset_root_id,
-      project_id: root.project_id,
+      space_id: root.space_id,
       provider: root.provider,
       root_path: root.root_path,
       connection_ref: parseJson(root.connection_ref, null),
       created_at: root.created_at,
       updated_at: root.updated_at,
     }));
-    send(response, jsonResponse(200, okEnvelope({ asset_roots: roots })));
+    send(response, jsonResponse(200, fileOkEnvelope({ asset_roots: roots })));
   };
 
   const createAssetRoot = async ({ request, response, params }) => {
@@ -388,7 +392,7 @@ export const createFileRoutes = (deps) => {
     const rootId = newId('ast');
     const timestamp = nowIso();
     insertAssetRootStmt.run(rootId, projectId, provider, rootPath, toJson(body.connection_ref ?? null), timestamp, timestamp);
-    send(response, jsonResponse(201, okEnvelope({ asset_root_id: rootId })));
+    send(response, jsonResponse(201, fileOkEnvelope({ asset_root_id: rootId })));
   };
 
   const listProjectFiles = async ({ request, response, requestUrl, params }) => {
@@ -404,20 +408,20 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    const paneId = asText(requestUrl.searchParams.get('pane_id'));
-    const scope = asText(requestUrl.searchParams.get('scope') || (paneId ? 'pane' : 'project')).toLowerCase();
-    if (scope !== 'all' && scope !== 'project' && scope !== 'pane') {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'scope must be all, project, or pane.')));
+    const sourceProjectId = asText(requestUrl.searchParams.get('project_id') || requestUrl.searchParams.get('source_project_id'));
+    const scope = asText(requestUrl.searchParams.get('scope') || (sourceProjectId ? 'project' : 'space')).toLowerCase();
+    if (scope !== 'all' && scope !== 'space' && scope !== 'project') {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'scope must be all, space, or project.')));
       return;
     }
-    if (scope === 'pane') {
-      if (!paneId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id is required when scope is pane.')));
+    if (scope === 'project') {
+      if (!sourceProjectId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required when scope is project.')));
         return;
       }
-      const pane = paneByIdStmt.get(paneId);
-      if (!pane || pane.project_id !== projectId) {
-        send(response, jsonResponse(404, errorEnvelope('not_found', 'Pane not found in project.')));
+      const project = workProjectByIdStmt.get(sourceProjectId);
+      if (!project || project.space_id !== projectId) {
+        send(response, jsonResponse(404, errorEnvelope('not_found', 'Project not found in space.')));
         return;
       }
     }
@@ -426,9 +430,9 @@ export const createFileRoutes = (deps) => {
       .all(projectId)
       .map(trackedFileRecord)
       .filter((file) => scope === 'all' || asText(file.metadata?.scope) !== 'doc_attachment')
-      .filter((file) => scope !== 'pane' || file.pane_id === paneId);
+      .filter((file) => scope !== 'project' || file.project_id === sourceProjectId);
 
-    send(response, jsonResponse(200, okEnvelope({ files })));
+    send(response, jsonResponse(200, fileOkEnvelope({ files })));
   };
 
   const listAssets = async ({ request, response, requestUrl, params }) => {
@@ -447,13 +451,13 @@ export const createFileRoutes = (deps) => {
     const assetRootId = asText(requestUrl.searchParams.get('asset_root_id'));
     const relativePath = normalizeAssetRelativePath(requestUrl.searchParams.get('path') || '');
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found.')));
       return;
     }
 
     if (root.provider !== 'nextcloud') {
-      send(response, jsonResponse(200, okEnvelope({ provider: root.provider, path: relativePath || '/', entries: [], warning: 'Provider adapter not configured.' })));
+      send(response, jsonResponse(200, fileOkEnvelope({ provider: root.provider, path: relativePath || '/', entries: [], warning: 'Provider adapter not configured.' })));
       return;
     }
 
@@ -523,7 +527,7 @@ export const createFileRoutes = (deps) => {
       })
       .filter((entry) => entry.path);
 
-    send(response, jsonResponse(200, okEnvelope({ provider: 'nextcloud', path: relativePath || '/', entries })));
+    send(response, jsonResponse(200, fileOkEnvelope({ provider: 'nextcloud', path: relativePath || '/', entries })));
   };
 
   const uploadAsset = async ({ request, response, requestUrl, params }) => {
@@ -545,7 +549,7 @@ export const createFileRoutes = (deps) => {
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId,
-      paneId: resolveMutationContextPaneId({ body, requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -554,7 +558,7 @@ export const createFileRoutes = (deps) => {
 
     const assetRootId = asText(body.asset_root_id);
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found.')));
       return;
     }
@@ -590,7 +594,7 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    send(response, jsonResponse(200, okEnvelope({
+    send(response, jsonResponse(200, fileOkEnvelope({
       uploaded: true,
       provider: 'nextcloud',
       asset_root_id: assetRootId,
@@ -609,7 +613,7 @@ export const createFileRoutes = (deps) => {
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId,
-      paneId: resolveMutationContextPaneId({ requestUrl }),
+      sourceProjectId: resolveMutationContextProjectId({ requestUrl }),
     });
     if (writeGate.error) {
       send(response, jsonResponse(writeGate.error.status, errorEnvelope(writeGate.error.code, writeGate.error.message)));
@@ -619,7 +623,7 @@ export const createFileRoutes = (deps) => {
     const assetRootId = asText(requestUrl.searchParams.get('asset_root_id'));
     const relativePath = normalizeAssetRelativePath(requestUrl.searchParams.get('path') || '');
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found.')));
       return;
     }
@@ -662,7 +666,7 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    send(response, jsonResponse(200, okEnvelope({ deleted: true })));
+    send(response, jsonResponse(200, fileOkEnvelope({ deleted: true })));
   };
 
   const proxyAsset = async ({ request, response, requestUrl, params }) => {
@@ -687,7 +691,7 @@ export const createFileRoutes = (deps) => {
     }
 
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found.')));
       return;
     }

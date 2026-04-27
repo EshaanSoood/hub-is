@@ -5,8 +5,8 @@ export interface HubLiveTaskChangedMessage {
   type: 'task.changed';
   task: {
     record_id: string;
-    project_id: string | null;
-    origin_kind: 'pane' | 'project' | 'personal';
+    space_id: string | null;
+    origin_kind: 'project' | 'project' | 'personal';
   };
 }
 
@@ -15,7 +15,7 @@ export interface HubLiveReminderChangedMessage {
   reminder: {
     reminder_id: string;
     record_id: string;
-    project_id: string | null;
+    space_id: string | null;
     action: 'created' | 'dismissed';
   };
 }
@@ -82,7 +82,7 @@ const wsUrlWithTicket = (wsTicket: string): string => {
 };
 
 const isTaskOriginKind = (value: unknown): value is HubLiveTaskChangedMessage['task']['origin_kind'] =>
-  value === 'pane' || value === 'project' || value === 'personal';
+  value === 'project' || value === 'project' || value === 'personal';
 
 const isRecordObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -103,7 +103,7 @@ const isHubLiveMessage = (value: unknown): value is HubLiveMessage => {
     const taskCandidate = task as Record<string, unknown>;
     return (
       typeof taskCandidate.record_id === 'string' &&
-      (typeof taskCandidate.project_id === 'string' || taskCandidate.project_id === null) &&
+      (typeof taskCandidate.space_id === 'string' || taskCandidate.space_id === null) &&
       isTaskOriginKind(taskCandidate.origin_kind)
     );
   }
@@ -116,7 +116,7 @@ const isHubLiveMessage = (value: unknown): value is HubLiveMessage => {
     return (
       typeof reminderCandidate.reminder_id === 'string' &&
       typeof reminderCandidate.record_id === 'string' &&
-      (typeof reminderCandidate.project_id === 'string' || reminderCandidate.project_id === null) &&
+      (typeof reminderCandidate.space_id === 'string' || reminderCandidate.space_id === null) &&
       (reminderCandidate.action === 'created' || reminderCandidate.action === 'dismissed')
     );
   }
@@ -127,7 +127,7 @@ const isHubLiveMessage = (value: unknown): value is HubLiveMessage => {
     }
     return (
       typeof notification.notification_id === 'string' &&
-      typeof notification.project_id === 'string' &&
+      typeof notification.space_id === 'string' &&
       typeof notification.user_id === 'string' &&
       typeof notification.reason === 'string' &&
       typeof notification.entity_type === 'string' &&

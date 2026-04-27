@@ -15,8 +15,8 @@ export type ListRemindersOptions =
     }
   | {
       scope: 'project';
-      projectId: string;
-      paneId?: string | null;
+      spaceId: string;
+      projectId?: string | null;
     };
 export type UpdateReminderPayload = {
   remind_at?: string;
@@ -27,9 +27,9 @@ export const listReminders = async (accessToken: string, options?: ListReminders
   const params = new URLSearchParams();
   if (options?.scope === 'project') {
     params.set('scope', 'project');
-    params.set('project_id', options.projectId);
-    if (options.paneId) {
-      params.set('pane_id', options.paneId);
+    params.set('space_id', options.spaceId);
+    if (options.projectId) {
+      params.set('project_id', options.projectId);
     }
   }
   const query = params.toString();

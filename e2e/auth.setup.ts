@@ -5,8 +5,8 @@ import {
   createCollection,
   createEventFromNlp,
   createField,
-  createPane,
   createProject,
+  createWorkProject,
   createRecord,
   createView,
   getHubHome,
@@ -34,14 +34,14 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
   const mainProject = await createProject(apiBaseUrl, tokenA, `E2E Audit ${runId}`);
   const auxProject = await createProject(apiBaseUrl, tokenA, `E2E Audit Aux ${runId}`);
 
-  await addProjectMember(apiBaseUrl, tokenA, mainProject.project_id, {
+  await addProjectMember(apiBaseUrl, tokenA, mainProject.space_id, {
     user_id: viewerSession.userId,
     role: 'viewer',
   });
-  await waitForProjectMember(apiBaseUrl, tokenA, mainProject.project_id, viewerSession.userId);
+  await waitForProjectMember(apiBaseUrl, tokenA, mainProject.space_id, viewerSession.userId);
 
-  const collection = await createCollection(apiBaseUrl, tokenA, mainProject.project_id, `Audit Records ${runId}`);
-  const auxCollection = await createCollection(apiBaseUrl, tokenA, auxProject.project_id, `Audit Tasks ${runId}`);
+  const collection = await createCollection(apiBaseUrl, tokenA, mainProject.space_id, `Audit Records ${runId}`);
+  const auxCollection = await createCollection(apiBaseUrl, tokenA, auxProject.space_id, `Audit Tasks ${runId}`);
 
   const statusField = await createField(apiBaseUrl, tokenA, collection.collection_id, {
     name: 'Status',
@@ -56,20 +56,20 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
     config: {},
   });
 
-  const tableView = await createView(apiBaseUrl, tokenA, mainProject.project_id, {
+  const tableView = await createView(apiBaseUrl, tokenA, mainProject.space_id, {
     collection_id: collection.collection_id,
     type: 'table',
     name: `Audit Table ${runId}`,
     config: { visible_field_ids: [statusField.field_id, notesField.field_id] },
   });
-  const kanbanView = await createView(apiBaseUrl, tokenA, mainProject.project_id, {
+  const kanbanView = await createView(apiBaseUrl, tokenA, mainProject.space_id, {
     collection_id: collection.collection_id,
     type: 'kanban',
     name: `Audit Kanban ${runId}`,
     config: { group_by_field_id: statusField.field_id },
   });
 
-  const sharedPane = await createPane(apiBaseUrl, tokenA, mainProject.project_id, {
+  const sharedProject = await createWorkProject(apiBaseUrl, tokenA, mainProject.space_id, {
     name: `Audit Shared ${runId}`,
     member_user_ids: [viewerSession.userId],
     layout_config: {
@@ -100,7 +100,7 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
     },
   });
 
-  const privatePane = await createPane(apiBaseUrl, tokenA, mainProject.project_id, {
+  const privateProject = await createWorkProject(apiBaseUrl, tokenA, mainProject.space_id, {
     name: `Audit Private ${runId}`,
     member_user_ids: [],
     layout_config: {
@@ -130,10 +130,10 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
   const auxTitle = `Audit Aux Task ${runId}`;
   const eventTitle = `Audit Event ${runId}`;
 
-  await createRecord(apiBaseUrl, tokenA, mainProject.project_id, {
+  await createRecord(apiBaseUrl, tokenA, mainProject.space_id, {
     collection_id: collection.collection_id,
     title: todoTitle,
-    source_pane_id: sharedPane.pane_id,
+    source_project_id: sharedProject.project_id,
     values: {
       [statusField.field_id]: 'todo',
       [notesField.field_id]: 'Seeded todo task',
@@ -147,10 +147,10 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
     assignment_user_ids: [ownerSession.userId],
   });
 
-  await createRecord(apiBaseUrl, tokenA, mainProject.project_id, {
+  await createRecord(apiBaseUrl, tokenA, mainProject.space_id, {
     collection_id: collection.collection_id,
     title: inProgressTitle,
-    source_pane_id: sharedPane.pane_id,
+    source_project_id: sharedProject.project_id,
     values: {
       [statusField.field_id]: 'in-progress',
       [notesField.field_id]: 'Seeded in-progress task',
@@ -164,10 +164,10 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
     assignment_user_ids: [ownerSession.userId],
   });
 
-  await createRecord(apiBaseUrl, tokenA, mainProject.project_id, {
+  await createRecord(apiBaseUrl, tokenA, mainProject.space_id, {
     collection_id: collection.collection_id,
     title: doneTitle,
-    source_pane_id: sharedPane.pane_id,
+    source_project_id: sharedProject.project_id,
     values: {
       [statusField.field_id]: 'done',
       [notesField.field_id]: 'Seeded done task',
@@ -182,8 +182,8 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
     assignment_user_ids: [ownerSession.userId],
   });
 
-  await createEventFromNlp(apiBaseUrl, tokenA, mainProject.project_id, {
-    source_pane_id: sharedPane.pane_id,
+  await createEventFromNlp(apiBaseUrl, tokenA, mainProject.space_id, {
+    source_project_id: sharedProject.project_id,
     title: eventTitle,
     start_dt: eventStart.toISOString(),
     end_dt: eventEnd.toISOString(),
@@ -192,7 +192,7 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
     participants_user_ids: [ownerSession.userId],
   });
 
-  await createRecord(apiBaseUrl, tokenA, auxProject.project_id, {
+  await createRecord(apiBaseUrl, tokenA, auxProject.space_id, {
     collection_id: auxCollection.collection_id,
     title: auxTitle,
     capability_types: ['task'],
@@ -222,7 +222,7 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
       email: accountA.email,
       token: tokenA,
       session: ownerSession,
-      personalProjectId: ownerHome.personal_project_id,
+      personalSpaceId: ownerHome.personal_space_id,
     },
     viewer: {
       email: accountB.email,
@@ -230,11 +230,11 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
       session: viewerSession,
     },
     project: {
-      id: mainProject.project_id,
+      id: mainProject.space_id,
       name: mainProject.name,
     },
     auxProject: {
-      id: auxProject.project_id,
+      id: auxProject.space_id,
       name: auxProject.name,
     },
     collection: {
@@ -249,10 +249,10 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
       tableId: tableView.view_id,
       kanbanId: kanbanView.view_id,
     },
-    panes: {
-      sharedId: sharedPane.pane_id,
-      sharedDocId: sharedPane.doc_id || '',
-      privateId: privatePane.pane_id,
+    projects: {
+      sharedId: sharedProject.project_id,
+      sharedDocId: sharedProject.doc_id || '',
+      privateId: privateProject.project_id,
     },
     tasks: {
       todoTitle,

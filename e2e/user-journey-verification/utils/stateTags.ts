@@ -18,7 +18,7 @@ export interface JourneySeedContext {
     id: string;
     name: string;
   };
-  panes: {
+  projects: {
     primaryId: string;
     secondaryId: string;
     primaryName: string;

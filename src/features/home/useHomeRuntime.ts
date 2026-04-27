@@ -7,7 +7,7 @@ import type { HomeOverlayId } from './navigation';
 type HomeData = Awaited<ReturnType<typeof getHubHome>>;
 
 const emptyHomeData: HomeData = {
-  personal_project_id: null,
+  personal_space_id: null,
   tasks: [],
   tasks_next_cursor: null,
   captures: [],

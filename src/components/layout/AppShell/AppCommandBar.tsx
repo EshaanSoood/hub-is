@@ -1,4 +1,4 @@
-import type { HubPaneSummary } from '../../../services/hub/types';
+import type { HubProjectSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
 import { CaptureInput } from '../../Sidebar/CaptureInput';
 import type { SidebarCaptureSurface } from '../../Sidebar/CaptureInput/shared';
@@ -6,9 +6,9 @@ import { Icon } from '../../primitives/Icon';
 
 interface AppCommandBarProps {
   accessToken: string | null | undefined;
-  currentPaneId: string | null;
+  currentProjectId: string | null;
   currentProject: ProjectRecord | null;
-  currentProjectPanes: HubPaneSummary[];
+  currentProjectProjects: HubProjectSummary[];
   currentSurface: SidebarCaptureSurface;
   onOpenQuickThoughts: () => void;
   personalProject: ProjectRecord | null;
@@ -16,9 +16,9 @@ interface AppCommandBarProps {
 
 export const AppCommandBar = ({
   accessToken,
-  currentPaneId,
+  currentProjectId,
   currentProject,
-  currentProjectPanes,
+  currentProjectProjects,
   currentSurface,
   onOpenQuickThoughts,
   personalProject,
@@ -34,9 +34,9 @@ export const AppCommandBar = ({
           <CaptureInput
             accessToken={accessToken}
             autoFocusKey={0}
-            currentPaneId={currentPaneId}
+            currentProjectId={currentProjectId}
             currentProject={currentProject}
-            currentProjectPanes={currentProjectPanes}
+            currentProjectProjects={currentProjectProjects}
             currentSurface={currentSurface}
             currentSurfaceLabel={null}
             isCollapsed={false}

@@ -14,7 +14,7 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactEle
   const prefersReducedMotion = useReducedMotion();
   const { projectId = '' } = useParams();
   const { accessToken, sessionSummary } = useAuthz();
-  const { error, loading, panes, project, projectMembers, refreshProjectData, setPanes, setTimeline, timeline } =
+  const { error, loading, projects, project, projectMembers, refreshProjectData, setProjects, setTimeline, timeline } =
     useProjectBootstrap({
       accessToken,
       projectId,
@@ -70,8 +70,8 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactEle
     <ProjectSpaceWorkspace
       activeTab={activeTab}
       project={project}
-      panes={panes}
-      setPanes={setPanes}
+      projects={projects}
+      setProjects={setProjects}
       projectMembers={projectMembers}
       accessToken={accessToken}
       sessionUserId={sessionSummary.userId}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { subscribeHubLive } from '../services/hubLive';
-import type { HubPaneSummary } from '../services/hub/types';
+import type { HubProjectSummary } from '../services/hub/types';
 import { useProjectCollectionsRuntime } from './useProjectCollectionsRuntime';
 import { useProjectFocusedViewLoader } from './useProjectFocusedViewLoader';
 import { useProjectKanbanRuntime } from './useProjectKanbanRuntime';
@@ -14,10 +14,10 @@ interface UseProjectViewsRuntimeParams {
   projectId: string;
   projectName: string;
   activeTab: 'overview' | 'work';
-  panes: HubPaneSummary[];
+  projects: HubProjectSummary[];
   sessionUserId: string;
   setTimeline: React.Dispatch<React.SetStateAction<ProjectTimelineItem[]>>;
-  paneCanEditForUser: (pane: HubPaneSummary | null | undefined, userId: string) => boolean;
+  projectCanEditForUser: (project: HubProjectSummary | null | undefined, userId: string) => boolean;
 }
 
 export const useProjectViewsRuntime = ({
@@ -25,10 +25,10 @@ export const useProjectViewsRuntime = ({
   projectId,
   projectName,
   activeTab,
-  panes,
+  projects,
   sessionUserId,
   setTimeline,
-  paneCanEditForUser,
+  projectCanEditForUser,
 }: UseProjectViewsRuntimeParams) => {
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const liveRefreshViewsTimeoutRef = useRef<number | null>(null);
@@ -57,10 +57,10 @@ export const useProjectViewsRuntime = ({
     accessToken,
     projectId,
     projectName,
-    panes,
+    projects,
     sessionUserId,
     setTimeline,
-    paneCanEditForUser,
+    projectCanEditForUser,
     setRecordsError,
     refreshViewsAndRecordsRef,
   });
@@ -81,11 +81,11 @@ export const useProjectViewsRuntime = ({
     accessToken,
     projectId,
     projectName,
-    panes,
+    projects,
     views,
     sessionUserId,
     setTimeline,
-    paneCanEditForUser,
+    projectCanEditForUser,
     setRecordsError,
     refreshViewsAndRecordsRef,
   });
@@ -152,7 +152,7 @@ export const useProjectViewsRuntime = ({
     }
 
     const unsubscribe = subscribeHubLive(accessToken, (message) => {
-      if (message.type !== 'task.changed' || message.task.project_id !== projectId) {
+      if (message.type !== 'task.changed' || message.task.space_id !== projectId) {
         return;
       }
       if (liveRefreshViewsTimeoutRef.current !== null) {

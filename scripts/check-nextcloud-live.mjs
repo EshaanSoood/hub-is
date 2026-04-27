@@ -41,9 +41,9 @@ if (!projectId) {
 }
 
 const encodedProjectId = encodeURIComponent(projectId);
-const listFilesPath = `/api/hub/projects/${encodedProjectId}/nextcloud/files`;
-const uploadPath = `/api/hub/projects/${encodedProjectId}/nextcloud/upload`;
-const deletePath = `/api/hub/projects/${encodedProjectId}/nextcloud/files`;
+const listFilesPath = `/api/hub/spaces/${encodedProjectId}/nextcloud/files`;
+const uploadPath = `/api/hub/spaces/${encodedProjectId}/nextcloud/upload`;
+const deletePath = `/api/hub/spaces/${encodedProjectId}/nextcloud/files`;
 
 const health = await requestJson('/api/hub/integrations/nextcloud/health');
 assert(health.status === 200, `Nextcloud health endpoint failed (${health.status}).`);

@@ -4,24 +4,24 @@ import { buildProjectWorkHref } from '../../../lib/hubRoutes';
 import type { TopLevelProjectTab } from '../ProjectSpaceWorkspace/types';
 
 interface UseWorkRouteAndInspectorQueryEffectsParams {
-  activePane: { pane_id: string } | null;
+  activeProject: { project_id: string } | null;
   activeTab: TopLevelProjectTab;
-  hasRequestedPane: boolean;
+  hasRequestedProject: boolean;
   navigate: NavigateFunction;
   openRecordInspector: (recordId: string) => Promise<void>;
-  paneId: string | undefined;
+  requestedProjectId: string | undefined;
   projectId: string;
   searchParams: URLSearchParams;
   setSearchParams: SetURLSearchParams;
 }
 
 export const useWorkRouteAndInspectorQueryEffects = ({
-  activePane,
+  activeProject,
   activeTab,
-  hasRequestedPane,
+  hasRequestedProject,
   navigate,
   openRecordInspector,
-  paneId,
+  requestedProjectId,
   projectId,
   searchParams,
   setSearchParams,
@@ -30,16 +30,16 @@ export const useWorkRouteAndInspectorQueryEffects = ({
     if (activeTab !== 'work') {
       return;
     }
-    if (activePane && ((!paneId) || (activePane.pane_id !== paneId && hasRequestedPane))) {
-      const nextPath = buildProjectWorkHref(projectId, activePane.pane_id);
+    if (activeProject && ((!requestedProjectId) || (activeProject.project_id !== requestedProjectId && hasRequestedProject))) {
+      const nextPath = buildProjectWorkHref(projectId, activeProject.project_id);
       const query = searchParams.toString();
       navigate(query ? `${nextPath}?${query}` : nextPath, { replace: true });
     }
-  }, [activePane, activeTab, hasRequestedPane, navigate, paneId, projectId, searchParams]);
+  }, [activeProject, activeTab, hasRequestedProject, navigate, requestedProjectId, projectId, searchParams]);
 
   useEffect(() => {
     const recordId = searchParams.get('record_id');
-    if (activeTab !== 'work' || !recordId || !activePane || (paneId && !hasRequestedPane)) {
+    if (activeTab !== 'work' || !recordId || !activeProject || (requestedProjectId && !hasRequestedProject)) {
       return;
     }
 
@@ -59,5 +59,5 @@ export const useWorkRouteAndInspectorQueryEffects = ({
     return () => {
       cancelled = true;
     };
-  }, [activePane, activeTab, hasRequestedPane, openRecordInspector, paneId, searchParams, setSearchParams]);
+  }, [activeProject, activeTab, hasRequestedProject, openRecordInspector, requestedProjectId, searchParams, setSearchParams]);
 };

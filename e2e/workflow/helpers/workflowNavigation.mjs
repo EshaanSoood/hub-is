@@ -11,7 +11,7 @@ export const extractProjectIdFromPathname = (pathname) => {
   return match ? decodeURIComponent(match[1]) : '';
 };
 
-export const extractPaneIdFromPathname = (pathname) => {
+export const extractWorkProjectIdFromPathname = (pathname) => {
   const match = String(pathname || '').match(/\/projects\/[^/]+\/work\/([^/?]+)/);
   return match ? decodeURIComponent(match[1]) : '';
 };
@@ -73,53 +73,53 @@ export const openOverviewTab = async (page, projectId) => {
 const detectWorkBoundary = async (page) => {
   const accessDeniedHeading = page.getByRole('heading', { name: /Access denied/i });
   if (await accessDeniedHeading.isVisible().catch(() => false)) {
-    return { kind: 'access-denied', paneId: '' };
+    return { kind: 'access-denied', projectId: '' };
   }
 
-  const noPaneNotice = page.getByText('No panes available', { exact: false });
-  if (await noPaneNotice.isVisible().catch(() => false)) {
-    return { kind: 'no-pane', paneId: '' };
+  const noProjectNotice = page.getByText('No projects available', { exact: false });
+  if (await noProjectNotice.isVisible().catch(() => false)) {
+    return { kind: 'no-project', projectId: '' };
   }
 
-  const paneToolbar = page.getByRole('toolbar', { name: 'Open panes' });
-  const newPaneInput = page.getByLabel('New pane name');
+  const projectToolbar = page.getByRole('toolbar', { name: 'Open projects' });
+  const newProjectInput = page.getByLabel('New project name');
   const workspaceDocHeading = page.getByRole('heading', { name: 'Workspace Doc' });
   const addModuleButton = page.getByTestId('add-module-table');
-  const createPaneButton = page.getByRole('button', { name: 'Create pane' });
-  const workPanesText = page.getByText('Work Panes', { exact: false });
+  const createProjectButton = page.getByRole('button', { name: 'Create project' });
+  const workProjectsText = page.getByText('Work Projects', { exact: false });
   const addModuleText = page.getByText('Add module: Table', { exact: false });
   if (
-    (await paneToolbar.isVisible().catch(() => false))
-    || (await newPaneInput.isVisible().catch(() => false))
+    (await projectToolbar.isVisible().catch(() => false))
+    || (await newProjectInput.isVisible().catch(() => false))
     || (await workspaceDocHeading.isVisible().catch(() => false))
     || (await addModuleButton.isVisible().catch(() => false))
-    || (await createPaneButton.isVisible().catch(() => false))
-    || (await workPanesText.isVisible().catch(() => false))
+    || (await createProjectButton.isVisible().catch(() => false))
+    || (await workProjectsText.isVisible().catch(() => false))
     || (await addModuleText.isVisible().catch(() => false))
   ) {
     return {
       kind: 'ready',
-      paneId: extractPaneIdFromPathname(new URL(page.url()).pathname),
+      projectId: extractProjectIdFromPathname(new URL(page.url()).pathname),
     };
   }
 
-  return { kind: 'unknown', paneId: '' };
+  return { kind: 'unknown', projectId: '' };
 };
 
-export const openWorkTab = async (page, projectId, preferredPaneId = '') => {
+export const openWorkTab = async (page, projectId, preferredProjectId = '') => {
   const openAndReadState = async (target) => {
     await page.goto(target, { waitUntil: 'domcontentloaded' });
 
     await Promise.race([
-      page.getByRole('toolbar', { name: 'Open panes' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
-      page.getByLabel('New pane name').waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+      page.getByRole('toolbar', { name: 'Open projects' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+      page.getByLabel('New project name').waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByRole('heading', { name: 'Workspace Doc' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByTestId('add-module-table').waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
-      page.getByRole('button', { name: 'Create pane' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
-      page.getByText('Work Panes', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+      page.getByRole('button', { name: 'Create project' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+      page.getByText('Work Projects', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByText('Add module: Table', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByRole('heading', { name: /Access denied/i }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
-      page.getByText('No panes available', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+      page.getByText('No projects available', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
     ]);
 
     return detectWorkBoundary(page);
@@ -131,7 +131,7 @@ export const openWorkTab = async (page, projectId, preferredPaneId = '') => {
       await workTab.click();
       await Promise.race([
         page.waitForURL((url) => /\/projects\/[^/]+\/work(?:\/|$)/.test(url.pathname), { timeout: 15_000 }).catch(() => null),
-        page.getByRole('toolbar', { name: 'Open panes' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+        page.getByRole('toolbar', { name: 'Open projects' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       ]);
       return true;
     }
@@ -141,8 +141,8 @@ export const openWorkTab = async (page, projectId, preferredPaneId = '') => {
       await projectWorkLink.click();
       await Promise.race([
         page.waitForURL((url) => /\/projects\/[^/]+\/work(?:\/|$)/.test(url.pathname), { timeout: 15_000 }).catch(() => null),
-        page.getByRole('button', { name: 'Create pane' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
-        page.getByText('Work Panes', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+        page.getByRole('button', { name: 'Create project' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+        page.getByText('Work Projects', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       ]);
       return true;
     }
@@ -154,9 +154,9 @@ export const openWorkTab = async (page, projectId, preferredPaneId = '') => {
         await workLink.click();
         await Promise.race([
           page.waitForURL((url) => /\/projects\/[^/]+\/work(?:\/|$)/.test(url.pathname), { timeout: 15_000 }).catch(() => null),
-          page.getByRole('toolbar', { name: 'Open panes' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
-          page.getByRole('button', { name: 'Create pane' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
-          page.getByText('Work Panes', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+          page.getByRole('toolbar', { name: 'Open projects' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+          page.getByRole('button', { name: 'Create project' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+          page.getByText('Work Projects', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
         ]);
         return true;
       }
@@ -165,12 +165,12 @@ export const openWorkTab = async (page, projectId, preferredPaneId = '') => {
     return false;
   };
 
-  const navigateToPreferredPane = async () => {
-    if (!preferredPaneId) {
+  const navigateToPreferredProject = async () => {
+    if (!preferredProjectId) {
       return null;
     }
 
-    const target = `/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(preferredPaneId)}`;
+    const target = `/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(preferredProjectId)}`;
     const currentPath = new URL(page.url()).pathname;
     if (currentPath !== target) {
       return openAndReadState(target);
@@ -179,28 +179,28 @@ export const openWorkTab = async (page, projectId, preferredPaneId = '') => {
   };
 
   if (await openViaVisibleWorkEntry()) {
-    const preferredState = await navigateToPreferredPane();
+    const preferredState = await navigateToPreferredProject();
     if (preferredState?.kind === 'ready') {
       return {
-        paneId: preferredState.paneId || preferredPaneId,
+        projectId: preferredState.projectId || preferredProjectId,
         state: preferredState.kind,
       };
     }
 
     const clickedState = await detectWorkBoundary(page);
-    if (clickedState.kind === 'ready' || !preferredPaneId) {
+    if (clickedState.kind === 'ready' || !preferredProjectId) {
       return {
-        paneId: clickedState.paneId,
+        projectId: clickedState.projectId,
         state: clickedState.kind,
       };
     }
   }
 
-  if (preferredPaneId) {
-    const preferredState = await openAndReadState(`/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(preferredPaneId)}`);
+  if (preferredProjectId) {
+    const preferredState = await openAndReadState(`/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(preferredProjectId)}`);
     if (preferredState.kind === 'ready') {
       return {
-        paneId: preferredState.paneId || preferredPaneId,
+        projectId: preferredState.projectId || preferredProjectId,
         state: preferredState.kind,
       };
     }
@@ -208,7 +208,7 @@ export const openWorkTab = async (page, projectId, preferredPaneId = '') => {
 
   const fallbackState = await openAndReadState(`/projects/${encodeURIComponent(projectId)}/work`);
   return {
-    paneId: fallbackState.paneId,
+    projectId: fallbackState.projectId,
     state: fallbackState.kind,
   };
 };

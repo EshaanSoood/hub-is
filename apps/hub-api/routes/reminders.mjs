@@ -48,7 +48,7 @@ const nextReminderAtForFrequency = (isoValue, frequency, interval = 1) => {
   return date.toISOString();
 };
 
-const reminderScopeFromValue = (value) => (value === 'project' ? 'project' : 'personal');
+const reminderScopeFromValue = (value) => (value === 'space' || value === 'project' ? 'space' : 'personal');
 
 export const createReminderRoutes = (deps) => {
   const {
@@ -68,7 +68,7 @@ export const createReminderRoutes = (deps) => {
     collectionByNameStmt,
     insertCollectionStmt,
     projectByIdStmt,
-    paneByIdStmt,
+    workProjectByIdStmt,
     viewByIdStmt,
     personalProjectByUserStmt,
     insertRecordStmt,
@@ -90,12 +90,12 @@ export const createReminderRoutes = (deps) => {
       return;
     }
 
-    let projectId = personalProject.project_id;
-    let paneId = '';
-    if (scope === 'project') {
-      projectId = asText(requestUrl.searchParams.get('project_id'));
+    let projectId = personalProject.space_id;
+    let sourceProjectId = '';
+    if (scope === 'space') {
+      projectId = asText(requestUrl.searchParams.get('space_id'));
       if (!projectId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for space-scoped reminders.')));
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required for space-scoped reminders.')));
         return;
       }
 
@@ -109,18 +109,18 @@ export const createReminderRoutes = (deps) => {
         return;
       }
 
-      paneId = asText(requestUrl.searchParams.get('pane_id'));
-      if (paneId) {
-        const pane = paneByIdStmt.get(paneId);
-        if (!pane || pane.project_id !== projectId) {
-          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested space.')));
+      sourceProjectId = asText(requestUrl.searchParams.get('project_id') || requestUrl.searchParams.get('source_project_id'));
+      if (sourceProjectId) {
+        const project = workProjectByIdStmt.get(sourceProjectId);
+        if (!project || project.space_id !== projectId) {
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must belong to the requested space.')));
           return;
         }
       }
     }
 
-    // Keep this argument order aligned with statements.mjs:listForUser, including the duplicated paneId binding.
-    const rows = listRemindersForUserStmt.all(auth.user.user_id, scope, personalProject.project_id, scope, projectId, paneId, paneId);
+    // Keep this argument order aligned with statements.mjs:listForUser, including the duplicated projectId binding.
+    const rows = listRemindersForUserStmt.all(auth.user.user_id, scope, personalProject.space_id, scope, projectId, sourceProjectId, sourceProjectId);
     request.log.debug('Reminder listing query completed.', { durationMs: elapsedMs(listQueryStartedAt) });
     const now = nowIso();
 
@@ -128,7 +128,7 @@ export const createReminderRoutes = (deps) => {
       reminder_id: row.reminder_id,
       record_id: row.record_id,
       record_title: row.record_title,
-      project_id: row.project_id,
+      space_id: row.space_id,
       remind_at: row.remind_at,
       channels: parseJsonArray(row.channels, ['in_app'], request.log),
       recurrence_json: parseRecurrenceJson(row.recurrence_json, request.log),
@@ -156,7 +156,7 @@ export const createReminderRoutes = (deps) => {
 
     const projectGate = withProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId: reminder.project_id,
+      projectId: reminder.space_id,
       requiredCapability: 'view',
     });
     if (projectGate.error) {
@@ -211,7 +211,7 @@ export const createReminderRoutes = (deps) => {
         {
           reminder_id: reminderId,
           record_id: reminder.record_id,
-          project_id: reminder.project_id,
+          space_id: reminder.space_id,
           action: 'dismissed',
         },
         auth.user.user_id,
@@ -251,14 +251,15 @@ export const createReminderRoutes = (deps) => {
     const remindAt = validated.remind_at;
     const recurrenceJson = validated.recurrence_json ? toJson(validated.recurrence_json) : null;
     const scope = reminderScopeFromValue(validated.scope);
-    const paneId = asText(validated.pane_id) || null;
+    const projectId = asText(validated.project_id) || null;
+    const sourceProjectId = asText(validated.source_project_id) || null;
     const sourceViewId = typeof validated.source_view_id === 'string' && validated.source_view_id ? validated.source_view_id : null;
 
     let targetProject;
-    if (scope === 'project') {
+    if (scope === 'space') {
       const projectId = asText(validated.project_id);
       if (!projectId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required for space-scoped reminders.')));
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required for space-scoped reminders.')));
         return;
       }
 
@@ -278,17 +279,17 @@ export const createReminderRoutes = (deps) => {
         return;
       }
 
-      if (paneId) {
-        const pane = paneByIdStmt.get(paneId);
-        if (!pane || pane.project_id !== projectId) {
-          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'pane_id must belong to the requested space.')));
+      if (sourceProjectId) {
+        const project = workProjectByIdStmt.get(sourceProjectId);
+        if (!project || project.space_id !== projectId) {
+          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must belong to the requested space.')));
           return;
         }
       }
 
       if (sourceViewId) {
         const view = viewByIdStmt.get(sourceViewId);
-        if (!view || view.project_id !== projectId) {
+        if (!view || view.space_id !== projectId) {
           send(response, jsonResponse(400, errorEnvelope('invalid_input', 'source_view_id must belong to the requested space.')));
           return;
         }
@@ -309,23 +310,23 @@ export const createReminderRoutes = (deps) => {
     try {
       withTransaction(() => {
         if (!collectionId) {
-          const existingCollection = collectionByNameStmt.get(targetProject.project_id, 'Reminders');
+          const existingCollection = collectionByNameStmt.get(targetProject.space_id, 'Reminders');
           if (existingCollection?.collection_id) {
             collectionId = existingCollection.collection_id;
-            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.project_id);
+            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.space_id);
           } else {
             collectionId = newId('col');
-            insertCollectionStmt.run(collectionId, targetProject.project_id, 'Reminders', null, null, timestamp, timestamp);
-            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.project_id);
+            insertCollectionStmt.run(collectionId, targetProject.space_id, 'Reminders', null, null, timestamp, timestamp);
+            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.space_id);
           }
         }
 
         insertRecordStmt.run(
           recordId,
-          targetProject.project_id,
+          targetProject.space_id,
           collectionId,
           title,
-          paneId,
+          sourceProjectId,
           sourceViewId,
           auth.user.user_id,
           timestamp,
@@ -346,7 +347,7 @@ export const createReminderRoutes = (deps) => {
         {
           reminder_id: reminderId,
           record_id: recordId,
-          project_id: targetProject.project_id,
+          space_id: targetProject.space_id,
           action: 'created',
         },
         auth.user.user_id,
@@ -368,7 +369,7 @@ export const createReminderRoutes = (deps) => {
             reminder_id: reminderId,
             record_id: recordId,
             record_title: title,
-            project_id: targetProject.project_id,
+            space_id: targetProject.space_id,
             remind_at: remindAt,
             channels: ['in_app'],
             recurrence_json: validated.recurrence_json ?? null,

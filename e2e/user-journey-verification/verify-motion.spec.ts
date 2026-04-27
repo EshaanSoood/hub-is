@@ -39,17 +39,17 @@ const waitForProjectsHome = async (page: Page): Promise<void> => {
   await expect(page.getByRole('navigation', { name: 'Home tabs' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
-const navigateToSeededPane = async (
+const navigateToSeededProject = async (
   page: Page,
   context: Awaited<ReturnType<typeof readJourneyContext>>,
 ): Promise<void> => {
   await waitForProjectsHome(page);
-  await page.goto(`/projects/${context.project.id}/work/${context.panes.primaryId}`, {
+  await page.goto(`/projects/${context.project.id}/work/${context.projects.primaryId}`, {
     waitUntil: 'domcontentloaded',
     timeout: LIVE_TIMEOUT_MS,
   });
 
-  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work/${escapeRegExp(context.panes.primaryId)}(?:\\?|$)`), {
+  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work/${escapeRegExp(context.projects.primaryId)}(?:\\?|$)`), {
     timeout: LIVE_TIMEOUT_MS,
   });
 };
@@ -183,7 +183,7 @@ test.describe('Motion Verification', () => {
     await loginThroughKeycloak(page, accountA);
 
     await waitForProjectsHome(page);
-    await navigateToSeededPane(page, context);
+    await navigateToSeededProject(page, context);
     const overviewButton = page.getByRole('button', { name: /^Overview$/i }).first();
     await expect(overviewButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
@@ -196,7 +196,7 @@ test.describe('Motion Verification', () => {
       }),
     );
 
-    await navigateToSeededPane(page, context);
+    await navigateToSeededProject(page, context);
 
     checks.push(
       await runMotionCheck(page, 'dialog_open_add_module', '.dialog-panel-size, [role="dialog"]', async () => {
@@ -211,23 +211,23 @@ test.describe('Motion Verification', () => {
       }),
     );
 
-    const secondaryPaneButton = page
+    const secondaryProjectButton = page
       .getByRole('button', {
-        name: new RegExp(`^${escapeRegExp(context.panes.secondaryName)}(?:, pane \\d+)?$`, 'i'),
+        name: new RegExp(`^${escapeRegExp(context.projects.secondaryName)}(?:, project \\d+)?$`, 'i'),
       })
       .first();
-    await expect(secondaryPaneButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await expect(secondaryProjectButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
     checks.push(
-      await runMotionCheck(page, 'pane_transition_primary_to_secondary', routeSurfaceSelector, async () => {
-        await secondaryPaneButton.click();
-        await expect(page).toHaveURL(new RegExp(`/work/${escapeRegExp(context.panes.secondaryId)}$`), {
+      await runMotionCheck(page, 'project_transition_primary_to_secondary', routeSurfaceSelector, async () => {
+        await secondaryProjectButton.click();
+        await expect(page).toHaveURL(new RegExp(`/work/${escapeRegExp(context.projects.secondaryId)}$`), {
           timeout: LIVE_TIMEOUT_MS,
         });
       }),
     );
 
-    await navigateToSeededPane(page, context);
+    await navigateToSeededProject(page, context);
     await ensureTableModuleAdded(page);
 
     const tableActionsButton = page.getByRole('button', { name: /Open Table module actions/i }).first();

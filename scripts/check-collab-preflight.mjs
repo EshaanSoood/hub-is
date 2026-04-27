@@ -141,9 +141,9 @@ const me = await request(`${baseUrl}/api/hub/me`);
 assertApiSurface('GET /api/hub/me', me, [200, 401, 403]);
 console.log('/api/hub/me API surface check passed.');
 
-const panes = await request(`${baseUrl}/api/hub/projects/${encodeURIComponent(projectId)}/panes`);
-assertApiSurface(`GET /api/hub/projects/${projectId}/panes`, panes, [200, 401, 403]);
-console.log(`/api/hub/projects/${projectId}/panes API surface check passed.`);
+const projects = await request(`${baseUrl}/api/hub/spaces/${encodeURIComponent(projectId)}/projects`);
+assertApiSurface(`GET /api/hub/spaces/${projectId}/projects`, projects, [200, 401, 403]);
+console.log(`/api/hub/spaces/${projectId}/projects API surface check passed.`);
 
 const envProductionWsUrl = (await readEnvValueFromFile('.env.production', 'VITE_HUB_COLLAB_WS_URL')) || '';
 if (!envProductionWsUrl) {

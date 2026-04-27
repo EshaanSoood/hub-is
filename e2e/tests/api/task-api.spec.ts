@@ -4,8 +4,8 @@ import { HUB_API_BASE_URL, HubApiClient, type HubEnvelope, loadTokenFromLocalEnv
 interface HubTaskSummary {
   record_id: string;
   title: string;
-  project_id: string | null;
-  project_name: string | null;
+  space_id: string | null;
+  space_name: string | null;
   task_state: {
     status: string;
     priority: string | null;
@@ -16,7 +16,7 @@ interface HubTaskSummary {
 
 interface HubHomePayload {
   home: {
-    personal_project_id: string | null;
+    personal_space_id: string | null;
     tasks: HubTaskSummary[];
   };
 }
@@ -66,7 +66,7 @@ const extractRecordIdFromCreateResponse = (data: unknown): string => {
 
 test.describe('Task API contract tests', () => {
   let client: HubApiClient;
-  let personalProjectId = '';
+  let personalSpaceId = '';
   let creatorUserId = '';
   const createdRecordIds = new Set<string>();
   const createdProjectIds = new Set<string>();
@@ -107,8 +107,8 @@ test.describe('Task API contract tests', () => {
     expect(creatorUserId).toBeTruthy();
 
     const home = await getHome();
-    personalProjectId = String(home.personal_project_id || '');
-    expect(personalProjectId).toBeTruthy();
+    personalSpaceId = String(home.personal_space_id || '');
+    expect(personalSpaceId).toBeTruthy();
   });
 
   test.afterEach(async () => {
@@ -117,14 +117,14 @@ test.describe('Task API contract tests', () => {
     }
     createdRecordIds.clear();
     for (const projectId of createdProjectIds) {
-      await client.delete(`/api/hub/projects/${encodeURIComponent(projectId)}`).catch(() => undefined);
+      await client.delete(`/api/hub/spaces/${encodeURIComponent(projectId)}`).catch(() => undefined);
     }
     createdProjectIds.clear();
   });
 
   test('POST /api/hub/tasks creates a task with all fields', async () => {
     const payload = {
-      project_id: personalProjectId,
+      space_id: personalSpaceId,
       title: uniqueTitle('api-task-all-fields'),
       status: 'todo',
       priority: 'high',
@@ -146,22 +146,22 @@ test.describe('Task API contract tests', () => {
   });
 
   test('POST /api/hub/tasks auto-creates collection if none exists', async () => {
-    const projectResponse = await client.post('/api/hub/projects', {
+    const projectResponse = await client.post('/api/hub/spaces', {
       name: uniqueTitle('api-project-auto-collection'),
     });
     expect(projectResponse.status).toBe(201);
 
-    const projectEnvelope = await parseEnvelope<{ project?: { project_id: string }; project_id?: string }>(projectResponse);
+    const projectEnvelope = await parseEnvelope<{ space?: { space_id: string }; space_id?: string }>(projectResponse);
     expect(projectEnvelope?.ok).toBe(true);
     const projectId =
-      projectEnvelope?.data?.project?.project_id
-      || projectEnvelope?.data?.project_id
+      projectEnvelope?.data?.space?.space_id
+      || projectEnvelope?.data?.space_id
       || '';
     expect(projectId).toBeTruthy();
     createdProjectIds.add(projectId);
 
     const createResponse = await client.post('/api/hub/tasks', {
-      project_id: projectId,
+      space_id: projectId,
       title: uniqueTitle('api-task-auto-collection'),
       status: 'todo',
       priority: 'medium',
@@ -178,7 +178,7 @@ test.describe('Task API contract tests', () => {
 
   test('POST /api/hub/tasks auto-assigns to creator when no assignees provided', async () => {
     const createResponse = await client.post('/api/hub/tasks', {
-      project_id: personalProjectId,
+      space_id: personalSpaceId,
       title: uniqueTitle('api-task-auto-assignee'),
       status: 'todo',
       priority: 'low',
@@ -209,7 +209,7 @@ test.describe('Task API contract tests', () => {
 
   test('POST /api/hub/tasks rejects missing title', async () => {
     const createResponse = await client.post('/api/hub/tasks', {
-      project_id: personalProjectId,
+      space_id: personalSpaceId,
       status: 'todo',
       priority: 'medium',
     });
@@ -222,7 +222,7 @@ test.describe('Task API contract tests', () => {
 
   test('POST /api/hub/tasks rejects invalid due_at', async () => {
     const createResponse = await client.post('/api/hub/tasks', {
-      project_id: personalProjectId,
+      space_id: personalSpaceId,
       title: uniqueTitle('api-task-invalid-due-at'),
       status: 'todo',
       priority: 'high',
@@ -235,7 +235,7 @@ test.describe('Task API contract tests', () => {
   test('POST /api/hub/tasks preserves due_at with correct timezone', async () => {
     const dueAt = '2026-03-22T18:00:00.000Z';
     const createResponse = await client.post('/api/hub/tasks', {
-      project_id: personalProjectId,
+      space_id: personalSpaceId,
       title: uniqueTitle('api-task-due-at-timezone'),
       status: 'todo',
       priority: 'medium',
@@ -256,7 +256,7 @@ test.describe('Task API contract tests', () => {
 
   test('GET /api/hub/home returns tasks created by user', async () => {
     const createResponse = await client.post('/api/hub/tasks', {
-      project_id: personalProjectId,
+      space_id: personalSpaceId,
       title: uniqueTitle('api-home-task-contract'),
       status: 'todo',
       priority: 'urgent',
@@ -274,8 +274,8 @@ test.describe('Task API contract tests', () => {
     expect(task).toBeTruthy();
     expect(typeof task?.record_id).toBe('string');
     expect(typeof task?.title).toBe('string');
-    expect('project_id' in (task || {})).toBe(true);
-    expect('project_name' in (task || {})).toBe(true);
+    expect('space_id' in (task || {})).toBe(true);
+    expect('space_name' in (task || {})).toBe(true);
     expect(task?.task_state).toBeTruthy();
     expect(typeof task?.task_state?.status).toBe('string');
     expect('priority' in (task?.task_state || {})).toBe(true);

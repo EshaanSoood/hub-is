@@ -97,14 +97,14 @@ export const validateCreateTaskRequest = (body: unknown): CreateTaskRequest => {
     title: asNonEmptyString(body.title, 'title'),
   };
 
-  const projectId = asOptionalString(body.project_id, 'project_id');
+  const projectId = asOptionalString(body.space_id, 'space_id');
   if (projectId) {
-    request.project_id = projectId;
+    request.space_id = projectId;
   }
 
-  const sourcePaneId = asOptionalString(body.source_pane_id, 'source_pane_id');
-  if (sourcePaneId) {
-    request.source_pane_id = sourcePaneId;
+  const sourceProjectId = asOptionalString(body.source_project_id, 'source_project_id');
+  if (sourceProjectId) {
+    request.source_project_id = sourceProjectId;
   }
 
   if (typeof body.parent_record_id !== 'undefined') {
@@ -174,10 +174,10 @@ const validateReminderRecurrence = (value: unknown): ReminderRecurrence => {
 };
 
 const validateReminderScope = (value: unknown): ReminderScope => {
-  if (value === 'personal' || value === 'project') {
+  if (value === 'personal' || value === 'space' || value === 'project') {
     return value;
   }
-  throw new Error('scope must be either "personal" or "project" when provided.');
+  throw new Error('scope must be personal, space, or project when provided.');
 };
 
 export const validateCreateReminderRequest = (body: unknown): CreateReminderRequest => {
@@ -199,23 +199,23 @@ export const validateCreateReminderRequest = (body: unknown): CreateReminderRequ
   }
   const effectiveScope = request.scope ?? 'personal';
 
+  const spaceId = asOptionalString(body.space_id, 'space_id');
   const projectId = asOptionalString(body.project_id, 'project_id');
-  const paneId = asOptionalString(body.pane_id, 'pane_id');
   const hasSourceViewId = typeof body.source_view_id !== 'undefined';
 
-  if (effectiveScope !== 'project' && (projectId || paneId || hasSourceViewId)) {
-    throw new Error('project_id, pane_id, and source_view_id are only allowed when scope is "project".');
+  if (effectiveScope !== 'space' && effectiveScope !== 'project' && (spaceId || projectId || hasSourceViewId)) {
+    throw new Error('space_id, project_id, and source_view_id are only allowed when scope is "space" or "project".');
   }
-  if (effectiveScope === 'project' && !projectId) {
-    throw new Error('project_id is required when scope is "project".');
+  if ((effectiveScope === 'space' || effectiveScope === 'project') && !spaceId) {
+    throw new Error('space_id is required when scope is "space" or "project".');
+  }
+
+  if (spaceId) {
+    request.space_id = spaceId;
   }
 
   if (projectId) {
     request.project_id = projectId;
-  }
-
-  if (paneId) {
-    request.pane_id = paneId;
   }
 
   if (hasSourceViewId) {
@@ -285,14 +285,14 @@ export const validateCreateEventRequest = (body: unknown): CreateEventRequest =>
     end_dt: endDt,
   };
 
-  const paneId = asOptionalString(body.pane_id, 'pane_id');
-  if (paneId) {
-    request.pane_id = paneId;
+  const projectId = asOptionalString(body.project_id, 'project_id');
+  if (projectId) {
+    request.project_id = projectId;
   }
 
-  const sourcePaneId = asOptionalString(body.source_pane_id, 'source_pane_id');
-  if (sourcePaneId) {
-    request.source_pane_id = sourcePaneId;
+  const sourceProjectId = asOptionalString(body.source_project_id, 'source_project_id');
+  if (sourceProjectId) {
+    request.source_project_id = sourceProjectId;
   }
 
   const sourceDocId = asOptionalString(body.source_doc_id, 'source_doc_id');

@@ -11,8 +11,8 @@ const baseUrl = String(process.env.HUB_BASE_URL || process.env.HUB_API_BASE_URL 
 const ownerToken = String(process.env.HUB_OWNER_ACCESS_TOKEN || process.env.LOCAL_OWNER_ACCESS_TOKEN || '').trim();
 const memberToken = String(process.env.HUB_ACCESS_TOKEN || process.env.LOCAL_MEMBER_ACCESS_TOKEN || '').trim();
 const collabToken = String(process.env.HUB_COLLAB_ACCESS_TOKEN || process.env.LOCAL_COLLAB_ACCESS_TOKEN || '').trim();
-const projectId = String(process.env.LOCAL_PROJECT_ID || 'local-secure-dev').trim();
-const projectName = String(process.env.LOCAL_PROJECT_NAME || 'Local Secure Dev').trim();
+const spaceId = String(process.env.LOCAL_PROJECT_ID || process.env.LOCAL_SPACE_ID || 'local-secure-dev').trim();
+const spaceName = String(process.env.LOCAL_PROJECT_NAME || process.env.LOCAL_SPACE_NAME || 'Local Secure Dev').trim();
 
 const memberEmail = String(process.env.LOCAL_MEMBER_EMAIL || '').trim().toLowerCase();
 const collabEmail = String(process.env.LOCAL_COLLAB_EMAIL || '').trim().toLowerCase();
@@ -42,46 +42,46 @@ const fail = (message) => {
 };
 
 const getSessionEmail = (payload) => String(payload?.data?.user?.email || '').trim().toLowerCase();
-const hasProjectMembership = (payload) =>
+const hasSpaceMembership = (payload) =>
   Array.isArray(payload?.data?.memberships)
-  && payload.data.memberships.some((membership) => String(membership?.project_id || '').trim() === projectId);
+  && payload.data.memberships.some((membership) => String(membership?.space_id || '').trim() === spaceId);
 
 const ownerMe = await requestJson('/api/hub/me', { token: ownerToken });
 if (ownerMe.status !== 200) {
   fail(`Owner /api/hub/me failed (${ownerMe.status}).`);
 }
 
-const projectsResponse = await requestJson('/api/hub/projects', { token: ownerToken });
-if (projectsResponse.status !== 200) {
-  fail(`Owner /api/hub/projects failed (${projectsResponse.status}).`);
+const spacesResponse = await requestJson('/api/hub/spaces', { token: ownerToken });
+if (spacesResponse.status !== 200) {
+  fail(`Owner /api/hub/spaces failed (${spacesResponse.status}).`);
 }
 
-const projects = Array.isArray(projectsResponse.payload?.data?.projects)
-  ? projectsResponse.payload.data.projects
+const spaces = Array.isArray(spacesResponse.payload?.data?.spaces)
+  ? spacesResponse.payload.data.spaces
   : [];
 
-const existing = projects.find((project) => {
-  const id = String(project?.project_id || project?.id || '').trim();
-  return id === projectId;
+const existing = spaces.find((space) => {
+  const id = String(space?.space_id || space?.id || '').trim();
+  return id === spaceId;
 });
 
 if (!existing) {
-  const createResponse = await requestJson('/api/hub/projects', {
+  const createResponse = await requestJson('/api/hub/spaces', {
     method: 'POST',
     token: ownerToken,
     body: {
-      project_id: projectId,
-      name: projectName,
+      space_id: spaceId,
+      name: spaceName,
     },
   });
 
   if (![200, 201, 409].includes(createResponse.status)) {
-    fail(`Project create failed (${createResponse.status}).`);
+    fail(`Space create failed (${createResponse.status}).`);
   }
 }
 
 const ensureMember = async (email) => {
-  const response = await requestJson(`/api/hub/projects/${encodeURIComponent(projectId)}/members`, {
+  const response = await requestJson(`/api/hub/spaces/${encodeURIComponent(spaceId)}/members`, {
     method: 'POST',
     token: ownerToken,
     body: {
@@ -105,8 +105,8 @@ if (memberMe.status !== 200) {
 if (getSessionEmail(memberMe.payload) !== memberEmail) {
   fail(`Member /api/hub/me returned ${getSessionEmail(memberMe.payload) || 'no email'}, expected ${memberEmail}.`);
 }
-if (!hasProjectMembership(memberMe.payload)) {
-  fail(`Member /api/hub/me does not include membership for ${projectId}.`);
+if (!hasSpaceMembership(memberMe.payload)) {
+  fail(`Member /api/hub/me does not include membership for ${spaceId}.`);
 }
 
 const collabMe = await requestJson('/api/hub/me', { token: collabToken });
@@ -116,8 +116,8 @@ if (collabMe.status !== 200) {
 if (getSessionEmail(collabMe.payload) !== collabEmail) {
   fail(`Collaborator /api/hub/me returned ${getSessionEmail(collabMe.payload) || 'no email'}, expected ${collabEmail}.`);
 }
-if (!hasProjectMembership(collabMe.payload)) {
-  fail(`Collaborator /api/hub/me does not include membership for ${projectId}.`);
+if (!hasSpaceMembership(collabMe.payload)) {
+  fail(`Collaborator /api/hub/me does not include membership for ${spaceId}.`);
 }
 
-console.log(`Local fixture ready: ${projectId}`);
+console.log(`Local fixture ready: ${spaceId}`);

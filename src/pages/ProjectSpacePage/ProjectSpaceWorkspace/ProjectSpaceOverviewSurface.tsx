@@ -1,11 +1,8 @@
 import { useMemo, type ComponentProps, type ReactElement } from 'react';
 import { OverviewView } from '../../../components/project-space/OverviewView';
-import { SpaceInviteGuestsPanel } from '../../../features/rooms/SpaceInviteGuestsPanel';
-import { SpaceRoomsOverviewSection } from '../../../features/rooms/SpaceRoomsOverviewSection';
 import type { CalendarEventSummary } from '../../../components/project-space/CalendarModuleSkin/types';
-import type { HubPaneSummary, HubProjectMember, HubTaskSummary } from '../../../services/hub/types';
+import type { HubProjectMember, HubTaskSummary } from '../../../services/hub/types';
 import type { OverviewSubView } from './types';
-import type { TimelineEvent } from './types';
 
 type OverviewViewProps = ComponentProps<typeof OverviewView>;
 
@@ -13,7 +10,6 @@ export interface ProjectSpaceOverviewSurfaceProps {
   projectName: string;
   projectId: string;
   isPersonalProject: boolean;
-  panes: HubPaneSummary[];
   projectMemberList: HubProjectMember[];
   accessToken: string;
   overviewView: OverviewSubView;
@@ -37,14 +33,12 @@ export interface ProjectSpaceOverviewSurfaceProps {
   onInviteEmailChange: (nextValue: string) => void;
   onInviteSubmit: () => void;
   onDismissInviteFeedback: () => void;
-  timeline: TimelineEvent[];
 }
 
 export const ProjectSpaceOverviewSurface = ({
   projectName,
   projectId,
   isPersonalProject,
-  panes,
   projectMemberList,
   accessToken,
   overviewView,
@@ -68,7 +62,6 @@ export const ProjectSpaceOverviewSurface = ({
   onInviteEmailChange,
   onInviteSubmit,
   onDismissInviteFeedback,
-  timeline,
 }: ProjectSpaceOverviewSurfaceProps): ReactElement => {
   const overviewCollaborators = useMemo(
     () =>
@@ -118,24 +111,8 @@ export const ProjectSpaceOverviewSurface = ({
         onInviteEmailChange={onInviteEmailChange}
         onInviteSubmit={onInviteSubmit}
         onDismissInviteFeedback={onDismissInviteFeedback}
-        inviteGuestsSection={!isPersonalProject ? (
-          <SpaceInviteGuestsPanel
-            accessToken={accessToken}
-            projectId={projectId}
-          />
-        ) : null}
+        inviteGuestsSection={null}
       />
-
-      {!isPersonalProject ? (
-        <SpaceRoomsOverviewSection
-          accessToken={accessToken}
-          projectId={projectId}
-          panes={panes}
-          tasks={tasks}
-          calendarEvents={calendarEvents}
-          timeline={timeline}
-        />
-      ) : null}
     </div>
   );
 };

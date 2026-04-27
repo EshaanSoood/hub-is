@@ -53,7 +53,7 @@ export const createAuthHelpers = ({
     const memberships = projectMembershipsByUserStmt.all(user.user_id);
     let sessionRole = 'Viewer';
     const projectMemberships = memberships.map((membership) => ({
-      projectId: membership.project_id,
+      projectId: membership.space_id,
       membershipRole: membershipRoleLabel(membership.role),
     }));
 
@@ -68,7 +68,7 @@ export const createAuthHelpers = ({
         derivedSessionRole = 'Owner';
       }
 
-      projectCapabilities[membership.project_id] = [...capabilities];
+      projectCapabilities[membership.space_id] = [...capabilities];
       if (sessionRolePriority[derivedSessionRole] > sessionRolePriority[sessionRole]) {
         sessionRole = derivedSessionRole;
       }

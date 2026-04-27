@@ -5,19 +5,20 @@ import type { HubTrackedFile } from './types.ts';
 export const uploadFile = async (
   accessToken: string,
   payload: {
-    project_id: string;
+    space_id?: string;
+    project_id?: string;
     name: string;
     mime_type?: string;
     content_base64: string;
     asset_root_id?: string;
     path?: string;
-    mutation_context_pane_id?: string;
+    mutation_context_project_id?: string;
     metadata?: Record<string, unknown>;
   },
 ): Promise<{
   file: {
     file_id: string;
-    project_id: string;
+    space_id: string;
     asset_root_id: string;
     provider: string;
     asset_path: string;
@@ -31,7 +32,7 @@ export const uploadFile = async (
   return hubRequest<{
     file: {
       file_id: string;
-      project_id: string;
+      space_id: string;
       asset_root_id: string;
       provider: string;
       asset_path: string;
@@ -49,20 +50,20 @@ export const uploadFile = async (
 
 export const listTrackedFiles = async (
   accessToken: string,
-  projectId: string,
-  options?: { scope?: 'all' | 'project' } | { scope: 'pane'; pane_id: string },
+  spaceId: string,
+  options?: { scope?: 'all' | 'space' } | { scope: 'project'; project_id: string },
 ): Promise<HubTrackedFile[]> => {
   const params = new URLSearchParams();
   if (options?.scope) {
     params.set('scope', options.scope);
   }
-  if (options?.scope === 'pane') {
-    params.set('pane_id', options.pane_id);
+  if (options?.scope === 'project') {
+    params.set('project_id', options.project_id);
   }
   const query = params.toString();
   const data = await hubRequest<{ files: HubTrackedFile[] }>(
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/files${query ? `?${query}` : ''}`,
+    `/api/hub/spaces/${encodeURIComponent(spaceId)}/files${query ? `?${query}` : ''}`,
     { method: 'GET' },
   );
   return data.files;
@@ -70,11 +71,11 @@ export const listTrackedFiles = async (
 
 export const listAssetRoots = async (
   accessToken: string,
-  projectId: string,
+  spaceId: string,
 ): Promise<
   Array<{
     asset_root_id: string;
-    project_id: string;
+    space_id: string;
     provider: string;
     root_path: string;
     connection_ref: Record<string, unknown> | null;
@@ -85,14 +86,14 @@ export const listAssetRoots = async (
   const data = await hubRequest<{
     asset_roots: Array<{
       asset_root_id: string;
-      project_id: string;
+      space_id: string;
       provider: string;
       root_path: string;
       connection_ref: Record<string, unknown> | null;
       created_at: string;
       updated_at: string;
     }>;
-  }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/asset-roots`, {
+  }>(accessToken, `/api/hub/spaces/${encodeURIComponent(spaceId)}/asset-roots`, {
     method: 'GET',
   });
   return data.asset_roots;
@@ -100,10 +101,10 @@ export const listAssetRoots = async (
 
 export const createAssetRoot = async (
   accessToken: string,
-  projectId: string,
+  spaceId: string,
   payload: { provider?: string; root_path: string; connection_ref?: Record<string, unknown> },
 ): Promise<{ asset_root_id: string }> => {
-  return hubRequest<{ asset_root_id: string }>(accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/asset-roots`, {
+  return hubRequest<{ asset_root_id: string }>(accessToken, `/api/hub/spaces/${encodeURIComponent(spaceId)}/asset-roots`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -111,7 +112,7 @@ export const createAssetRoot = async (
 
 export const listAssets = async (
   accessToken: string,
-  projectId: string,
+  spaceId: string,
   assetRootId: string,
   path: string,
 ): Promise<{ provider: string; path: string; entries: Array<{ name: string; path: string; proxy_url?: string }>; warning?: string }> => {
@@ -120,7 +121,7 @@ export const listAssets = async (
   params.set('path', path);
   return hubRequest<{ provider: string; path: string; entries: Array<{ name: string; path: string; proxy_url?: string }>; warning?: string }>(
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/assets/list?${params.toString()}`,
+    `/api/hub/spaces/${encodeURIComponent(spaceId)}/assets/list?${params.toString()}`,
     {
       method: 'GET',
     },

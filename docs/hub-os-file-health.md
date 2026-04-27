@@ -60,7 +60,7 @@ This report ranks audited files by change friction using a composite of line cou
 | `src/context/AuthzContext.tsx` | 311 | 2 | 2 | 2 | Watch | Change risk is moderate due to moderate size (311 LOC). |
 | `apps/hub-api/lib/validators.mjs` | 308 | 3 | 0 | 0 | Watch | Change risk is moderate due to moderate size (308 LOC), mixed responsibilities (3/5). |
 | `apps/hub-collab/collab-server.mjs` | 303 | 2 | 0 | 0 | Watch | Change risk is moderate due to moderate size (303 LOC). |
-| `apps/hub-api/routes/panes.mjs` | 308 | 2 | 0 | 0 | Watch | Change risk is moderate due to moderate size (308 LOC). |
+| `apps/hub-api/routes/projects.mjs` | 308 | 2 | 0 | 0 | Watch | Change risk is moderate due to moderate size (308 LOC). |
 | `src/components/auth/ProjectRouteGuard.tsx` | 78 | 2 | 3 | 2 | Watch | Change risk is moderate due to 3 effects. |
 | `src/lib/calendar-nlp/index.ts` | 279 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/components/layout/QuickAddDialogs.tsx` | 271 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
@@ -70,7 +70,7 @@ This report ranks audited files by change friction using a composite of line cou
 | `src/components/project-space/CalendarTab.tsx` | 176 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `apps/hub-api/routes/search.mjs` | 273 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `apps/hub-api/routes/reminders.mjs` | 257 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
-| `src/hooks/usePaneMutations.ts` | 241 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
+| `src/hooks/useProjectMutations.ts` | 241 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/lib/calendar-nlp/passes/alertsPass.ts` | 249 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/lib/nlp/reminder-parser/constants.ts` | 169 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/features/notes/nodes/MediaEmbedNode.tsx` | 155 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
@@ -105,7 +105,7 @@ This report ranks audited files by change friction using a composite of line cou
 | `src/services/nextcloudService.ts` | 84 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/hooks/useQuickCapture.ts` | 162 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/lib/nlp/reminder-parser/index.ts` | 132 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
-| `src/components/project-space/PaneHeaderControls.tsx` | 143 | 1 | 0 | 1 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
+| `src/components/project-space/ProjectHeaderControls.tsx` | 143 | 1 | 0 | 1 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/components/ui/alert-dialog.tsx` | 78 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/lib/nlp/task-parser/index.ts` | 124 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/services/smartWakeService.ts` | 80 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
@@ -118,7 +118,7 @@ This report ranks audited files by change friction using a composite of line cou
 | `src/hooks/useAutomationRuntime.ts` | 125 | 1 | 1 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/lib/nlp/intent/constants.ts` | 74 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/lib/nlp/intent/passes/confidencePass.ts` | 142 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
-| `src/services/hub/panes.ts` | 65 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
+| `src/services/hub/spaces.ts` | 65 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/components/primitives/Tabs.tsx` | 60 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/lib/calendar-nlp/passes/titlePass.ts` | 140 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/features/notes/nodes/ViewRefNode.tsx` | 63 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
@@ -128,7 +128,7 @@ This report ranks audited files by change friction using a composite of line cou
 | `src/hooks/usePersonalCalendarRuntime.ts` | 78 | 1 | 2 | 1 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/context/ProjectsContext.tsx` | 82 | 1 | 1 | 2 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/components/project-space/CommentRail.tsx` | 142 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
-| `src/components/project-space/PaneSwitcher.tsx` | 136 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
+| `src/components/project-space/ProjectSwitcher.tsx` | 136 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/lib/calendar-nlp/passes/locationPass.ts` | 135 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/components/layout/NotificationsPanel.tsx` | 130 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/features/notes/mentionTokens.ts` | 62 | 2 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
@@ -190,7 +190,7 @@ This report ranks audited files by change friction using a composite of line cou
 | `src/lib/serviceRegistry.ts` | 74 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/hooks/useRouteFocusReset.ts` | 43 | 1 | 1 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/services/notificationService.ts` | 63 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
-| `src/components/project-space/PinnedPanesTabs.tsx` | 63 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
+| `src/components/project-space/PinnedProjectsTabs.tsx` | 63 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/components/layout/ProjectShell.tsx` | 43 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `src/components/primitives/Chip.tsx` | 59 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
 | `apps/hub-api/routes/notifications.mjs` | 64 | 1 | 0 | 0 | Healthy | Small, focused file with limited state/effects and narrow dependencies. |
@@ -286,7 +286,7 @@ This report ranks audited files by change friction using a composite of line cou
    The table skin packs normalization, filtering, sorting, drag-reorder, inline editing, and keyboard grid behavior in one file. It is directly used in focused work-view mode, so maintenance friction in this file impacts core structured-record workflows.
 
 5. **`src/features/PersonalizedDashboardPanel.tsx` (lines 128-358, 660-1224; mounted at `src/pages/ProjectsPage.tsx`:6,248)**
-   This panel owns hub-home aggregation logic plus multiple rendering regions and interaction paths, and it is the primary content surface of `/projects`. High responsibility density on a top-level page makes drift and duplicated behavior likely across home and project views.
+   This panel owns hub-home aggregation logic plus multiple rendering regions and interaction paths, and it is the primary content surface of the spaces home route. High responsibility density on a top-level page makes drift and duplicated behavior likely across home and space views.
 
 6. **`src/components/project-space/KanbanModuleSkin.tsx` (lines 53-1221; lazy-loaded via `src/pages/ProjectSpacePage.tsx`:59-61,1463-1498)**
    The module is large and interaction-heavy (grouping, limits, card moves, inline mutations), with multiple local effects/states. Because it is a first-class focused view path in project space, defects here affect a core planning mode.

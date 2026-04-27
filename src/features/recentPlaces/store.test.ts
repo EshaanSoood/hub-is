@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_VISIBLE_RECENT_PLACES,
   readRecentPlaces,
-  recordRecentPaneContribution,
-  recordRecentPaneVisit,
+  recordRecentProjectContribution,
+  recordRecentProjectVisit,
   selectRecentPlaces,
 } from './store';
 
@@ -15,16 +15,16 @@ describe('recent places store', () => {
     vi.useRealTimers();
   });
 
-  it('deduplicates pane visits by pane scope', () => {
-    recordRecentPaneVisit({
-      paneId: 'pane-a',
-      paneName: 'Alpha',
+  it('deduplicates project visits by project scope', () => {
+    recordRecentProjectVisit({
+      projectId: 'project-a',
+      projectName: 'Alpha',
       spaceId: 'space-1',
       spaceName: 'Space One',
     });
-    recordRecentPaneVisit({
-      paneId: 'pane-a',
-      paneName: 'Alpha',
+    recordRecentProjectVisit({
+      projectId: 'project-a',
+      projectName: 'Alpha',
       spaceId: 'space-1',
       spaceName: 'Space One',
     });
@@ -44,52 +44,52 @@ describe('recent places store', () => {
     };
 
     advanceTime();
-    recordRecentPaneVisit({
-      paneId: 'pane-1',
-      paneName: 'First',
+    recordRecentProjectVisit({
+      projectId: 'project-1',
+      projectName: 'First',
       spaceId: 'space-1',
       spaceName: 'Space One',
     });
     advanceTime();
-    recordRecentPaneVisit({
-      paneId: 'pane-2',
-      paneName: 'Second',
+    recordRecentProjectVisit({
+      projectId: 'project-2',
+      projectName: 'Second',
       spaceId: 'space-1',
       spaceName: 'Space One',
     });
     advanceTime();
-    recordRecentPaneVisit({
-      paneId: 'pane-3',
-      paneName: 'Third',
+    recordRecentProjectVisit({
+      projectId: 'project-3',
+      projectName: 'Third',
       spaceId: 'space-2',
       spaceName: 'Space Two',
     });
     advanceTime();
-    recordRecentPaneVisit({
-      paneId: 'pane-4',
-      paneName: 'Fourth',
+    recordRecentProjectVisit({
+      projectId: 'project-4',
+      projectName: 'Fourth',
       spaceId: 'space-2',
       spaceName: 'Space Two',
     });
     advanceTime();
-    recordRecentPaneContribution({
-      paneId: 'pane-2',
-      paneName: 'Second',
+    recordRecentProjectContribution({
+      projectId: 'project-2',
+      projectName: 'Second',
       spaceId: 'space-1',
       spaceName: 'Space One',
     }, 'record-update');
     advanceTime();
-    recordRecentPaneContribution({
-      paneId: 'pane-4',
-      paneName: 'Fourth',
+    recordRecentProjectContribution({
+      projectId: 'project-4',
+      projectName: 'Fourth',
       spaceId: 'space-2',
       spaceName: 'Space Two',
     }, 'record-create');
 
     const visible = selectRecentPlaces();
     expect(visible).toHaveLength(MAX_VISIBLE_RECENT_PLACES);
-    expect(visible[0]?.paneId).toBe('pane-4');
-    expect(visible[1]?.paneId).toBe('pane-2');
-    expect(visible.slice(2).map((entry) => entry.paneId)).toEqual(['pane-3', 'pane-1']);
+    expect(visible[0]?.projectId).toBe('project-4');
+    expect(visible[1]?.projectId).toBe('project-2');
+    expect(visible.slice(2).map((entry) => entry.projectId)).toEqual(['project-3', 'project-1']);
   });
 });

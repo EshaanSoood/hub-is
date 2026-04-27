@@ -1,5 +1,5 @@
 import { InlineNotice } from '../../primitives';
-import { buildPaneContextHref, buildProjectWorkHref } from '../../../lib/hubRoutes';
+import { buildProjectContextHref, buildProjectWorkHref } from '../../../lib/hubRoutes';
 import { withHubMotionState } from '../../../lib/hubMotionState';
 import type { ReactElement } from 'react';
 import { EventRecordInspector } from './EventRecordInspector';
@@ -11,8 +11,8 @@ import { resolveRecordInspectorKind } from './recordInspectorKinds';
 import type { RecordInspectorBodyProps } from './recordInspectorTypes';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
 
-export interface RecordInspectorBodyRouterProps extends Omit<RecordInspectorBodyProps, 'projectId' | 'inspectorRecord' | 'onOpenSourcePane'> {
-  project: { project_id: string; name: string };
+export interface RecordInspectorBodyRouterProps extends Omit<RecordInspectorBodyProps, 'projectId' | 'inspectorRecord' | 'onOpenSourceProject'> {
+  project: { space_id: string; name: string };
   inspectorLoading: boolean;
   inspectorError: string | null;
   inspectorRecord: HubRecordDetail | null;
@@ -29,19 +29,18 @@ export const RecordInspectorBodyRouter = ({
   closeInspectorWithFocusRestore,
   ...props
 }: RecordInspectorBodyRouterProps): ReactElement => {
-  const onOpenSourcePane = inspectorRecord?.source_pane?.pane_id
+  const onOpenSourceProject = inspectorRecord?.source_project?.project_id
     ? () => {
-        const targetHref = buildPaneContextHref({
-          projectId: project.project_id,
-          sourcePane: inspectorRecord.source_pane,
-          fallbackHref: buildProjectWorkHref(project.project_id),
+        const targetHref = buildProjectContextHref({
+          projectId: project.space_id,
+          sourceProject: inspectorRecord.source_project,
+          fallbackHref: buildProjectWorkHref(project.space_id),
         });
         closeInspectorWithFocusRestore();
         navigate(targetHref, {
           state: withHubMotionState(undefined, {
-            hubProjectName: project.name,
-            hubPaneName: inspectorRecord.source_pane?.pane_name || inspectorRecord.source_pane?.pane_id || undefined,
-            hubPaneSource: 'click',
+            hubProjectName: inspectorRecord.source_project?.project_name || inspectorRecord.source_project?.project_id || undefined,
+            hubProjectSource: 'click',
           }),
         });
       }
@@ -50,9 +49,9 @@ export const RecordInspectorBodyRouter = ({
   const bodyProps: RecordInspectorBodyProps | null = inspectorRecord
     ? {
         ...props,
-        projectId: project.project_id,
+        projectId: project.space_id,
         inspectorRecord,
-        onOpenSourcePane,
+        onOpenSourceProject,
       }
     : null;
 

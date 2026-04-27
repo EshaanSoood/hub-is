@@ -2,7 +2,7 @@ import React, { createContext, type PropsWithChildren, type ReactElement, useCon
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { HubPaneSummary, HubProject } from '../../../services/hub/types';
+import type { HubProjectSummary, HubProject } from '../../../services/hub/types';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
 import { ProjectSpaceInspectorOverlay, type ProjectSpaceInspectorOverlayProps } from './ProjectSpaceInspectorOverlay';
 
@@ -110,7 +110,7 @@ vi.mock('../../../components/project-space/FileInspectorActionBar', () => ({
   }: {
     fileName: string;
     onRename?: (nextName: string) => void;
-    onMove?: (paneId: string) => void;
+    onMove?: (projectId: string) => void;
     onRemove?: () => void;
     readOnly?: boolean;
   }) => (
@@ -118,7 +118,7 @@ vi.mock('../../../components/project-space/FileInspectorActionBar', () => ({
       <span>File action bar {fileName}</span>
       <span data-testid="attachment-read-only">{readOnly ? 'read-only' : 'editable'}</span>
       <button type="button" disabled={readOnly} onClick={() => onRename?.('renamed-attachment.txt')}>Rename attachment</button>
-      <button type="button" disabled={readOnly} onClick={() => onMove?.('pane-private')}>Move attachment</button>
+      <button type="button" disabled={readOnly} onClick={() => onMove?.('project-private')}>Move attachment</button>
       <button type="button" disabled={readOnly} onClick={() => onRemove?.()}>Remove attachment</button>
     </div>
   ),
@@ -144,7 +144,7 @@ vi.mock('../../../components/project-space/BacklinksPanel', () => ({
 }));
 
 const project: HubProject = {
-  project_id: 'project-1',
+  space_id: 'project-1',
   name: 'Project Atlas',
   created_by: 'user-1',
   created_at: '2026-04-19T00:00:00.000Z',
@@ -154,10 +154,10 @@ const project: HubProject = {
   membership_role: 'owner',
 };
 
-const panes: HubPaneSummary[] = [
+const projects: HubProjectSummary[] = [
   {
-    pane_id: 'pane-shared',
-    project_id: 'project-1',
+    project_id: 'project-shared',
+    space_id: 'project-1',
     name: 'Shared Work',
     sort_order: 1,
     position: 1,
@@ -168,8 +168,8 @@ const panes: HubPaneSummary[] = [
     can_edit: true,
   },
   {
-    pane_id: 'pane-private',
-    project_id: 'project-1',
+    project_id: 'project-private',
+    space_id: 'project-1',
     name: 'Private Work',
     sort_order: 2,
     position: 2,
@@ -183,14 +183,14 @@ const panes: HubPaneSummary[] = [
 
 const createRecord = (overrides: Partial<HubRecordDetail> = {}): HubRecordDetail => ({
   record_id: 'record-1',
-  project_id: 'project-1',
+  space_id: 'project-1',
   collection_id: 'collection-1',
   title: 'Audit task',
-  origin_kind: 'pane',
+  origin_kind: 'project',
   source_view_id: 'view-1',
-  source_pane: {
-    pane_id: 'pane-shared',
-    pane_name: 'Shared Work',
+  source_project: {
+      project_id: 'project-shared',
+      project_name: 'Shared Work',
     doc_id: 'doc-shared',
   },
   schema: {
@@ -234,7 +234,7 @@ const createProps = (overrides: Partial<ProjectSpaceInspectorOverlayProps> = {})
   return {
     accessToken: 'token',
     project,
-    panes,
+    projects,
     inspectorTriggerRect: null,
     inspectorTriggerRef: { current: null },
     prefersReducedMotion: false,
@@ -242,8 +242,8 @@ const createProps = (overrides: Partial<ProjectSpaceInspectorOverlayProps> = {})
     inspectorError: null,
     inspectorRecord: record,
     inspectorRecordId: record?.record_id ?? null,
-    inspectorMutationPane: panes[0],
-    inspectorMutationPaneCanEdit: true,
+    inspectorMutationProject: projects[0],
+    inspectorMutationProjectCanEdit: true,
     inspectorRelationFields: [],
     inspectorBacklinks: [],
     inspectorBacklinksLoading: false,
@@ -497,7 +497,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
     const record = createRecord({
       title: 'Knowledge base entry',
       collection_id: 'collection-generic',
-      source_pane: null,
+      source_project: null,
       schema: {
         collection_id: 'collection-generic',
         name: 'Reference',
@@ -603,8 +603,8 @@ describe('ProjectSpaceInspectorOverlay', () => {
               context: null,
               source: {
                 doc_id: 'doc-1',
-                pane_id: 'pane-private',
-                pane_name: 'Private Work',
+                project_id: 'project-private',
+                project_name: 'Private Work',
                 node_key: 'node-1',
                 comment_target_entity_type: null,
                 comment_target_entity_id: null,
@@ -635,7 +635,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
     expect(onRenameInspectorAttachment).toHaveBeenCalledWith('attachment-1', 'renamed-attachment.txt');
 
     await userEvent.click(screen.getByRole('button', { name: 'Move attachment' }));
-    expect(onMoveInspectorAttachment).toHaveBeenCalledWith('attachment-1', 'pane-private');
+    expect(onMoveInspectorAttachment).toHaveBeenCalledWith('attachment-1', 'project-private');
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove attachment' }));
     expect(onDetachInspectorAttachment).toHaveBeenCalledWith('attachment-1');
@@ -679,8 +679,8 @@ describe('ProjectSpaceInspectorOverlay', () => {
         {...createProps({
           inspectorRecord: record,
           inspectorRecordId: record.record_id,
-          inspectorMutationPane: panes[1],
-          inspectorMutationPaneCanEdit: false,
+          inspectorMutationProject: projects[1],
+          inspectorMutationProjectCanEdit: false,
           selectedAttachmentId: 'attachment-1',
         })}
       />,
@@ -714,7 +714,7 @@ describe('ProjectSpaceInspectorOverlay', () => {
 
     expect(closeInspectorWithFocusRestore).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith(
-      '/projects/project-1/work/pane-shared',
+      '/projects/project-1/work/project-shared',
       expect.objectContaining({
         state: expect.any(Object),
       }),

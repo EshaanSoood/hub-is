@@ -21,7 +21,7 @@ export interface AuditFixture {
     email: string;
     token: string;
     session: AuditSessionSummary;
-    personalProjectId: string | null;
+    personalSpaceId: string | null;
   };
   viewer: {
     email: string;
@@ -48,7 +48,7 @@ export interface AuditFixture {
     tableId: string;
     kanbanId: string;
   };
-  panes: {
+  projects: {
     sharedId: string;
     sharedDocId: string;
     privateId: string;
@@ -178,13 +178,13 @@ export const getHubHome = async (
   baseUrl: string,
   accessToken: string,
 ): Promise<{
-  personal_project_id: string | null;
+  personal_space_id: string | null;
   tasks: Array<{ record_id: string; title: string }>;
   events: Array<{ record_id: string; title: string }>;
 }> => {
   const data = await hubRequest<{
     home: {
-      personal_project_id: string | null;
+      personal_space_id: string | null;
       tasks: Array<{ record_id: string; title: string }>;
       events: Array<{ record_id: string; title: string }>;
     };
@@ -195,26 +195,26 @@ export const getHubHome = async (
 export const listProjects = async (
   baseUrl: string,
   accessToken: string,
-): Promise<Array<{ project_id: string; name: string; membership_role: string | null }>> => {
-  const data = await hubRequest<{ projects: Array<{ project_id: string; name: string; membership_role: string | null }> }>(
+): Promise<Array<{ space_id: string; name: string; membership_role: string | null }>> => {
+  const data = await hubRequest<{ spaces: Array<{ space_id: string; name: string; membership_role: string | null }> }>(
     baseUrl,
     accessToken,
-    '/api/hub/projects',
+    '/api/hub/spaces',
     { method: 'GET' },
   );
-  return data.projects;
+  return data.spaces;
 };
 
 export const createProject = async (
   baseUrl: string,
   accessToken: string,
   name: string,
-): Promise<{ project_id: string; name: string }> => {
-  const data = await hubRequest<{ project: { project_id: string; name: string } }>(baseUrl, accessToken, '/api/hub/projects', {
+): Promise<{ space_id: string; name: string }> => {
+  const data = await hubRequest<{ space: { space_id: string; name: string } }>(baseUrl, accessToken, '/api/hub/spaces', {
     method: 'POST',
     body: JSON.stringify({ name }),
   });
-  return data.project;
+  return data.space;
 };
 
 export const addProjectMember = async (
@@ -223,7 +223,7 @@ export const addProjectMember = async (
   projectId: string,
   payload: { user_id?: string; email?: string; display_name?: string; role: string },
 ): Promise<void> => {
-  await hubRequest(baseUrl, accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/members`, {
+  await hubRequest(baseUrl, accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/members`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -237,7 +237,7 @@ export const listProjectMembers = async (
   const data = await hubRequest<{ members: Array<{ user_id: string; role: string; email: string | null }> }>(
     baseUrl,
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/members`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/members`,
     { method: 'GET' },
   );
   return data.members;
@@ -261,22 +261,22 @@ export const waitForProjectMember = async (
   throw new Error(`Timed out waiting for user ${userId} to join project ${projectId}.`);
 };
 
-export const createPane = async (
+export const createWorkProject = async (
   baseUrl: string,
   accessToken: string,
   projectId: string,
   payload: { name: string; member_user_ids: string[]; layout_config: Record<string, unknown> },
-): Promise<{ pane_id: string; doc_id: string | null }> => {
-  const data = await hubRequest<{ pane: { pane_id: string; doc_id: string | null } }>(
+): Promise<{ project_id: string; doc_id: string | null; name?: string }> => {
+  const data = await hubRequest<{ project: { project_id: string; doc_id: string | null; name?: string } }>(
     baseUrl,
     accessToken,
-    `/api/hub/projects/${encodeURIComponent(projectId)}/panes`,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`,
     {
       method: 'POST',
       body: JSON.stringify(payload),
     },
   );
-  return data.pane;
+  return data.project;
 };
 
 export const createCollection = async (
@@ -285,7 +285,7 @@ export const createCollection = async (
   projectId: string,
   name: string,
 ): Promise<{ collection_id: string }> => {
-  return hubRequest(baseUrl, accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/collections`, {
+  return hubRequest(baseUrl, accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/collections`, {
     method: 'POST',
     body: JSON.stringify({ name }),
   });
@@ -309,7 +309,7 @@ export const createView = async (
   projectId: string,
   payload: Record<string, unknown>,
 ): Promise<{ view_id: string }> => {
-  return hubRequest(baseUrl, accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/views`, {
+  return hubRequest(baseUrl, accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/views`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -321,7 +321,7 @@ export const createRecord = async (
   projectId: string,
   payload: Record<string, unknown>,
 ): Promise<{ record_id: string }> => {
-  return hubRequest(baseUrl, accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/records`, {
+  return hubRequest(baseUrl, accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/records`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -332,8 +332,8 @@ export const createEventFromNlp = async (
   accessToken: string,
   projectId: string,
   payload: {
-    pane_id?: string;
-    source_pane_id?: string;
+    project_id?: string;
+    source_project_id?: string;
     title?: string;
     start_dt?: string;
     end_dt?: string;
@@ -342,7 +342,7 @@ export const createEventFromNlp = async (
     participants_user_ids?: string[];
   },
 ): Promise<{ record: { record_id: string; title: string } }> => {
-  return hubRequest(baseUrl, accessToken, `/api/hub/projects/${encodeURIComponent(projectId)}/events/from-nlp`, {
+  return hubRequest(baseUrl, accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/events/from-nlp`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });

@@ -6,7 +6,7 @@ const AREA_NAMES = [
   'Authentication & Session',
   'myHub',
   'Projects',
-  'Panes',
+  'Projects',
   'Document Editor (Collaborative Lexical Editor)',
   'Collections & Records',
   'Calendar & Events',
@@ -82,7 +82,7 @@ class AuditReporter implements Reporter {
 
     const consoleErrors = readAttachmentText(result, `console-errors-owner`)
       .concat(readAttachmentText(result, `console-errors-keycloak-login`))
-      .concat(readAttachmentText(result, `console-errors-viewer-pane-permissions`))
+      .concat(readAttachmentText(result, `console-errors-viewer-project-permissions`))
       .concat(readAttachmentText(result, `console-errors-owner-doc-a`))
       .concat(readAttachmentText(result, `console-errors-owner-doc-b`))
       .concat(readAttachmentText(result, `console-errors-viewer-role-gating`))

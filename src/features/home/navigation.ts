@@ -6,7 +6,7 @@ export type HomeOverviewViewId = 'timeline' | 'calendar' | 'tasks' | 'reminders'
 export type HomeOverlayId = 'thoughts';
 
 const HomeTaskRecordIdSchema = z.string().trim().min(1);
-const homeRouteParamKeys = new Set(['tab', 'content', 'overview', 'pane', 'pinned', 'surface']);
+const homeRouteParamKeys = new Set(['tab', 'content', 'overview', 'project', 'pinned', 'surface']);
 
 export const parseHomeTabId = (value: string | null): HomeTabId =>
   value === 'work' ? 'work' : 'overview';
@@ -36,9 +36,9 @@ export const parseHomeTaskRecordId = (value: string | null): string | null => {
   return parsedTaskRecordId.success ? parsedTaskRecordId.data : null;
 };
 
-export const parseHomePaneId = (value: string | null): string | null => {
-  const parsedPaneId = HomeTaskRecordIdSchema.safeParse(value);
-  return parsedPaneId.success ? parsedPaneId.data : null;
+export const parseHomeProjectId = (value: string | null): string | null => {
+  const parsedProjectId = HomeTaskRecordIdSchema.safeParse(value);
+  return parsedProjectId.success ? parsedProjectId.data : null;
 };
 
 const buildHomeHref = ({
@@ -46,7 +46,7 @@ const buildHomeHref = ({
   extraParams,
   overview,
   overlay,
-  paneId,
+  projectId,
   pinned,
   tab,
 }: {
@@ -54,7 +54,7 @@ const buildHomeHref = ({
   extraParams?: Record<string, string | null | undefined>;
   overview?: HomeOverviewViewId;
   overlay?: HomeOverlayId | null;
-  paneId?: string | null;
+  projectId?: string | null;
   pinned?: boolean;
   tab?: HomeTabId;
 }): string => {
@@ -70,8 +70,8 @@ const buildHomeHref = ({
       params.set('overview', overview);
     }
   }
-  if ((tab ?? 'overview') === 'work' && paneId) {
-    params.set('pane', paneId);
+  if ((tab ?? 'overview') === 'work' && projectId) {
+    params.set('project', projectId);
   }
   if (overlay) {
     params.set('surface', overlay);
@@ -96,7 +96,7 @@ export const buildHomeTabHref = (
     content?: HomeContentViewId;
     extraParams?: Record<string, string | null | undefined>;
     overview?: HomeOverviewViewId;
-    paneId?: string | null;
+    projectId?: string | null;
     pinned?: boolean;
   },
 ): string => buildHomeHref({
@@ -104,7 +104,7 @@ export const buildHomeTabHref = (
   content: options?.content,
   extraParams: options?.extraParams,
   overview: options?.overview,
-  paneId: options?.paneId,
+  projectId: options?.projectId,
   pinned: options?.pinned,
 });
 
@@ -123,7 +123,7 @@ export const buildHomeOverlayHref = (
     content?: HomeContentViewId;
     extraParams?: Record<string, string | null | undefined>;
     overview?: HomeOverviewViewId;
-    paneId?: string | null;
+    projectId?: string | null;
     pinned?: boolean;
     tab?: HomeTabId;
   },
@@ -133,7 +133,7 @@ export const buildHomeOverlayHref = (
   content: options?.content,
   extraParams: options?.extraParams,
   overview: options?.overview,
-  paneId: options?.paneId,
+  projectId: options?.projectId,
   pinned: options?.pinned,
 });
 

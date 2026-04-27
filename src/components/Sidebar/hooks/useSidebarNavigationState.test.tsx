@@ -24,7 +24,6 @@ describe('useSidebarNavigationState', () => {
 
     expect(result.current.homeViewsExpanded).toBe(true);
     expect(result.current.projectsSectionExpanded).toBe(true);
-    expect(result.current.roomsSectionExpanded).toBe(true);
     expect(result.current.expandedProjectId).toBeNull();
   });
 
@@ -46,22 +45,21 @@ describe('useSidebarNavigationState', () => {
 
     rerender({
       activeSpaceId: 'space-1',
-      currentSpaceHref: '/projects/space-1/work/pane-1',
+      currentSpaceHref: '/projects/space-1/work/project-1',
       isHomeState: false,
       knownSpaceIds: ['space-1', 'space-2'],
     });
 
     expect(result.current.homeViewsExpanded).toBe(false);
     expect(result.current.projectsSectionExpanded).toBe(true);
-    expect(result.current.roomsSectionExpanded).toBe(false);
     expect(result.current.expandedProjectId).toBe('space-1');
-    expect(result.current.projectRoutesBySpaceId['space-1']).toBe('/projects/space-1/work/pane-1');
+    expect(result.current.projectRoutesBySpaceId['space-1']).toBe('/projects/space-1/work/project-1');
   });
 
   it('remembers routes per space and resets Home state defaults when returning home', () => {
     const initialProps: SidebarNavigationHookProps = {
       activeSpaceId: 'space-1',
-      currentSpaceHref: '/rooms/room-1/projects/pane-1',
+      currentSpaceHref: '/projects/space-1/work/project-1',
       isHomeState: false,
       knownSpaceIds: ['space-1', 'space-2'],
     };
@@ -74,11 +72,10 @@ describe('useSidebarNavigationState', () => {
       },
     );
 
-    expect(result.current.projectRoutesBySpaceId['space-1']).toBe('/rooms/room-1/projects/pane-1');
+    expect(result.current.projectRoutesBySpaceId['space-1']).toBe('/projects/space-1/work/project-1');
 
     act(() => {
       result.current.setHomeViewsExpanded(true);
-      result.current.setRoomsSectionExpanded(true);
       result.current.setExpandedProjectId('space-2');
     });
 
@@ -90,15 +87,14 @@ describe('useSidebarNavigationState', () => {
     });
 
     expect(result.current.homeViewsExpanded).toBe(true);
-    expect(result.current.roomsSectionExpanded).toBe(true);
     expect(result.current.expandedProjectId).toBeNull();
-    expect(result.current.projectRoutesBySpaceId['space-1']).toBe('/rooms/room-1/projects/pane-1');
+    expect(result.current.projectRoutesBySpaceId['space-1']).toBe('/projects/space-1/work/project-1');
   });
 
   it('prunes stored routes for spaces that are no longer available', () => {
     window.localStorage.setItem('hub-sidebar-space-route-memory', JSON.stringify({
-      'space-1': '/projects/space-1/work/pane-1',
-      'space-9': '/projects/space-9/work/pane-9',
+      'space-1': '/projects/space-1/work/project-1',
+      'space-9': '/projects/space-9/work/project-9',
     }));
 
     const { result } = renderHook(() => useSidebarNavigationState({
@@ -108,7 +104,7 @@ describe('useSidebarNavigationState', () => {
       knownSpaceIds: ['space-1', 'space-2'],
     }));
 
-    expect(result.current.projectRoutesBySpaceId['space-1']).toBe('/projects/space-1/work/pane-1');
+    expect(result.current.projectRoutesBySpaceId['space-1']).toBe('/projects/space-1/work/project-1');
     expect(result.current.projectRoutesBySpaceId['space-9']).toBeUndefined();
   });
 });

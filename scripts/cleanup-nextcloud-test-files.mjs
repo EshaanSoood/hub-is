@@ -40,8 +40,8 @@ const basename = (pathValue) => {
 };
 
 const encodedProjectId = encodeURIComponent(projectId);
-const listPath = `/api/hub/projects/${encodedProjectId}/nextcloud/files`;
-const deletePath = `/api/hub/projects/${encodedProjectId}/nextcloud/files`;
+const listPath = `/api/hub/spaces/${encodedProjectId}/nextcloud/files`;
+const deletePath = `/api/hub/spaces/${encodedProjectId}/nextcloud/files`;
 
 const listed = await requestJson(listPath);
 if (listed.status !== 200 || !Array.isArray(listed.payload)) {

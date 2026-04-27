@@ -5,8 +5,8 @@ import { queryPersonalCalendar } from '../services/hub/records';
 interface PersonalCalendarEventSummary {
   record_id: string;
   title: string;
-  project_id: string;
-  project_name: string | null;
+  space_id: string;
+  space_name: string | null;
   event_state: {
     start_dt: string;
     end_dt: string;
@@ -15,7 +15,7 @@ interface PersonalCalendarEventSummary {
     updated_at: string;
   };
   participants: Array<{ user_id: string; role: string | null }>;
-  source_pane: { pane_id: string | null; pane_name: string | null; doc_id: string | null } | null;
+  source_project: { project_id: string | null; project_name: string | null; doc_id: string | null } | null;
 }
 
 interface PersonalCalendarRuntimeOptions {

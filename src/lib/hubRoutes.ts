@@ -1,4 +1,4 @@
-import type { HubHomeEvent, HubSourcePaneContext, HubTaskSummary } from '../services/hub/types';
+import type { HubHomeEvent, HubSourceProjectContext, HubTaskSummary } from '../services/hub/types';
 
 const asText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 const encodePathSegment = (value: string): string => encodeURIComponent(value);
@@ -11,17 +11,17 @@ const rebuildProjectFallbackHref = (fallbackHref: string, projectId: string): st
   return `/projects/${encodePathSegment(projectId)}${match[1] || ''}`;
 };
 
-const paneContextFromPayload = (payload: Record<string, unknown> | null | undefined): HubSourcePaneContext | null => {
+const projectContextFromPayload = (payload: Record<string, unknown> | null | undefined): HubSourceProjectContext | null => {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return null;
   }
-  const paneId = asText(payload.source_pane_id);
-  if (!paneId) {
+  const projectId = asText(payload.source_project_id);
+  if (!projectId) {
     return null;
   }
   return {
-    pane_id: paneId,
-    pane_name: asText(payload.source_pane_name) || null,
+    project_id: projectId,
+    project_name: asText(payload.source_project_name) || null,
     doc_id: asText(payload.source_doc_id) || null,
   };
 };
@@ -31,18 +31,18 @@ export const sourceNodeKeyFromPayload = (payload: Record<string, unknown> | null
   return nodeKey || null;
 };
 
-export const buildPaneContextHref = ({
+export const buildProjectContextHref = ({
   projectId,
-  sourcePane,
+  sourceProject,
   fallbackHref,
   focusNodeKey,
 }: {
   projectId: string;
-  sourcePane: HubSourcePaneContext | null | undefined;
+  sourceProject: HubSourceProjectContext | null | undefined;
   fallbackHref: string;
   focusNodeKey?: string | null;
 }): string => {
-  if (!sourcePane?.pane_id) {
+  if (!sourceProject?.project_id) {
     return fallbackHref;
   }
 
@@ -51,25 +51,19 @@ export const buildPaneContextHref = ({
     params.set('focus_node_key', focusNodeKey);
   }
   const query = params.toString();
-  if (sourcePane.room_id) {
-    const roomBaseHref = sourcePane.pane_id
-      ? `/rooms/${encodePathSegment(sourcePane.room_id)}/projects/${encodePathSegment(sourcePane.pane_id)}`
-      : `/rooms/${encodePathSegment(sourcePane.room_id)}`;
-    return `${roomBaseHref}${query ? `?${query}` : ''}`;
-  }
-  return `/projects/${encodePathSegment(projectId)}/work/${encodePathSegment(sourcePane.pane_id)}${query ? `?${query}` : ''}`;
+  return `/projects/${encodePathSegment(projectId)}/work/${encodePathSegment(sourceProject.project_id)}${query ? `?${query}` : ''}`;
 };
 
 export const buildProjectOverviewHref = (projectId: string): string =>
   `/projects/${encodePathSegment(projectId)}/overview`;
 
-export const buildProjectWorkHref = (projectId: string, paneId?: string | null): string => {
+export const buildProjectWorkHref = (projectId: string, workProjectId?: string | null): string => {
   const baseHref = `/projects/${encodePathSegment(projectId)}/work`;
-  const resolvedPaneId = asText(paneId);
-  if (!resolvedPaneId) {
+  const resolvedProjectId = asText(workProjectId);
+  if (!resolvedProjectId) {
     return baseHref;
   }
-  return `${baseHref}/${encodePathSegment(resolvedPaneId)}`;
+  return `${baseHref}/${encodePathSegment(resolvedProjectId)}`;
 };
 
 const buildPersonalTaskHref = (recordId: string): string =>
@@ -78,22 +72,22 @@ const buildPersonalTaskHref = (recordId: string): string =>
 export const buildTaskDestinationHref = (task: HubTaskSummary): string =>
   task.origin_kind === 'personal'
     ? buildPersonalTaskHref(task.record_id)
-    : task.project_id
-      ? buildPaneContextHref({
-          projectId: task.project_id,
-          sourcePane: task.source_pane,
-          fallbackHref: `/projects/${encodePathSegment(task.project_id)}/work`,
+    : task.space_id
+      ? buildProjectContextHref({
+          projectId: task.space_id,
+          sourceProject: task.source_project,
+          fallbackHref: `/projects/${encodePathSegment(task.space_id)}/work`,
         })
       : '/projects';
 
 export const buildEventDestinationHref = (event: HubHomeEvent): string => {
-  const projectId = asText(event.project_id);
+  const projectId = asText(event.space_id);
   if (!projectId) {
     return '/projects';
   }
-  return buildPaneContextHref({
+  return buildProjectContextHref({
     projectId,
-    sourcePane: event.source_pane,
+    sourceProject: event.source_project,
     fallbackHref: `/projects/${encodePathSegment(projectId)}/overview?view=calendar`,
   });
 };
@@ -114,14 +108,13 @@ export const buildNotificationDestinationHref = ({
   if (asText(payload?.origin_kind) === 'personal' && entityType === 'record' && entityId) {
     return buildPersonalTaskHref(entityId);
   }
-  const destinationProjectId = asText(payload?.source_project_id) || projectId;
-  if (!destinationProjectId) {
+  if (!projectId) {
     return fallbackHref;
   }
-  const destinationFallbackHref = rebuildProjectFallbackHref(fallbackHref, destinationProjectId);
-  return buildPaneContextHref({
-    projectId: destinationProjectId,
-    sourcePane: paneContextFromPayload(payload),
+  const destinationFallbackHref = rebuildProjectFallbackHref(fallbackHref, projectId);
+  return buildProjectContextHref({
+    projectId,
+    sourceProject: projectContextFromPayload(payload),
     fallbackHref: destinationFallbackHref,
     focusNodeKey: sourceNodeKeyFromPayload(payload),
   });

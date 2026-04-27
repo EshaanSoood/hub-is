@@ -1,5 +1,5 @@
 import { cn } from '../../../lib/cn';
-import type { HubPaneSummary } from '../../../services/hub/types';
+import type { HubProjectSummary } from '../../../services/hub/types';
 import { ModuleLoadingState } from '../ModuleFeedback';
 import { ModuleShell } from '../ModuleShell';
 import {
@@ -38,9 +38,9 @@ const previewWidthClass = {
   L: 'module-picker-preview-l',
 };
 
-const previewPane: HubPaneSummary = {
-  pane_id: 'module-picker-preview-pane',
+const previewProject: HubProjectSummary = {
   project_id: 'module-picker-preview-project',
+  space_id: 'module-picker-preview-project',
   name: 'Module Preview',
   sort_order: 0,
   position: null,
@@ -70,25 +70,25 @@ export const ModulePickerPreview = ({
   const seed = seedData[selection.moduleType]?.[selection.sizeTier] ?? {};
   const body = (() => {
     if (selection.moduleType === 'table') {
-      return <TableModule module={module} contract={tableContract(seed)} canEditPane={false} previewMode onSetModuleBinding={() => {}} />;
+      return <TableModule module={module} contract={tableContract(seed)} canEditProject={false} previewMode onSetModuleBinding={() => {}} />;
     }
     if (selection.moduleType === 'kanban') {
-      return <KanbanModule module={module} contract={kanbanContract(seed)} canEditPane={false} previewMode onSetModuleBinding={() => {}} />;
+      return <KanbanModule module={module} contract={kanbanContract(seed)} canEditProject={false} previewMode onSetModuleBinding={() => {}} />;
     }
     if (selection.moduleType === 'calendar') {
       return <CalendarModule module={module} contract={calendarContract(seed)} previewMode />;
     }
     if (selection.moduleType === 'tasks') {
-      return <TasksModule module={module} contract={tasksContract(seed)} canEditPane={false} previewMode />;
+      return <TasksModule module={module} contract={tasksContract(seed)} canEditProject={false} previewMode />;
     }
     if (selection.moduleType === 'reminders') {
-      return <RemindersModule module={module} contract={remindersContract(seed)} canEditPane={false} previewMode />;
+      return <RemindersModule module={module} contract={remindersContract(seed)} canEditProject={false} previewMode />;
     }
     if (selection.moduleType === 'files') {
-      return <FilesModule module={module} contract={filesContract(seed)} canEditPane={false} previewMode />;
+      return <FilesModule module={module} contract={filesContract(seed)} canEditProject={false} previewMode />;
     }
     if (selection.moduleType === 'quick_thoughts') {
-      return <QuickThoughtsModule module={module} contract={quickThoughtsContract(seed)} pane={previewPane} canEditPane={false} previewMode />;
+      return <QuickThoughtsModule module={module} contract={quickThoughtsContract(seed)} project={previewProject} canEditProject={false} previewMode />;
     }
     return <TimelineModule contract={timelineContract(seed)} previewMode />;
   })();

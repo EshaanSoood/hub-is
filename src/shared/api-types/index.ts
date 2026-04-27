@@ -4,6 +4,5 @@ export * from './hub-home';
 export * from './projects';
 export * from './records';
 export * from './reminders';
-export * from './rooms';
 export * from './tasks';
 export * from './validators';

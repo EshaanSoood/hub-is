@@ -1,18 +1,18 @@
 import { hubRequest } from './transport.ts';
 
 export interface HubSearchResult {
-  type: 'record' | 'project' | 'pane';
+  type: 'record' | 'space' | 'project';
   id: string;
   title: string;
-  project_id: string | null;
-  project_name: string | null;
+  space_id: string | null;
+  space_name: string | null;
   content_type?: string;
 }
 
 export const searchHub = async (
   accessToken: string,
   query: string,
-  options?: { limit?: number; type?: 'record' | 'project' | 'pane' },
+  options?: { limit?: number; type?: 'record' | 'space' | 'project' },
 ): Promise<{ query: string; results: HubSearchResult[] }> => {
   const normalizedQuery = query.trim();
   if (!normalizedQuery) {

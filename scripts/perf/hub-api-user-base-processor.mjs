@@ -52,16 +52,16 @@ const requestJson = async (baseUrl, token, path) => {
   return readEnvelope(response, path);
 };
 
-const pickProject = (projects, fixedProjectId) => {
-  if (fixedProjectId) {
-    return projects.find((project) => String(project.id || project.project_id || '') === fixedProjectId) || null;
+const pickSpace = (spaces, fixedSpaceId) => {
+  if (fixedSpaceId) {
+    return spaces.find((space) => String(space.id || space.space_id || '') === fixedSpaceId) || null;
   }
 
-  const nonPersonal = projects.filter((project) => project?.is_personal !== true);
+  const nonPersonal = spaces.filter((space) => space?.is_personal !== true);
   if (nonPersonal.length > 0) {
     return randomFrom(nonPersonal);
   }
-  return projects[0] || null;
+  return spaces[0] || null;
 };
 
 export const seedSessionState = async (context) => {
@@ -75,7 +75,7 @@ export const seedSessionState = async (context) => {
   }
 
   const token = randomFrom(tokenPool);
-  const fixedProjectId = String(process.env.HUB_PERF_FIXED_PROJECT_ID || process.env.HUB_PROJECT_ID || '').trim();
+  const fixedProjectId = String(process.env.HUB_PERF_FIXED_SPACE_ID || process.env.HUB_PERF_FIXED_PROJECT_ID || process.env.HUB_SPACE_ID || process.env.HUB_PROJECT_ID || '').trim();
   const thinkMinMs = Number(process.env.HUB_PERF_THINK_MIN_MS || '100');
   // Keep randomFloat ranges valid even if HUB_PERF_THINK_MAX_MS is misconfigured below HUB_PERF_THINK_MIN_MS.
   const thinkMaxMs = Math.max(thinkMinMs, Number(process.env.HUB_PERF_THINK_MAX_MS || '500'));
@@ -86,26 +86,26 @@ export const seedSessionState = async (context) => {
   context.vars.thinkShortSeconds = randomFloat(thinkMinMs, thinkMaxMs) / 1000;
   context.vars.thinkMediumSeconds = randomFloat(thinkMinMs * 2, thinkMaxMs * 2) / 1000;
 
-  const projectsPayload = await requestJson(baseUrl, token, '/api/hub/projects');
-  const projects = Array.isArray(projectsPayload.projects) ? projectsPayload.projects : [];
-  const project = pickProject(projects, fixedProjectId);
-  if (!project) {
-    throw new Error('No accessible project found for the configured performance token pool.');
+  const spacesPayload = await requestJson(baseUrl, token, '/api/hub/spaces');
+  const spaces = Array.isArray(spacesPayload.spaces) ? spacesPayload.spaces : [];
+  const space = pickSpace(spaces, fixedProjectId);
+  if (!space) {
+    throw new Error('No accessible space found for the configured performance token pool.');
   }
 
-  const projectId = String(project.id || project.project_id || '').trim();
+  const projectId = String(space.id || space.space_id || '').trim();
   if (!projectId) {
-    throw new Error('Resolved project is missing a stable identifier.');
+    throw new Error('Resolved space is missing a stable identifier.');
   }
 
   context.vars.projectId = projectId;
 
-  const panesPayload = await requestJson(baseUrl, token, `/api/hub/projects/${encodeURIComponent(projectId)}/panes`);
-  const panes = Array.isArray(panesPayload.panes) ? panesPayload.panes : [];
-  const pane = panes[0] || null;
-  const paneId = pane ? String(pane.pane_id || pane.id || '').trim() : '';
-  context.vars.paneId = paneId;
-  context.vars.paneQuery = paneId ? `&source_pane_id=${encodeURIComponent(paneId)}` : '';
+  const projectsPayload = await requestJson(baseUrl, token, `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`);
+  const projects = Array.isArray(projectsPayload.projects) ? projectsPayload.projects : [];
+  const project = projects[0] || null;
+  const sourceProjectId = project ? String(project.project_id || project.id || '').trim() : '';
+  context.vars.projectId = sourceProjectId;
+  context.vars.projectQuery = sourceProjectId ? `&source_project_id=${encodeURIComponent(sourceProjectId)}` : '';
 
   const reminderOffsetMinutes = randomInt(30, 120);
   const eventOffsetMinutes = randomInt(120, 360);

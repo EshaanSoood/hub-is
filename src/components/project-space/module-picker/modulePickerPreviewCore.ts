@@ -8,7 +8,7 @@ export const buildPreviewModule = (selection: ModulePickerSelection): ContractMo
   module_instance_id: `module-picker-preview-${selection.moduleType}`,
   module_type: selection.moduleType,
   size_tier: selection.sizeTier,
-  lens: 'project',
+  lens: 'space',
   binding: { view_id: 'preview-view', source_mode: 'linked' },
 });
 
@@ -45,7 +45,7 @@ export const tableContract = (seed: ModulePickerSeedPayload): TableModuleContrac
             title: asText(values[0], `Record ${index + 1}`),
             fields: fieldEntries,
             updated_at: addMinutes(-index),
-            source_pane: null,
+            source_project: null,
           };
         }),
       },
@@ -71,7 +71,7 @@ export const kanbanContract = (seed: ModulePickerSeedPayload): KanbanModuleContr
             title: asText(title),
             fields: { 'preview-status': `column-${columnIndex}` },
             updated_at: addMinutes(-(columnIndex + cardIndex)),
-            source_pane: null,
+            source_project: null,
           })),
         })),
         loading: false,

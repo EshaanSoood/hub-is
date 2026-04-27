@@ -1,5 +1,4 @@
 import { URL } from 'node:url';
-import { isRoomDocumentId } from '../lib/roomDocuments.mjs';
 
 export const createRequestRouter = ({
   applyRequestContext,
@@ -18,11 +17,9 @@ export const createRequestRouter = ({
   taskRoutes,
   searchRoutes,
   reminderRoutes,
+  spaceRoutes,
   projectRoutes,
-  roomRoutes,
-  paneRoutes,
   docRoutes,
-  roomDocRoutes,
   collectionRoutes,
   recordRoutes,
   viewRoutes,
@@ -199,87 +196,19 @@ export const createRequestRouter = ({
       return;
     }
 
-    if (request.method === 'GET' && pathname === '/api/hub/projects') {
-      await projectRoutes.listProjects({ request, response, requestUrl, pathname });
+    if (request.method === 'GET' && pathname === '/api/hub/spaces') {
+      await spaceRoutes.listProjects({ request, response, requestUrl, pathname });
       return;
     }
 
-    if (request.method === 'POST' && pathname === '/api/hub/projects') {
-      await projectRoutes.createProject({ request, response, requestUrl, pathname });
+    if (request.method === 'POST' && pathname === '/api/hub/spaces') {
+      await spaceRoutes.createProject({ request, response, requestUrl, pathname });
       return;
     }
 
-    if (request.method === 'GET' && pathname === '/api/hub/rooms') {
-      await roomRoutes.listRooms({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    if (request.method === 'POST' && pathname === '/api/hub/rooms') {
-      await roomRoutes.createRoom({ request, response, requestUrl, pathname });
-      return;
-    }
-
-    const roomItemMatch = pathMatch(pathname, /^\/api\/hub\/rooms\/([^/]+)$/);
-    if (request.method === 'GET' && roomItemMatch) {
-      await roomRoutes.getRoom({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { roomId: decodeURIComponent(roomItemMatch[1]) },
-      });
-      return;
-    }
-
-    if (request.method === 'PATCH' && roomItemMatch) {
-      await roomRoutes.archiveRoom({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { roomId: decodeURIComponent(roomItemMatch[1]) },
-      });
-      return;
-    }
-
-    const roomMembersMatch = pathMatch(pathname, /^\/api\/hub\/rooms\/([^/]+)\/members$/);
-    if (roomMembersMatch && request.method === 'GET') {
-      await roomRoutes.listRoomMembers({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { roomId: decodeURIComponent(roomMembersMatch[1]) },
-      });
-      return;
-    }
-
-    if (roomMembersMatch && request.method === 'POST') {
-      await roomRoutes.addRoomMember({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { roomId: decodeURIComponent(roomMembersMatch[1]) },
-      });
-      return;
-    }
-
-    const roomMigrationsMatch = pathMatch(pathname, /^\/api\/hub\/rooms\/([^/]+)\/migrations$/);
-    if (roomMigrationsMatch && request.method === 'POST') {
-      await roomRoutes.migrateRoomProjects({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { roomId: decodeURIComponent(roomMigrationsMatch[1]) },
-      });
-      return;
-    }
-
-    const projectItemMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)$/);
+    const projectItemMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)$/);
     if (request.method === 'GET' && projectItemMatch) {
-      await projectRoutes.getProject({
+      await spaceRoutes.getProject({
         request,
         response,
         requestUrl,
@@ -290,7 +219,7 @@ export const createRequestRouter = ({
     }
 
     if (request.method === 'PATCH' && projectItemMatch) {
-      await projectRoutes.updateProject({
+      await spaceRoutes.updateProject({
         request,
         response,
         requestUrl,
@@ -300,9 +229,9 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectMembersMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/members$/);
+    const projectMembersMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/members$/);
     if (projectMembersMatch && request.method === 'GET') {
-      await projectRoutes.listProjectMembers({
+      await spaceRoutes.listProjectMembers({
         request,
         response,
         requestUrl,
@@ -313,7 +242,7 @@ export const createRequestRouter = ({
     }
 
     if (projectMembersMatch && request.method === 'POST') {
-      await projectRoutes.addProjectMember({
+      await spaceRoutes.addProjectMember({
         request,
         response,
         requestUrl,
@@ -323,9 +252,9 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectInvitesMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/invites$/);
+    const projectInvitesMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/invites$/);
     if (projectInvitesMatch && request.method === 'POST') {
-      await projectRoutes.createInvite({
+      await spaceRoutes.createInvite({
         request,
         response,
         requestUrl,
@@ -335,9 +264,9 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectInviteItemMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/invites\/([^/]+)$/);
+    const projectInviteItemMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/invites\/([^/]+)$/);
     if (projectInviteItemMatch && request.method === 'POST') {
-      await projectRoutes.reviewInvite({
+      await spaceRoutes.reviewInvite({
         request,
         response,
         requestUrl,
@@ -350,9 +279,9 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectMemberItemMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/members\/([^/]+)$/);
+    const projectMemberItemMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/members\/([^/]+)$/);
     if (projectMemberItemMatch && request.method === 'DELETE') {
-      await projectRoutes.removeProjectMember({
+      await spaceRoutes.removeProjectMember({
         request,
         response,
         requestUrl,
@@ -365,30 +294,30 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectPanesMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/panes$/);
-    if (projectPanesMatch && request.method === 'GET') {
-      await paneRoutes.listProjectPanes({
+    const projectProjectsMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/projects$/);
+    if (projectProjectsMatch && request.method === 'GET') {
+      await projectRoutes.listProjectProjects({
         request,
         response,
         requestUrl,
         pathname,
-        params: { projectId: decodeURIComponent(projectPanesMatch[1]) },
+        params: { projectId: decodeURIComponent(projectProjectsMatch[1]) },
       });
       return;
     }
 
-    if (projectPanesMatch && request.method === 'POST') {
-      await paneRoutes.createProjectPane({
+    if (projectProjectsMatch && request.method === 'POST') {
+      await projectRoutes.createProjectProject({
         request,
         response,
         requestUrl,
         pathname,
-        params: { projectId: decodeURIComponent(projectPanesMatch[1]) },
+        params: { projectId: decodeURIComponent(projectProjectsMatch[1]) },
       });
       return;
     }
 
-    const projectTasksMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/tasks$/);
+    const projectTasksMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/tasks$/);
     if (projectTasksMatch && request.method === 'GET') {
       await taskRoutes.listProjectTasks({
         request,
@@ -400,51 +329,51 @@ export const createRequestRouter = ({
       return;
     }
 
-    const paneItemMatch = pathMatch(pathname, /^\/api\/hub\/panes\/([^/]+)$/);
-    if (paneItemMatch && request.method === 'PATCH') {
-      await paneRoutes.updatePane({
+    const workProjectItemMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)$/);
+    if (workProjectItemMatch && request.method === 'PATCH') {
+      await projectRoutes.updateProject({
         request,
         response,
         requestUrl,
         pathname,
-        params: { paneId: decodeURIComponent(paneItemMatch[1]) },
+        params: { projectId: decodeURIComponent(workProjectItemMatch[1]) },
       });
       return;
     }
 
-    if (paneItemMatch && request.method === 'DELETE') {
-      await paneRoutes.deletePane({
+    if (workProjectItemMatch && request.method === 'DELETE') {
+      await projectRoutes.deleteProject({
         request,
         response,
         requestUrl,
         pathname,
-        params: { paneId: decodeURIComponent(paneItemMatch[1]) },
+        params: { projectId: decodeURIComponent(workProjectItemMatch[1]) },
       });
       return;
     }
 
-    const paneMembersMatch = pathMatch(pathname, /^\/api\/hub\/panes\/([^/]+)\/members$/);
-    if (paneMembersMatch && request.method === 'POST') {
-      await paneRoutes.addPaneMember({
+    const workProjectMembersMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/members$/);
+    if (workProjectMembersMatch && request.method === 'POST') {
+      await projectRoutes.addProjectMember({
         request,
         response,
         requestUrl,
         pathname,
-        params: { paneId: decodeURIComponent(paneMembersMatch[1]) },
+        params: { projectId: decodeURIComponent(workProjectMembersMatch[1]) },
       });
       return;
     }
 
-    const paneMemberItemMatch = pathMatch(pathname, /^\/api\/hub\/panes\/([^/]+)\/members\/([^/]+)$/);
-    if (paneMemberItemMatch && request.method === 'DELETE') {
-      await paneRoutes.removePaneMember({
+    const workProjectMemberItemMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/members\/([^/]+)$/);
+    if (workProjectMemberItemMatch && request.method === 'DELETE') {
+      await projectRoutes.removeProjectMember({
         request,
         response,
         requestUrl,
         pathname,
         params: {
-          paneId: decodeURIComponent(paneMemberItemMatch[1]),
-          userId: decodeURIComponent(paneMemberItemMatch[2]),
+          projectId: decodeURIComponent(workProjectMemberItemMatch[1]),
+          userId: decodeURIComponent(workProjectMemberItemMatch[2]),
         },
       });
       return;
@@ -485,42 +414,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const roomDocItemMatch = pathMatch(pathname, /^\/api\/hub\/room-docs\/([^/]+)$/);
-    if (roomDocItemMatch && request.method === 'GET') {
-      await roomDocRoutes.getRoomDoc({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { docId: decodeURIComponent(roomDocItemMatch[1]) },
-      });
-      return;
-    }
-
-    if (roomDocItemMatch && request.method === 'PUT') {
-      await roomDocRoutes.updateRoomDoc({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { docId: decodeURIComponent(roomDocItemMatch[1]) },
-      });
-      return;
-    }
-
-    const roomDocPresenceMatch = pathMatch(pathname, /^\/api\/hub\/room-docs\/([^/]+)\/presence$/);
-    if (roomDocPresenceMatch && request.method === 'POST') {
-      await roomDocRoutes.updateRoomDocPresence({
-        request,
-        response,
-        requestUrl,
-        pathname,
-        params: { docId: decodeURIComponent(roomDocPresenceMatch[1]) },
-      });
-      return;
-    }
-
-    const collectionsByProjectMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/collections$/);
+    const collectionsByProjectMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/collections$/);
     if (collectionsByProjectMatch && request.method === 'GET') {
       await collectionRoutes.listCollections({
         request,
@@ -566,7 +460,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectRecordsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/records$/);
+    const projectRecordsMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/records$/);
     if (projectRecordsMatch && request.method === 'POST') {
       await recordRoutes.createRecord({
         request,
@@ -578,7 +472,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectRecordSearchMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/records\/search$/);
+    const projectRecordSearchMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/records\/search$/);
     if (projectRecordSearchMatch && request.method === 'GET') {
       await recordRoutes.searchProjectRecords({
         request,
@@ -673,7 +567,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectMentionSearchMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/mentions\/search$/);
+    const projectMentionSearchMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/mentions\/search$/);
     if (projectMentionSearchMatch && request.method === 'GET') {
       await collectionRoutes.searchMentions({
         request,
@@ -685,7 +579,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectBacklinksMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/backlinks$/);
+    const projectBacklinksMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/backlinks$/);
     if (projectBacklinksMatch && request.method === 'GET') {
       await collectionRoutes.listBacklinks({
         request,
@@ -697,7 +591,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectViewsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/views$/);
+    const projectViewsMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/views$/);
     if (projectViewsMatch && request.method === 'GET') {
       await viewRoutes.listViews({
         request,
@@ -747,7 +641,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const eventFromNlpMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/events\/from-nlp$/);
+    const eventFromNlpMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/events\/from-nlp$/);
     if (eventFromNlpMatch && request.method === 'POST') {
       await viewRoutes.createEventFromNlp({
         request,
@@ -759,7 +653,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectCalendarMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/calendar$/);
+    const projectCalendarMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/calendar$/);
     if (projectCalendarMatch && request.method === 'GET') {
       await viewRoutes.listProjectCalendar({
         request,
@@ -803,7 +697,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectTimelineMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/timeline$/);
+    const projectTimelineMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/timeline$/);
     if (projectTimelineMatch && request.method === 'GET') {
       await viewRoutes.listProjectTimeline({
         request,
@@ -861,7 +755,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectAssetRootsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/asset-roots$/);
+    const projectAssetRootsMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/asset-roots$/);
     if (projectAssetRootsMatch && request.method === 'GET') {
       await fileRoutes.listAssetRoots({
         request,
@@ -884,7 +778,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectFilesMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/files$/);
+    const projectFilesMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/files$/);
     if (projectFilesMatch && request.method === 'GET') {
       await fileRoutes.listProjectFiles({
         request,
@@ -896,7 +790,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectAssetsListMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/assets\/list$/);
+    const projectAssetsListMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/assets\/list$/);
     if (projectAssetsListMatch && request.method === 'GET') {
       await fileRoutes.listAssets({
         request,
@@ -908,7 +802,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectAssetsUploadMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/assets\/upload$/);
+    const projectAssetsUploadMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/assets\/upload$/);
     if (projectAssetsUploadMatch && request.method === 'POST') {
       await fileRoutes.uploadAsset({
         request,
@@ -920,7 +814,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectAssetsDeleteMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/assets\/delete$/);
+    const projectAssetsDeleteMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/assets\/delete$/);
     if (projectAssetsDeleteMatch && request.method === 'DELETE') {
       await fileRoutes.deleteAsset({
         request,
@@ -932,7 +826,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectAssetsProxyMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/assets\/proxy$/);
+    const projectAssetsProxyMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/assets\/proxy$/);
     if (projectAssetsProxyMatch && request.method === 'GET') {
       await fileRoutes.proxyAsset({
         request,
@@ -944,7 +838,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectAutomationRulesMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/automation-rules$/);
+    const projectAutomationRulesMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/automation-rules$/);
     if (projectAutomationRulesMatch && request.method === 'GET') {
       await automationRoutes.listProjectAutomationRules({
         request,
@@ -990,7 +884,7 @@ export const createRequestRouter = ({
       return;
     }
 
-    const projectAutomationRunsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/automation-runs$/);
+    const projectAutomationRunsMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/automation-runs$/);
     if (projectAutomationRunsMatch && request.method === 'GET') {
       await automationRoutes.listAutomationRuns({
         request,
@@ -1003,12 +897,7 @@ export const createRequestRouter = ({
     }
 
     if (request.method === 'GET' && pathname === '/api/hub/collab/authorize') {
-      const collabDocId = requestUrl.searchParams.get('doc_id') || '';
-      if (isRoomDocumentId(collabDocId)) {
-        await roomDocRoutes.authorizeCollab({ request, response, requestUrl, pathname });
-      } else {
-        await docRoutes.authorizeCollab({ request, response, requestUrl, pathname });
-      }
+      await docRoutes.authorizeCollab({ request, response, requestUrl, pathname });
       return;
     }
 

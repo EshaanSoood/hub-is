@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
 import { AccessibleDialog, Icon, IconButton } from '../primitives';
-import type { HubPaneSummary } from '../../services/hub/types';
+import type { HubProjectSummary } from '../../services/hub/types';
 import { clampModuleSizeTier } from './moduleCatalog';
 import type {
   CalendarModuleContract,
@@ -29,12 +29,12 @@ import { dialogLayoutIds } from '../../styles/motion';
 
 interface WorkViewProps {
   layoutId?: string;
-  pane: HubPaneSummary | null;
+  project: HubProjectSummary | null;
   accessDenied?: boolean;
-  canEditPane?: boolean;
+  canEditProject?: boolean;
   modulesEnabled?: boolean;
   showWorkspaceDocPlaceholder?: boolean;
-  onUpdatePane: (paneId: string, payload: { name?: string; pinned?: boolean; sort_order?: number; layout_config?: Record<string, unknown> }) => Promise<void>;
+  onUpdateProject: (projectId: string, payload: { name?: string; pinned?: boolean; sort_order?: number; layout_config?: Record<string, unknown> }) => Promise<void>;
   onOpenRecord?: (recordId: string) => void;
   tableContract?: Partial<TableModuleContract>;
   kanbanContract?: Partial<KanbanModuleContract>;
@@ -50,30 +50,36 @@ const normalizeModuleType = (moduleType: unknown): string => {
   return typeof moduleType === 'string' && moduleType ? moduleType : 'unknown';
 };
 
-const defaultModuleLens = (moduleType: string): 'project' | 'pane' | 'pane_scratch' => {
+const defaultModuleLens = (moduleType: string): ContractModuleConfig['lens'] => {
   if (moduleType === 'quick_thoughts') {
-    return 'pane_scratch';
+    return 'project_scratch';
   }
   if (moduleType === 'tasks') {
-    return 'pane';
+    return 'project';
   }
   if (moduleType === 'reminders') {
-    return 'pane';
+    return 'project';
   }
-  return 'project';
+  return 'space';
 };
 
-const normalizeModuleLens = (moduleType: string, lens: unknown): 'project' | 'pane' | 'pane_scratch' => {
+const normalizeModuleLens = (moduleType: string, lens: unknown): ContractModuleConfig['lens'] => {
   if (moduleType === 'quick_thoughts') {
-    return 'pane_scratch';
+    return 'project_scratch';
   }
   if (moduleType === 'tasks') {
-    return lens === 'project' ? 'project' : 'pane';
+    return lens === 'space' ? 'space' : 'project';
   }
   if (moduleType === 'reminders') {
-    return 'pane';
+    return 'project';
   }
-  return lens === 'pane_scratch' ? 'pane_scratch' : 'project';
+  if (lens === 'project_scratch') {
+    return 'project_scratch';
+  }
+  if (lens === 'project') {
+    return 'project';
+  }
+  return 'space';
 };
 
 const parseModules = (layoutConfig: Record<string, unknown> | null | undefined): ContractModuleConfig[] => {
@@ -172,10 +178,10 @@ const EMPTY_CALENDAR_CONTRACT: CalendarModuleContract = {
 };
 
 const EMPTY_FILES_CONTRACT: FilesModuleContract = {
-  paneFiles: [],
   projectFiles: [],
-  onUploadPaneFiles: () => {},
+  spaceFiles: [],
   onUploadProjectFiles: () => {},
+  onUploadSpaceFiles: () => {},
   onOpenFile: () => {},
   onInsertToEditor: undefined,
 };
@@ -294,12 +300,12 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
 
 export const WorkView = ({
   layoutId,
-  pane,
+  project,
   accessDenied = false,
-  canEditPane = true,
+  canEditProject = true,
   modulesEnabled = true,
   showWorkspaceDocPlaceholder = true,
-  onUpdatePane,
+  onUpdateProject,
   onOpenRecord,
   tableContract,
   kanbanContract,
@@ -322,7 +328,7 @@ export const WorkView = ({
     );
   }
 
-  if (!pane) {
+  if (!project) {
     return (
       <motion.section layoutId={layoutId} className="module-sheet p-4">
         <p className="text-sm text-muted">No project selected.</p>
@@ -363,7 +369,7 @@ export const WorkView = ({
     ...remindersContract,
   };
 
-  const modules = parseModules(pane.layout_config);
+  const modules = parseModules(project.layout_config);
   const isSavingModules = pendingModuleSaves > 0;
 
   const saveModules = (nextModules: ContractModuleConfig[]) => {
@@ -371,9 +377,9 @@ export const WorkView = ({
     setPendingModuleSaves((count) => count + 1);
     saveChainRef.current = saveChainRef.current
       .then(async () => {
-        await onUpdatePane(pane.pane_id, {
+        await onUpdateProject(project.project_id, {
           layout_config: {
-            ...pane.layout_config,
+            ...project.layout_config,
             modules: serializeModules(nextModules),
           },
         });
@@ -449,7 +455,7 @@ export const WorkView = ({
         <TableModule
           module={module}
           contract={resolvedTableContract}
-          canEditPane={canEditPane}
+          canEditProject={canEditProject}
           onOpenRecord={onOpenRecord}
           onSetModuleBinding={handleSetModuleBinding}
         />
@@ -461,7 +467,7 @@ export const WorkView = ({
         <KanbanModule
           module={module}
           contract={resolvedKanbanContract}
-          canEditPane={canEditPane}
+          canEditProject={canEditProject}
           onOpenRecord={onOpenRecord}
           onSetModuleBinding={handleSetModuleBinding}
         />
@@ -473,15 +479,15 @@ export const WorkView = ({
     }
 
     if (module.module_type === 'tasks') {
-      return <TasksModule module={module} contract={resolvedTasksContract} canEditPane={canEditPane} />;
+      return <TasksModule module={module} contract={resolvedTasksContract} canEditProject={canEditProject} />;
     }
 
     if (module.module_type === 'files') {
-      return <FilesModule module={module} contract={resolvedFilesContract} canEditPane={canEditPane} />;
+      return <FilesModule module={module} contract={resolvedFilesContract} canEditProject={canEditProject} />;
     }
 
     if (module.module_type === 'reminders') {
-      return <RemindersModule module={module} contract={resolvedRemindersContract} canEditPane={canEditPane} />;
+      return <RemindersModule module={module} contract={resolvedRemindersContract} canEditProject={canEditProject} />;
     }
 
     if (module.module_type === 'quick_thoughts') {
@@ -489,8 +495,8 @@ export const WorkView = ({
         <QuickThoughtsModule
           module={module}
           contract={resolvedQuickThoughtsContract}
-          pane={pane}
-          canEditPane={canEditPane}
+          project={project}
+          canEditProject={canEditProject}
         />
       );
     }
@@ -509,10 +515,10 @@ export const WorkView = ({
       onRemoveModule={handleRemoveModule}
       onSetModuleLens={handleSetModuleLens}
       onResizeModule={handleResizeModule}
-      showAddControls={canEditPane}
-      disableAdd={!canEditPane || isSavingModules}
-      disableMutations={!canEditPane || isSavingModules}
-      readOnlyState={!canEditPane}
+      showAddControls={canEditProject}
+      disableAdd={!canEditProject || isSavingModules}
+      disableMutations={!canEditProject || isSavingModules}
+      readOnlyState={!canEditProject}
       renderModuleBody={renderModuleBody}
     />
   );
@@ -520,13 +526,13 @@ export const WorkView = ({
   return (
     <motion.section layoutId={layoutId} className="space-y-4">
       <header className="section-scored rounded-panel bg-surface-container p-4 shadow-soft-subtle">
-        <h2 className="heading-3 text-text">{pane.name}</h2>
+        <h2 className="heading-3 text-text">{project.name}</h2>
         {moduleError ? <p className="mt-2 text-xs text-danger">{moduleError}</p> : null}
       </header>
 
       {modulesEnabled ? (
         <>
-          <MobileModulesOverlay key={pane.pane_id} moduleGrid={moduleGrid} />
+          <MobileModulesOverlay key={project.project_id} moduleGrid={moduleGrid} />
         </>
       ) : (
         <section className="module-sheet p-4">
@@ -538,7 +544,7 @@ export const WorkView = ({
       {showWorkspaceDocPlaceholder ? (
         <section className="module-sheet p-4">
           <h3 className="heading-4 text-text">Workspace Doc</h3>
-          <p className="mt-1 text-sm text-muted">Doc ID: {pane.doc_id || 'missing'}</p>
+          <p className="mt-1 text-sm text-muted">Doc ID: {project.doc_id || 'missing'}</p>
         </section>
       ) : null}
     </motion.section>

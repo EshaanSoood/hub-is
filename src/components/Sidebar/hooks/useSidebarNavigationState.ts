@@ -8,11 +8,9 @@ export interface SidebarNavigationState {
   homeViewsExpanded: boolean;
   projectRoutesBySpaceId: Record<string, string>;
   projectsSectionExpanded: boolean;
-  roomsSectionExpanded: boolean;
   setExpandedProjectId: (value: string | null | ((current: string | null) => string | null)) => void;
   setHomeViewsExpanded: (value: boolean | ((current: boolean) => boolean)) => void;
   setProjectsSectionExpanded: (value: boolean | ((current: boolean) => boolean)) => void;
-  setRoomsSectionExpanded: (value: boolean | ((current: boolean) => boolean)) => void;
 }
 
 const readStoredProjectRoutes = (): Record<string, string> => {
@@ -90,7 +88,6 @@ export const useSidebarNavigationState = ({
   const scopeKey = isHomeState ? 'home' : activeSpaceId ? `space:${activeSpaceId}` : 'other';
   const [homeViewsOverrides, setHomeViewsOverrides] = useState<Record<string, boolean>>({});
   const [projectsSectionOverrides, setProjectsSectionOverrides] = useState<Record<string, boolean>>({});
-  const [roomsSectionOverrides, setRoomsSectionOverrides] = useState<Record<string, boolean>>({});
   const [expandedProjectOverrides, setExpandedProjectOverrides] = useState<Record<string, string | null>>({});
 
   const projectRoutesBySpaceId = useMemo(() => {
@@ -99,12 +96,10 @@ export const useSidebarNavigationState = ({
 
   const defaultHomeViewsExpanded = isHomeState;
   const defaultProjectsSectionExpanded = true;
-  const defaultRoomsSectionExpanded = isHomeState;
   const defaultExpandedProjectId = isHomeState ? null : activeSpaceId;
 
   const homeViewsExpanded = homeViewsOverrides[scopeKey] ?? defaultHomeViewsExpanded;
   const projectsSectionExpanded = projectsSectionOverrides[scopeKey] ?? defaultProjectsSectionExpanded;
-  const roomsSectionExpanded = roomsSectionOverrides[scopeKey] ?? defaultRoomsSectionExpanded;
   const expandedProjectId = expandedProjectOverrides[scopeKey] ?? defaultExpandedProjectId;
 
   useEffect(() => {
@@ -139,13 +134,6 @@ export const useSidebarNavigationState = ({
     }));
   }, [defaultProjectsSectionExpanded, scopeKey]);
 
-  const setRoomsSectionExpanded = useCallback((value: boolean | ((current: boolean) => boolean)) => {
-    setRoomsSectionOverrides((current) => ({
-      ...current,
-      [scopeKey]: resolveBooleanUpdate(value, current[scopeKey] ?? defaultRoomsSectionExpanded),
-    }));
-  }, [defaultRoomsSectionExpanded, scopeKey]);
-
   const setExpandedProjectId = useCallback((value: string | null | ((current: string | null) => string | null)) => {
     setExpandedProjectOverrides((current) => ({
       ...current,
@@ -158,10 +146,8 @@ export const useSidebarNavigationState = ({
     homeViewsExpanded,
     projectRoutesBySpaceId,
     projectsSectionExpanded,
-    roomsSectionExpanded,
     setExpandedProjectId,
     setHomeViewsExpanded,
     setProjectsSectionExpanded,
-    setRoomsSectionExpanded,
   };
 };

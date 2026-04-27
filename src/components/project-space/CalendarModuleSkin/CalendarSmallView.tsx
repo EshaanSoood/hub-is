@@ -74,8 +74,8 @@ export const CalendarSmallView = ({
           <ul className="space-y-2">
             {compactDayEvents.map((event) => {
               const timeLabel = formatEventTime(event.event_state.start_dt);
-              const projectName = event.project_name || event.source_pane?.pane_name || 'Calendar';
-              const projectId = event.project_id || event.source_pane?.pane_id || null;
+              const projectName = event.space_name || event.source_project?.project_name || 'Calendar';
+              const projectId = event.space_id || event.source_project?.project_id || null;
               return (
                 <li key={`${event.record_id}-${event.event_state.start_dt}`}>
                   {previewMode ? (

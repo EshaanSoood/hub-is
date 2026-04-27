@@ -6,9 +6,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../../context/AuthzContext';
 import { useProjects } from '../../../context/ProjectsContext';
 import { buildProjectWorkHref } from '../../../lib/hubRoutes';
-import { listPanes, updatePane } from '../../../services/hub/panes';
-import { updateProject } from '../../../services/hub/projects';
-import type { HubPaneSummary } from '../../../services/hub/types';
+import { listProjects, updateProject } from '../../../services/hub/projects';
+import { updateSpace } from '../../../services/hub/spaces';
+import type { HubProjectSummary } from '../../../services/hub/types';
 import type { ProjectRecord } from '../../../types/domain';
 import { SidebarLabel } from '../motion/SidebarLabel';
 import {
@@ -18,19 +18,18 @@ import {
   sidebarChevronVariants,
 } from '../motion/sidebarMotion';
 import { Icon } from '../../primitives/Icon';
-import { AddPaneAction } from './AddPaneAction';
+import { AddProjectAction } from './AddProjectAction';
 import { NewProjectAction } from './NewProjectAction';
-import { PaneNode } from './PaneNode';
 import { ProjectNode } from './ProjectNode';
 import { useProjectReorder } from './useProjectReorder';
 
-const sortPanes = (panes: HubPaneSummary[]): HubPaneSummary[] =>
-  [...panes].sort((left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order));
+const sortProjects = (projects: HubProjectSummary[]): HubProjectSummary[] =>
+  [...projects].sort((left, right) => (left.position ?? left.sort_order) - (right.position ?? right.sort_order));
 
 interface ProjectsTreeProps {
   activeSpaceId: string | null;
-  currentProjectPanes: HubPaneSummary[];
-  currentSpacePaneId: string | null;
+  currentProjectProjects: HubProjectSummary[];
+  currentSpaceProjectId: string | null;
   expandedProjectId: string | null;
   isCollapsed: boolean;
   onOpenProject: (projectId: string) => void;
@@ -44,8 +43,8 @@ interface ProjectsTreeProps {
 
 export const ProjectsTree = ({
   activeSpaceId,
-  currentProjectPanes,
-  currentSpacePaneId,
+  currentProjectProjects,
+  currentSpaceProjectId,
   expandedProjectId,
   isCollapsed,
   onOpenProject,
@@ -64,8 +63,8 @@ export const ProjectsTree = ({
   const isOnHome = (location.pathname.replace(/\/+$/, '') || '/') === '/projects';
   const [loadingProjectIds, setLoadingProjectIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [panesByProjectId, setPanesByProjectId] = useState<Record<string, HubPaneSummary[]>>(() =>
-    activeSpaceId ? { [activeSpaceId]: sortPanes(currentProjectPanes) } : {},
+  const [projectsBySpaceId, setProjectsByProjectId] = useState<Record<string, HubProjectSummary[]>>(() =>
+    activeSpaceId ? { [activeSpaceId]: sortProjects(currentProjectProjects) } : {},
   );
 
   const visibleProjects = useMemo(
@@ -75,22 +74,22 @@ export const ProjectsTree = ({
 
   useEffect(() => {
     if (activeSpaceId) {
-      setPanesByProjectId((current) => ({
+      setProjectsByProjectId((current) => ({
         ...current,
-        [activeSpaceId]: sortPanes(currentProjectPanes),
+        [activeSpaceId]: sortProjects(currentProjectProjects),
       }));
     }
-  }, [activeSpaceId, currentProjectPanes]);
+  }, [activeSpaceId, currentProjectProjects]);
 
-  const loadProjectPanes = useCallback(
+  const loadProjectProjects = useCallback(
     async (projectId: string) => {
       if (!accessToken || loadingProjectIds.includes(projectId)) {
         return;
       }
       setLoadingProjectIds((current) => [...current, projectId]);
       try {
-        const panes = await listPanes(accessToken, projectId);
-        setPanesByProjectId((current) => ({ ...current, [projectId]: sortPanes(panes) }));
+        const projects = await listProjects(accessToken, projectId);
+        setProjectsByProjectId((current) => ({ ...current, [projectId]: sortProjects(projects) }));
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : 'Failed to load projects.');
       } finally {
@@ -101,26 +100,26 @@ export const ProjectsTree = ({
   );
 
   useEffect(() => {
-    if (!expandedProjectId || panesByProjectId[expandedProjectId] || !accessToken) {
+    if (!expandedProjectId || projectsBySpaceId[expandedProjectId] || !accessToken) {
       return;
     }
-    void loadProjectPanes(expandedProjectId);
-  }, [accessToken, expandedProjectId, loadProjectPanes, panesByProjectId]);
+    void loadProjectProjects(expandedProjectId);
+  }, [accessToken, expandedProjectId, loadProjectProjects, projectsBySpaceId]);
 
   const projectIds = useMemo(() => visibleProjects.map((project) => project.id), [visibleProjects]);
-  const focusedPanes = useMemo(
-    () => (activeSpaceId ? panesByProjectId[activeSpaceId] ?? [] : []),
-    [activeSpaceId, panesByProjectId],
+  const focusedProjects = useMemo(
+    () => (activeSpaceId ? projectsBySpaceId[activeSpaceId] ?? [] : []),
+    [activeSpaceId, projectsBySpaceId],
   );
 
-  const onProjectReorder = useCallback(
+  const onSpaceReorder = useCallback(
     async (nextProjectIds: string[]) => {
       if (!accessToken) {
         return;
       }
       try {
         await Promise.all(
-          nextProjectIds.map((projectId, index) => updateProject(accessToken, projectId, { position: index })),
+          nextProjectIds.map((projectId, index) => updateSpace(accessToken, projectId, { position: index })),
         );
         await refreshProjects();
       } catch (reorderError) {
@@ -134,29 +133,29 @@ export const ProjectsTree = ({
   const {
     orderedItemIds: orderedProjectIds,
     sensors: projectSensors,
-    handleDragEnd: handleProjectDragEnd,
+    handleDragEnd: handleSpaceDragEnd,
   } = useProjectReorder({
     enabled: sectionExpanded && isOnHome,
     itemIds: projectIds,
-    onReorder: onProjectReorder,
+    onReorder: onSpaceReorder,
   });
 
-  const focusedPaneIds = useMemo(() => focusedPanes.map((pane) => pane.pane_id), [focusedPanes]);
-  const onPaneReorder = useCallback(
-    async (nextPaneIds: string[]) => {
+  const focusedProjectIds = useMemo(() => focusedProjects.map((project) => project.project_id), [focusedProjects]);
+  const onWorkProjectReorder = useCallback(
+    async (nextProjectIds: string[]) => {
       if (!accessToken || !activeSpaceId) {
         return;
       }
       try {
         await Promise.all(
-          nextPaneIds.map((paneId, index) =>
-            updatePane(accessToken, paneId, {
+          nextProjectIds.map((projectId, index) =>
+            updateProject(accessToken, projectId, {
               sort_order: index + 1,
               position: index + 1,
             })),
         );
-        const refreshed = await listPanes(accessToken, activeSpaceId);
-        setPanesByProjectId((current) => ({ ...current, [activeSpaceId]: sortPanes(refreshed) }));
+        const refreshed = await listProjects(accessToken, activeSpaceId);
+        setProjectsByProjectId((current) => ({ ...current, [activeSpaceId]: sortProjects(refreshed) }));
       } catch (reorderError) {
         setError(reorderError instanceof Error ? reorderError.message : 'Failed to reorder projects.');
       }
@@ -165,13 +164,13 @@ export const ProjectsTree = ({
   );
 
   const {
-    orderedItemIds: orderedFocusedPaneIds,
-    sensors: paneSensors,
-    handleDragEnd: handlePaneDragEnd,
+    orderedItemIds: orderedFocusedProjectIds,
+    sensors: workProjectSensors,
+    handleDragEnd: handleWorkProjectDragEnd,
   } = useProjectReorder({
-    enabled: sectionExpanded && !isOnHome && focusedPaneIds.length > 1,
-    itemIds: focusedPaneIds,
-    onReorder: onPaneReorder,
+    enabled: sectionExpanded && !isOnHome && focusedProjectIds.length > 1,
+    itemIds: focusedProjectIds,
+    onReorder: onWorkProjectReorder,
   });
 
   const projectsById = useMemo(
@@ -237,7 +236,7 @@ export const ProjectsTree = ({
 
               <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                 {displayedProjects.length > 0 ? (
-                  <DndContext sensors={projectSensors} collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
+                  <DndContext sensors={projectSensors} collisionDetection={closestCenter} onDragEnd={handleSpaceDragEnd}>
                     <SortableContext items={isOnHome ? orderedProjectIds : projectIds} strategy={verticalListSortingStrategy}>
                       <motion.div
                         initial={false}
@@ -246,13 +245,13 @@ export const ProjectsTree = ({
                         className="space-y-1"
                       >
                         {displayedProjects.map((project) => {
-                          const projectPanes = panesByProjectId[project.id] ?? [];
+                          const projectProjects = projectsBySpaceId[project.id] ?? [];
                           const isExpanded = expandedProjectId === project.id;
                           const isActiveProject = project.id === activeSpaceId;
-                          const paneIdsForRender = isActiveProject && !isOnHome ? orderedFocusedPaneIds : projectPanes.map((pane) => pane.pane_id);
-                          const panesForRender = paneIdsForRender
-                            .map((paneId) => projectPanes.find((pane) => pane.pane_id === paneId))
-                            .filter((pane): pane is HubPaneSummary => Boolean(pane));
+                          const projectIdsForRender = isActiveProject && !isOnHome ? orderedFocusedProjectIds : projectProjects.map((project) => project.project_id);
+                          const projectsForRender = projectIdsForRender
+                            .map((projectId) => projectProjects.find((project) => project.project_id === projectId))
+                            .filter((project): project is HubProjectSummary => Boolean(project));
 
                           return (
                             <motion.div
@@ -267,8 +266,8 @@ export const ProjectsTree = ({
                                 label={project.name}
                                 onNavigate={() => onOpenProject(project.id)}
                                 onToggleExpanded={() => {
-                                  if (!isExpanded && !panesByProjectId[project.id]) {
-                                    void loadProjectPanes(project.id);
+                                  if (!isExpanded && !projectsBySpaceId[project.id]) {
+                                    void loadProjectProjects(project.id);
                                   }
                                   onToggleProjectExpansion(project.id);
                                 }}
@@ -279,7 +278,7 @@ export const ProjectsTree = ({
                                 <AnimatePresence initial={false}>
                                   {isExpanded ? (
                                     <motion.div
-                                      key={`${project.id}:panes`}
+                                      key={`${project.id}:projects`}
                                       initial="collapsed"
                                       animate="expanded"
                                       exit="exit"
@@ -288,29 +287,29 @@ export const ProjectsTree = ({
                                     >
                                       {loadingProjectIds.includes(project.id) ? (
                                         <p className="px-3 py-2 text-xs text-muted">Loading projects…</p>
-                                      ) : panesForRender.length > 0 ? (
+                                      ) : projectsForRender.length > 0 ? (
                                         isActiveProject && !isOnHome ? (
-                                          <DndContext sensors={paneSensors} collisionDetection={closestCenter} onDragEnd={handlePaneDragEnd}>
-                                            <SortableContext items={orderedFocusedPaneIds} strategy={verticalListSortingStrategy}>
+                                          <DndContext sensors={workProjectSensors} collisionDetection={closestCenter} onDragEnd={handleWorkProjectDragEnd}>
+                                            <SortableContext items={orderedFocusedProjectIds} strategy={verticalListSortingStrategy}>
                                               <motion.div
                                                 initial={false}
                                                 animate="expanded"
                                                 variants={sidebarAccordionListVariants(prefersReducedMotion)}
                                                 className="space-y-1"
                                               >
-                                                {panesForRender.map((pane) => (
+                                                {projectsForRender.map((project) => (
                                                   <motion.div
-                                                    key={pane.pane_id}
+                                                    key={project.project_id}
                                                     variants={sidebarAccordionItemVariants(prefersReducedMotion)}
                                                     initial="collapsed"
                                                     animate="expanded"
                                                   >
-                                                    <PaneNode
-                                                      active={pane.pane_id === currentSpacePaneId}
-                                                      label={pane.name}
-                                                      onClick={() => navigate(buildProjectWorkHref(project.id, pane.pane_id))}
+                                                    <ProjectNode
+                                                      active={project.project_id === currentSpaceProjectId}
+                                                      label={project.name}
+                                                      onClick={() => navigate(buildProjectWorkHref(project.space_id, project.project_id))}
                                                       sortableEnabled
-                                                      sortableId={pane.pane_id}
+                                                      sortableId={project.project_id}
                                                     />
                                                   </motion.div>
                                                 ))}
@@ -324,19 +323,19 @@ export const ProjectsTree = ({
                                             variants={sidebarAccordionListVariants(prefersReducedMotion)}
                                             className="space-y-1"
                                           >
-                                            {panesForRender.map((pane) => (
+                                            {projectsForRender.map((project) => (
                                               <motion.div
-                                                key={pane.pane_id}
+                                                key={project.project_id}
                                                 variants={sidebarAccordionItemVariants(prefersReducedMotion)}
                                                 initial="collapsed"
                                                 animate="expanded"
                                               >
-                                                <PaneNode
-                                                  active={pane.pane_id === currentSpacePaneId}
-                                                  label={pane.name}
-                                                  onClick={() => navigate(buildProjectWorkHref(project.id, pane.pane_id))}
+                                                <ProjectNode
+                                                  active={project.project_id === currentSpaceProjectId}
+                                                  label={project.name}
+                                                  onClick={() => navigate(buildProjectWorkHref(project.space_id, project.project_id))}
                                                   sortableEnabled={false}
-                                                  sortableId={pane.pane_id}
+                                                  sortableId={project.project_id}
                                                 />
                                               </motion.div>
                                             ))}
@@ -346,13 +345,13 @@ export const ProjectsTree = ({
                                         <p className="px-3 py-2 text-xs text-muted">No projects yet.</p>
                                       )}
 
-                                      <AddPaneAction
-                                        panes={projectPanes}
+                                      <AddProjectAction
+                                        projects={projectProjects}
                                         projectId={project.id}
-                                        onPaneCreated={(pane) => {
-                                          setPanesByProjectId((current) => ({
+                                        onProjectCreated={(project) => {
+                                          setProjectsByProjectId((current) => ({
                                             ...current,
-                                            [project.id]: sortPanes([...(current[project.id] ?? []), pane]),
+                                            [project.space_id]: sortProjects([...(current[project.space_id] ?? []), project]),
                                           }));
                                         }}
                                       />

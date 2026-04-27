@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getProject, listProjectMembers } from '../services/hub/projects';
-import { listPanes } from '../services/hub/panes';
+import { listProjects } from '../services/hub/projects';
+import { getSpace, listSpaceMembers } from '../services/hub/spaces';
 import { listTimeline } from '../services/hub/records';
-import type { HubPaneSummary, HubProject, HubProjectMember } from '../services/hub/types';
+import type { HubProjectSummary, HubProject, HubProjectMember } from '../services/hub/types';
 import { useProjects } from '../context/ProjectsContext';
 
 const LAST_PROJECT_KEY = 'hub:last-opened-project-id';
@@ -21,7 +21,7 @@ interface UseProjectBootstrapParams {
   projectId: string;
 }
 
-const comparePanesBySidebarOrder = (left: HubPaneSummary, right: HubPaneSummary) => {
+const compareProjectsBySidebarOrder = (left: HubProjectSummary, right: HubProjectSummary) => {
   const leftPosition = left.position ?? Number.MAX_SAFE_INTEGER;
   const rightPosition = right.position ?? Number.MAX_SAFE_INTEGER;
   if (leftPosition !== rightPosition) {
@@ -33,7 +33,7 @@ const comparePanesBySidebarOrder = (left: HubPaneSummary, right: HubPaneSummary)
 export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootstrapParams) => {
   const { refreshProjects } = useProjects();
   const [project, setProject] = useState<HubProject | null>(null);
-  const [panes, setPanes] = useState<HubPaneSummary[]>([]);
+  const [projects, setProjects] = useState<HubProjectSummary[]>([]);
   const [projectMembers, setProjectMembers] = useState<HubProjectMember[]>([]);
   const [timeline, setTimeline] = useState<ProjectTimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,11 +54,11 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
     const requestAccessToken = accessToken;
     const requestProjectId = projectId;
 
-    const [nextProject, nextPanes, nextTimeline, nextMembersResult] = await Promise.all([
-      getProject(accessToken, projectId),
-      listPanes(accessToken, projectId),
+    const [nextProject, nextProjects, nextTimeline, nextMembersResult] = await Promise.all([
+      getSpace(accessToken, projectId),
+      listProjects(accessToken, projectId),
       listTimeline(accessToken, projectId),
-      listProjectMembers(accessToken, projectId)
+      listSpaceMembers(accessToken, projectId)
         .then((members) => ({ members, error: null as string | null }))
         .catch((membersError) => ({
           members: [] as HubProjectMember[],
@@ -75,7 +75,7 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
     }
 
     setProject(nextProject);
-    setPanes(nextPanes.sort(comparePanesBySidebarOrder));
+    setProjects(nextProjects.sort(compareProjectsBySidebarOrder));
     setProjectMembers(nextMembersResult.members);
     setTimeline(nextTimeline);
 
@@ -88,7 +88,7 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
     if (!accessToken || !projectId) {
       setError(null);
       setProject(null);
-      setPanes([]);
+      setProjects([]);
       setProjectMembers([]);
       setTimeline([]);
       setLoading(false);
@@ -129,11 +129,11 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
   return {
     error,
     loading,
-    panes,
+    projects,
     project,
     projectMembers,
     refreshProjectData,
-    setPanes,
+    setProjects,
     setTimeline,
     timeline,
   };

@@ -32,14 +32,14 @@ const waitForProjectsHome = async (page: Page): Promise<void> => {
   await expect(page.getByRole('navigation', { name: 'Home tabs' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
-const navigateToSeededPane = async (page: Page, context: JourneySeedContext): Promise<void> => {
+const navigateToSeededProject = async (page: Page, context: JourneySeedContext): Promise<void> => {
   await waitForProjectsHome(page);
-  await page.goto(`/projects/${context.project.id}/work/${context.panes.primaryId}`, {
+  await page.goto(`/projects/${context.project.id}/work/${context.projects.primaryId}`, {
     waitUntil: 'domcontentloaded',
     timeout: LIVE_TIMEOUT_MS,
   });
 
-  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work/${escapeRegExp(context.panes.primaryId)}(?:\\?|$)`), {
+  await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(context.project.id)}/work/${escapeRegExp(context.projects.primaryId)}(?:\\?|$)`), {
     timeout: LIVE_TIMEOUT_MS,
   });
 };
@@ -222,7 +222,7 @@ test.describe('User Journey Verification', () => {
     await loginThroughKeycloak(page, accountA);
 
     await captureCheckpoint({ page, scenario, phase: 'navigation', state: 'before_action', viewport });
-    await navigateToSeededPane(page, context);
+    await navigateToSeededProject(page, context);
     await captureCheckpoint({ page, scenario, phase: 'navigation', state: 'post_submit', viewport });
 
     await captureCheckpoint({ page, scenario, phase: 'modules', state: 'before_action', viewport });
@@ -452,7 +452,7 @@ test.describe('User Journey Verification', () => {
     try {
       coverage.attachContext(secondContext);
       const secondPage = await secondContext.newPage();
-      await navigateToSeededPane(secondPage, context);
+      await navigateToSeededProject(secondPage, context);
 
       await verifyPersistenceOnPage(secondPage, {
         tableTitle,
@@ -469,7 +469,7 @@ test.describe('User Journey Verification', () => {
       try {
         coverage.attachContext(thirdContext);
         const thirdPage = await thirdContext.newPage();
-        await navigateToSeededPane(thirdPage, context);
+        await navigateToSeededProject(thirdPage, context);
 
         await verifyPersistenceOnPage(thirdPage, {
           tableTitle,
@@ -507,7 +507,7 @@ test.describe('User Journey Verification', () => {
     await loginThroughKeycloak(page, accountA);
     await captureCheckpoint({ page, scenario, phase: 'checkpoint', state: 'before_action', viewport });
 
-    await navigateToSeededPane(page, context);
+    await navigateToSeededProject(page, context);
     await captureCheckpoint({ page, scenario, phase: 'checkpoint', state: 'post_submit', viewport });
 
     if (await page.getByRole('button', { name: /^Modules$/i }).isVisible().catch(() => false)) {

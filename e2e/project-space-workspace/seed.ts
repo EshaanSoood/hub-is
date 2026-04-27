@@ -14,7 +14,7 @@ interface Fixture {
     id: string;
     name: string;
   };
-  paneIds: {
+  projectIds: {
     main: string;
     private: string;
   };
@@ -101,13 +101,13 @@ const buildStorageStateForToken = (baseUrl: string, accessToken: string) => ({
 });
 
 const createProject = async (baseUrl: string, token: string, name: string) =>
-  hubRequest<{ project: { project_id: string; name: string } }>(baseUrl, token, '/api/hub/projects', {
+  hubRequest<{ space: { space_id: string; name: string } }>(baseUrl, token, '/api/hub/spaces', {
     method: 'POST',
     body: JSON.stringify({ name }),
   });
 
 const createCollection = async (baseUrl: string, token: string, projectId: string, name: string) =>
-  hubRequest<{ collection_id: string }>(baseUrl, token, `/api/hub/projects/${encodeURIComponent(projectId)}/collections`, {
+  hubRequest<{ collection_id: string }>(baseUrl, token, `/api/hub/spaces/${encodeURIComponent(projectId)}/collections`, {
     method: 'POST',
     body: JSON.stringify({ name }),
   });
@@ -119,24 +119,24 @@ const createField = async (baseUrl: string, token: string, collectionId: string,
   });
 
 const createView = async (baseUrl: string, token: string, projectId: string, payload: Record<string, unknown>) =>
-  hubRequest<{ view_id: string }>(baseUrl, token, `/api/hub/projects/${encodeURIComponent(projectId)}/views`, {
+  hubRequest<{ view_id: string }>(baseUrl, token, `/api/hub/spaces/${encodeURIComponent(projectId)}/views`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 
-const createPane = async (
+const createProject = async (
   baseUrl: string,
   token: string,
   projectId: string,
   payload: { name: string; member_user_ids: string[]; layout_config: Record<string, unknown> },
 ) =>
-  hubRequest<{ pane: { pane_id: string; doc_id: string | null } }>(baseUrl, token, `/api/hub/projects/${encodeURIComponent(projectId)}/panes`, {
+  hubRequest<{ project: { project_id: string; doc_id: string | null } }>(baseUrl, token, `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 
 const createRecord = async (baseUrl: string, token: string, projectId: string, payload: Record<string, unknown>) =>
-  hubRequest<{ record_id: string }>(baseUrl, token, `/api/hub/projects/${encodeURIComponent(projectId)}/records`, {
+  hubRequest<{ record_id: string }>(baseUrl, token, `/api/hub/spaces/${encodeURIComponent(projectId)}/records`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -147,7 +147,7 @@ const createEventFromNlp = async (
   projectId: string,
   payload: Record<string, unknown>,
 ) =>
-  hubRequest<{ record: { record_id: string } }>(baseUrl, token, `/api/hub/projects/${encodeURIComponent(projectId)}/events/from-nlp`, {
+  hubRequest<{ record: { record_id: string } }>(baseUrl, token, `/api/hub/spaces/${encodeURIComponent(projectId)}/events/from-nlp`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -170,7 +170,7 @@ async function globalSetup(): Promise<void> {
   const projectName = `ProjectSpace Workspace ${runId}`;
 
   const project = await createProject(apiBaseUrl, ownerToken, projectName);
-  const collection = await createCollection(apiBaseUrl, ownerToken, project.project.project_id, `Workspace Records ${runId}`);
+  const collection = await createCollection(apiBaseUrl, ownerToken, project.space.space_id, `Workspace Records ${runId}`);
   const statusField = await createField(apiBaseUrl, ownerToken, collection.collection_id, {
     name: 'Status',
     type: 'select',
@@ -178,21 +178,21 @@ async function globalSetup(): Promise<void> {
     config: { options: ['todo', 'doing', 'done'] },
   });
 
-  const tableView = await createView(apiBaseUrl, ownerToken, project.project.project_id, {
+  const tableView = await createView(apiBaseUrl, ownerToken, project.space.space_id, {
     collection_id: collection.collection_id,
     type: 'table',
     name: `Workspace Table ${runId}`,
     config: { visible_field_ids: [statusField.field_id] },
   });
-  const kanbanView = await createView(apiBaseUrl, ownerToken, project.project.project_id, {
+  const kanbanView = await createView(apiBaseUrl, ownerToken, project.space.space_id, {
     collection_id: collection.collection_id,
     type: 'kanban',
     name: `Workspace Kanban ${runId}`,
     config: { group_by_field_id: statusField.field_id },
   });
 
-  const mainPane = await createPane(apiBaseUrl, ownerToken, project.project.project_id, {
-    name: `Verify Main Pane ${runId}`,
+  const mainProject = await createWorkProject(apiBaseUrl, ownerToken, project.space.space_id, {
+    name: `Verify Main Project ${runId}`,
     member_user_ids: [],
     layout_config: {
       modules_enabled: true,
@@ -216,8 +216,8 @@ async function globalSetup(): Promise<void> {
     },
   });
 
-  const privatePane = await createPane(apiBaseUrl, ownerToken, project.project.project_id, {
-    name: `Verify Private Pane ${runId}`,
+  const privateProject = await createWorkProject(apiBaseUrl, ownerToken, project.space.space_id, {
+    name: `Verify Private Project ${runId}`,
     member_user_ids: [],
     layout_config: {
       modules_enabled: true,
@@ -235,10 +235,10 @@ async function globalSetup(): Promise<void> {
   });
 
   const recordTitle = `Workspace Task ${runId}`;
-  await createRecord(apiBaseUrl, ownerToken, project.project.project_id, {
+  await createRecord(apiBaseUrl, ownerToken, project.space.space_id, {
     collection_id: collection.collection_id,
     title: recordTitle,
-    source_pane_id: mainPane.pane.pane_id,
+    source_project_id: mainProject.project.project_id,
     values: {
       [statusField.field_id]: 'todo',
     },
@@ -253,8 +253,8 @@ async function globalSetup(): Promise<void> {
   const eventTitle = `Workspace Event ${runId}`;
   const eventStart = new Date(Date.now() + 2 * 60 * 60 * 1000);
   const eventEnd = new Date(Date.now() + 3 * 60 * 60 * 1000);
-  await createEventFromNlp(apiBaseUrl, ownerToken, project.project.project_id, {
-    source_pane_id: mainPane.pane.pane_id,
+  await createEventFromNlp(apiBaseUrl, ownerToken, project.space.space_id, {
+    source_project_id: mainProject.project.project_id,
     title: eventTitle,
     start_dt: eventStart.toISOString(),
     end_dt: eventEnd.toISOString(),
@@ -267,12 +267,12 @@ async function globalSetup(): Promise<void> {
     baseUrl,
     apiBaseUrl,
     project: {
-      id: project.project.project_id,
-      name: project.project.name,
+      id: project.space.space_id,
+      name: project.space.name,
     },
-    paneIds: {
-      main: mainPane.pane.pane_id,
-      private: privatePane.pane.pane_id,
+    projectIds: {
+      main: mainProject.project.project_id,
+      private: privateProject.project.project_id,
     },
     viewIds: {
       table: tableView.view_id,

@@ -118,10 +118,10 @@ export interface RemindersModuleContract {
 }
 
 export interface FilesModuleContract {
-  paneFiles: FilesModuleItem[];
   projectFiles: FilesModuleItem[];
-  onUploadPaneFiles: (files: File[]) => void;
+  spaceFiles: FilesModuleItem[];
   onUploadProjectFiles: (files: File[]) => void;
+  onUploadSpaceFiles: (files: File[]) => void;
   onOpenFile: (file: FilesModuleItem) => void;
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
 }

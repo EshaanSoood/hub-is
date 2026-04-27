@@ -1,175 +1,81 @@
-import { projectCreatedTimelineMessage } from '../helpers/timelineStart.mjs';
-
 export const createProjectRoutes = (deps) => {
-  const projectIdPattern = /^[A-Za-z0-9_-]+$/;
-  const projectNameMaxLength = 120;
   const {
     withAuth,
     withTransaction,
-    withPolicyGate,
     withProjectPolicyGate,
+    withWorkProjectPolicyGate,
     send,
     jsonResponse,
-    okEnvelope,
     errorEnvelope,
     parseBody,
     asText,
+    asBoolean,
+    asInteger,
+    parseJsonObject,
     nowIso,
     newId,
     toJson,
     emitTimelineEvent,
     buildNotificationPayload,
     createNotification,
-    projectRecord,
-    pendingInviteRecord,
-    membershipRoleLabel,
+    projectSummary,
     normalizeProjectRole,
-    ensureUserForEmail,
+    projectsBySpaceStmt,
+    projectNextSortStmt,
     projectMembershipExistsStmt,
     projectMembershipRoleStmt,
-    projectOwnerCountStmt,
-    projectForMemberStmt,
-    listProjectsForUserStmt,
-    projectByIdStmt,
     projectMembersByProjectStmt,
-    pendingInvitesByProjectStmt,
-    activePendingInviteByProjectAndEmailStmt,
-    userByEmailStmt,
-    pendingInviteByIdStmt,
-    insertPendingInviteStmt,
-    deletePendingInviteStmt,
-    updatePendingInviteDecisionStmt,
-    ensureKeycloakInviteOnboarding,
-    cleanupKeycloakInviteOnboarding,
-    sendHubInviteEmail,
-    insertProjectStmt,
-    insertProjectMemberStmt,
-    deleteProjectMemberStmt,
-    insertProjectDefaultCollectionStmt,
-    insertPaneStmt,
+    workProjectByIdStmt,
+    insertWorkProjectStmt,
     insertDocStmt,
     insertDocStorageStmt,
-    insertAssetRootStmt,
-    deletePaneMembersByUserInProjectStmt,
-    assignedTaskListForUser,
-    reassignTasksForRemovedMember,
-    updateProjectNameStmt,
-    updateProjectPositionStmt,
+    insertWorkProjectMemberStmt,
+    updateWorkProjectStmt,
+    deleteWorkProjectStmt,
+    deleteWorkProjectMemberStmt,
   } = deps;
+  const workOkEnvelope = (data) => ({ ok: true, data, error: null });
 
-  const isPersonalProject = (projectId) => {
-    const project = projectByIdStmt.get(projectId);
-    return Boolean(project) && (Number(project.is_personal || 0) === 1 || String(project.project_type || '').toLowerCase() === 'personal');
-  };
-
-  const listProjects = withPolicyGate('projects.view', async ({ response, auth }) => {
-    const projects = listProjectsForUserStmt.all(auth.user.user_id).map(projectRecord);
-    send(response, jsonResponse(200, okEnvelope({ projects })));
-  });
-
-  const createProject = withPolicyGate('projects.view', async ({ request, response, auth }) => {
-    let body;
-    try {
-      body = await parseBody(request);
-    } catch (error) {
-      request.log.warn('Failed to parse request body for project creation.', { error });
-      send(response, parseBody.errorResponse(error));
-      return;
-    }
-
-    const name = asText(body.name);
-    if (!name) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Space name is required.')));
-      return;
-    }
-
-    const now = nowIso();
-    const providedProjectId = asText(body.project_id);
-    if (providedProjectId && !projectIdPattern.test(providedProjectId)) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must contain only letters, numbers, underscores, and hyphens.')));
-      return;
-    }
-    const projectId = providedProjectId || newId('prj');
-
-    if (projectByIdStmt.get(projectId)) {
-      send(response, jsonResponse(409, errorEnvelope('conflict', 'Space already exists.')));
-      return;
-    }
-
-    withTransaction(() => {
-      insertProjectStmt.run(projectId, name, auth.user.user_id, now, now);
-      insertProjectMemberStmt.run(projectId, auth.user.user_id, 'owner', now);
-      const defaultCollectionId = newId('col');
-      const defaultCollectionNow = nowIso();
-      insertProjectDefaultCollectionStmt.run(defaultCollectionId, projectId, 'Tasks', defaultCollectionNow, defaultCollectionNow);
-
-      const paneId = newId('pan');
-      const docId = newId('doc');
-      insertPaneStmt.run(
-        paneId,
-        projectId,
-        'Main Work',
-        1,
-        1,
-        0,
-        toJson({ modules: [], doc_binding_mode: 'owned' }),
-        auth.user.user_id,
-        now,
-        now,
-      );
-      insertDocStmt.run(docId, paneId, now, now);
-      insertDocStorageStmt.run(docId, 0, toJson({}), now);
-      insertAssetRootStmt.run(
-        newId('ast'),
-        projectId,
-        'nextcloud',
-        `/HubOS/${projectId}`,
-        toJson({ provider: 'nextcloud' }),
-        now,
-        now,
-      );
-    });
-
-    emitTimelineEvent({
-      projectId,
-      actorUserId: auth.user.user_id,
-      eventType: 'project.created',
-      primaryEntityType: 'project',
-      primaryEntityId: projectId,
-      summary: { message: projectCreatedTimelineMessage({ name }) },
-    });
-
-    const project = projectForMemberStmt.get(projectId, auth.user.user_id);
-    send(response, jsonResponse(201, okEnvelope({ project: projectRecord(project) })));
-  });
-
-  const getProject = async ({ request, response, params }) => {
+  const listProjectProjects = async ({ request, response, params }) => {
     const auth = await withAuth(request);
     if (auth.error) {
       send(response, auth.error);
       return;
     }
 
-    const project = projectForMemberStmt.get(params.projectId, auth.user.user_id);
-    if (!project) {
-      send(response, jsonResponse(404, errorEnvelope('not_found', 'Space not found.')));
-      return;
-    }
-
-    send(response, jsonResponse(200, okEnvelope({ project: projectRecord(project) })));
-  };
-
-  const updateProject = async ({ request, response, params }) => {
-    const auth = await withAuth(request);
-    if (auth.error) {
-      send(response, auth.error);
-      return;
-    }
-
-    const projectId = params.projectId;
+    const spaceId = params.projectId;
     const projectGate = withProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId,
+      projectId: spaceId,
+      requiredCapability: 'view',
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+
+    const projects = projectsBySpaceStmt
+      .all(spaceId)
+      .filter((project) => !withWorkProjectPolicyGate({
+        userId: auth.user.user_id,
+        projectId: project.project_id,
+        requiredCapability: 'view',
+      }).error)
+      .map((project) => projectSummary(project, auth.user.user_id));
+    send(response, jsonResponse(200, workOkEnvelope({ projects })));
+  };
+
+  const createProjectProject = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const spaceId = params.projectId;
+    const projectGate = withProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId: spaceId,
       requiredCapability: 'write',
     });
     if (projectGate.error) {
@@ -181,89 +87,173 @@ export const createProjectRoutes = (deps) => {
     try {
       body = await parseBody(request);
     } catch (error) {
+      request.log.warn('Failed to parse request body for project creation.', { error });
+      send(response, parseBody.errorResponse(error));
+      return;
+    }
+
+    const name = asText(body.name) || 'Untitled Project';
+    const pinned = asBoolean(body.pinned, false);
+    const layoutConfig = parseJsonObject(body.layout_config, {});
+    const nextSort = asInteger(body.sort_order, Number(projectNextSortStmt.get(spaceId)?.max_sort || 0) + 1, 0, 100000);
+    const nextPosition = asInteger(body.position, nextSort, 0, 100000);
+    const workProjectId = newId('prj');
+    const docId = newId('doc');
+    const now = nowIso();
+
+    const requestedEditors = Array.isArray(body.member_user_ids) ? body.member_user_ids.map((value) => asText(value)).filter(Boolean) : [];
+    const editorUserIds = [...new Set(requestedEditors)];
+    for (const userId of editorUserIds) {
+      const membership = projectMembershipExistsStmt.get(spaceId, userId);
+      if (!membership?.ok) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_members', `User ${userId} is not a space member.`)));
+        return;
+      }
+    }
+
+    withTransaction(() => {
+      insertWorkProjectStmt.run(
+        workProjectId,
+        spaceId,
+        name,
+        nextSort,
+        nextPosition,
+        pinned ? 1 : 0,
+        toJson(layoutConfig),
+        auth.user.user_id,
+        now,
+        now,
+      );
+      insertDocStmt.run(docId, workProjectId, now, now);
+      insertDocStorageStmt.run(docId, 0, toJson({}), now);
+
+      for (const userId of editorUserIds) {
+        if (normalizeProjectRole(projectMembershipRoleStmt.get(spaceId, userId)?.role) !== 'owner') {
+          insertWorkProjectMemberStmt.run(workProjectId, userId, now);
+        }
+      }
+    });
+
+    emitTimelineEvent({
+      projectId: spaceId,
+      actorUserId: auth.user.user_id,
+      eventType: 'project.created',
+      primaryEntityType: 'project',
+      primaryEntityId: workProjectId,
+      summary: { message: `Project created: ${name}` },
+    });
+    try {
+      const projectMembers = projectMembersByProjectStmt.all(spaceId);
+      for (const member of projectMembers) {
+        if (member.user_id === auth.user.user_id) {
+          continue;
+        }
+        createNotification({
+          projectId: spaceId,
+          userId: member.user_id,
+          reason: 'automation',
+          entityType: 'project',
+          entityId: workProjectId,
+          notificationScope: 'network',
+          payload: buildNotificationPayload({
+            message: `New project created: ${name}`,
+            sourceProjectId: workProjectId,
+          }),
+        });
+      }
+    } catch (error) {
+      request.log.warn('Project creation notification fan-out failed (best-effort).', {
+        projectId: workProjectId,
+        spaceId,
+        error,
+      });
+    }
+
+    const project = workProjectByIdStmt.get(workProjectId);
+    send(response, jsonResponse(201, workOkEnvelope({ project: projectSummary(project, auth.user.user_id) })));
+  };
+
+  const updateProject = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+    const workProjectId = params.projectId;
+    const projectGate = withWorkProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId: workProjectId,
+      requiredCapability: 'manage',
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+    const project = projectGate.project;
+
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch (error) {
       request.log.warn('Failed to parse request body for project update.', { error });
       send(response, parseBody.errorResponse(error));
       return;
     }
 
-    const nextName = body.name === undefined ? undefined : asText(body.name);
-    if (body.name !== undefined && !nextName) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'name must be a non-empty string.')));
-      return;
-    }
-    if (typeof nextName === 'string' && nextName.length > projectNameMaxLength) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', `name must be ${projectNameMaxLength} characters or fewer.`)));
-      return;
-    }
+    const name = asText(body.name) || project.name;
+    const sortOrder = asInteger(body.sort_order, project.sort_order, 0, 100000);
+    const position = body.position === null
+      ? null
+      : asInteger(body.position, typeof project.position === 'number' ? project.position : project.sort_order, 0, 100000);
+    const pinned = asBoolean(body.pinned, project.pinned === 1);
+    const layoutConfig = body.layout_config !== undefined ? parseJsonObject(body.layout_config, {}) : parseJsonObject(project.layout_config, {});
 
-    const position = body.position === null ? null : Number.isInteger(body.position) ? body.position : null;
-    if (body.position !== undefined && body.position !== null && position === null) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'position must be an integer or null.')));
-      return;
-    }
+    updateWorkProjectStmt.run(name, sortOrder, position, pinned ? 1 : 0, toJson(layoutConfig), nowIso(), workProjectId);
+    const updated = workProjectByIdStmt.get(workProjectId);
 
-    if (typeof position === 'number' && position < 0) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'position must be zero or greater.')));
-      return;
-    }
+    emitTimelineEvent({
+      projectId: project.space_id,
+      actorUserId: auth.user.user_id,
+      eventType: 'project.updated',
+      primaryEntityType: 'project',
+      primaryEntityId: workProjectId,
+      summary: { message: `Project updated: ${name}` },
+    });
 
-    const existingProject = projectForMemberStmt.get(projectId, auth.user.user_id);
-    if (!existingProject) {
-      send(response, jsonResponse(404, errorEnvelope('not_found', 'Space not found.')));
-      return;
-    }
-
-    let project = existingProject;
-    if (body.position !== undefined || nextName !== undefined) {
-      const updatedAt = nowIso();
-      withTransaction(() => {
-        if (nextName !== undefined) {
-          updateProjectNameStmt.run(nextName, updatedAt, projectId);
-        }
-
-        if (body.position !== undefined) {
-          updateProjectPositionStmt.run(position, updatedAt, projectId);
-        }
-
-        project = projectForMemberStmt.get(projectId, auth.user.user_id) || existingProject;
-      });
-    }
-
-    send(response, jsonResponse(200, okEnvelope({ project: projectRecord(project) })));
+    send(response, jsonResponse(200, workOkEnvelope({ project: projectSummary(updated, auth.user.user_id) })));
   };
 
-  const listProjectMembers = async ({ request, response, params }) => {
+  const deleteProject = async ({ request, response, params }) => {
     const auth = await withAuth(request);
     if (auth.error) {
       send(response, auth.error);
       return;
     }
 
-    const projectId = params.projectId;
-    const projectGate = withProjectPolicyGate({
+    const workProjectId = params.projectId;
+    const projectGate = withWorkProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId,
-      requiredCapability: 'view',
+      projectId: workProjectId,
+      requiredCapability: 'write',
     });
     if (projectGate.error) {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
+    const project = projectGate.project;
 
-    const members = projectMembersByProjectStmt.all(projectId).map((member) => ({
-      project_id: member.project_id,
-      user_id: member.user_id,
-      role: membershipRoleLabel(member.role),
-      joined_at: member.joined_at,
-      display_name: member.display_name,
-      email: member.email,
-    }));
+    deleteWorkProjectStmt.run(workProjectId);
 
-    const pending_invites = projectGate.is_owner
-      ? pendingInvitesByProjectStmt.all(projectId).map(pendingInviteRecord)
-      : [];
+    emitTimelineEvent({
+      projectId: project.space_id,
+      actorUserId: auth.user.user_id,
+      eventType: 'project.deleted',
+      primaryEntityType: 'project',
+      primaryEntityId: workProjectId,
+      summary: { message: `Project deleted: ${project.name}` },
+    });
 
-    send(response, jsonResponse(200, okEnvelope({ members, pending_invites })));
+    send(response, jsonResponse(200, workOkEnvelope({ deleted: true })));
   };
 
   const addProjectMember = async ({ request, response, params }) => {
@@ -273,25 +263,21 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
-    const projectId = params.projectId;
-    const projectGate = withProjectPolicyGate({
+    const workProjectId = params.projectId;
+    const projectGate = withWorkProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId,
-      requiredCapability: 'manage_members',
+      projectId: workProjectId,
+      requiredCapability: 'manage',
     });
     if (projectGate.error) {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
-    if (isPersonalProject(projectId)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal space.')));
+    if (!projectGate.is_owner) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can add project editors.')));
       return;
     }
-    const callerRole = normalizeProjectRole(projectMembershipRoleStmt.get(projectId, auth.user.user_id)?.role);
-    if (callerRole !== 'owner') {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can add members directly. Use the invite flow instead.')));
-      return;
-    }
+    const project = projectGate.project;
 
     let body;
     try {
@@ -302,273 +288,33 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
-    let targetUserId = asText(body.user_id);
-    const role = asText(body.role) === 'owner' ? 'owner' : 'member';
-
-    if (!targetUserId) {
-      const email = asText(body.email).toLowerCase();
-      const displayName = asText(body.display_name) || email || 'Space Member';
-      if (!email) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'user_id or email is required.')));
-        return;
-      }
-
-      targetUserId = ensureUserForEmail({ email, displayName })?.user_id || '';
-    }
-
-    if (!targetUserId) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Unable to resolve target space member.')));
+    const userId = asText(body.user_id);
+    if (!userId) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'user_id is required.')));
       return;
     }
 
-    if (projectMembershipExistsStmt.get(projectId, targetUserId)?.ok) {
-      send(response, jsonResponse(409, errorEnvelope('conflict', 'Space member already exists.')));
+    const membership = projectMembershipExistsStmt.get(project.space_id, userId);
+    if (!membership?.ok) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Project members must be space members.')));
       return;
     }
 
-    insertProjectMemberStmt.run(projectId, targetUserId, role, nowIso());
-    if (targetUserId !== auth.user.user_id) {
-      try {
-        createNotification({
-          projectId,
-          userId: targetUserId,
-          reason: 'assignment',
-          entityType: 'project',
-          entityId: projectId,
-          notificationScope: 'network',
-          payload: buildNotificationPayload({
-            message: 'You were added to a space.',
-            sourceProjectId: projectId,
-          }),
-        });
-      } catch (error) {
-        request.log.warn('Project member notification failed (best-effort).', {
-          projectId,
-          targetUserId,
-          error,
-        });
-      }
+    if (normalizeProjectRole(projectMembershipRoleStmt.get(project.space_id, userId)?.role) !== 'owner') {
+      insertWorkProjectMemberStmt.run(workProjectId, userId, nowIso());
     }
 
-    send(
-      response,
-      jsonResponse(
-        200,
-        okEnvelope({
-          project_id: projectId,
-          user_id: targetUserId,
-          role,
-        }),
-      ),
-    );
-  };
-
-  const createInvite = async ({ request, response, params }) => {
-    const auth = await withAuth(request);
-    if (auth.error) {
-      send(response, auth.error);
-      return;
-    }
-
-    const projectId = params.projectId;
-    const projectGate = withProjectPolicyGate({
-      userId: auth.user.user_id,
-      projectId,
-      requiredCapability: 'view',
+    emitTimelineEvent({
+      projectId: project.space_id,
+      actorUserId: auth.user.user_id,
+      eventType: 'project.member_added',
+      primaryEntityType: 'project',
+      primaryEntityId: workProjectId,
+      secondaryEntities: [{ entity_type: 'user', entity_id: userId }],
+      summary: { message: 'Project member added' },
     });
-    if (projectGate.error) {
-      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
-      return;
-    }
-    if (isPersonalProject(projectId)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal space.')));
-      return;
-    }
 
-    let body;
-    try {
-      body = await parseBody(request);
-    } catch (error) {
-      request.log.warn('Failed to parse request body for project invite creation.', { error });
-      send(response, parseBody.errorResponse(error));
-      return;
-    }
-
-    const email = asText(body.email).toLowerCase();
-    if (!email) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'email is required.')));
-      return;
-    }
-    const existingUser = userByEmailStmt.get(email);
-    if (existingUser && projectMembershipExistsStmt.get(projectId, existingUser.user_id)?.ok) {
-      send(response, jsonResponse(409, errorEnvelope('conflict', 'User is already a space member.')));
-      return;
-    }
-    const existingInvite = activePendingInviteByProjectAndEmailStmt.get(projectId, email);
-    if (existingInvite) {
-      send(response, jsonResponse(409, errorEnvelope('conflict', 'A pending invite request already exists for this email.')));
-      return;
-    }
-
-    let onboardingResult = null;
-    if (!existingUser) {
-      onboardingResult = await ensureKeycloakInviteOnboarding({
-        email,
-        requestLog: request.log,
-      });
-      if (onboardingResult.error) {
-        send(
-          response,
-          jsonResponse(onboardingResult.error.status, errorEnvelope(onboardingResult.error.code, onboardingResult.error.message)),
-        );
-        return;
-      }
-    }
-
-    const project = projectByIdStmt.get(projectId);
-    const inviteRequestId = newId('pinv');
-    const timestamp = nowIso();
-    insertPendingInviteStmt.run(
-      inviteRequestId,
-      projectId,
-      email,
-      'member',
-      auth.user.user_id,
-      'pending',
-      existingUser?.user_id || null,
-      timestamp,
-      timestamp,
-    );
-
-    const inviteEmail = await sendHubInviteEmail({
-      to: email,
-      projectName: project?.name || 'Pilot Party',
-      requestLog: request.log,
-    });
-    if (inviteEmail.error) {
-      request.log.error('Failed to send project invite email.', {
-        projectId,
-        inviteRequestId,
-        email,
-        error: inviteEmail.error,
-      });
-      try {
-        deletePendingInviteStmt.run(inviteRequestId);
-      } catch (cleanupError) {
-        request.log.error('Failed to roll back pending invite after email failure.', {
-          projectId,
-          inviteRequestId,
-          email,
-          error: cleanupError,
-        });
-      }
-      if (onboardingResult?.data?.created && onboardingResult.data.userId) {
-        const cleanupResult = await cleanupKeycloakInviteOnboarding({
-          userId: onboardingResult.data.userId,
-          requestLog: request.log,
-        });
-        if (cleanupResult.error) {
-          request.log.error('Failed to clean up Keycloak invite onboarding after email failure.', {
-            projectId,
-            inviteRequestId,
-            email,
-            userId: onboardingResult.data.userId,
-            error: cleanupResult.error,
-          });
-        }
-      }
-      send(response, jsonResponse(inviteEmail.error.status, errorEnvelope(inviteEmail.error.code, inviteEmail.error.message)));
-      return;
-    }
-
-    send(response, jsonResponse(201, okEnvelope({ pending_invite: pendingInviteRecord(pendingInviteByIdStmt.get(inviteRequestId)) })));
-  };
-
-  const reviewInvite = async ({ request, response, params }) => {
-    const auth = await withAuth(request);
-    if (auth.error) {
-      send(response, auth.error);
-      return;
-    }
-
-    const { projectId, inviteRequestId } = params;
-    const projectGate = withProjectPolicyGate({
-      userId: auth.user.user_id,
-      projectId,
-      requiredCapability: 'manage_members',
-    });
-    if (projectGate.error) {
-      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
-      return;
-    }
-    if (isPersonalProject(projectId)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal space.')));
-      return;
-    }
-
-    const invite = pendingInviteByIdStmt.get(inviteRequestId);
-    if (!invite || invite.project_id !== projectId || invite.status !== 'pending') {
-      send(response, jsonResponse(404, errorEnvelope('not_found', 'Pending invite not found.')));
-      return;
-    }
-
-    let body;
-    try {
-      body = await parseBody(request);
-    } catch (error) {
-      request.log.warn('Failed to parse request body for invite review.', { error });
-      send(response, parseBody.errorResponse(error));
-      return;
-    }
-
-    const decision = asText(body.decision).toLowerCase();
-    if (decision !== 'approve' && decision !== 'reject') {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'decision must be approve or reject.')));
-      return;
-    }
-
-    const timestamp = nowIso();
-    let targetUserId = invite.target_user_id || null;
-    if (decision === 'approve') {
-      const resolvedUser = ensureUserForEmail({
-        email: invite.email,
-        displayName: invite.email.split('@')[0] || 'Space Member',
-      });
-      targetUserId = resolvedUser?.user_id || null;
-      if (!targetUserId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Unable to resolve invited user.')));
-        return;
-      }
-      if (!projectMembershipExistsStmt.get(projectId, targetUserId)?.ok) {
-        insertProjectMemberStmt.run(projectId, targetUserId, 'member', timestamp);
-      }
-      createNotification({
-        projectId,
-        userId: targetUserId,
-        reason: 'automation',
-        entityType: 'project',
-        entityId: projectId,
-        notificationScope: 'network',
-        payload: buildNotificationPayload({
-          message: 'Your space invite was approved.',
-          sourceProjectId: projectId,
-          extras: {
-            invite_request_id: inviteRequestId,
-          },
-        }),
-      });
-    }
-
-    updatePendingInviteDecisionStmt.run(
-      decision === 'approve' ? 'approved' : 'rejected',
-      targetUserId,
-      auth.user.user_id,
-      timestamp,
-      timestamp,
-      inviteRequestId,
-    );
-
-    send(response, jsonResponse(200, okEnvelope({ pending_invite: pendingInviteRecord(pendingInviteByIdStmt.get(inviteRequestId)) })));
+    send(response, jsonResponse(200, workOkEnvelope({ project: projectSummary(workProjectByIdStmt.get(workProjectId), auth.user.user_id) })));
   };
 
   const removeProjectMember = async ({ request, response, params }) => {
@@ -578,92 +324,43 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
-    const { projectId, targetUserId } = params;
-    const selfRemoval = auth.user.user_id === targetUserId;
-    const requiredCapability = selfRemoval ? 'view' : 'manage_members';
-    const projectGate = withProjectPolicyGate({
+    const { projectId: workProjectId, userId } = params;
+    const projectGate = withWorkProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId,
-      requiredCapability,
+      projectId: workProjectId,
+      requiredCapability: 'manage',
     });
     if (projectGate.error) {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
-    if (isPersonalProject(projectId)) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot manage collaborators on a personal space.')));
+    if (!projectGate.is_owner) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can remove project editors.')));
       return;
     }
+    const project = projectGate.project;
 
-    const targetMembership = projectMembershipRoleStmt.get(projectId, targetUserId);
-    if (!targetMembership) {
-      send(response, jsonResponse(404, errorEnvelope('not_found', 'Space member not found.')));
-      return;
-    }
+    deleteWorkProjectMemberStmt.run(workProjectId, userId);
 
-    const targetRole = membershipRoleLabel(targetMembership.role);
-    if (targetRole === 'owner') {
-      const ownerCount = Number(projectOwnerCountStmt.get(projectId)?.owner_count || 0);
-      if (ownerCount <= 1) {
-        send(
-          response,
-          jsonResponse(
-            409,
-            errorEnvelope('last_owner', 'The last owner cannot leave the space. Assign ownership to another member first.'),
-          ),
-        );
-        return;
-      }
-    }
-
-    if (selfRemoval) {
-      const assignedTasks = assignedTaskListForUser({ projectId, userId: targetUserId });
-      if (assignedTasks.length > 0) {
-        const taskSummary = assignedTasks.map((task) => `${task.title} (${task.record_id})`).join(', ');
-        send(
-          response,
-          jsonResponse(
-            409,
-            errorEnvelope(
-              'assigned_tasks_remaining',
-              `Reassign ${assignedTasks.length} remaining task(s) before leaving: ${taskSummary}.`,
-            ),
-          ),
-        );
-        return;
-      }
-    }
-
-    if (!selfRemoval && !projectGate.is_owner) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can remove members.')));
-      return;
-    }
-
-    if (!selfRemoval) {
-      reassignTasksForRemovedMember({
-        projectId,
-        removedUserId: targetUserId,
-        nextOwnerUserId: auth.user.user_id,
-      });
-    }
-
-    withTransaction(() => {
-      deleteProjectMemberStmt.run(projectId, targetUserId);
-      deletePaneMembersByUserInProjectStmt.run(targetUserId, projectId);
+    emitTimelineEvent({
+      projectId: project.space_id,
+      actorUserId: auth.user.user_id,
+      eventType: 'project.member_removed',
+      primaryEntityType: 'project',
+      primaryEntityId: workProjectId,
+      secondaryEntities: [{ entity_type: 'user', entity_id: userId }],
+      summary: { message: 'Project member removed' },
     });
 
-    send(response, jsonResponse(200, okEnvelope({ removed: true })));
+    send(response, jsonResponse(200, workOkEnvelope({ removed: true })));
   };
 
   return {
     addProjectMember,
-    createInvite,
-    createProject,
-    getProject,
-    listProjectMembers,
-    listProjects,
+    createProjectProject,
+    deleteProject,
+    listProjectProjects,
     removeProjectMember,
-    reviewInvite,
     updateProject,
   };
 };

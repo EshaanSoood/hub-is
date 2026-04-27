@@ -3,9 +3,9 @@ import { hubRequest } from './transport.ts';
 export const getDocSnapshot = async (
   accessToken: string,
   docId: string,
-): Promise<{ doc_id: string; pane_id: string; snapshot_version: number; snapshot_payload: Record<string, unknown>; updated_at: string }> => {
+): Promise<{ doc_id: string; project_id: string; snapshot_version: number; snapshot_payload: Record<string, unknown>; updated_at: string }> => {
   const data = await hubRequest<{
-    doc: { doc_id: string; pane_id: string; snapshot_version: number; snapshot_payload: Record<string, unknown>; updated_at: string };
+    doc: { doc_id: string; project_id: string; snapshot_version: number; snapshot_payload: Record<string, unknown>; updated_at: string };
   }>(accessToken, `/api/hub/docs/${encodeURIComponent(docId)}`, {
     method: 'GET',
   });

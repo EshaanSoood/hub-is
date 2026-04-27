@@ -1,8 +1,8 @@
 import {
   createCollection,
   createField,
-  createPane,
   createProject,
+  createWorkProject,
   createRecord,
   createView,
   loadSessionSummary,
@@ -34,7 +34,7 @@ const main = async (): Promise<void> => {
 
   const project = await createProject(apiBaseUrl, tokenA, `Journey Baseline ${runId}`);
 
-  const primaryPane = await createPane(apiBaseUrl, tokenA, project.project_id, {
+  const primaryProject = await createWorkProject(apiBaseUrl, tokenA, project.space_id, {
     name: `Journey Primary ${runId}`,
     member_user_ids: [session.userId],
     layout_config: {
@@ -44,7 +44,7 @@ const main = async (): Promise<void> => {
     },
   });
 
-  const secondaryPane = await createPane(apiBaseUrl, tokenA, project.project_id, {
+  const secondaryProject = await createWorkProject(apiBaseUrl, tokenA, project.space_id, {
     name: `Journey Secondary ${runId}`,
     member_user_ids: [session.userId],
     layout_config: {
@@ -54,7 +54,7 @@ const main = async (): Promise<void> => {
     },
   });
 
-  const collection = await createCollection(apiBaseUrl, tokenA, project.project_id, `Journey Records ${runId}`);
+  const collection = await createCollection(apiBaseUrl, tokenA, project.space_id, `Journey Records ${runId}`);
 
   const statusField = await createField(apiBaseUrl, tokenA, collection.collection_id, {
     name: 'Status',
@@ -70,14 +70,14 @@ const main = async (): Promise<void> => {
     config: {},
   });
 
-  const tableView = await createView(apiBaseUrl, tokenA, project.project_id, {
+  const tableView = await createView(apiBaseUrl, tokenA, project.space_id, {
     collection_id: collection.collection_id,
     type: 'table',
     name: `Journey Table ${runId}`,
     config: { visible_field_ids: [statusField.field_id, notesField.field_id] },
   });
 
-  const kanbanView = await createView(apiBaseUrl, tokenA, project.project_id, {
+  const kanbanView = await createView(apiBaseUrl, tokenA, project.space_id, {
     collection_id: collection.collection_id,
     type: 'kanban',
     name: `Journey Kanban ${runId}`,
@@ -85,20 +85,20 @@ const main = async (): Promise<void> => {
   });
 
   const titlePrefix = `[journey:${runId}]`;
-  await createRecord(apiBaseUrl, tokenA, project.project_id, {
+  await createRecord(apiBaseUrl, tokenA, project.space_id, {
     collection_id: collection.collection_id,
     title: withRunTag({ tags: { cleanupTag: titlePrefix, titlePrefix } }, 'seed record'),
-    source_pane_id: primaryPane.pane_id,
+    source_project_id: primaryProject.project_id,
     values: {
       [statusField.field_id]: 'todo',
       [notesField.field_id]: 'baseline seed',
     },
   });
 
-  await createRecord(apiBaseUrl, tokenA, project.project_id, {
+  await createRecord(apiBaseUrl, tokenA, project.space_id, {
     collection_id: collection.collection_id,
     title: withRunTag({ tags: { cleanupTag: titlePrefix, titlePrefix } }, 'seed task'),
-    source_pane_id: primaryPane.pane_id,
+    source_project_id: primaryProject.project_id,
     values: {
       [statusField.field_id]: 'todo',
       [notesField.field_id]: 'baseline task seed',
@@ -119,14 +119,14 @@ const main = async (): Promise<void> => {
     baseUrl,
     apiBaseUrl,
     project: {
-      id: project.project_id,
+      id: project.space_id,
       name: project.name,
     },
-    panes: {
-      primaryId: primaryPane.pane_id,
-      secondaryId: secondaryPane.pane_id,
-      primaryName: primaryPane.name || `Journey Primary ${runId}`,
-      secondaryName: secondaryPane.name || `Journey Secondary ${runId}`,
+    projects: {
+      primaryId: primaryProject.project_id,
+      secondaryId: secondaryProject.project_id,
+      primaryName: primaryProject.name || `Journey Primary ${runId}`,
+      secondaryName: secondaryProject.name || `Journey Secondary ${runId}`,
     },
     collection: {
       id: collection.collection_id,
@@ -144,7 +144,7 @@ const main = async (): Promise<void> => {
   await writeJourneyContext(context);
 
   process.stdout.write(
-    `Seeded baseline journey context for project ${project.project_id} and pane ${primaryPane.pane_id} as ${runId}.\n`,
+    `Seeded baseline journey context for project ${project.space_id} and project ${primaryProject.project_id} as ${runId}.\n`,
   );
   process.stdout.write(`Session user: ${session.userId}\n`);
 };

@@ -14,8 +14,8 @@
 - `COLLAB_VERIFY_USER_A_PASSWORD`: Password for the first project member.
 - `COLLAB_VERIFY_USER_B_USERNAME`: Username for the second project member.
 - `COLLAB_VERIFY_USER_B_PASSWORD`: Password for the second project member.
-- `COLLAB_VERIFY_PROJECT_ID`: Project ID to inspect for panes and docs.
-- `COLLAB_VERIFY_DOC_ID`: Optional explicit doc ID. If omitted, the script looks up the first accessible project pane and resolves its doc ID before connecting.
+- `COLLAB_VERIFY_PROJECT_ID`: Space ID to inspect for work projects and docs. The environment variable name is retained for script compatibility.
+- `COLLAB_VERIFY_DOC_ID`: Optional explicit doc ID. If omitted, the script looks up the first accessible work project and resolves its doc ID before connecting.
 
 ## Run
 
@@ -37,8 +37,8 @@ Fail case when replication does not arrive in time:
 FAIL: User B did not receive User A's write within 10 seconds
 ```
 
-Other failures print a clear error message and exit with code `1`, including missing environment variables, token minting failures, pane or doc lookup failures, collab authorization failures, and provider sync timeouts.
+Other failures print a clear error message and exit with code `1`, including missing environment variables, token minting failures, project or doc lookup failures, collab authorization failures, and provider sync timeouts.
 
 ## Live environment note
 
-This script talks to the live app. It requires two real users who are valid members of the target project and have working Keycloak credentials.
+This script talks to the live app. It requires two real users who are valid members of the target space and have working Keycloak credentials.

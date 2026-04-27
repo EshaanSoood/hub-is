@@ -8,7 +8,7 @@ interface Fixture {
     id: string;
     name: string;
   };
-  paneIds: {
+  projectIds: {
     main: string;
     private: string;
   };
@@ -62,24 +62,24 @@ test.describe('ProjectSpaceWorkspace local characterization', () => {
     await expect(calendarPanel.getByRole('heading', { name: /No project events yet\.|Project Calendar/i })).toBeVisible();
   });
 
-  test('work pane navigation and workspace landmarks remain available', async ({ page }) => {
-    await page.goto(`/projects/${fixture.project.id}/work/${fixture.paneIds.main}`, { waitUntil: 'domcontentloaded' });
+  test('work project navigation and workspace landmarks remain available', async ({ page }) => {
+    await page.goto(`/projects/${fixture.project.id}/work/${fixture.projectIds.main}`, { waitUntil: 'domcontentloaded' });
     await waitForWorkspace(page, 'Work');
 
-    await expect(page.getByRole('toolbar', { name: 'Open panes' })).toBeVisible();
-    await expect(page.getByText('Work Panes')).toBeVisible();
+    await expect(page.getByRole('toolbar', { name: 'Open projects' })).toBeVisible();
+    await expect(page.getByText('Work Projects')).toBeVisible();
     await expect(page.getByLabel('Project note editor')).toBeVisible();
 
     await page
-      .getByRole('toolbar', { name: 'Open panes' })
-      .getByRole('button', { name: new RegExp(`^Verify Private Pane`, 'i') })
+      .getByRole('toolbar', { name: 'Open projects' })
+      .getByRole('button', { name: new RegExp(`^Verify Private Project`, 'i') })
       .click();
-    await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(fixture.project.id)}/work/${escapeRegExp(fixture.paneIds.private)}`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(fixture.project.id)}/work/${escapeRegExp(fixture.projectIds.private)}`));
   });
 
   test('table inspector and focused view open-close behavior remain functional', async ({ page }) => {
     await page.goto(
-      `/projects/${fixture.project.id}/work/${fixture.paneIds.main}?view_id=${fixture.viewIds.table}`,
+      `/projects/${fixture.project.id}/work/${fixture.projectIds.main}?view_id=${fixture.viewIds.table}`,
       { waitUntil: 'domcontentloaded' },
     );
     await waitForWorkspace(page, 'Work');
@@ -98,7 +98,7 @@ test.describe('ProjectSpaceWorkspace local characterization', () => {
 
   test('kanban focused view remains operable from the work route', async ({ page }) => {
     await page.goto(
-      `/projects/${fixture.project.id}/work/${fixture.paneIds.main}?view_id=${fixture.viewIds.kanban}`,
+      `/projects/${fixture.project.id}/work/${fixture.projectIds.main}?view_id=${fixture.viewIds.kanban}`,
       { waitUntil: 'domcontentloaded' },
     );
     await waitForWorkspace(page, 'Work');
