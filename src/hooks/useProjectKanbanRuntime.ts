@@ -11,7 +11,7 @@ import {
   KANBAN_UNASSIGNED_ID,
   buildKanbanRuntime,
   loadCompleteViewQuery,
-  readOwnedKanbanModuleInstanceId,
+  readOwnedKanbanWidgetInstanceId,
   type KanbanRuntimeState,
   type ProjectTimelineItem,
 } from './projectViewsRuntime/shared';
@@ -43,19 +43,19 @@ export const useProjectKanbanRuntime = ({
 }: UseProjectKanbanRuntimeParams) => {
   const [kanbanRuntimeByViewId, setKanbanRuntimeByViewId] = useState<Record<string, KanbanRuntimeState>>({});
   const [kanbanLoading, setKanbanLoading] = useState(false);
-  const [creatingKanbanViewByModuleId, setCreatingKanbanViewByModuleId] = useState<Record<string, boolean>>({});
+  const [creatingKanbanViewByWidgetId, setCreatingKanbanViewByWidgetId] = useState<Record<string, boolean>>({});
   const ensureKanbanViewRef = useRef(new Map<string, Promise<string | null>>());
 
-  const setCreatingKanbanView = useCallback((moduleInstanceId: string, creating: boolean) => {
-    setCreatingKanbanViewByModuleId((current) => {
+  const setCreatingKanbanView = useCallback((widgetInstanceId: string, creating: boolean) => {
+    setCreatingKanbanViewByWidgetId((current) => {
       if (creating) {
-        return { ...current, [moduleInstanceId]: true };
+        return { ...current, [widgetInstanceId]: true };
       }
-      if (!current[moduleInstanceId]) {
+      if (!current[widgetInstanceId]) {
         return current;
       }
       const next = { ...current };
-      delete next[moduleInstanceId];
+      delete next[widgetInstanceId];
       return next;
     });
   }, []);
@@ -101,7 +101,7 @@ export const useProjectKanbanRuntime = ({
   const clearKanbanRuntime = useCallback(() => {
     setKanbanRuntimeByViewId({});
     setKanbanLoading(false);
-    setCreatingKanbanViewByModuleId({});
+    setCreatingKanbanViewByWidgetId({});
     ensureKanbanViewRef.current.clear();
   }, []);
 
@@ -351,8 +351,8 @@ export const useProjectKanbanRuntime = ({
   );
 
   const onEnsureKanbanView = useCallback(
-    async (moduleInstanceId: string, ownedViewId: string | null | undefined, mutationProjectId: string | null): Promise<string | null> => {
-      const pending = ensureKanbanViewRef.current.get(moduleInstanceId);
+    async (widgetInstanceId: string, ownedViewId: string | null | undefined, mutationProjectId: string | null): Promise<string | null> => {
+      const pending = ensureKanbanViewRef.current.get(widgetInstanceId);
       if (pending) {
         return pending;
       }
@@ -370,11 +370,11 @@ export const useProjectKanbanRuntime = ({
             return matchedById;
           }
         }
-        return candidateViews.find((view) => readOwnedKanbanModuleInstanceId(view.config) === moduleInstanceId) || null;
+        return candidateViews.find((view) => readOwnedKanbanWidgetInstanceId(view.config) === widgetInstanceId) || null;
       };
 
       const ensurePromise = (async () => {
-        setCreatingKanbanView(moduleInstanceId, true);
+        setCreatingKanbanView(widgetInstanceId, true);
         try {
           const existingView = findOwnedView(views);
           if (existingView) {
@@ -432,7 +432,7 @@ export const useProjectKanbanRuntime = ({
               group_by_field_id: statusField.field_id,
               priority_field_id: priorityField.field_id,
               due_date_field_id: dueDateField.field_id,
-              [KANBAN_OWNED_VIEW_CONFIG_KEY]: moduleInstanceId,
+              [KANBAN_OWNED_VIEW_CONFIG_KEY]: widgetInstanceId,
             },
             mutation_context_project_id: mutationProject.project_id,
           });
@@ -445,12 +445,12 @@ export const useProjectKanbanRuntime = ({
           }, 'kanban-view-create');
           return createdView.view_id;
         } finally {
-          ensureKanbanViewRef.current.delete(moduleInstanceId);
-          setCreatingKanbanView(moduleInstanceId, false);
+          ensureKanbanViewRef.current.delete(widgetInstanceId);
+          setCreatingKanbanView(widgetInstanceId, false);
         }
       })();
 
-      ensureKanbanViewRef.current.set(moduleInstanceId, ensurePromise);
+      ensureKanbanViewRef.current.set(widgetInstanceId, ensurePromise);
       return ensurePromise;
     },
     [accessToken, projectId, projectName, refreshViewsAndRecordsRef, resolveEditableMutationProject, setCreatingKanbanView, views],
@@ -473,7 +473,7 @@ export const useProjectKanbanRuntime = ({
   return {
     kanbanRuntimeByViewId,
     kanbanLoading,
-    creatingKanbanViewByModuleId,
+    creatingKanbanViewByWidgetId,
     refreshKanbanRuntime,
     clearKanbanRuntime,
     onMoveKanbanRecord,

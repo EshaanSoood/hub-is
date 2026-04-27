@@ -156,7 +156,7 @@ const createProject = async (token, projectId, name) => {
       name,
       layout_config: {
         workspace_enabled: true,
-        modules_enabled: false,
+        widgets_enabled: false,
       },
     }),
   });

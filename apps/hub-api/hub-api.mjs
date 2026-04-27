@@ -29,7 +29,7 @@ import { createCollectionRoutes } from './routes/collections.mjs';
 import { createDocRoutes } from './routes/docs.mjs';
 import { createFileRoutes } from './routes/files.mjs';
 import { createNotificationRoutes } from './routes/notifications.mjs';
-import { createModulePickerSeedDataRoutes } from './routes/modulePickerSeedData.mjs';
+import { createWidgetPickerSeedDataRoutes } from './routes/widgetPickerSeedData.mjs';
 import { createProjectRoutes } from './routes/projects.mjs';
 import { createSpaceRoutes } from './routes/spaces.mjs';
 import { createPublicRoutes } from './routes/public.mjs';
@@ -1410,7 +1410,7 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
     1,
     1,
     0,
-    toJson({ modules: [], doc_binding_mode: 'owned' }),
+    toJson({ widgets: [], doc_binding_mode: 'owned' }),
     user.user_id,
     now,
     now,
@@ -1973,7 +1973,7 @@ const recordRoutes = createRecordRoutes(routeDeps);
 const viewRoutes = createViewRoutes(routeDeps);
 const fileRoutes = createFileRoutes(routeDeps);
 const notificationRoutes = createNotificationRoutes(routeDeps);
-const modulePickerSeedDataRoutes = createModulePickerSeedDataRoutes(routeDeps);
+const widgetPickerSeedDataRoutes = createWidgetPickerSeedDataRoutes(routeDeps);
 const taskRoutes = createTaskRoutes(routeDeps);
 const reminderRoutes = createReminderRoutes(routeDeps);
 const automationRoutes = createAutomationRoutes(routeDeps);
@@ -2023,7 +2023,7 @@ const requestRouter = createRequestRouter({
   recordRoutes,
   viewRoutes,
   notificationRoutes,
-  modulePickerSeedDataRoutes,
+  widgetPickerSeedDataRoutes,
   fileRoutes,
   automationRoutes,
   publicRoutes,

@@ -54,23 +54,23 @@ const navigateToSeededProject = async (
   });
 };
 
-const openAddModuleDialog = async (page: Page): Promise<void> => {
-  const addModuleButton = page.getByRole('button', { name: /Add module|Add a module/i }).first();
-  await expect(addModuleButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await addModuleButton.click();
-  await expect(page.getByRole('heading', { name: /^Add Module$/i })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+const openAddWidgetDialog = async (page: Page): Promise<void> => {
+  const addWidgetButton = page.getByRole('button', { name: /Add widget|Add a widget/i }).first();
+  await expect(addWidgetButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await addWidgetButton.click();
+  await expect(page.getByRole('heading', { name: /^Add Widget$/i })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
-const ensureTableModuleAdded = async (page: Page): Promise<void> => {
-  const tableModule = page.getByRole('region', { name: 'Table module' }).first();
-  if (await tableModule.isVisible().catch(() => false)) {
+const ensureTableWidgetAdded = async (page: Page): Promise<void> => {
+  const tableWidget = page.getByRole('region', { name: 'Table widget' }).first();
+  if (await tableWidget.isVisible().catch(() => false)) {
     return;
   }
 
-  await openAddModuleDialog(page);
-  await page.getByRole('button', { name: /^Select Table module$/i }).first().click();
+  await openAddWidgetDialog(page);
+  await page.getByRole('button', { name: /^Select Table widget$/i }).first().click();
   await page.getByRole('button', { name: /^Add Table at M size$/i }).first().click();
-  await expect(tableModule).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await expect(tableWidget).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
 const resolveMotionReportPath = (): string => {
@@ -199,15 +199,15 @@ test.describe('Motion Verification', () => {
     await navigateToSeededProject(page, context);
 
     checks.push(
-      await runMotionCheck(page, 'dialog_open_add_module', '.dialog-panel-size, [role="dialog"]', async () => {
-        await openAddModuleDialog(page);
+      await runMotionCheck(page, 'dialog_open_add_widget', '.dialog-panel-size, [role="dialog"]', async () => {
+        await openAddWidgetDialog(page);
       }),
     );
 
     checks.push(
-      await runMotionCheck(page, 'dialog_close_add_module', '.bg-overlay', async () => {
+      await runMotionCheck(page, 'dialog_close_add_widget', '.bg-overlay', async () => {
         await page.keyboard.press('Escape');
-        await expect(page.getByRole('heading', { name: /^Add Module$/i })).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
+        await expect(page.getByRole('heading', { name: /^Add Widget$/i })).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
       }),
     );
 
@@ -228,22 +228,22 @@ test.describe('Motion Verification', () => {
     );
 
     await navigateToSeededProject(page, context);
-    await ensureTableModuleAdded(page);
+    await ensureTableWidgetAdded(page);
 
-    const tableActionsButton = page.getByRole('button', { name: /Open Table module actions/i }).first();
+    const tableActionsButton = page.getByRole('button', { name: /Open Table widget actions/i }).first();
     await expect(tableActionsButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
     checks.push(
-      await runMotionCheck(page, 'module_actions_open', '[role="menu"][aria-label$="module actions"], [role="menu"]', async () => {
+      await runMotionCheck(page, 'widget_actions_open', '[role="menu"][aria-label$="widget actions"], [role="menu"]', async () => {
         await tableActionsButton.click();
-        await expect(page.getByRole('menu', { name: /Table module actions/i })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+        await expect(page.getByRole('menu', { name: /Table widget actions/i })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       }),
     );
 
     checks.push(
-      await runMotionCheck(page, 'module_actions_close', '[role="menu"][aria-label$="module actions"], [role="menu"]', async () => {
+      await runMotionCheck(page, 'widget_actions_close', '[role="menu"][aria-label$="widget actions"], [role="menu"]', async () => {
         await page.keyboard.press('Escape');
-        await expect(page.getByRole('menu', { name: /Table module actions/i })).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
+        await expect(page.getByRole('menu', { name: /Table widget actions/i })).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
       }),
     );
 

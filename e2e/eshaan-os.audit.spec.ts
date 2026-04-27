@@ -136,7 +136,7 @@ test.describe('Projects', () => {
 
   test('Project content area loads', async ({ page }) => {
     await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
-    await expect(page.getByLabel('Table module')).toBeVisible();
+    await expect(page.getByLabel('Table widget')).toBeVisible();
     await expect(page.getByLabel('Project note editor')).toBeVisible();
   });
 
@@ -216,15 +216,15 @@ test.describe('Document Editor (Collaborative Lexical Editor)', () => {
 test.describe('Collections & Records', () => {
   test('Collection records list renders in a project table view', async ({ page }) => {
     await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}?view_id=${fixture.views.tableId}`);
-    const tableModule = page.getByLabel('Table module').first();
-    await expect(tableModule).toBeVisible();
-    await expect(tableModule.getByRole('button', { name: `Open record ${fixture.tasks.todoTitle}` })).toBeVisible();
+    const tableWidget = page.getByLabel('Table widget').first();
+    await expect(tableWidget).toBeVisible();
+    await expect(tableWidget.getByRole('button', { name: `Open record ${fixture.tasks.todoTitle}` })).toBeVisible();
   });
 
   test('Record detail inspector opens from the table view', async ({ page }) => {
     await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}?view_id=${fixture.views.tableId}`);
-    const tableModule = page.getByLabel('Table module').first();
-    await tableModule.getByRole('button', { name: `Open record ${fixture.tasks.todoTitle}` }).click();
+    const tableWidget = page.getByLabel('Table widget').first();
+    await tableWidget.getByRole('button', { name: `Open record ${fixture.tasks.todoTitle}` }).click();
     await expect(page.getByRole('dialog', { name: 'Record Inspector' })).toBeVisible();
   });
 
@@ -237,7 +237,7 @@ test.describe('Collections & Records', () => {
 
   test('Table view renders when configured', async ({ page }) => {
     await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}?view_id=${fixture.views.tableId}`);
-    await expect(page.getByLabel('Table module').first().getByRole('grid')).toBeVisible();
+    await expect(page.getByLabel('Table widget').first().getByRole('grid')).toBeVisible();
   });
 });
 
@@ -287,12 +287,12 @@ test.describe('Tasks', () => {
 });
 
 test.describe('Files', () => {
-  test('Files module renders in a project, the file list loads, and upload controls exist', async ({ page }) => {
+  test('Files widget renders in a project, the file list loads, and upload controls exist', async ({ page }) => {
     await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
-    const filesModule = page.getByLabel('Files module');
-    await expect(filesModule).toBeVisible();
-    await expect(filesModule.getByRole('list', { name: 'Files' })).toBeVisible();
-    await expect(filesModule.getByRole('button', { name: 'Upload files' })).toBeVisible();
+    const filesWidget = page.getByLabel('Files widget');
+    await expect(filesWidget).toBeVisible();
+    await expect(filesWidget.getByRole('list', { name: 'Files' })).toBeVisible();
+    await expect(filesWidget.getByRole('button', { name: 'Upload files' })).toBeVisible();
   });
 });
 
@@ -313,7 +313,7 @@ test.describe('Permissions & Role Gating', () => {
     await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
     await expect(page.getByRole('button', { name: 'Create project' })).toBeVisible();
     await expect(page.locator('#project-name-input')).toBeEnabled();
-    await expect(page.getByTestId('add-module-table')).toBeVisible();
+    await expect(page.getByTestId('add-widget-table')).toBeVisible();
   });
 
   test('Member sees only the controls appropriate to the role and project membership', async ({ browser }, testInfo) => {
@@ -325,12 +325,12 @@ test.describe('Permissions & Role Gating', () => {
       await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.projects.sharedId}`);
       annotateKnownGap(
         testInfo,
-        'This fixture grants the secondary user project member access plus explicit membership on the shared project, so project-title editing remains enabled while project-level create/module controls stay hidden.',
+        'This fixture grants the secondary user project member access plus explicit membership on the shared project, so project-title editing remains enabled while project-level create/widget controls stay hidden.',
       );
       await expect(page.locator('#project-name-input')).toBeEnabled();
       await expect(page.getByRole('button', { name: 'Create project' })).toHaveCount(0);
       await expect(page.getByText('Editable project management')).toHaveCount(0);
-      await expect(page.getByTestId('add-module-table')).toHaveCount(0);
+      await expect(page.getByTestId('add-widget-table')).toHaveCount(0);
     } finally {
       await flushPageAudit(page);
       await context.close();

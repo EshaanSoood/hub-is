@@ -23,7 +23,7 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
     position: 1,
     pinned: false,
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
     },
     doc_id: 'doc-shared',
@@ -42,7 +42,7 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
     position: 2,
     pinned: true,
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
     },
     doc_id: 'doc-private',

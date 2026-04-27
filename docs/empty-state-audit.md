@@ -1,4 +1,4 @@
-# Module Empty State Audit
+# Widget Empty State Audit
 
 ## Standard
 The target empty state pattern is:
@@ -8,30 +8,30 @@ The target empty state pattern is:
 - The message should distinguish between "no data exists" vs "data exists but is filtered out" vs "not configured"
 
 Audit note on shared wrapper behavior:
-- `ModuleEmptyState` only renders a visible title. Its `description` is screen-reader-only (`sr-only`), so sighted users do not see explanatory copy.
-- `ModuleLoadingState` renders skeleton lines with an `sr-only` label; there is no visible loading text or icon.
+- `WidgetEmptyState` only renders a visible title. Its `description` is screen-reader-only (`sr-only`), so sighted users do not see explanatory copy.
+- `WidgetLoadingState` renders skeleton lines with an `sr-only` label; there is no visible loading text or icon.
 
-## ModuleGrid (zero modules)
-- Trigger: `modules.length === 0`.
-- What renders: Dashed empty card with `Icon name="plus"`, heading `"Let's get this project started!"`, body copy `"Add a first module to shape the project, then keep building from there."`, and `"Add a module"` button (when `showAddControls` is true).
+## WidgetGrid (zero widgets)
+- Trigger: `widgets.length === 0`.
+- What renders: Dashed empty card with `Icon name="plus"`, heading `"Let's get this project started!"`, body copy `"Add a first widget to shape the project, then keep building from there."`, and `"Add a widget"` button (when `showAddControls` is true).
 - Has icon: yes (`plus`)
 - Has message: yes (`"Let's get this project started!"` + explanatory body copy)
-- Has CTA: yes (`"Add a module"`, can be disabled by `disableAdd`)
+- Has CTA: yes (`"Add a widget"`, can be disabled by `disableAdd`)
 - Meets standard: yes (when add controls are enabled)
 - Notes: If `showAddControls` is false, CTA is intentionally absent.
 
-## ModuleFeedback (shared wrapper)
-### Empty wrapper: `ModuleEmptyState`
-- Trigger: Any module returning `<ModuleEmptyState ... />`.
+## WidgetFeedback (shared wrapper)
+### Empty wrapper: `WidgetEmptyState`
+- Trigger: Any widget returning `<WidgetEmptyState ... />`.
 - What renders: Centered panel with title only; description is not visible.
 - Has icon: no
 - Has message: yes (`title` is visible; `description` is sr-only)
 - Has CTA: no
 - Meets standard: no
-- Notes: This wrapper is the main reason multiple modules have no icon/CTA on empty.
+- Notes: This wrapper is the main reason multiple widgets have no icon/CTA on empty.
 
-### Loading wrapper: `ModuleLoadingState`
-- Trigger: Any module returning `<ModuleLoadingState ... />`.
+### Loading wrapper: `WidgetLoadingState`
+- Trigger: Any widget returning `<WidgetLoadingState ... />`.
 - What renders: Animated skeleton rows.
 - Has icon: no
 - Has message: no (visible text); label is sr-only
@@ -39,19 +39,19 @@ Audit note on shared wrapper behavior:
 - Meets standard: no
 - Notes: Accessible via screen reader, but no visible loading explanation.
 
-## TableModuleSkin
+## TableWidgetSkin
 ### Empty state 1: No rows
 - Trigger: `!loading && schema` and `modelRows.length === 0`.
-- What renders: `ModuleEmptyState` with title `"No records yet"`.
+- What renders: `WidgetEmptyState` with title `"No records yet"`.
 - Has icon: no
-- Has message: yes (`"No records yet"`; description is sr-only: `"Add a record to populate this table module."`)
+- Has message: yes (`"No records yet"`; description is sr-only: `"Add a record to populate this table widget."`)
 - Has CTA: no
 - Meets standard: no
 - Per-tier differences: none (no tiered variant in this file).
 
 ### Empty state 2: No view bound
 - Trigger: `!loading && !schema`.
-- What renders: `ModuleEmptyState` with title `"No table view found yet."`.
+- What renders: `WidgetEmptyState` with title `"No table view found yet."`.
 - Has icon: no
 - Has message: yes (`"No table view found yet."`; description is sr-only: `"Create or select a table view to see records here."`)
 - Has CTA: no
@@ -60,7 +60,7 @@ Audit note on shared wrapper behavior:
 
 ### Loading state
 - Trigger: `loading === true`.
-- What renders: `ModuleLoadingState` (`label="Loading table records"`, `rows={6}`).
+- What renders: `WidgetLoadingState` (`label="Loading table records"`, `rows={6}`).
 - Has icon: no
 - Has message: no visible loading message
 - Has CTA: no
@@ -70,10 +70,10 @@ Audit note on shared wrapper behavior:
 - Trigger: none in this file.
 - What renders: no dedicated error UI.
 
-## KanbanModuleSkin
+## KanbanWidgetSkin
 ### Empty state 1: No grouping/columns available
 - Trigger: `!loading && groups.length === 0`.
-- What renders: `ModuleEmptyState` title `"No kanban grouping configured yet."`.
+- What renders: `WidgetEmptyState` title `"No kanban grouping configured yet."`.
 - Has icon: no
 - Has message: yes (title visible; description sr-only: `"Set a grouping field on the view to render columns."`)
 - Has CTA: no
@@ -100,7 +100,7 @@ Audit note on shared wrapper behavior:
 
 ### Loading state
 - Trigger: `loading === true`.
-- What renders: `ModuleLoadingState` (`label="Loading kanban cards"`, `rows={6}`).
+- What renders: `WidgetLoadingState` (`label="Loading kanban cards"`, `rows={6}`).
 - Has icon: no
 - Has message: no visible loading message
 - Has CTA: no
@@ -110,10 +110,10 @@ Audit note on shared wrapper behavior:
 - Trigger: none in this file.
 - What renders: no dedicated error UI.
 
-## CalendarModuleSkin
+## CalendarWidgetSkin
 ### Empty state 1: No events in dataset
 - Trigger: `!loading && events.length === 0`.
-- What renders: `ModuleEmptyState` with scope-aware title:
+- What renders: `WidgetEmptyState` with scope-aware title:
   - `"No relevant events yet."` when scope is `relevant`
   - `"No project events yet."` when scope is `all`
   Plus `"New Event"` button if `onCreateEvent` exists.
@@ -125,7 +125,7 @@ Audit note on shared wrapper behavior:
 
 ### Empty state 2: Day view has no events (delegated from CalendarDayView)
 - Trigger: Day view active and that day has zero events.
-- What renders: `ModuleEmptyState` title `"No events today"` plus `"Create event"` button when creation is enabled.
+- What renders: `WidgetEmptyState` title `"No events today"` plus `"Create event"` button when creation is enabled.
 - Has icon: no
 - Has message: yes
 - Has CTA: yes (conditional)
@@ -143,7 +143,7 @@ Audit note on shared wrapper behavior:
 
 ### Loading state
 - Trigger: `loading === true`.
-- What renders: `ModuleLoadingState` (`label="Loading calendar"`, `rows={5}`).
+- What renders: `WidgetLoadingState` (`label="Loading calendar"`, `rows={5}`).
 - Has icon: no
 - Has message: no visible loading message
 - Has CTA: no
@@ -152,9 +152,9 @@ Audit note on shared wrapper behavior:
 ### Error state
 - Trigger: no fetch-error branch in this file.
 - What renders: no top-level error UI.
-- Notes: Creation form has inline errors (`"End time must be after start time."`, `"Failed to create event."`), but there is no module-level fetch-failed state.
+- Notes: Creation form has inline errors (`"End time must be after start time."`, `"Failed to create event."`), but there is no widget-level fetch-failed state.
 
-## TasksModuleSkin
+## TasksWidgetSkin
 ### Empty state 1 (M tier): No tasks
 - Trigger: `sizeTier === 'M'`, `!tasksLoading`, and `displayedTasks.length === 0`.
 - What renders: Text `"No tasks in this project."`.
@@ -194,11 +194,11 @@ Audit note on shared wrapper behavior:
 - Meets standard: no
 
 ### Error state
-- Trigger: no module-level fetch error path.
+- Trigger: no widget-level fetch error path.
 - What renders: no dedicated fetch error UI.
 - Notes: Composer-level errors exist (`"Failed to create task."` / thrown message) but are not global data-fetch errors.
 
-## RemindersModuleSkin
+## RemindersWidgetSkin
 ### Empty state
 - Trigger: `!error && !loading && renderedReminders.length === 0`.
 - What renders: Text panel `"No reminders yet."`.
@@ -229,7 +229,7 @@ Audit note on shared wrapper behavior:
 - Trigger: invalid draft or create/snooze failures.
 - What renders: Inline text such as `"Add a title and time to create a reminder."`, `"Failed to create reminder."`, `"Failed to snooze reminder."`.
 
-## FilesModuleSkin
+## FilesWidgetSkin
 ### Empty state 1 (S tier): No files / query mismatch
 - Trigger: `sizeTier === 'S' && visible.length === 0`.
 - What renders:
@@ -263,14 +263,14 @@ Audit note on shared wrapper behavior:
 - Per-tier differences: L-only; does distinguish filtered-out vs no-data.
 
 ### Loading state
-- Trigger: no module-level fetch loading branch.
+- Trigger: no widget-level fetch loading branch.
 - What renders: no global loading UI; only per-file upload progress (`"Uploading..."` + progress bar).
 
 ### Error state
 - Trigger: none in this file.
 - What renders: no dedicated error UI.
 
-## QuickThoughtsModuleSkin
+## QuickThoughtsWidgetSkin
 ### Empty state
 - Trigger: `visibleEntries.length === 0`.
 - What renders: Text `"Nothing captured for this project yet."`.
@@ -293,11 +293,11 @@ Audit note on shared wrapper behavior:
 
 ## Summary Table
 
-| Module | State | Icon | Message | CTA | Meets Standard |
+| Widget | State | Icon | Message | CTA | Meets Standard |
 |--------|-------|------|---------|-----|----------------|
-| ModuleGrid | zero modules | yes | yes | yes | yes |
-| ModuleFeedback | shared empty wrapper | no | partial (title only) | no | no |
-| ModuleFeedback | shared loading wrapper | no | no (visible) | no | no |
+| WidgetGrid | zero widgets | yes | yes | yes | yes |
+| WidgetFeedback | shared empty wrapper | no | partial (title only) | no | no |
+| WidgetFeedback | shared loading wrapper | no | no (visible) | no | no |
 | Table | loading | no | no (visible) | no | no |
 | Table | no view/schema | no | yes | no | no |
 | Table | no rows | no | yes | no | no |
@@ -333,22 +333,22 @@ Audit note on shared wrapper behavior:
 ## Recommendations
 For each state that does not meet the standard:
 
-1. `ModuleFeedback.ModuleEmptyState` (shared)
+1. `WidgetFeedback.WidgetEmptyState` (shared)
 - Icon: add optional `iconName` prop and render `Icon` (default: `plus`)
 - Message: render `description` visibly below title (not sr-only)
 - CTA: add optional `ctaLabel`/`onCta` support
 - Per-tier: allow compact mode for `S` tier (smaller icon + one-line copy)
 
-2. `ModuleFeedback.ModuleLoadingState` (shared)
-- Icon: optional `Icon name="tasks"`/`"calendar"`/`"upload"` based on module context
+2. `WidgetFeedback.WidgetLoadingState` (shared)
+- Icon: optional `Icon name="tasks"`/`"calendar"`/`"upload"` based on widget context
 - Message: show visible label text above skeleton rows
 - CTA: none needed for loading; keep CTA omitted
 - Per-tier: reduce row count for `S` (`rows=3`) and keep larger counts for `M/L`
 
 3. `Table no view/schema`
 - Icon: `Icon name="settings"`
-- Message: `"This table module is not configured yet."`
-- CTA: `"Select table view"` (open module binding/view picker)
+- Message: `"This table widget is not configured yet."`
+- CTA: `"Select table view"` (open widget binding/view picker)
 - Per-tier: n/a
 
 4. `Table no rows`

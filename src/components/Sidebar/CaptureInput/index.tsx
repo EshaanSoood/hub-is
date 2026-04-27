@@ -26,9 +26,9 @@ import {
   type SidebarCaptureSurface,
   captureKindBySidebarSurface,
   createQuickThoughtEntry,
-  moduleTypesByCaptureKind,
+  widgetTypesByCaptureKind,
   readQuickThoughtStorageKey,
-  readProjectHasModuleType,
+  readProjectHasWidgetType,
   selectCollectionId,
 } from './shared';
 
@@ -159,10 +159,10 @@ export const CaptureInput = ({
       ? currentProjectProjects.find((project) => project.project_id === currentProjectId) || null
       : null;
     const resolveProjectDestination = (kind: CaptureKind): CaptureDestination | null => {
-      const requiredModuleType = moduleTypesByCaptureKind[kind];
-      const matchingProject = activeProject && readProjectHasModuleType(activeProject, requiredModuleType)
+      const requiredWidgetType = widgetTypesByCaptureKind[kind];
+      const matchingProject = activeProject && readProjectHasWidgetType(activeProject, requiredWidgetType)
         ? activeProject
-        : currentProjectProjects.find((project) => readProjectHasModuleType(project, requiredModuleType)) || null;
+        : currentProjectProjects.find((project) => readProjectHasWidgetType(project, requiredWidgetType)) || null;
       if (!matchingProject) {
         return null;
       }

@@ -1,29 +1,29 @@
 import { Suspense, lazy, type ComponentProps, type ReactElement } from 'react';
 import { InlineNotice } from '../../../components/primitives';
-import { ModuleLoadingState } from '../../../components/project-space/ModuleFeedback';
+import { WidgetLoadingState } from '../../../components/project-space/WidgetFeedback';
 import type { HubView } from '../../../services/hub/types';
 
-const KanbanModuleSkin = lazy(async () => {
-  const module = await import('../../../components/project-space/KanbanModuleSkin');
-  return { default: module.KanbanModuleSkin };
+const KanbanWidgetSkin = lazy(async () => {
+  const module = await import('../../../components/project-space/KanbanWidgetSkin');
+  return { default: module.KanbanWidgetSkin };
 });
 
-const TableModuleSkin = lazy(async () => {
-  const module = await import('../../../components/project-space/TableModuleSkin');
-  return { default: module.TableModuleSkin };
+const TableWidgetSkin = lazy(async () => {
+  const module = await import('../../../components/project-space/TableWidgetSkin');
+  return { default: module.TableWidgetSkin };
 });
 
-type KanbanModuleProps = ComponentProps<typeof KanbanModuleSkin>;
-type TableModuleProps = ComponentProps<typeof TableModuleSkin>;
+type KanbanWidgetProps = ComponentProps<typeof KanbanWidgetSkin>;
+type TableWidgetProps = ComponentProps<typeof TableWidgetSkin>;
 
 interface FocusedKanbanRuntime {
-  groups: KanbanModuleProps['groups'];
-  groupOptions: KanbanModuleProps['groupOptions'];
+  groups: KanbanWidgetProps['groups'];
+  groupOptions: KanbanWidgetProps['groupOptions'];
   loading?: boolean;
   groupingConfigured?: boolean;
   groupingMessage?: string;
-  groupableFields?: KanbanModuleProps['groupableFields'];
-  metadataFieldIds?: KanbanModuleProps['metadataFieldIds'];
+  groupableFields?: KanbanWidgetProps['groupableFields'];
+  metadataFieldIds?: KanbanWidgetProps['metadataFieldIds'];
   wipLimits?: Record<string, number>;
 }
 
@@ -32,8 +32,8 @@ export interface ProjectSpaceFocusedViewSectionProps {
   focusedWorkViewError: string | null;
   focusedWorkViewLoading: boolean;
   focusedWorkViewData: {
-    schema: TableModuleProps['schema'];
-    records: TableModuleProps['records'];
+    schema: TableWidgetProps['schema'];
+    records: TableWidgetProps['records'];
   } | null;
   focusedKanbanRuntime: FocusedKanbanRuntime | null;
   activeProjectCanEdit: boolean;
@@ -42,7 +42,7 @@ export interface ProjectSpaceFocusedViewSectionProps {
   onOpenRecord: (recordId: string) => void;
   onCreateKanbanRecord: (
     viewId: string,
-    payload: Parameters<NonNullable<KanbanModuleProps['onCreateRecord']>>[0],
+    payload: Parameters<NonNullable<KanbanWidgetProps['onCreateRecord']>>[0],
     projectId: string | null,
   ) => Promise<void>;
   onConfigureKanbanGrouping: (viewId: string, fieldId: string, projectId: string | null) => Promise<void>;
@@ -51,7 +51,7 @@ export interface ProjectSpaceFocusedViewSectionProps {
   onUpdateKanbanRecord: (
     viewId: string,
     recordId: string,
-    fields: Parameters<NonNullable<KanbanModuleProps['onUpdateRecord']>>[1],
+    fields: Parameters<NonNullable<KanbanWidgetProps['onUpdateRecord']>>[1],
     projectId: string | null,
   ) => Promise<void>;
 }
@@ -100,8 +100,8 @@ export const ProjectSpaceFocusedViewSection = ({
 
       {focusedWorkView.type === 'kanban' ? (
         <div className="mt-3">
-          <Suspense fallback={<ModuleLoadingState label="Loading kanban module" rows={5} />}>
-            <KanbanModuleSkin
+          <Suspense fallback={<WidgetLoadingState label="Loading kanban widget" rows={5} />}>
+            <KanbanWidgetSkin
               groups={focusedKanbanRuntime?.groups || []}
               groupOptions={focusedKanbanRuntime?.groupOptions || []}
               loading={focusedKanbanRuntime?.loading ?? false}
@@ -150,8 +150,8 @@ export const ProjectSpaceFocusedViewSection = ({
         </div>
       ) : (
         <div className="mt-3">
-          <Suspense fallback={<ModuleLoadingState label="Loading table module" rows={6} />}>
-            <TableModuleSkin
+          <Suspense fallback={<WidgetLoadingState label="Loading table widget" rows={6} />}>
+            <TableWidgetSkin
               schema={focusedWorkViewData?.schema || null}
               records={focusedWorkViewData?.records || []}
               loading={focusedWorkViewLoading}

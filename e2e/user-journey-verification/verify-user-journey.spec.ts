@@ -44,16 +44,16 @@ const navigateToSeededProject = async (page: Page, context: JourneySeedContext):
   });
 };
 
-const openAddModuleDialog = async (page: Page): Promise<void> => {
-  const addModuleButton = page.getByRole('button', { name: /Add module|Add a module/i }).first();
-  await expect(addModuleButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await addModuleButton.click();
-  await expect(page.getByRole('heading', { name: /^Add Module$/i })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+const openAddWidgetDialog = async (page: Page): Promise<void> => {
+  const addWidgetButton = page.getByRole('button', { name: /Add widget|Add a widget/i }).first();
+  await expect(addWidgetButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await addWidgetButton.click();
+  await expect(page.getByRole('heading', { name: /^Add Widget$/i })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
-const ensureModuleAdded = async (
+const ensureWidgetAdded = async (
   page: Page,
-  moduleLabel: string,
+  widgetLabel: string,
   sizeTier: 'S' | 'M' | 'L',
   visibleLocator: Locator,
 ): Promise<void> => {
@@ -61,52 +61,52 @@ const ensureModuleAdded = async (
     return;
   }
 
-  await openAddModuleDialog(page);
+  await openAddWidgetDialog(page);
 
-  const selectButton = page.getByRole('button', { name: new RegExp(`^Select ${escapeRegExp(moduleLabel)} module$`, 'i') }).first();
+  const selectButton = page.getByRole('button', { name: new RegExp(`^Select ${escapeRegExp(widgetLabel)} widget$`, 'i') }).first();
   await expect(selectButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await selectButton.click();
 
-  const sizeButton = page.getByRole('button', { name: new RegExp(`^Add ${escapeRegExp(moduleLabel)} at ${sizeTier} size$`, 'i') }).first();
+  const sizeButton = page.getByRole('button', { name: new RegExp(`^Add ${escapeRegExp(widgetLabel)} at ${sizeTier} size$`, 'i') }).first();
   await expect(sizeButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await sizeButton.click();
 
   await expect(visibleLocator.first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
-const getKanbanModuleCard = (page: Page): Locator => {
+const getKanbanWidgetCard = (page: Page): Locator => {
   return page
-    .locator('[data-testid="module-card"]')
-    .filter({ has: page.getByRole('button', { name: /Kanban module actions/i }) })
+    .locator('[data-testid="widget-card"]')
+    .filter({ has: page.getByRole('button', { name: /Kanban widget actions/i }) })
     .first();
 };
 
-const getFilesModule = (page: Page): Locator => page.getByRole('region', { name: 'Files module' }).first();
+const getFilesWidget = (page: Page): Locator => page.getByRole('region', { name: 'Files widget' }).first();
 
-const getTableModule = (page: Page): Locator => page.getByRole('region', { name: 'Table module' }).first();
+const getTableWidget = (page: Page): Locator => page.getByRole('region', { name: 'Table widget' }).first();
 
-const getTasksModule = (page: Page): Locator => page.getByRole('region', { name: 'Tasks module' }).first();
+const getTasksWidget = (page: Page): Locator => page.getByRole('region', { name: 'Tasks widget' }).first();
 
-const getRemindersModule = (page: Page): Locator => page.getByRole('region', { name: 'Reminders module' }).first();
+const getRemindersWidget = (page: Page): Locator => page.getByRole('region', { name: 'Reminders widget' }).first();
 
-const getCalendarModuleCard = (page: Page): Locator => {
+const getCalendarWidgetCard = (page: Page): Locator => {
   return page
     .locator('article')
     .filter({
-      has: page.getByRole('button', { name: /Calendar module actions|New Event|Previous week|Previous day/i }).first(),
+      has: page.getByRole('button', { name: /Calendar widget actions|New Event|Previous week|Previous day/i }).first(),
     })
     .first();
 };
 
 const expectCalendarEventVisible = async (page: Page, calendarTitle: string): Promise<void> => {
-  const calendarModule = getCalendarModuleCard(page);
-  let calendarEventButton = calendarModule.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
+  const calendarWidget = getCalendarWidgetCard(page);
+  let calendarEventButton = calendarWidget.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
   if (!(await calendarEventButton.isVisible({ timeout: 5_000 }).catch(() => false))) {
-    const dayViewButton = calendarModule.getByRole('button', { name: /^Day$/i }).first();
+    const dayViewButton = calendarWidget.getByRole('button', { name: /^Day$/i }).first();
     if (await dayViewButton.isVisible().catch(() => false)) {
       await dayViewButton.click();
     }
-    calendarEventButton = calendarModule.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
+    calendarEventButton = calendarWidget.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
   }
   await expect(calendarEventButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
@@ -166,24 +166,24 @@ const expectCellContentToStayWithinBounds = async (cellButton: Locator): Promise
   expect(metrics?.nodeRight ?? 0).toBeLessThanOrEqual((metrics?.cellRight ?? 0) + 1);
 };
 
-const ensureCalendarReadyForCreate = async (calendarModule: Locator): Promise<void> => {
-  const newEventButton = calendarModule.getByRole('button', { name: /^New Event$/i }).first();
+const ensureCalendarReadyForCreate = async (calendarWidget: Locator): Promise<void> => {
+  const newEventButton = calendarWidget.getByRole('button', { name: /^New Event$/i }).first();
   if ((await newEventButton.count()) > 0) {
     await expect(newEventButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     return;
   }
 
-  const showAllButton = calendarModule.getByRole('button', { name: /^Show All$/i }).first();
+  const showAllButton = calendarWidget.getByRole('button', { name: /^Show All$/i }).first();
   if (await showAllButton.isVisible().catch(() => false)) {
     await showAllButton.click();
-    await expect(calendarModule.getByText('Loading calendar')).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
+    await expect(calendarWidget.getByText('Loading calendar')).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
     return;
   }
 
-  const allScopeButton = calendarModule.getByRole('button', { name: /^All$/i }).first();
+  const allScopeButton = calendarWidget.getByRole('button', { name: /^All$/i }).first();
   if ((await allScopeButton.count()) > 0) {
     await allScopeButton.click();
-    await expect(calendarModule.getByText('Loading calendar')).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
+    await expect(calendarWidget.getByText('Loading calendar')).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
   }
 };
 
@@ -225,36 +225,36 @@ test.describe('User Journey Verification', () => {
     await navigateToSeededProject(page, context);
     await captureCheckpoint({ page, scenario, phase: 'navigation', state: 'post_submit', viewport });
 
-    await captureCheckpoint({ page, scenario, phase: 'modules', state: 'before_action', viewport });
+    await captureCheckpoint({ page, scenario, phase: 'widgets', state: 'before_action', viewport });
 
-    await ensureModuleAdded(page, 'Files', 'S', getFilesModule(page));
-    await ensureModuleAdded(page, 'Table', 'M', getTableModule(page));
-    await ensureModuleAdded(page, 'Kanban', 'M', getKanbanModuleCard(page));
-    await ensureModuleAdded(
+    await ensureWidgetAdded(page, 'Files', 'S', getFilesWidget(page));
+    await ensureWidgetAdded(page, 'Table', 'M', getTableWidget(page));
+    await ensureWidgetAdded(page, 'Kanban', 'M', getKanbanWidgetCard(page));
+    await ensureWidgetAdded(
       page,
       'Calendar',
       'L',
-      getCalendarModuleCard(page),
+      getCalendarWidgetCard(page),
     );
-    await ensureModuleAdded(page, 'Tasks', 'M', getTasksModule(page));
-    await ensureModuleAdded(page, 'Reminders', 'M', getRemindersModule(page));
-    await ensureModuleAdded(page, 'Quick Thoughts', 'M', page.getByLabel('Quick Thought editor').first());
+    await ensureWidgetAdded(page, 'Tasks', 'M', getTasksWidget(page));
+    await ensureWidgetAdded(page, 'Reminders', 'M', getRemindersWidget(page));
+    await ensureWidgetAdded(page, 'Quick Thoughts', 'M', page.getByLabel('Quick Thought editor').first());
 
-    await captureCheckpoint({ page, scenario, phase: 'modules', state: 'post_submit', viewport });
+    await captureCheckpoint({ page, scenario, phase: 'widgets', state: 'post_submit', viewport });
 
     const tableTitle = withRunTag(
       context,
       `${scenario}-table-record-with-an-intentionally-long-title-that-should-truncate-within-the-table-cell`,
     );
-    const tableModule = getTableModule(page);
+    const tableWidget = getTableWidget(page);
     await captureCheckpoint({ page, scenario, phase: 'table', state: 'before_action', viewport });
-    const createRowInput = tableModule.getByRole('textbox', { name: 'New record...' }).first();
+    const createRowInput = tableWidget.getByRole('textbox', { name: 'New record...' }).first();
     await expect(createRowInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await createRowInput.fill(tableTitle);
     await captureCheckpoint({ page, scenario, phase: 'table', state: 'input_filled', viewport });
-    await tableModule.getByRole('button', { name: /^Add$/i }).first().click();
+    await tableWidget.getByRole('button', { name: /^Add$/i }).first().click();
 
-    const tableOpenButton = tableModule.getByRole('button', { name: new RegExp(`^Open record ${escapeRegExp(tableTitle)}$`, 'i') }).first();
+    const tableOpenButton = tableWidget.getByRole('button', { name: new RegExp(`^Open record ${escapeRegExp(tableTitle)}$`, 'i') }).first();
     await expect(tableOpenButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await expect(tableOpenButton).toHaveAttribute('title', tableTitle);
     await expectCellContentToStayWithinBounds(tableOpenButton);
@@ -266,10 +266,10 @@ test.describe('User Journey Verification', () => {
     await page.keyboard.press('Escape');
     await captureCheckpoint({ page, scenario, phase: 'table', state: 'post_submit', viewport });
 
-    const kanbanModule = getKanbanModuleCard(page);
+    const kanbanWidget = getKanbanWidgetCard(page);
     const kanbanTitle = withRunTag(context, `${scenario}-kanban-card`);
     await captureCheckpoint({ page, scenario, phase: 'kanban', state: 'before_action', viewport });
-    const firstColumn = kanbanModule.locator('section[aria-label$=" column"]').first();
+    const firstColumn = kanbanWidget.locator('section[aria-label$=" column"]').first();
     await expect(firstColumn).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await firstColumn.getByRole('button', { name: /^Create card$/i }).click();
     await captureCheckpoint({ page, scenario, phase: 'kanban', state: 'dialog_open', viewport });
@@ -279,7 +279,7 @@ test.describe('User Journey Verification', () => {
     await captureCheckpoint({ page, scenario, phase: 'kanban', state: 'input_filled', viewport });
     await firstColumn.getByRole('button', { name: /^Create$/i }).first().click();
 
-    const kanbanRecordOpenButton = kanbanModule.getByRole('button', {
+    const kanbanRecordOpenButton = kanbanWidget.getByRole('button', {
       name: new RegExp(`^Open record:\\s*${escapeRegExp(kanbanTitle)}$`, 'i'),
     }).first();
     await expect(kanbanRecordOpenButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
@@ -289,7 +289,7 @@ test.describe('User Journey Verification', () => {
     await expect(page.getByRole('dialog', { name: 'Record Inspector' })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await page.keyboard.press('Escape');
 
-    const columnSelect = kanbanModule.getByLabel(`Column for ${kanbanTitle}`).first();
+    const columnSelect = kanbanWidget.getByLabel(`Column for ${kanbanTitle}`).first();
     await expect(columnSelect).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     const currentValue = await columnSelect.inputValue();
     const targetValue = await columnSelect.evaluate((node) => {
@@ -309,62 +309,62 @@ test.describe('User Journey Verification', () => {
     await captureCheckpoint({ page, scenario, phase: 'kanban', state: 'post_submit', viewport });
 
     await captureCheckpoint({ page, scenario, phase: 'calendar', state: 'before_action', viewport });
-    const calendarModule = getCalendarModuleCard(page);
-    await ensureCalendarReadyForCreate(calendarModule);
+    const calendarWidget = getCalendarWidgetCard(page);
+    await ensureCalendarReadyForCreate(calendarWidget);
     let calendarNewEventButton: Locator;
-    if ((await calendarModule.getByRole('button', { name: /^New Event$/i }).count()) > 0) {
-      calendarNewEventButton = calendarModule.getByRole('button', { name: /^New Event$/i }).first();
+    if ((await calendarWidget.getByRole('button', { name: /^New Event$/i }).count()) > 0) {
+      calendarNewEventButton = calendarWidget.getByRole('button', { name: /^New Event$/i }).first();
     } else {
-      calendarNewEventButton = calendarModule.getByRole('button', { name: /^Create event for /i }).first();
+      calendarNewEventButton = calendarWidget.getByRole('button', { name: /^Create event for /i }).first();
     }
     await expect(calendarNewEventButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await calendarNewEventButton.click();
 
     const calendarTitle = withRunTag(context, `${scenario}-calendar-event`);
-    const calendarTitleInput = calendarModule.getByLabel(/Event title|Write an event in natural language/i).first();
+    const calendarTitleInput = calendarWidget.getByLabel(/Event title|Write an event in natural language/i).first();
     await expect(calendarTitleInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await calendarTitleInput.fill(calendarTitle);
-    await calendarModule.getByLabel('Start time').first().fill('09:30');
-    await calendarModule.getByLabel('End time').first().fill('10:30');
+    await calendarWidget.getByLabel('Start time').first().fill('09:30');
+    await calendarWidget.getByLabel('End time').first().fill('10:30');
     await captureCheckpoint({ page, scenario, phase: 'calendar', state: 'input_filled', viewport });
-    await calendarModule.getByRole('button', { name: /^Create$/i }).first().click();
+    await calendarWidget.getByRole('button', { name: /^Create$/i }).first().click();
 
-    let calendarEventButton = calendarModule.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
+    let calendarEventButton = calendarWidget.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
     if (!(await calendarEventButton.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      const dayViewButton = calendarModule.getByRole('button', { name: /^Day$/i }).first();
+      const dayViewButton = calendarWidget.getByRole('button', { name: /^Day$/i }).first();
       if (await dayViewButton.isVisible().catch(() => false)) {
         await dayViewButton.click();
       }
-      calendarEventButton = calendarModule.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
+      calendarEventButton = calendarWidget.getByRole('button', { name: new RegExp(escapeRegExp(calendarTitle), 'i') }).first();
     }
     await expect(calendarEventButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await captureCheckpoint({ page, scenario, phase: 'calendar', state: 'post_submit', viewport });
 
     const taskTitle = withRunTag(context, `${scenario}-task-item`);
-    const tasksModule = getTasksModule(page);
+    const tasksWidget = getTasksWidget(page);
     await captureCheckpoint({ page, scenario, phase: 'tasks', state: 'before_action', viewport });
-    let newTaskInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
+    let newTaskInput = tasksWidget.getByLabel(/New task title|Write a task in natural language/i).first();
     if (!(await newTaskInput.isVisible().catch(() => false))) {
-      const openComposerButton = tasksModule.getByRole('button', { name: /^New Task$/i }).first();
+      const openComposerButton = tasksWidget.getByRole('button', { name: /^New Task$/i }).first();
       await expect(openComposerButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await openComposerButton.click();
-      newTaskInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
+      newTaskInput = tasksWidget.getByLabel(/New task title|Write a task in natural language/i).first();
     }
     await expect(newTaskInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await newTaskInput.fill(taskTitle);
     await captureCheckpoint({ page, scenario, phase: 'tasks', state: 'input_filled', viewport });
-    const createTaskButton = tasksModule.getByRole('button', { name: /^(Add|Create task|Create)$/i }).first();
+    const createTaskButton = tasksWidget.getByRole('button', { name: /^(Add|Create task|Create)$/i }).first();
     await expect(createTaskButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await createTaskButton.click();
     await expect(page.getByText(taskTitle).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
-    const markInProgressButton = tasksModule.getByRole('button', {
+    const markInProgressButton = tasksWidget.getByRole('button', {
       name: new RegExp(`^Mark ${escapeRegExp(taskTitle)} as in progress$`, 'i'),
     }).first();
     await expect(markInProgressButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await markInProgressButton.click();
     await expect(
-      tasksModule.getByRole('button', {
+      tasksWidget.getByRole('button', {
         name: new RegExp(`^Mark ${escapeRegExp(taskTitle)} as done$`, 'i'),
       }).first(),
     ).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
@@ -372,22 +372,22 @@ test.describe('User Journey Verification', () => {
 
     const reminderTokenA = withRunTag(context, `${scenario}-reminder-a`);
     const reminderTokenB = withRunTag(context, `${scenario}-reminder-b`);
-    const remindersModule = getRemindersModule(page);
+    const remindersWidget = getRemindersWidget(page);
     await captureCheckpoint({ page, scenario, phase: 'reminders', state: 'before_action', viewport });
-    const reminderInput = remindersModule.getByLabel(/Reminder|Write a reminder in natural language/i).first();
+    const reminderInput = remindersWidget.getByLabel(/Reminder|Write a reminder in natural language/i).first();
     await expect(reminderInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await reminderInput.fill(`${reminderTokenA} tomorrow at 9am`);
     await captureCheckpoint({ page, scenario, phase: 'reminders', state: 'input_filled', viewport });
-    await remindersModule.getByRole('button', { name: /^Add$/i }).first().click();
+    await remindersWidget.getByRole('button', { name: /^Add$/i }).first().click();
     await reminderInput.fill(`${reminderTokenB} next friday at 2pm`);
-    await remindersModule.getByRole('button', { name: /^Add$/i }).first().click();
+    await remindersWidget.getByRole('button', { name: /^Add$/i }).first().click();
     await expect(page.getByText(new RegExp(escapeRegExp(reminderTokenA), 'i')).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await captureCheckpoint({ page, scenario, phase: 'reminders', state: 'post_submit', viewport });
 
-    const filesModule = getFilesModule(page);
-    await expect(filesModule).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    const filesWidget = getFilesWidget(page);
+    await expect(filesWidget).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await captureCheckpoint({ page, scenario, phase: 'files', state: 'files-empty', viewport });
-    const uploadButton = filesModule.getByRole('button', { name: /^Upload files$/i }).first();
+    const uploadButton = filesWidget.getByRole('button', { name: /^Upload files$/i }).first();
     await expect(uploadButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await uploadButton.click();
     await captureCheckpoint({ page, scenario, phase: 'files', state: 'files-upload-dialog', viewport });
@@ -396,12 +396,12 @@ test.describe('User Journey Verification', () => {
     const uploadFilePath = testInfo.outputPath(uploadFileName);
     await writeFile(uploadFilePath, `journey upload ${context.runId}\n`, 'utf8');
 
-    const fileInput = filesModule.locator('input[type="file"]').first();
+    const fileInput = filesWidget.locator('input[type="file"]').first();
     await fileInput.setInputFiles(uploadFilePath);
-    await expect(filesModule.getByText(uploadFileName).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+    await expect(filesWidget.getByText(uploadFileName).first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await captureCheckpoint({ page, scenario, phase: 'files', state: 'files-uploaded', viewport });
 
-    const openUploadedFileButton = filesModule.getByRole('button', {
+    const openUploadedFileButton = filesWidget.getByRole('button', {
       name: new RegExp(`^Open ${escapeRegExp(uploadFileName)}$`, 'i'),
     }).first();
     await expect(openUploadedFileButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
@@ -510,22 +510,22 @@ test.describe('User Journey Verification', () => {
     await navigateToSeededProject(page, context);
     await captureCheckpoint({ page, scenario, phase: 'checkpoint', state: 'post_submit', viewport });
 
-    if (await page.getByRole('button', { name: /^Modules$/i }).isVisible().catch(() => false)) {
-      await page.getByRole('button', { name: /^Modules$/i }).click();
+    if (await page.getByRole('button', { name: /^Widgets$/i }).isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: /^Widgets$/i }).click();
       await captureCheckpoint({ page, scenario, phase: 'checkpoint', state: 'dialog_open', viewport });
       await page.keyboard.press('Escape');
     }
 
     const now = new Date();
     const localDateInput = toDateTimeLocalInput(now);
-    const tasksModule = getTasksModule(page);
-    let newTaskInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
+    const tasksWidget = getTasksWidget(page);
+    let newTaskInput = tasksWidget.getByLabel(/New task title|Write a task in natural language/i).first();
     if (!(await newTaskInput.isVisible().catch(() => false))) {
-      await tasksModule.getByRole('button', { name: /^New Task$/i }).first().click();
-      newTaskInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
+      await tasksWidget.getByRole('button', { name: /^New Task$/i }).first().click();
+      newTaskInput = tasksWidget.getByLabel(/New task title|Write a task in natural language/i).first();
     }
     await expect(newTaskInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-    const dueDateInput = tasksModule.getByLabel(/Due Date|Task due date/i).first();
+    const dueDateInput = tasksWidget.getByLabel(/Due Date|Task due date/i).first();
     await expect(dueDateInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     await dueDateInput.fill(localDateInput);
     await expect(dueDateInput).toHaveValue(localDateInput);

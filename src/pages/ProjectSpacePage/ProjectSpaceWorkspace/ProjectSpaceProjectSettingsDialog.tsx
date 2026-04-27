@@ -12,7 +12,7 @@ type ProjectSpaceProjectSettingsDialogProps = {
   orderedEditableProjects: HubProjectSummary[];
   projectMemberList: HubProjectMember[];
   sessionUserId: string;
-  modulesEnabled: boolean;
+  widgetsEnabled: boolean;
   workspaceEnabled: boolean;
   onRequestClose: () => void;
   onTogglePinned: (project: HubProjectSummary) => Promise<void>;
@@ -20,7 +20,7 @@ type ProjectSpaceProjectSettingsDialogProps = {
   onToggleProjectMember: (project: HubProjectSummary, memberUserId: string) => Promise<void>;
   onDeleteProject: (project: HubProjectSummary) => Promise<void>;
   onUpdateProject: (projectId: string, patch: { name?: string; layout_config?: Record<string, unknown> }) => Promise<void>;
-  onToggleActiveProjectRegion: (region: 'modules_enabled' | 'workspace_enabled') => void;
+  onToggleActiveProjectRegion: (region: 'widgets_enabled' | 'workspace_enabled') => void;
 };
 
 export const ProjectSpaceProjectSettingsDialog = ({
@@ -31,7 +31,7 @@ export const ProjectSpaceProjectSettingsDialog = ({
   orderedEditableProjects,
   projectMemberList,
   sessionUserId,
-  modulesEnabled,
+  widgetsEnabled,
   workspaceEnabled,
   onRequestClose,
   onTogglePinned,
@@ -154,10 +154,10 @@ export const ProjectSpaceProjectSettingsDialog = ({
             <button
               type="button"
               className="rounded-panel border border-border-muted px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60"
-              onClick={() => onToggleActiveProjectRegion('modules_enabled')}
+              onClick={() => onToggleActiveProjectRegion('widgets_enabled')}
               disabled={!activeProjectCanEdit}
             >
-              {modulesEnabled ? 'Hide modules' : 'Show modules'}
+              {widgetsEnabled ? 'Hide widgets' : 'Show widgets'}
             </button>
             <button
               type="button"

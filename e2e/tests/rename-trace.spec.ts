@@ -288,24 +288,24 @@ const createFixture = async (client: TraceApiClient): Promise<{
   const firstProjectData = await client.expectData<WorkProjectPayload>('POST', `/api/hub/spaces/${encodeURIComponent(createdSpaceId)}/projects`, {
     name: firstProjectName,
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
       doc_binding_mode: 'owned',
-      modules: [
-        { module_instance_id: `tasks-${idSuffix}`, module_type: 'tasks', size_tier: 'M', lens: 'project' },
-        { module_instance_id: `reminders-${idSuffix}`, module_type: 'reminders', size_tier: 'M', lens: 'project' },
-        { module_instance_id: `files-${idSuffix}`, module_type: 'files', size_tier: 'M', lens: 'project' },
+      widgets: [
+        { widget_instance_id: `tasks-${idSuffix}`, widget_type: 'tasks', size_tier: 'M', lens: 'project' },
+        { widget_instance_id: `reminders-${idSuffix}`, widget_type: 'reminders', size_tier: 'M', lens: 'project' },
+        { widget_instance_id: `files-${idSuffix}`, widget_type: 'files', size_tier: 'M', lens: 'project' },
       ],
     },
   });
   const secondProjectData = await client.expectData<WorkProjectPayload>('POST', `/api/hub/spaces/${encodeURIComponent(createdSpaceId)}/projects`, {
     name: secondProjectName,
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
       doc_binding_mode: 'owned',
-      modules: [
-        { module_instance_id: `tasks-beta-${idSuffix}`, module_type: 'tasks', size_tier: 'M', lens: 'project' },
+      widgets: [
+        { widget_instance_id: `tasks-beta-${idSuffix}`, widget_type: 'tasks', size_tier: 'M', lens: 'project' },
       ],
     },
   });
@@ -362,16 +362,16 @@ const createFixture = async (client: TraceApiClient): Promise<{
 
   await client.expectData<WorkProjectPayload>('PATCH', `/api/hub/projects/${encodeURIComponent(firstProjectId)}`, {
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
       doc_binding_mode: 'owned',
-      modules: [
-        { module_instance_id: `tasks-${idSuffix}`, module_type: 'tasks', size_tier: 'M', lens: 'project' },
-        { module_instance_id: `reminders-${idSuffix}`, module_type: 'reminders', size_tier: 'M', lens: 'project' },
-        { module_instance_id: `files-${idSuffix}`, module_type: 'files', size_tier: 'M', lens: 'project' },
+      widgets: [
+        { widget_instance_id: `tasks-${idSuffix}`, widget_type: 'tasks', size_tier: 'M', lens: 'project' },
+        { widget_instance_id: `reminders-${idSuffix}`, widget_type: 'reminders', size_tier: 'M', lens: 'project' },
+        { widget_instance_id: `files-${idSuffix}`, widget_type: 'files', size_tier: 'M', lens: 'project' },
         {
-          module_instance_id: `table-${idSuffix}`,
-          module_type: 'table',
+          widget_instance_id: `table-${idSuffix}`,
+          widget_type: 'table',
           size_tier: 'M',
           lens: 'project',
           binding: { view_id: viewId },

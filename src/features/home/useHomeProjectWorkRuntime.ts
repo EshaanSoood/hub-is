@@ -9,9 +9,9 @@ import { useTimelineRuntime } from '../../hooks/useTimelineRuntime';
 import { useWorkspaceDocRuntime } from '../../hooks/useWorkspaceDocRuntime';
 import { withHubMotionState } from '../../lib/hubMotionState';
 import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
-import { CalendarModuleSkin } from '../../components/project-space/CalendarModuleSkin';
+import { CalendarWidgetSkin } from '../../components/project-space/CalendarWidgetSkin';
 import { useFocusNodeQueryEffect } from '../../pages/ProjectSpacePage/hooks/useFocusNodeQueryEffect';
-import { useWorkViewModuleRuntime } from '../../pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime';
+import { useWorkViewWidgetRuntime } from '../../pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime';
 import { useProjectSpaceInspectorRuntime } from '../../pages/ProjectSpacePage/ProjectSpaceWorkspace/hooks/useProjectSpaceInspectorRuntime';
 import { projectCanEditForUser, readLayoutBool, collectProjectTaskCollectionIds } from '../../pages/ProjectSpacePage/ProjectSpaceWorkspace/projectModel';
 import { buildHomeTabHref, type HomeTabId } from './navigation';
@@ -23,7 +23,7 @@ import type { ProjectLateralSource } from '../../components/motion/hubMotion';
 interface UseHomeProjectWorkRuntimeParams {
   accessToken: string;
   activeTab: HomeTabId;
-  calendarEvents: ComponentProps<typeof CalendarModuleSkin>['events'];
+  calendarEvents: ComponentProps<typeof CalendarWidgetSkin>['events'];
   calendarLoading: boolean;
   calendarMode: 'relevant' | 'all';
   loadProjectTaskPage: () => Promise<void>;
@@ -187,7 +187,7 @@ export const useHomeProjectWorkRuntime = ({
     views,
     kanbanRuntimeDataByViewId,
     kanbanViews,
-    creatingKanbanViewByModuleId,
+    creatingKanbanViewByWidgetId,
     focusedWorkView,
     focusedWorkViewData,
     focusedWorkViewError,
@@ -448,8 +448,8 @@ export const useHomeProjectWorkRuntime = ({
     setPendingDocFocusNodeKey,
   });
 
-  const modulesEnabled = useMemo(
-    () => (activeProject ? readLayoutBool(activeProject.layout_config, 'modules_enabled', true) : true),
+  const widgetsEnabled = useMemo(
+    () => (activeProject ? readLayoutBool(activeProject.layout_config, 'widgets_enabled', true) : true),
     [activeProject],
   );
   const workspaceEnabled = useMemo(
@@ -457,14 +457,14 @@ export const useHomeProjectWorkRuntime = ({
     [activeProject],
   );
   const handleToggleActiveProjectRegion = useCallback(
-    (region: 'modules_enabled' | 'workspace_enabled') => {
+    (region: 'widgets_enabled' | 'workspace_enabled') => {
       if (!activeProject || !activeProjectCanEdit) {
         return;
       }
 
-      const nextModulesEnabled = region === 'modules_enabled' ? !modulesEnabled : modulesEnabled;
+      const nextWidgetsEnabled = region === 'widgets_enabled' ? !widgetsEnabled : widgetsEnabled;
       const nextWorkspaceEnabled = region === 'workspace_enabled' ? !workspaceEnabled : workspaceEnabled;
-      if (!nextModulesEnabled && !nextWorkspaceEnabled) {
+      if (!nextWidgetsEnabled && !nextWorkspaceEnabled) {
         setProjectMutationError('A project must keep at least one region enabled.');
         return;
       }
@@ -472,7 +472,7 @@ export const useHomeProjectWorkRuntime = ({
       void onUpdateProjectFromWorkView(activeProject.project_id, {
         layout_config: {
           ...activeProject.layout_config,
-          modules_enabled: nextModulesEnabled,
+          widgets_enabled: nextWidgetsEnabled,
           workspace_enabled: nextWorkspaceEnabled,
         },
       });
@@ -480,7 +480,7 @@ export const useHomeProjectWorkRuntime = ({
     [
       activeProject,
       activeProjectCanEdit,
-      modulesEnabled,
+      widgetsEnabled,
       onUpdateProjectFromWorkView,
       setProjectMutationError,
       workspaceEnabled,
@@ -514,7 +514,7 @@ export const useHomeProjectWorkRuntime = ({
     tasksContract,
     timelineContract,
     remindersContract,
-  } = useWorkViewModuleRuntime({
+  } = useWorkViewWidgetRuntime({
     activeProjectId: activeProject?.project_id ?? null,
     activeProjectName: activeProject?.name ?? null,
     activeProjectCanEdit,
@@ -531,7 +531,7 @@ export const useHomeProjectWorkRuntime = ({
     onBulkUpdateTableRecords,
     kanbanViews,
     kanbanRuntimeDataByViewId,
-    creatingKanbanViewByModuleId,
+    creatingKanbanViewByWidgetId,
     onMoveKanbanRecord,
     onCreateKanbanRecord,
     onConfigureKanbanGrouping,
@@ -573,7 +573,7 @@ export const useHomeProjectWorkRuntime = ({
       hasRequestedProject,
       activeProject,
       activeProjectCanEdit,
-      modulesEnabled,
+      widgetsEnabled,
       workLayoutId,
       recordsError,
       projectChromeProps: {
@@ -587,7 +587,7 @@ export const useHomeProjectWorkRuntime = ({
         projectMemberList: projectMembers,
         sessionUserId,
         activeEditableProjectIndex,
-        modulesEnabled,
+        widgetsEnabled,
         workspaceEnabled,
         projectMutationError,
         onNavigateToProject: navigateToProject,

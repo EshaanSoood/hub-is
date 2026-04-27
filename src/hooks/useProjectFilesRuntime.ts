@@ -8,7 +8,7 @@ import {
 } from '../services/hub/files';
 import type { HubTrackedFile } from '../services/hub/types';
 import { toBase64 } from '../lib/utils';
-import type { FilesModuleItem } from '../components/project-space/FilesModuleSkin';
+import type { FilesWidgetItem } from '../components/project-space/FilesWidgetSkin';
 
 const formatFileSize = (sizeBytes: number): string => {
   if (sizeBytes < 1024) {
@@ -41,7 +41,7 @@ const slugifyPathSegment = (value: string): string =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 48) || 'project';
 
-const trackedFileToModuleItem = (file: HubTrackedFile): FilesModuleItem => {
+const trackedFileToWidgetItem = (file: HubTrackedFile): FilesWidgetItem => {
   const uploadedAtTimestamp = Number(new Date(file.created_at));
   return {
     id: file.file_id,
@@ -87,10 +87,10 @@ export const useProjectFilesRuntime = ({
   onError,
 }: UseProjectFilesRuntimeParams) => {
   const [assetRoots, setAssetRoots] = useState<AssetRootSummary[]>([]);
-  const [pendingProjectFiles, setPendingProjectFiles] = useState<FilesModuleItem[]>([]);
-  const [trackedProjectFiles, setTrackedProjectFiles] = useState<FilesModuleItem[]>([]);
-  const [pendingProjectFilesByProjectId, setPendingProjectFilesByProjectId] = useState<Record<string, FilesModuleItem[]>>({});
-  const [trackedProjectFilesByProjectId, setTrackedProjectFilesByProjectId] = useState<Record<string, FilesModuleItem[]>>({});
+  const [pendingProjectFiles, setPendingProjectFiles] = useState<FilesWidgetItem[]>([]);
+  const [trackedProjectFiles, setTrackedProjectFiles] = useState<FilesWidgetItem[]>([]);
+  const [pendingProjectFilesByProjectId, setPendingProjectFilesByProjectId] = useState<Record<string, FilesWidgetItem[]>>({});
+  const [trackedProjectFilesByProjectId, setTrackedProjectFilesByProjectId] = useState<Record<string, FilesWidgetItem[]>>({});
   const activeProjectId = activeProject?.project_id ?? null;
 
   const fileUploadTimersRef = useRef<Record<string, number>>({});
@@ -136,7 +136,7 @@ export const useProjectFilesRuntime = ({
 
   const refreshTrackedSpaceFiles = useCallback(async () => {
     const files = await listTrackedFiles(accessToken, projectId, { scope: 'space' });
-    setTrackedProjectFiles(files.map(trackedFileToModuleItem));
+    setTrackedProjectFiles(files.map(trackedFileToWidgetItem));
   }, [accessToken, projectId]);
 
   const refreshTrackedProjectFiles = useCallback(
@@ -147,7 +147,7 @@ export const useProjectFilesRuntime = ({
       });
       setTrackedProjectFilesByProjectId((current) => ({
         ...current,
-        [projectIdToLoad]: files.map(trackedFileToModuleItem),
+        [projectIdToLoad]: files.map(trackedFileToWidgetItem),
       }));
     },
     [accessToken, projectId],
@@ -182,7 +182,7 @@ export const useProjectFilesRuntime = ({
   }, []);
 
   const updatePendingProjectFile = useCallback(
-    (projectIdToUpdate: string, fileId: string, mapFn: (current: FilesModuleItem) => FilesModuleItem) => {
+    (projectIdToUpdate: string, fileId: string, mapFn: (current: FilesWidgetItem) => FilesWidgetItem) => {
       setPendingProjectFilesByProjectId((current) => {
         const currentFiles = current[projectIdToUpdate] ?? [];
         const nextProjectFiles = currentFiles.map((item) => (item.id === fileId ? mapFn(item) : item));
@@ -195,7 +195,7 @@ export const useProjectFilesRuntime = ({
     [],
   );
 
-  const updatePendingSpaceFile = useCallback((fileId: string, mapFn: (current: FilesModuleItem) => FilesModuleItem) => {
+  const updatePendingSpaceFile = useCallback((fileId: string, mapFn: (current: FilesWidgetItem) => FilesWidgetItem) => {
     setPendingProjectFiles((current) => current.map((item) => (item.id === fileId ? mapFn(item) : item)));
   }, []);
 
@@ -229,7 +229,7 @@ export const useProjectFilesRuntime = ({
           uploadedAtTimestamp: startedAtTimestamp,
           uploadProgress: 1,
           sizeBytes: file.size,
-        } satisfies FilesModuleItem,
+        } satisfies FilesWidgetItem,
       }));
 
       setPendingProjectFiles((current) => [...queued.map((entry) => entry.item), ...current]);
@@ -342,7 +342,7 @@ export const useProjectFilesRuntime = ({
           uploadedAtTimestamp: startedAtTimestamp,
           uploadProgress: 1,
           sizeBytes: file.size,
-        } satisfies FilesModuleItem,
+        } satisfies FilesWidgetItem,
       }));
 
       setPendingProjectFilesByProjectId((current) => ({
@@ -438,7 +438,7 @@ export const useProjectFilesRuntime = ({
     ],
   );
 
-  const onOpenProjectFile = useCallback((file: FilesModuleItem) => {
+  const onOpenProjectFile = useCallback((file: FilesWidgetItem) => {
     if (file.openUrl) {
       window.open(file.openUrl, '_blank', 'noopener');
     }

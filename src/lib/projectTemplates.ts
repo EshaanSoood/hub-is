@@ -21,17 +21,17 @@ export const buildDefaultProjectCreatePayload = ({
     position: nextOrder,
     pinned: false,
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
       doc_binding_mode: 'owned',
-      modules: [
+      widgets: [
         {
-          module_type: 'table',
+          widget_type: 'table',
           size_tier: 'L',
           lens: 'project',
         },
         {
-          module_type: 'kanban',
+          widget_type: 'kanban',
           size_tier: 'L',
           lens: 'project',
           binding: {
@@ -39,7 +39,7 @@ export const buildDefaultProjectCreatePayload = ({
           },
         },
         {
-          module_type: 'calendar',
+          widget_type: 'calendar',
           size_tier: 'M',
           lens: 'project',
         },

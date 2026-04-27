@@ -30,7 +30,7 @@ apps/hub-api/lib/logger.mjs — Builds structured request logger instances with 
 apps/hub-api/lib/requestContext.mjs — Applies per-request context including IDs, auth metadata, and log bindings.
 
 ## apps/hub-api/routes
-Route handler modules for Hub API resources and request policy enforcement.
+Route handler widgets for Hub API resources and request policy enforcement.
 apps/hub-api/routes/automation.mjs — Handles GET/POST/PATCH/DELETE automation routes for /api/hub/spaces/:id/automation-* and rules/:id.
 apps/hub-api/routes/chat.mjs — Handles POST /api/hub/chat/provision and GET/POST/DELETE /api/hub/chat/snapshots for chat provisioning/history.
 apps/hub-api/routes/collections.mjs — Handles GET/POST/PATCH/DELETE collection/record APIs under /api/hub/spaces/:id and /api/hub/records/:id.
@@ -95,7 +95,7 @@ scripts/calendar-nlp/weekday-semantics.test.mjs — Regression tests for weekday
 ## src
 src/App.tsx — Renders app UI; uses useAuthz.
 src/main.tsx — Renders main UI.
-src/vite-env.d.ts — Declares ambient TypeScript module types for Vite environment modules.
+src/vite-env.d.ts — Declares ambient TypeScript module types for Vite environment widgets.
 
 ## src/components/auth
 src/components/auth/AccessDeniedView.tsx — Renders access denied view UI.
@@ -143,30 +143,30 @@ src/components/primitives/ToggleButton.tsx — Renders toggle button UI.
 src/components/primitives/Tooltip.tsx — Renders tooltip UI.
 
 ## src/components/project-space
-Project Space feature UI: tabs, module skins, overlays, comments, and workspace tooling.
-src/components/project-space/AddModuleDialog.tsx — Renders add module dialog; uses state, useId.
+Project Space feature UI: tabs, widget skins, overlays, comments, and workspace tooling.
+src/components/project-space/AddWidgetDialog.tsx — Renders add widget dialog; uses state, useId.
 src/components/project-space/AutomationBuilder.tsx — Renders automation builder UI; uses state, memoized data.
 src/components/project-space/BacklinksPanel.tsx — Renders backlinks panel.
-src/components/project-space/CalendarModuleSkin.tsx — Renders calendar module skin module view; uses state, memoized data, effects, refs.
+src/components/project-space/CalendarWidgetSkin.tsx — Renders calendar widget skin widget view; uses state, memoized data, effects, refs.
 src/components/project-space/CalendarTab.tsx — Renders calendar tab; uses memoized data.
 src/components/project-space/CommentComposer.tsx — Renders comment composer UI; uses memoized data.
 src/components/project-space/CommentRail.tsx — Renders comment rail UI.
 src/components/project-space/designTokens.ts — Defines TypeScript types and interfaces for design tokens.
 src/components/project-space/FileInspectorActionBar.tsx — Renders file inspector action bar UI; uses state, effects, refs.
 src/components/project-space/FileMovePopover.tsx — Renders file move popover; uses state, effects, refs.
-src/components/project-space/FilesModuleSkin.tsx — Renders files module skin module view; uses state, memoized data, effects, refs, useThumbnail.
+src/components/project-space/FilesWidgetSkin.tsx — Renders files widget skin widget view; uses state, memoized data, effects, refs, useThumbnail.
 src/components/project-space/FilterBar.tsx — Renders filter bar UI.
 src/components/project-space/FilterBarOverlay.tsx — Renders filter bar overlay UI; uses state, memoized data.
 src/components/project-space/FocusModeToolbar.tsx — Renders focus mode toolbar; uses memoized data, refs.
-src/components/project-space/QuickThoughtsModuleSkin.tsx — Renders quick thoughts module skin module view; uses state, memoized data, effects, refs.
-src/components/project-space/KanbanModuleSkin.tsx — Renders kanban module skin module view; uses memoized data, useDroppable.
+src/components/project-space/QuickThoughtsWidgetSkin.tsx — Renders quick thoughts widget skin widget view; uses state, memoized data, effects, refs.
+src/components/project-space/KanbanWidgetSkin.tsx — Renders kanban widget skin widget view; uses memoized data, useDroppable.
 src/components/project-space/MentionPicker.tsx — Renders mention picker UI; uses state, memoized data, effects, refs, useId.
 src/components/project-space/mockProjectSpace.ts — Exports moduleTemplates, buildCollaborators, buildClientReferences for mock project space.
-src/components/project-space/moduleCatalog.ts — Exports MODULE_CATALOG, moduleCatalogEntry, moduleLabel for module catalog; used by AddModuleDialog and ModuleGrid.
-src/components/project-space/ModuleFeedback.tsx — Renders module loading state module view.
-src/components/project-space/ModuleGrid.tsx — Renders module grid module view; uses state, refs.
-src/components/project-space/ModuleLensControl.tsx — Renders module lens control module view.
-src/components/project-space/ModuleSettingsPopover.tsx — Renders module settings popover.
+src/components/project-space/widgetCatalog.ts — Exports WIDGET_CATALOG, widgetCatalogEntry, widgetLabel for widget catalog; used by AddWidgetDialog and WidgetGrid.
+src/components/project-space/WidgetFeedback.tsx — Renders widget loading state widget view.
+src/components/project-space/WidgetGrid.tsx — Renders widget grid widget view; uses state, refs.
+src/components/project-space/WidgetLensControl.tsx — Renders widget lens control widget view.
+src/components/project-space/WidgetSettingsPopover.tsx — Renders widget settings popover.
 src/components/project-space/OverviewHeader.tsx — Renders overview header UI; uses state, memoized data.
 src/components/project-space/OverviewView.tsx — Renders overview view UI; uses state, memoized data, refs.
 src/components/project-space/ProjectHeaderControls.tsx — Renders project header controls UI; uses state, memoized data.
@@ -176,12 +176,12 @@ src/components/project-space/ProjectSpaceDialogPrimitives.ts — Exports Dialog,
 src/components/project-space/RelationPicker.tsx — Renders relation picker UI; uses state, memoized data, effects, refs, useId.
 src/components/project-space/RelationRow.tsx — Renders relation row UI.
 src/components/project-space/RelationsSection.tsx — Renders relations section UI.
-src/components/project-space/RemindersModuleSkin.tsx — Renders reminders module skin module view; uses state, memoized data, effects, refs.
+src/components/project-space/RemindersWidgetSkin.tsx — Renders reminders widget skin widget view; uses state, memoized data, effects, refs.
 src/components/project-space/tabKeyboard.ts — Exports handleRovingTabKeyDown for tab keyboard; used by Tabs.
-src/components/project-space/TableModuleSkin.tsx — Renders table module skin tab; uses state, memoized data, refs, useReactTable.
-src/components/project-space/taskAdapter.ts — Exports formatDueLabel, adaptTaskSummary, adaptTaskSummaries for task adapter; used by OverviewView and TasksModuleSkin.
+src/components/project-space/TableWidgetSkin.tsx — Renders table widget skin tab; uses state, memoized data, refs, useReactTable.
+src/components/project-space/taskAdapter.ts — Exports formatDueLabel, adaptTaskSummary, adaptTaskSummaries for task adapter; used by OverviewView and TasksWidgetSkin.
 src/components/project-space/TaskCreateDialog.tsx — Renders task create dialog; uses state, effects, refs.
-src/components/project-space/TasksModuleSkin.tsx — Renders tasks module skin module view; uses state, memoized data.
+src/components/project-space/TasksWidgetSkin.tsx — Renders tasks widget skin widget view; uses state, memoized data.
 src/components/project-space/TasksTab.tsx — Renders tasks tab; uses state, memoized data, effects, refs.
 src/components/project-space/TimelineFeed.tsx — Renders timeline feed UI; uses memoized data.
 src/components/project-space/TimelineTab.tsx — Renders timeline tab.
@@ -191,16 +191,16 @@ src/components/project-space/types.ts — Defines TypeScript types and interface
 src/components/project-space/ViewEmbedBlock.tsx — Renders view embed block UI; uses state, memoized data, effects, useViewEmbedRuntime.
 src/components/project-space/WorkView.tsx — Renders work view UI; uses state, refs.
 
-## src/components/project-space/modules
-src/components/project-space/modules/CalendarModule.tsx — Renders calendar module view.
-src/components/project-space/modules/FilesModule.tsx — Renders files module view.
-src/components/project-space/modules/index.ts — Exports TableModule, KanbanModule, CalendarModule for modules; used by WorkView.
-src/components/project-space/modules/KanbanModule.tsx — Renders kanban module view.
-src/components/project-space/modules/QuickThoughtsModule.tsx — Renders quick thoughts module view.
-src/components/project-space/modules/RemindersModule.tsx — Renders reminders module view.
-src/components/project-space/modules/TableModule.tsx — Renders table module tab.
-src/components/project-space/modules/TasksModule.tsx — Renders tasks module view.
-src/components/project-space/modules/TimelineModule.tsx — Renders timeline module view.
+## src/components/project-space/widgets
+src/components/project-space/widgets/CalendarWidget.tsx — Renders calendar widget view.
+src/components/project-space/widgets/FilesWidget.tsx — Renders files widget view.
+src/components/project-space/widgets/index.ts — Exports TableWidget, KanbanWidget, CalendarWidget for widgets; used by WorkView.
+src/components/project-space/widgets/KanbanWidget.tsx — Renders kanban widget view.
+src/components/project-space/widgets/QuickThoughtsWidget.tsx — Renders quick thoughts widget view.
+src/components/project-space/widgets/RemindersWidget.tsx — Renders reminders widget view.
+src/components/project-space/widgets/TableWidget.tsx — Renders table widget tab.
+src/components/project-space/widgets/TasksWidget.tsx — Renders tasks widget view.
+src/components/project-space/widgets/TimelineWidget.tsx — Renders timeline widget view.
 
 ## src/components/ui
 Styled wrapper components around UI primitives and accessibility-focused interaction patterns.
@@ -388,7 +388,7 @@ src/services/sessionService.ts — Service module implementing session service i
 src/services/smartWakeService.ts — Service module implementing smart wake service integration and transport logic.
 
 ## src/services/hub
-Hub-specific API client modules grouped by resource domain and response normalization.
+Hub-specific API client widgets grouped by resource domain and response normalization.
 src/services/hub/collections.ts — Hub API client for collections; exports listCollections, createCollection, listCollectionFields.
 src/services/hub/docs.ts — Hub API client for docs; exports authorizeCollabDoc, getDocSnapshot, saveDocSnapshot.
 src/services/hub/files.ts — Hub API client for files; exports uploadFile, listTrackedFiles, listAssetRoots.

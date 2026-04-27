@@ -1,4 +1,4 @@
-import { buildFieldUpdateValue, getEditableFieldValue, getEditableInputType, readFieldOptions } from '../TableModuleSkin/valueNormalization';
+import { buildFieldUpdateValue, getEditableFieldValue, getEditableInputType, readFieldOptions } from '../TableWidgetSkin/valueNormalization';
 import type { HubRecordDetail } from '../../../shared/api-types/records';
 import type { ReactElement } from 'react';
 

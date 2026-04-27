@@ -364,7 +364,7 @@ export const CalendarWeekView = ({
             >
               <div
                 className={cn(
-                  'module-sheet max-h-[20rem] overflow-hidden px-3 py-2 transition-[transform,box-shadow] duration-150',
+                  'widget-sheet max-h-[20rem] overflow-hidden px-3 py-2 transition-[transform,box-shadow] duration-150',
                   isActive ? 'week-card-active' : 'week-card-inactive',
                   !isActive && hoveredDayKey === day.key ? 'week-card-hover' : null,
                   day.isToday ? 'border-b-2 border-b-[color:var(--color-primary)]' : null,
@@ -399,7 +399,7 @@ export const CalendarWeekView = ({
                 <div
                   id={dayPanelId}
                   hidden={!isActive}
-                  className="module-rule mt-2 overflow-y-auto pt-2"
+                  className="widget-rule mt-2 overflow-y-auto pt-2"
                 >
                   <DayPanelContent day={day} onOpenRecord={onOpenRecord} onCreateEvent={onCreateEvent} timezone={timezone} />
                 </div>
@@ -426,7 +426,7 @@ export const CalendarWeekView = ({
             >
               <div
                 className={cn(
-                  'module-sheet max-h-[20rem] overflow-hidden px-3 py-2',
+                  'widget-sheet max-h-[20rem] overflow-hidden px-3 py-2',
                   isActive ? 'week-card-active' : 'week-card-inactive',
                   day.isToday ? 'border-b-2 border-b-[color:var(--color-primary)]' : null,
                 )}

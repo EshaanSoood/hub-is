@@ -9,7 +9,7 @@ interface AudienceOption {
 }
 
 interface RegionOption {
-  id: 'modules' | 'workspace';
+  id: 'widgets' | 'workspace';
   label: string;
   enabled: boolean;
   disabled?: boolean;
@@ -52,7 +52,7 @@ export const ProjectHeaderControls = ({
   );
 
   return (
-    <div className="module-toolbar flex flex-wrap items-center gap-2 p-2">
+    <div className="widget-toolbar flex flex-wrap items-center gap-2 p-2">
       <input
         type="text"
         value={projectName}

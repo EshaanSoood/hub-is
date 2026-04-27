@@ -26,28 +26,28 @@ Locations with unresolved/non-object style expressions (manual review): 1
 | src/components/hub-home/DayStrip.tsx | 480 | `left` | `\`${nowPercent}%\`` | no token reference |
 | src/components/hub-home/DayStrip.tsx | 486 | `left` | `\`${left}%\`` | no token reference |
 | src/components/layout/NotificationsPanel.tsx | 100 | `background` | `notification.avatarColor` | no token reference |
-| src/components/project-space/FilesModuleSkin.tsx | 168 | `width` | `\`${Math.min(progress, 100)}%\`` | no token reference |
-| src/components/project-space/FilesModuleSkin.tsx | 177 | `animation` | `'sparkle-out 0.4s ease-out forwards'` | no token reference |
-| src/components/project-space/FilesModuleSkin.tsx | 177 | `['--angle' as string]` | `sparkle.angle` | no token reference |
-| src/components/project-space/FilesModuleSkin.tsx | 177 | `['--travel' as string]` | `sparkle.travel` | no token reference |
-| src/components/project-space/FilesModuleSkin.tsx | 189 | `animation` | `'fade-in-out 1.5s ease forwards'` | no token reference |
-| src/components/project-space/QuickThoughtsModuleSkin.tsx | 197 | `opacity` | `entry.archived ? 0.6 : 1` | no token reference |
-| src/components/project-space/KanbanModuleSkin.tsx | 117 | `transform` | `CSS.Transform.toString(transform)` | no token reference |
-| src/components/project-space/KanbanModuleSkin.tsx | 117 | `opacity` | `isDragging ? 0.65 : 1` | no token reference |
-| src/components/project-space/RemindersModuleSkin.tsx | 469 | `width` | `\`${particle.size}px\`` | no token reference |
-| src/components/project-space/RemindersModuleSkin.tsx | 469 | `height` | `\`${particle.size}px\`` | no token reference |
-| src/components/project-space/RemindersModuleSkin.tsx | 469 | `backgroundColor` | `particle.color` | no token reference |
-| src/components/project-space/RemindersModuleSkin.tsx | 469 | `'--sparkle-x'` | `\`${particle.x}px\`` | no token reference |
-| src/components/project-space/RemindersModuleSkin.tsx | 469 | `'--sparkle-y'` | `\`${particle.y}px\`` | no token reference |
-| src/components/project-space/RemindersModuleSkin.tsx | 469 | `'--sparkle-duration'` | `\`${particle.duration}ms\`` | no token reference |
-| src/components/project-space/RemindersModuleSkin.tsx | 469 | `'--sparkle-delay'` | `\`${particle.delay}ms\`` | no token reference |
-| src/components/project-space/RemindersModuleSkin.tsx | 494 | `clipPath` | `'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)'` | no token reference |
-| src/components/project-space/TableModuleSkin.tsx | 179 | `gridTemplateColumns` | `templateColumns` | no token reference |
-| src/components/project-space/TableModuleSkin.tsx | 230 | `height` | `\`${virtualizer.getTotalSize()}px\`` | no token reference |
-| src/components/project-space/TableModuleSkin.tsx | 230 | `position` | `'relative'` | no token reference |
-| src/components/project-space/TableModuleSkin.tsx | 269 | `transform` | `\`translateY(${item.start}px)\`` | no token reference |
-| src/components/project-space/TableModuleSkin.tsx | 269 | `gridTemplateColumns` | `templateColumns` | no token reference |
-| src/components/project-space/TableModuleSkin.tsx | 269 | `height` | `\`${item.size}px\`` | no token reference |
+| src/components/project-space/FilesWidgetSkin.tsx | 168 | `width` | `\`${Math.min(progress, 100)}%\`` | no token reference |
+| src/components/project-space/FilesWidgetSkin.tsx | 177 | `animation` | `'sparkle-out 0.4s ease-out forwards'` | no token reference |
+| src/components/project-space/FilesWidgetSkin.tsx | 177 | `['--angle' as string]` | `sparkle.angle` | no token reference |
+| src/components/project-space/FilesWidgetSkin.tsx | 177 | `['--travel' as string]` | `sparkle.travel` | no token reference |
+| src/components/project-space/FilesWidgetSkin.tsx | 189 | `animation` | `'fade-in-out 1.5s ease forwards'` | no token reference |
+| src/components/project-space/QuickThoughtsWidgetSkin.tsx | 197 | `opacity` | `entry.archived ? 0.6 : 1` | no token reference |
+| src/components/project-space/KanbanWidgetSkin.tsx | 117 | `transform` | `CSS.Transform.toString(transform)` | no token reference |
+| src/components/project-space/KanbanWidgetSkin.tsx | 117 | `opacity` | `isDragging ? 0.65 : 1` | no token reference |
+| src/components/project-space/RemindersWidgetSkin.tsx | 469 | `width` | `\`${particle.size}px\`` | no token reference |
+| src/components/project-space/RemindersWidgetSkin.tsx | 469 | `height` | `\`${particle.size}px\`` | no token reference |
+| src/components/project-space/RemindersWidgetSkin.tsx | 469 | `backgroundColor` | `particle.color` | no token reference |
+| src/components/project-space/RemindersWidgetSkin.tsx | 469 | `'--sparkle-x'` | `\`${particle.x}px\`` | no token reference |
+| src/components/project-space/RemindersWidgetSkin.tsx | 469 | `'--sparkle-y'` | `\`${particle.y}px\`` | no token reference |
+| src/components/project-space/RemindersWidgetSkin.tsx | 469 | `'--sparkle-duration'` | `\`${particle.duration}ms\`` | no token reference |
+| src/components/project-space/RemindersWidgetSkin.tsx | 469 | `'--sparkle-delay'` | `\`${particle.delay}ms\`` | no token reference |
+| src/components/project-space/RemindersWidgetSkin.tsx | 494 | `clipPath` | `'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)'` | no token reference |
+| src/components/project-space/TableWidgetSkin.tsx | 179 | `gridTemplateColumns` | `templateColumns` | no token reference |
+| src/components/project-space/TableWidgetSkin.tsx | 230 | `height` | `\`${virtualizer.getTotalSize()}px\`` | no token reference |
+| src/components/project-space/TableWidgetSkin.tsx | 230 | `position` | `'relative'` | no token reference |
+| src/components/project-space/TableWidgetSkin.tsx | 269 | `transform` | `\`translateY(${item.start}px)\`` | no token reference |
+| src/components/project-space/TableWidgetSkin.tsx | 269 | `gridTemplateColumns` | `templateColumns` | no token reference |
+| src/components/project-space/TableWidgetSkin.tsx | 269 | `height` | `\`${item.size}px\`` | no token reference |
 | src/components/project-space/TasksTab.tsx | 340 | `paddingLeft` | `\`${contentPadding}px\`` | no token reference |
 | src/components/project-space/TasksTab.tsx | 343 | `left` | `\`${connectorLeft}px\`` | no token reference |
 | src/components/project-space/TasksTab.tsx | 343 | `width` | `\`${metrics.width}px\`` | no token reference |

@@ -24,7 +24,7 @@ export const createRequestRouter = ({
   recordRoutes,
   viewRoutes,
   notificationRoutes,
-  modulePickerSeedDataRoutes,
+  widgetPickerSeedDataRoutes,
   fileRoutes,
   automationRoutes,
   publicRoutes,
@@ -159,8 +159,8 @@ export const createRequestRouter = ({
       return;
     }
 
-    if (request.method === 'GET' && pathname === '/api/hub/module-picker/seed-data') {
-      await modulePickerSeedDataRoutes.listSeedData({ request, response, requestUrl, pathname });
+    if (request.method === 'GET' && pathname === '/api/hub/widget-picker/seed-data') {
+      await widgetPickerSeedDataRoutes.listSeedData({ request, response, requestUrl, pathname });
       return;
     }
 

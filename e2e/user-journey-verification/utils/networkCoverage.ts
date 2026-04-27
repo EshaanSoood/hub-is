@@ -53,11 +53,11 @@ const DEFAULT_WAIVERS: Record<string, string> = {
   'DELETE /api/hub/chat/snapshots/([^/]+)': 'Chat snapshot deletion is out of scope for journey verification.',
   'POST /api/hub/spaces/([^/]+)/invites': 'Invite flow is not part of baseline/stress user journey checks.',
   'POST /api/hub/spaces/([^/]+)/invites/([^/]+)': 'Invite acceptance flow is not part of baseline/stress user journey checks.',
-  'GET /api/hub/spaces/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  'POST /api/hub/spaces/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  'GET /api/hub/spaces/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped module verification.',
+  'GET /api/hub/spaces/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  'POST /api/hub/spaces/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  'GET /api/hub/spaces/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped widget verification.',
 };
 
 const routeKey = (method: string, pathPattern: string): string => `${method.toUpperCase()} ${pathPattern}`;

@@ -207,8 +207,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/hub/module-picker/seed-data",
-      "path_pattern": "/api/hub/module-picker/seed-data",
+      "path": "/api/hub/widget-picker/seed-data",
+      "path_pattern": "/api/hub/widget-picker/seed-data",
       "status_code": 401,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {

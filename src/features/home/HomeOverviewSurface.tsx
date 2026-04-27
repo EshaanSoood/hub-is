@@ -2,11 +2,11 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { archiveRecord, updateRecord } from '../../services/hub/records';
 import type { HubTaskSummary } from '../../services/hub/types';
-import type { CalendarScope } from '../../components/project-space/CalendarModuleSkin/types';
+import type { CalendarScope } from '../../components/project-space/CalendarWidgetSkin/types';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import { dialogLayoutIds } from '../../styles/motion';
-import { CalendarModuleSkin } from '../../components/project-space/CalendarModuleSkin';
-import { RemindersModuleSkin } from '../../components/project-space/RemindersModuleSkin';
+import { CalendarWidgetSkin } from '../../components/project-space/CalendarWidgetSkin';
+import { RemindersWidgetSkin } from '../../components/project-space/RemindersWidgetSkin';
 import { TaskCreateDialog } from '../../components/project-space/TaskCreateDialog';
 import { TasksTab, type SortChain } from '../../components/project-space/TasksTab';
 import { TimelineFeed, TimelineFilterMenu, type TimelineCluster, type TimelineEventType, type TimelineFilterValue } from '../../components/project-space/TimelineFeed';
@@ -229,7 +229,7 @@ export const HomeOverviewSurface = ({
         {activeView === 'calendar' ? (
           <div id="home-overview-panel-calendar" role="tabpanel" aria-labelledby="home-overview-view-calendar" className="mt-2 min-h-0 flex-1 overflow-y-auto pl-[var(--home-ground-overview-indent)]">
             <div className="home-overview-calendar-panel-min-h">
-              <CalendarModuleSkin
+              <CalendarWidgetSkin
                 sizeTier="L"
                 events={calendarEvents}
                 loading={calendarLoading}
@@ -327,7 +327,7 @@ export const HomeOverviewSurface = ({
 
         {activeView === 'reminders' ? (
           <div id="home-overview-panel-reminders" role="tabpanel" aria-labelledby="home-overview-view-reminders" className="mt-2 min-h-0 flex-1 overflow-y-auto pl-[var(--home-ground-overview-indent)]">
-            <RemindersModuleSkin
+            <RemindersWidgetSkin
               sizeTier="L"
               reminders={reminders}
               loading={remindersLoading}

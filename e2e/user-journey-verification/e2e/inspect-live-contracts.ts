@@ -78,11 +78,11 @@ const navigateToSeededProject = async (
   });
 };
 
-const openAddModuleDialog = async (page: Page): Promise<void> => {
-  const addModuleButton = page.getByRole('button', { name: /Add module|Add a module/i }).first();
-  await expect(addModuleButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
-  await addModuleButton.click();
-  await expect(page.getByRole('heading', { name: /^Add Module$/i })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+const openAddWidgetDialog = async (page: Page): Promise<void> => {
+  const addWidgetButton = page.getByRole('button', { name: /Add widget|Add a widget/i }).first();
+  await expect(addWidgetButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
+  await addWidgetButton.click();
+  await expect(page.getByRole('heading', { name: /^Add Widget$/i })).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
 const snapshotLocator = async (locator: Locator, payload: Record<string, unknown> = {}) => {
@@ -186,30 +186,30 @@ const recordRelevantResponse = async (response: Response) => {
   };
 };
 
-const getFilesModule = (page: Page): Locator => page.getByRole('region', { name: 'Files module' }).first();
-const getTableModule = (page: Page): Locator => page.getByRole('region', { name: 'Table module' }).first();
-const getTasksModule = (page: Page): Locator => page.getByRole('region', { name: 'Tasks module' }).first();
-const getRemindersModule = (page: Page): Locator => page.getByRole('region', { name: 'Reminders module' }).first();
+const getFilesWidget = (page: Page): Locator => page.getByRole('region', { name: 'Files widget' }).first();
+const getTableWidget = (page: Page): Locator => page.getByRole('region', { name: 'Table widget' }).first();
+const getTasksWidget = (page: Page): Locator => page.getByRole('region', { name: 'Tasks widget' }).first();
+const getRemindersWidget = (page: Page): Locator => page.getByRole('region', { name: 'Reminders widget' }).first();
 
-const getKanbanModuleCard = (page: Page): Locator => {
+const getKanbanWidgetCard = (page: Page): Locator => {
   return page
-    .locator('[data-testid="module-card"]')
-    .filter({ has: page.getByRole('button', { name: /Kanban module actions/i }) })
+    .locator('[data-testid="widget-card"]')
+    .filter({ has: page.getByRole('button', { name: /Kanban widget actions/i }) })
     .first();
 };
 
-const getCalendarModuleCard = (page: Page): Locator => {
+const getCalendarWidgetCard = (page: Page): Locator => {
   return page
     .locator('article')
     .filter({
-      has: page.getByRole('button', { name: /Calendar module actions|New Event|Previous week|Previous day/i }).first(),
+      has: page.getByRole('button', { name: /Calendar widget actions|New Event|Previous week|Previous day/i }).first(),
     })
     .first();
 };
 
-const ensureModuleAdded = async (
+const ensureWidgetAdded = async (
   page: Page,
-  moduleLabel: string,
+  widgetLabel: string,
   sizeTier: 'S' | 'M' | 'L',
   visibleLocator: Locator,
 ): Promise<void> => {
@@ -217,16 +217,16 @@ const ensureModuleAdded = async (
     return;
   }
 
-  await openAddModuleDialog(page);
+  await openAddWidgetDialog(page);
 
   const selectButton = page.getByRole('button', {
-    name: new RegExp(`^Select ${escapeRegExp(moduleLabel)} module$`, 'i'),
+    name: new RegExp(`^Select ${escapeRegExp(widgetLabel)} widget$`, 'i'),
   }).first();
   await expect(selectButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await selectButton.click();
 
   const sizeButton = page.getByRole('button', {
-    name: new RegExp(`^Add ${escapeRegExp(moduleLabel)} at ${sizeTier} size$`, 'i'),
+    name: new RegExp(`^Add ${escapeRegExp(widgetLabel)} at ${sizeTier} size$`, 'i'),
   }).first();
   await expect(sizeButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
   await sizeButton.click();
@@ -234,24 +234,24 @@ const ensureModuleAdded = async (
   await expect(visibleLocator.first()).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 };
 
-const ensureCalendarReadyForCreate = async (calendarModule: Locator): Promise<void> => {
-  const newEventButton = calendarModule.getByRole('button', { name: /^New Event$/i }).first();
+const ensureCalendarReadyForCreate = async (calendarWidget: Locator): Promise<void> => {
+  const newEventButton = calendarWidget.getByRole('button', { name: /^New Event$/i }).first();
   if ((await newEventButton.count()) > 0) {
     await expect(newEventButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
     return;
   }
 
-  const showAllButton = calendarModule.getByRole('button', { name: /^Show All$/i }).first();
+  const showAllButton = calendarWidget.getByRole('button', { name: /^Show All$/i }).first();
   if (await showAllButton.isVisible().catch(() => false)) {
     await showAllButton.click();
-    await expect(calendarModule.getByText('Loading calendar')).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
+    await expect(calendarWidget.getByText('Loading calendar')).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
     return;
   }
 
-  const allScopeButton = calendarModule.getByRole('button', { name: /^All$/i }).first();
+  const allScopeButton = calendarWidget.getByRole('button', { name: /^All$/i }).first();
   if ((await allScopeButton.count()) > 0) {
     await allScopeButton.click();
-    await expect(calendarModule.getByText('Loading calendar')).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
+    await expect(calendarWidget.getByText('Loading calendar')).toHaveCount(0, { timeout: LIVE_TIMEOUT_MS });
   }
 };
 
@@ -358,52 +358,52 @@ const main = async (): Promise<void> => {
       };
     });
 
-    await runPhase(report, desktopPage, 'modules', async () => {
-      await ensureModuleAdded(desktopPage, 'Files', 'S', getFilesModule(desktopPage));
-      await ensureModuleAdded(desktopPage, 'Table', 'M', getTableModule(desktopPage));
-      await ensureModuleAdded(desktopPage, 'Kanban', 'M', getKanbanModuleCard(desktopPage));
-      await ensureModuleAdded(desktopPage, 'Calendar', 'L', getCalendarModuleCard(desktopPage));
-      await ensureModuleAdded(desktopPage, 'Tasks', 'M', getTasksModule(desktopPage));
-      await ensureModuleAdded(desktopPage, 'Reminders', 'M', getRemindersModule(desktopPage));
-      await ensureModuleAdded(desktopPage, 'Quick Thoughts', 'M', desktopPage.getByLabel('Quick Thought editor').first());
+    await runPhase(report, desktopPage, 'widgets', async () => {
+      await ensureWidgetAdded(desktopPage, 'Files', 'S', getFilesWidget(desktopPage));
+      await ensureWidgetAdded(desktopPage, 'Table', 'M', getTableWidget(desktopPage));
+      await ensureWidgetAdded(desktopPage, 'Kanban', 'M', getKanbanWidgetCard(desktopPage));
+      await ensureWidgetAdded(desktopPage, 'Calendar', 'L', getCalendarWidgetCard(desktopPage));
+      await ensureWidgetAdded(desktopPage, 'Tasks', 'M', getTasksWidget(desktopPage));
+      await ensureWidgetAdded(desktopPage, 'Reminders', 'M', getRemindersWidget(desktopPage));
+      await ensureWidgetAdded(desktopPage, 'Quick Thoughts', 'M', desktopPage.getByLabel('Quick Thought editor').first());
 
       return {
-        files: await snapshotLocator(getFilesModule(desktopPage)),
-        table: await snapshotLocator(getTableModule(desktopPage)),
-        kanban: await snapshotLocator(getKanbanModuleCard(desktopPage)),
-        calendar: await snapshotLocator(getCalendarModuleCard(desktopPage)),
-        tasks: await snapshotLocator(getTasksModule(desktopPage)),
-        reminders: await snapshotLocator(getRemindersModule(desktopPage)),
+        files: await snapshotLocator(getFilesWidget(desktopPage)),
+        table: await snapshotLocator(getTableWidget(desktopPage)),
+        kanban: await snapshotLocator(getKanbanWidgetCard(desktopPage)),
+        calendar: await snapshotLocator(getCalendarWidgetCard(desktopPage)),
+        tasks: await snapshotLocator(getTasksWidget(desktopPage)),
+        reminders: await snapshotLocator(getRemindersWidget(desktopPage)),
         quickThought: await snapshotLocator(desktopPage.getByLabel('Quick Thought editor').first()),
         workspaceDoc: await snapshotLocator(desktopPage.getByLabel('Project note editor').first()),
       };
     });
 
     await runPhase(report, desktopPage, 'motion_targets', async () => {
-      await openAddModuleDialog(desktopPage);
+      await openAddWidgetDialog(desktopPage);
       const dialogSnapshot = await snapshotLocator(desktopPage.getByRole('dialog').first());
       await desktopPage.keyboard.press('Escape');
 
-      const tableActionsButton = desktopPage.getByRole('button', { name: /Open Table module actions/i }).first();
+      const tableActionsButton = desktopPage.getByRole('button', { name: /Open Table widget actions/i }).first();
       await expect(tableActionsButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await tableActionsButton.click();
       const menuSnapshot = await snapshotLocator(desktopPage.getByRole('menu').first());
       await desktopPage.keyboard.press('Escape');
 
       return {
-        addModuleDialog: dialogSnapshot,
+        addWidgetDialog: dialogSnapshot,
         tableActionsMenu: menuSnapshot,
       };
     });
 
     await runPhase(report, desktopPage, 'table', async () => {
-      const tableModule = getTableModule(desktopPage);
-      const createRowInput = tableModule.getByRole('textbox', { name: 'New record...' }).first();
+      const tableWidget = getTableWidget(desktopPage);
+      const createRowInput = tableWidget.getByRole('textbox', { name: 'New record...' }).first();
       await expect(createRowInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await createRowInput.fill(artifacts.tableTitle);
-      await tableModule.getByRole('button', { name: /^Add$/i }).first().click();
+      await tableWidget.getByRole('button', { name: /^Add$/i }).first().click();
 
-      const openRecordButton = tableModule.getByRole('button', {
+      const openRecordButton = tableWidget.getByRole('button', {
         name: new RegExp(`^Open record ${escapeRegExp(artifacts.tableTitle)}$`, 'i'),
       }).first();
       await expect(openRecordButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
@@ -415,14 +415,14 @@ const main = async (): Promise<void> => {
       await desktopPage.keyboard.press('Escape');
 
       return {
-        table: await snapshotLocator(tableModule, { tableTitle: artifacts.tableTitle }),
+        table: await snapshotLocator(tableWidget, { tableTitle: artifacts.tableTitle }),
         inspector: inspectorSnapshot,
       };
     });
 
     await runPhase(report, desktopPage, 'kanban', async () => {
-      const kanbanModule = getKanbanModuleCard(desktopPage);
-      const firstColumn = kanbanModule.locator('section[aria-label$=" column"]').first();
+      const kanbanWidget = getKanbanWidgetCard(desktopPage);
+      const firstColumn = kanbanWidget.locator('section[aria-label$=" column"]').first();
       await expect(firstColumn).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await firstColumn.getByRole('button', { name: /^Create card$/i }).click();
 
@@ -431,7 +431,7 @@ const main = async (): Promise<void> => {
       await titleInput.fill(artifacts.kanbanTitle);
       await firstColumn.getByRole('button', { name: /^Create$/i }).first().click();
 
-      const openRecordButton = kanbanModule.getByRole('button', {
+      const openRecordButton = kanbanWidget.getByRole('button', {
         name: new RegExp(`^Open record:\\s*${escapeRegExp(artifacts.kanbanTitle)}$`, 'i'),
       }).first();
       await expect(openRecordButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
@@ -442,62 +442,62 @@ const main = async (): Promise<void> => {
       const inspectorSnapshot = await snapshotLocator(inspector);
       await desktopPage.keyboard.press('Escape');
 
-      const columnSelect = kanbanModule.getByLabel(`Column for ${artifacts.kanbanTitle}`).first();
+      const columnSelect = kanbanWidget.getByLabel(`Column for ${artifacts.kanbanTitle}`).first();
       await expect(columnSelect).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
 
       return {
-        kanban: await snapshotLocator(kanbanModule, { kanbanTitle: artifacts.kanbanTitle }),
+        kanban: await snapshotLocator(kanbanWidget, { kanbanTitle: artifacts.kanbanTitle }),
         inspector: inspectorSnapshot,
       };
     });
 
     await runPhase(report, desktopPage, 'calendar', async () => {
-      const calendarModule = getCalendarModuleCard(desktopPage);
-      await ensureCalendarReadyForCreate(calendarModule);
+      const calendarWidget = getCalendarWidgetCard(desktopPage);
+      await ensureCalendarReadyForCreate(calendarWidget);
 
-      let newEventButton = calendarModule.getByRole('button', { name: /^New Event$/i }).first();
+      let newEventButton = calendarWidget.getByRole('button', { name: /^New Event$/i }).first();
       if ((await newEventButton.count()) === 0) {
-        newEventButton = calendarModule.getByRole('button', { name: /^Create event for /i }).first();
+        newEventButton = calendarWidget.getByRole('button', { name: /^Create event for /i }).first();
       }
       await expect(newEventButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await newEventButton.click();
 
-      const titleInput = calendarModule.getByLabel(/Event title|Write an event in natural language/i).first();
+      const titleInput = calendarWidget.getByLabel(/Event title|Write an event in natural language/i).first();
       await expect(titleInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await titleInput.fill(artifacts.calendarTitle);
-      await calendarModule.getByLabel('Start time').first().fill('09:30');
-      await calendarModule.getByLabel('End time').first().fill('10:30');
-      await calendarModule.getByRole('button', { name: /^Create$/i }).first().click();
+      await calendarWidget.getByLabel('Start time').first().fill('09:30');
+      await calendarWidget.getByLabel('End time').first().fill('10:30');
+      await calendarWidget.getByRole('button', { name: /^Create$/i }).first().click();
       await desktopPage.waitForTimeout(3_000);
 
       return {
-        calendar: await snapshotLocator(calendarModule, { calendarTitle: artifacts.calendarTitle }),
-        matchingButtons: await calendarModule.getByRole('button', {
+        calendar: await snapshotLocator(calendarWidget, { calendarTitle: artifacts.calendarTitle }),
+        matchingButtons: await calendarWidget.getByRole('button', {
           name: new RegExp(escapeRegExp(artifacts.calendarTitle), 'i'),
         }).allTextContents(),
       };
     });
 
     await runPhase(report, desktopPage, 'tasks', async () => {
-      const tasksModule = getTasksModule(desktopPage);
-      let titleInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
+      const tasksWidget = getTasksWidget(desktopPage);
+      let titleInput = tasksWidget.getByLabel(/New task title|Write a task in natural language/i).first();
       if (!(await titleInput.isVisible().catch(() => false))) {
-        const openComposerButton = tasksModule.getByRole('button', { name: /^New Task$/i }).first();
+        const openComposerButton = tasksWidget.getByRole('button', { name: /^New Task$/i }).first();
         await expect(openComposerButton).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
         await openComposerButton.click();
-        titleInput = tasksModule.getByLabel(/New task title|Write a task in natural language/i).first();
+        titleInput = tasksWidget.getByLabel(/New task title|Write a task in natural language/i).first();
       }
       await expect(titleInput).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await titleInput.fill(artifacts.taskTitle);
-      await tasksModule.getByRole('button', { name: /^(Add|Create task|Create)$/i }).first().click();
+      await tasksWidget.getByRole('button', { name: /^(Add|Create task|Create)$/i }).first().click();
       await desktopPage.waitForTimeout(3_000);
 
-      const toggleButton = tasksModule.getByRole('button', {
+      const toggleButton = tasksWidget.getByRole('button', {
         name: new RegExp(`^Mark ${escapeRegExp(artifacts.taskTitle)} as`, 'i'),
       }).first();
 
       return {
-        tasks: await snapshotLocator(tasksModule, { taskTitle: artifacts.taskTitle }),
+        tasks: await snapshotLocator(tasksWidget, { taskTitle: artifacts.taskTitle }),
         matchingTexts: await desktopPage.getByText(artifacts.taskTitle, { exact: false }).allTextContents(),
         matchingButtons: await desktopPage.getByRole('button', {
           name: new RegExp(escapeRegExp(artifacts.taskTitle), 'i'),
@@ -508,17 +508,17 @@ const main = async (): Promise<void> => {
     });
 
     await runPhase(report, desktopPage, 'reminders', async () => {
-      const remindersModule = getRemindersModule(desktopPage);
-      const input = remindersModule.getByLabel(/Reminder|Write a reminder in natural language/i).first();
+      const remindersWidget = getRemindersWidget(desktopPage);
+      const input = remindersWidget.getByLabel(/Reminder|Write a reminder in natural language/i).first();
       await expect(input).toBeVisible({ timeout: LIVE_TIMEOUT_MS });
       await input.fill(`${artifacts.reminderTokenA} tomorrow at 9am`);
-      await remindersModule.getByRole('button', { name: /^Add$/i }).first().click();
+      await remindersWidget.getByRole('button', { name: /^Add$/i }).first().click();
       await input.fill(`${artifacts.reminderTokenB} next friday at 2pm`);
-      await remindersModule.getByRole('button', { name: /^Add$/i }).first().click();
+      await remindersWidget.getByRole('button', { name: /^Add$/i }).first().click();
       await desktopPage.waitForTimeout(3_000);
 
       return {
-        reminders: await snapshotLocator(remindersModule, {
+        reminders: await snapshotLocator(remindersWidget, {
           reminderTokenA: artifacts.reminderTokenA,
           reminderTokenB: artifacts.reminderTokenB,
         }),
@@ -527,13 +527,13 @@ const main = async (): Promise<void> => {
     });
 
     await runPhase(report, desktopPage, 'files', async () => {
-      const filesModule = getFilesModule(desktopPage);
-      const input = filesModule.locator('input[type="file"]').first();
+      const filesWidget = getFilesWidget(desktopPage);
+      const input = filesWidget.locator('input[type="file"]').first();
       await input.setInputFiles(uploadFilePath);
       await desktopPage.waitForTimeout(3_000);
 
       let popupOpened = false;
-      const openButton = filesModule.getByRole('button', {
+      const openButton = filesWidget.getByRole('button', {
         name: new RegExp(`^Open ${escapeRegExp(artifacts.uploadFileName)}$`, 'i'),
       }).first();
       if (await openButton.isVisible().catch(() => false)) {
@@ -548,7 +548,7 @@ const main = async (): Promise<void> => {
       }
 
       return {
-        files: await snapshotLocator(filesModule, { uploadFileName: artifacts.uploadFileName }),
+        files: await snapshotLocator(filesWidget, { uploadFileName: artifacts.uploadFileName }),
         popupOpened,
       };
     });
@@ -606,19 +606,19 @@ const main = async (): Promise<void> => {
         await loginThroughKeycloak(responsivePage, accountA);
         await navigateToSeededProject(responsivePage, context);
 
-        let modulesDialog = null;
-        const modulesButton = responsivePage.getByRole('button', { name: /^Modules$/i }).first();
-        if (await modulesButton.isVisible().catch(() => false)) {
-          await modulesButton.click();
-          modulesDialog = await snapshotPage(responsivePage);
+        let widgetsDialog = null;
+        const widgetsButton = responsivePage.getByRole('button', { name: /^Widgets$/i }).first();
+        if (await widgetsButton.isVisible().catch(() => false)) {
+          await widgetsButton.click();
+          widgetsDialog = await snapshotPage(responsivePage);
         }
 
         report.phases[target.name] = {
           status: 'passed',
           url: responsivePage.url(),
           details: {
-            modulesButtonVisible: await modulesButton.isVisible().catch(() => false),
-            modulesDialog,
+            widgetsButtonVisible: await widgetsButton.isVisible().catch(() => false),
+            widgetsDialog,
           },
           page: await snapshotPage(responsivePage),
         };

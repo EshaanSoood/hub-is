@@ -124,8 +124,8 @@
   If a pattern looks unusual, confirm whether it is intentional
   before refactoring.
 
-- Keep module boundaries explicit.
-  Prefer typed module contracts over generic cross-module plumbing.
+- Keep widget boundaries explicit.
+  Prefer typed widget contracts over generic cross-widget plumbing.
 
 - Validate untrusted boundaries.
   Parse API/route/serialized inputs before use.
@@ -176,7 +176,7 @@ instead of loading the full file.
 | Splitting a large component into a folder | §2 Component structure |
 | Deciding where a new hook lives | §3 Custom hooks |
 | Extracting state from a parent component | §4 State ownership |
-| Adding or modifying a module | §5 Per-module contracts |
+| Adding or modifying a widget | §5 Per-widget contracts |
 | Validating external data (API, route state) | §6 Runtime validation |
 | Styling a new component | §7 Design tokens |
 | Building accessible markup | §8 DOM order |
@@ -201,7 +201,7 @@ and read the matching section only.
 - Design tokens: `tokens.css`
 - Motion tokens: `src/styles/motion.ts`
 - Icon registry: `src/components/primitives/Icon.tsx`
-- Module contracts: `src/components/project-space/moduleContracts/index.ts`
+- Widget contracts: `src/components/project-space/widgetContracts/index.ts`
 - Patterns guide: `docs/hub-os-patterns.md`
 - VoiceOver reference: `docs/voiceover-accessibility-codex-reference.md`
 - Route definitions: `src/App.tsx`

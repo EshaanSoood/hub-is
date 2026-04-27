@@ -17,12 +17,12 @@ export interface ProjectSpaceWorkSurfaceProps {
   hasRequestedProject: boolean;
   activeProject: HubProjectSummary | null;
   activeProjectCanEdit: boolean;
-  modulesEnabled: boolean;
+  widgetsEnabled: boolean;
   workLayoutId?: string;
   recordsError: string | null;
   projectChromeProps: ProjectChromeProps;
   focusedViewProps: FocusedViewProps;
-  workViewProps: Omit<WorkViewProps, 'layoutId' | 'project' | 'canEditProject' | 'modulesEnabled' | 'showWorkspaceDocPlaceholder'>;
+  workViewProps: Omit<WorkViewProps, 'layoutId' | 'project' | 'canEditProject' | 'widgetsEnabled' | 'showWorkspaceDocPlaceholder'>;
   workspaceDocProps: WorkspaceDocProps;
 }
 
@@ -31,7 +31,7 @@ export const ProjectSpaceWorkSurface = ({
   hasRequestedProject,
   activeProject,
   activeProjectCanEdit,
-  modulesEnabled,
+  widgetsEnabled,
   workLayoutId,
   recordsError,
   projectChromeProps,
@@ -53,7 +53,7 @@ export const ProjectSpaceWorkSurface = ({
           layoutId={workLayoutId}
           project={activeProject}
           canEditProject={activeProjectCanEdit}
-          modulesEnabled={modulesEnabled}
+          widgetsEnabled={widgetsEnabled}
           showWorkspaceDocPlaceholder={false}
         />
 

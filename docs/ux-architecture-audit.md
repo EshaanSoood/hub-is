@@ -4,7 +4,7 @@ This audit uses the post-rename vocabulary:
 
 - `space`: the top-level container and membership boundary.
 - `project`: a work area inside a space.
-- `work`: the tab where projects and their modules are opened.
+- `work`: the tab where projects and their widgets are opened.
 
 The live frontend still uses a legacy route shape for the space home and space detail screens. Treat those route strings as compatibility surface, not product language.
 
@@ -38,17 +38,17 @@ Breadcrumbs, tab labels, search result labels, quick-add actions, and command la
 - `ProjectSpacePage` owns the space page composition and route-derived active tab state.
 - `ProjectSpaceWorkspace` owns the overview/work/tools layout below the page host.
 - Project switching belongs to the work surface and should remain importable from that feature boundary.
-- Record inspector, module runtime, members, files, reminders, tasks, and views should remain owned by hooks below the page host.
+- Record inspector, widget runtime, members, files, reminders, tasks, and views should remain owned by hooks below the page host.
 
 ## Empty States
 
 - Empty space home: show the spaces list surface and the primary create-space action.
 - Empty space overview: keep the space header and show actionable setup areas.
 - Empty work surface: show an empty project list and a create-project action.
-- Empty focused project: keep the project chrome stable and show module-specific empty states inside each module.
+- Empty focused project: keep the project chrome stable and show widget-specific empty states inside each widget.
 
 ## Current Risk Areas
 
-- Space and project naming still passes through compatibility function names in a few route and service modules.
+- Space and project naming still passes through compatibility function names in a few route and service widgets.
 - The space page remains a dense host. New behavior should be extracted below it before adding more route-owned state.
 - The legacy frontend route shape can confuse audits. Product copy should not mirror that route name unless it is shown as a literal path.

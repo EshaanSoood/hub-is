@@ -112,7 +112,7 @@ export const createSpaceRoutes = (deps) => {
         1,
         1,
         0,
-        toJson({ modules: [], doc_binding_mode: 'owned' }),
+        toJson({ widgets: [], doc_binding_mode: 'owned' }),
         auth.user.user_id,
         now,
         now,

@@ -38,9 +38,9 @@ const main = async (): Promise<void> => {
     name: `Journey Primary ${runId}`,
     member_user_ids: [session.userId],
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
-      modules: [],
+      widgets: [],
     },
   });
 
@@ -48,9 +48,9 @@ const main = async (): Promise<void> => {
     name: `Journey Secondary ${runId}`,
     member_user_ids: [session.userId],
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
-      modules: [],
+      widgets: [],
     },
   });
 

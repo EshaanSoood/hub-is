@@ -18,7 +18,7 @@ import type { ProjectLateralSource } from '../../../../components/motion/hubMoti
 import { useFocusNodeQueryEffect } from '../../hooks/useFocusNodeQueryEffect';
 import { useProjectSpaceInspectorRuntime } from './useProjectSpaceInspectorRuntime';
 import { useQuickCaptureQueryIntentEffect } from '../../hooks/useQuickCaptureQueryIntentEffect';
-import { useWorkViewModuleRuntime } from '../../hooks/useWorkViewModuleRuntime';
+import { useWorkViewWidgetRuntime } from '../../hooks/useWorkViewWidgetRuntime';
 import { useWorkRouteAndInspectorQueryEffects } from '../../hooks/useWorkRouteAndInspectorQueryEffects';
 import { useProjectSpaceOverviewState } from './useProjectSpaceOverviewState';
 import { collectProjectTaskCollectionIds, projectCanEditForUser, readLayoutBool } from '../projectModel';
@@ -106,7 +106,7 @@ export const useProjectSpacePageRuntime = ({
     views,
     kanbanRuntimeDataByViewId,
     kanbanViews,
-    creatingKanbanViewByModuleId,
+    creatingKanbanViewByWidgetId,
     focusedWorkView,
     focusedWorkViewData,
     focusedWorkViewError,
@@ -465,8 +465,8 @@ export const useProjectSpacePageRuntime = ({
     setPendingDocFocusNodeKey,
   });
 
-  const modulesEnabled = useMemo(
-    () => (activeProject ? readLayoutBool(activeProject.layout_config, 'modules_enabled', true) : true),
+  const widgetsEnabled = useMemo(
+    () => (activeProject ? readLayoutBool(activeProject.layout_config, 'widgets_enabled', true) : true),
     [activeProject],
   );
   const workspaceEnabled = useMemo(
@@ -474,14 +474,14 @@ export const useProjectSpacePageRuntime = ({
     [activeProject],
   );
   const handleToggleActiveProjectRegion = useCallback(
-    (region: 'modules_enabled' | 'workspace_enabled') => {
+    (region: 'widgets_enabled' | 'workspace_enabled') => {
       if (!activeProject || !activeProjectCanEdit) {
         return;
       }
 
-      const nextModulesEnabled = region === 'modules_enabled' ? !modulesEnabled : modulesEnabled;
+      const nextWidgetsEnabled = region === 'widgets_enabled' ? !widgetsEnabled : widgetsEnabled;
       const nextWorkspaceEnabled = region === 'workspace_enabled' ? !workspaceEnabled : workspaceEnabled;
-      if (!nextModulesEnabled && !nextWorkspaceEnabled) {
+      if (!nextWidgetsEnabled && !nextWorkspaceEnabled) {
         setProjectMutationError('A project must keep at least one region enabled.');
         return;
       }
@@ -489,7 +489,7 @@ export const useProjectSpacePageRuntime = ({
       void onUpdateProjectFromWorkView(activeProject.project_id, {
         layout_config: {
           ...activeProject.layout_config,
-          modules_enabled: nextModulesEnabled,
+          widgets_enabled: nextWidgetsEnabled,
           workspace_enabled: nextWorkspaceEnabled,
         },
       });
@@ -497,7 +497,7 @@ export const useProjectSpacePageRuntime = ({
     [
       activeProject,
       activeProjectCanEdit,
-      modulesEnabled,
+      widgetsEnabled,
       onUpdateProjectFromWorkView,
       setProjectMutationError,
       workspaceEnabled,
@@ -533,7 +533,7 @@ export const useProjectSpacePageRuntime = ({
     tasksContract,
     timelineContract,
     remindersContract,
-  } = useWorkViewModuleRuntime({
+  } = useWorkViewWidgetRuntime({
     activeProjectId: activeProject?.project_id ?? null,
     activeProjectName: activeProject?.name ?? null,
     activeProjectCanEdit,
@@ -550,7 +550,7 @@ export const useProjectSpacePageRuntime = ({
     onBulkUpdateTableRecords,
     kanbanViews,
     kanbanRuntimeDataByViewId,
-    creatingKanbanViewByModuleId,
+    creatingKanbanViewByWidgetId,
     onMoveKanbanRecord,
     onCreateKanbanRecord,
     onConfigureKanbanGrouping,
@@ -665,7 +665,7 @@ export const useProjectSpacePageRuntime = ({
       hasRequestedProject,
       activeProject,
       activeProjectCanEdit,
-      modulesEnabled,
+      widgetsEnabled,
       workLayoutId,
       recordsError,
       projectChromeProps: {
@@ -679,7 +679,7 @@ export const useProjectSpacePageRuntime = ({
         projectMemberList,
         sessionUserId,
         activeEditableProjectIndex,
-        modulesEnabled,
+        widgetsEnabled,
         workspaceEnabled,
         projectMutationError,
         onNavigateToProject: navigateToProject,

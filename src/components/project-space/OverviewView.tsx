@@ -3,8 +3,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { archiveRecord, updateRecord } from '../../services/hub/records';
 import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
 import { dialogLayoutIds } from '../../styles/motion';
-import { CalendarModuleSkin } from './CalendarModuleSkin';
-import type { CalendarEventSummary, CalendarScope } from './CalendarModuleSkin/types';
+import { CalendarWidgetSkin } from './CalendarWidgetSkin';
+import type { CalendarEventSummary, CalendarScope } from './CalendarWidgetSkin/types';
 import { Button, Card, InlineNotice, TabButton, Tabs, TabsList } from '../primitives';
 import { OverviewHeader } from './OverviewHeader';
 import { TaskCreateDialog } from './TaskCreateDialog';
@@ -350,7 +350,7 @@ export const OverviewView = ({
         {activeView === 'calendar' ? (
           <div id="overview-panel-calendar" role="tabpanel" aria-labelledby="overview-view-calendar" className="mt-4">
             <div className="min-h-[32rem]">
-              <CalendarModuleSkin
+              <CalendarWidgetSkin
                 sizeTier="L"
                 events={calendarEvents}
                 loading={calendarLoading}

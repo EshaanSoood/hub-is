@@ -30,7 +30,7 @@ npm run test:e2e
 
 No Playwright tests executed. The baseline failed during test collection/setup before any tests were recorded.
 
-- Missing module import: `e2e/support/hubHomeAudit.ts` imports `e2e/support/surfaceAudit.ts`, but that file is not present in the worktree.
+- Missing widget import: `e2e/support/hubHomeAudit.ts` imports `e2e/support/surfaceAudit.ts`, but that file is not present in the worktree.
 - Missing token file: `e2e/.env.tokens.local` was required by the e2e auth helper and was not present in the worktree.
 
 These failures were present before any rename work.
@@ -42,7 +42,7 @@ These failures were present before any rename work.
 > hub-os@1.0.0 test:e2e
 > bash scripts/run-playwright-regression.sh
 
-Error: Cannot find module '<REPO_ROOT>/e2e/support/surfaceAudit.ts' imported from <REPO_ROOT>/e2e/support/hubHomeAudit.ts
+Error: Cannot find widget '<REPO_ROOT>/e2e/support/surfaceAudit.ts' imported from <REPO_ROOT>/e2e/support/hubHomeAudit.ts
 Error: ENOENT: no such file or directory, open '<REPO_ROOT>/e2e/.env.tokens.local'
 
    at helpers/auth.ts:85

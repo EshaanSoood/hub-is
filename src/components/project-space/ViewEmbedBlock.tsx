@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { queryView } from '../../services/hub/views';
 import type { HubRecordSummary, HubView } from '../../services/hub/types';
 import { useViewEmbedRuntime } from '../../features/notes/viewEmbedContext';
-import { ModuleEmptyState, ModuleLoadingState } from './ModuleFeedback';
+import { WidgetEmptyState, WidgetLoadingState } from './WidgetFeedback';
 
 interface ViewEmbedBlockProps {
   viewId: string;
@@ -125,7 +125,7 @@ export const ViewEmbedBlock = ({ viewId, sizing }: ViewEmbedBlockProps) => {
         </button>
       </div>
 
-      {loading ? <ModuleLoadingState label="Loading embedded view" className="mt-3" rows={3} /> : null}
+      {loading ? <WidgetLoadingState label="Loading embedded view" className="mt-3" rows={3} /> : null}
       {error ? <p className="mt-3 text-xs text-danger">{error}</p> : null}
 
       {!loading && !error && data?.view.type === 'kanban' ? (
@@ -191,7 +191,7 @@ export const ViewEmbedBlock = ({ viewId, sizing }: ViewEmbedBlockProps) => {
       ) : null}
 
       {!loading && !error && data && data.records.length === 0 ? (
-        <ModuleEmptyState title="No records in this view." className="mt-3" />
+        <WidgetEmptyState title="No records in this view." className="mt-3" />
       ) : null}
     </div>
   );

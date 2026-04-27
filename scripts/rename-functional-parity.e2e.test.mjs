@@ -59,7 +59,7 @@ const PARITY_CONTRACT = {
       'files',
       'matrix_accounts',
       'mentions',
-      'module_picker_seed_data',
+      'widget_picker_seed_data',
       'notifications',
       'personal_tasks',
       'record_capabilities',
@@ -92,7 +92,7 @@ const PARITY_CONTRACT = {
       'idx_event_state_start',
       'idx_files_space_asset_path',
       'idx_mentions_target_lookup',
-      'idx_module_picker_seed_module_size',
+      'idx_widget_picker_seed_widget_size',
       'idx_notifications_user_unread_created',
       'idx_projects_space_sort',
       'idx_personal_tasks_user_updated',
@@ -1659,7 +1659,7 @@ test('rename functional parity contract', async (t) => {
         body: JSON.stringify({
           [requestKeys.name]: 'Member Project',
           [requestKeys.pinned]: true,
-          [requestKeys.layoutConfig]: { modules: [] },
+          [requestKeys.layoutConfig]: { widgets: [] },
           [requestKeys.position]: 2,
           [requestKeys.sortOrder]: 2,
           [PARITY_CONTRACT.api.memberUserIdsKey]: [memberId],
@@ -1675,7 +1675,7 @@ test('rename functional parity contract', async (t) => {
         body: JSON.stringify({
           [requestKeys.name]: 'Owner Only Project',
           [requestKeys.pinned]: false,
-          [requestKeys.layoutConfig]: { modules: [] },
+          [requestKeys.layoutConfig]: { widgets: [] },
           [requestKeys.position]: 3,
           [requestKeys.sortOrder]: 3,
         }),
@@ -1709,7 +1709,7 @@ test('rename functional parity contract', async (t) => {
           [requestKeys.pinned]: false,
           [requestKeys.position]: 4,
           [requestKeys.sortOrder]: 4,
-          [requestKeys.layoutConfig]: { modules: [], doc_binding_mode: 'owned' },
+          [requestKeys.layoutConfig]: { widgets: [], doc_binding_mode: 'owned' },
         }),
       });
       assertExactKeys(updatedWorkProject, ['project'], 'updatedWorkProject');

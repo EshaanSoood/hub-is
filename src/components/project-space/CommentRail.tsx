@@ -54,7 +54,7 @@ export const CommentRail = ({
   const resolvedComments = comments.filter((comment) => comment.status === 'resolved');
 
   return (
-    <section className="module-sheet p-4" aria-label="Doc comments">
+    <section className="widget-sheet p-4" aria-label="Doc comments">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="heading-3 text-text">Doc comments</h3>
         <button

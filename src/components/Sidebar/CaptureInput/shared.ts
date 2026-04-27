@@ -14,7 +14,7 @@ export interface CaptureDestination {
   space?: ProjectRecord | null;
 }
 
-export const moduleTypesByCaptureKind: Record<CaptureKind, string> = {
+export const widgetTypesByCaptureKind: Record<CaptureKind, string> = {
   thought: 'quick_thoughts',
   task: 'tasks',
   event: 'calendar',
@@ -32,20 +32,20 @@ export const captureKindBySidebarSurface: Record<Exclude<SidebarCaptureSurface, 
   thoughts: 'thought',
 };
 
-export const readProjectHasModuleType = (project: HubProjectSummary, moduleType: string): boolean => {
-  const modules = Array.isArray(project.layout_config?.modules) ? project.layout_config.modules : [];
-  return modules.some((entry) => entry && typeof entry === 'object' && !Array.isArray(entry) && entry.module_type === moduleType);
+export const readProjectHasWidgetType = (project: HubProjectSummary, widgetType: string): boolean => {
+  const widgets = Array.isArray(project.layout_config?.widgets) ? project.layout_config.widgets : [];
+  return widgets.some((entry) => entry && typeof entry === 'object' && !Array.isArray(entry) && entry.widget_type === widgetType);
 };
 
 export const readQuickThoughtStorageKey = (project: HubProjectSummary): string | null => {
-  const modules = Array.isArray(project.layout_config?.modules) ? project.layout_config.modules : [];
-  const matchingModule = modules.find(
-    (entry) => entry && typeof entry === 'object' && !Array.isArray(entry) && entry.module_type === 'quick_thoughts',
-  ) as { module_instance_id?: unknown } | undefined;
-  if (!matchingModule || typeof matchingModule.module_instance_id !== 'string' || !matchingModule.module_instance_id.trim()) {
+  const widgets = Array.isArray(project.layout_config?.widgets) ? project.layout_config.widgets : [];
+  const matchingWidget = widgets.find(
+    (entry) => entry && typeof entry === 'object' && !Array.isArray(entry) && entry.widget_type === 'quick_thoughts',
+  ) as { widget_instance_id?: unknown } | undefined;
+  if (!matchingWidget || typeof matchingWidget.widget_instance_id !== 'string' || !matchingWidget.widget_instance_id.trim()) {
     return null;
   }
-  return `hub:quick-thoughts:${project.space_id}:${project.project_id}:${matchingModule.module_instance_id}`;
+  return `hub:quick-thoughts:${project.space_id}:${project.project_id}:${matchingWidget.widget_instance_id}`;
 };
 
 export const selectCollectionId = async (

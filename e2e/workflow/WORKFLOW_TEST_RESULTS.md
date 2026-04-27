@@ -35,10 +35,10 @@ Status: PASS
 
 Observed behavior:
 - User A opened the live Work surface through the real overview/work controls.
-- The harness created a new project named `workflow-modules-*`.
-- A `Table` module was added through the browser UI.
-- The new project and module count were verified through live Hub API project data.
-- The project was reopened on a fresh authenticated page and the module count still matched.
+- The harness created a new project named `workflow-widgets-*`.
+- A `Table` widget was added through the browser UI.
+- The new project and widget count were verified through live Hub API project data.
+- The project was reopened on a fresh authenticated page and the widget count still matched.
 
 Conclusion:
 - The browser flow and persisted backend state agree.
@@ -49,7 +49,7 @@ Status: PASS
 Observed behavior:
 - User B opened the same project and the created project.
 - The project appeared as a read-only project behind `Other projects`, which matches production UI behavior.
-- The page showed read-only copy and disabled module controls.
+- The page showed read-only copy and disabled widget controls.
 - Live collab authorization for User B against the created doc returned `403`.
 
 Conclusion:
@@ -86,7 +86,7 @@ The Playwright workflow harness is now proving the live production path for:
 - browser login
 - project overview access
 - work project creation
-- module persistence
+- widget persistence
 - read-only project access for User B
 - collaborator surface presence
 - overview calendar capability reporting
