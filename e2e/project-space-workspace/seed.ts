@@ -195,19 +195,19 @@ async function globalSetup(): Promise<void> {
     name: `Verify Main Project ${runId}`,
     member_user_ids: [],
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
-      modules: [
+      widgets: [
         {
-          module_instance_id: `table-${runId}`,
-          module_type: 'table',
+          widget_instance_id: `table-${runId}`,
+          widget_type: 'table',
           size_tier: 'L',
           lens: 'project',
           binding: { view_id: tableView.view_id },
         },
         {
-          module_instance_id: `kanban-${runId}`,
-          module_type: 'kanban',
+          widget_instance_id: `kanban-${runId}`,
+          widget_type: 'kanban',
           size_tier: 'L',
           lens: 'project',
           binding: { view_id: kanbanView.view_id },
@@ -220,12 +220,12 @@ async function globalSetup(): Promise<void> {
     name: `Verify Private Project ${runId}`,
     member_user_ids: [],
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
-      modules: [
+      widgets: [
         {
-          module_instance_id: `table-private-${runId}`,
-          module_type: 'table',
+          widget_instance_id: `table-private-${runId}`,
+          widget_type: 'table',
           size_tier: 'M',
           lens: 'project',
           binding: { view_id: tableView.view_id },

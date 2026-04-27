@@ -103,12 +103,12 @@
   --day-ruler-width: 48px;
   --day-hour-height: 64px;
   --blur-frosted-panel: 14px;
-  --module-card-min-h-s: 12rem;
-  --module-card-max-h-s: 20rem;
-  --module-card-min-h-m: 18rem;
-  --module-card-max-h-m: 28rem;
-  --module-card-min-h-l: 24rem;
-  --module-card-max-h-l: 40rem;
+  --widget-card-min-h-s: 12rem;
+  --widget-card-max-h-s: 20rem;
+  --widget-card-min-h-m: 18rem;
+  --widget-card-max-h-m: 28rem;
+  --widget-card-min-h-l: 24rem;
+  --widget-card-max-h-l: 40rem;
   --daily-brief-collapsed-height: clamp(6rem, 10vh, 7.5rem);
   --daily-brief-rail-width: clamp(9.5rem, 16vw, 13.5rem);
   --daily-brief-column-gap: clamp(1.5rem, 3vw, 3rem);
@@ -134,15 +134,15 @@
   --dialog-panel-wide-max-w: 64rem;
   --dialog-panel-expanded-max-w: 96rem;
   --alert-dialog-panel-max-w: 36rem;
-  --module-picker-panel-width: 75vw;
-  --module-picker-panel-height: 75vh;
-  --module-picker-sidebar-width: 18rem;
-  --module-picker-preview-width-s: 18rem;
-  --module-picker-preview-width-m: 34rem;
-  --module-picker-preview-width-l: 100%;
-  --module-picker-preview-min-height: 34rem;
-  --module-picker-overlay-z: 400;
-  --module-picker-panel-z: 401;
+  --widget-picker-panel-width: 75vw;
+  --widget-picker-panel-height: 75vh;
+  --widget-picker-sidebar-width: 18rem;
+  --widget-picker-preview-width-s: 18rem;
+  --widget-picker-preview-width-m: 34rem;
+  --widget-picker-preview-width-l: 100%;
+  --widget-picker-preview-min-height: 34rem;
+  --widget-picker-overlay-z: 400;
+  --widget-picker-panel-z: 401;
   --table-preview-title-column-min: 0rem;
   --table-preview-field-column-min: 0rem;
   --home-overview-calendar-panel-min-h: 32rem;
@@ -184,7 +184,7 @@
   --sidebar-flyout-offset: calc(100% + 0.5rem);
 
   /* Weight scale reference */
-  /* 700 — module headings, card titles, column headers, record names */
+  /* 700 — widget headings, card titles, column headers, record names */
   /* 500 — labels, field names, chip text, button text, nav items */
   /* 400 — metadata, dates, counts, helper text, placeholder text */
 }
@@ -360,7 +360,7 @@
     inset 0 1px 0 var(--color-border-score);
 }
 
-@utility module-sheet {
+@utility widget-sheet {
   background-color: var(--color-surface-container);
   border-radius: var(--radius-panel);
   box-shadow:
@@ -368,7 +368,7 @@
     inset 0 1px 0 var(--color-border-score);
 }
 
-@utility module-sheet-raised {
+@utility widget-sheet-raised {
   background-color: var(--color-surface);
   border-radius: var(--radius-panel);
   box-shadow:
@@ -386,18 +386,18 @@
     inset 0 1px 0 var(--color-border-score);
 }
 
-@utility module-toolbar {
+@utility widget-toolbar {
   background-color: var(--color-surface-low);
   border-radius: var(--radius-control);
   box-shadow: inset 0 1px 0 var(--color-border-score);
 }
 
-@utility module-rule {
+@utility widget-rule {
   border-top: 1px solid var(--color-border-fold);
   box-shadow: inset 0 1px 0 var(--color-border-score);
 }
 
-@utility module-dropzone {
+@utility widget-dropzone {
   background-color: var(--color-surface-low);
   border: 1px dashed var(--color-border-fold);
   border-radius: var(--radius-control);
@@ -554,47 +554,47 @@
   letter-spacing: var(--tracking-heading);
 }
 
-@utility module-card-s {
-  min-height: var(--module-card-min-h-s);
-  max-height: var(--module-card-max-h-s);
+@utility widget-card-s {
+  min-height: var(--widget-card-min-h-s);
+  max-height: var(--widget-card-max-h-s);
 }
 
-@utility module-card-m {
-  min-height: var(--module-card-min-h-m);
-  max-height: var(--module-card-max-h-m);
+@utility widget-card-m {
+  min-height: var(--widget-card-min-h-m);
+  max-height: var(--widget-card-max-h-m);
 }
 
-@utility module-card-l {
-  min-height: var(--module-card-min-h-l);
-  max-height: var(--module-card-max-h-l);
+@utility widget-card-l {
+  min-height: var(--widget-card-min-h-l);
+  max-height: var(--widget-card-max-h-l);
 }
 
-@utility module-accent-tasks {
+@utility widget-accent-tasks {
   border-left-width: 3px;
   border-left-color: var(--facet-persimmon);
 }
 
-@utility module-accent-calendar {
+@utility widget-accent-calendar {
   border-left-width: 3px;
   border-left-color: var(--facet-indigo);
 }
 
-@utility module-accent-notes {
+@utility widget-accent-notes {
   border-left-width: 3px;
   border-left-color: var(--facet-plum);
 }
 
-@utility module-accent-stream {
+@utility widget-accent-stream {
   border-left-width: 3px;
   border-left-color: var(--facet-teal);
 }
 
-@utility module-accent-files {
+@utility widget-accent-files {
   border-left-width: 3px;
   border-left-color: var(--facet-ochre);
 }
 
-@utility module-accent-reminders {
+@utility widget-accent-reminders {
   border-left-width: 3px;
   border-left-color: var(--facet-moss);
 }
@@ -632,46 +632,46 @@
   max-width: var(--alert-dialog-panel-max-w);
 }
 
-@utility module-picker-viewport-backdrop {
+@utility widget-picker-viewport-backdrop {
   position: fixed;
   inset: 0;
-  z-index: var(--module-picker-overlay-z);
+  z-index: var(--widget-picker-overlay-z);
   backdrop-filter: blur(var(--blur-frosted-panel));
   -webkit-backdrop-filter: blur(var(--blur-frosted-panel));
 }
 
-@utility module-picker-viewport-panel {
+@utility widget-picker-viewport-panel {
   position: fixed;
   top: 50vh;
   left: 50vw;
-  z-index: var(--module-picker-panel-z);
+  z-index: var(--widget-picker-panel-z);
   translate: -50% -50%;
 }
 
-@utility module-picker-panel-size {
-  width: min(calc(100vw - (var(--dialog-panel-inline-gap) * 2)), var(--module-picker-panel-width));
-  height: min(calc(100vh - (var(--dialog-panel-inline-gap) * 2)), var(--module-picker-panel-height));
+@utility widget-picker-panel-size {
+  width: min(calc(100vw - (var(--dialog-panel-inline-gap) * 2)), var(--widget-picker-panel-width));
+  height: min(calc(100vh - (var(--dialog-panel-inline-gap) * 2)), var(--widget-picker-panel-height));
   max-width: var(--dialog-panel-expanded-max-w);
   max-height: calc(100vh - (var(--dialog-panel-inline-gap) * 2));
 }
 
-@utility module-picker-sidebar-size {
-  width: min(var(--module-picker-sidebar-width), 100%);
+@utility widget-picker-sidebar-size {
+  width: min(var(--widget-picker-sidebar-width), 100%);
 }
 
-@utility module-picker-preview-s {
-  width: min(100%, var(--module-picker-preview-width-s));
+@utility widget-picker-preview-s {
+  width: min(100%, var(--widget-picker-preview-width-s));
 }
 
-@utility module-picker-preview-m {
-  width: min(100%, var(--module-picker-preview-width-m));
+@utility widget-picker-preview-m {
+  width: min(100%, var(--widget-picker-preview-width-m));
 }
 
-@utility module-picker-preview-l {
-  width: var(--module-picker-preview-width-l);
+@utility widget-picker-preview-l {
+  width: var(--widget-picker-preview-width-l);
 }
 
-@utility module-picker-readonly {
+@utility widget-picker-readonly {
   display: flex;
   width: 100%;
   max-height: 100%;
@@ -680,7 +680,7 @@
   user-select: none;
 }
 
-@utility module-picker-preview-card {
+@utility widget-picker-preview-card {
   max-height: 100%;
 }
 

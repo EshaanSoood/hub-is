@@ -837,7 +837,7 @@ Hit count: 11 (SPACE-PROJECT 3, WORK-PROJECT 8, AMBIGUOUS 0).
 - src/components/Sidebar/CaptureInput/shared.ts:7  [WORK-PROJECT]  export type DestinationKind = 'hub' \| 'pane';
 - src/components/Sidebar/CaptureInput/shared.ts:13  [WORK-PROJECT]  pane?: HubPaneSummary \| null;
 - src/components/Sidebar/CaptureInput/shared.ts:14  [SPACE-PROJECT]  project?: ProjectRecord \| null;
-- src/components/Sidebar/CaptureInput/shared.ts:35  [WORK-PROJECT]  export const readPaneHasModuleType = (pane: HubPaneSummary, moduleType: string): boolean => {
+- src/components/Sidebar/CaptureInput/shared.ts:35  [WORK-PROJECT]  export const readPaneHasWidgetType = (pane: HubPaneSummary, widgetType: string): boolean => {
 
 #### src/components/Sidebar/ProjectsTree/AddPaneAction.tsx
 Hit count: 18 (SPACE-PROJECT 0, WORK-PROJECT 18, AMBIGUOUS 0).
@@ -1018,25 +1018,25 @@ Hit count: 5 (SPACE-PROJECT 2, WORK-PROJECT 3, AMBIGUOUS 0).
 - src/components/project-space/CalendarDayView.tsx:225  [SPACE-PROJECT]  const projectKey = event.project_id \|\| event.source_pane?.pane_id \|\| projectLabel;
 - src/components/project-space/CalendarDayView.tsx:325  [WORK-PROJECT]  projectId={item.projectKey}
 
-#### src/components/project-space/CalendarModuleSkin/CalendarMediumWeekStrip.tsx
+#### src/components/project-space/CalendarWidgetSkin/CalendarMediumWeekStrip.tsx
 Hit count: 6 (SPACE-PROJECT 2, WORK-PROJECT 4, AMBIGUOUS 0).
-- src/components/project-space/CalendarModuleSkin/CalendarMediumWeekStrip.tsx:7  [SPACE-PROJECT]  project_id?: string \| null;
-- src/components/project-space/CalendarModuleSkin/CalendarMediumWeekStrip.tsx:9  [WORK-PROJECT]  source_pane?: { pane_id: string \| null; pane_name: string \| null; doc_id: string \| null } \| null;
-- src/components/project-space/CalendarModuleSkin/CalendarMediumWeekStrip.tsx:142  [WORK-PROJECT]  const projectName = event.project_name \|\| event.source_pane?.pane_name \|\| 'Calendar';
-- src/components/project-space/CalendarModuleSkin/CalendarMediumWeekStrip.tsx:143  [SPACE-PROJECT]  const projectId = event.project_id \|\| event.source_pane?.pane_id \|\| null;
-- src/components/project-space/CalendarModuleSkin/CalendarMediumWeekStrip.tsx:151  [WORK-PROJECT]  projectId={projectId}
+- src/components/project-space/CalendarWidgetSkin/CalendarMediumWeekStrip.tsx:7  [SPACE-PROJECT]  project_id?: string \| null;
+- src/components/project-space/CalendarWidgetSkin/CalendarMediumWeekStrip.tsx:9  [WORK-PROJECT]  source_pane?: { pane_id: string \| null; pane_name: string \| null; doc_id: string \| null } \| null;
+- src/components/project-space/CalendarWidgetSkin/CalendarMediumWeekStrip.tsx:142  [WORK-PROJECT]  const projectName = event.project_name \|\| event.source_pane?.pane_name \|\| 'Calendar';
+- src/components/project-space/CalendarWidgetSkin/CalendarMediumWeekStrip.tsx:143  [SPACE-PROJECT]  const projectId = event.project_id \|\| event.source_pane?.pane_id \|\| null;
+- src/components/project-space/CalendarWidgetSkin/CalendarMediumWeekStrip.tsx:151  [WORK-PROJECT]  projectId={projectId}
 
-#### src/components/project-space/CalendarModuleSkin/CalendarSmallView.tsx
+#### src/components/project-space/CalendarWidgetSkin/CalendarSmallView.tsx
 Hit count: 4 (SPACE-PROJECT 1, WORK-PROJECT 3, AMBIGUOUS 0).
-- src/components/project-space/CalendarModuleSkin/CalendarSmallView.tsx:77  [WORK-PROJECT]  const projectName = event.project_name \|\| event.source_pane?.pane_name \|\| 'Calendar';
-- src/components/project-space/CalendarModuleSkin/CalendarSmallView.tsx:78  [SPACE-PROJECT]  const projectId = event.project_id \|\| event.source_pane?.pane_id \|\| null;
-- src/components/project-space/CalendarModuleSkin/CalendarSmallView.tsx:86  [WORK-PROJECT]  projectId={projectId}
-- src/components/project-space/CalendarModuleSkin/CalendarSmallView.tsx:99  [WORK-PROJECT]  projectId={projectId}
+- src/components/project-space/CalendarWidgetSkin/CalendarSmallView.tsx:77  [WORK-PROJECT]  const projectName = event.project_name \|\| event.source_pane?.pane_name \|\| 'Calendar';
+- src/components/project-space/CalendarWidgetSkin/CalendarSmallView.tsx:78  [SPACE-PROJECT]  const projectId = event.project_id \|\| event.source_pane?.pane_id \|\| null;
+- src/components/project-space/CalendarWidgetSkin/CalendarSmallView.tsx:86  [WORK-PROJECT]  projectId={projectId}
+- src/components/project-space/CalendarWidgetSkin/CalendarSmallView.tsx:99  [WORK-PROJECT]  projectId={projectId}
 
-#### src/components/project-space/CalendarModuleSkin/types.ts
+#### src/components/project-space/CalendarWidgetSkin/types.ts
 Hit count: 2 (SPACE-PROJECT 1, WORK-PROJECT 1, AMBIGUOUS 0).
-- src/components/project-space/CalendarModuleSkin/types.ts:22  [SPACE-PROJECT]  project_id?: string \| null;
-- src/components/project-space/CalendarModuleSkin/types.ts:24  [WORK-PROJECT]  source_pane?: { pane_id: string \| null; pane_name: string \| null; doc_id: string \| null } \| null;
+- src/components/project-space/CalendarWidgetSkin/types.ts:22  [SPACE-PROJECT]  project_id?: string \| null;
+- src/components/project-space/CalendarWidgetSkin/types.ts:24  [WORK-PROJECT]  source_pane?: { pane_id: string \| null; pane_name: string \| null; doc_id: string \| null } \| null;
 
 #### src/components/project-space/CalendarWeekView.tsx
 Hit count: 1 (SPACE-PROJECT 0, WORK-PROJECT 1, AMBIGUOUS 0).
@@ -1064,12 +1064,12 @@ Hit count: 12 (SPACE-PROJECT 0, WORK-PROJECT 12, AMBIGUOUS 0).
 - src/components/project-space/FileMovePopover.tsx:60  [WORK-PROJECT]  ariaLabel={\`Move ${currentFileName} to project\`}
 - src/components/project-space/FileMovePopover.tsx:67  [WORK-PROJECT]  Move to <strong>{panes.find((pane) => pane.id === pendingPaneId)?.name \|\| 'selected project'}</strong>?
 
-#### src/components/project-space/FilesModuleSkin.tsx
+#### src/components/project-space/FilesWidgetSkin.tsx
 Hit count: 4 (SPACE-PROJECT 0, WORK-PROJECT 4, AMBIGUOUS 0).
-- src/components/project-space/FilesModuleSkin.tsx:210  [WORK-PROJECT]  const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this project.' : 'Drag files here or use upload.') : null;
-- src/components/project-space/FilesModuleSkin.tsx:507  [WORK-PROJECT]  {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
-- src/components/project-space/FilesModuleSkin.tsx:561  [WORK-PROJECT]  {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
-- src/components/project-space/FilesModuleSkin.tsx:629  [WORK-PROJECT]  {filterKey === 'all' ? (files.length === 0 ? 'No files in this project.' : 'Add files to this project') : \`No ${filterKey} files\`}
+- src/components/project-space/FilesWidgetSkin.tsx:210  [WORK-PROJECT]  const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this project.' : 'Drag files here or use upload.') : null;
+- src/components/project-space/FilesWidgetSkin.tsx:507  [WORK-PROJECT]  {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
+- src/components/project-space/FilesWidgetSkin.tsx:561  [WORK-PROJECT]  {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
+- src/components/project-space/FilesWidgetSkin.tsx:629  [WORK-PROJECT]  {filterKey === 'all' ? (files.length === 0 ? 'No files in this project.' : 'Add files to this project') : \`No ${filterKey} files\`}
 
 #### src/components/project-space/MentionPicker.tsx
 Hit count: 4 (SPACE-PROJECT 0, WORK-PROJECT 4, AMBIGUOUS 0).
@@ -1078,17 +1078,17 @@ Hit count: 4 (SPACE-PROJECT 0, WORK-PROJECT 4, AMBIGUOUS 0).
 - src/components/project-space/MentionPicker.tsx:56  [WORK-PROJECT]  void searchMentionTargets(accessToken, projectId, query, 20)
 - src/components/project-space/MentionPicker.tsx:82  [WORK-PROJECT]  }, [accessToken, open, projectId, query]);
 
-#### src/components/project-space/ModuleGrid.tsx
+#### src/components/project-space/WidgetGrid.tsx
 Hit count: 5 (SPACE-PROJECT 0, WORK-PROJECT 5, AMBIGUOUS 0).
-- src/components/project-space/ModuleGrid.tsx:8  [WORK-PROJECT]  export type ContractModuleLens = 'project' \| 'pane' \| 'pane_scratch';
-- src/components/project-space/ModuleGrid.tsx:75  [WORK-PROJECT]  <section className="space-y-3" aria-label="Project organization modules">
-- src/components/project-space/ModuleGrid.tsx:88  [WORK-PROJECT]  {readOnlyState ? 'No modules in this project yet' : "Let's get this project started!"}
-- src/components/project-space/ModuleGrid.tsx:92  [WORK-PROJECT]  ? 'This project is currently read-only. Modules will appear here after they are added elsewhere.'
-- src/components/project-space/ModuleGrid.tsx:93  [WORK-PROJECT]  : 'Add a first module to shape the project.'}
+- src/components/project-space/WidgetGrid.tsx:8  [WORK-PROJECT]  export type ContractWidgetLens = 'project' \| 'pane' \| 'pane_scratch';
+- src/components/project-space/WidgetGrid.tsx:75  [WORK-PROJECT]  <section className="space-y-3" aria-label="Project organization widgets">
+- src/components/project-space/WidgetGrid.tsx:88  [WORK-PROJECT]  {readOnlyState ? 'No widgets in this project yet' : "Let's get this project started!"}
+- src/components/project-space/WidgetGrid.tsx:92  [WORK-PROJECT]  ? 'This project is currently read-only. Widgets will appear here after they are added elsewhere.'
+- src/components/project-space/WidgetGrid.tsx:93  [WORK-PROJECT]  : 'Add a first widget to shape the project.'}
 
-#### src/components/project-space/ModuleLensControl.tsx
+#### src/components/project-space/WidgetLensControl.tsx
 Hit count: 1 (SPACE-PROJECT 0, WORK-PROJECT 1, AMBIGUOUS 0).
-- src/components/project-space/ModuleLensControl.tsx:5  [WORK-PROJECT]  { id: 'project', label: 'Space Lens' },
+- src/components/project-space/WidgetLensControl.tsx:5  [WORK-PROJECT]  { id: 'project', label: 'Space Lens' },
 
 #### src/components/project-space/OverviewView.tsx
 Hit count: 4 (SPACE-PROJECT 0, WORK-PROJECT 4, AMBIGUOUS 0).
@@ -1121,11 +1121,11 @@ Hit count: 17 (SPACE-PROJECT 0, WORK-PROJECT 17, AMBIGUOUS 0).
 - src/components/project-space/PinnedPanesTabs.tsx:14  [WORK-PROJECT]  onUnpinPane: (paneId: string) => void;
 - src/components/project-space/PinnedPanesTabs.tsx:18  [WORK-PROJECT]  panes,
 
-#### src/components/project-space/QuickThoughtsModuleSkin.tsx
+#### src/components/project-space/QuickThoughtsWidgetSkin.tsx
 Hit count: 3 (SPACE-PROJECT 0, WORK-PROJECT 3, AMBIGUOUS 0).
-- src/components/project-space/QuickThoughtsModuleSkin.tsx:383  [WORK-PROJECT]  setAnnouncement('Quick Thought saved to this project.');
-- src/components/project-space/QuickThoughtsModuleSkin.tsx:473  [WORK-PROJECT]  placeholder="Capture a thought for this project..."
-- src/components/project-space/QuickThoughtsModuleSkin.tsx:486  [WORK-PROJECT]  title="Nothing captured for this project yet."
+- src/components/project-space/QuickThoughtsWidgetSkin.tsx:383  [WORK-PROJECT]  setAnnouncement('Quick Thought saved to this project.');
+- src/components/project-space/QuickThoughtsWidgetSkin.tsx:473  [WORK-PROJECT]  placeholder="Capture a thought for this project..."
+- src/components/project-space/QuickThoughtsWidgetSkin.tsx:486  [WORK-PROJECT]  title="Nothing captured for this project yet."
 
 #### src/components/project-space/RelationPicker.tsx
 Hit count: 4 (SPACE-PROJECT 0, WORK-PROJECT 4, AMBIGUOUS 0).
@@ -1148,17 +1148,17 @@ Hit count: 9 (SPACE-PROJECT 1, WORK-PROJECT 8, AMBIGUOUS 0).
 - src/components/project-space/TaskCreateDialog.tsx:221  [WORK-PROJECT]  ? (selectedProjectId \|\| projectId)
 - src/components/project-space/TaskCreateDialog.tsx:222  [WORK-PROJECT]  : projectId;
 
-#### src/components/project-space/TasksModuleSkin/index.tsx
+#### src/components/project-space/TasksWidgetSkin/index.tsx
 Hit count: 3 (SPACE-PROJECT 0, WORK-PROJECT 3, AMBIGUOUS 0).
-- src/components/project-space/TasksModuleSkin/index.tsx:257  [WORK-PROJECT]  title="No tasks in this project."
-- src/components/project-space/TasksModuleSkin/index.tsx:322  [WORK-PROJECT]  title="No tasks in this project."
-- src/components/project-space/TasksModuleSkin/index.tsx:476  [WORK-PROJECT]  title="No tasks in this project."
+- src/components/project-space/TasksWidgetSkin/index.tsx:257  [WORK-PROJECT]  title="No tasks in this project."
+- src/components/project-space/TasksWidgetSkin/index.tsx:322  [WORK-PROJECT]  title="No tasks in this project."
+- src/components/project-space/TasksWidgetSkin/index.tsx:476  [WORK-PROJECT]  title="No tasks in this project."
 
 #### src/components/project-space/WorkView.tsx
 Hit count: 21 (SPACE-PROJECT 0, WORK-PROJECT 21, AMBIGUOUS 0). Total 21; showing first 5.
 - src/components/project-space/WorkView.tsx:32  [WORK-PROJECT]  pane: HubPaneSummary \| null;
 - src/components/project-space/WorkView.tsx:37  [WORK-PROJECT]  onUpdatePane: (paneId: string, payload: { name?: string; pinned?: boolean; sort_order?: number; layout_config?: Record<string, unknown> }) => Promise<void>;
-- src/components/project-space/WorkView.tsx:53  [WORK-PROJECT]  const defaultModuleLens = (moduleType: string): 'project' \| 'pane' \| 'pane_scratch' => {
+- src/components/project-space/WorkView.tsx:53  [WORK-PROJECT]  const defaultWidgetLens = (widgetType: string): 'project' \| 'pane' \| 'pane_scratch' => {
 - src/components/project-space/WorkView.tsx:58  [WORK-PROJECT]  return 'pane';
 - src/components/project-space/WorkView.tsx:61  [WORK-PROJECT]  return 'pane';
 
@@ -1170,45 +1170,45 @@ Hit count: 10 (SPACE-PROJECT 0, WORK-PROJECT 10, AMBIGUOUS 0).
 - src/components/project-space/WorkspaceDocSurface.tsx:89  [WORK-PROJECT]  activePane,
 - src/components/project-space/WorkspaceDocSurface.tsx:145  [WORK-PROJECT]  if (!activePane) {
 
-#### src/components/project-space/module-picker/ModulePickerPreview.tsx
+#### src/components/project-space/widget-picker/WidgetPickerPreview.tsx
 Hit count: 3 (SPACE-PROJECT 1, WORK-PROJECT 2, AMBIGUOUS 0).
-- src/components/project-space/module-picker/ModulePickerPreview.tsx:42  [WORK-PROJECT]  pane_id: 'module-picker-preview-pane',
-- src/components/project-space/module-picker/ModulePickerPreview.tsx:43  [SPACE-PROJECT]  project_id: 'module-picker-preview-project',
-- src/components/project-space/module-picker/ModulePickerPreview.tsx:91  [WORK-PROJECT]  return <QuickThoughtsModule module={module} contract={quickThoughtsContract(seed)} pane={previewPane} canEditPane={false} previewMode />;
+- src/components/project-space/widget-picker/WidgetPickerPreview.tsx:42  [WORK-PROJECT]  pane_id: 'widget-picker-preview-pane',
+- src/components/project-space/widget-picker/WidgetPickerPreview.tsx:43  [SPACE-PROJECT]  project_id: 'widget-picker-preview-project',
+- src/components/project-space/widget-picker/WidgetPickerPreview.tsx:91  [WORK-PROJECT]  return <QuickThoughtsWidget widget={widget} contract={quickThoughtsContract(seed)} pane={previewPane} canEditPane={false} previewMode />;
 
-#### src/components/project-space/module-picker/modulePickerPreviewCore.ts
+#### src/components/project-space/widget-picker/widgetPickerPreviewCore.ts
 Hit count: 3 (SPACE-PROJECT 0, WORK-PROJECT 3, AMBIGUOUS 0).
-- src/components/project-space/module-picker/modulePickerPreviewCore.ts:11  [WORK-PROJECT]  lens: 'project',
-- src/components/project-space/module-picker/modulePickerPreviewCore.ts:48  [WORK-PROJECT]  source_pane: null,
-- src/components/project-space/module-picker/modulePickerPreviewCore.ts:74  [WORK-PROJECT]  source_pane: null,
+- src/components/project-space/widget-picker/widgetPickerPreviewCore.ts:11  [WORK-PROJECT]  lens: 'project',
+- src/components/project-space/widget-picker/widgetPickerPreviewCore.ts:48  [WORK-PROJECT]  source_pane: null,
+- src/components/project-space/widget-picker/widgetPickerPreviewCore.ts:74  [WORK-PROJECT]  source_pane: null,
 
-#### src/components/project-space/module-picker/modulePickerPreviewPersonal.ts
+#### src/components/project-space/widget-picker/widgetPickerPreviewPersonal.ts
 Hit count: 1 (SPACE-PROJECT 1, WORK-PROJECT 0, AMBIGUOUS 0).
-- src/components/project-space/module-picker/modulePickerPreviewPersonal.ts:69  [SPACE-PROJECT]  project_id: 'preview-project',
+- src/components/project-space/widget-picker/widgetPickerPreviewPersonal.ts:69  [SPACE-PROJECT]  project_id: 'preview-project',
 
-#### src/components/project-space/moduleCatalog.ts
+#### src/components/project-space/widgetCatalog.ts
 Hit count: 3 (SPACE-PROJECT 0, WORK-PROJECT 3, AMBIGUOUS 0).
-- src/components/project-space/moduleCatalog.ts:46  [WORK-PROJECT]  description: 'A focused task list for this project.',
-- src/components/project-space/moduleCatalog.ts:73  [WORK-PROJECT]  description: 'Shared assets and uploads for the project.',
-- src/components/project-space/moduleCatalog.ts:97  [WORK-PROJECT]  moduleCatalogEntry(moduleType)?.description \|\| 'Add this module to the project.';
+- src/components/project-space/widgetCatalog.ts:46  [WORK-PROJECT]  description: 'A focused task list for this project.',
+- src/components/project-space/widgetCatalog.ts:73  [WORK-PROJECT]  description: 'Shared assets and uploads for the project.',
+- src/components/project-space/widgetCatalog.ts:97  [WORK-PROJECT]  widgetCatalogEntry(widgetType)?.description \|\| 'Add this widget to the project.';
 
-#### src/components/project-space/modules/FilesModule.tsx
+#### src/components/project-space/widgets/FilesWidget.tsx
 Hit count: 2 (SPACE-PROJECT 0, WORK-PROJECT 2, AMBIGUOUS 0).
-- src/components/project-space/modules/FilesModule.tsx:21  [WORK-PROJECT]  : module.lens === 'project'
-- src/components/project-space/modules/FilesModule.tsx:29  [WORK-PROJECT]  files={module.lens === 'project' ? contract.projectFiles : contract.paneFiles}
+- src/components/project-space/widgets/FilesWidget.tsx:21  [WORK-PROJECT]  : widget.lens === 'project'
+- src/components/project-space/widgets/FilesWidget.tsx:29  [WORK-PROJECT]  files={widget.lens === 'project' ? contract.projectFiles : contract.paneFiles}
 
-#### src/components/project-space/modules/KanbanModule.tsx
+#### src/components/project-space/widgets/KanbanWidget.tsx
 Hit count: 2 (SPACE-PROJECT 0, WORK-PROJECT 2, AMBIGUOUS 0).
-- src/components/project-space/modules/KanbanModule.tsx:84  [WORK-PROJECT]  setSetupError('Unable to create a kanban view for this project.');
-- src/components/project-space/modules/KanbanModule.tsx:119  [WORK-PROJECT]  description={canEditPane ? 'Create a starter kanban board for this project.' : 'Open an editable project to create a kanban board.'}
+- src/components/project-space/widgets/KanbanWidget.tsx:84  [WORK-PROJECT]  setSetupError('Unable to create a kanban view for this project.');
+- src/components/project-space/widgets/KanbanWidget.tsx:119  [WORK-PROJECT]  description={canEditPane ? 'Create a starter kanban board for this project.' : 'Open an editable project to create a kanban board.'}
 
-#### src/components/project-space/modules/QuickThoughtsModule.tsx
+#### src/components/project-space/widgets/QuickThoughtsWidget.tsx
 Hit count: 5 (SPACE-PROJECT 0, WORK-PROJECT 5, AMBIGUOUS 0).
-- src/components/project-space/modules/QuickThoughtsModule.tsx:15  [WORK-PROJECT]  pane: HubPaneSummary;
-- src/components/project-space/modules/QuickThoughtsModule.tsx:20  [WORK-PROJECT]  export const QuickThoughtsModule = ({ module, contract, pane, canEditPane, previewMode = false }: Props) => (
-- src/components/project-space/modules/QuickThoughtsModule.tsx:23  [WORK-PROJECT]  key={\`${contract.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}\`}
-- src/components/project-space/modules/QuickThoughtsModule.tsx:25  [WORK-PROJECT]  storageKey={\`${contract.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}\`}
-- src/components/project-space/modules/QuickThoughtsModule.tsx:28  [WORK-PROJECT]  ? \`${contract.legacyStorageKeyBase}:${pane.pane_id}:${module.module_instance_id}\`
+- src/components/project-space/widgets/QuickThoughtsWidget.tsx:15  [WORK-PROJECT]  pane: HubPaneSummary;
+- src/components/project-space/widgets/QuickThoughtsWidget.tsx:20  [WORK-PROJECT]  export const QuickThoughtsWidget = ({ widget, contract, pane, canEditPane, previewMode = false }: Props) => (
+- src/components/project-space/widgets/QuickThoughtsWidget.tsx:23  [WORK-PROJECT]  key={\`${contract.storageKeyBase}:${pane.pane_id}:${widget.widget_instance_id}\`}
+- src/components/project-space/widgets/QuickThoughtsWidget.tsx:25  [WORK-PROJECT]  storageKey={\`${contract.storageKeyBase}:${pane.pane_id}:${widget.widget_instance_id}\`}
+- src/components/project-space/widgets/QuickThoughtsWidget.tsx:28  [WORK-PROJECT]  ? \`${contract.legacyStorageKeyBase}:${pane.pane_id}:${widget.widget_instance_id}\`
 
 #### src/components/project-space/record-inspector/EventRecordInspector.tsx
 Hit count: 10 (SPACE-PROJECT 0, WORK-PROJECT 10, AMBIGUOUS 0).
@@ -1471,9 +1471,9 @@ Hit count: 9 (SPACE-PROJECT 2, WORK-PROJECT 7, AMBIGUOUS 0).
 
 #### src/features/home/HomeOverviewSurface.tsx
 Hit count: 11 (SPACE-PROJECT 0, WORK-PROJECT 11, AMBIGUOUS 0).
-- src/features/home/HomeOverviewSurface.tsx:5  [WORK-PROJECT]  import type { CalendarScope } from '../../components/project-space/CalendarModuleSkin/types';
-- src/features/home/HomeOverviewSurface.tsx:8  [WORK-PROJECT]  import { CalendarModuleSkin } from '../../components/project-space/CalendarModuleSkin';
-- src/features/home/HomeOverviewSurface.tsx:9  [WORK-PROJECT]  import { RemindersModuleSkin } from '../../components/project-space/RemindersModuleSkin';
+- src/features/home/HomeOverviewSurface.tsx:5  [WORK-PROJECT]  import type { CalendarScope } from '../../components/project-space/CalendarWidgetSkin/types';
+- src/features/home/HomeOverviewSurface.tsx:8  [WORK-PROJECT]  import { CalendarWidgetSkin } from '../../components/project-space/CalendarWidgetSkin';
+- src/features/home/HomeOverviewSurface.tsx:9  [WORK-PROJECT]  import { RemindersWidgetSkin } from '../../components/project-space/RemindersWidgetSkin';
 - src/features/home/HomeOverviewSurface.tsx:10  [WORK-PROJECT]  import { TaskCreateDialog } from '../../components/project-space/TaskCreateDialog';
 - src/features/home/HomeOverviewSurface.tsx:11  [WORK-PROJECT]  import { TasksTab, type SortChain } from '../../components/project-space/TasksTab';
 
@@ -1520,7 +1520,7 @@ Hit count: 14 (SPACE-PROJECT 0, WORK-PROJECT 14, AMBIGUOUS 0).
 Hit count: 110 (SPACE-PROJECT 12, WORK-PROJECT 98, AMBIGUOUS 0). Total 110; showing first 5.
 - src/features/home/useHomeProjectWorkRuntime.ts:3  [SPACE-PROJECT]  import type { HubBacklink, HubPaneSummary, HubProject, HubProjectMember, HubTaskSummary } from '../../services/hub/types';
 - src/features/home/useHomeProjectWorkRuntime.ts:11  [WORK-PROJECT]  import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
-- src/features/home/useHomeProjectWorkRuntime.ts:12  [WORK-PROJECT]  import { CalendarModuleSkin } from '../../components/project-space/CalendarModuleSkin';
+- src/features/home/useHomeProjectWorkRuntime.ts:12  [WORK-PROJECT]  import { CalendarWidgetSkin } from '../../components/project-space/CalendarWidgetSkin';
 - src/features/home/useHomeProjectWorkRuntime.ts:33  [WORK-PROJECT]  paneId: string \| null;
 - src/features/home/useHomeProjectWorkRuntime.ts:34  [WORK-PROJECT]  panes: HubPaneSummary[];
 
@@ -1639,7 +1639,7 @@ Hit count: 5 (SPACE-PROJECT 1, WORK-PROJECT 4, AMBIGUOUS 0).
 
 #### src/features/rooms/SpaceRoomsOverviewSection.tsx
 Hit count: 11 (SPACE-PROJECT 0, WORK-PROJECT 11, AMBIGUOUS 0).
-- src/features/rooms/SpaceRoomsOverviewSection.tsx:4  [WORK-PROJECT]  import type { CalendarEventSummary } from '../../components/project-space/CalendarModuleSkin/types';
+- src/features/rooms/SpaceRoomsOverviewSection.tsx:4  [WORK-PROJECT]  import type { CalendarEventSummary } from '../../components/project-space/CalendarWidgetSkin/types';
 - src/features/rooms/SpaceRoomsOverviewSection.tsx:14  [WORK-PROJECT]  projectId: string;
 - src/features/rooms/SpaceRoomsOverviewSection.tsx:15  [WORK-PROJECT]  panes: HubPaneSummary[];
 - src/features/rooms/SpaceRoomsOverviewSection.tsx:57  [WORK-PROJECT]  const sourcePaneId = item.summary_json?.source_pane_id;
@@ -1722,7 +1722,7 @@ Hit count: 4 (SPACE-PROJECT 0, WORK-PROJECT 4, AMBIGUOUS 0).
 
 #### src/hooks/useProjectFilesRuntime.ts
 Hit count: 53 (SPACE-PROJECT 3, WORK-PROJECT 50, AMBIGUOUS 0). Total 53; showing first 5.
-- src/hooks/useProjectFilesRuntime.ts:11  [WORK-PROJECT]  import type { FilesModuleItem } from '../components/project-space/FilesModuleSkin';
+- src/hooks/useProjectFilesRuntime.ts:11  [WORK-PROJECT]  import type { FilesWidgetItem } from '../components/project-space/FilesWidgetSkin';
 - src/hooks/useProjectFilesRuntime.ts:42  [WORK-PROJECT]  .slice(0, 48) \|\| 'project';
 - src/hooks/useProjectFilesRuntime.ts:61  [SPACE-PROJECT]  project_id: string;
 - src/hooks/useProjectFilesRuntime.ts:70  [WORK-PROJECT]  pane_id: string;
@@ -1885,9 +1885,9 @@ Hit count: 94 (SPACE-PROJECT 0, WORK-PROJECT 94, AMBIGUOUS 0). Total 94; showing
 
 #### src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx
 Hit count: 15 (SPACE-PROJECT 0, WORK-PROJECT 15, AMBIGUOUS 0).
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:3  [WORK-PROJECT]  import { ModuleLoadingState } from '../../../components/project-space/ModuleFeedback';
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:7  [WORK-PROJECT]  const module = await import('../../../components/project-space/KanbanModuleSkin');
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:12  [WORK-PROJECT]  const module = await import('../../../components/project-space/TableModuleSkin');
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:3  [WORK-PROJECT]  import { WidgetLoadingState } from '../../../components/project-space/WidgetFeedback';
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:7  [WORK-PROJECT]  const module = await import('../../../components/project-space/KanbanWidgetSkin');
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:12  [WORK-PROJECT]  const module = await import('../../../components/project-space/TableWidgetSkin');
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:40  [WORK-PROJECT]  activePaneId: string \| null;
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:46  [WORK-PROJECT]  paneId: string \| null,
 
@@ -1907,7 +1907,7 @@ Hit count: 2 (SPACE-PROJECT 0, WORK-PROJECT 2, AMBIGUOUS 0).
 #### src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx
 Hit count: 10 (SPACE-PROJECT 0, WORK-PROJECT 10, AMBIGUOUS 0).
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx:2  [WORK-PROJECT]  import { OverviewView } from '../../../components/project-space/OverviewView';
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx:5  [WORK-PROJECT]  import type { CalendarEventSummary } from '../../../components/project-space/CalendarModuleSkin/types';
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx:5  [WORK-PROJECT]  import type { CalendarEventSummary } from '../../../components/project-space/CalendarWidgetSkin/types';
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx:14  [WORK-PROJECT]  projectId: string;
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx:16  [WORK-PROJECT]  panes: HubPaneSummary[];
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx:45  [WORK-PROJECT]  projectId,
@@ -1934,7 +1934,7 @@ Hit count: 10 (SPACE-PROJECT 0, WORK-PROJECT 10, AMBIGUOUS 0).
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkSurface.tsx:5  [WORK-PROJECT]  import { WorkView } from '../../../components/project-space/WorkView';
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkSurface.tsx:16  [WORK-PROJECT]  paneId?: string;
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkSurface.tsx:18  [WORK-PROJECT]  activePane: HubPaneSummary \| null;
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkSurface.tsx:25  [WORK-PROJECT]  workViewProps: Omit<WorkViewProps, 'layoutId' \| 'pane' \| 'canEditPane' \| 'modulesEnabled' \| 'showWorkspaceDocPlaceholder'>;
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkSurface.tsx:25  [WORK-PROJECT]  workViewProps: Omit<WorkViewProps, 'layoutId' \| 'pane' \| 'canEditPane' \| 'widgetsEnabled' \| 'showWorkspaceDocPlaceholder'>;
 
 #### src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkspaceDocSection.tsx
 Hit count: 1 (SPACE-PROJECT 0, WORK-PROJECT 1, AMBIGUOUS 0).
@@ -1991,13 +1991,13 @@ Hit count: 11 (SPACE-PROJECT 0, WORK-PROJECT 11, AMBIGUOUS 0).
 - src/pages/ProjectSpacePage/hooks/useWorkRouteAndInspectorQueryEffects.ts:19  [WORK-PROJECT]  activePane,
 - src/pages/ProjectSpacePage/hooks/useWorkRouteAndInspectorQueryEffects.ts:24  [WORK-PROJECT]  paneId,
 
-#### src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts
+#### src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts
 Hit count: 29 (SPACE-PROJECT 0, WORK-PROJECT 29, AMBIGUOUS 0). Total 29; showing first 5.
-- src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts:19  [WORK-PROJECT]  } from '../../../components/project-space/moduleContracts';
-- src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts:72  [WORK-PROJECT]  activePaneId: string \| null;
-- src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts:77  [WORK-PROJECT]  projectId: string;
-- src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts:129  [WORK-PROJECT]  activePaneId,
-- src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts:134  [WORK-PROJECT]  projectId,
+- src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts:19  [WORK-PROJECT]  } from '../../../components/project-space/widgetContracts';
+- src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts:72  [WORK-PROJECT]  activePaneId: string \| null;
+- src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts:77  [WORK-PROJECT]  projectId: string;
+- src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts:129  [WORK-PROJECT]  activePaneId,
+- src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts:134  [WORK-PROJECT]  projectId,
 
 #### src/pages/ProjectSpacePage/index.tsx
 Hit count: 11 (SPACE-PROJECT 0, WORK-PROJECT 11, AMBIGUOUS 0).
@@ -2042,9 +2042,9 @@ Hit count: 18 (SPACE-PROJECT 2, WORK-PROJECT 16, AMBIGUOUS 0).
 - src/types/domain.ts:58  [SPACE-PROJECT]  export type ProjectRecord = SharedProjectRecord;
 - src/types/domain.ts:111  [WORK-PROJECT]  \| 'projects.view'
 
-#### src/types/hub-api-module.d.ts
+#### src/types/hub-api-widget.d.ts
 Hit count: 1 (SPACE-PROJECT 0, WORK-PROJECT 1, AMBIGUOUS 0).
-- src/types/hub-api-module.d.ts:15  [WORK-PROJECT]  projectId?: string;
+- src/types/hub-api-widget.d.ts:15  [WORK-PROJECT]  projectId?: string;
 
 ## 8. String Literals and Comments
 
@@ -2183,8 +2183,8 @@ Total string/comment hits: 3475.
 - src/components/layout/QuickAddDialogs.tsx:343  [WORK-PROJECT]  <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="quick-add-project-name">
 - src/components/layout/appShellUtils.ts:55  [WORK-PROJECT]  { key: 'project', label: 'Space', iconName: 'project-list' },
 - src/components/project-space/FileMovePopover.tsx:67  [WORK-PROJECT]  Move to <strong>{panes.find((pane) => pane.id === pendingPaneId)?.name \|\| 'selected project'}</strong>?
-- src/components/project-space/ModuleGrid.tsx:75  [WORK-PROJECT]  <section className="space-y-3" aria-label="Project organization modules">
-- src/components/project-space/ModuleLensControl.tsx:5  [WORK-PROJECT]  { id: 'project', label: 'Space Lens' },
+- src/components/project-space/WidgetGrid.tsx:75  [WORK-PROJECT]  <section className="space-y-3" aria-label="Project organization widgets">
+- src/components/project-space/WidgetLensControl.tsx:5  [WORK-PROJECT]  { id: 'project', label: 'Space Lens' },
 - src/components/project-space/OverviewView.tsx:221  [WORK-PROJECT]  <section id="project-panel-overview" role="tabpanel" aria-labelledby="project-tab-overview" className="space-y-4">
 - src/components/project-space/PaneHeaderControls.tsx:60  [WORK-PROJECT]  aria-label="Project name"
 - src/components/project-space/PaneHeaderControls.tsx:75  [WORK-PROJECT]  aria-label="Project configuration"
@@ -2193,17 +2193,17 @@ Total string/comment hits: 3475.
 - src/components/project-space/PaneSwitcher.tsx:67  [WORK-PROJECT]  aria-label={\`${pane.label}${pane.shortcutNumber ? \`, project ${pane.shortcutNumber}\` : ''}\`}
 - src/components/project-space/PinnedPanesTabs.tsx:48  [WORK-PROJECT]  aria-label={\`Open pinned project ${pane.title}\`}
 - src/components/project-space/PinnedPanesTabs.tsx:57  [WORK-PROJECT]  aria-label={\`Unpin project ${pane.title}\`}
-- src/components/project-space/QuickThoughtsModuleSkin.tsx:473  [WORK-PROJECT]  placeholder="Capture a thought for this project..."
-- src/components/project-space/QuickThoughtsModuleSkin.tsx:486  [WORK-PROJECT]  title="Nothing captured for this project yet."
+- src/components/project-space/QuickThoughtsWidgetSkin.tsx:473  [WORK-PROJECT]  placeholder="Capture a thought for this project..."
+- src/components/project-space/QuickThoughtsWidgetSkin.tsx:486  [WORK-PROJECT]  title="Nothing captured for this project yet."
 - src/components/project-space/TaskCreateDialog.tsx:278  [WORK-PROJECT]  <label className="text-xs font-medium uppercase tracking-wide text-muted" htmlFor="task-create-project">
-- src/components/project-space/TasksModuleSkin/index.tsx:257  [WORK-PROJECT]  title="No tasks in this project."
-- src/components/project-space/TasksModuleSkin/index.tsx:322  [WORK-PROJECT]  title="No tasks in this project."
-- src/components/project-space/TasksModuleSkin/index.tsx:476  [WORK-PROJECT]  title="No tasks in this project."
-- src/components/project-space/WorkView.tsx:278  [WORK-PROJECT]  description="Manage and browse project modules"
+- src/components/project-space/TasksWidgetSkin/index.tsx:257  [WORK-PROJECT]  title="No tasks in this project."
+- src/components/project-space/TasksWidgetSkin/index.tsx:322  [WORK-PROJECT]  title="No tasks in this project."
+- src/components/project-space/TasksWidgetSkin/index.tsx:476  [WORK-PROJECT]  title="No tasks in this project."
+- src/components/project-space/WorkView.tsx:278  [WORK-PROJECT]  description="Manage and browse project widgets"
 - src/components/project-space/WorkView.tsx:541  [WORK-PROJECT]  <p className="mt-1 text-sm text-muted">Doc ID: {pane.doc_id \|\| 'missing'}</p>
-- src/components/project-space/moduleCatalog.ts:46  [WORK-PROJECT]  description: 'A focused task list for this project.',
-- src/components/project-space/moduleCatalog.ts:73  [WORK-PROJECT]  description: 'Shared assets and uploads for the project.',
-- src/components/project-space/modules/KanbanModule.tsx:119  [WORK-PROJECT]  description={canEditPane ? 'Create a starter kanban board for this project.' : 'Open an editable project to create a kanban board.'}
+- src/components/project-space/widgetCatalog.ts:46  [WORK-PROJECT]  description: 'A focused task list for this project.',
+- src/components/project-space/widgetCatalog.ts:73  [WORK-PROJECT]  description: 'Shared assets and uploads for the project.',
+- src/components/project-space/widgets/KanbanWidget.tsx:119  [WORK-PROJECT]  description={canEditPane ? 'Create a starter kanban board for this project.' : 'Open an editable project to create a kanban board.'}
 - src/components/project-space/record-inspector/RecordInspectorBodyRouter.tsx:14  [WORK-PROJECT]  export interface RecordInspectorBodyRouterProps extends Omit<RecordInspectorBodyProps, 'projectId' \| 'inspectorRecord' \| 'onOpenSourcePane'> {
 - src/features/PersonalizedDashboardPanel/index.tsx:37  [WORK-PROJECT]  const [activeView, setActiveView] = useState<HubDashboardView>(initialView ?? 'project-lens');
 - src/features/home/HomeProjectNamingDialog.test.tsx:55  [WORK-PROJECT]  expect(input).toHaveAttribute('aria-describedby', 'home-project-name-error');
@@ -2239,7 +2239,7 @@ Total string/comment hits: 3475.
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkPaneChrome.tsx:248  [WORK-PROJECT]  placeholder="Search projects"
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkPaneChrome.tsx:249  [WORK-PROJECT]  aria-label="Search read-only projects"
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkPaneChrome.tsx:279  [WORK-PROJECT]  <InlineNotice variant="danger" className="mt-2" title="Project update failed">
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkSurface.tsx:25  [WORK-PROJECT]  workViewProps: Omit<WorkViewProps, 'layoutId' \| 'pane' \| 'canEditPane' \| 'modulesEnabled' \| 'showWorkspaceDocPlaceholder'>;
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkSurface.tsx:25  [WORK-PROJECT]  workViewProps: Omit<WorkViewProps, 'layoutId' \| 'pane' \| 'canEditPane' \| 'widgetsEnabled' \| 'showWorkspaceDocPlaceholder'>;
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkSurface.tsx:46  [WORK-PROJECT]  <AccessDeniedView message="Project not found in this space." />
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/index.tsx:111  [WORK-PROJECT]  aria-label={\`Open pinned project ${pane.name}\`}
 - src/pages/ProjectSpacePage/index.tsx:24  [WORK-PROJECT]  return <Navigate to="/projects" replace />;
@@ -2291,9 +2291,9 @@ Total string/comment hits: 3475.
 - .env.example:176  [AMBIGUOUS]  # Project id used by collab websocket live checks.
 - .env.example:180  [AMBIGUOUS]  # Project id used by Nextcloud live checks.
 - .env.example:184  [AMBIGUOUS]  # Project id used by OpenProject live checks.
-- AGENTS.md:168  [WORK-PROJECT]  - Module contracts: \`src/components/project-space/moduleContracts/index.ts\`
+- AGENTS.md:168  [WORK-PROJECT]  - Widget contracts: \`src/components/project-space/widgetContracts/index.ts\`
 - FILE_MAP.md:145  [WORK-PROJECT]  ## src/components/project-space
-- FILE_MAP.md:194  [WORK-PROJECT]  ## src/components/project-space/modules
+- FILE_MAP.md:194  [WORK-PROJECT]  ## src/components/project-space/widgets
 - README.md:58  [SPACE-PROJECT]  - Notes (project-scoped, async): \`GET/POST /api/hub/projects/:projectId/notes\`, \`PATCH /api/hub/projects/:projectId/notes/:noteId\`
 - README.md:59  [SPACE-PROJECT]  - Notes collaboration session mint (project-scoped): \`POST /api/hub/projects/:projectId/notes/:noteId/collab/session\`
 - apps/hub-api/db/migrations.mjs:53  [SPACE-PROJECT]  addColumnIfMissing('projects', 'position', 'INTEGER');
@@ -2491,7 +2491,7 @@ Total string/comment hits: 3475.
 - docs/diagnostic-report.md:135  [WORK-PROJECT]  - **File/lines:** \`src/components/project-space/RelationPicker.tsx:102-110\`
 - docs/diagnostic-report.md:141  [WORK-PROJECT]  - **File/lines:** \`src/components/project-space/FileInspectorActionBar.tsx:133-145\` and \`src/components/project-space/FileInspectorActionBar.tsx:147-159\`
 - docs/empty-state-audit.md:6  [WORK-PROJECT]  - Clear explanatory message ("No tasks in this pane yet")
-- docs/empty-state-audit.md:16  [WORK-PROJECT]  - What renders: Dashed empty card with \`Icon name="plus"\`, heading \`"Let's get this pane started!"\`, body copy \`"Add a first module to shape the pane, then keep building from there."\`, and \`"Add a module"\` button (when \`showAddCont
+- docs/empty-state-audit.md:16  [WORK-PROJECT]  - What renders: Dashed empty card with \`Icon name="plus"\`, heading \`"Let's get this pane started!"\`, body copy \`"Add a first widget to shape the pane, then keep building from there."\`, and \`"Add a widget"\` button (when \`showAddCont
 - docs/empty-state-audit.md:118  [AMBIGUOUS]  - \`"No project events yet."\` when scope is \`all\`
 - docs/empty-state-audit.md:160  [WORK-PROJECT]  - What renders: Text \`"No tasks in this pane."\`.
 - docs/empty-state-audit.md:237  [WORK-PROJECT]  - \`"No files in this pane (read-only)"\` in read-only mode
@@ -2505,48 +2505,48 @@ Total string/comment hits: 3475.
 - docs/empty-state-audit.md:435  [WORK-PROJECT]  - no data: \`"No files in this pane yet."\`
 - docs/empty-state-audit.md:443  [WORK-PROJECT]  - Message: \`"No quick thoughts captured for this pane yet."\`
 - docs/hub-os-antipatterns.md:13  [AMBIGUOUS]  ### Project page combines routing, data orchestration, mutation wiring, and dense UI composition
-- docs/hub-os-antipatterns.md:31  [WORK-PROJECT]  **Files:** \`src/components/project-space/TableModuleSkin.tsx\` (lines 453-1478)
-- docs/hub-os-antipatterns.md:33  [WORK-PROJECT]  **What's happening:** One component owns filtering, sorting, drag-reorder, virtualization, inline editing, bulk actions, create-row flow, and keyboard grid navigation (\`src/components/project-space/TableModuleSkin.tsx\`:453-1478). Supporti
+- docs/hub-os-antipatterns.md:31  [WORK-PROJECT]  **Files:** \`src/components/project-space/TableWidgetSkin.tsx\` (lines 453-1478)
+- docs/hub-os-antipatterns.md:33  [WORK-PROJECT]  **What's happening:** One component owns filtering, sorting, drag-reorder, virtualization, inline editing, bulk actions, create-row flow, and keyboard grid navigation (\`src/components/project-space/TableWidgetSkin.tsx\`:453-1478). Supporti
 - docs/hub-os-antipatterns.md:47  [AMBIGUOUS]  ### Project color-dot hashing exists in two divergent implementations
 - docs/hub-os-antipatterns.md:51  [AMBIGUOUS]  **What's happening:** Both files define project-dot color arrays and hash-to-color mapping independently. The token sets are not equivalent, so the same project can render with different color semantics depending on surface.
 - docs/hub-os-antipatterns.md:53  [AMBIGUOUS]  **Why it matters:** Visual identity and recognition consistency degrade as the same project appears with different dot colors.
-- docs/hub-os-antipatterns.md:55  [WORK-PROJECT]  ### Task rendering diverges across myHub, Overview, and pane module surfaces
-- docs/hub-os-antipatterns.md:57  [WORK-PROJECT]  **Files:** \`src/features/PersonalizedDashboardPanel.tsx\` (lines 303-358), \`src/components/project-space/OverviewView.tsx\` (lines 428-516), \`src/components/project-space/TasksModuleSkin.tsx\` (lines 142-229, 492-634)
-- docs/hub-os-antipatterns.md:59  [WORK-PROJECT]  **What's happening:** myHub uses \`ItemRow\` cards, Overview wraps \`TasksTab\` with page-specific controls, and pane modules split S/M/L behavior with \`TaskSummaryRow\`/\`TasksTab\`. These are separate implementations of the same task-lis
-- docs/hub-os-antipatterns.md:65  [WORK-PROJECT]  **Files:** \`src/components/layout/QuickAddDialogs.tsx\` (lines 131-218), \`src/components/project-space/RemindersModuleSkin.tsx\` (lines 323-393, 456-531)
-- docs/hub-os-antipatterns.md:75  [WORK-PROJECT]  **Files:** \`src/components/project-space/TasksModuleSkin.tsx\` (lines 231-400)
-- docs/hub-os-antipatterns.md:77  [WORK-PROJECT]  **What's happening:** \`TaskComposer\` spans creation form state, submit/reset logic, parent-task linking, and error rendering while living inside \`TasksModuleSkin.tsx\`. It is reused by multiple size tiers (\`src/components/project-space/
+- docs/hub-os-antipatterns.md:55  [WORK-PROJECT]  ### Task rendering diverges across myHub, Overview, and pane widget surfaces
+- docs/hub-os-antipatterns.md:57  [WORK-PROJECT]  **Files:** \`src/features/PersonalizedDashboardPanel.tsx\` (lines 303-358), \`src/components/project-space/OverviewView.tsx\` (lines 428-516), \`src/components/project-space/TasksWidgetSkin.tsx\` (lines 142-229, 492-634)
+- docs/hub-os-antipatterns.md:59  [WORK-PROJECT]  **What's happening:** myHub uses \`ItemRow\` cards, Overview wraps \`TasksTab\` with page-specific controls, and pane widgets split S/M/L behavior with \`TaskSummaryRow\`/\`TasksTab\`. These are separate implementations of the same task-lis
+- docs/hub-os-antipatterns.md:65  [WORK-PROJECT]  **Files:** \`src/components/layout/QuickAddDialogs.tsx\` (lines 131-218), \`src/components/project-space/RemindersWidgetSkin.tsx\` (lines 323-393, 456-531)
+- docs/hub-os-antipatterns.md:75  [WORK-PROJECT]  **Files:** \`src/components/project-space/TasksWidgetSkin.tsx\` (lines 231-400)
+- docs/hub-os-antipatterns.md:77  [WORK-PROJECT]  **What's happening:** \`TaskComposer\` spans creation form state, submit/reset logic, parent-task linking, and error rendering while living inside \`TasksWidgetSkin.tsx\`. It is reused by multiple size tiers (\`src/components/project-space/
 - docs/hub-os-antipatterns.md:83  [WORK-PROJECT]  **Files:** \`src/components/project-space/TasksTab.tsx\` (lines 390-780)
-- docs/hub-os-antipatterns.md:91  [WORK-PROJECT]  **Files:** \`src/components/project-space/CalendarModuleSkin.tsx\` (lines 191-298)
-- docs/hub-os-antipatterns.md:93  [WORK-PROJECT]  **What's happening:** \`CalendarMediumWeekStrip\` is defined inline and contains its own rendering rules and interaction behavior, while \`CalendarModuleSkin\` also contains S/L and create-panel logic (\`src/components/project-space/Calenda
+- docs/hub-os-antipatterns.md:91  [WORK-PROJECT]  **Files:** \`src/components/project-space/CalendarWidgetSkin.tsx\` (lines 191-298)
+- docs/hub-os-antipatterns.md:93  [WORK-PROJECT]  **What's happening:** \`CalendarMediumWeekStrip\` is defined inline and contains its own rendering rules and interaction behavior, while \`CalendarWidgetSkin\` also contains S/L and create-panel logic (\`src/components/project-space/Calenda
 - docs/hub-os-antipatterns.md:115  [AMBIGUOUS]  ### Project page effect count indicates orchestration overload
 - docs/hub-os-antipatterns.md:125  [WORK-PROJECT]  **Files:** \`src/pages/ProjectsPage.tsx\` (lines 71, 164, 170, 174, 178, 182, 186), \`src/hooks/useWorkspaceDocRuntime.ts\` (lines 223, 227, 401, 421, 425, 475, 501), \`src/features/QuickCapture.tsx\` (lines 201, 285, 292, 304, 329, 340), \
 - docs/hub-os-antipatterns.md:135  [WORK-PROJECT]  **Files:** \`src/pages/ProjectSpacePage.tsx\` (lines 784-1006), \`src/components/project-space/WorkView.tsx\` (lines 23-32, 161-170, 410-445, 527-580)
 - docs/hub-os-antipatterns.md:145  [AMBIGUOUS]  **What's happening:** App shell threads many state/setter props into each quick-add dialog variant (project selection, field values, errors, submitting flags, refs, callbacks). Dialog components are largely prop-driven pass-through forms.
-- docs/hub-os-antipatterns.md:151  [WORK-PROJECT]  **Files:** \`src/context/ModuleInsertContext.tsx\` (lines 5-12, 32-67), \`src/components/project-space/TasksModuleSkin.tsx\` (lines 168-173), \`src/components/project-space/RemindersModuleSkin.tsx\` (lines 227-231), \`src/components/project
-- docs/hub-os-antipatterns.md:169  [WORK-PROJECT]  **Files:** \`src/components/project-space/TasksModuleSkin.tsx\` (line 351)
+- docs/hub-os-antipatterns.md:151  [WORK-PROJECT]  **Files:** \`src/context/WidgetInsertContext.tsx\` (lines 5-12, 32-67), \`src/components/project-space/TasksWidgetSkin.tsx\` (lines 168-173), \`src/components/project-space/RemindersWidgetSkin.tsx\` (lines 227-231), \`src/components/project
+- docs/hub-os-antipatterns.md:169  [WORK-PROJECT]  **Files:** \`src/components/project-space/TasksWidgetSkin.tsx\` (line 351)
 - docs/hub-os-antipatterns.md:177  [WORK-PROJECT]  **Files:** \`src/components/layout/AppShell.tsx\` (lines 1431, 1464, 1489, 1626, 1698, 1961, 1996), \`src/components/hub-home/DayStrip.tsx\` (lines 358, 383, 395, 403, 415, 429, 435, 464, 480, 486), \`src/components/project-space/FilesModul
 - docs/hub-os-antipatterns.md:195  [WORK-PROJECT]  **Files:** \`src/components/project-space/WorkView.tsx\` (lines 172-176), \`src/components/project-space/InboxCaptureModuleSkin.tsx\` (lines 284-520)
 - docs/hub-os-antipatterns.md:201  [AMBIGUOUS]  ### “myHub” vs \`/projects\` route vocabulary is mixed
 - docs/hub-os-antipatterns.md:205  [WORK-PROJECT]  **What's happening:** Breadcrumbs label root as “myHub,” while routing and tab naming center on \`/projects\` and project-space terminology, and the shell uses \`isOnHubHome\` derived from \`/projects\`. The same landing concept is named di
 - docs/hub-os-antipatterns.md:221  [WORK-PROJECT]  **Files:** \`src/components/project-space/TopNavTabs.tsx\` (lines 1-71), \`src/components/project-space/ToolsView.tsx\` (lines 1-53), \`src/pages/ProjectSpacePage.tsx\` (lines 55-57)
-- docs/hub-os-antipatterns.md:227  [WORK-PROJECT]  ### Mock project-space data module appears unmounted from production paths
+- docs/hub-os-antipatterns.md:227  [WORK-PROJECT]  ### Mock project-space data widget appears unmounted from production paths
 - docs/hub-os-antipatterns.md:229  [WORK-PROJECT]  **Files:** \`src/components/project-space/mockProjectSpace.ts\` (lines 1-240)
-- docs/hub-os-antipatterns.md:231  [WORK-PROJECT]  **What's happening:** The module defines a full mock pane/template system, but import search shows no active references from production route components.
+- docs/hub-os-antipatterns.md:231  [WORK-PROJECT]  **What's happening:** The widget defines a full mock pane/template system, but import search shows no active references from production route components.
 - docs/hub-os-antipatterns.md:233  [AMBIGUOUS]  **Why it matters:** Large unmounted support files make the project harder to scan and reason about.
-- docs/hub-os-antipatterns.md:247  [WORK-PROJECT]  **Files:** \`src/components/project-space/TasksModuleSkin.tsx\` (line 351), \`src/components/project-space/RemindersModuleSkin.tsx\` (line 531)
-- docs/hub-os-antipatterns.md:255  [WORK-PROJECT]  **Files:** \`src/components/project-space/RemindersModuleSkin.tsx\` (lines 245-263)
-- docs/hub-os-file-health.md:10  [WORK-PROJECT]  \| \`src/components/project-space/TableModuleSkin.tsx\` \| 1345 \| 4 \| 2 \| 4 \| Critical \| Critical change friction due to very high size (1345 LOC), high responsibility scope (4/5). \|
-- docs/hub-os-file-health.md:12  [WORK-PROJECT]  \| \`src/components/project-space/KanbanModuleSkin.tsx\` \| 1127 \| 4 \| 5 \| 6 \| Red \| High change friction due to large size (1127 LOC), high responsibility scope (4/5), 5 effects, 6 state hooks. \|
-- docs/hub-os-file-health.md:13  [WORK-PROJECT]  \| \`src/components/project-space/CalendarModuleSkin.tsx\` \| 935 \| 4 \| 3 \| 9 \| Red \| High change friction due to large size (935 LOC), high responsibility scope (4/5), 3 effects, 9 state hooks. \|
+- docs/hub-os-antipatterns.md:247  [WORK-PROJECT]  **Files:** \`src/components/project-space/TasksWidgetSkin.tsx\` (line 351), \`src/components/project-space/RemindersWidgetSkin.tsx\` (line 531)
+- docs/hub-os-antipatterns.md:255  [WORK-PROJECT]  **Files:** \`src/components/project-space/RemindersWidgetSkin.tsx\` (lines 245-263)
+- docs/hub-os-file-health.md:10  [WORK-PROJECT]  \| \`src/components/project-space/TableWidgetSkin.tsx\` \| 1345 \| 4 \| 2 \| 4 \| Critical \| Critical change friction due to very high size (1345 LOC), high responsibility scope (4/5). \|
+- docs/hub-os-file-health.md:12  [WORK-PROJECT]  \| \`src/components/project-space/KanbanWidgetSkin.tsx\` \| 1127 \| 4 \| 5 \| 6 \| Red \| High change friction due to large size (1127 LOC), high responsibility scope (4/5), 5 effects, 6 state hooks. \|
+- docs/hub-os-file-health.md:13  [WORK-PROJECT]  \| \`src/components/project-space/CalendarWidgetSkin.tsx\` \| 935 \| 4 \| 3 \| 9 \| Red \| High change friction due to large size (935 LOC), high responsibility scope (4/5), 3 effects, 9 state hooks. \|
 - docs/hub-os-file-health.md:17  [WORK-PROJECT]  \| \`src/components/project-space/TasksTab.tsx\` \| 926 \| 4 \| 2 \| 4 \| Red \| High change friction due to large size (926 LOC), high responsibility scope (4/5). \|
 - docs/hub-os-file-health.md:23  [WORK-PROJECT]  \| \`src/components/project-space/CalendarDayView.tsx\` \| 743 \| 3 \| 3 \| 2 \| Yellow \| Higher change friction due to mid-large size (743 LOC), mixed responsibilities (3/5), 3 effects. \|
-- docs/hub-os-file-health.md:24  [WORK-PROJECT]  \| \`src/components/project-space/TasksModuleSkin.tsx\` \| 610 \| 4 \| 0 \| 9 \| Yellow \| Higher change friction due to mid-large size (610 LOC), high responsibility scope (4/5), 9 state hooks. \|
+- docs/hub-os-file-health.md:24  [WORK-PROJECT]  \| \`src/components/project-space/TasksWidgetSkin.tsx\` \| 610 \| 4 \| 0 \| 9 \| Yellow \| Higher change friction due to mid-large size (610 LOC), high responsibility scope (4/5), 9 state hooks. \|
 - docs/hub-os-file-health.md:27  [WORK-PROJECT]  \| \`src/components/project-space/OverviewView.tsx\` \| 513 \| 4 \| 0 \| 7 \| Yellow \| Higher change friction due to mid-large size (513 LOC), high responsibility scope (4/5), 7 state hooks. \|
 - docs/hub-os-file-health.md:29  [WORK-PROJECT]  \| \`src/components/project-space/WorkView.tsx\` \| 570 \| 3 \| 1 \| 3 \| Yellow \| Higher change friction due to mid-large size (570 LOC), mixed responsibilities (3/5). \|
-- docs/hub-os-file-health.md:30  [WORK-PROJECT]  \| \`src/components/project-space/RemindersModuleSkin.tsx\` \| 562 \| 3 \| 2 \| 2 \| Yellow \| Higher change friction due to mid-large size (562 LOC), mixed responsibilities (3/5). \|
+- docs/hub-os-file-health.md:30  [WORK-PROJECT]  \| \`src/components/project-space/RemindersWidgetSkin.tsx\` \| 562 \| 3 \| 2 \| 2 \| Yellow \| Higher change friction due to mid-large size (562 LOC), mixed responsibilities (3/5). \|
 - docs/hub-os-file-health.md:35  [WORK-PROJECT]  \| \`src/components/project-space/FileInspectorActionBar.tsx\` \| 320 \| 3 \| 6 \| 6 \| Yellow \| Higher change friction due to moderate size (320 LOC), mixed responsibilities (3/5), 6 effects, 6 state hooks. \|
-- docs/hub-os-file-health.md:36  [WORK-PROJECT]  \| \`src/components/project-space/FilesModuleSkin.tsx\` \| 572 \| 2 \| 1 \| 1 \| Yellow \| Higher change friction due to mid-large size (572 LOC). \|
+- docs/hub-os-file-health.md:36  [WORK-PROJECT]  \| \`src/components/project-space/FilesWidgetSkin.tsx\` \| 572 \| 2 \| 1 \| 1 \| Yellow \| Higher change friction due to mid-large size (572 LOC). \|
 - docs/hub-os-file-health.md:40  [AMBIGUOUS]  \| \`apps/hub-api/routes/projects.mjs\` \| 535 \| 2 \| 0 \| 0 \| Yellow \| Higher change friction due to mid-large size (535 LOC). \|
 - docs/hub-os-file-health.md:45  [WORK-PROJECT]  \| \`src/components/project-space/TaskCreateDialog.tsx\` \| 421 \| 3 \| 3 \| 5 \| Watch \| Change risk is moderate due to moderate size (421 LOC), mixed responsibilities (3/5), 3 effects. \|
 - docs/hub-os-file-health.md:46  [WORK-PROJECT]  \| \`src/components/project-space/AutomationBuilder.tsx\` \| 491 \| 3 \| 0 \| 6 \| Watch \| Change risk is moderate due to moderate size (491 LOC), mixed responsibilities (3/5), 6 state hooks. \|
@@ -2560,10 +2560,10 @@ Total string/comment hits: 3475.
 - docs/hub-os-file-health.md:81  [WORK-PROJECT]  \| \`src/components/project-space/ViewEmbedBlock.tsx\` \| 180 \| 1 \| 1 \| 1 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:82  [WORK-PROJECT]  \| \`src/components/project-space/FilterBarOverlay.tsx\` \| 122 \| 2 \| 0 \| 1 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:83  [WORK-PROJECT]  \| \`src/components/project-space/TimelineFeed.tsx\` \| 137 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:84  [WORK-PROJECT]  \| \`src/components/project-space/ModuleGrid.tsx\` \| 120 \| 2 \| 0 \| 1 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:84  [WORK-PROJECT]  \| \`src/components/project-space/WidgetGrid.tsx\` \| 120 \| 2 \| 0 \| 1 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:86  [WORK-PROJECT]  \| \`src/components/project-space/MentionPicker.tsx\` \| 146 \| 1 \| 1 \| 3 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:87  [WORK-PROJECT]  \| \`src/components/project-space/AddModuleDialog.tsx\` \| 150 \| 1 \| 2 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:97  [WORK-PROJECT]  \| \`src/components/project-space/moduleCatalog.ts\` \| 101 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:87  [WORK-PROJECT]  \| \`src/components/project-space/AddWidgetDialog.tsx\` \| 150 \| 1 \| 2 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:97  [WORK-PROJECT]  \| \`src/components/project-space/widgetCatalog.ts\` \| 101 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:100  [WORK-PROJECT]  \| \`src/components/project-space/taskAdapter.ts\` \| 90 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:108  [WORK-PROJECT]  \| \`src/components/project-space/PaneHeaderControls.tsx\` \| 143 \| 1 \| 0 \| 1 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:114  [AMBIGUOUS]  \| \`src/services/hub/projects.ts\` \| 73 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
@@ -2574,64 +2574,64 @@ Total string/comment hits: 3475.
 - docs/hub-os-file-health.md:135  [WORK-PROJECT]  \| \`src/components/project-space/TimelineTab.tsx\` \| 49 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:150  [WORK-PROJECT]  \| \`src/components/project-space/OverviewHeader.tsx\` \| 97 \| 1 \| 0 \| 1 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:152  [WORK-PROJECT]  \| \`src/components/project-space/types.ts\` \| 47 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:158  [WORK-PROJECT]  \| \`src/components/project-space/ModuleFeedback.tsx\` \| 108 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:159  [WORK-PROJECT]  \| \`src/components/project-space/modules/index.ts\` \| 8 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:160  [WORK-PROJECT]  \| \`src/components/project-space/modules/KanbanModule.tsx\` \| 104 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:158  [WORK-PROJECT]  \| \`src/components/project-space/WidgetFeedback.tsx\` \| 108 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:159  [WORK-PROJECT]  \| \`src/components/project-space/widgets/index.ts\` \| 8 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:160  [WORK-PROJECT]  \| \`src/components/project-space/widgets/KanbanWidget.tsx\` \| 104 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:161  [WORK-PROJECT]  \| \`src/components/project-space/FocusModeToolbar.tsx\` \| 100 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:166  [WORK-PROJECT]  \| \`src/components/project-space/RelationsSection.tsx\` \| 101 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:168  [WORK-PROJECT]  \| \`src/components/project-space/modules/TableModule.tsx\` \| 93 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:168  [WORK-PROJECT]  \| \`src/components/project-space/widgets/TableWidget.tsx\` \| 93 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:177  [WORK-PROJECT]  \| \`src/components/project-space/CommentComposer.tsx\` \| 82 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:178  [WORK-PROJECT]  \| \`src/components/project-space/ModuleShell.tsx\` \| 86 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:178  [WORK-PROJECT]  \| \`src/components/project-space/WidgetShell.tsx\` \| 86 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:180  [WORK-PROJECT]  \| \`src/components/project-space/designTokens.ts\` \| 15 \| 2 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:189  [WORK-PROJECT]  \| \`src/components/project-space/TopNavTabs.tsx\` \| 66 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:193  [WORK-PROJECT]  \| \`src/components/project-space/PinnedPanesTabs.tsx\` \| 63 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:199  [WORK-PROJECT]  \| \`src/components/project-space/BacklinksPanel.tsx\` \| 52 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:202  [WORK-PROJECT]  \| \`src/components/project-space/ToolsView.tsx\` \| 48 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:203  [WORK-PROJECT]  \| \`src/components/project-space/modules/QuickThoughtsModule.tsx\` \| 30 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:203  [WORK-PROJECT]  \| \`src/components/project-space/widgets/QuickThoughtsWidget.tsx\` \| 30 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:208  [WORK-PROJECT]  \| \`src/components/project-space/tabKeyboard.ts\` \| 43 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:209  [WORK-PROJECT]  \| \`src/components/project-space/modules/FilesModule.tsx\` \| 30 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:210  [WORK-PROJECT]  \| \`src/components/project-space/modules/TasksModule.tsx\` \| 30 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:211  [WORK-PROJECT]  \| \`src/components/project-space/modules/CalendarModule.tsx\` \| 29 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:219  [WORK-PROJECT]  \| \`src/components/project-space/modules/RemindersModule.tsx\` \| 24 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:209  [WORK-PROJECT]  \| \`src/components/project-space/widgets/FilesWidget.tsx\` \| 30 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:210  [WORK-PROJECT]  \| \`src/components/project-space/widgets/TasksWidget.tsx\` \| 30 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:211  [WORK-PROJECT]  \| \`src/components/project-space/widgets/CalendarWidget.tsx\` \| 29 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:219  [WORK-PROJECT]  \| \`src/components/project-space/widgets/RemindersWidget.tsx\` \| 24 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:220  [WORK-PROJECT]  \| \`src/components/project-space/RelationRow.tsx\` \| 39 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:226  [WORK-PROJECT]  \| \`src/components/project-space/ModuleLensControl.tsx\` \| 28 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:232  [WORK-PROJECT]  \| \`src/components/project-space/ModuleSettingsPopover.tsx\` \| 26 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
-- docs/hub-os-file-health.md:258  [WORK-PROJECT]  \| \`src/components/project-space/modules/TimelineModule.tsx\` \| 16 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:226  [WORK-PROJECT]  \| \`src/components/project-space/WidgetLensControl.tsx\` \| 28 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:232  [WORK-PROJECT]  \| \`src/components/project-space/WidgetSettingsPopover.tsx\` \| 26 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
+- docs/hub-os-file-health.md:258  [WORK-PROJECT]  \| \`src/components/project-space/widgets/TimelineWidget.tsx\` \| 16 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:265  [WORK-PROJECT]  \| \`src/components/project-space/ProjectSpaceDialogPrimitives.ts\` \| 8 \| 1 \| 0 \| 0 \| Healthy \| Small, focused file with limited state/effects and narrow dependencies. \|
 - docs/hub-os-file-health.md:280  [AMBIGUOUS]  This page mixes routing/query sync, runtime orchestration, and large UI composition (\`src/pages/ProjectSpacePage.tsx\`:233-629,784-1006,1027-2052). It is the entry point for overview/work/tools project routes, so complexity here directly a
-- docs/hub-os-file-health.md:285  [WORK-PROJECT]  4. **\`src/components/project-space/TableModuleSkin.tsx\` (lines 104-360, 453-1478; used in \`src/pages/ProjectSpacePage.tsx\`:64-66,1509-1512)**
+- docs/hub-os-file-health.md:285  [WORK-PROJECT]  4. **\`src/components/project-space/TableWidgetSkin.tsx\` (lines 104-360, 453-1478; used in \`src/pages/ProjectSpacePage.tsx\`:64-66,1509-1512)**
 - docs/hub-os-file-health.md:289  [WORK-PROJECT]  This panel owns hub-home aggregation logic plus multiple rendering regions and interaction paths, and it is the primary content surface of \`/projects\`. High responsibility density on a top-level page makes drift and duplicated behavior li
-- docs/hub-os-file-health.md:291  [WORK-PROJECT]  6. **\`src/components/project-space/KanbanModuleSkin.tsx\` (lines 53-1221; lazy-loaded via \`src/pages/ProjectSpacePage.tsx\`:59-61,1463-1498)**
-- docs/hub-os-file-health.md:297  [WORK-PROJECT]  8. **\`src/components/project-space/CalendarModuleSkin.tsx\` (lines 191-298, 300-901; used in \`src/components/layout/AppShell.tsx\`:22,1792)**
-- docs/hub-os-file-health.md:300  [WORK-PROJECT]  9. **\`src/components/project-space/TasksTab.tsx\` (lines 390-780, 782-1001; used by \`src/components/project-space/TasksModuleSkin.tsx\`:8,605 and \`src/components/project-space/OverviewView.tsx\`:9,465)**
-- docs/module-height-audit.md:15  [WORK-PROJECT]  ### \`src/components/project-space/WorkView.tsx\`
-- docs/module-height-audit.md:25  [WORK-PROJECT]  ### \`src/components/project-space/ModuleGrid.tsx\`
-- docs/module-height-audit.md:41  [WORK-PROJECT]  ### \`src/components/project-space/ModuleFeedback.tsx\`
-- docs/module-height-audit.md:76  [WORK-PROJECT]  ### \`TableModule\` (\`src/components/project-space/modules/TableModule.tsx\`)
-- docs/module-height-audit.md:83  [WORK-PROJECT]  ### \`KanbanModule\` (\`src/components/project-space/modules/KanbanModule.tsx\`)
-- docs/module-height-audit.md:89  [WORK-PROJECT]  ### \`CalendarModule\` (\`src/components/project-space/modules/CalendarModule.tsx\`)
-- docs/module-height-audit.md:95  [WORK-PROJECT]  ### \`TasksModule\` (\`src/components/project-space/modules/TasksModule.tsx\`)
-- docs/module-height-audit.md:101  [WORK-PROJECT]  ### \`FilesModule\` (\`src/components/project-space/modules/FilesModule.tsx\`)
-- docs/module-height-audit.md:107  [WORK-PROJECT]  ### \`RemindersModule\` (\`src/components/project-space/modules/RemindersModule.tsx\`)
-- docs/module-height-audit.md:113  [WORK-PROJECT]  ### \`QuickThoughtsModule\` (\`src/components/project-space/modules/QuickThoughtsModule.tsx\`)
-- docs/module-height-audit.md:114  [WORK-PROJECT]  - Props: \`module\`, \`runtime\`, \`pane\`, \`canEditPane\`.
-- docs/module-height-audit.md:119  [WORK-PROJECT]  ### \`TimelineModule\` (\`src/components/project-space/modules/TimelineModule.tsx\`)
-- docs/module-height-audit.md:127  [WORK-PROJECT]  ### \`TableModuleSkin\` (\`src/components/project-space/TableModuleSkin.tsx\`)
-- docs/module-height-audit.md:134  [WORK-PROJECT]  ### \`KanbanModuleSkin\` (\`src/components/project-space/KanbanModuleSkin.tsx\`)
-- docs/module-height-audit.md:142  [WORK-PROJECT]  ### \`CalendarModuleSkin\` (\`src/components/project-space/CalendarModuleSkin.tsx\`)
-- docs/module-height-audit.md:153  [WORK-PROJECT]  ### \`TasksModuleSkin\` (\`src/components/project-space/TasksModuleSkin.tsx\`)
-- docs/module-height-audit.md:161  [WORK-PROJECT]  ### \`RemindersModuleSkin\` (\`src/components/project-space/RemindersModuleSkin.tsx\`)
-- docs/module-height-audit.md:169  [WORK-PROJECT]  ### \`FilesModuleSkin\` (\`src/components/project-space/FilesModuleSkin.tsx\`)
-- docs/module-height-audit.md:177  [WORK-PROJECT]  ### \`QuickThoughtsModuleSkin\` (\`src/components/project-space/QuickThoughtsModuleSkin.tsx\`)
-- docs/module-height-audit.md:184  [WORK-PROJECT]  - \`src/components/project-space/designTokens.ts\`: no height/size layout tokens for module containers.
+- docs/hub-os-file-health.md:291  [WORK-PROJECT]  6. **\`src/components/project-space/KanbanWidgetSkin.tsx\` (lines 53-1221; lazy-loaded via \`src/pages/ProjectSpacePage.tsx\`:59-61,1463-1498)**
+- docs/hub-os-file-health.md:297  [WORK-PROJECT]  8. **\`src/components/project-space/CalendarWidgetSkin.tsx\` (lines 191-298, 300-901; used in \`src/components/layout/AppShell.tsx\`:22,1792)**
+- docs/hub-os-file-health.md:300  [WORK-PROJECT]  9. **\`src/components/project-space/TasksTab.tsx\` (lines 390-780, 782-1001; used by \`src/components/project-space/TasksWidgetSkin.tsx\`:8,605 and \`src/components/project-space/OverviewView.tsx\`:9,465)**
+- docs/widget-height-audit.md:15  [WORK-PROJECT]  ### \`src/components/project-space/WorkView.tsx\`
+- docs/widget-height-audit.md:25  [WORK-PROJECT]  ### \`src/components/project-space/WidgetGrid.tsx\`
+- docs/widget-height-audit.md:41  [WORK-PROJECT]  ### \`src/components/project-space/WidgetFeedback.tsx\`
+- docs/widget-height-audit.md:76  [WORK-PROJECT]  ### \`TableWidget\` (\`src/components/project-space/widgets/TableWidget.tsx\`)
+- docs/widget-height-audit.md:83  [WORK-PROJECT]  ### \`KanbanWidget\` (\`src/components/project-space/widgets/KanbanWidget.tsx\`)
+- docs/widget-height-audit.md:89  [WORK-PROJECT]  ### \`CalendarWidget\` (\`src/components/project-space/widgets/CalendarWidget.tsx\`)
+- docs/widget-height-audit.md:95  [WORK-PROJECT]  ### \`TasksWidget\` (\`src/components/project-space/widgets/TasksWidget.tsx\`)
+- docs/widget-height-audit.md:101  [WORK-PROJECT]  ### \`FilesWidget\` (\`src/components/project-space/widgets/FilesWidget.tsx\`)
+- docs/widget-height-audit.md:107  [WORK-PROJECT]  ### \`RemindersWidget\` (\`src/components/project-space/widgets/RemindersWidget.tsx\`)
+- docs/widget-height-audit.md:113  [WORK-PROJECT]  ### \`QuickThoughtsWidget\` (\`src/components/project-space/widgets/QuickThoughtsWidget.tsx\`)
+- docs/widget-height-audit.md:114  [WORK-PROJECT]  - Props: \`widget\`, \`runtime\`, \`pane\`, \`canEditPane\`.
+- docs/widget-height-audit.md:119  [WORK-PROJECT]  ### \`TimelineWidget\` (\`src/components/project-space/widgets/TimelineWidget.tsx\`)
+- docs/widget-height-audit.md:127  [WORK-PROJECT]  ### \`TableWidgetSkin\` (\`src/components/project-space/TableWidgetSkin.tsx\`)
+- docs/widget-height-audit.md:134  [WORK-PROJECT]  ### \`KanbanWidgetSkin\` (\`src/components/project-space/KanbanWidgetSkin.tsx\`)
+- docs/widget-height-audit.md:142  [WORK-PROJECT]  ### \`CalendarWidgetSkin\` (\`src/components/project-space/CalendarWidgetSkin.tsx\`)
+- docs/widget-height-audit.md:153  [WORK-PROJECT]  ### \`TasksWidgetSkin\` (\`src/components/project-space/TasksWidgetSkin.tsx\`)
+- docs/widget-height-audit.md:161  [WORK-PROJECT]  ### \`RemindersWidgetSkin\` (\`src/components/project-space/RemindersWidgetSkin.tsx\`)
+- docs/widget-height-audit.md:169  [WORK-PROJECT]  ### \`FilesWidgetSkin\` (\`src/components/project-space/FilesWidgetSkin.tsx\`)
+- docs/widget-height-audit.md:177  [WORK-PROJECT]  ### \`QuickThoughtsWidgetSkin\` (\`src/components/project-space/QuickThoughtsWidgetSkin.tsx\`)
+- docs/widget-height-audit.md:184  [WORK-PROJECT]  - \`src/components/project-space/designTokens.ts\`: no height/size layout tokens for widget containers.
 - docs/swift-native-parity-assessment.md:208  [AMBIGUOUS]  - \`apps/hub-api/routes/projects.mjs\`
 - docs/swift-native-parity-assessment.md:274  [AMBIGUOUS]  ### 3. Project workspace surface
-- docs/swift-native-parity-assessment.md:293  [WORK-PROJECT]  - \`src/components/project-space/TableModuleSkin.tsx\`
-- docs/swift-native-parity-assessment.md:294  [WORK-PROJECT]  - \`src/components/project-space/KanbanModuleSkin.tsx\`
-- docs/swift-native-parity-assessment.md:295  [WORK-PROJECT]  - \`src/components/project-space/CalendarModuleSkin.tsx\`
+- docs/swift-native-parity-assessment.md:293  [WORK-PROJECT]  - \`src/components/project-space/TableWidgetSkin.tsx\`
+- docs/swift-native-parity-assessment.md:294  [WORK-PROJECT]  - \`src/components/project-space/KanbanWidgetSkin.tsx\`
+- docs/swift-native-parity-assessment.md:295  [WORK-PROJECT]  - \`src/components/project-space/CalendarWidgetSkin.tsx\`
 - docs/swift-native-parity-assessment.md:296  [WORK-PROJECT]  - \`src/components/project-space/CalendarDayView.tsx\`
-- docs/swift-native-parity-assessment.md:297  [WORK-PROJECT]  - \`src/components/project-space/FilesModuleSkin.tsx\`
-- docs/swift-native-parity-assessment.md:298  [WORK-PROJECT]  - \`src/components/project-space/TasksModuleSkin.tsx\`
+- docs/swift-native-parity-assessment.md:297  [WORK-PROJECT]  - \`src/components/project-space/FilesWidgetSkin.tsx\`
+- docs/swift-native-parity-assessment.md:298  [WORK-PROJECT]  - \`src/components/project-space/TasksWidgetSkin.tsx\`
 - docs/ux-architecture-audit.md:15  [AMBIGUOUS]  \| \`/\` \| \`Navigate -> /projects\` \|
 - docs/ux-architecture-audit.md:16  [AMBIGUOUS]  \| \`/projects\` \| \`AppShell -> ProtectedRoute -> ProjectsPage\` \|
 - docs/ux-architecture-audit.md:17  [AMBIGUOUS]  \| \`/projects/:projectId/overview\` \| \`AppShell -> ProtectedRoute -> ProjectRouteGuard -> ProjectSpacePage(activeTab="overview")\` \|
@@ -2645,7 +2645,7 @@ Total string/comment hits: 3475.
 - docs/ux-architecture-audit.md:35  [AMBIGUOUS]  - \`project overview -> project work\`:
 - docs/ux-architecture-audit.md:40  [WORK-PROJECT]  - \`project work (/work) -> pane route (/work/:paneId)\`:
 - docs/ux-architecture-audit.md:42  [WORK-PROJECT]  - \`ProjectSpacePage\` changes which pane is active from route params.
-- docs/ux-architecture-audit.md:44  [WORK-PROJECT]  - [src/components/project-space/WorkView.tsx](../src/components/project-space/WorkView.tsx) line 609 keys \`MobileModulesOverlay\` by \`pane.pane_id\`.
+- docs/ux-architecture-audit.md:44  [WORK-PROJECT]  - [src/components/project-space/WorkView.tsx](../src/components/project-space/WorkView.tsx) line 609 keys \`MobileWidgetsOverlay\` by \`pane.pane_id\`.
 - docs/ux-architecture-audit.md:48  [WORK-PROJECT]  - \`pane route -> project work (/work)\`:
 - docs/ux-architecture-audit.md:50  [AMBIGUOUS]  - \`project route -> myHub (/projects)\`:
 - docs/ux-architecture-audit.md:86  [WORK-PROJECT]  ## 3. Layer transitions between myHub -> Project -> Pane
@@ -2655,7 +2655,7 @@ Total string/comment hits: 3475.
 - docs/ux-architecture-audit.md:97  [WORK-PROJECT]  - the URL changes to \`/projects/:projectId/work\` or \`/projects/:projectId/work/:paneId\`
 - docs/ux-architecture-audit.md:101  [WORK-PROJECT]  - the URL changes to \`/projects/:projectId/work/:paneId\`
 - docs/ux-architecture-audit.md:102  [WORK-PROJECT]  - navigation is done through pinned pane buttons, \`PaneSwitcher\`, read-only pane buttons, or pane route links in the pane settings dialog
-- docs/ux-architecture-audit.md:104  [WORK-PROJECT]  - the pane title in \`WorkView\` changes, pane-scoped modules change, \`MobileModulesOverlay\` is keyed by pane ID, and the collaborative doc editor is keyed by doc ID
+- docs/ux-architecture-audit.md:104  [WORK-PROJECT]  - the pane title in \`WorkView\` changes, pane-scoped widgets change, \`MobileWidgetsOverlay\` is keyed by pane ID, and the collaborative doc editor is keyed by doc ID
 - docs/ux-architecture-audit.md:106  [WORK-PROJECT]  - pane -> project work uses the same work route without \`:paneId\`
 - docs/ux-architecture-audit.md:116  [AMBIGUOUS]  - \`/projects\` for myHub
 - docs/ux-architecture-audit.md:117  [AMBIGUOUS]  - \`/projects/:projectId/overview\`
@@ -2676,10 +2676,10 @@ Total string/comment hits: 3475.
 - docs/ux-architecture-audit.md:288  [WORK-PROJECT]  - the project-space page still renders the \`Project Space\` header and \`Work Panes\` block
 - docs/ux-architecture-audit.md:289  [WORK-PROJECT]  - if \`WorkView\` receives no active pane, it renders \`No pane selected.\` in [src/components/project-space/WorkView.tsx](../src/components/project-space/WorkView.tsx) lines 402-407
 - docs/ux-architecture-audit.md:290  [WORK-PROJECT]  - \`PaneSwitcher\` shows \`No panes available.\` if it is rendered with an empty pane list in [src/components/project-space/PaneSwitcher.tsx](../src/components/project-space/PaneSwitcher.tsx) lines 41-43
-- docs/ux-architecture-audit.md:294  [WORK-PROJECT]  - copy: \`Let's get this pane started!\` and \`Add a first module to shape the pane, then keep building from there.\`
-- docs/ux-architecture-audit.md:297  [WORK-PROJECT]  - small: dedicated \`ModuleEmptyState\` with \`No tasks in this pane.\` in [src/components/project-space/TasksModuleSkin.tsx](../src/components/project-space/TasksModuleSkin.tsx) lines 424-429
-- docs/ux-architecture-audit.md:298  [WORK-PROJECT]  - medium: dedicated \`ModuleEmptyState\` with \`No tasks in this pane.\` and CTA \`New Task\` at lines 473-480
-- docs/ux-architecture-audit.md:299  [WORK-PROJECT]  - large: dedicated \`ModuleEmptyState\` with \`No tasks in this pane.\` and description \`It's Procrastinators vs ProTaskinators out here.\` at lines 595-601
+- docs/ux-architecture-audit.md:294  [WORK-PROJECT]  - copy: \`Let's get this pane started!\` and \`Add a first widget to shape the pane, then keep building from there.\`
+- docs/ux-architecture-audit.md:297  [WORK-PROJECT]  - small: dedicated \`WidgetEmptyState\` with \`No tasks in this pane.\` in [src/components/project-space/TasksWidgetSkin.tsx](../src/components/project-space/TasksWidgetSkin.tsx) lines 424-429
+- docs/ux-architecture-audit.md:298  [WORK-PROJECT]  - medium: dedicated \`WidgetEmptyState\` with \`No tasks in this pane.\` and CTA \`New Task\` at lines 473-480
+- docs/ux-architecture-audit.md:299  [WORK-PROJECT]  - large: dedicated \`WidgetEmptyState\` with \`No tasks in this pane.\` and description \`It's Procrastinators vs ProTaskinators out here.\` at lines 595-601
 - docs/ux-architecture-audit.md:302  [AMBIGUOUS]  - copy is either \`No relevant events yet.\` or \`No project events yet.\`
 - docs/ux-architecture-audit.md:353  [AMBIGUOUS]  \| \`myHub\` \| footer breadcrumb for \`/projects\` \| [src/components/layout/appShellUtils.ts](../src/components/layout/appShellUtils.ts), [src/components/layout/AppShell.tsx](../src/components/layout/AppShell.tsx) \| the \`/projects\` hom
 - docs/ux-architecture-audit.md:354  [AMBIGUOUS]  \| \`Hub\` \| app tab label in quick nav; \`/\` route target \| [src/lib/policy.ts](../src/lib/policy.ts), [src/components/layout/AppShell.tsx](../src/components/layout/AppShell.tsx) \| an app-level destination that immediately redirects to
@@ -2775,7 +2775,7 @@ Total string/comment hits: 3475.
 - e2e/eshaan-os.audit.spec.ts:276  [AMBIGUOUS]  await page.getByRole('tab', { name: 'Project Lens' }).click();
 - e2e/eshaan-os.audit.spec.ts:277  [AMBIGUOUS]  const projectLens = page.getByRole('tabpanel', { name: 'Project Lens' });
 - e2e/eshaan-os.audit.spec.ts:279  [AMBIGUOUS]  projectLens.getByRole('button', { name: new RegExp(\`^${escapeRegExp(fixture.project.name)} \\d+ item\`) }),
-- e2e/eshaan-os.audit.spec.ts:290  [WORK-PROJECT]  test('Files module renders in a pane, the file list loads, and upload controls exist', async ({ page }) => {
+- e2e/eshaan-os.audit.spec.ts:290  [WORK-PROJECT]  test('Files widget renders in a pane, the file list loads, and upload controls exist', async ({ page }) => {
 - e2e/eshaan-os.audit.spec.ts:291  [WORK-PROJECT]  await gotoReady(page, \`/projects/${fixture.project.id}/work/${fixture.panes.sharedId}\`);
 - e2e/eshaan-os.audit.spec.ts:301  [AMBIGUOUS]  await gotoReady(page, '/projects');
 - e2e/eshaan-os.audit.spec.ts:313  [WORK-PROJECT]  await gotoReady(page, \`/projects/${fixture.project.id}/work/${fixture.panes.sharedId}\`);
@@ -2783,7 +2783,7 @@ Total string/comment hits: 3475.
 - e2e/eshaan-os.audit.spec.ts:315  [WORK-PROJECT]  await expect(page.locator('#pane-name-input')).toBeEnabled();
 - e2e/eshaan-os.audit.spec.ts:319  [WORK-PROJECT]  test('Member sees only the controls appropriate to the role and pane membership', async ({ browser }, testInfo) => {
 - e2e/eshaan-os.audit.spec.ts:325  [WORK-PROJECT]  await gotoReady(page, \`/projects/${fixture.project.id}/work/${fixture.panes.sharedId}\`);
-- e2e/eshaan-os.audit.spec.ts:328  [WORK-PROJECT]  'This fixture grants the secondary user project member access plus explicit membership on the shared pane, so pane-title editing remains enabled while project-level create/module controls stay hidden.',
+- e2e/eshaan-os.audit.spec.ts:328  [WORK-PROJECT]  'This fixture grants the secondary user project member access plus explicit membership on the shared pane, so pane-title editing remains enabled while project-level create/widget controls stay hidden.',
 - e2e/eshaan-os.audit.spec.ts:330  [WORK-PROJECT]  await expect(page.locator('#pane-name-input')).toBeEnabled();
 - e2e/eshaan-os.audit.spec.ts:331  [WORK-PROJECT]  await expect(page.getByRole('button', { name: 'Create pane' })).toHaveCount(0);
 - e2e/eshaan-os.audit.spec.ts:332  [WORK-PROJECT]  await expect(page.getByText('Editable pane management')).toHaveCount(0);
@@ -2815,1394 +2815,1394 @@ Total string/comment hits: 3475.
 - e2e/helpers/db.ts:311  [WORK-PROJECT]  \`/api/hub/projects/${encodeURIComponent(projectId)}/panes\`,
 - e2e/helpers/hub-home-daily-brief.ts:103  [AMBIGUOUS]  \`/api/hub/projects/${encodeURIComponent(projectId)}/collections\`,
 - e2e/helpers/hub-home-daily-brief.ts:118  [AMBIGUOUS]  \`/api/hub/projects/${encodeURIComponent(projectId)}/records\`,
-- e2e/module-verification/evaluate-screenshots-v2.mjs:26  [WORK-PROJECT]  return \`Focus scope: ONLY the "${parsed.moduleSlug}" module at ${parsed.tier} tier inside its module card. Ignore top nav, pane tabs, shell chrome, and any UI outside that module card.\`;
-- e2e/module-verification/evaluate-screenshots-v2.mjs:29  [WORK-PROJECT]  return 'Focus scope: ONLY the module grid card region and the module cards inside it. Ignore page header, pane switcher, and non-grid shell UI.';
-- e2e/module-verification/fixture.json:4  [AMBIGUOUS]  "project": {
-- e2e/module-verification/fixture.json:12  [WORK-PROJECT]  "panes": {
-- e2e/module-verification/playwright-error-contexts.md:28  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:34  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:36  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:38  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:39  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:40  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:41  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:42  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:43  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:44  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:45  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:46  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:47  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:48  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:49  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:50  [WORK-PROJECT]  - button "tasks-L, pane 13" [pressed] [ref=e61]:
-- e2e/module-verification/playwright-error-contexts.md:54  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:55  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:56  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:57  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:58  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:59  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:60  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:61  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:62  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:63  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:64  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:65  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:66  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:68  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:70  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:71  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:78  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:81  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-L
-- e2e/module-verification/playwright-error-contexts.md:85  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:165  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e206]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:201  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:207  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:209  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:211  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:212  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:213  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:214  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:215  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:216  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:217  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:218  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:219  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:220  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:221  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:222  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:223  [WORK-PROJECT]  - button "tasks-L, pane 13" [pressed] [ref=e61]:
-- e2e/module-verification/playwright-error-contexts.md:227  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:228  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:229  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:230  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:231  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:232  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:233  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:234  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:235  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:236  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:237  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:238  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:239  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:241  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:243  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:244  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:251  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:254  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-L
-- e2e/module-verification/playwright-error-contexts.md:258  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:338  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e206]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:374  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:380  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:382  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:384  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:385  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:386  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:387  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:388  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:389  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:390  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:391  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:392  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:393  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:394  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:395  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:396  [WORK-PROJECT]  - button "tasks-L, pane 13" [pressed] [ref=e61]:
-- e2e/module-verification/playwright-error-contexts.md:400  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:401  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:402  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:403  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:404  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:405  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:406  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:407  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:408  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:409  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:410  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:411  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:412  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:414  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:416  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:417  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:424  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:427  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-L
-- e2e/module-verification/playwright-error-contexts.md:431  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:511  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e206]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:547  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:553  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:555  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:557  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:558  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:559  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:560  [WORK-PROJECT]  - button "table-L, pane 4" [pressed] [ref=e34]:
-- e2e/module-verification/playwright-error-contexts.md:564  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/playwright-error-contexts.md:565  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/playwright-error-contexts.md:566  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/playwright-error-contexts.md:567  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/playwright-error-contexts.md:568  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/playwright-error-contexts.md:569  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/playwright-error-contexts.md:570  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/playwright-error-contexts.md:571  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:572  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:573  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:574  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:575  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:576  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:577  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:578  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:579  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:580  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:581  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:582  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:583  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:584  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:585  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:587  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:589  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:590  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:597  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:600  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-L
-- e2e/module-verification/playwright-error-contexts.md:604  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:619  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:693  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:729  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:735  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:737  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:739  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:740  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:741  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:742  [WORK-PROJECT]  - button "table-L, pane 4" [pressed] [ref=e34]:
-- e2e/module-verification/playwright-error-contexts.md:746  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/playwright-error-contexts.md:747  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/playwright-error-contexts.md:748  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/playwright-error-contexts.md:749  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/playwright-error-contexts.md:750  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/playwright-error-contexts.md:751  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/playwright-error-contexts.md:752  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/playwright-error-contexts.md:753  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:754  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:755  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:756  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:757  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:758  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:759  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:760  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:761  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:762  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:763  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:764  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:765  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:766  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:767  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:769  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:771  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:772  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:779  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:782  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-L
-- e2e/module-verification/playwright-error-contexts.md:786  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:801  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:875  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:911  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:917  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:919  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:921  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:922  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:923  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:924  [WORK-PROJECT]  - button "table-L, pane 4" [pressed] [ref=e34]:
-- e2e/module-verification/playwright-error-contexts.md:928  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/playwright-error-contexts.md:929  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/playwright-error-contexts.md:930  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/playwright-error-contexts.md:931  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/playwright-error-contexts.md:932  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/playwright-error-contexts.md:933  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/playwright-error-contexts.md:934  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/playwright-error-contexts.md:935  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:936  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:937  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:938  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:939  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:940  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:941  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:942  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:943  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:944  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:945  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:946  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:947  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:948  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:949  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:951  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:953  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:954  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:961  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:964  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-L
-- e2e/module-verification/playwright-error-contexts.md:968  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:983  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:1057  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:1093  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:1099  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:1101  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:1103  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:1104  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:1105  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:1106  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:1107  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:1108  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:1109  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:1110  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:1111  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:1112  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:1113  [WORK-PROJECT]  - button "tasks-S, pane 11" [pressed] [ref=e55]:
-- e2e/module-verification/playwright-error-contexts.md:1117  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:1118  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:1119  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:1120  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:1121  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:1122  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:1123  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:1124  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:1125  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:1126  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:1127  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:1128  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:1129  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:1130  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:1131  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:1133  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:1135  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:1136  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:1143  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:1146  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-S
-- e2e/module-verification/playwright-error-contexts.md:1150  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:1192  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e163]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:1228  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:1234  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:1236  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:1238  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:1239  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:1240  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:1241  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:1242  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:1243  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:1244  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:1245  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:1246  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:1247  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:1248  [WORK-PROJECT]  - button "tasks-S, pane 11" [pressed] [ref=e55]:
-- e2e/module-verification/playwright-error-contexts.md:1252  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:1253  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:1254  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:1255  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:1256  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:1257  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:1258  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:1259  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:1260  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:1261  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:1262  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:1263  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:1264  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:1265  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:1266  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:1268  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:1270  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:1271  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:1278  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:1281  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-S
-- e2e/module-verification/playwright-error-contexts.md:1285  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:1327  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e163]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:1363  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:1369  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:1371  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:1373  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:1374  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:1375  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:1376  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:1377  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:1378  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:1379  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:1380  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:1381  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:1382  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:1383  [WORK-PROJECT]  - button "tasks-S, pane 11" [pressed] [ref=e55]:
-- e2e/module-verification/playwright-error-contexts.md:1387  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:1388  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:1389  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:1390  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:1391  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:1392  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:1393  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:1394  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:1395  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:1396  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:1397  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:1398  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:1399  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:1400  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:1401  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:1403  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:1405  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:1406  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:1413  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:1416  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-S
-- e2e/module-verification/playwright-error-contexts.md:1420  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:1462  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e163]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:1498  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:1504  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:1506  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:1508  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:1509  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:1510  [WORK-PROJECT]  - button "table-M, pane 3" [pressed] [ref=e31]:
-- e2e/module-verification/playwright-error-contexts.md:1514  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
-- e2e/module-verification/playwright-error-contexts.md:1515  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/playwright-error-contexts.md:1516  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/playwright-error-contexts.md:1517  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/playwright-error-contexts.md:1518  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/playwright-error-contexts.md:1519  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/playwright-error-contexts.md:1520  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/playwright-error-contexts.md:1521  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/playwright-error-contexts.md:1522  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:1523  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:1524  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:1525  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:1526  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:1527  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:1528  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:1529  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:1530  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:1531  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:1532  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:1533  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:1534  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:1535  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:1536  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:1538  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:1540  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:1541  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:1548  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:1551  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-M
-- e2e/module-verification/playwright-error-contexts.md:1555  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:1570  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:1644  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:1680  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:1686  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:1688  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:1690  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:1691  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:1692  [WORK-PROJECT]  - button "table-M, pane 3" [pressed] [ref=e31]:
-- e2e/module-verification/playwright-error-contexts.md:1696  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
-- e2e/module-verification/playwright-error-contexts.md:1697  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/playwright-error-contexts.md:1698  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/playwright-error-contexts.md:1699  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/playwright-error-contexts.md:1700  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/playwright-error-contexts.md:1701  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/playwright-error-contexts.md:1702  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/playwright-error-contexts.md:1703  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/playwright-error-contexts.md:1704  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:1705  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:1706  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:1707  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:1708  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:1709  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:1710  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:1711  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:1712  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:1713  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:1714  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:1715  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:1716  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:1717  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:1718  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:1720  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:1722  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:1723  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:1730  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:1733  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-M
-- e2e/module-verification/playwright-error-contexts.md:1737  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:1752  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:1826  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:1862  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:1868  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:1870  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:1872  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:1873  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:1874  [WORK-PROJECT]  - button "table-M, pane 3" [pressed] [ref=e31]:
-- e2e/module-verification/playwright-error-contexts.md:1878  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
-- e2e/module-verification/playwright-error-contexts.md:1879  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/playwright-error-contexts.md:1880  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/playwright-error-contexts.md:1881  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/playwright-error-contexts.md:1882  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/playwright-error-contexts.md:1883  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/playwright-error-contexts.md:1884  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/playwright-error-contexts.md:1885  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/playwright-error-contexts.md:1886  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:1887  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:1888  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:1889  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:1890  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:1891  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:1892  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:1893  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:1894  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:1895  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:1896  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:1897  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:1898  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:1899  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:1900  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:1902  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:1904  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:1905  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:1912  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:1915  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-M
-- e2e/module-verification/playwright-error-contexts.md:1919  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:1934  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:2008  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:2044  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:2050  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:2052  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:2054  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:2055  [WORK-PROJECT]  - button "table-S, pane 2" [pressed] [ref=e28]:
-- e2e/module-verification/playwright-error-contexts.md:2059  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e32]
-- e2e/module-verification/playwright-error-contexts.md:2060  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
-- e2e/module-verification/playwright-error-contexts.md:2061  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/playwright-error-contexts.md:2062  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/playwright-error-contexts.md:2063  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/playwright-error-contexts.md:2064  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/playwright-error-contexts.md:2065  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/playwright-error-contexts.md:2066  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/playwright-error-contexts.md:2067  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/playwright-error-contexts.md:2068  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:2069  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:2070  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:2071  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:2072  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:2073  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:2074  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:2075  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:2076  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:2077  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:2078  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:2079  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:2080  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:2081  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:2082  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:2084  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:2086  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:2087  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:2094  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:2097  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-S
-- e2e/module-verification/playwright-error-contexts.md:2101  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:2116  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:2190  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:2226  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:2232  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:2234  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:2236  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:2237  [WORK-PROJECT]  - button "table-S, pane 2" [pressed] [ref=e28]:
-- e2e/module-verification/playwright-error-contexts.md:2241  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e32]
-- e2e/module-verification/playwright-error-contexts.md:2242  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
-- e2e/module-verification/playwright-error-contexts.md:2243  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/playwright-error-contexts.md:2244  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/playwright-error-contexts.md:2245  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/playwright-error-contexts.md:2246  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/playwright-error-contexts.md:2247  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/playwright-error-contexts.md:2248  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/playwright-error-contexts.md:2249  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/playwright-error-contexts.md:2250  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:2251  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:2252  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:2253  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:2254  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:2255  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:2256  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:2257  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:2258  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:2259  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:2260  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:2261  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:2262  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:2263  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:2264  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:2266  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:2268  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:2269  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:2276  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:2279  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-S
-- e2e/module-verification/playwright-error-contexts.md:2283  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:2298  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:2372  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:2408  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:2414  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:2416  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:2418  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:2419  [WORK-PROJECT]  - button "table-S, pane 2" [pressed] [ref=e28]:
-- e2e/module-verification/playwright-error-contexts.md:2423  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e32]
-- e2e/module-verification/playwright-error-contexts.md:2424  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
-- e2e/module-verification/playwright-error-contexts.md:2425  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/playwright-error-contexts.md:2426  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/playwright-error-contexts.md:2427  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/playwright-error-contexts.md:2428  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/playwright-error-contexts.md:2429  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/playwright-error-contexts.md:2430  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/playwright-error-contexts.md:2431  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/playwright-error-contexts.md:2432  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/playwright-error-contexts.md:2433  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/playwright-error-contexts.md:2434  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/playwright-error-contexts.md:2435  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/playwright-error-contexts.md:2436  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/playwright-error-contexts.md:2437  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/playwright-error-contexts.md:2438  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/playwright-error-contexts.md:2439  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/playwright-error-contexts.md:2440  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/playwright-error-contexts.md:2441  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/playwright-error-contexts.md:2442  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/playwright-error-contexts.md:2443  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/playwright-error-contexts.md:2444  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:2445  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:2446  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:2448  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:2450  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:2451  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:2458  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:2461  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-S
-- e2e/module-verification/playwright-error-contexts.md:2465  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:2480  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:2554  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:2590  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:2596  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:2598  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:2600  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:2601  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:2602  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:2603  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:2604  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:2605  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:2606  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:2607  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:2608  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:2609  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:2610  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:2611  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:2612  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:2613  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:2614  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:2615  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:2616  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:2617  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:2618  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:2619  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:2620  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:2621  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:2622  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [pressed] [ref=e91]:
-- e2e/module-verification/playwright-error-contexts.md:2626  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:2627  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:2628  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:2630  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:2632  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:2633  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:2640  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:2643  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 3-up
-- e2e/module-verification/playwright-error-contexts.md:2647  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:2663  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:2738  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:2856  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:3022  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e477]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:3058  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:3064  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:3066  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:3068  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:3069  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:3070  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:3071  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:3072  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:3073  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:3074  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:3075  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:3076  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:3077  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:3078  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:3079  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:3080  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:3081  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:3082  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:3083  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:3084  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:3085  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:3086  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:3087  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:3088  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:3089  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:3090  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [pressed] [ref=e91]:
-- e2e/module-verification/playwright-error-contexts.md:3094  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:3095  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:3096  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:3098  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:3100  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:3101  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:3108  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:3111  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 3-up
-- e2e/module-verification/playwright-error-contexts.md:3115  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:3131  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:3206  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:3324  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:3490  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e476]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:3526  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:3532  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:3534  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:3536  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:3537  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:3538  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:3539  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:3540  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:3541  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:3542  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:3543  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:3544  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:3545  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:3546  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:3547  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:3548  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:3549  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:3550  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:3551  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:3552  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:3553  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:3554  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:3555  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:3556  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:3557  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:3558  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [pressed] [ref=e91]:
-- e2e/module-verification/playwright-error-contexts.md:3562  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/playwright-error-contexts.md:3563  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:3564  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:3566  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:3568  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:3569  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:3576  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:3579  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 3-up
-- e2e/module-verification/playwright-error-contexts.md:3583  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:3599  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:3674  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:3792  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:3958  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e476]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:3994  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:4000  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:4002  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:4004  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:4005  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:4006  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:4007  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:4008  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:4009  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:4010  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:4011  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:4012  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:4013  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:4014  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:4015  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:4016  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:4017  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:4018  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:4019  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:4020  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:4021  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:4022  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:4023  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:4024  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:4025  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:4026  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/playwright-error-contexts.md:4027  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
-- e2e/module-verification/playwright-error-contexts.md:4028  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [pressed] [ref=e97]:
-- e2e/module-verification/playwright-error-contexts.md:4032  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:4034  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:4036  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:4037  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:4044  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:4047  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid Mixed Tiers
-- e2e/module-verification/playwright-error-contexts.md:4051  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:4067  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:4207  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:4397  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e485]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:4433  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:4439  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:4441  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:4443  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:4444  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:4445  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:4446  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:4447  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:4448  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:4449  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:4450  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:4451  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:4452  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:4453  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:4454  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:4455  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:4456  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:4457  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:4458  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:4459  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:4460  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:4461  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:4462  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:4463  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:4464  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:4465  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/playwright-error-contexts.md:4466  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
-- e2e/module-verification/playwright-error-contexts.md:4467  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [pressed] [ref=e97]:
-- e2e/module-verification/playwright-error-contexts.md:4471  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:4473  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:4475  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:4476  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:4483  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:4486  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid Mixed Tiers
-- e2e/module-verification/playwright-error-contexts.md:4490  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:4506  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:4646  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:4836  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e484]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:4872  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:4878  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:4880  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:4882  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:4883  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:4884  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:4885  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:4886  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:4887  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:4888  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:4889  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:4890  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:4891  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:4892  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:4893  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:4894  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:4895  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:4896  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:4897  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:4898  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:4899  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:4900  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:4901  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:4902  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:4903  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:4904  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/playwright-error-contexts.md:4905  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
-- e2e/module-verification/playwright-error-contexts.md:4906  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [pressed] [ref=e97]:
-- e2e/module-verification/playwright-error-contexts.md:4910  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:4912  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:4914  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:4915  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:4922  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:4925  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid Mixed Tiers
-- e2e/module-verification/playwright-error-contexts.md:4929  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:4945  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:5085  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:5275  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e484]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:5311  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:5317  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:5319  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:5321  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:5322  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:5323  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:5324  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:5325  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:5326  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:5327  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:5328  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:5329  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:5330  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:5331  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:5332  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:5333  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:5334  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:5335  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:5336  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:5337  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:5338  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:5339  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:5340  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:5341  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:5342  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:5343  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/playwright-error-contexts.md:5344  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [pressed] [ref=e94]:
-- e2e/module-verification/playwright-error-contexts.md:5348  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:5349  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:5351  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:5353  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:5354  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:5361  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:5364  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 6-up
-- e2e/module-verification/playwright-error-contexts.md:5368  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:5384  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:5459  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:5577  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:5817  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:5841  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e581]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:5877  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:5883  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:5885  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:5887  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:5888  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:5889  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:5890  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:5891  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:5892  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:5893  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:5894  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:5895  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:5896  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:5897  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:5898  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:5899  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:5900  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:5901  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:5902  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:5903  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:5904  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:5905  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:5906  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:5907  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:5908  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:5909  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/playwright-error-contexts.md:5910  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [pressed] [ref=e94]:
-- e2e/module-verification/playwright-error-contexts.md:5914  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:5915  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:5917  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:5919  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:5920  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:5927  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:5930  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 6-up
-- e2e/module-verification/playwright-error-contexts.md:5934  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:5950  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:6025  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:6143  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:6383  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:6407  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e581]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:6443  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:6449  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:6451  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:6453  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:6454  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:6455  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:6456  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:6457  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:6458  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:6459  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:6460  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:6461  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:6462  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:6463  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:6464  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:6465  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:6466  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:6467  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:6468  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:6469  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:6470  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:6471  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:6472  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:6473  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:6474  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:6475  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/playwright-error-contexts.md:6476  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [pressed] [ref=e94]:
-- e2e/module-verification/playwright-error-contexts.md:6480  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/playwright-error-contexts.md:6481  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/playwright-error-contexts.md:6483  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:6485  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:6486  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:6493  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:6496  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 6-up
-- e2e/module-verification/playwright-error-contexts.md:6500  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:6516  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:6591  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:6709  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:6949  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:6973  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e581]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:7009  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:7015  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:7017  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:7019  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:7020  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:7021  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:7022  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:7023  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:7024  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:7025  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:7026  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:7027  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:7028  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:7029  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:7030  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:7031  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:7032  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:7033  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:7034  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:7035  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:7036  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:7037  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:7038  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:7039  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:7040  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:7041  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/playwright-error-contexts.md:7042  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
-- e2e/module-verification/playwright-error-contexts.md:7043  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e97]
-- e2e/module-verification/playwright-error-contexts.md:7044  [WORK-PROJECT]  - button "inspector-retest, pane 26" [pressed] [ref=e100]:
-- e2e/module-verification/playwright-error-contexts.md:7049  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:7051  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:7052  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:7059  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:7062  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: inspector-retest
-- e2e/module-verification/playwright-error-contexts.md:7066  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:7081  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:7149  [AMBIGUOUS]  - textbox "Project note editor" [ref=e206]:
-- e2e/module-verification/playwright-error-contexts.md:7178  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e232]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:7214  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:7220  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:7222  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:7224  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:7225  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:7226  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:7227  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:7228  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:7229  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:7230  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:7231  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:7232  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:7233  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:7234  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:7235  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:7236  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:7237  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:7238  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:7239  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:7240  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:7241  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:7242  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:7243  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:7244  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:7245  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:7246  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/playwright-error-contexts.md:7247  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
-- e2e/module-verification/playwright-error-contexts.md:7248  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e97]
-- e2e/module-verification/playwright-error-contexts.md:7249  [WORK-PROJECT]  - button "inspector-retest, pane 26" [pressed] [ref=e100]:
-- e2e/module-verification/playwright-error-contexts.md:7254  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:7256  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:7257  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:7264  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:7267  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: inspector-retest
-- e2e/module-verification/playwright-error-contexts.md:7271  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:7286  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:7354  [AMBIGUOUS]  - textbox "Project note editor" [ref=e206]:
-- e2e/module-verification/playwright-error-contexts.md:7383  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e232]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/playwright-error-contexts.md:7419  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/playwright-error-contexts.md:7425  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/playwright-error-contexts.md:7427  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/playwright-error-contexts.md:7429  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/playwright-error-contexts.md:7430  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/playwright-error-contexts.md:7431  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/playwright-error-contexts.md:7432  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/playwright-error-contexts.md:7433  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/playwright-error-contexts.md:7434  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/playwright-error-contexts.md:7435  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/playwright-error-contexts.md:7436  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/playwright-error-contexts.md:7437  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/playwright-error-contexts.md:7438  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/playwright-error-contexts.md:7439  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/playwright-error-contexts.md:7440  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/playwright-error-contexts.md:7441  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/playwright-error-contexts.md:7442  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/playwright-error-contexts.md:7443  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/playwright-error-contexts.md:7444  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/playwright-error-contexts.md:7445  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/playwright-error-contexts.md:7446  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/playwright-error-contexts.md:7447  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/playwright-error-contexts.md:7448  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/playwright-error-contexts.md:7449  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/playwright-error-contexts.md:7450  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/playwright-error-contexts.md:7451  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/playwright-error-contexts.md:7452  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
-- e2e/module-verification/playwright-error-contexts.md:7453  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e97]
-- e2e/module-verification/playwright-error-contexts.md:7454  [WORK-PROJECT]  - button "inspector-retest, pane 26" [pressed] [ref=e100]:
-- e2e/module-verification/playwright-error-contexts.md:7459  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/playwright-error-contexts.md:7461  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/playwright-error-contexts.md:7462  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/playwright-error-contexts.md:7469  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/playwright-error-contexts.md:7472  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: inspector-retest
-- e2e/module-verification/playwright-error-contexts.md:7476  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/playwright-error-contexts.md:7491  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/playwright-error-contexts.md:7559  [AMBIGUOUS]  - textbox "Project note editor" [ref=e206]:
-- e2e/module-verification/playwright-error-contexts.md:7588  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e232]': Projects › Module Verify module-mnaw0gfn › Work
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [pressed] [ref=e61]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-L
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:153  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e207]': Projects › Module Verify module-mnazqph7 › Work
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [pressed] [ref=e34]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:33  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:34  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:35  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:36  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:37  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:38  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:39  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:40  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:41  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-L
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:88  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:162  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e214]': Projects › Module Verify module-mnazqph7 › Work
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [pressed] [ref=e55]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:40  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:41  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-S
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:115  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e164]': Projects › Module Verify module-mnazqph7 › Work
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [pressed] [ref=e31]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:32  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:33  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:34  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:35  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:36  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:37  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:38  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:39  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:40  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:41  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-M
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:88  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:162  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e214]': Projects › Module Verify module-mnazqph7 › Work
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [pressed] [ref=e28]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:31  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e32]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:32  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:33  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:34  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:35  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:36  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:37  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:38  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:39  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:40  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:41  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-S
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:88  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:162  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e214]': Projects › Module Verify module-mnazqph7 › Work
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:39  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:40  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:41  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:42  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:43  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:44  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:45  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:46  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:47  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:48  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [pressed] [ref=e91]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 3-up
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:89  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:164  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:282  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:448  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e479]': Projects › Module Verify module-mnazqph7 › Work
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:39  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:40  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:41  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:42  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:43  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:44  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:45  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:46  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:47  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:48  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:49  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:50  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [pressed] [ref=e97]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid Mixed Tiers
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:89  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:229  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:419  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e487]': Projects › Module Verify module-mnazqph7 › Work
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:39  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:40  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:41  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:42  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:43  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:44  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:45  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:46  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:47  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:48  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:49  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [pressed] [ref=e94]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 6-up
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:89  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:164  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:282  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:522  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:546  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e584]': Projects › Module Verify module-mnazqph7 › Work
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:39  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:40  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:41  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:42  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:43  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:44  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:45  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:46  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:47  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:48  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:49  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:50  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e97]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:51  [WORK-PROJECT]  - button "inspector-retest, pane 26" [pressed] [ref=e100]:
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: inspector-retest
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization modules" [ref=e122]:
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:88  [AMBIGUOUS]  - option "project" [selected]
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:156  [AMBIGUOUS]  - textbox "Project note editor" [ref=e207]:
-- e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:185  [AMBIGUOUS]  - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e233]': Projects › Module Verify module-mnazqph7 › Work
-- e2e/module-verification/seed.mjs:114  [AMBIGUOUS]  const data = await hubRequest(baseUrl, accessToken, '/api/hub/projects', {
-- e2e/module-verification/seed.mjs:122  [AMBIGUOUS]  return hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/collections\`, {
-- e2e/module-verification/seed.mjs:136  [AMBIGUOUS]  return hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/views\`, {
-- e2e/module-verification/seed.mjs:143  [WORK-PROJECT]  const data = await hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/panes\`, {
-- e2e/module-verification/seed.mjs:151  [AMBIGUOUS]  return hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/records\`, {
-- e2e/module-verification/seed.mjs:158  [AMBIGUOUS]  await hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/events/from-nlp\`, {
-- e2e/module-verification/seed.mjs:315  [AMBIGUOUS]  lens: 'project',
-- e2e/module-verification/seed.mjs:335  [WORK-PROJECT]  const paneName = \`${definition.paneSlug}-${tier}\`;
-- e2e/module-verification/seed.mjs:377  [WORK-PROJECT]  const sourcePaneId = panes['table-L'] \|\| panes['inspector-retest'];
-- e2e/module-verification/seed.ts:156  [AMBIGUOUS]  lens: 'project',
-- e2e/module-verification/seed.ts:180  [WORK-PROJECT]  const paneName = \`${definition.paneSlug}-${tier}\`;
-- e2e/module-verification/seed.ts:222  [WORK-PROJECT]  const sourcePaneId = panes['table-L'] \|\| panes['inspector-retest'];
-- e2e/module-verification/verify-modules.spec.mjs:121  [AMBIGUOUS]  await expect(page.locator('text=Loading project space...')).toHaveCount(0, { timeout: 15_000 }).catch(() => {
-- e2e/module-verification/verify-modules.spec.mjs:144  [WORK-PROJECT]  \`/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(paneId)}\`;
-- e2e/module-verification/verify-modules.spec.mjs:147  [WORK-PROJECT]  \`/projects/${encodeURIComponent(projectId)}/work?pane=${encodeURIComponent(paneId)}\`;
-- e2e/module-verification/verify-modules.spec.mjs:164  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization modules')).toBeVisible({ timeout: 15_000 });
-- e2e/module-verification/verify-modules.spec.mjs:307  [WORK-PROJECT]  expect(paneId, \`Missing pane fixture for ${paneName}\`).toBeTruthy();
-- e2e/module-verification/verify-modules.spec.mjs:308  [AMBIGUOUS]  const screenshotName = \`isolated-${moduleSlug}-${tier}-${testInfo.project.name}.png\`;
-- e2e/module-verification/verify-modules.spec.mjs:322  [WORK-PROJECT]  expect(paneId, \`Missing pane fixture for ${combo.paneName}\`).toBeTruthy();
-- e2e/module-verification/verify-modules.spec.mjs:323  [AMBIGUOUS]  const screenshotName = \`grid-${combo.screenshotSlug}-${testInfo.project.name}.png\`;
-- e2e/module-verification/verify-modules.spec.mjs:341  [WORK-PROJECT]  expect(paneId, 'Missing pane fixture for inspector-retest').toBeTruthy();
-- e2e/module-verification/verify-modules.spec.mjs:342  [AMBIGUOUS]  const screenshotName = \`inspector-retest-${testInfo.project.name}.png\`;
-- e2e/module-verification/verify-modules.spec.ts:133  [AMBIGUOUS]  await expect(page.locator('text=Loading project space...')).toHaveCount(0, { timeout: 15_000 }).catch(() => {
-- e2e/module-verification/verify-modules.spec.ts:156  [WORK-PROJECT]  \`/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(paneId)}\`;
-- e2e/module-verification/verify-modules.spec.ts:159  [WORK-PROJECT]  \`/projects/${encodeURIComponent(projectId)}/work?pane=${encodeURIComponent(paneId)}\`;
-- e2e/module-verification/verify-modules.spec.ts:176  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization modules')).toBeVisible({ timeout: 15_000 });
-- e2e/module-verification/verify-modules.spec.ts:328  [WORK-PROJECT]  expect(paneId, \`Missing pane fixture for ${paneName}\`).toBeTruthy();
-- e2e/module-verification/verify-modules.spec.ts:329  [AMBIGUOUS]  const screenshotName = \`isolated-${moduleSlug}-${tier}-${testInfo.project.name}.png\`;
-- e2e/module-verification/verify-modules.spec.ts:343  [WORK-PROJECT]  expect(paneId, \`Missing pane fixture for ${combo.paneName}\`).toBeTruthy();
-- e2e/module-verification/verify-modules.spec.ts:344  [AMBIGUOUS]  const screenshotName = \`grid-${combo.screenshotSlug}-${testInfo.project.name}.png\`;
-- e2e/module-verification/verify-modules.spec.ts:362  [WORK-PROJECT]  expect(paneId, 'Missing pane fixture for inspector-retest').toBeTruthy();
-- e2e/module-verification/verify-modules.spec.ts:363  [AMBIGUOUS]  const screenshotName = \`inspector-retest-${testInfo.project.name}.png\`;
+- e2e/widget-verification/evaluate-screenshots-v2.mjs:26  [WORK-PROJECT]  return \`Focus scope: ONLY the "${parsed.widgetSlug}" widget at ${parsed.tier} tier inside its widget card. Ignore top nav, pane tabs, shell chrome, and any UI outside that widget card.\`;
+- e2e/widget-verification/evaluate-screenshots-v2.mjs:29  [WORK-PROJECT]  return 'Focus scope: ONLY the widget grid card region and the widget cards inside it. Ignore page header, pane switcher, and non-grid shell UI.';
+- e2e/widget-verification/fixture.json:4  [AMBIGUOUS]  "project": {
+- e2e/widget-verification/fixture.json:12  [WORK-PROJECT]  "panes": {
+- e2e/widget-verification/playwright-error-contexts.md:28  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:34  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:36  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:38  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:39  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:40  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:41  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:42  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:43  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:44  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:45  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:46  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:47  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:48  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:49  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:50  [WORK-PROJECT]  - button "tasks-L, pane 13" [pressed] [ref=e61]:
+- e2e/widget-verification/playwright-error-contexts.md:54  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:55  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:56  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:57  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:58  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:59  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:60  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:61  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:62  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:63  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:64  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:65  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:66  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:68  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:70  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:71  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:78  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:81  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-L
+- e2e/widget-verification/playwright-error-contexts.md:85  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:165  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e206]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:201  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:207  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:209  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:211  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:212  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:213  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:214  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:215  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:216  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:217  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:218  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:219  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:220  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:221  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:222  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:223  [WORK-PROJECT]  - button "tasks-L, pane 13" [pressed] [ref=e61]:
+- e2e/widget-verification/playwright-error-contexts.md:227  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:228  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:229  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:230  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:231  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:232  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:233  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:234  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:235  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:236  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:237  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:238  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:239  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:241  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:243  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:244  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:251  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:254  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-L
+- e2e/widget-verification/playwright-error-contexts.md:258  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:338  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e206]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:374  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:380  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:382  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:384  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:385  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:386  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:387  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:388  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:389  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:390  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:391  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:392  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:393  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:394  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:395  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:396  [WORK-PROJECT]  - button "tasks-L, pane 13" [pressed] [ref=e61]:
+- e2e/widget-verification/playwright-error-contexts.md:400  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:401  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:402  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:403  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:404  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:405  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:406  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:407  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:408  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:409  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:410  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:411  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:412  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:414  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:416  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:417  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:424  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:427  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-L
+- e2e/widget-verification/playwright-error-contexts.md:431  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:511  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e206]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:547  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:553  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:555  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:557  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:558  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:559  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:560  [WORK-PROJECT]  - button "table-L, pane 4" [pressed] [ref=e34]:
+- e2e/widget-verification/playwright-error-contexts.md:564  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/playwright-error-contexts.md:565  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/playwright-error-contexts.md:566  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/playwright-error-contexts.md:567  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/playwright-error-contexts.md:568  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/playwright-error-contexts.md:569  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/playwright-error-contexts.md:570  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/playwright-error-contexts.md:571  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:572  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:573  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:574  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:575  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:576  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:577  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:578  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:579  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:580  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:581  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:582  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:583  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:584  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:585  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:587  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:589  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:590  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:597  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:600  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-L
+- e2e/widget-verification/playwright-error-contexts.md:604  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:619  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:693  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:729  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:735  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:737  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:739  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:740  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:741  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:742  [WORK-PROJECT]  - button "table-L, pane 4" [pressed] [ref=e34]:
+- e2e/widget-verification/playwright-error-contexts.md:746  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/playwright-error-contexts.md:747  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/playwright-error-contexts.md:748  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/playwright-error-contexts.md:749  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/playwright-error-contexts.md:750  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/playwright-error-contexts.md:751  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/playwright-error-contexts.md:752  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/playwright-error-contexts.md:753  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:754  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:755  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:756  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:757  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:758  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:759  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:760  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:761  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:762  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:763  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:764  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:765  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:766  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:767  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:769  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:771  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:772  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:779  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:782  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-L
+- e2e/widget-verification/playwright-error-contexts.md:786  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:801  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:875  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:911  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:917  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:919  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:921  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:922  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:923  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:924  [WORK-PROJECT]  - button "table-L, pane 4" [pressed] [ref=e34]:
+- e2e/widget-verification/playwright-error-contexts.md:928  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/playwright-error-contexts.md:929  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/playwright-error-contexts.md:930  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/playwright-error-contexts.md:931  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/playwright-error-contexts.md:932  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/playwright-error-contexts.md:933  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/playwright-error-contexts.md:934  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/playwright-error-contexts.md:935  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:936  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:937  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:938  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:939  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:940  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:941  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:942  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:943  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:944  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:945  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:946  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:947  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:948  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:949  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:951  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:953  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:954  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:961  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:964  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-L
+- e2e/widget-verification/playwright-error-contexts.md:968  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:983  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:1057  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:1093  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:1099  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:1101  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:1103  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:1104  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:1105  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:1106  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:1107  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:1108  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:1109  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:1110  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:1111  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:1112  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:1113  [WORK-PROJECT]  - button "tasks-S, pane 11" [pressed] [ref=e55]:
+- e2e/widget-verification/playwright-error-contexts.md:1117  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:1118  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:1119  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:1120  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:1121  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:1122  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:1123  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:1124  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:1125  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:1126  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:1127  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:1128  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:1129  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:1130  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:1131  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:1133  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:1135  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:1136  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:1143  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:1146  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-S
+- e2e/widget-verification/playwright-error-contexts.md:1150  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:1192  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e163]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:1228  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:1234  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:1236  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:1238  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:1239  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:1240  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:1241  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:1242  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:1243  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:1244  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:1245  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:1246  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:1247  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:1248  [WORK-PROJECT]  - button "tasks-S, pane 11" [pressed] [ref=e55]:
+- e2e/widget-verification/playwright-error-contexts.md:1252  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:1253  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:1254  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:1255  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:1256  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:1257  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:1258  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:1259  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:1260  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:1261  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:1262  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:1263  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:1264  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:1265  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:1266  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:1268  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:1270  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:1271  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:1278  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:1281  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-S
+- e2e/widget-verification/playwright-error-contexts.md:1285  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:1327  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e163]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:1363  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:1369  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:1371  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:1373  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:1374  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:1375  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:1376  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:1377  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:1378  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:1379  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:1380  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:1381  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:1382  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:1383  [WORK-PROJECT]  - button "tasks-S, pane 11" [pressed] [ref=e55]:
+- e2e/widget-verification/playwright-error-contexts.md:1387  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:1388  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:1389  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:1390  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:1391  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:1392  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:1393  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:1394  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:1395  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:1396  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:1397  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:1398  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:1399  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:1400  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:1401  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:1403  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:1405  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:1406  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:1413  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:1416  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-S
+- e2e/widget-verification/playwright-error-contexts.md:1420  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:1462  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e163]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:1498  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:1504  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:1506  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:1508  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:1509  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:1510  [WORK-PROJECT]  - button "table-M, pane 3" [pressed] [ref=e31]:
+- e2e/widget-verification/playwright-error-contexts.md:1514  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
+- e2e/widget-verification/playwright-error-contexts.md:1515  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/playwright-error-contexts.md:1516  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/playwright-error-contexts.md:1517  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/playwright-error-contexts.md:1518  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/playwright-error-contexts.md:1519  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/playwright-error-contexts.md:1520  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/playwright-error-contexts.md:1521  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/playwright-error-contexts.md:1522  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:1523  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:1524  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:1525  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:1526  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:1527  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:1528  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:1529  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:1530  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:1531  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:1532  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:1533  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:1534  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:1535  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:1536  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:1538  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:1540  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:1541  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:1548  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:1551  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-M
+- e2e/widget-verification/playwright-error-contexts.md:1555  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:1570  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:1644  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:1680  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:1686  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:1688  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:1690  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:1691  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:1692  [WORK-PROJECT]  - button "table-M, pane 3" [pressed] [ref=e31]:
+- e2e/widget-verification/playwright-error-contexts.md:1696  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
+- e2e/widget-verification/playwright-error-contexts.md:1697  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/playwright-error-contexts.md:1698  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/playwright-error-contexts.md:1699  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/playwright-error-contexts.md:1700  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/playwright-error-contexts.md:1701  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/playwright-error-contexts.md:1702  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/playwright-error-contexts.md:1703  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/playwright-error-contexts.md:1704  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:1705  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:1706  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:1707  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:1708  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:1709  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:1710  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:1711  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:1712  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:1713  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:1714  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:1715  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:1716  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:1717  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:1718  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:1720  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:1722  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:1723  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:1730  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:1733  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-M
+- e2e/widget-verification/playwright-error-contexts.md:1737  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:1752  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:1826  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:1862  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:1868  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:1870  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:1872  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:1873  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:1874  [WORK-PROJECT]  - button "table-M, pane 3" [pressed] [ref=e31]:
+- e2e/widget-verification/playwright-error-contexts.md:1878  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
+- e2e/widget-verification/playwright-error-contexts.md:1879  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/playwright-error-contexts.md:1880  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/playwright-error-contexts.md:1881  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/playwright-error-contexts.md:1882  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/playwright-error-contexts.md:1883  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/playwright-error-contexts.md:1884  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/playwright-error-contexts.md:1885  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/playwright-error-contexts.md:1886  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:1887  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:1888  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:1889  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:1890  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:1891  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:1892  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:1893  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:1894  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:1895  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:1896  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:1897  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:1898  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:1899  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:1900  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:1902  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:1904  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:1905  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:1912  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:1915  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-M
+- e2e/widget-verification/playwright-error-contexts.md:1919  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:1934  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:2008  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:2044  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:2050  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:2052  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:2054  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:2055  [WORK-PROJECT]  - button "table-S, pane 2" [pressed] [ref=e28]:
+- e2e/widget-verification/playwright-error-contexts.md:2059  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e32]
+- e2e/widget-verification/playwright-error-contexts.md:2060  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
+- e2e/widget-verification/playwright-error-contexts.md:2061  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/playwright-error-contexts.md:2062  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/playwright-error-contexts.md:2063  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/playwright-error-contexts.md:2064  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/playwright-error-contexts.md:2065  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/playwright-error-contexts.md:2066  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/playwright-error-contexts.md:2067  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/playwright-error-contexts.md:2068  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:2069  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:2070  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:2071  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:2072  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:2073  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:2074  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:2075  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:2076  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:2077  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:2078  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:2079  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:2080  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:2081  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:2082  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:2084  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:2086  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:2087  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:2094  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:2097  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-S
+- e2e/widget-verification/playwright-error-contexts.md:2101  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:2116  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:2190  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:2226  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:2232  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:2234  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:2236  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:2237  [WORK-PROJECT]  - button "table-S, pane 2" [pressed] [ref=e28]:
+- e2e/widget-verification/playwright-error-contexts.md:2241  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e32]
+- e2e/widget-verification/playwright-error-contexts.md:2242  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
+- e2e/widget-verification/playwright-error-contexts.md:2243  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/playwright-error-contexts.md:2244  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/playwright-error-contexts.md:2245  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/playwright-error-contexts.md:2246  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/playwright-error-contexts.md:2247  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/playwright-error-contexts.md:2248  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/playwright-error-contexts.md:2249  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/playwright-error-contexts.md:2250  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:2251  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:2252  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:2253  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:2254  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:2255  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:2256  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:2257  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:2258  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:2259  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:2260  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:2261  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:2262  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:2263  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:2264  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:2266  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:2268  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:2269  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:2276  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:2279  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-S
+- e2e/widget-verification/playwright-error-contexts.md:2283  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:2298  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:2372  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:2408  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:2414  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:2416  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:2418  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:2419  [WORK-PROJECT]  - button "table-S, pane 2" [pressed] [ref=e28]:
+- e2e/widget-verification/playwright-error-contexts.md:2423  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e32]
+- e2e/widget-verification/playwright-error-contexts.md:2424  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
+- e2e/widget-verification/playwright-error-contexts.md:2425  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/playwright-error-contexts.md:2426  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/playwright-error-contexts.md:2427  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/playwright-error-contexts.md:2428  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/playwright-error-contexts.md:2429  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/playwright-error-contexts.md:2430  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/playwright-error-contexts.md:2431  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/playwright-error-contexts.md:2432  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/playwright-error-contexts.md:2433  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/playwright-error-contexts.md:2434  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/playwright-error-contexts.md:2435  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/playwright-error-contexts.md:2436  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/playwright-error-contexts.md:2437  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/playwright-error-contexts.md:2438  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/playwright-error-contexts.md:2439  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/playwright-error-contexts.md:2440  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/playwright-error-contexts.md:2441  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/playwright-error-contexts.md:2442  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/playwright-error-contexts.md:2443  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/playwright-error-contexts.md:2444  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:2445  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:2446  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:2448  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:2450  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:2451  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:2458  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:2461  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-S
+- e2e/widget-verification/playwright-error-contexts.md:2465  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:2480  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:2554  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:2590  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:2596  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:2598  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:2600  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:2601  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:2602  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:2603  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:2604  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:2605  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:2606  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:2607  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:2608  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:2609  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:2610  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:2611  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:2612  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:2613  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:2614  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:2615  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:2616  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:2617  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:2618  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:2619  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:2620  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:2621  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:2622  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [pressed] [ref=e91]:
+- e2e/widget-verification/playwright-error-contexts.md:2626  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:2627  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:2628  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:2630  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:2632  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:2633  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:2640  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:2643  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 3-up
+- e2e/widget-verification/playwright-error-contexts.md:2647  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:2663  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:2738  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:2856  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:3022  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e477]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:3058  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:3064  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:3066  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:3068  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:3069  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:3070  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:3071  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:3072  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:3073  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:3074  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:3075  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:3076  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:3077  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:3078  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:3079  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:3080  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:3081  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:3082  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:3083  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:3084  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:3085  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:3086  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:3087  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:3088  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:3089  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:3090  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [pressed] [ref=e91]:
+- e2e/widget-verification/playwright-error-contexts.md:3094  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:3095  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:3096  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:3098  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:3100  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:3101  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:3108  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:3111  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 3-up
+- e2e/widget-verification/playwright-error-contexts.md:3115  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:3131  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:3206  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:3324  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:3490  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e476]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:3526  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:3532  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:3534  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:3536  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:3537  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:3538  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:3539  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:3540  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:3541  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:3542  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:3543  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:3544  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:3545  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:3546  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:3547  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:3548  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:3549  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:3550  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:3551  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:3552  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:3553  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:3554  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:3555  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:3556  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:3557  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:3558  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [pressed] [ref=e91]:
+- e2e/widget-verification/playwright-error-contexts.md:3562  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/playwright-error-contexts.md:3563  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:3564  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:3566  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:3568  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:3569  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:3576  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:3579  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 3-up
+- e2e/widget-verification/playwright-error-contexts.md:3583  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:3599  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:3674  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:3792  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:3958  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e476]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:3994  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:4000  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:4002  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:4004  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:4005  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:4006  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:4007  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:4008  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:4009  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:4010  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:4011  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:4012  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:4013  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:4014  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:4015  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:4016  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:4017  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:4018  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:4019  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:4020  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:4021  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:4022  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:4023  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:4024  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:4025  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:4026  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/playwright-error-contexts.md:4027  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
+- e2e/widget-verification/playwright-error-contexts.md:4028  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [pressed] [ref=e97]:
+- e2e/widget-verification/playwright-error-contexts.md:4032  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:4034  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:4036  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:4037  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:4044  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:4047  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid Mixed Tiers
+- e2e/widget-verification/playwright-error-contexts.md:4051  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:4067  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:4207  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:4397  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e485]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:4433  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:4439  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:4441  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:4443  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:4444  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:4445  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:4446  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:4447  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:4448  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:4449  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:4450  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:4451  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:4452  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:4453  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:4454  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:4455  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:4456  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:4457  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:4458  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:4459  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:4460  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:4461  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:4462  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:4463  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:4464  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:4465  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/playwright-error-contexts.md:4466  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
+- e2e/widget-verification/playwright-error-contexts.md:4467  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [pressed] [ref=e97]:
+- e2e/widget-verification/playwright-error-contexts.md:4471  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:4473  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:4475  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:4476  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:4483  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:4486  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid Mixed Tiers
+- e2e/widget-verification/playwright-error-contexts.md:4490  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:4506  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:4646  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:4836  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e484]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:4872  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:4878  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:4880  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:4882  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:4883  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:4884  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:4885  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:4886  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:4887  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:4888  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:4889  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:4890  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:4891  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:4892  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:4893  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:4894  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:4895  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:4896  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:4897  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:4898  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:4899  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:4900  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:4901  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:4902  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:4903  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:4904  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/playwright-error-contexts.md:4905  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
+- e2e/widget-verification/playwright-error-contexts.md:4906  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [pressed] [ref=e97]:
+- e2e/widget-verification/playwright-error-contexts.md:4910  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:4912  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:4914  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:4915  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:4922  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:4925  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid Mixed Tiers
+- e2e/widget-verification/playwright-error-contexts.md:4929  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:4945  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:5085  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:5275  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e484]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:5311  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:5317  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:5319  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:5321  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:5322  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:5323  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:5324  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:5325  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:5326  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:5327  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:5328  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:5329  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:5330  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:5331  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:5332  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:5333  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:5334  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:5335  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:5336  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:5337  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:5338  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:5339  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:5340  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:5341  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:5342  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:5343  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/playwright-error-contexts.md:5344  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [pressed] [ref=e94]:
+- e2e/widget-verification/playwright-error-contexts.md:5348  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:5349  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:5351  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:5353  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:5354  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:5361  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:5364  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 6-up
+- e2e/widget-verification/playwright-error-contexts.md:5368  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:5384  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:5459  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:5577  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:5817  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:5841  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e581]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:5877  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:5883  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:5885  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:5887  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:5888  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:5889  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:5890  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:5891  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:5892  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:5893  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:5894  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:5895  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:5896  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:5897  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:5898  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:5899  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:5900  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:5901  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:5902  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:5903  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:5904  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:5905  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:5906  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:5907  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:5908  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:5909  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/playwright-error-contexts.md:5910  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [pressed] [ref=e94]:
+- e2e/widget-verification/playwright-error-contexts.md:5914  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:5915  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:5917  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:5919  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:5920  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:5927  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:5930  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 6-up
+- e2e/widget-verification/playwright-error-contexts.md:5934  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:5950  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:6025  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:6143  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:6383  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:6407  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e581]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:6443  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:6449  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:6451  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:6453  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:6454  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:6455  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:6456  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:6457  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:6458  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:6459  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:6460  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:6461  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:6462  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:6463  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:6464  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:6465  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:6466  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:6467  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:6468  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:6469  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:6470  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:6471  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:6472  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:6473  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:6474  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:6475  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/playwright-error-contexts.md:6476  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [pressed] [ref=e94]:
+- e2e/widget-verification/playwright-error-contexts.md:6480  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/playwright-error-contexts.md:6481  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/playwright-error-contexts.md:6483  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:6485  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:6486  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:6493  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:6496  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 6-up
+- e2e/widget-verification/playwright-error-contexts.md:6500  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:6516  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:6591  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:6709  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:6949  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:6973  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e581]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:7009  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:7015  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:7017  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:7019  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:7020  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:7021  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:7022  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:7023  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:7024  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:7025  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:7026  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:7027  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:7028  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:7029  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:7030  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:7031  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:7032  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:7033  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:7034  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:7035  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:7036  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:7037  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:7038  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:7039  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:7040  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:7041  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/playwright-error-contexts.md:7042  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
+- e2e/widget-verification/playwright-error-contexts.md:7043  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e97]
+- e2e/widget-verification/playwright-error-contexts.md:7044  [WORK-PROJECT]  - button "inspector-retest, pane 26" [pressed] [ref=e100]:
+- e2e/widget-verification/playwright-error-contexts.md:7049  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:7051  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:7052  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:7059  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:7062  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: inspector-retest
+- e2e/widget-verification/playwright-error-contexts.md:7066  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:7081  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:7149  [AMBIGUOUS]  - textbox "Project note editor" [ref=e206]:
+- e2e/widget-verification/playwright-error-contexts.md:7178  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e232]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:7214  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:7220  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:7222  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:7224  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:7225  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:7226  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:7227  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:7228  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:7229  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:7230  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:7231  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:7232  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:7233  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:7234  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:7235  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:7236  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:7237  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:7238  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:7239  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:7240  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:7241  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:7242  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:7243  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:7244  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:7245  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:7246  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/playwright-error-contexts.md:7247  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
+- e2e/widget-verification/playwright-error-contexts.md:7248  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e97]
+- e2e/widget-verification/playwright-error-contexts.md:7249  [WORK-PROJECT]  - button "inspector-retest, pane 26" [pressed] [ref=e100]:
+- e2e/widget-verification/playwright-error-contexts.md:7254  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:7256  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:7257  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:7264  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:7267  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: inspector-retest
+- e2e/widget-verification/playwright-error-contexts.md:7271  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:7286  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:7354  [AMBIGUOUS]  - textbox "Project note editor" [ref=e206]:
+- e2e/widget-verification/playwright-error-contexts.md:7383  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e232]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/playwright-error-contexts.md:7419  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/playwright-error-contexts.md:7425  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/playwright-error-contexts.md:7427  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/playwright-error-contexts.md:7429  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/playwright-error-contexts.md:7430  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/playwright-error-contexts.md:7431  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/playwright-error-contexts.md:7432  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/playwright-error-contexts.md:7433  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/playwright-error-contexts.md:7434  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/playwright-error-contexts.md:7435  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/playwright-error-contexts.md:7436  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/playwright-error-contexts.md:7437  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/playwright-error-contexts.md:7438  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/playwright-error-contexts.md:7439  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/playwright-error-contexts.md:7440  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/playwright-error-contexts.md:7441  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/playwright-error-contexts.md:7442  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/playwright-error-contexts.md:7443  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/playwright-error-contexts.md:7444  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/playwright-error-contexts.md:7445  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/playwright-error-contexts.md:7446  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/playwright-error-contexts.md:7447  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/playwright-error-contexts.md:7448  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/playwright-error-contexts.md:7449  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/playwright-error-contexts.md:7450  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/playwright-error-contexts.md:7451  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/playwright-error-contexts.md:7452  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
+- e2e/widget-verification/playwright-error-contexts.md:7453  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e97]
+- e2e/widget-verification/playwright-error-contexts.md:7454  [WORK-PROJECT]  - button "inspector-retest, pane 26" [pressed] [ref=e100]:
+- e2e/widget-verification/playwright-error-contexts.md:7459  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/playwright-error-contexts.md:7461  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/playwright-error-contexts.md:7462  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/playwright-error-contexts.md:7469  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/playwright-error-contexts.md:7472  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: inspector-retest
+- e2e/widget-verification/playwright-error-contexts.md:7476  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/playwright-error-contexts.md:7491  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/playwright-error-contexts.md:7559  [AMBIGUOUS]  - textbox "Project note editor" [ref=e206]:
+- e2e/widget-verification/playwright-error-contexts.md:7588  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e232]': Projects › Widget Verify widget-mnaw0gfn › Work
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [pressed] [ref=e61]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-L
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:153  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e207]': Projects › Widget Verify widget-mnazqph7 › Work
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [pressed] [ref=e34]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:33  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:34  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:35  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:36  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:37  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:38  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:39  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:40  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:41  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-L
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:88  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:162  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e214]': Projects › Widget Verify widget-mnazqph7 › Work
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [pressed] [ref=e55]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:40  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:41  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: tasks-S
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:115  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e164]': Projects › Widget Verify widget-mnazqph7 › Work
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [pressed] [ref=e31]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:32  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:33  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:34  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:35  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:36  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:37  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:38  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:39  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:40  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:41  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-M
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:88  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:162  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e214]': Projects › Widget Verify widget-mnazqph7 › Work
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [pressed] [ref=e28]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:31  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e32]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:32  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e35]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:33  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e38]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:34  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e41]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:35  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e44]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:36  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e47]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:37  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e50]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:38  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e53]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:39  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e56]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:40  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e59]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:41  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e62]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:42  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e65]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:43  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e68]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:44  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e71]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:45  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e74]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:46  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e77]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:47  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e80]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:48  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e83]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:49  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e86]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:50  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e89]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:51  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e92]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: table-S
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:88  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:162  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e214]': Projects › Widget Verify widget-mnazqph7 › Work
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:39  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:40  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:41  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:42  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:43  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:44  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:45  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:46  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:47  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:48  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [pressed] [ref=e91]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:52  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e95]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 3-up
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:89  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:164  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:282  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:448  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e479]': Projects › Widget Verify widget-mnazqph7 › Work
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:39  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:40  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:41  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:42  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:43  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:44  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:45  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:46  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:47  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:48  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:49  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:50  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [pressed] [ref=e97]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid Mixed Tiers
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:89  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:229  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:419  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e487]': Projects › Widget Verify widget-mnazqph7 › Work
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:39  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:40  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:41  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:42  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:43  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:44  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:45  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:46  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:47  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:48  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:49  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [pressed] [ref=e94]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:53  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e98]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:54  [WORK-PROJECT]  - button "inspector-retest, pane 26" [ref=e101]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: Grid 6-up
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:89  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:164  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:282  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:522  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:546  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e584]': Projects › Widget Verify widget-mnazqph7 › Work
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:16  [WORK-PROJECT]  - tablist "Project space tabs" [ref=e14]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:22  [WORK-PROJECT]  - heading "Work Panes" [level=2] [ref=e21]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:24  [WORK-PROJECT]  - toolbar "Open panes" [ref=e23]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:26  [WORK-PROJECT]  - button "Main Work, pane 1" [ref=e25]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:27  [WORK-PROJECT]  - button "table-S, pane 2" [ref=e28]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:28  [WORK-PROJECT]  - button "table-M, pane 3" [ref=e31]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:29  [WORK-PROJECT]  - button "table-L, pane 4" [ref=e34]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:30  [WORK-PROJECT]  - button "kanban-S, pane 5" [ref=e37]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:31  [WORK-PROJECT]  - button "kanban-M, pane 6" [ref=e40]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:32  [WORK-PROJECT]  - button "kanban-L, pane 7" [ref=e43]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:33  [WORK-PROJECT]  - button "calendar-S, pane 8" [ref=e46]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:34  [WORK-PROJECT]  - button "calendar-M, pane 9" [ref=e49]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:35  [WORK-PROJECT]  - button "calendar-L, pane 10" [ref=e52]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:36  [WORK-PROJECT]  - button "tasks-S, pane 11" [ref=e55]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:37  [WORK-PROJECT]  - button "tasks-M, pane 12" [ref=e58]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:38  [WORK-PROJECT]  - button "tasks-L, pane 13" [ref=e61]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:39  [WORK-PROJECT]  - button "reminders-S, pane 14" [ref=e64]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:40  [WORK-PROJECT]  - button "reminders-M, pane 15" [ref=e67]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:41  [WORK-PROJECT]  - button "reminders-L, pane 16" [ref=e70]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:42  [WORK-PROJECT]  - button "files-S, pane 17" [ref=e73]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:43  [WORK-PROJECT]  - button "files-M, pane 18" [ref=e76]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:44  [WORK-PROJECT]  - button "files-L, pane 19" [ref=e79]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:45  [WORK-PROJECT]  - button "quick-thoughts-S, pane 20" [ref=e82]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:46  [WORK-PROJECT]  - button "quick-thoughts-M, pane 21" [ref=e85]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:47  [WORK-PROJECT]  - button "quick-thoughts-L, pane 22" [ref=e88]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:48  [WORK-PROJECT]  - button "Grid 3-up, pane 23" [ref=e91]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:49  [WORK-PROJECT]  - button "Grid 6-up, pane 24" [ref=e94]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:50  [WORK-PROJECT]  - button "Grid Mixed Tiers, pane 25" [ref=e97]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:51  [WORK-PROJECT]  - button "inspector-retest, pane 26" [pressed] [ref=e100]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:56  [WORK-PROJECT]  - generic "Editable pane management" [ref=e105] [cursor=pointer]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:58  [WORK-PROJECT]  - textbox "New pane name" [ref=e107]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:59  [WORK-PROJECT]  - button "Create pane" [ref=e108]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:66  [WORK-PROJECT]  - button "Open pane route" [ref=e115]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:69  [WORK-PROJECT]  - textbox "Pane name" [ref=e118]: inspector-retest
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:73  [WORK-PROJECT]  - region "Pane organization widgets" [ref=e122]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:88  [AMBIGUOUS]  - option "project" [selected]
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:156  [AMBIGUOUS]  - textbox "Project note editor" [ref=e207]:
+- e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:185  [AMBIGUOUS]  - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e233]': Projects › Widget Verify widget-mnazqph7 › Work
+- e2e/widget-verification/seed.mjs:114  [AMBIGUOUS]  const data = await hubRequest(baseUrl, accessToken, '/api/hub/projects', {
+- e2e/widget-verification/seed.mjs:122  [AMBIGUOUS]  return hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/collections\`, {
+- e2e/widget-verification/seed.mjs:136  [AMBIGUOUS]  return hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/views\`, {
+- e2e/widget-verification/seed.mjs:143  [WORK-PROJECT]  const data = await hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/panes\`, {
+- e2e/widget-verification/seed.mjs:151  [AMBIGUOUS]  return hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/records\`, {
+- e2e/widget-verification/seed.mjs:158  [AMBIGUOUS]  await hubRequest(baseUrl, accessToken, \`/api/hub/projects/${encodeURIComponent(projectId)}/events/from-nlp\`, {
+- e2e/widget-verification/seed.mjs:315  [AMBIGUOUS]  lens: 'project',
+- e2e/widget-verification/seed.mjs:335  [WORK-PROJECT]  const paneName = \`${definition.paneSlug}-${tier}\`;
+- e2e/widget-verification/seed.mjs:377  [WORK-PROJECT]  const sourcePaneId = panes['table-L'] \|\| panes['inspector-retest'];
+- e2e/widget-verification/seed.ts:156  [AMBIGUOUS]  lens: 'project',
+- e2e/widget-verification/seed.ts:180  [WORK-PROJECT]  const paneName = \`${definition.paneSlug}-${tier}\`;
+- e2e/widget-verification/seed.ts:222  [WORK-PROJECT]  const sourcePaneId = panes['table-L'] \|\| panes['inspector-retest'];
+- e2e/widget-verification/verify-widgets.spec.mjs:121  [AMBIGUOUS]  await expect(page.locator('text=Loading project space...')).toHaveCount(0, { timeout: 15_000 }).catch(() => {
+- e2e/widget-verification/verify-widgets.spec.mjs:144  [WORK-PROJECT]  \`/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(paneId)}\`;
+- e2e/widget-verification/verify-widgets.spec.mjs:147  [WORK-PROJECT]  \`/projects/${encodeURIComponent(projectId)}/work?pane=${encodeURIComponent(paneId)}\`;
+- e2e/widget-verification/verify-widgets.spec.mjs:164  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization widgets')).toBeVisible({ timeout: 15_000 });
+- e2e/widget-verification/verify-widgets.spec.mjs:307  [WORK-PROJECT]  expect(paneId, \`Missing pane fixture for ${paneName}\`).toBeTruthy();
+- e2e/widget-verification/verify-widgets.spec.mjs:308  [AMBIGUOUS]  const screenshotName = \`isolated-${widgetSlug}-${tier}-${testInfo.project.name}.png\`;
+- e2e/widget-verification/verify-widgets.spec.mjs:322  [WORK-PROJECT]  expect(paneId, \`Missing pane fixture for ${combo.paneName}\`).toBeTruthy();
+- e2e/widget-verification/verify-widgets.spec.mjs:323  [AMBIGUOUS]  const screenshotName = \`grid-${combo.screenshotSlug}-${testInfo.project.name}.png\`;
+- e2e/widget-verification/verify-widgets.spec.mjs:341  [WORK-PROJECT]  expect(paneId, 'Missing pane fixture for inspector-retest').toBeTruthy();
+- e2e/widget-verification/verify-widgets.spec.mjs:342  [AMBIGUOUS]  const screenshotName = \`inspector-retest-${testInfo.project.name}.png\`;
+- e2e/widget-verification/verify-widgets.spec.ts:133  [AMBIGUOUS]  await expect(page.locator('text=Loading project space...')).toHaveCount(0, { timeout: 15_000 }).catch(() => {
+- e2e/widget-verification/verify-widgets.spec.ts:156  [WORK-PROJECT]  \`/projects/${encodeURIComponent(projectId)}/work/${encodeURIComponent(paneId)}\`;
+- e2e/widget-verification/verify-widgets.spec.ts:159  [WORK-PROJECT]  \`/projects/${encodeURIComponent(projectId)}/work?pane=${encodeURIComponent(paneId)}\`;
+- e2e/widget-verification/verify-widgets.spec.ts:176  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization widgets')).toBeVisible({ timeout: 15_000 });
+- e2e/widget-verification/verify-widgets.spec.ts:328  [WORK-PROJECT]  expect(paneId, \`Missing pane fixture for ${paneName}\`).toBeTruthy();
+- e2e/widget-verification/verify-widgets.spec.ts:329  [AMBIGUOUS]  const screenshotName = \`isolated-${widgetSlug}-${tier}-${testInfo.project.name}.png\`;
+- e2e/widget-verification/verify-widgets.spec.ts:343  [WORK-PROJECT]  expect(paneId, \`Missing pane fixture for ${combo.paneName}\`).toBeTruthy();
+- e2e/widget-verification/verify-widgets.spec.ts:344  [AMBIGUOUS]  const screenshotName = \`grid-${combo.screenshotSlug}-${testInfo.project.name}.png\`;
+- e2e/widget-verification/verify-widgets.spec.ts:362  [WORK-PROJECT]  expect(paneId, 'Missing pane fixture for inspector-retest').toBeTruthy();
+- e2e/widget-verification/verify-widgets.spec.ts:363  [AMBIGUOUS]  const screenshotName = \`inspector-retest-${testInfo.project.name}.png\`;
 - e2e/project-space-workspace/fixture.json:4  [AMBIGUOUS]  "project": {
 - e2e/project-space-workspace/playwright.config.ts:6  [AMBIGUOUS]  const storageStatePath = resolve(currentDir, '..', '..', '.playwright', 'project-space-owner-storage-state.json');
 - e2e/project-space-workspace/seed.ts:42  [AMBIGUOUS]  const ownerStatePath = resolve(playwrightStateDir, 'project-space-owner-storage-state.json');
@@ -4244,9 +4244,9 @@ Total string/comment hits: 3475.
 - e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:156  [AMBIGUOUS]  await expect(page).toHaveURL(new RegExp(\`/projects/${fixture.project.id}/overview\`));
 - e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:167  [AMBIGUOUS]  await runCheck(page, testInfo, { phase: 2, checkName: 'overview-header', log: 'Verifying Overview header renders with project title.' }, async () => {
 - e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:188  [AMBIGUOUS]  const panel = page.locator('#project-panel-overview').first();
-- e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:197  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'module-grid-container', log: 'Verifying module grid container is present on Pane A.' }, async () => {
-- e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:199  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization modules')).toBeVisible();
-- e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:203  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'module-count', log: 'Verifying exactly seven module cards render in the pane grid.' }, async () => {
+- e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:197  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'widget-grid-container', log: 'Verifying widget grid container is present on Pane A.' }, async () => {
+- e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:199  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization widgets')).toBeVisible();
+- e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:203  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'widget-count', log: 'Verifying exactly seven widget cards render in the pane grid.' }, async () => {
 - e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:308  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 5, checkName: 'editor-container', log: 'Verifying lexical editor container is present on Pane A.' }, async () => {
 - e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:310  [AMBIGUOUS]  await expect(page.getByLabel('Project note editor')).toBeVisible();
 - e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:316  [AMBIGUOUS]  const editor = page.getByLabel('Project note editor');
@@ -4291,9 +4291,9 @@ Total string/comment hits: 3475.
 - e2e/project-verification/verify-project-space.spec.js:156  [AMBIGUOUS]  await expect(page).toHaveURL(new RegExp(\`/projects/${fixture.project.id}/overview\`));
 - e2e/project-verification/verify-project-space.spec.js:167  [AMBIGUOUS]  await runCheck(page, testInfo, { phase: 2, checkName: 'overview-header', log: 'Verifying Overview header renders with project title.' }, async () => {
 - e2e/project-verification/verify-project-space.spec.js:188  [AMBIGUOUS]  const panel = page.locator('#project-panel-overview').first();
-- e2e/project-verification/verify-project-space.spec.js:197  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'module-grid-container', log: 'Verifying module grid container is present on Pane A.' }, async () => {
-- e2e/project-verification/verify-project-space.spec.js:199  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization modules')).toBeVisible();
-- e2e/project-verification/verify-project-space.spec.js:203  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'module-count', log: 'Verifying exactly seven module cards render in the pane grid.' }, async () => {
+- e2e/project-verification/verify-project-space.spec.js:197  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'widget-grid-container', log: 'Verifying widget grid container is present on Pane A.' }, async () => {
+- e2e/project-verification/verify-project-space.spec.js:199  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization widgets')).toBeVisible();
+- e2e/project-verification/verify-project-space.spec.js:203  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'widget-count', log: 'Verifying exactly seven widget cards render in the pane grid.' }, async () => {
 - e2e/project-verification/verify-project-space.spec.js:308  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 5, checkName: 'editor-container', log: 'Verifying lexical editor container is present on Pane A.' }, async () => {
 - e2e/project-verification/verify-project-space.spec.js:310  [AMBIGUOUS]  await expect(page.getByLabel('Project note editor')).toBeVisible();
 - e2e/project-verification/verify-project-space.spec.js:316  [AMBIGUOUS]  const editor = page.getByLabel('Project note editor');
@@ -4314,9 +4314,9 @@ Total string/comment hits: 3475.
 - e2e/project-verification/verify-project-space.spec.mjs:272  [AMBIGUOUS]  await expect(page).toHaveURL(new RegExp(\`/projects/${fixture.project.id}/overview\`));
 - e2e/project-verification/verify-project-space.spec.mjs:283  [AMBIGUOUS]  await runCheck(page, testInfo, { phase: 2, checkName: 'overview-header', log: 'Verifying Overview header renders with project title.' }, async () => {
 - e2e/project-verification/verify-project-space.spec.mjs:318  [AMBIGUOUS]  const panel = page.locator('#project-panel-overview').first();
-- e2e/project-verification/verify-project-space.spec.mjs:327  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'module-grid-container', log: 'Verifying module grid container is present on Pane A.' }, async () => {
-- e2e/project-verification/verify-project-space.spec.mjs:329  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization modules')).toBeVisible();
-- e2e/project-verification/verify-project-space.spec.mjs:333  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'module-count', log: 'Verifying exactly seven module cards render in the pane grid.' }, async () => {
+- e2e/project-verification/verify-project-space.spec.mjs:327  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'widget-grid-container', log: 'Verifying widget grid container is present on Pane A.' }, async () => {
+- e2e/project-verification/verify-project-space.spec.mjs:329  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization widgets')).toBeVisible();
+- e2e/project-verification/verify-project-space.spec.mjs:333  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 3, checkName: 'widget-count', log: 'Verifying exactly seven widget cards render in the pane grid.' }, async () => {
 - e2e/project-verification/verify-project-space.spec.mjs:455  [WORK-PROJECT]  await runCheck(page, testInfo, { phase: 5, checkName: 'editor-container', log: 'Verifying lexical editor container is present on Pane A.' }, async () => {
 - e2e/project-verification/verify-project-space.spec.mjs:457  [AMBIGUOUS]  await expect(page.getByLabel('Project note editor')).toBeVisible();
 - e2e/project-verification/verify-project-space.spec.mjs:463  [AMBIGUOUS]  const editor = page.getByLabel('Project note editor');
@@ -4338,9 +4338,9 @@ Total string/comment hits: 3475.
 - e2e/project-verification/verify-project-space.spec.ts:263  [AMBIGUOUS]  await expect(page).toHaveURL(new RegExp(\`/projects/${fixture.project.id}/overview\`));
 - e2e/project-verification/verify-project-space.spec.ts:278  [AMBIGUOUS]  { phase: 2, checkName: 'overview-header', log: 'Verifying Overview header renders with project title.' },
 - e2e/project-verification/verify-project-space.spec.ts:318  [AMBIGUOUS]  const panel = page.locator('#project-panel-overview').first();
-- e2e/project-verification/verify-project-space.spec.ts:332  [WORK-PROJECT]  { phase: 3, checkName: 'module-grid-container', log: 'Verifying module grid container is present on Pane A.' },
-- e2e/project-verification/verify-project-space.spec.ts:335  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization modules')).toBeVisible();
-- e2e/project-verification/verify-project-space.spec.ts:344  [WORK-PROJECT]  { phase: 3, checkName: 'module-count', log: 'Verifying exactly seven module cards render in the pane grid.' },
+- e2e/project-verification/verify-project-space.spec.ts:332  [WORK-PROJECT]  { phase: 3, checkName: 'widget-grid-container', log: 'Verifying widget grid container is present on Pane A.' },
+- e2e/project-verification/verify-project-space.spec.ts:335  [WORK-PROJECT]  await expect(page.getByLabel('Pane organization widgets')).toBeVisible();
+- e2e/project-verification/verify-project-space.spec.ts:344  [WORK-PROJECT]  { phase: 3, checkName: 'widget-count', log: 'Verifying exactly seven widget cards render in the pane grid.' },
 - e2e/project-verification/verify-project-space.spec.ts:516  [WORK-PROJECT]  { phase: 5, checkName: 'editor-container', log: 'Verifying lexical editor container is present on Pane A.' },
 - e2e/project-verification/verify-project-space.spec.ts:519  [AMBIGUOUS]  await expect(page.getByLabel('Project note editor')).toBeVisible();
 - e2e/project-verification/verify-project-space.spec.ts:531  [AMBIGUOUS]  const editor = page.getByLabel('Project note editor');
@@ -4419,9 +4419,9 @@ Total string/comment hits: 3475.
 - e2e/user-journey-verification/seed-stress.ts:199  [WORK-PROJECT]  \`Seeded stress journey context for project ${project.project_id} and pane ${primaryPane.pane_id} as ${runId}.\n\`,
 - e2e/user-journey-verification/utils/networkCoverage.ts:54  [AMBIGUOUS]  'POST /api/hub/projects/([^/]+)/invites': 'Invite flow is not part of baseline/stress user journey checks.',
 - e2e/user-journey-verification/utils/networkCoverage.ts:55  [AMBIGUOUS]  'POST /api/hub/projects/([^/]+)/invites/([^/]+)': 'Invite acceptance flow is not part of baseline/stress user journey checks.',
-- e2e/user-journey-verification/utils/networkCoverage.ts:56  [AMBIGUOUS]  'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-- e2e/user-journey-verification/utils/networkCoverage.ts:57  [AMBIGUOUS]  'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-- e2e/user-journey-verification/utils/networkCoverage.ts:60  [AMBIGUOUS]  'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped module verification.',
+- e2e/user-journey-verification/utils/networkCoverage.ts:56  [AMBIGUOUS]  'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+- e2e/user-journey-verification/utils/networkCoverage.ts:57  [AMBIGUOUS]  'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+- e2e/user-journey-verification/utils/networkCoverage.ts:60  [AMBIGUOUS]  'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped widget verification.',
 - e2e/user-journey-verification/verify-motion.spec.ts:38  [AMBIGUOUS]  await page.goto('/projects', { waitUntil: 'domcontentloaded', timeout: LIVE_TIMEOUT_MS });
 - e2e/user-journey-verification/verify-motion.spec.ts:47  [WORK-PROJECT]  await page.goto(\`/projects/${context.project.id}/work/${context.panes.primaryId}\`, {
 - e2e/user-journey-verification/verify-motion.spec.ts:52  [WORK-PROJECT]  await expect(page).toHaveURL(new RegExp(\`/projects/${escapeRegExp(context.project.id)}/work/${escapeRegExp(context.panes.primaryId)}(?:\\?\|$)\`), {
@@ -4858,7 +4858,7 @@ Total string/comment hits: 3475.
 - src/components/Sidebar/CaptureInput/index.tsx:389  [WORK-PROJECT]  ...(destination.kind === 'pane' && destination.pane
 - src/components/Sidebar/CaptureInput/index.tsx:397  [WORK-PROJECT]  if (destination.kind === 'pane' && destination.pane && currentProject) {
 - src/components/Sidebar/CaptureInput/shared.ts:7  [WORK-PROJECT]  export type DestinationKind = 'hub' \| 'pane';
-- src/components/Sidebar/CaptureInput/shared.ts:48  [SPACE-PROJECT]  return \`hub:quick-thoughts:${pane.project_id}:${pane.pane_id}:${matchingModule.module_instance_id}\`;
+- src/components/Sidebar/CaptureInput/shared.ts:48  [SPACE-PROJECT]  return \`hub:quick-thoughts:${pane.project_id}:${pane.pane_id}:${matchingModule.widget_instance_id}\`;
 - src/components/Sidebar/ProjectsTree/AddPaneAction.tsx:6  [WORK-PROJECT]  import { createPane } from '../../../services/hub/panes';
 - src/components/Sidebar/ProjectsTree/AddPaneAction.tsx:41  [WORK-PROJECT]  setError('Project name is required.');
 - src/components/Sidebar/ProjectsTree/AddPaneAction.tsx:65  [WORK-PROJECT]  setError(submissionError instanceof Error ? submissionError.message : 'Project creation failed.');
@@ -4927,36 +4927,36 @@ Total string/comment hits: 3475.
 - src/components/project-space/BacklinksPanel.tsx:15  [WORK-PROJECT]  return \`Mentioned in project ${paneName}, ${nodeLabel}\`;
 - src/components/project-space/BacklinksPanel.tsx:18  [WORK-PROJECT]  return \`Mentioned in comment in project ${paneName}, ${nodeLabel}\`;
 - src/components/project-space/FileMovePopover.tsx:60  [WORK-PROJECT]  ariaLabel={\`Move ${currentFileName} to project\`}
-- src/components/project-space/FilesModuleSkin.tsx:210  [WORK-PROJECT]  const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this project.' : 'Drag files here or use upload.') : null;
-- src/components/project-space/FilesModuleSkin.tsx:507  [WORK-PROJECT]  {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
-- src/components/project-space/FilesModuleSkin.tsx:561  [WORK-PROJECT]  {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
-- src/components/project-space/FilesModuleSkin.tsx:629  [WORK-PROJECT]  {filterKey === 'all' ? (files.length === 0 ? 'No files in this project.' : 'Add files to this project') : \`No ${filterKey} files\`}
-- src/components/project-space/ModuleGrid.tsx:8  [WORK-PROJECT]  export type ContractModuleLens = 'project' \| 'pane' \| 'pane_scratch';
-- src/components/project-space/ModuleGrid.tsx:88  [WORK-PROJECT]  {readOnlyState ? 'No modules in this project yet' : "Let's get this project started!"}
-- src/components/project-space/ModuleGrid.tsx:92  [WORK-PROJECT]  ? 'This project is currently read-only. Modules will appear here after they are added elsewhere.'
-- src/components/project-space/ModuleGrid.tsx:93  [WORK-PROJECT]  : 'Add a first module to shape the project.'}
+- src/components/project-space/FilesWidgetSkin.tsx:210  [WORK-PROJECT]  const helperText = useStackedLayout ? (readOnly ? 'Uploads are disabled in this project.' : 'Drag files here or use upload.') : null;
+- src/components/project-space/FilesWidgetSkin.tsx:507  [WORK-PROJECT]  {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
+- src/components/project-space/FilesWidgetSkin.tsx:561  [WORK-PROJECT]  {files.length === 0 ? 'No files in this project.' : 'Add files to this project'}
+- src/components/project-space/FilesWidgetSkin.tsx:629  [WORK-PROJECT]  {filterKey === 'all' ? (files.length === 0 ? 'No files in this project.' : 'Add files to this project') : \`No ${filterKey} files\`}
+- src/components/project-space/WidgetGrid.tsx:8  [WORK-PROJECT]  export type ContractWidgetLens = 'project' \| 'pane' \| 'pane_scratch';
+- src/components/project-space/WidgetGrid.tsx:88  [WORK-PROJECT]  {readOnlyState ? 'No widgets in this project yet' : "Let's get this project started!"}
+- src/components/project-space/WidgetGrid.tsx:92  [WORK-PROJECT]  ? 'This project is currently read-only. Widgets will appear here after they are added elsewhere.'
+- src/components/project-space/WidgetGrid.tsx:93  [WORK-PROJECT]  : 'Add a first widget to shape the project.'}
 - src/components/project-space/PaneSwitcher.tsx:61  [WORK-PROJECT]  layoutId={!prefersReducedMotion ? \`pane-${pane.id}\` : undefined}
-- src/components/project-space/QuickThoughtsModuleSkin.tsx:383  [WORK-PROJECT]  setAnnouncement('Quick Thought saved to this project.');
+- src/components/project-space/QuickThoughtsWidgetSkin.tsx:383  [WORK-PROJECT]  setAnnouncement('Quick Thought saved to this project.');
 - src/components/project-space/TaskCreateDialog.tsx:282  [WORK-PROJECT]  id="task-create-project"
-- src/components/project-space/WorkView.tsx:53  [WORK-PROJECT]  const defaultModuleLens = (moduleType: string): 'project' \| 'pane' \| 'pane_scratch' => {
+- src/components/project-space/WorkView.tsx:53  [WORK-PROJECT]  const defaultWidgetLens = (widgetType: string): 'project' \| 'pane' \| 'pane_scratch' => {
 - src/components/project-space/WorkView.tsx:58  [WORK-PROJECT]  return 'pane';
 - src/components/project-space/WorkView.tsx:61  [WORK-PROJECT]  return 'pane';
 - src/components/project-space/WorkView.tsx:63  [WORK-PROJECT]  return 'project';
-- src/components/project-space/WorkView.tsx:66  [WORK-PROJECT]  const normalizeModuleLens = (moduleType: string, lens: unknown): 'project' \| 'pane' \| 'pane_scratch' => {
+- src/components/project-space/WorkView.tsx:66  [WORK-PROJECT]  const normalizeWidgetLens = (widgetType: string, lens: unknown): 'project' \| 'pane' \| 'pane_scratch' => {
 - src/components/project-space/WorkView.tsx:71  [WORK-PROJECT]  return lens === 'project' ? 'project' : 'pane';
 - src/components/project-space/WorkView.tsx:74  [WORK-PROJECT]  return 'pane';
 - src/components/project-space/WorkView.tsx:76  [WORK-PROJECT]  return lens === 'pane_scratch' ? 'pane_scratch' : 'project';
-- src/components/project-space/module-picker/ModulePickerPreview.tsx:42  [WORK-PROJECT]  pane_id: 'module-picker-preview-pane',
-- src/components/project-space/module-picker/ModulePickerPreview.tsx:43  [SPACE-PROJECT]  project_id: 'module-picker-preview-project',
-- src/components/project-space/module-picker/modulePickerPreviewCore.ts:11  [WORK-PROJECT]  lens: 'project',
-- src/components/project-space/module-picker/modulePickerPreviewPersonal.ts:69  [SPACE-PROJECT]  project_id: 'preview-project',
-- src/components/project-space/moduleCatalog.ts:97  [WORK-PROJECT]  moduleCatalogEntry(moduleType)?.description \|\| 'Add this module to the project.';
-- src/components/project-space/modules/FilesModule.tsx:21  [WORK-PROJECT]  : module.lens === 'project'
-- src/components/project-space/modules/FilesModule.tsx:29  [WORK-PROJECT]  files={module.lens === 'project' ? contract.projectFiles : contract.paneFiles}
-- src/components/project-space/modules/KanbanModule.tsx:84  [WORK-PROJECT]  setSetupError('Unable to create a kanban view for this project.');
-- src/components/project-space/modules/QuickThoughtsModule.tsx:23  [WORK-PROJECT]  key={\`${contract.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}\`}
-- src/components/project-space/modules/QuickThoughtsModule.tsx:25  [WORK-PROJECT]  storageKey={\`${contract.storageKeyBase}:${pane.pane_id}:${module.module_instance_id}\`}
-- src/components/project-space/modules/QuickThoughtsModule.tsx:28  [WORK-PROJECT]  ? \`${contract.legacyStorageKeyBase}:${pane.pane_id}:${module.module_instance_id}\`
+- src/components/project-space/widget-picker/WidgetPickerPreview.tsx:42  [WORK-PROJECT]  pane_id: 'widget-picker-preview-pane',
+- src/components/project-space/widget-picker/WidgetPickerPreview.tsx:43  [SPACE-PROJECT]  project_id: 'widget-picker-preview-project',
+- src/components/project-space/widget-picker/widgetPickerPreviewCore.ts:11  [WORK-PROJECT]  lens: 'project',
+- src/components/project-space/widget-picker/widgetPickerPreviewPersonal.ts:69  [SPACE-PROJECT]  project_id: 'preview-project',
+- src/components/project-space/widgetCatalog.ts:97  [WORK-PROJECT]  widgetCatalogEntry(widgetType)?.description \|\| 'Add this widget to the project.';
+- src/components/project-space/widgets/FilesWidget.tsx:21  [WORK-PROJECT]  : widget.lens === 'project'
+- src/components/project-space/widgets/FilesWidget.tsx:29  [WORK-PROJECT]  files={widget.lens === 'project' ? contract.projectFiles : contract.paneFiles}
+- src/components/project-space/widgets/KanbanWidget.tsx:84  [WORK-PROJECT]  setSetupError('Unable to create a kanban view for this project.');
+- src/components/project-space/widgets/QuickThoughtsWidget.tsx:23  [WORK-PROJECT]  key={\`${contract.storageKeyBase}:${pane.pane_id}:${widget.widget_instance_id}\`}
+- src/components/project-space/widgets/QuickThoughtsWidget.tsx:25  [WORK-PROJECT]  storageKey={\`${contract.storageKeyBase}:${pane.pane_id}:${widget.widget_instance_id}\`}
+- src/components/project-space/widgets/QuickThoughtsWidget.tsx:28  [WORK-PROJECT]  ? \`${contract.legacyStorageKeyBase}:${pane.pane_id}:${widget.widget_instance_id}\`
 - src/components/project-space/record-inspector/EventRecordInspector.tsx:63  [WORK-PROJECT]  ? \`Opened in read-only project ${inspectorMutationPane.name \|\| inspectorMutationPane.pane_id}.\`
 - src/components/project-space/record-inspector/EventRecordInspector.tsx:64  [WORK-PROJECT]  : 'Opened outside a project edit context.'}{' '}
 - src/components/project-space/record-inspector/FileRecordInspector.tsx:58  [WORK-PROJECT]  ? \`Opened in read-only project ${inspectorMutationPane.name \|\| inspectorMutationPane.pane_id}.\`
@@ -5006,9 +5006,9 @@ Total string/comment hits: 3475.
 - src/features/QuickCapture/model.ts:5  [WORK-PROJECT]  export const PENDING_CAPTURE_DRAFT_KEY = 'hub:pending-project-capture';
 - src/features/QuickCapture/model.ts:23  [WORK-PROJECT]  if (intent === 'project-task') {
 - src/features/home/HomeDashboardSurface.tsx:101  [WORK-PROJECT]  {activeContentView === 'project' ? projectContent : null}
-- src/features/home/HomeOverviewSurface.tsx:5  [WORK-PROJECT]  import type { CalendarScope } from '../../components/project-space/CalendarModuleSkin/types';
-- src/features/home/HomeOverviewSurface.tsx:8  [WORK-PROJECT]  import { CalendarModuleSkin } from '../../components/project-space/CalendarModuleSkin';
-- src/features/home/HomeOverviewSurface.tsx:9  [WORK-PROJECT]  import { RemindersModuleSkin } from '../../components/project-space/RemindersModuleSkin';
+- src/features/home/HomeOverviewSurface.tsx:5  [WORK-PROJECT]  import type { CalendarScope } from '../../components/project-space/CalendarWidgetSkin/types';
+- src/features/home/HomeOverviewSurface.tsx:8  [WORK-PROJECT]  import { CalendarWidgetSkin } from '../../components/project-space/CalendarWidgetSkin';
+- src/features/home/HomeOverviewSurface.tsx:9  [WORK-PROJECT]  import { RemindersWidgetSkin } from '../../components/project-space/RemindersWidgetSkin';
 - src/features/home/HomeOverviewSurface.tsx:10  [WORK-PROJECT]  import { TaskCreateDialog } from '../../components/project-space/TaskCreateDialog';
 - src/features/home/HomeOverviewSurface.tsx:11  [WORK-PROJECT]  import { TasksTab, type SortChain } from '../../components/project-space/TasksTab';
 - src/features/home/HomeOverviewSurface.tsx:12  [WORK-PROJECT]  import { TimelineFeed, TimelineFilterMenu, type TimelineCluster, type TimelineEventType, type TimelineFilterValue } from '../../components/project-space/TimelineFeed';
@@ -5031,7 +5031,7 @@ Total string/comment hits: 3475.
 - src/features/home/navigation.ts:74  [WORK-PROJECT]  params.set('pane', paneId);
 - src/features/home/navigation.ts:90  [WORK-PROJECT]  return search ? \`/projects?${search}\` : '/projects';
 - src/features/home/useHomeProjectWorkRuntime.ts:11  [WORK-PROJECT]  import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
-- src/features/home/useHomeProjectWorkRuntime.ts:12  [WORK-PROJECT]  import { CalendarModuleSkin } from '../../components/project-space/CalendarModuleSkin';
+- src/features/home/useHomeProjectWorkRuntime.ts:12  [WORK-PROJECT]  import { CalendarWidgetSkin } from '../../components/project-space/CalendarWidgetSkin';
 - src/features/home/useHomeProjectWorkRuntime.ts:125  [SPACE-PROJECT]  const canWriteProject = typeof project.membership_role === 'string' && project.membership_role.toLowerCase() !== 'viewer';
 - src/features/home/useHomeProjectWorkRuntime.ts:268  [WORK-PROJECT]  scope: 'project',
 - src/features/home/useHomeProjectWorkRuntime.ts:303  [WORK-PROJECT]  next.set('pane', activePane.pane_id);
@@ -5083,7 +5083,7 @@ Total string/comment hits: 3475.
 - src/features/rooms/RoomWorkspace/useRoomProjectWorkRuntime.ts:261  [WORK-PROJECT]  scope: 'project',
 - src/features/rooms/RoomWorkspace/useRoomProjectWorkRuntime.ts:353  [SPACE-PROJECT]  const canWriteProject = !roomArchived && typeof project.membership_role === 'string' && project.membership_role.toLowerCase() !== 'viewer';
 - src/features/rooms/RoomWorkspace/useRoomWorkspaceRuntime.ts:3  [WORK-PROJECT]  import { adaptTaskSummaries } from '../../../components/project-space/taskAdapter';
-- src/features/rooms/SpaceRoomsOverviewSection.tsx:4  [WORK-PROJECT]  import type { CalendarEventSummary } from '../../components/project-space/CalendarModuleSkin/types';
+- src/features/rooms/SpaceRoomsOverviewSection.tsx:4  [WORK-PROJECT]  import type { CalendarEventSummary } from '../../components/project-space/CalendarWidgetSkin/types';
 - src/features/rooms/hooks/useRoomTaskMutations.ts:4  [WORK-PROJECT]  import type { TaskPriorityValue, TaskStatus } from '../../../components/project-space/TasksTab';
 - src/features/rooms/navigation.ts:17  [WORK-PROJECT]  \`/rooms/${encodeURIComponent(roomId)}/projects/${encodeURIComponent(paneId)}\`;
 - src/features/rooms/taskModel.ts:1  [WORK-PROJECT]  import type { CalendarEvent, CalendarLensOption } from '../../components/project-space/CalendarTab';
@@ -5111,7 +5111,7 @@ Total string/comment hits: 3475.
 - src/hooks/useProjectBootstrap.ts:8  [WORK-PROJECT]  const LAST_PROJECT_KEY = 'hub:last-opened-project-id';
 - src/hooks/useProjectBootstrap.ts:83  [WORK-PROJECT]  console.warn('Project members unavailable:', nextMembersResult.error);
 - src/hooks/useProjectBootstrap.ts:109  [WORK-PROJECT]  console.warn('Projects refresh failed after project bootstrap:', refreshError);
-- src/hooks/useProjectFilesRuntime.ts:11  [WORK-PROJECT]  import type { FilesModuleItem } from '../components/project-space/FilesModuleSkin';
+- src/hooks/useProjectFilesRuntime.ts:11  [WORK-PROJECT]  import type { FilesWidgetItem } from '../components/project-space/FilesWidgetSkin';
 - src/hooks/useProjectFilesRuntime.ts:42  [WORK-PROJECT]  .slice(0, 48) \|\| 'project';
 - src/hooks/useProjectFilesRuntime.ts:124  [WORK-PROJECT]  root_path: \`/Projects/${slugifyPathSegment(projectName)}-${projectId.slice(-6)}\`,
 - src/hooks/useProjectFilesRuntime.ts:139  [WORK-PROJECT]  const files = await listTrackedFiles(accessToken, projectId, { scope: 'project' });
@@ -5212,9 +5212,9 @@ Total string/comment hits: 3475.
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:183  [WORK-PROJECT]  vi.mock('../../components/project-space/RelationsSection', () => ({
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:201  [WORK-PROJECT]  vi.mock('../../components/project-space/FileInspectorActionBar', () => ({
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:222  [WORK-PROJECT]  vi.mock('../../components/project-space/BacklinksPanel', () => ({
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:241  [WORK-PROJECT]  vi.mock('../../components/project-space/ModuleFeedback', () => ({
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:245  [WORK-PROJECT]  vi.mock('../../components/project-space/KanbanModuleSkin', () => ({
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:254  [WORK-PROJECT]  vi.mock('../../components/project-space/TableModuleSkin', () => ({
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:241  [WORK-PROJECT]  vi.mock('../../components/project-space/WidgetFeedback', () => ({
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:245  [WORK-PROJECT]  vi.mock('../../components/project-space/KanbanWidgetSkin', () => ({
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:254  [WORK-PROJECT]  vi.mock('../../components/project-space/TableWidgetSkin', () => ({
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:435  [WORK-PROJECT]  onCreatePane: vi.fn(async () => ({ pane_id: 'pane-new', name: 'New Pane' })),
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:436  [WORK-PROJECT]  onDeletePane: vi.fn(async () => '/projects/project-1/work/pane-shared'),
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:556  [WORK-PROJECT]  path="/projects/:projectId/overview"
@@ -5242,7 +5242,7 @@ Total string/comment hits: 3475.
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:800  [WORK-PROJECT]  entry: \`/projects/project-1/work/pane-shared?view_id=${fixture.tableView.view_id}\`,
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:814  [WORK-PROJECT]  it('renders the workspace doc hidden state when the pane disables workspace content', () => {
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:824  [WORK-PROJECT]  entry: '/projects/project-1/work/pane-shared',
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:828  [WORK-PROJECT]  expect(screen.getByText('This project is set to modules-only mode. The workspace doc is hidden here.')).toBeInTheDocument();
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:828  [WORK-PROJECT]  expect(screen.getByText('This project is set to widgets-only mode. The workspace doc is hidden here.')).toBeInTheDocument();
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:840  [WORK-PROJECT]  entry: '/projects/project-1/work/pane-shared',
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:852  [WORK-PROJECT]  entry: '/projects/project-1/work/pane-shared',
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:860  [WORK-PROJECT]  entry: '/projects/project-1/work/pane-private',
@@ -5268,9 +5268,9 @@ Total string/comment hits: 3475.
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:1280  [WORK-PROJECT]  expect(screen.getByText('Read-only project.')).toBeInTheDocument();
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:1283  [WORK-PROJECT]  it('wires pane member toggles and keeps the current user checkbox disabled', async () => {
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace.test.tsx:1289  [WORK-PROJECT]  projectId="project-1"
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:3  [WORK-PROJECT]  import { ModuleLoadingState } from '../../../components/project-space/ModuleFeedback';
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:7  [WORK-PROJECT]  const module = await import('../../../components/project-space/KanbanModuleSkin');
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:12  [WORK-PROJECT]  const module = await import('../../../components/project-space/TableModuleSkin');
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:3  [WORK-PROJECT]  import { WidgetLoadingState } from '../../../components/project-space/WidgetFeedback';
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:7  [WORK-PROJECT]  const module = await import('../../../components/project-space/KanbanWidgetSkin');
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceFocusedViewSection.tsx:12  [WORK-PROJECT]  const module = await import('../../../components/project-space/TableWidgetSkin');
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceInspectorOverlay.test.tsx:29  [WORK-PROJECT]  vi.mock('../../../components/project-space/ProjectSpaceDialogPrimitives', () => ({
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceInspectorOverlay.test.tsx:75  [WORK-PROJECT]  vi.mock('../../../components/project-space/MentionPicker', () => ({
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceInspectorOverlay.test.tsx:83  [WORK-PROJECT]  vi.mock('../../../components/project-space/RelationsSection', () => ({
@@ -5299,7 +5299,7 @@ Total string/comment hits: 3475.
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceInspectorOverlay.tsx:1  [WORK-PROJECT]  import { RecordInspectorBodyRouter, type RecordInspectorBodyRouterProps } from '../../../components/project-space/record-inspector/RecordInspectorBodyRouter';
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceInspectorOverlay.tsx:2  [WORK-PROJECT]  import { RecordInspectorShell } from '../../../components/project-space/record-inspector/RecordInspectorShell';
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx:2  [WORK-PROJECT]  import { OverviewView } from '../../../components/project-space/OverviewView';
-- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx:5  [WORK-PROJECT]  import type { CalendarEventSummary } from '../../../components/project-space/CalendarModuleSkin/types';
+- src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceOverviewSurface.tsx:5  [WORK-PROJECT]  import type { CalendarEventSummary } from '../../../components/project-space/CalendarWidgetSkin/types';
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpacePaneSettingsDialog.tsx:4  [WORK-PROJECT]  import { DialogDescription, DialogHeader, DialogTitle } from '../../../components/project-space/ProjectSpaceDialogPrimitives';
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpacePaneSettingsDialog.tsx:82  [WORK-PROJECT]  id="pane-settings-name"
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/ProjectSpaceWorkPaneChrome.tsx:6  [WORK-PROJECT]  } from '../../../components/project-space/ProjectSpaceDialogPrimitives';
@@ -5325,10 +5325,10 @@ Total string/comment hits: 3475.
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/types.ts:1  [WORK-PROJECT]  export { PROJECT_SPACE_PRIMARY_SURFACES } from '../../../components/project-space/types';
 - src/pages/ProjectSpacePage/ProjectSpaceWorkspace/types.ts:2  [WORK-PROJECT]  export type { TopLevelProjectTab } from '../../../components/project-space/types';
 - src/pages/ProjectSpacePage/hooks/useQuickCaptureQueryIntentEffect.ts:4  [WORK-PROJECT]  const PENDING_CAPTURE_DRAFT_KEY = 'hub:pending-project-capture';
-- src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts:19  [WORK-PROJECT]  } from '../../../components/project-space/moduleContracts';
-- src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts:286  [WORK-PROJECT]  storageKeyBase: \`hub:quick-thoughts:${projectId}\`,
-- src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts:287  [WORK-PROJECT]  legacyStorageKeyBase: \`hub:capture:${projectId}\`,
-- src/pages/ProjectSpacePage/hooks/useWorkViewModuleRuntime.ts:296  [WORK-PROJECT]  console.error('onCreateTask: no task collection found for this project', { projectId });
+- src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts:19  [WORK-PROJECT]  } from '../../../components/project-space/widgetContracts';
+- src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts:286  [WORK-PROJECT]  storageKeyBase: \`hub:quick-thoughts:${projectId}\`,
+- src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts:287  [WORK-PROJECT]  legacyStorageKeyBase: \`hub:capture:${projectId}\`,
+- src/pages/ProjectSpacePage/hooks/useWorkViewWidgetRuntime.ts:296  [WORK-PROJECT]  console.error('onCreateTask: no task collection found for this project', { projectId });
 - src/pages/ProjectSpacePage/index.tsx:38  [WORK-PROJECT]  layoutId={!prefersReducedMotion ? \`project-${projectId}\` : undefined}
 - src/pages/ProjectSpacePage/testUtils/projectSpaceWorkspaceTestFixture.tsx:19  [WORK-PROJECT]  pane_id: 'pane-shared',
 - src/pages/ProjectSpacePage/testUtils/projectSpaceWorkspaceTestFixture.tsx:20  [SPACE-PROJECT]  project_id: 'project-1',
@@ -5531,7 +5531,7 @@ Total string/comment hits: 3475.
 
 ## 9. Top 20 Files By Total Hit Count
 
-1. e2e/module-verification/playwright-error-contexts.md — total 1134; SPACE-PROJECT 0; WORK-PROJECT 1062; AMBIGUOUS 72
+1. e2e/widget-verification/playwright-error-contexts.md — total 1134; SPACE-PROJECT 0; WORK-PROJECT 1062; AMBIGUOUS 72
 2. scripts/hub-provenance-regression.test.mjs — total 159; SPACE-PROJECT 0; WORK-PROJECT 79; AMBIGUOUS 80
 3. apps/hub-api/hub-api.mjs — total 156; SPACE-PROJECT 97; WORK-PROJECT 50; AMBIGUOUS 9
 4. docs/ux-architecture-audit.md — total 143; SPACE-PROJECT 1; WORK-PROJECT 96; AMBIGUOUS 46
@@ -5579,8 +5579,8 @@ Total ambiguous hits: 1332.
  126: TEST_PASSWORD_B=replace-me
  127: # Workflow calendar mode for workflow e2e helpers.
  128: WORKFLOW_CALENDAR_MODE=project
- 129: # Toggle workflow module coverage in workflow e2e helpers.
- 130: WORKFLOW_MODULES=true
+ 129: # Toggle workflow widget coverage in workflow e2e helpers.
+ 130: WORKFLOW_WIDGETS=true
  131: # Toggle invite coverage in workflow e2e helpers.
  132: WORKFLOW_INVITES=false
  133: 
@@ -5742,7 +5742,7 @@ Total ambiguous hits: 1332.
   34: test-results/
   35: e2e/.auth/
   36: e2e/E2E_FULL_REPORT.md
-  37: e2e/module-verification/
+  37: e2e/widget-verification/
   38: e2e/project-verification/
   39: e2e/user-journey-verification/runs/
   40: e2e/user-journey-verification/screenshots/
@@ -5958,7 +5958,7 @@ Total ambiguous hits: 1332.
  388: src/services/smartWakeService.ts — Service module implementing smart wake service integration and transport logic.
  389: 
  390: ## src/services/hub
- 391: Hub-specific API client modules grouped by resource domain and response normalization.
+ 391: Hub-specific API client widgets grouped by resource domain and response normalization.
 ```
 
 ### FILE_MAP.md:398
@@ -7245,10 +7245,10 @@ Total ambiguous hits: 1332.
 
 ### docs/empty-state-audit.md:118
 ```
- 113: ## CalendarModuleSkin
+ 113: ## CalendarWidgetSkin
  114: ### Empty state 1: No events in dataset
  115: - Trigger: `!loading && events.length === 0`.
- 116: - What renders: `ModuleEmptyState` with scope-aware title:
+ 116: - What renders: `WidgetEmptyState` with scope-aware title:
  117:   - `"No relevant events yet."` when scope is `relevant`
  118:   - `"No project events yet."` when scope is `all`
  119:   Plus `"New Event"` button if `onCreateEvent` exists.
@@ -7284,7 +7284,7 @@ Total ambiguous hits: 1332.
   14: 
   15: **Files:** `src/pages/ProjectSpacePage.tsx` (lines 192-2052)
   16: 
-  17: **What's happening:** The page handles route/query parsing and navigation helpers (`src/pages/ProjectSpacePage.tsx`:233-236,510-629), composes many runtime hooks (`src/pages/ProjectSpacePage.tsx`:253-384), builds a large module runtime adapter object (`src/pages/ProjectSpacePage.tsx`:784-1006), and renders multiple major UI regions/dialogs (`src/pages/ProjectSpacePage.tsx`:1027-2052). The file therefore acts as router adapter, view-model assembler, and view implementation simultaneously.
+  17: **What's happening:** The page handles route/query parsing and navigation helpers (`src/pages/ProjectSpacePage.tsx`:233-236,510-629), composes many runtime hooks (`src/pages/ProjectSpacePage.tsx`:253-384), builds a large widget runtime adapter object (`src/pages/ProjectSpacePage.tsx`:784-1006), and renders multiple major UI regions/dialogs (`src/pages/ProjectSpacePage.tsx`:1027-2052). The file therefore acts as router adapter, view-model assembler, and view implementation simultaneously.
   18: 
 ```
 
@@ -7314,7 +7314,7 @@ Total ambiguous hits: 1332.
   52: 
   53: **Why it matters:** Visual identity and recognition consistency degrade as the same project appears with different dot colors.
   54: 
-  55: ### Task rendering diverges across myHub, Overview, and pane module surfaces
+  55: ### Task rendering diverges across myHub, Overview, and pane widget surfaces
   56: 
 ```
 
@@ -7327,9 +7327,9 @@ Total ambiguous hits: 1332.
   52: 
   53: **Why it matters:** Visual identity and recognition consistency degrade as the same project appears with different dot colors.
   54: 
-  55: ### Task rendering diverges across myHub, Overview, and pane module surfaces
+  55: ### Task rendering diverges across myHub, Overview, and pane widget surfaces
   56: 
-  57: **Files:** `src/features/PersonalizedDashboardPanel.tsx` (lines 303-358), `src/components/project-space/OverviewView.tsx` (lines 428-516), `src/components/project-space/TasksModuleSkin.tsx` (lines 142-229, 492-634)
+  57: **Files:** `src/features/PersonalizedDashboardPanel.tsx` (lines 303-358), `src/components/project-space/OverviewView.tsx` (lines 428-516), `src/components/project-space/TasksWidgetSkin.tsx` (lines 142-229, 492-634)
   58: 
 ```
 
@@ -7359,16 +7359,16 @@ Total ambiguous hits: 1332.
  146: 
  147: **Why it matters:** Changes to one quick-add flow propagate across a wide prop interface and increase accidental breakage.
  148: 
- 149: ### ModuleInsertContext stores transient row-level selection globally
+ 149: ### WidgetInsertContext stores transient row-level selection globally
  150: 
 ```
 
 ### docs/hub-os-antipatterns.md:201
 ```
  196: 
- 197: **What's happening:** Runtime normalization maps `inbox` to `quick_thoughts`, while the implementation file and export names still include `InboxCaptureModuleSkin` and `QuickThoughtsModuleSkin`. Two vocabularies describe one module.
+ 197: **What's happening:** Runtime normalization maps `inbox` to `quick_thoughts`, while the implementation file and export names still include `InboxCaptureModuleSkin` and `QuickThoughtsWidgetSkin`. Two vocabularies describe one widget.
  198: 
- 199: **Why it matters:** Naming inconsistency raises cognitive load when tracing module behavior across files.
+ 199: **Why it matters:** Naming inconsistency raises cognitive load when tracing widget behavior across files.
  200: 
  201: ### “myHub” vs `/projects` route vocabulary is mixed
  202: 
@@ -7383,7 +7383,7 @@ Total ambiguous hits: 1332.
  228: 
  229: **Files:** `src/components/project-space/mockProjectSpace.ts` (lines 1-240)
  230: 
- 231: **What's happening:** The module defines a full mock pane/template system, but import search shows no active references from production route components.
+ 231: **What's happening:** The widget defines a full mock pane/template system, but import search shows no active references from production route components.
  232: 
  233: **Why it matters:** Large unmounted support files make the project harder to scan and reason about.
  234: 
@@ -7396,7 +7396,7 @@ Total ambiguous hits: 1332.
 ### docs/hub-os-file-health.md:40
 ```
   35: | `src/components/project-space/FileInspectorActionBar.tsx` | 320 | 3 | 6 | 6 | Yellow | Higher change friction due to moderate size (320 LOC), mixed responsibilities (3/5), 6 effects, 6 state hooks. |
-  36: | `src/components/project-space/FilesModuleSkin.tsx` | 572 | 2 | 1 | 1 | Yellow | Higher change friction due to mid-large size (572 LOC). |
+  36: | `src/components/project-space/FilesWidgetSkin.tsx` | 572 | 2 | 1 | 1 | Yellow | Higher change friction due to mid-large size (572 LOC). |
   37: | `src/components/primitives/Icon.tsx` | 519 | 3 | 0 | 0 | Yellow | Higher change friction due to mid-large size (519 LOC), mixed responsibilities (3/5). |
   38: | `src/lib/calendar-nlp/passes/recurrencePass.ts` | 569 | 2 | 0 | 0 | Yellow | Higher change friction due to mid-large size (569 LOC). |
   39: | `apps/hub-api/routes/views.mjs` | 542 | 2 | 0 | 0 | Yellow | Higher change friction due to mid-large size (542 LOC). |
@@ -7435,20 +7435,20 @@ Total ambiguous hits: 1332.
  282: 3. **`apps/hub-api/hub-api.mjs` (lines 37-4162)**
  283:    Despite extracted route modules, the file still combines bootstrap/config, templating, helpers, scheduling, request routing, and server startup (`apps/hub-api/hub-api.mjs`:37-98,99-312,314-3185,3202-3300,3302-4162). Its size and mixed concerns make backend changes hard to isolate safely.
  284: 
- 285: 4. **`src/components/project-space/TableModuleSkin.tsx` (lines 104-360, 453-1478; used in `src/pages/ProjectSpacePage.tsx`:64-66,1509-1512)**
+ 285: 4. **`src/components/project-space/TableWidgetSkin.tsx` (lines 104-360, 453-1478; used in `src/pages/ProjectSpacePage.tsx`:64-66,1509-1512)**
 ```
 
 ### docs/hub-os-file-health.md:298
 ```
  293: 
  294: 7. **`src/hooks/useProjectViewsRuntime.ts` (lines 296-896; consumed in `src/pages/ProjectSpacePage.tsx`:24,389)**
- 295:    This hook is central orchestration for collections/views/table+kanban runtime and focused view loading, with seven effects and broad state surface. Its coupling to `ProjectSpacePage` means runtime bugs propagate into several module skins at once.
+ 295:    This hook is central orchestration for collections/views/table+kanban runtime and focused view loading, with seven effects and broad state surface. Its coupling to `ProjectSpacePage` means runtime bugs propagate into several widget skins at once.
  296: 
- 297: 8. **`src/components/project-space/CalendarModuleSkin.tsx` (lines 191-298, 300-901; used in `src/components/layout/AppShell.tsx`:22,1792)**
+ 297: 8. **`src/components/project-space/CalendarWidgetSkin.tsx` (lines 191-298, 300-901; used in `src/components/layout/AppShell.tsx`:22,1792)**
  298:    Calendar rendering and create affordances are concentrated in one large file with inline sub-view logic (including medium week strip). It is used in the global shell surface, so issues are user-visible even outside project deep-link routes.
  299: 
- 300: 9. **`src/components/project-space/TasksTab.tsx` (lines 390-780, 782-1001; used by `src/components/project-space/TasksModuleSkin.tsx`:8,605 and `src/components/project-space/OverviewView.tsx`:9,465)**
- 301:    The row/action/menu behavior is dense and duplicated across task contexts, and this shared tab component sits underneath both module and overview experiences. Its central reuse makes it a high-leverage stability hotspot.
+ 300: 9. **`src/components/project-space/TasksTab.tsx` (lines 390-780, 782-1001; used by `src/components/project-space/TasksWidgetSkin.tsx`:8,605 and `src/components/project-space/OverviewView.tsx`:9,465)**
+ 301:    The row/action/menu behavior is dense and duplicated across task contexts, and this shared tab component sits underneath both widget and overview experiences. Its central reuse makes it a high-leverage stability hotspot.
  302: 
  303: 10. **`src/features/QuickCapture.tsx` (lines 168-180, 201-340, 552-818; mounted at `src/components/layout/AppShell.tsx`:6,1751)**
 ```
@@ -7457,12 +7457,12 @@ Total ambiguous hits: 1332.
 ```
    7: Before Phase 2, large UI surfaces had a tendency to accumulate into single files that crossed 1000 lines. The Phase 2 convention is to make each feature surface a folder where `index.tsx` is the composition entrypoint, and sibling files hold focused subviews, hooks, types, and utilities. This keeps imports local, responsibilities explicit, and review scope smaller when editing one behavior.
    8: 
-   9: For an example of this pattern, see [src/components/project-space/CalendarModuleSkin/index.tsx](../src/components/project-space/CalendarModuleSkin/index.tsx).
+   9: For an example of this pattern, see [src/components/project-space/CalendarWidgetSkin/index.tsx](../src/components/project-space/CalendarWidgetSkin/index.tsx).
   10: 
   11: ## 3. Custom Hooks: Colocated vs Promoted
   12: Hub OS uses two hook locations on purpose. Colocated hooks live inside a feature folder when the logic is tightly bound to one component surface and would not read clearly elsewhere. Promoted hooks live in `src/hooks/` when the runtime concern is shared across multiple pages/features or defines a cross-cutting data boundary (for example project-level data loading). Promote only when reuse or ownership boundaries are real; do not promote preemptively.
   13: 
-  14: For an example of this pattern, see [src/components/project-space/CalendarModuleSkin/hooks/useCalendarCreatePanel.ts](../src/components/project-space/CalendarModuleSkin/hooks/useCalendarCreatePanel.ts) (colocated hook).
+  14: For an example of this pattern, see [src/components/project-space/CalendarWidgetSkin/hooks/useCalendarCreatePanel.ts](../src/components/project-space/CalendarWidgetSkin/hooks/useCalendarCreatePanel.ts) (colocated hook).
   15: 
   16: For an example of this pattern, see [src/hooks/useProjectTasksRuntime.ts](../src/hooks/useProjectTasksRuntime.ts) (promoted hook).
   17: 
@@ -7696,7 +7696,7 @@ Total ambiguous hits: 1332.
 ### docs/ux-architecture-audit.md:50
 ```
   45:     - [src/pages/ProjectSpacePage.tsx](../src/pages/ProjectSpacePage.tsx) lines 1547-1549 key `CollaborativeLexicalEditor` by `activePaneDocId`.
-  46:     - [src/components/project-space/ModuleGrid.tsx](../src/components/project-space/ModuleGrid.tsx) lines 107-118 key each `ModuleShell` by `module_instance_id`, so changing to a pane with different module IDs swaps those module instances.
+  46:     - [src/components/project-space/WidgetGrid.tsx](../src/components/project-space/WidgetGrid.tsx) lines 107-118 key each `WidgetShell` by `widget_instance_id`, so changing to a pane with different widget IDs swaps those widget instances.
   47:   - For `ProjectSpacePage` and `WorkView` themselves, I do not see a code-level key forcing remount.
   48: - `pane route -> project work (/work)`:
   49:   - The reverse of the above: same wrappers stay in place, active pane selection changes, and the keyed pane-specific children can remount.
@@ -7943,18 +7943,18 @@ Total ambiguous hits: 1332.
  192:   - dialogs and search results reflect the current project/personal-project context
  193:   - the component tree remains the same
  194: - The toolbar-owned dialogs are:
- 195:   - Calendar dialog mounting `CalendarModuleSkin` at [src/components/layout/AppShell.tsx](../src/components/layout/AppShell.tsx) lines 1767-1810
- 196:   - Tasks dialog mounting `TasksModuleSkin` at lines 1812-1845
- 197:   - Reminders dialog mounting `RemindersModuleSkin` at lines 1848-1865
+ 195:   - Calendar dialog mounting `CalendarWidgetSkin` at [src/components/layout/AppShell.tsx](../src/components/layout/AppShell.tsx) lines 1767-1810
+ 196:   - Tasks dialog mounting `TasksWidgetSkin` at lines 1812-1845
+ 197:   - Reminders dialog mounting `RemindersWidgetSkin` at lines 1848-1865
 ```
 
 ### docs/ux-architecture-audit.md:198
 ```
  193:   - the component tree remains the same
  194: - The toolbar-owned dialogs are:
- 195:   - Calendar dialog mounting `CalendarModuleSkin` at [src/components/layout/AppShell.tsx](../src/components/layout/AppShell.tsx) lines 1767-1810
- 196:   - Tasks dialog mounting `TasksModuleSkin` at lines 1812-1845
- 197:   - Reminders dialog mounting `RemindersModuleSkin` at lines 1848-1865
+ 195:   - Calendar dialog mounting `CalendarWidgetSkin` at [src/components/layout/AppShell.tsx](../src/components/layout/AppShell.tsx) lines 1767-1810
+ 196:   - Tasks dialog mounting `TasksWidgetSkin` at lines 1812-1845
+ 197:   - Reminders dialog mounting `RemindersWidgetSkin` at lines 1848-1865
  198:   - quick-add event/reminder/project dialogs via [src/components/layout/QuickAddDialogs.tsx](../src/components/layout/QuickAddDialogs.tsx)
  199:   - task quick-add via [src/components/project-space/TaskCreateDialog.tsx](../src/components/project-space/TaskCreateDialog.tsx)
  200: 
@@ -7965,8 +7965,8 @@ Total ambiguous hits: 1332.
 
 ### docs/ux-architecture-audit.md:201
 ```
- 196:   - Tasks dialog mounting `TasksModuleSkin` at lines 1812-1845
- 197:   - Reminders dialog mounting `RemindersModuleSkin` at lines 1848-1865
+ 196:   - Tasks dialog mounting `TasksWidgetSkin` at lines 1812-1845
+ 197:   - Reminders dialog mounting `RemindersWidgetSkin` at lines 1848-1865
  198:   - quick-add event/reminder/project dialogs via [src/components/layout/QuickAddDialogs.tsx](../src/components/layout/QuickAddDialogs.tsx)
  199:   - task quick-add via [src/components/project-space/TaskCreateDialog.tsx](../src/components/project-space/TaskCreateDialog.tsx)
  200: 
@@ -8020,7 +8020,7 @@ Total ambiguous hits: 1332.
  217:   - rendered through `TasksTab` in [src/components/project-space/OverviewView.tsx](../src/components/project-space/OverviewView.tsx) lines 428-513
  218:   - primary row UI comes from `TaskRow` in [src/components/project-space/TasksTab.tsx](../src/components/project-space/TasksTab.tsx) lines 390-778
  219:   - appearance: dense row with a status button, left accent bar, task title, subtask count pill, due label, subtask expansion, and overflow actions
- 220: - Pane tasks module, small and medium sizes:
+ 220: - Pane tasks widget, small and medium sizes:
 ```
 
 ### docs/ux-architecture-audit.md:216
@@ -8034,8 +8034,8 @@ Total ambiguous hits: 1332.
  217:   - rendered through `TasksTab` in [src/components/project-space/OverviewView.tsx](../src/components/project-space/OverviewView.tsx) lines 428-513
  218:   - primary row UI comes from `TaskRow` in [src/components/project-space/TasksTab.tsx](../src/components/project-space/TasksTab.tsx) lines 390-778
  219:   - appearance: dense row with a status button, left accent bar, task title, subtask count pill, due label, subtask expansion, and overflow actions
- 220: - Pane tasks module, small and medium sizes:
- 221:   - rendered by `TaskSummaryRow` / `TaskSummaryRows` in [src/components/project-space/TasksModuleSkin.tsx](../src/components/project-space/TasksModuleSkin.tsx) lines 142-228 and lines 402-489
+ 220: - Pane tasks widget, small and medium sizes:
+ 221:   - rendered by `TaskSummaryRow` / `TaskSummaryRows` in [src/components/project-space/TasksWidgetSkin.tsx](../src/components/project-space/TasksWidgetSkin.tsx) lines 142-228 and lines 402-489
 ```
 
 ### docs/ux-architecture-audit.md:231
@@ -8064,19 +8064,19 @@ Total ambiguous hits: 1332.
  238:   - rendered by [src/components/project-space/CalendarTab.tsx](../src/components/project-space/CalendarTab.tsx) lines 146-195
  239:   - appearance: tiny pill-like entries inside a month grid; each has a priority dot and truncated label
  240:   - the data here is demo data from [src/components/project-space/OverviewView.tsx](../src/components/project-space/OverviewView.tsx) lines 73-84 and 193
- 241: - Pane calendar module, month view:
- 242:   - rendered in [src/components/project-space/CalendarModuleSkin.tsx](../src/components/project-space/CalendarModuleSkin.tsx) lines 761-903
+ 241: - Pane calendar widget, month view:
+ 242:   - rendered in [src/components/project-space/CalendarWidgetSkin.tsx](../src/components/project-space/CalendarWidgetSkin.tsx) lines 761-903
 ```
 
 ### docs/ux-architecture-audit.md:246
 ```
- 241: - Pane calendar module, month view:
- 242:   - rendered in [src/components/project-space/CalendarModuleSkin.tsx](../src/components/project-space/CalendarModuleSkin.tsx) lines 761-903
+ 241: - Pane calendar widget, month view:
+ 242:   - rendered in [src/components/project-space/CalendarWidgetSkin.tsx](../src/components/project-space/CalendarWidgetSkin.tsx) lines 761-903
  243:   - appearance: month cells with button-like event chips, optional time prefix, and overflow popover
- 244: - Pane calendar module, week view:
+ 244: - Pane calendar widget, week view:
  245:   - rendered in [src/components/project-space/CalendarWeekView.tsx](../src/components/project-space/CalendarWeekView.tsx) lines 143-203
  246:   - appearance: stacked bordered cards with title, time range, and project label
- 247: - Pane calendar module, day view:
+ 247: - Pane calendar widget, day view:
  248:   - rendered in [src/components/project-space/CalendarDayView.tsx](../src/components/project-space/CalendarDayView.tsx)
  249:   - appearance: time-based agenda/day layout rather than the myHub card or overview month-chip presentation
  250: - Shared-component finding for events:
@@ -8115,17 +8115,17 @@ Total ambiguous hits: 1332.
 
 ### docs/ux-architecture-audit.md:302
 ```
- 297:   - small: dedicated `ModuleEmptyState` with `No tasks in this pane.` in [src/components/project-space/TasksModuleSkin.tsx](../src/components/project-space/TasksModuleSkin.tsx) lines 424-429
- 298:   - medium: dedicated `ModuleEmptyState` with `No tasks in this pane.` and CTA `New Task` at lines 473-480
- 299:   - large: dedicated `ModuleEmptyState` with `No tasks in this pane.` and description `It's Procrastinators vs ProTaskinators out here.` at lines 595-601
- 300: - Empty Calendar module:
- 301:   - large desktop calendar module with zero events: dedicated `ModuleEmptyState` in [src/components/project-space/CalendarModuleSkin.tsx](../src/components/project-space/CalendarModuleSkin.tsx) lines 580-603
+ 297:   - small: dedicated `WidgetEmptyState` with `No tasks in this pane.` in [src/components/project-space/TasksWidgetSkin.tsx](../src/components/project-space/TasksWidgetSkin.tsx) lines 424-429
+ 298:   - medium: dedicated `WidgetEmptyState` with `No tasks in this pane.` and CTA `New Task` at lines 473-480
+ 299:   - large: dedicated `WidgetEmptyState` with `No tasks in this pane.` and description `It's Procrastinators vs ProTaskinators out here.` at lines 595-601
+ 300: - Empty Calendar widget:
+ 301:   - large desktop calendar widget with zero events: dedicated `WidgetEmptyState` in [src/components/project-space/CalendarWidgetSkin.tsx](../src/components/project-space/CalendarWidgetSkin.tsx) lines 580-603
  302:   - copy is either `No relevant events yet.` or `No project events yet.`
  303:   - CTA is `Show All` or `New Event` depending on scope and create capability
  304:   - small compact calendar: `No events for {date}.` at lines 638-645
  305:   - day view: `No events today` with `Create event` button in [src/components/project-space/CalendarDayView.tsx](../src/components/project-space/CalendarDayView.tsx) lines 748-761
  306:   - week view day panels: fallback row `No events` with a `+` create button in [src/components/project-space/CalendarWeekView.tsx](../src/components/project-space/CalendarWeekView.tsx) lines 183-197
- 307: - Empty Reminders module:
+ 307: - Empty Reminders widget:
 ```
 
 ### docs/ux-architecture-audit.md:353
@@ -8170,12 +8170,12 @@ Total ambiguous hits: 1332.
  358: | `Project Space` | top project-page label | [src/pages/ProjectSpacePage.tsx](../src/pages/ProjectSpacePage.tsx) | the whole project route surface |
  359: | `Work` / `Work Panes` | project-space tab and section heading | [src/pages/ProjectSpacePage.tsx](../src/pages/ProjectSpacePage.tsx) | the project's work surface and its pane list |
  360: | `Pane` | pane switcher, pane settings, create pane, other panes | [src/pages/ProjectSpacePage.tsx](../src/pages/ProjectSpacePage.tsx), [src/components/project-space/PaneSwitcher.tsx](../src/components/project-space/PaneSwitcher.tsx) | a sub-surface inside project work |
- 361: | `Module` / `Modules` | add-module dialog, module grid, module headers | [src/components/project-space/ModuleGrid.tsx](../src/components/project-space/ModuleGrid.tsx), [src/components/project-space/AddModuleDialog.tsx](../src/components/project-space/AddModuleDialog.tsx) | widgets placed inside a pane |
+ 361: | `Widget` / `Widgets` | add-widget dialog, widget grid, widget headers | [src/components/project-space/WidgetGrid.tsx](../src/components/project-space/WidgetGrid.tsx), [src/components/project-space/AddWidgetDialog.tsx](../src/components/project-space/AddWidgetDialog.tsx) | widgets placed inside a pane |
 ```
 
 ### docs/ux-architecture-audit.md:366
 ```
- 361: | `Module` / `Modules` | add-module dialog, module grid, module headers | [src/components/project-space/ModuleGrid.tsx](../src/components/project-space/ModuleGrid.tsx), [src/components/project-space/AddModuleDialog.tsx](../src/components/project-space/AddModuleDialog.tsx) | widgets placed inside a pane |
+ 361: | `Widget` / `Widgets` | add-widget dialog, widget grid, widget headers | [src/components/project-space/WidgetGrid.tsx](../src/components/project-space/WidgetGrid.tsx), [src/components/project-space/AddWidgetDialog.tsx](../src/components/project-space/AddWidgetDialog.tsx) | widgets placed inside a pane |
  362: | `Workspace` / `Workspace Doc` | sr-only app-shell heading and pane document region | [src/components/layout/AppShell.tsx](../src/components/layout/AppShell.tsx), [src/pages/ProjectSpacePage.tsx](../src/pages/ProjectSpacePage.tsx), [src/components/project-space/WorkView.tsx](../src/components/project-space/WorkView.tsx) | both the whole app shell and the pane-specific document area |
  363: 
  364: - Inconsistencies / collisions found:
@@ -8199,7 +8199,7 @@ Total ambiguous hits: 1332.
  391: - The dialog primitive itself in [src/components/ui/dialog.tsx](../src/components/ui/dialog.tsx) lines 22-39 and [tokens.css](../tokens.css) lines 206-225 only defines width/max-width utility classes by default. I did not find a default dialog max-height there that would by itself crop the bottom row.
  392: - I did find one important container-level constraint for the toolbar calendar surface in [src/components/layout/AppShell.tsx](../src/components/layout/AppShell.tsx) lines 1767-1775:
  393:   > `panelClassName="... !h-[calc(100vh-5rem)] !max-h-[calc(100vh-5rem)] ... overflow-hidden"`
- 394:   - That toolbar dialog also wraps the module in an inner `div` with `overflow-y-auto` at line 1791.
+ 394:   - That toolbar dialog also wraps the widget in an inner `div` with `overflow-y-auto` at line 1791.
  395:   - So the toolbar calendar is height-constrained, but the intended behavior is internal scrolling rather than simple clipping.
 ```
 
@@ -8212,9 +8212,9 @@ Total ambiguous hits: 1332.
  407: 2. The hierarchy is cleaner in the URL than in the UI vocabulary: `/projects -> /projects/:projectId -> /projects/:projectId/work/:paneId` is consistent, while `Hub`, `myHub`, `Projects`, `Project Space`, and `Workspace` are not.
  408: 3. `ProjectSpacePage` is the central project surface for overview, work, and tools, and same-project tab changes mostly happen inside that one component rather than through a deeper nested-router structure.
  409: 4. The footer breadcrumb is present but very low-emphasis and non-clickable; the stronger location cue is the project-space header block, not the shell breadcrumb.
- 410: 5. Identity persistence across scopes is weak for events and reminders and only partial for tasks; the same item type is often rendered in very different ways on myHub, in overview surfaces, and inside pane modules.
- 411: 6. Empty-state behavior is inconsistent: some modules have dedicated empty states, myHub relies on collapsed zero-count sections, and the project overview timeline/calendar are currently populated by hardcoded demo data instead of true empty-state behavior.
- 412: 7. Calendar creation UX is structured and inline inside the module, reminders are natural-language-first, and tasks split between inline and dialog-based creation, so there is no consistent cross-module creation pattern today.
+ 410: 5. Identity persistence across scopes is weak for events and reminders and only partial for tasks; the same item type is often rendered in very different ways on myHub, in overview surfaces, and inside pane widgets.
+ 411: 6. Empty-state behavior is inconsistent: some widgets have dedicated empty states, myHub relies on collapsed zero-count sections, and the project overview timeline/calendar are currently populated by hardcoded demo data instead of true empty-state behavior.
+ 412: 7. Calendar creation UX is structured and inline inside the widget, reminders are natural-language-first, and tasks split between inline and dialog-based creation, so there is no consistent cross-widget creation pattern today.
  413: 
 ```
 
@@ -8224,9 +8224,9 @@ Total ambiguous hits: 1332.
  407: 2. The hierarchy is cleaner in the URL than in the UI vocabulary: `/projects -> /projects/:projectId -> /projects/:projectId/work/:paneId` is consistent, while `Hub`, `myHub`, `Projects`, `Project Space`, and `Workspace` are not.
  408: 3. `ProjectSpacePage` is the central project surface for overview, work, and tools, and same-project tab changes mostly happen inside that one component rather than through a deeper nested-router structure.
  409: 4. The footer breadcrumb is present but very low-emphasis and non-clickable; the stronger location cue is the project-space header block, not the shell breadcrumb.
- 410: 5. Identity persistence across scopes is weak for events and reminders and only partial for tasks; the same item type is often rendered in very different ways on myHub, in overview surfaces, and inside pane modules.
- 411: 6. Empty-state behavior is inconsistent: some modules have dedicated empty states, myHub relies on collapsed zero-count sections, and the project overview timeline/calendar are currently populated by hardcoded demo data instead of true empty-state behavior.
- 412: 7. Calendar creation UX is structured and inline inside the module, reminders are natural-language-first, and tasks split between inline and dialog-based creation, so there is no consistent cross-module creation pattern today.
+ 410: 5. Identity persistence across scopes is weak for events and reminders and only partial for tasks; the same item type is often rendered in very different ways on myHub, in overview surfaces, and inside pane widgets.
+ 411: 6. Empty-state behavior is inconsistent: some widgets have dedicated empty states, myHub relies on collapsed zero-count sections, and the project overview timeline/calendar are currently populated by hardcoded demo data instead of true empty-state behavior.
+ 412: 7. Calendar creation UX is structured and inline inside the widget, reminders are natural-language-first, and tasks split between inline and dialog-based creation, so there is no consistent cross-widget creation pattern today.
  413: 
 ```
 
@@ -8511,46 +8511,46 @@ Total ambiguous hits: 1332.
   73:     name: `Audit Shared ${runId}`,
   74:     member_user_ids: [viewerSession.userId],
   75:     layout_config: {
-  76:       modules_enabled: true,
+  76:       widgets_enabled: true,
   77:       workspace_enabled: true,
 ```
 
 ### e2e/auth.setup.ts:83
 ```
-  78:       modules: [
+  78:       widgets: [
   79:         {
-  80:           module_instance_id: `table-${runId}`,
-  81:           module_type: 'table',
+  80:           widget_instance_id: `table-${runId}`,
+  81:           widget_type: 'table',
   82:           size_tier: 'L',
   83:           lens: 'project',
   84:           binding: { view_id: tableView.view_id },
   85:         },
   86:         {
-  87:           module_instance_id: `kanban-${runId}`,
-  88:           module_type: 'kanban',
+  87:           widget_instance_id: `kanban-${runId}`,
+  88:           widget_type: 'kanban',
 ```
 
 ### e2e/auth.setup.ts:90
 ```
   85:         },
   86:         {
-  87:           module_instance_id: `kanban-${runId}`,
-  88:           module_type: 'kanban',
+  87:           widget_instance_id: `kanban-${runId}`,
+  88:           widget_type: 'kanban',
   89:           size_tier: 'L',
   90:           lens: 'project',
   91:           binding: { view_id: kanbanView.view_id },
   92:         },
   93:         {
-  94:           module_instance_id: `files-${runId}`,
-  95:           module_type: 'files',
+  94:           widget_instance_id: `files-${runId}`,
+  95:           widget_type: 'files',
 ```
 
 ### e2e/auth.setup.ts:97
 ```
   92:         },
   93:         {
-  94:           module_instance_id: `files-${runId}`,
-  95:           module_type: 'files',
+  94:           widget_instance_id: `files-${runId}`,
+  95:           widget_type: 'files',
   96:           size_tier: 'M',
   97:           lens: 'project',
   98:         },
@@ -8571,16 +8571,16 @@ Total ambiguous hits: 1332.
  104:     name: `Audit Private ${runId}`,
  105:     member_user_ids: [],
  106:     layout_config: {
- 107:       modules_enabled: true,
+ 107:       widgets_enabled: true,
  108:       workspace_enabled: true,
 ```
 
 ### e2e/auth.setup.ts:114
 ```
- 109:       modules: [
+ 109:       widgets: [
  110:         {
- 111:           module_instance_id: `table-${runId}-private`,
- 112:           module_type: 'table',
+ 111:           widget_instance_id: `table-${runId}-private`,
+ 112:           widget_type: 'table',
  113:           size_tier: 'M',
  114:           lens: 'project',
  115:           binding: { view_id: tableView.view_id },
@@ -9132,7 +9132,7 @@ Total ambiguous hits: 1332.
  136: 
  137:   test('Pane content area loads', async ({ page }) => {
  138:     await gotoReady(page, `/projects/${fixture.project.id}/work/${fixture.panes.sharedId}`);
- 139:     await expect(page.getByLabel('Table module')).toBeVisible();
+ 139:     await expect(page.getByLabel('Table widget')).toBeVisible();
  140:     await expect(page.getByLabel('Project note editor')).toBeVisible();
  141:   });
  142: 
@@ -9188,7 +9188,7 @@ Total ambiguous hits: 1332.
 
 ### e2e/eshaan-os.audit.spec.ts:245
 ```
- 240:     await expect(page.getByLabel('Table module').first().getByRole('grid')).toBeVisible();
+ 240:     await expect(page.getByLabel('Table widget').first().getByRole('grid')).toBeVisible();
  241:   });
  242: });
  243: 
@@ -10081,27 +10081,27 @@ Total ambiguous hits: 1332.
  136: 
 ```
 
-### e2e/module-verification/fixture.json:4
+### e2e/widget-verification/fixture.json:4
 ```
    1: {
    2:   "baseUrl": "https://eshaansood.org",
    3:   "apiBaseUrl": "https://eshaansood.org",
    4:   "project": {
    5:     "id": "prj_47c0078b-910b-44cd-8abc-4efc434218f7",
-   6:     "name": "Module Verify module-mnazqph7"
+   6:     "name": "Widget Verify widget-mnazqph7"
    7:   },
    8:   "owner": {
    9:     "email": "hub-smoke-a",
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:165
+### e2e/widget-verification/playwright-error-contexts.md:165
 ```
  160:     - contentinfo "App toolbar" [ref=e200]:
  161:       - navigation "App toolbar" [ref=e201]:
  162:         - generic [ref=e202]:
  163:           - button "Go home" [ref=e203]:
  164:             - img [ref=e204]
- 165:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e206]': Projects › Module Verify module-mnaw0gfn › Work
+ 165:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e206]': Projects › Widget Verify widget-mnaw0gfn › Work
  166:         - button "Quick navigation" [ref=e208]:
  167:           - img [ref=e209]
  168:           - text: Nav
@@ -10109,14 +10109,14 @@ Total ambiguous hits: 1332.
  170:         - button "Open quick add menu" [ref=e217]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:338
+### e2e/widget-verification/playwright-error-contexts.md:338
 ```
  333:     - contentinfo "App toolbar" [ref=e200]:
  334:       - navigation "App toolbar" [ref=e201]:
  335:         - generic [ref=e202]:
  336:           - button "Go home" [ref=e203]:
  337:             - img [ref=e204]
- 338:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e206]': Projects › Module Verify module-mnaw0gfn › Work
+ 338:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e206]': Projects › Widget Verify widget-mnaw0gfn › Work
  339:         - button "Quick navigation" [ref=e208]:
  340:           - img [ref=e209]
  341:           - text: Nav
@@ -10124,14 +10124,14 @@ Total ambiguous hits: 1332.
  343:         - button "Open quick add menu" [ref=e217]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:511
+### e2e/widget-verification/playwright-error-contexts.md:511
 ```
  506:     - contentinfo "App toolbar" [ref=e200]:
  507:       - navigation "App toolbar" [ref=e201]:
  508:         - generic [ref=e202]:
  509:           - button "Go home" [ref=e203]:
  510:             - img [ref=e204]
- 511:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e206]': Projects › Module Verify module-mnaw0gfn › Work
+ 511:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e206]': Projects › Widget Verify widget-mnaw0gfn › Work
  512:         - button "Quick navigation" [ref=e208]:
  513:           - img [ref=e209]
  514:           - text: Nav
@@ -10139,7 +10139,7 @@ Total ambiguous hits: 1332.
  516:         - button "Open quick add menu" [ref=e217]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:619
+### e2e/widget-verification/playwright-error-contexts.md:619
 ```
  614:                     - text: Table
  615:                   - generic [ref=e136]:
@@ -10154,14 +10154,14 @@ Total ambiguous hits: 1332.
  624:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:693
+### e2e/widget-verification/playwright-error-contexts.md:693
 ```
  688:     - contentinfo "App toolbar" [ref=e207]:
  689:       - navigation "App toolbar" [ref=e208]:
  690:         - generic [ref=e209]:
  691:           - button "Go home" [ref=e210]:
  692:             - img [ref=e211]
- 693:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
+ 693:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
  694:         - button "Quick navigation" [ref=e215]:
  695:           - img [ref=e216]
  696:           - text: Nav
@@ -10169,7 +10169,7 @@ Total ambiguous hits: 1332.
  698:         - button "Open quick add menu" [ref=e224]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:801
+### e2e/widget-verification/playwright-error-contexts.md:801
 ```
  796:                     - text: Table
  797:                   - generic [ref=e136]:
@@ -10184,14 +10184,14 @@ Total ambiguous hits: 1332.
  806:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:875
+### e2e/widget-verification/playwright-error-contexts.md:875
 ```
  870:     - contentinfo "App toolbar" [ref=e207]:
  871:       - navigation "App toolbar" [ref=e208]:
  872:         - generic [ref=e209]:
  873:           - button "Go home" [ref=e210]:
  874:             - img [ref=e211]
- 875:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
+ 875:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
  876:         - button "Quick navigation" [ref=e215]:
  877:           - img [ref=e216]
  878:           - text: Nav
@@ -10199,7 +10199,7 @@ Total ambiguous hits: 1332.
  880:         - button "Open quick add menu" [ref=e224]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:983
+### e2e/widget-verification/playwright-error-contexts.md:983
 ```
  978:                     - text: Table
  979:                   - generic [ref=e136]:
@@ -10214,14 +10214,14 @@ Total ambiguous hits: 1332.
  988:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:1057
+### e2e/widget-verification/playwright-error-contexts.md:1057
 ```
 1052:     - contentinfo "App toolbar" [ref=e207]:
 1053:       - navigation "App toolbar" [ref=e208]:
 1054:         - generic [ref=e209]:
 1055:           - button "Go home" [ref=e210]:
 1056:             - img [ref=e211]
-1057:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
+1057:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
 1058:         - button "Quick navigation" [ref=e215]:
 1059:           - img [ref=e216]
 1060:           - text: Nav
@@ -10229,14 +10229,14 @@ Total ambiguous hits: 1332.
 1062:         - button "Open quick add menu" [ref=e224]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:1192
+### e2e/widget-verification/playwright-error-contexts.md:1192
 ```
 1187:     - contentinfo "App toolbar" [ref=e157]:
 1188:       - navigation "App toolbar" [ref=e158]:
 1189:         - generic [ref=e159]:
 1190:           - button "Go home" [ref=e160]:
 1191:             - img [ref=e161]
-1192:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e163]': Projects › Module Verify module-mnaw0gfn › Work
+1192:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e163]': Projects › Widget Verify widget-mnaw0gfn › Work
 1193:         - button "Quick navigation" [ref=e165]:
 1194:           - img [ref=e166]
 1195:           - text: Nav
@@ -10244,14 +10244,14 @@ Total ambiguous hits: 1332.
 1197:         - button "Open quick add menu" [ref=e174]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:1327
+### e2e/widget-verification/playwright-error-contexts.md:1327
 ```
 1322:     - contentinfo "App toolbar" [ref=e157]:
 1323:       - navigation "App toolbar" [ref=e158]:
 1324:         - generic [ref=e159]:
 1325:           - button "Go home" [ref=e160]:
 1326:             - img [ref=e161]
-1327:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e163]': Projects › Module Verify module-mnaw0gfn › Work
+1327:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e163]': Projects › Widget Verify widget-mnaw0gfn › Work
 1328:         - button "Quick navigation" [ref=e165]:
 1329:           - img [ref=e166]
 1330:           - text: Nav
@@ -10259,14 +10259,14 @@ Total ambiguous hits: 1332.
 1332:         - button "Open quick add menu" [ref=e174]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:1462
+### e2e/widget-verification/playwright-error-contexts.md:1462
 ```
 1457:     - contentinfo "App toolbar" [ref=e157]:
 1458:       - navigation "App toolbar" [ref=e158]:
 1459:         - generic [ref=e159]:
 1460:           - button "Go home" [ref=e160]:
 1461:             - img [ref=e161]
-1462:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e163]': Projects › Module Verify module-mnaw0gfn › Work
+1462:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e163]': Projects › Widget Verify widget-mnaw0gfn › Work
 1463:         - button "Quick navigation" [ref=e165]:
 1464:           - img [ref=e166]
 1465:           - text: Nav
@@ -10274,7 +10274,7 @@ Total ambiguous hits: 1332.
 1467:         - button "Open quick add menu" [ref=e174]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:1570
+### e2e/widget-verification/playwright-error-contexts.md:1570
 ```
 1565:                     - text: Table
 1566:                   - generic [ref=e136]:
@@ -10289,14 +10289,14 @@ Total ambiguous hits: 1332.
 1575:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:1644
+### e2e/widget-verification/playwright-error-contexts.md:1644
 ```
 1639:     - contentinfo "App toolbar" [ref=e207]:
 1640:       - navigation "App toolbar" [ref=e208]:
 1641:         - generic [ref=e209]:
 1642:           - button "Go home" [ref=e210]:
 1643:             - img [ref=e211]
-1644:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
+1644:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
 1645:         - button "Quick navigation" [ref=e215]:
 1646:           - img [ref=e216]
 1647:           - text: Nav
@@ -10304,7 +10304,7 @@ Total ambiguous hits: 1332.
 1649:         - button "Open quick add menu" [ref=e224]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:1752
+### e2e/widget-verification/playwright-error-contexts.md:1752
 ```
 1747:                     - text: Table
 1748:                   - generic [ref=e136]:
@@ -10319,14 +10319,14 @@ Total ambiguous hits: 1332.
 1757:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:1826
+### e2e/widget-verification/playwright-error-contexts.md:1826
 ```
 1821:     - contentinfo "App toolbar" [ref=e207]:
 1822:       - navigation "App toolbar" [ref=e208]:
 1823:         - generic [ref=e209]:
 1824:           - button "Go home" [ref=e210]:
 1825:             - img [ref=e211]
-1826:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
+1826:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
 1827:         - button "Quick navigation" [ref=e215]:
 1828:           - img [ref=e216]
 1829:           - text: Nav
@@ -10334,7 +10334,7 @@ Total ambiguous hits: 1332.
 1831:         - button "Open quick add menu" [ref=e224]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:1934
+### e2e/widget-verification/playwright-error-contexts.md:1934
 ```
 1929:                     - text: Table
 1930:                   - generic [ref=e136]:
@@ -10349,14 +10349,14 @@ Total ambiguous hits: 1332.
 1939:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2008
+### e2e/widget-verification/playwright-error-contexts.md:2008
 ```
 2003:     - contentinfo "App toolbar" [ref=e207]:
 2004:       - navigation "App toolbar" [ref=e208]:
 2005:         - generic [ref=e209]:
 2006:           - button "Go home" [ref=e210]:
 2007:             - img [ref=e211]
-2008:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
+2008:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
 2009:         - button "Quick navigation" [ref=e215]:
 2010:           - img [ref=e216]
 2011:           - text: Nav
@@ -10364,7 +10364,7 @@ Total ambiguous hits: 1332.
 2013:         - button "Open quick add menu" [ref=e224]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2116
+### e2e/widget-verification/playwright-error-contexts.md:2116
 ```
 2111:                     - text: Table
 2112:                   - generic [ref=e136]:
@@ -10379,14 +10379,14 @@ Total ambiguous hits: 1332.
 2121:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2190
+### e2e/widget-verification/playwright-error-contexts.md:2190
 ```
 2185:     - contentinfo "App toolbar" [ref=e207]:
 2186:       - navigation "App toolbar" [ref=e208]:
 2187:         - generic [ref=e209]:
 2188:           - button "Go home" [ref=e210]:
 2189:             - img [ref=e211]
-2190:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
+2190:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
 2191:         - button "Quick navigation" [ref=e215]:
 2192:           - img [ref=e216]
 2193:           - text: Nav
@@ -10394,7 +10394,7 @@ Total ambiguous hits: 1332.
 2195:         - button "Open quick add menu" [ref=e224]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2298
+### e2e/widget-verification/playwright-error-contexts.md:2298
 ```
 2293:                     - text: Table
 2294:                   - generic [ref=e136]:
@@ -10409,14 +10409,14 @@ Total ambiguous hits: 1332.
 2303:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2372
+### e2e/widget-verification/playwright-error-contexts.md:2372
 ```
 2367:     - contentinfo "App toolbar" [ref=e207]:
 2368:       - navigation "App toolbar" [ref=e208]:
 2369:         - generic [ref=e209]:
 2370:           - button "Go home" [ref=e210]:
 2371:             - img [ref=e211]
-2372:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
+2372:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
 2373:         - button "Quick navigation" [ref=e215]:
 2374:           - img [ref=e216]
 2375:           - text: Nav
@@ -10424,7 +10424,7 @@ Total ambiguous hits: 1332.
 2377:         - button "Open quick add menu" [ref=e224]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2480
+### e2e/widget-verification/playwright-error-contexts.md:2480
 ```
 2475:                     - text: Table
 2476:                   - generic [ref=e136]:
@@ -10439,14 +10439,14 @@ Total ambiguous hits: 1332.
 2485:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2554
+### e2e/widget-verification/playwright-error-contexts.md:2554
 ```
 2549:     - contentinfo "App toolbar" [ref=e207]:
 2550:       - navigation "App toolbar" [ref=e208]:
 2551:         - generic [ref=e209]:
 2552:           - button "Go home" [ref=e210]:
 2553:             - img [ref=e211]
-2554:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e213]': Projects › Module Verify module-mnaw0gfn › Work
+2554:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e213]': Projects › Widget Verify widget-mnaw0gfn › Work
 2555:         - button "Quick navigation" [ref=e215]:
 2556:           - img [ref=e216]
 2557:           - text: Nav
@@ -10454,7 +10454,7 @@ Total ambiguous hits: 1332.
 2559:         - button "Open quick add menu" [ref=e224]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2663
+### e2e/widget-verification/playwright-error-contexts.md:2663
 ```
 2658:                       - text: Table
 2659:                     - generic [ref=e136]:
@@ -10469,7 +10469,7 @@ Total ambiguous hits: 1332.
 2668:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2738
+### e2e/widget-verification/playwright-error-contexts.md:2738
 ```
 2733:                       - text: Kanban
 2734:                     - generic [ref=e211]:
@@ -10484,7 +10484,7 @@ Total ambiguous hits: 1332.
 2743:                         - img [ref=e219]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:2856
+### e2e/widget-verification/playwright-error-contexts.md:2856
 ```
 2851:                       - text: Calendar
 2852:                     - generic [ref=e304]:
@@ -10499,14 +10499,14 @@ Total ambiguous hits: 1332.
 2861:                         - img [ref=e312]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:3022
+### e2e/widget-verification/playwright-error-contexts.md:3022
 ```
 3017:     - contentinfo "App toolbar" [ref=e471]:
 3018:       - navigation "App toolbar" [ref=e472]:
 3019:         - generic [ref=e473]:
 3020:           - button "Go home" [ref=e474]:
 3021:             - img [ref=e475]
-3022:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e477]': Projects › Module Verify module-mnaw0gfn › Work
+3022:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e477]': Projects › Widget Verify widget-mnaw0gfn › Work
 3023:         - button "Quick navigation" [ref=e479]:
 3024:           - img [ref=e480]
 3025:           - text: Nav
@@ -10514,7 +10514,7 @@ Total ambiguous hits: 1332.
 3027:         - button "Open quick add menu" [ref=e488]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:3131
+### e2e/widget-verification/playwright-error-contexts.md:3131
 ```
 3126:                       - text: Table
 3127:                     - generic [ref=e136]:
@@ -10529,7 +10529,7 @@ Total ambiguous hits: 1332.
 3136:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:3206
+### e2e/widget-verification/playwright-error-contexts.md:3206
 ```
 3201:                       - text: Kanban
 3202:                     - generic [ref=e211]:
@@ -10544,7 +10544,7 @@ Total ambiguous hits: 1332.
 3211:                         - img [ref=e219]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:3324
+### e2e/widget-verification/playwright-error-contexts.md:3324
 ```
 3319:                       - text: Calendar
 3320:                     - generic [ref=e304]:
@@ -10559,14 +10559,14 @@ Total ambiguous hits: 1332.
 3329:                         - img [ref=e312]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:3490
+### e2e/widget-verification/playwright-error-contexts.md:3490
 ```
 3485:     - contentinfo "App toolbar" [ref=e470]:
 3486:       - navigation "App toolbar" [ref=e471]:
 3487:         - generic [ref=e472]:
 3488:           - button "Go home" [ref=e473]:
 3489:             - img [ref=e474]
-3490:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e476]': Projects › Module Verify module-mnaw0gfn › Work
+3490:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e476]': Projects › Widget Verify widget-mnaw0gfn › Work
 3491:         - button "Quick navigation" [ref=e478]:
 3492:           - img [ref=e479]
 3493:           - text: Nav
@@ -10574,7 +10574,7 @@ Total ambiguous hits: 1332.
 3495:         - button "Open quick add menu" [ref=e487]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:3599
+### e2e/widget-verification/playwright-error-contexts.md:3599
 ```
 3594:                       - text: Table
 3595:                     - generic [ref=e136]:
@@ -10589,7 +10589,7 @@ Total ambiguous hits: 1332.
 3604:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:3674
+### e2e/widget-verification/playwright-error-contexts.md:3674
 ```
 3669:                       - text: Kanban
 3670:                     - generic [ref=e211]:
@@ -10604,7 +10604,7 @@ Total ambiguous hits: 1332.
 3679:                         - img [ref=e219]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:3792
+### e2e/widget-verification/playwright-error-contexts.md:3792
 ```
 3787:                       - text: Calendar
 3788:                     - generic [ref=e304]:
@@ -10619,14 +10619,14 @@ Total ambiguous hits: 1332.
 3797:                         - img [ref=e312]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:3958
+### e2e/widget-verification/playwright-error-contexts.md:3958
 ```
 3953:     - contentinfo "App toolbar" [ref=e470]:
 3954:       - navigation "App toolbar" [ref=e471]:
 3955:         - generic [ref=e472]:
 3956:           - button "Go home" [ref=e473]:
 3957:             - img [ref=e474]
-3958:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e476]': Projects › Module Verify module-mnaw0gfn › Work
+3958:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e476]': Projects › Widget Verify widget-mnaw0gfn › Work
 3959:         - button "Quick navigation" [ref=e478]:
 3960:           - img [ref=e479]
 3961:           - text: Nav
@@ -10634,7 +10634,7 @@ Total ambiguous hits: 1332.
 3963:         - button "Open quick add menu" [ref=e487]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:4067
+### e2e/widget-verification/playwright-error-contexts.md:4067
 ```
 4062:                       - text: Table
 4063:                     - generic [ref=e136]:
@@ -10649,7 +10649,7 @@ Total ambiguous hits: 1332.
 4072:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:4207
+### e2e/widget-verification/playwright-error-contexts.md:4207
 ```
 4202:                       - text: Calendar
 4203:                     - generic [ref=e284]:
@@ -10664,14 +10664,14 @@ Total ambiguous hits: 1332.
 4212:                         - img [ref=e292]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:4397
+### e2e/widget-verification/playwright-error-contexts.md:4397
 ```
 4392:     - contentinfo "App toolbar" [ref=e479]:
 4393:       - navigation "App toolbar" [ref=e480]:
 4394:         - generic [ref=e481]:
 4395:           - button "Go home" [ref=e482]:
 4396:             - img [ref=e483]
-4397:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e485]': Projects › Module Verify module-mnaw0gfn › Work
+4397:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e485]': Projects › Widget Verify widget-mnaw0gfn › Work
 4398:         - button "Quick navigation" [ref=e487]:
 4399:           - img [ref=e488]
 4400:           - text: Nav
@@ -10679,7 +10679,7 @@ Total ambiguous hits: 1332.
 4402:         - button "Open quick add menu" [ref=e496]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:4506
+### e2e/widget-verification/playwright-error-contexts.md:4506
 ```
 4501:                       - text: Table
 4502:                     - generic [ref=e136]:
@@ -10694,7 +10694,7 @@ Total ambiguous hits: 1332.
 4511:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:4646
+### e2e/widget-verification/playwright-error-contexts.md:4646
 ```
 4641:                       - text: Calendar
 4642:                     - generic [ref=e284]:
@@ -10709,14 +10709,14 @@ Total ambiguous hits: 1332.
 4651:                         - img [ref=e292]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:4836
+### e2e/widget-verification/playwright-error-contexts.md:4836
 ```
 4831:     - contentinfo "App toolbar" [ref=e478]:
 4832:       - navigation "App toolbar" [ref=e479]:
 4833:         - generic [ref=e480]:
 4834:           - button "Go home" [ref=e481]:
 4835:             - img [ref=e482]
-4836:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e484]': Projects › Module Verify module-mnaw0gfn › Work
+4836:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e484]': Projects › Widget Verify widget-mnaw0gfn › Work
 4837:         - button "Quick navigation" [ref=e486]:
 4838:           - img [ref=e487]
 4839:           - text: Nav
@@ -10724,7 +10724,7 @@ Total ambiguous hits: 1332.
 4841:         - button "Open quick add menu" [ref=e495]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:4945
+### e2e/widget-verification/playwright-error-contexts.md:4945
 ```
 4940:                       - text: Table
 4941:                     - generic [ref=e136]:
@@ -10739,7 +10739,7 @@ Total ambiguous hits: 1332.
 4950:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:5085
+### e2e/widget-verification/playwright-error-contexts.md:5085
 ```
 5080:                       - text: Calendar
 5081:                     - generic [ref=e284]:
@@ -10754,14 +10754,14 @@ Total ambiguous hits: 1332.
 5090:                         - img [ref=e292]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:5275
+### e2e/widget-verification/playwright-error-contexts.md:5275
 ```
 5270:     - contentinfo "App toolbar" [ref=e478]:
 5271:       - navigation "App toolbar" [ref=e479]:
 5272:         - generic [ref=e480]:
 5273:           - button "Go home" [ref=e481]:
 5274:             - img [ref=e482]
-5275:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e484]': Projects › Module Verify module-mnaw0gfn › Work
+5275:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e484]': Projects › Widget Verify widget-mnaw0gfn › Work
 5276:         - button "Quick navigation" [ref=e486]:
 5277:           - img [ref=e487]
 5278:           - text: Nav
@@ -10769,7 +10769,7 @@ Total ambiguous hits: 1332.
 5280:         - button "Open quick add menu" [ref=e495]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:5384
+### e2e/widget-verification/playwright-error-contexts.md:5384
 ```
 5379:                       - text: Table
 5380:                     - generic [ref=e136]:
@@ -10784,7 +10784,7 @@ Total ambiguous hits: 1332.
 5389:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:5459
+### e2e/widget-verification/playwright-error-contexts.md:5459
 ```
 5454:                       - text: Kanban
 5455:                     - generic [ref=e211]:
@@ -10799,7 +10799,7 @@ Total ambiguous hits: 1332.
 5464:                         - img [ref=e219]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:5577
+### e2e/widget-verification/playwright-error-contexts.md:5577
 ```
 5572:                       - text: Calendar
 5573:                     - generic [ref=e304]:
@@ -10814,7 +10814,7 @@ Total ambiguous hits: 1332.
 5582:                         - img [ref=e312]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:5817
+### e2e/widget-verification/playwright-error-contexts.md:5817
 ```
 5812:                       - text: Files
 5813:                     - generic [ref=e550]:
@@ -10829,14 +10829,14 @@ Total ambiguous hits: 1332.
 5822:                         - img [ref=e558]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:5841
+### e2e/widget-verification/playwright-error-contexts.md:5841
 ```
 5836:     - contentinfo "App toolbar" [ref=e575]:
 5837:       - navigation "App toolbar" [ref=e576]:
 5838:         - generic [ref=e577]:
 5839:           - button "Go home" [ref=e578]:
 5840:             - img [ref=e579]
-5841:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e581]': Projects › Module Verify module-mnaw0gfn › Work
+5841:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e581]': Projects › Widget Verify widget-mnaw0gfn › Work
 5842:         - button "Quick navigation" [ref=e583]:
 5843:           - img [ref=e584]
 5844:           - text: Nav
@@ -10844,7 +10844,7 @@ Total ambiguous hits: 1332.
 5846:         - button "Open quick add menu" [ref=e592]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:5950
+### e2e/widget-verification/playwright-error-contexts.md:5950
 ```
 5945:                       - text: Table
 5946:                     - generic [ref=e136]:
@@ -10859,7 +10859,7 @@ Total ambiguous hits: 1332.
 5955:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:6025
+### e2e/widget-verification/playwright-error-contexts.md:6025
 ```
 6020:                       - text: Kanban
 6021:                     - generic [ref=e211]:
@@ -10874,7 +10874,7 @@ Total ambiguous hits: 1332.
 6030:                         - img [ref=e219]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:6143
+### e2e/widget-verification/playwright-error-contexts.md:6143
 ```
 6138:                       - text: Calendar
 6139:                     - generic [ref=e304]:
@@ -10889,7 +10889,7 @@ Total ambiguous hits: 1332.
 6148:                         - img [ref=e312]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:6383
+### e2e/widget-verification/playwright-error-contexts.md:6383
 ```
 6378:                       - text: Files
 6379:                     - generic [ref=e550]:
@@ -10904,14 +10904,14 @@ Total ambiguous hits: 1332.
 6388:                         - img [ref=e558]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:6407
+### e2e/widget-verification/playwright-error-contexts.md:6407
 ```
 6402:     - contentinfo "App toolbar" [ref=e575]:
 6403:       - navigation "App toolbar" [ref=e576]:
 6404:         - generic [ref=e577]:
 6405:           - button "Go home" [ref=e578]:
 6406:             - img [ref=e579]
-6407:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e581]': Projects › Module Verify module-mnaw0gfn › Work
+6407:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e581]': Projects › Widget Verify widget-mnaw0gfn › Work
 6408:         - button "Quick navigation" [ref=e583]:
 6409:           - img [ref=e584]
 6410:           - text: Nav
@@ -10919,7 +10919,7 @@ Total ambiguous hits: 1332.
 6412:         - button "Open quick add menu" [ref=e592]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:6516
+### e2e/widget-verification/playwright-error-contexts.md:6516
 ```
 6511:                       - text: Table
 6512:                     - generic [ref=e136]:
@@ -10934,7 +10934,7 @@ Total ambiguous hits: 1332.
 6521:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:6591
+### e2e/widget-verification/playwright-error-contexts.md:6591
 ```
 6586:                       - text: Kanban
 6587:                     - generic [ref=e211]:
@@ -10949,7 +10949,7 @@ Total ambiguous hits: 1332.
 6596:                         - img [ref=e219]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:6709
+### e2e/widget-verification/playwright-error-contexts.md:6709
 ```
 6704:                       - text: Calendar
 6705:                     - generic [ref=e304]:
@@ -10964,7 +10964,7 @@ Total ambiguous hits: 1332.
 6714:                         - img [ref=e312]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:6949
+### e2e/widget-verification/playwright-error-contexts.md:6949
 ```
 6944:                       - text: Files
 6945:                     - generic [ref=e550]:
@@ -10979,14 +10979,14 @@ Total ambiguous hits: 1332.
 6954:                         - img [ref=e558]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:6973
+### e2e/widget-verification/playwright-error-contexts.md:6973
 ```
 6968:     - contentinfo "App toolbar" [ref=e575]:
 6969:       - navigation "App toolbar" [ref=e576]:
 6970:         - generic [ref=e577]:
 6971:           - button "Go home" [ref=e578]:
 6972:             - img [ref=e579]
-6973:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e581]': Projects › Module Verify module-mnaw0gfn › Work
+6973:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e581]': Projects › Widget Verify widget-mnaw0gfn › Work
 6974:         - button "Quick navigation" [ref=e583]:
 6975:           - img [ref=e584]
 6976:           - text: Nav
@@ -10994,7 +10994,7 @@ Total ambiguous hits: 1332.
 6978:         - button "Open quick add menu" [ref=e592]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7081
+### e2e/widget-verification/playwright-error-contexts.md:7081
 ```
 7076:                     - text: Table
 7077:                   - generic [ref=e136]:
@@ -11009,10 +11009,10 @@ Total ambiguous hits: 1332.
 7086:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7149
+### e2e/widget-verification/playwright-error-contexts.md:7149
 ```
 7144:                           - gridcell "high" [ref=e201]
-7145:                           - gridcell "High priority task due today for module coverage." [ref=e202]
+7145:                           - gridcell "High priority task due today for widget coverage." [ref=e202]
 7146:                     - generic [ref=e203]: 6 records
 7147:           - generic [ref=e204]:
 7148:             - heading "Workspace Doc" [level=3] [ref=e205]
@@ -11024,7 +11024,7 @@ Total ambiguous hits: 1332.
 7154:               - generic [ref=e210]: View
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7151
+### e2e/widget-verification/playwright-error-contexts.md:7151
 ```
 7146:                     - generic [ref=e203]: 6 records
 7147:           - generic [ref=e204]:
@@ -11039,14 +11039,14 @@ Total ambiguous hits: 1332.
 7156:                 - option "Select a view"
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7178
+### e2e/widget-verification/playwright-error-contexts.md:7178
 ```
 7173:     - contentinfo "App toolbar" [ref=e226]:
 7174:       - navigation "App toolbar" [ref=e227]:
 7175:         - generic [ref=e228]:
 7176:           - button "Go home" [ref=e229]:
 7177:             - img [ref=e230]
-7178:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e232]': Projects › Module Verify module-mnaw0gfn › Work
+7178:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e232]': Projects › Widget Verify widget-mnaw0gfn › Work
 7179:         - button "Quick navigation" [ref=e234]:
 7180:           - img [ref=e235]
 7181:           - text: Nav
@@ -11054,7 +11054,7 @@ Total ambiguous hits: 1332.
 7183:         - button "Open quick add menu" [ref=e243]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7286
+### e2e/widget-verification/playwright-error-contexts.md:7286
 ```
 7281:                     - text: Table
 7282:                   - generic [ref=e136]:
@@ -11069,10 +11069,10 @@ Total ambiguous hits: 1332.
 7291:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7354
+### e2e/widget-verification/playwright-error-contexts.md:7354
 ```
 7349:                           - gridcell "high" [ref=e201]
-7350:                           - gridcell "High priority task due today for module coverage." [ref=e202]
+7350:                           - gridcell "High priority task due today for widget coverage." [ref=e202]
 7351:                     - generic [ref=e203]: 6 records
 7352:           - generic [ref=e204]:
 7353:             - heading "Workspace Doc" [level=3] [ref=e205]
@@ -11084,7 +11084,7 @@ Total ambiguous hits: 1332.
 7359:               - generic [ref=e210]: View
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7356
+### e2e/widget-verification/playwright-error-contexts.md:7356
 ```
 7351:                     - generic [ref=e203]: 6 records
 7352:           - generic [ref=e204]:
@@ -11099,14 +11099,14 @@ Total ambiguous hits: 1332.
 7361:                 - option "Select a view"
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7383
+### e2e/widget-verification/playwright-error-contexts.md:7383
 ```
 7378:     - contentinfo "App toolbar" [ref=e226]:
 7379:       - navigation "App toolbar" [ref=e227]:
 7380:         - generic [ref=e228]:
 7381:           - button "Go home" [ref=e229]:
 7382:             - img [ref=e230]
-7383:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e232]': Projects › Module Verify module-mnaw0gfn › Work
+7383:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e232]': Projects › Widget Verify widget-mnaw0gfn › Work
 7384:         - button "Quick navigation" [ref=e234]:
 7385:           - img [ref=e235]
 7386:           - text: Nav
@@ -11114,7 +11114,7 @@ Total ambiguous hits: 1332.
 7388:         - button "Open quick add menu" [ref=e243]:
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7491
+### e2e/widget-verification/playwright-error-contexts.md:7491
 ```
 7486:                     - text: Table
 7487:                   - generic [ref=e136]:
@@ -11129,10 +11129,10 @@ Total ambiguous hits: 1332.
 7496:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7559
+### e2e/widget-verification/playwright-error-contexts.md:7559
 ```
 7554:                           - gridcell "high" [ref=e201]
-7555:                           - gridcell "High priority task due today for module coverage." [ref=e202]
+7555:                           - gridcell "High priority task due today for widget coverage." [ref=e202]
 7556:                     - generic [ref=e203]: 6 records
 7557:           - generic [ref=e204]:
 7558:             - heading "Workspace Doc" [level=3] [ref=e205]
@@ -11144,7 +11144,7 @@ Total ambiguous hits: 1332.
 7564:               - generic [ref=e210]: View
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7561
+### e2e/widget-verification/playwright-error-contexts.md:7561
 ```
 7556:                     - generic [ref=e203]: 6 records
 7557:           - generic [ref=e204]:
@@ -11159,14 +11159,14 @@ Total ambiguous hits: 1332.
 7566:                 - option "Select a view"
 ```
 
-### e2e/module-verification/playwright-error-contexts.md:7588
+### e2e/widget-verification/playwright-error-contexts.md:7588
 ```
 7583:     - contentinfo "App toolbar" [ref=e226]:
 7584:       - navigation "App toolbar" [ref=e227]:
 7585:         - generic [ref=e228]:
 7586:           - button "Go home" [ref=e229]:
 7587:             - img [ref=e230]
-7588:           - 'generic "Current location: Projects › Module Verify module-mnaw0gfn › Work" [ref=e232]': Projects › Module Verify module-mnaw0gfn › Work
+7588:           - 'generic "Current location: Projects › Widget Verify widget-mnaw0gfn › Work" [ref=e232]': Projects › Widget Verify widget-mnaw0gfn › Work
 7589:         - button "Quick navigation" [ref=e234]:
 7590:           - img [ref=e235]
 7591:           - text: Nav
@@ -11174,7 +11174,7 @@ Total ambiguous hits: 1332.
 7593:         - button "Open quick add menu" [ref=e243]:
 ```
 
-### e2e/module-verification/playwright.config.ts:25
+### e2e/widget-verification/playwright.config.ts:25
 ```
   20:     storageState: '../../.playwright/owner-storage-state.json',
   21:     trace: 'off',
@@ -11189,14 +11189,14 @@ Total ambiguous hits: 1332.
   30:       },
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:153
+### e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-16042-creenshots-isolated-tasks-L-desktop/error-context.md:153
 ```
  148:     - contentinfo "App toolbar" [ref=e201]:
  149:       - navigation "App toolbar" [ref=e202]:
  150:         - generic [ref=e203]:
  151:           - button "Go home" [ref=e204]:
  152:             - img [ref=e205]
- 153:           - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e207]': Projects › Module Verify module-mnazqph7 › Work
+ 153:           - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e207]': Projects › Widget Verify widget-mnazqph7 › Work
  154:         - button "Quick navigation" [ref=e209]:
  155:           - img [ref=e210]
  156:           - text: Nav
@@ -11204,7 +11204,7 @@ Total ambiguous hits: 1332.
  158:         - button "Open quick add menu" [ref=e218]:
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:88
+### e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:88
 ```
   83:                     - text: Table
   84:                   - generic [ref=e136]:
@@ -11219,14 +11219,14 @@ Total ambiguous hits: 1332.
   93:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:162
+### e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-22a7f-creenshots-isolated-table-L-desktop/error-context.md:162
 ```
  157:     - contentinfo "App toolbar" [ref=e208]:
  158:       - navigation "App toolbar" [ref=e209]:
  159:         - generic [ref=e210]:
  160:           - button "Go home" [ref=e211]:
  161:             - img [ref=e212]
- 162:           - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e214]': Projects › Module Verify module-mnazqph7 › Work
+ 162:           - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e214]': Projects › Widget Verify widget-mnazqph7 › Work
  163:         - button "Quick navigation" [ref=e216]:
  164:           - img [ref=e217]
  165:           - text: Nav
@@ -11234,14 +11234,14 @@ Total ambiguous hits: 1332.
  167:         - button "Open quick add menu" [ref=e225]:
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:115
+### e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-46ba3-creenshots-isolated-tasks-S-desktop/error-context.md:115
 ```
  110:     - contentinfo "App toolbar" [ref=e158]:
  111:       - navigation "App toolbar" [ref=e159]:
  112:         - generic [ref=e160]:
  113:           - button "Go home" [ref=e161]:
  114:             - img [ref=e162]
- 115:           - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e164]': Projects › Module Verify module-mnazqph7 › Work
+ 115:           - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e164]': Projects › Widget Verify widget-mnazqph7 › Work
  116:         - button "Quick navigation" [ref=e166]:
  117:           - img [ref=e167]
  118:           - text: Nav
@@ -11249,7 +11249,7 @@ Total ambiguous hits: 1332.
  120:         - button "Open quick add menu" [ref=e175]:
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:88
+### e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:88
 ```
   83:                     - text: Table
   84:                   - generic [ref=e136]:
@@ -11264,14 +11264,14 @@ Total ambiguous hits: 1332.
   93:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:162
+### e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-4fc10-creenshots-isolated-table-M-desktop/error-context.md:162
 ```
  157:     - contentinfo "App toolbar" [ref=e208]:
  158:       - navigation "App toolbar" [ref=e209]:
  159:         - generic [ref=e210]:
  160:           - button "Go home" [ref=e211]:
  161:             - img [ref=e212]
- 162:           - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e214]': Projects › Module Verify module-mnazqph7 › Work
+ 162:           - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e214]': Projects › Widget Verify widget-mnazqph7 › Work
  163:         - button "Quick navigation" [ref=e216]:
  164:           - img [ref=e217]
  165:           - text: Nav
@@ -11279,7 +11279,7 @@ Total ambiguous hits: 1332.
  167:         - button "Open quick add menu" [ref=e225]:
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:88
+### e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:88
 ```
   83:                     - text: Table
   84:                   - generic [ref=e136]:
@@ -11294,14 +11294,14 @@ Total ambiguous hits: 1332.
   93:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:162
+### e2e/widget-verification/screenshots/verify-widgets-Part-1-—-Is-98c31-creenshots-isolated-table-S-desktop/error-context.md:162
 ```
  157:     - contentinfo "App toolbar" [ref=e208]:
  158:       - navigation "App toolbar" [ref=e209]:
  159:         - generic [ref=e210]:
  160:           - button "Go home" [ref=e211]:
  161:             - img [ref=e212]
- 162:           - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e214]': Projects › Module Verify module-mnazqph7 › Work
+ 162:           - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e214]': Projects › Widget Verify widget-mnazqph7 › Work
  163:         - button "Quick navigation" [ref=e216]:
  164:           - img [ref=e217]
  165:           - text: Nav
@@ -11309,7 +11309,7 @@ Total ambiguous hits: 1332.
  167:         - button "Open quick add menu" [ref=e225]:
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:89
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:89
 ```
   84:                       - text: Table
   85:                     - generic [ref=e136]:
@@ -11324,7 +11324,7 @@ Total ambiguous hits: 1332.
   94:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:164
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:164
 ```
  159:                       - text: Kanban
  160:                     - generic [ref=e212]:
@@ -11339,7 +11339,7 @@ Total ambiguous hits: 1332.
  169:                         - img [ref=e220]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:282
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:282
 ```
  277:                       - text: Calendar
  278:                     - generic [ref=e306]:
@@ -11354,14 +11354,14 @@ Total ambiguous hits: 1332.
  287:                         - img [ref=e314]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:448
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-81be9-e-Grid-Screenshots-grid-3up-desktop/error-context.md:448
 ```
  443:     - contentinfo "App toolbar" [ref=e473]:
  444:       - navigation "App toolbar" [ref=e474]:
  445:         - generic [ref=e475]:
  446:           - button "Go home" [ref=e476]:
  447:             - img [ref=e477]
- 448:           - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e479]': Projects › Module Verify module-mnazqph7 › Work
+ 448:           - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e479]': Projects › Widget Verify widget-mnazqph7 › Work
  449:         - button "Quick navigation" [ref=e481]:
  450:           - img [ref=e482]
  451:           - text: Nav
@@ -11369,7 +11369,7 @@ Total ambiguous hits: 1332.
  453:         - button "Open quick add menu" [ref=e490]:
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:89
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:89
 ```
   84:                       - text: Table
   85:                     - generic [ref=e136]:
@@ -11384,7 +11384,7 @@ Total ambiguous hits: 1332.
   94:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:229
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:229
 ```
  224:                       - text: Calendar
  225:                     - generic [ref=e286]:
@@ -11399,14 +11399,14 @@ Total ambiguous hits: 1332.
  234:                         - img [ref=e294]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:419
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-a8360-creenshots-grid-mixed-tiers-desktop/error-context.md:419
 ```
  414:     - contentinfo "App toolbar" [ref=e481]:
  415:       - navigation "App toolbar" [ref=e482]:
  416:         - generic [ref=e483]:
  417:           - button "Go home" [ref=e484]:
  418:             - img [ref=e485]
- 419:           - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e487]': Projects › Module Verify module-mnazqph7 › Work
+ 419:           - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e487]': Projects › Widget Verify widget-mnazqph7 › Work
  420:         - button "Quick navigation" [ref=e489]:
  421:           - img [ref=e490]
  422:           - text: Nav
@@ -11414,7 +11414,7 @@ Total ambiguous hits: 1332.
  424:         - button "Open quick add menu" [ref=e498]:
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:89
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:89
 ```
   84:                       - text: Table
   85:                     - generic [ref=e136]:
@@ -11429,7 +11429,7 @@ Total ambiguous hits: 1332.
   94:                         - img [ref=e144]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:164
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:164
 ```
  159:                       - text: Kanban
  160:                     - generic [ref=e212]:
@@ -11444,7 +11444,7 @@ Total ambiguous hits: 1332.
  169:                         - img [ref=e220]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:282
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:282
 ```
  277:                       - text: Calendar
  278:                     - generic [ref=e306]:
@@ -11459,7 +11459,7 @@ Total ambiguous hits: 1332.
  287:                         - img [ref=e314]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:522
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:522
 ```
  517:                       - text: Files
  518:                     - generic [ref=e553]:
@@ -11474,14 +11474,14 @@ Total ambiguous hits: 1332.
  527:                         - img [ref=e561]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:546
+### e2e/widget-verification/screenshots/verify-widgets-Part-2-—-Mu-b46ca-e-Grid-Screenshots-grid-6up-desktop/error-context.md:546
 ```
  541:     - contentinfo "App toolbar" [ref=e578]:
  542:       - navigation "App toolbar" [ref=e579]:
  543:         - generic [ref=e580]:
  544:           - button "Go home" [ref=e581]:
  545:             - img [ref=e582]
- 546:           - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e584]': Projects › Module Verify module-mnazqph7 › Work
+ 546:           - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e584]': Projects › Widget Verify widget-mnazqph7 › Work
  547:         - button "Quick navigation" [ref=e586]:
  548:           - img [ref=e587]
  549:           - text: Nav
@@ -11489,7 +11489,7 @@ Total ambiguous hits: 1332.
  551:         - button "Open quick add menu" [ref=e595]:
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:88
+### e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:88
 ```
   83:                     - text: Table
   84:                   - generic [ref=e136]:
@@ -11504,10 +11504,10 @@ Total ambiguous hits: 1332.
   93:                       - img [ref=e144]
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:156
+### e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:156
 ```
  151:                           - gridcell "high" [ref=e202]
- 152:                           - gridcell "High priority task due today for module coverage." [ref=e203]
+ 152:                           - gridcell "High priority task due today for widget coverage." [ref=e203]
  153:                     - generic [ref=e204]: 6 records
  154:           - generic [ref=e205]:
  155:             - heading "Workspace Doc" [level=3] [ref=e206]
@@ -11519,7 +11519,7 @@ Total ambiguous hits: 1332.
  161:               - generic [ref=e211]: View
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:158
+### e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:158
 ```
  153:                     - generic [ref=e204]: 6 records
  154:           - generic [ref=e205]:
@@ -11534,14 +11534,14 @@ Total ambiguous hits: 1332.
  163:                 - option "Select a view"
 ```
 
-### e2e/module-verification/screenshots/verify-modules-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:185
+### e2e/widget-verification/screenshots/verify-widgets-Part-3-—-Re-7572c-rification-inspector-retest-desktop/error-context.md:185
 ```
  180:     - contentinfo "App toolbar" [ref=e227]:
  181:       - navigation "App toolbar" [ref=e228]:
  182:         - generic [ref=e229]:
  183:           - button "Go home" [ref=e230]:
  184:             - img [ref=e231]
- 185:           - 'generic "Current location: Projects › Module Verify module-mnazqph7 › Work" [ref=e233]': Projects › Module Verify module-mnazqph7 › Work
+ 185:           - 'generic "Current location: Projects › Widget Verify widget-mnazqph7 › Work" [ref=e233]': Projects › Widget Verify widget-mnazqph7 › Work
  186:         - button "Quick navigation" [ref=e235]:
  187:           - img [ref=e236]
  188:           - text: Nav
@@ -11549,7 +11549,7 @@ Total ambiguous hits: 1332.
  190:         - button "Open quick add menu" [ref=e244]:
 ```
 
-### e2e/module-verification/seed.mjs:114
+### e2e/widget-verification/seed.mjs:114
 ```
  109:   const data = await hubRequest(baseUrl, accessToken, '/api/hub/home?tasks_limit=20&events_limit=20', { method: 'GET' });
  110:   return data.home;
@@ -11564,7 +11564,7 @@ Total ambiguous hits: 1332.
  119: };
 ```
 
-### e2e/module-verification/seed.mjs:118
+### e2e/widget-verification/seed.mjs:118
 ```
  113: const createProject = async (baseUrl, accessToken, name) => {
  114:   const data = await hubRequest(baseUrl, accessToken, '/api/hub/projects', {
@@ -11579,7 +11579,7 @@ Total ambiguous hits: 1332.
  123:     method: 'POST',
 ```
 
-### e2e/module-verification/seed.mjs:121
+### e2e/widget-verification/seed.mjs:121
 ```
  116:     body: JSON.stringify({ name }),
  117:   });
@@ -11594,7 +11594,7 @@ Total ambiguous hits: 1332.
  126: };
 ```
 
-### e2e/module-verification/seed.mjs:122
+### e2e/widget-verification/seed.mjs:122
 ```
  117:   });
  118:   return data.project;
@@ -11609,7 +11609,7 @@ Total ambiguous hits: 1332.
  127: 
 ```
 
-### e2e/module-verification/seed.mjs:135
+### e2e/widget-verification/seed.mjs:135
 ```
  130:     method: 'POST',
  131:     body: JSON.stringify(payload),
@@ -11624,7 +11624,7 @@ Total ambiguous hits: 1332.
  140: };
 ```
 
-### e2e/module-verification/seed.mjs:136
+### e2e/widget-verification/seed.mjs:136
 ```
  131:     body: JSON.stringify(payload),
  132:   });
@@ -11639,7 +11639,7 @@ Total ambiguous hits: 1332.
  141: 
 ```
 
-### e2e/module-verification/seed.mjs:142
+### e2e/widget-verification/seed.mjs:142
 ```
  137:     method: 'POST',
  138:     body: JSON.stringify(payload),
@@ -11654,7 +11654,7 @@ Total ambiguous hits: 1332.
  147:   return data.pane;
 ```
 
-### e2e/module-verification/seed.mjs:150
+### e2e/widget-verification/seed.mjs:150
 ```
  145:     body: JSON.stringify(payload),
  146:   });
@@ -11669,7 +11669,7 @@ Total ambiguous hits: 1332.
  155: };
 ```
 
-### e2e/module-verification/seed.mjs:151
+### e2e/widget-verification/seed.mjs:151
 ```
  146:   });
  147:   return data.pane;
@@ -11684,7 +11684,7 @@ Total ambiguous hits: 1332.
  156: 
 ```
 
-### e2e/module-verification/seed.mjs:157
+### e2e/widget-verification/seed.mjs:157
 ```
  152:     method: 'POST',
  153:     body: JSON.stringify(payload),
@@ -11699,7 +11699,7 @@ Total ambiguous hits: 1332.
  162: };
 ```
 
-### e2e/module-verification/seed.mjs:158
+### e2e/widget-verification/seed.mjs:158
 ```
  153:     body: JSON.stringify(payload),
  154:   });
@@ -11714,29 +11714,29 @@ Total ambiguous hits: 1332.
  163: 
 ```
 
-### e2e/module-verification/seed.mjs:265
+### e2e/widget-verification/seed.mjs:265
 ```
  260:   const { tokenA, tokenB } = await mintTokensForSeed();
  261:   const ownerSession = await loadSessionSummary(apiBaseUrl, tokenA);
  262: 
- 263:   const runId = `module-${Date.now().toString(36).slice(-8)}`;
+ 263:   const runId = `widget-${Date.now().toString(36).slice(-8)}`;
  264: 
- 265:   const project = await createProject(apiBaseUrl, tokenA, `Module Verify ${runId}`);
- 266:   const collection = await createCollection(apiBaseUrl, tokenA, project.project_id, `Module Verify Records ${runId}`);
+ 265:   const project = await createProject(apiBaseUrl, tokenA, `Widget Verify ${runId}`);
+ 266:   const collection = await createCollection(apiBaseUrl, tokenA, project.project_id, `Widget Verify Records ${runId}`);
  267: 
  268:   const statusField = await createField(apiBaseUrl, tokenA, collection.collection_id, {
  269:     name: 'Status',
  270:     type: 'select',
 ```
 
-### e2e/module-verification/seed.mjs:266
+### e2e/widget-verification/seed.mjs:266
 ```
  261:   const ownerSession = await loadSessionSummary(apiBaseUrl, tokenA);
  262: 
- 263:   const runId = `module-${Date.now().toString(36).slice(-8)}`;
+ 263:   const runId = `widget-${Date.now().toString(36).slice(-8)}`;
  264: 
- 265:   const project = await createProject(apiBaseUrl, tokenA, `Module Verify ${runId}`);
- 266:   const collection = await createCollection(apiBaseUrl, tokenA, project.project_id, `Module Verify Records ${runId}`);
+ 265:   const project = await createProject(apiBaseUrl, tokenA, `Widget Verify ${runId}`);
+ 266:   const collection = await createCollection(apiBaseUrl, tokenA, project.project_id, `Widget Verify Records ${runId}`);
  267: 
  268:   const statusField = await createField(apiBaseUrl, tokenA, collection.collection_id, {
  269:     name: 'Status',
@@ -11744,7 +11744,7 @@ Total ambiguous hits: 1332.
  271:     sort_order: 1,
 ```
 
-### e2e/module-verification/seed.mjs:289
+### e2e/widget-verification/seed.mjs:289
 ```
  284:     type: 'text',
  285:     sort_order: 3,
@@ -11754,12 +11754,12 @@ Total ambiguous hits: 1332.
  289:   const tableView = await createView(apiBaseUrl, tokenA, project.project_id, {
  290:     collection_id: collection.collection_id,
  291:     type: 'table',
- 292:     name: `Module Verify Table ${runId}`,
+ 292:     name: `Widget Verify Table ${runId}`,
  293:     config: {
  294:       visible_field_ids: [statusField.field_id, priorityField.field_id, notesField.field_id],
 ```
 
-### e2e/module-verification/seed.mjs:298
+### e2e/widget-verification/seed.mjs:298
 ```
  293:     config: {
  294:       visible_field_ids: [statusField.field_id, priorityField.field_id, notesField.field_id],
@@ -11769,27 +11769,27 @@ Total ambiguous hits: 1332.
  298:   const kanbanView = await createView(apiBaseUrl, tokenA, project.project_id, {
  299:     collection_id: collection.collection_id,
  300:     type: 'kanban',
- 301:     name: `Module Verify Kanban ${runId}`,
+ 301:     name: `Widget Verify Kanban ${runId}`,
  302:     config: {
  303:       group_by_field_id: statusField.field_id,
 ```
 
-### e2e/module-verification/seed.mjs:315
+### e2e/widget-verification/seed.mjs:315
 ```
  310:     const bindingViewId = requiresView === 'table' ? tableView.view_id : requiresView === 'kanban' ? kanbanView.view_id : null;
  311:     return {
- 312:       module_instance_id: `${moduleType}-${sizeTier}-${idSuffix}`,
- 313:       module_type: moduleType,
+ 312:       widget_instance_id: `${widgetType}-${sizeTier}-${idSuffix}`,
+ 313:       widget_type: widgetType,
  314:       size_tier: sizeTier,
  315:       lens: 'project',
  316:       ...(bindingViewId ? { binding: { view_id: bindingViewId } } : {}),
  317:     };
  318:   };
  319: 
- 320:   const createModulePane = async (name, modules, workspaceEnabled) => {
+ 320:   const createWidgetPane = async (name, widgets, workspaceEnabled) => {
 ```
 
-### e2e/module-verification/seed.mjs:433
+### e2e/widget-verification/seed.mjs:433
 ```
  428:       completedAt: new Date(now.getTime() - 30 * 60 * 1000).toISOString(),
  429:     },
@@ -11804,13 +11804,13 @@ Total ambiguous hits: 1332.
  438:         [statusField.field_id]: record.status,
 ```
 
-### e2e/module-verification/seed.mjs:454
+### e2e/widget-verification/seed.mjs:454
 ```
  449:       assignment_user_ids: [ownerSession.userId],
  450:     });
  451:   }
  452: 
- 453:   const eventTitle = `Module Verify Event ${runId}`;
+ 453:   const eventTitle = `Widget Verify Event ${runId}`;
  454:   await createEventFromNlp(apiBaseUrl, tokenA, project.project_id, {
  455:     source_pane_id: sourcePaneId,
  456:     title: eventTitle,
@@ -11819,7 +11819,7 @@ Total ambiguous hits: 1332.
  459:     timezone: 'America/New_York',
 ```
 
-### e2e/module-verification/seed.mjs:469
+### e2e/widget-verification/seed.mjs:469
 ```
  464:   await writeAuthStateFiles(baseUrl, tokenA, tokenB);
  465: 
@@ -11834,7 +11834,7 @@ Total ambiguous hits: 1332.
  474:       email: ownerEmail || 'owner-user',
 ```
 
-### e2e/module-verification/seed.mjs:470
+### e2e/widget-verification/seed.mjs:470
 ```
  465: 
  466:   const fixture = {
@@ -11849,7 +11849,7 @@ Total ambiguous hits: 1332.
  475:       userId: ownerSession.userId,
 ```
 
-### e2e/module-verification/seed.mjs:471
+### e2e/widget-verification/seed.mjs:471
 ```
  466:   const fixture = {
  467:     baseUrl,
@@ -11864,11 +11864,11 @@ Total ambiguous hits: 1332.
  476:     },
 ```
 
-### e2e/module-verification/seed.ts:23
+### e2e/widget-verification/seed.ts:23
 ```
   18: import { mintTokensForAccounts, resolveLinkedTestAccounts } from '../utils/tokenMint';
   19: 
-  20: interface ModuleVerificationFixture {
+  20: interface WidgetVerificationFixture {
   21:   baseUrl: string;
   22:   apiBaseUrl: string;
   23:   project: {
@@ -11879,29 +11879,29 @@ Total ambiguous hits: 1332.
   28:     email: string;
 ```
 
-### e2e/module-verification/seed.ts:101
+### e2e/widget-verification/seed.ts:101
 ```
   96:   const { tokenA, tokenB } = await mintTokensForAccounts(linkedAccounts.accountA, linkedAccounts.accountB);
   97: 
   98:   const ownerSession = await loadSessionSummary(apiBaseUrl, tokenA);
-  99:   const runId = `module-${Date.now().toString(36).slice(-8)}`;
+  99:   const runId = `widget-${Date.now().toString(36).slice(-8)}`;
  100: 
- 101:   const project = await createProject(apiBaseUrl, tokenA, `Module Verify ${runId}`);
- 102:   const collection = await createCollection(apiBaseUrl, tokenA, project.project_id, `Module Verify Records ${runId}`);
+ 101:   const project = await createProject(apiBaseUrl, tokenA, `Widget Verify ${runId}`);
+ 102:   const collection = await createCollection(apiBaseUrl, tokenA, project.project_id, `Widget Verify Records ${runId}`);
  103: 
  104:   const statusField = await createField(apiBaseUrl, tokenA, collection.collection_id, {
  105:     name: 'Status',
  106:     type: 'select',
 ```
 
-### e2e/module-verification/seed.ts:102
+### e2e/widget-verification/seed.ts:102
 ```
   97: 
   98:   const ownerSession = await loadSessionSummary(apiBaseUrl, tokenA);
-  99:   const runId = `module-${Date.now().toString(36).slice(-8)}`;
+  99:   const runId = `widget-${Date.now().toString(36).slice(-8)}`;
  100: 
- 101:   const project = await createProject(apiBaseUrl, tokenA, `Module Verify ${runId}`);
- 102:   const collection = await createCollection(apiBaseUrl, tokenA, project.project_id, `Module Verify Records ${runId}`);
+ 101:   const project = await createProject(apiBaseUrl, tokenA, `Widget Verify ${runId}`);
+ 102:   const collection = await createCollection(apiBaseUrl, tokenA, project.project_id, `Widget Verify Records ${runId}`);
  103: 
  104:   const statusField = await createField(apiBaseUrl, tokenA, collection.collection_id, {
  105:     name: 'Status',
@@ -11909,7 +11909,7 @@ Total ambiguous hits: 1332.
  107:     sort_order: 1,
 ```
 
-### e2e/module-verification/seed.ts:125
+### e2e/widget-verification/seed.ts:125
 ```
  120:     type: 'text',
  121:     sort_order: 3,
@@ -11919,12 +11919,12 @@ Total ambiguous hits: 1332.
  125:   const tableView = await createView(apiBaseUrl, tokenA, project.project_id, {
  126:     collection_id: collection.collection_id,
  127:     type: 'table',
- 128:     name: `Module Verify Table ${runId}`,
+ 128:     name: `Widget Verify Table ${runId}`,
  129:     config: {
  130:       visible_field_ids: [statusField.field_id, priorityField.field_id, notesField.field_id],
 ```
 
-### e2e/module-verification/seed.ts:134
+### e2e/widget-verification/seed.ts:134
 ```
  129:     config: {
  130:       visible_field_ids: [statusField.field_id, priorityField.field_id, notesField.field_id],
@@ -11934,27 +11934,27 @@ Total ambiguous hits: 1332.
  134:   const kanbanView = await createView(apiBaseUrl, tokenA, project.project_id, {
  135:     collection_id: collection.collection_id,
  136:     type: 'kanban',
- 137:     name: `Module Verify Kanban ${runId}`,
+ 137:     name: `Widget Verify Kanban ${runId}`,
  138:     config: {
  139:       group_by_field_id: statusField.field_id,
 ```
 
-### e2e/module-verification/seed.ts:156
+### e2e/widget-verification/seed.ts:156
 ```
  151:     const bindingViewId = requiresView === 'table' ? tableView.view_id : requiresView === 'kanban' ? kanbanView.view_id : null;
  152:     return {
- 153:       module_instance_id: `${moduleType}-${sizeTier}-${idSuffix}`,
- 154:       module_type: moduleType,
+ 153:       widget_instance_id: `${widgetType}-${sizeTier}-${idSuffix}`,
+ 154:       widget_type: widgetType,
  155:       size_tier: sizeTier,
  156:       lens: 'project',
  157:       ...(bindingViewId ? { binding: { view_id: bindingViewId } } : {}),
  158:     };
  159:   };
  160: 
- 161:   const createModulePane = async (
+ 161:   const createWidgetPane = async (
 ```
 
-### e2e/module-verification/seed.ts:285
+### e2e/widget-verification/seed.ts:285
 ```
  280:       completedAt: new Date(now.getTime() - 30 * 60 * 1000).toISOString(),
  281:     },
@@ -11969,13 +11969,13 @@ Total ambiguous hits: 1332.
  290:         [statusField.field_id]: record.status,
 ```
 
-### e2e/module-verification/seed.ts:306
+### e2e/widget-verification/seed.ts:306
 ```
  301:       assignment_user_ids: [ownerSession.userId],
  302:     });
  303:   }
  304: 
- 305:   const eventTitle = `Module Verify Event ${runId}`;
+ 305:   const eventTitle = `Widget Verify Event ${runId}`;
  306:   await createEventFromNlp(apiBaseUrl, tokenA, project.project_id, {
  307:     source_pane_id: sourcePaneId,
  308:     title: eventTitle,
@@ -11984,11 +11984,11 @@ Total ambiguous hits: 1332.
  311:     timezone: 'America/New_York',
 ```
 
-### e2e/module-verification/seed.ts:321
+### e2e/widget-verification/seed.ts:321
 ```
  316:   await writeAuthStateFiles(baseUrl, tokenA, tokenB);
  317: 
- 318:   const fixture: ModuleVerificationFixture = {
+ 318:   const fixture: WidgetVerificationFixture = {
  319:     baseUrl,
  320:     apiBaseUrl,
  321:     project: {
@@ -11999,10 +11999,10 @@ Total ambiguous hits: 1332.
  326:       email: linkedAccounts.accountA.email,
 ```
 
-### e2e/module-verification/seed.ts:322
+### e2e/widget-verification/seed.ts:322
 ```
  317: 
- 318:   const fixture: ModuleVerificationFixture = {
+ 318:   const fixture: WidgetVerificationFixture = {
  319:     baseUrl,
  320:     apiBaseUrl,
  321:     project: {
@@ -12014,9 +12014,9 @@ Total ambiguous hits: 1332.
  327:       userId: ownerSession.userId,
 ```
 
-### e2e/module-verification/seed.ts:323
+### e2e/widget-verification/seed.ts:323
 ```
- 318:   const fixture: ModuleVerificationFixture = {
+ 318:   const fixture: WidgetVerificationFixture = {
  319:     baseUrl,
  320:     apiBaseUrl,
  321:     project: {
@@ -12029,7 +12029,7 @@ Total ambiguous hits: 1332.
  328:     },
 ```
 
-### e2e/module-verification/verify-modules.spec.mjs:121
+### e2e/widget-verification/verify-widgets.spec.mjs:121
 ```
  116:   const retryButton = page.getByRole('button', { name: /Retry sign-in/i });
  117:   const signInHeading = page.getByRole('heading', { name: /Sign in to your account/i });
@@ -12044,24 +12044,24 @@ Total ambiguous hits: 1332.
  126:     }
 ```
 
-### e2e/module-verification/verify-modules.spec.mjs:308
+### e2e/widget-verification/verify-widgets.spec.mjs:308
 ```
  303:     for (const tier of tierOrder) {
- 304:       test(`isolated ${moduleSlug} ${tier}`, async ({ page }, testInfo) => {
- 305:         const paneName = `${moduleSlug}-${tier}`;
+ 304:       test(`isolated ${widgetSlug} ${tier}`, async ({ page }, testInfo) => {
+ 305:         const paneName = `${widgetSlug}-${tier}`;
  306:         const paneId = fixture.panes[paneName];
  307:         expect(paneId, `Missing pane fixture for ${paneName}`).toBeTruthy();
- 308:         const screenshotName = `isolated-${moduleSlug}-${tier}-${testInfo.project.name}.png`;
+ 308:         const screenshotName = `isolated-${widgetSlug}-${tier}-${testInfo.project.name}.png`;
  309:         await runWithAlwaysScreenshot(page, screenshotName, async () => {
  310:           await navigateToPane(page, fixture.project.id, paneId);
- 311:           await assertIsolatedModuleRendered(page, moduleSlug, fixture);
+ 311:           await assertIsolatedWidgetRendered(page, widgetSlug, fixture);
  312:         });
  313:       });
 ```
 
-### e2e/module-verification/verify-modules.spec.mjs:323
+### e2e/widget-verification/verify-widgets.spec.mjs:323
 ```
- 318: test.describe('Part 2 — Multi-Module Grid Screenshots', () => {
+ 318: test.describe('Part 2 — Multi-Widget Grid Screenshots', () => {
  319:   for (const combo of gridCombos) {
  320:     test(`grid ${combo.screenshotSlug}`, async ({ page }, testInfo) => {
  321:       const paneId = fixture.panes[combo.paneName];
@@ -12070,11 +12070,11 @@ Total ambiguous hits: 1332.
  324:       await runWithAlwaysScreenshot(page, screenshotName, async () => {
  325:         await navigateToPane(page, fixture.project.id, paneId);
  326: 
- 327:         const moduleCards = page.locator('[data-testid="module-card"]');
- 328:         await expect(moduleCards).toHaveCount(combo.expectedCount, { timeout: 15_000 });
+ 327:         const widgetCards = page.locator('[data-testid="widget-card"]');
+ 328:         await expect(widgetCards).toHaveCount(combo.expectedCount, { timeout: 15_000 });
 ```
 
-### e2e/module-verification/verify-modules.spec.mjs:342
+### e2e/widget-verification/verify-widgets.spec.mjs:342
 ```
  337: 
  338: test.describe('Part 3 — Record Inspector Re-verification', () => {
@@ -12085,17 +12085,17 @@ Total ambiguous hits: 1332.
  343:     await runWithAlwaysScreenshot(page, screenshotName, async () => {
  344:       await navigateToPane(page, fixture.project.id, paneId);
  345: 
- 346:       const tableModule = page.getByLabel('Table module').first();
- 347:       await expect(tableModule).toBeVisible();
+ 346:       const tableWidget = page.getByLabel('Table widget').first();
+ 347:       await expect(tableWidget).toBeVisible();
 ```
 
-### e2e/module-verification/verify-modules.spec.ts:10
+### e2e/widget-verification/verify-widgets.spec.ts:10
 ```
    5: import { fileURLToPath } from 'node:url';
    6: import { promisify } from 'node:util';
    7: import { expect, test, type Page } from '@playwright/test';
    8: 
-   9: interface ModuleVerificationFixture {
+   9: interface WidgetVerificationFixture {
   10:   project: {
   11:     id: string;
   12:     name: string;
@@ -12104,7 +12104,7 @@ Total ambiguous hits: 1332.
   15:   recordTitles: string[];
 ```
 
-### e2e/module-verification/verify-modules.spec.ts:133
+### e2e/widget-verification/verify-widgets.spec.ts:133
 ```
  128:   const retryButton = page.getByRole('button', { name: /Retry sign-in/i });
  129:   const signInHeading = page.getByRole('heading', { name: /Sign in to your account/i });
@@ -12119,24 +12119,24 @@ Total ambiguous hits: 1332.
  138:     }
 ```
 
-### e2e/module-verification/verify-modules.spec.ts:329
+### e2e/widget-verification/verify-widgets.spec.ts:329
 ```
  324:     for (const tier of tierOrder) {
- 325:       test(`isolated ${moduleSlug} ${tier}`, async ({ page }, testInfo) => {
- 326:         const paneName = `${moduleSlug}-${tier}`;
+ 325:       test(`isolated ${widgetSlug} ${tier}`, async ({ page }, testInfo) => {
+ 326:         const paneName = `${widgetSlug}-${tier}`;
  327:         const paneId = fixture.panes[paneName];
  328:         expect(paneId, `Missing pane fixture for ${paneName}`).toBeTruthy();
- 329:         const screenshotName = `isolated-${moduleSlug}-${tier}-${testInfo.project.name}.png`;
+ 329:         const screenshotName = `isolated-${widgetSlug}-${tier}-${testInfo.project.name}.png`;
  330:         await runWithAlwaysScreenshot(page, screenshotName, async () => {
  331:           await navigateToPane(page, fixture.project.id, paneId);
- 332:           await assertIsolatedModuleRendered(page, moduleSlug, fixture);
+ 332:           await assertIsolatedWidgetRendered(page, widgetSlug, fixture);
  333:         });
  334:       });
 ```
 
-### e2e/module-verification/verify-modules.spec.ts:344
+### e2e/widget-verification/verify-widgets.spec.ts:344
 ```
- 339: test.describe('Part 2 — Multi-Module Grid Screenshots', () => {
+ 339: test.describe('Part 2 — Multi-Widget Grid Screenshots', () => {
  340:   for (const combo of gridCombos) {
  341:     test(`grid ${combo.screenshotSlug}`, async ({ page }, testInfo) => {
  342:       const paneId = fixture.panes[combo.paneName];
@@ -12145,11 +12145,11 @@ Total ambiguous hits: 1332.
  345:       await runWithAlwaysScreenshot(page, screenshotName, async () => {
  346:         await navigateToPane(page, fixture.project.id, paneId);
  347: 
- 348:         const moduleCards = page.locator('[data-testid="module-card"]');
- 349:         await expect(moduleCards).toHaveCount(combo.expectedCount, { timeout: 15_000 });
+ 348:         const widgetCards = page.locator('[data-testid="widget-card"]');
+ 349:         await expect(widgetCards).toHaveCount(combo.expectedCount, { timeout: 15_000 });
 ```
 
-### e2e/module-verification/verify-modules.spec.ts:363
+### e2e/widget-verification/verify-widgets.spec.ts:363
 ```
  358: 
  359: test.describe('Part 3 — Record Inspector Re-verification', () => {
@@ -12160,8 +12160,8 @@ Total ambiguous hits: 1332.
  364:     await runWithAlwaysScreenshot(page, screenshotName, async () => {
  365:       await navigateToPane(page, fixture.project.id, paneId);
  366: 
- 367:       const tableModule = page.getByLabel('Table module').first();
- 368:       await expect(tableModule).toBeVisible();
+ 367:       const tableWidget = page.getByLabel('Table widget').first();
+ 368:       await expect(tableWidget).toBeVisible();
 ```
 
 ### e2e/playwright.config.ts:19
@@ -12488,31 +12488,31 @@ Total ambiguous hits: 1332.
  195:     name: `Verify Main Pane ${runId}`,
  196:     member_user_ids: [],
  197:     layout_config: {
- 198:       modules_enabled: true,
+ 198:       widgets_enabled: true,
  199:       workspace_enabled: true,
 ```
 
 ### e2e/project-space-workspace/seed.ts:205
 ```
- 200:       modules: [
+ 200:       widgets: [
  201:         {
- 202:           module_instance_id: `table-${runId}`,
- 203:           module_type: 'table',
+ 202:           widget_instance_id: `table-${runId}`,
+ 203:           widget_type: 'table',
  204:           size_tier: 'L',
  205:           lens: 'project',
  206:           binding: { view_id: tableView.view_id },
  207:         },
  208:         {
- 209:           module_instance_id: `kanban-${runId}`,
- 210:           module_type: 'kanban',
+ 209:           widget_instance_id: `kanban-${runId}`,
+ 210:           widget_type: 'kanban',
 ```
 
 ### e2e/project-space-workspace/seed.ts:212
 ```
  207:         },
  208:         {
- 209:           module_instance_id: `kanban-${runId}`,
- 210:           module_type: 'kanban',
+ 209:           widget_instance_id: `kanban-${runId}`,
+ 210:           widget_type: 'kanban',
  211:           size_tier: 'L',
  212:           lens: 'project',
  213:           binding: { view_id: kanbanView.view_id },
@@ -12533,16 +12533,16 @@ Total ambiguous hits: 1332.
  220:     name: `Verify Private Pane ${runId}`,
  221:     member_user_ids: [],
  222:     layout_config: {
- 223:       modules_enabled: true,
+ 223:       widgets_enabled: true,
  224:       workspace_enabled: true,
 ```
 
 ### e2e/project-space-workspace/seed.ts:230
 ```
- 225:       modules: [
+ 225:       widgets: [
  226:         {
- 227:           module_instance_id: `table-private-${runId}`,
- 228:           module_type: 'table',
+ 227:           widget_instance_id: `table-private-${runId}`,
+ 228:           widget_type: 'table',
  229:           size_tier: 'M',
  230:           lens: 'project',
  231:           binding: { view_id: tableView.view_id },
@@ -12864,7 +12864,7 @@ Total ambiguous hits: 1332.
   77:     await expect(page.getByRole('tab', { name: 'Work' })).toBeVisible();
   78: };
   79: const openRecordFromTable = async (page) => {
-  80:     const tableModule = page.getByLabel('Table module').first();
+  80:     const tableWidget = page.getByLabel('Table widget').first();
 ```
 
 ### e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:76
@@ -12878,8 +12878,8 @@ Total ambiguous hits: 1332.
   77:     await expect(page.getByRole('tab', { name: 'Work' })).toBeVisible();
   78: };
   79: const openRecordFromTable = async (page) => {
-  80:     const tableModule = page.getByLabel('Table module').first();
-  81:     await expect(tableModule).toBeVisible();
+  80:     const tableWidget = page.getByLabel('Table widget').first();
+  81:     await expect(tableWidget).toBeVisible();
 ```
 
 ### e2e/project-verification/.tmp-transpile/verify-project-space.spec.js:95
@@ -13506,52 +13506,52 @@ Total ambiguous hits: 1332.
  406:     name: 'Verify Main Pane',
  407:     member_user_ids: [],
  408:     layout_config: {
- 409:       modules_enabled: true,
+ 409:       widgets_enabled: true,
  410:       workspace_enabled: true,
 ```
 
 ### e2e/project-verification/seed.ts:416
 ```
- 411:       modules: [
+ 411:       widgets: [
  412:         {
- 413:           module_instance_id: `table-${runId}`,
- 414:           module_type: 'table',
+ 413:           widget_instance_id: `table-${runId}`,
+ 414:           widget_type: 'table',
  415:           size_tier: 'L',
  416:           lens: 'project',
  417:           binding: { view_id: tableView.view_id },
  418:         },
  419:         {
- 420:           module_instance_id: `kanban-${runId}`,
- 421:           module_type: 'kanban',
+ 420:           widget_instance_id: `kanban-${runId}`,
+ 421:           widget_type: 'kanban',
 ```
 
 ### e2e/project-verification/seed.ts:423
 ```
  418:         },
  419:         {
- 420:           module_instance_id: `kanban-${runId}`,
- 421:           module_type: 'kanban',
+ 420:           widget_instance_id: `kanban-${runId}`,
+ 421:           widget_type: 'kanban',
  422:           size_tier: 'L',
  423:           lens: 'project',
  424:           binding: { view_id: kanbanView.view_id },
  425:         },
  426:         {
- 427:           module_instance_id: `calendar-${runId}`,
- 428:           module_type: 'calendar',
+ 427:           widget_instance_id: `calendar-${runId}`,
+ 428:           widget_type: 'calendar',
 ```
 
 ### e2e/project-verification/seed.ts:430
 ```
  425:         },
  426:         {
- 427:           module_instance_id: `calendar-${runId}`,
- 428:           module_type: 'calendar',
+ 427:           widget_instance_id: `calendar-${runId}`,
+ 428:           widget_type: 'calendar',
  429:           size_tier: 'M',
  430:           lens: 'project',
  431:         },
  432:         {
- 433:           module_instance_id: `tasks-${runId}`,
- 434:           module_type: 'tasks',
+ 433:           widget_instance_id: `tasks-${runId}`,
+ 434:           widget_type: 'tasks',
  435:           size_tier: 'M',
 ```
 
@@ -13559,14 +13559,14 @@ Total ambiguous hits: 1332.
 ```
  431:         },
  432:         {
- 433:           module_instance_id: `tasks-${runId}`,
- 434:           module_type: 'tasks',
+ 433:           widget_instance_id: `tasks-${runId}`,
+ 434:           widget_type: 'tasks',
  435:           size_tier: 'M',
  436:           lens: 'project',
  437:         },
  438:         {
- 439:           module_instance_id: `reminders-${runId}`,
- 440:           module_type: 'reminders',
+ 439:           widget_instance_id: `reminders-${runId}`,
+ 440:           widget_type: 'reminders',
  441:           size_tier: 'S',
 ```
 
@@ -13574,14 +13574,14 @@ Total ambiguous hits: 1332.
 ```
  437:         },
  438:         {
- 439:           module_instance_id: `reminders-${runId}`,
- 440:           module_type: 'reminders',
+ 439:           widget_instance_id: `reminders-${runId}`,
+ 440:           widget_type: 'reminders',
  441:           size_tier: 'S',
  442:           lens: 'project',
  443:         },
  444:         {
- 445:           module_instance_id: `files-${runId}`,
- 446:           module_type: 'files',
+ 445:           widget_instance_id: `files-${runId}`,
+ 446:           widget_type: 'files',
  447:           size_tier: 'M',
 ```
 
@@ -13589,14 +13589,14 @@ Total ambiguous hits: 1332.
 ```
  443:         },
  444:         {
- 445:           module_instance_id: `files-${runId}`,
- 446:           module_type: 'files',
+ 445:           widget_instance_id: `files-${runId}`,
+ 446:           widget_type: 'files',
  447:           size_tier: 'M',
  448:           lens: 'project',
  449:         },
  450:         {
- 451:           module_instance_id: `quick-thoughts-${runId}`,
- 452:           module_type: 'quick_thoughts',
+ 451:           widget_instance_id: `quick-thoughts-${runId}`,
+ 452:           widget_type: 'quick_thoughts',
  453:           size_tier: 'S',
 ```
 
@@ -13604,8 +13604,8 @@ Total ambiguous hits: 1332.
 ```
  449:         },
  450:         {
- 451:           module_instance_id: `quick-thoughts-${runId}`,
- 452:           module_type: 'quick_thoughts',
+ 451:           widget_instance_id: `quick-thoughts-${runId}`,
+ 452:           widget_type: 'quick_thoughts',
  453:           size_tier: 'S',
  454:           lens: 'project',
  455:         },
@@ -13626,31 +13626,31 @@ Total ambiguous hits: 1332.
  461:     name: 'Verify Private Pane',
  462:     member_user_ids: [],
  463:     layout_config: {
- 464:       modules_enabled: true,
+ 464:       widgets_enabled: true,
  465:       workspace_enabled: true,
 ```
 
 ### e2e/project-verification/seed.ts:471
 ```
- 466:       modules: [
+ 466:       widgets: [
  467:         {
- 468:           module_instance_id: `private-table-${runId}`,
- 469:           module_type: 'table',
+ 468:           widget_instance_id: `private-table-${runId}`,
+ 469:           widget_type: 'table',
  470:           size_tier: 'M',
  471:           lens: 'project',
  472:           binding: { view_id: tableView.view_id },
  473:         },
  474:         {
- 475:           module_instance_id: `private-tasks-${runId}`,
- 476:           module_type: 'tasks',
+ 475:           widget_instance_id: `private-tasks-${runId}`,
+ 476:           widget_type: 'tasks',
 ```
 
 ### e2e/project-verification/seed.ts:478
 ```
  473:         },
  474:         {
- 475:           module_instance_id: `private-tasks-${runId}`,
- 476:           module_type: 'tasks',
+ 475:           widget_instance_id: `private-tasks-${runId}`,
+ 476:           widget_type: 'tasks',
  477:           size_tier: 'L',
  478:           lens: 'project',
  479:         },
@@ -13864,7 +13864,7 @@ Total ambiguous hits: 1332.
   77:     await expect(page.getByRole('tab', { name: 'Work' })).toBeVisible();
   78: };
   79: const openRecordFromTable = async (page) => {
-  80:     const tableModule = page.getByLabel('Table module').first();
+  80:     const tableWidget = page.getByLabel('Table widget').first();
 ```
 
 ### e2e/project-verification/verify-project-space.spec.js:76
@@ -13878,8 +13878,8 @@ Total ambiguous hits: 1332.
   77:     await expect(page.getByRole('tab', { name: 'Work' })).toBeVisible();
   78: };
   79: const openRecordFromTable = async (page) => {
-  80:     const tableModule = page.getByLabel('Table module').first();
-  81:     await expect(tableModule).toBeVisible();
+  80:     const tableWidget = page.getByLabel('Table widget').first();
+  81:     await expect(tableWidget).toBeVisible();
 ```
 
 ### e2e/project-verification/verify-project-space.spec.js:95
@@ -14479,7 +14479,7 @@ Total ambiguous hits: 1332.
  145: };
  146: 
  147: const openRecordFromTable = async (page: Page): Promise<void> => {
- 148:   const tableModule = page.getByLabel('Table module').first();
+ 148:   const tableWidget = page.getByLabel('Table widget').first();
 ```
 
 ### e2e/project-verification/verify-project-space.spec.ts:166
@@ -16174,15 +16174,15 @@ Total ambiguous hits: 1332.
   21:     name: 'Calendar Pane',
   22:     member_user_ids: [],
   23:     layout_config: {
-  24:       modules_enabled: true,
+  24:       widgets_enabled: true,
 ```
 
 ### e2e/tests/event-creation.spec.ts:32
 ```
-  27:       modules: [
+  27:       widgets: [
   28:         {
-  29:           module_instance_id: `calendar-${runId}`,
-  30:           module_type: 'calendar',
+  29:           widget_instance_id: `calendar-${runId}`,
+  30:           widget_type: 'calendar',
   31:           size_tier: 'M',
   32:           lens: 'project',
   33:         },
@@ -16876,7 +16876,7 @@ Total ambiguous hits: 1332.
  358:       };
  359:     });
  360: 
- 361:     await runPhase(report, desktopPage, 'modules', async () => {
+ 361:     await runPhase(report, desktopPage, 'widgets', async () => {
 ```
 
 ### e2e/user-journey-verification/e2e/inspect-live-contracts.ts:357
@@ -16890,23 +16890,23 @@ Total ambiguous hits: 1332.
  358:       };
  359:     });
  360: 
- 361:     await runPhase(report, desktopPage, 'modules', async () => {
- 362:       await ensureModuleAdded(desktopPage, 'Files', 'S', getFilesModule(desktopPage));
+ 361:     await runPhase(report, desktopPage, 'widgets', async () => {
+ 362:       await ensureModuleAdded(desktopPage, 'Files', 'S', getFilesWidget(desktopPage));
 ```
 
 ### e2e/user-journey-verification/e2e/inspect-live-contracts.ts:378
 ```
- 373:         kanban: await snapshotLocator(getKanbanModuleCard(desktopPage)),
- 374:         calendar: await snapshotLocator(getCalendarModuleCard(desktopPage)),
- 375:         tasks: await snapshotLocator(getTasksModule(desktopPage)),
- 376:         reminders: await snapshotLocator(getRemindersModule(desktopPage)),
+ 373:         kanban: await snapshotLocator(getKanbanWidgetCard(desktopPage)),
+ 374:         calendar: await snapshotLocator(getCalendarWidgetCard(desktopPage)),
+ 375:         tasks: await snapshotLocator(getTasksWidget(desktopPage)),
+ 376:         reminders: await snapshotLocator(getRemindersWidget(desktopPage)),
  377:         quickThought: await snapshotLocator(desktopPage.getByLabel('Quick Thought editor').first()),
  378:         workspaceDoc: await snapshotLocator(desktopPage.getByLabel('Project note editor').first()),
  379:       };
  380:     });
  381: 
  382:     await runPhase(report, desktopPage, 'motion_targets', async () => {
- 383:       await openAddModuleDialog(desktopPage);
+ 383:       await openAddWidgetDialog(desktopPage);
 ```
 
 ### e2e/user-journey-verification/e2e/inspect-live-contracts.ts:570
@@ -17055,14 +17055,14 @@ Total ambiguous hits: 1332.
   38:     name: `Journey Primary ${runId}`,
   39:     member_user_ids: [session.userId],
   40:     layout_config: {
-  41:       modules_enabled: true,
+  41:       widgets_enabled: true,
   42:       workspace_enabled: true,
 ```
 
 ### e2e/user-journey-verification/seed-normal.ts:47
 ```
   42:       workspace_enabled: true,
-  43:       modules: [],
+  43:       widgets: [],
   44:     },
   45:   });
   46: 
@@ -17070,14 +17070,14 @@ Total ambiguous hits: 1332.
   48:     name: `Journey Secondary ${runId}`,
   49:     member_user_ids: [session.userId],
   50:     layout_config: {
-  51:       modules_enabled: true,
+  51:       widgets_enabled: true,
   52:       workspace_enabled: true,
 ```
 
 ### e2e/user-journey-verification/seed-normal.ts:57
 ```
   52:       workspace_enabled: true,
-  53:       modules: [],
+  53:       widgets: [],
   54:     },
   55:   });
   56: 
@@ -17220,14 +17220,14 @@ Total ambiguous hits: 1332.
   51:     name: `Journey Primary ${runId}`,
   52:     member_user_ids: [session.userId],
   53:     layout_config: {
-  54:       modules_enabled: true,
+  54:       widgets_enabled: true,
   55:       workspace_enabled: true,
 ```
 
 ### e2e/user-journey-verification/seed-stress.ts:60
 ```
   55:       workspace_enabled: true,
-  56:       modules: [],
+  56:       widgets: [],
   57:     },
   58:   });
   59: 
@@ -17235,14 +17235,14 @@ Total ambiguous hits: 1332.
   61:     name: `Journey Secondary ${runId}`,
   62:     member_user_ids: [session.userId],
   63:     layout_config: {
-  64:       modules_enabled: true,
+  64:       widgets_enabled: true,
   65:       workspace_enabled: true,
 ```
 
 ### e2e/user-journey-verification/seed-stress.ts:70
 ```
   65:       workspace_enabled: true,
-  66:       modules: [],
+  66:       widgets: [],
   67:     },
   68:   });
   69: 
@@ -17383,10 +17383,10 @@ Total ambiguous hits: 1332.
   53:   'DELETE /api/hub/chat/snapshots/([^/]+)': 'Chat snapshot deletion is out of scope for journey verification.',
   54:   'POST /api/hub/projects/([^/]+)/invites': 'Invite flow is not part of baseline/stress user journey checks.',
   55:   'POST /api/hub/projects/([^/]+)/invites/([^/]+)': 'Invite acceptance flow is not part of baseline/stress user journey checks.',
-  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
+  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
 ```
 
 ### e2e/user-journey-verification/utils/networkCoverage.ts:55
@@ -17397,11 +17397,11 @@ Total ambiguous hits: 1332.
   53:   'DELETE /api/hub/chat/snapshots/([^/]+)': 'Chat snapshot deletion is out of scope for journey verification.',
   54:   'POST /api/hub/projects/([^/]+)/invites': 'Invite flow is not part of baseline/stress user journey checks.',
   55:   'POST /api/hub/projects/([^/]+)/invites/([^/]+)': 'Invite acceptance flow is not part of baseline/stress user journey checks.',
-  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  60:   'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped module verification.',
+  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  60:   'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped widget verification.',
 ```
 
 ### e2e/user-journey-verification/utils/networkCoverage.ts:56
@@ -17411,11 +17411,11 @@ Total ambiguous hits: 1332.
   53:   'DELETE /api/hub/chat/snapshots/([^/]+)': 'Chat snapshot deletion is out of scope for journey verification.',
   54:   'POST /api/hub/projects/([^/]+)/invites': 'Invite flow is not part of baseline/stress user journey checks.',
   55:   'POST /api/hub/projects/([^/]+)/invites/([^/]+)': 'Invite acceptance flow is not part of baseline/stress user journey checks.',
-  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  60:   'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped module verification.',
+  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  60:   'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped widget verification.',
   61: };
 ```
 
@@ -17425,11 +17425,11 @@ Total ambiguous hits: 1332.
   53:   'DELETE /api/hub/chat/snapshots/([^/]+)': 'Chat snapshot deletion is out of scope for journey verification.',
   54:   'POST /api/hub/projects/([^/]+)/invites': 'Invite flow is not part of baseline/stress user journey checks.',
   55:   'POST /api/hub/projects/([^/]+)/invites/([^/]+)': 'Invite acceptance flow is not part of baseline/stress user journey checks.',
-  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  60:   'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped module verification.',
+  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  60:   'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped widget verification.',
   61: };
   62: 
 ```
@@ -17437,11 +17437,11 @@ Total ambiguous hits: 1332.
 ### e2e/user-journey-verification/utils/networkCoverage.ts:60
 ```
   55:   'POST /api/hub/projects/([^/]+)/invites/([^/]+)': 'Invite acceptance flow is not part of baseline/stress user journey checks.',
-  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped module verification.',
-  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped module verification.',
-  60:   'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped module verification.',
+  56:   'GET /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  57:   'POST /api/hub/projects/([^/]+)/automation-rules': 'Automation rules are unrelated to scoped widget verification.',
+  58:   'PATCH /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  59:   'DELETE /api/hub/automation-rules/([^/]+)': 'Automation rules are unrelated to scoped widget verification.',
+  60:   'GET /api/hub/projects/([^/]+)/automation-runs': 'Automation runs are unrelated to scoped widget verification.',
   61: };
   62: 
   63: const routeKey = (method: string, pathPattern: string): string => `${method.toUpperCase()} ${pathPattern}`;
@@ -17933,7 +17933,7 @@ Total ambiguous hits: 1332.
   86: - browser login
   87: - project overview access
   88: - work pane creation
-  89: - module persistence
+  89: - widget persistence
   90: - read-only pane access for User B
   91: - collaborator surface presence
   92: - overview calendar capability reporting
@@ -18115,7 +18115,7 @@ Total ambiguous hits: 1332.
   22:   paneId: String(process.env.PANE_ID || '').trim(),
   23:   privatePaneId: String(process.env.PRIVATE_PANE_ID || '').trim(),
   24:   calendarMode,
-  25:   modulesEnabled: parseBoolean(process.env.WORKFLOW_MODULES, true),
+  25:   widgetsEnabled: parseBoolean(process.env.WORKFLOW_WIDGETS, true),
   26:   invitesEnabled: parseBoolean(process.env.WORKFLOW_INVITES, false),
 ```
 
@@ -21683,10 +21683,10 @@ Total ambiguous hits: 1332.
 
 ### scripts/dev/capture-table-overflow-check.ts:264
 ```
- 259:       modules: [
+ 259:       widgets: [
  260:         {
- 261:           module_instance_id: `table-overflow-${stamp}`,
- 262:           module_type: 'table',
+ 261:           widget_instance_id: `table-overflow-${stamp}`,
+ 262:           widget_type: 'table',
  263:           size_tier: 'M',
  264:           lens: 'project',
  265:           binding: { view_id: tableView.view_id },
@@ -21713,7 +21713,7 @@ Total ambiguous hits: 1332.
 
 ### scripts/dev/capture-table-overflow-check.ts:363
 ```
- 358:     await tableModule.screenshot({ path: screenshotPath });
+ 358:     await tableWidget.screenshot({ path: screenshotPath });
  359: 
  360:     const summary = {
  361:       appBaseUrl,
@@ -26058,4 +26058,3 @@ Room hit count: 1.
 ### src/shared/api-types/tasks.ts
 Room hit count: 1.
 - src/shared/api-types/tasks.ts:18  [ROOMS-DELETE]  room_id?: string \| null;
-

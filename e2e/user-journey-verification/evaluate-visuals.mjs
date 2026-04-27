@@ -61,9 +61,9 @@ const resolveOpenAiApiKey = async () => {
   }
 
   const localEnv = await readOptionalEnvFile(resolve(__dirname, '.env.local'));
-  const moduleVerificationEnv = await readOptionalEnvFile(resolve(__dirname, '..', 'module-verification', '.env.local'));
+  const widgetVerificationEnv = await readOptionalEnvFile(resolve(__dirname, '..', 'widget-verification', '.env.local'));
   const e2eTokensEnv = await readOptionalEnvFile(resolve(__dirname, '..', '.env.tokens.local'));
-  return String(localEnv.OPENAI_API_KEY || moduleVerificationEnv.OPENAI_API_KEY || e2eTokensEnv.OPENAI_API_KEY || '').trim();
+  return String(localEnv.OPENAI_API_KEY || widgetVerificationEnv.OPENAI_API_KEY || e2eTokensEnv.OPENAI_API_KEY || '').trim();
 };
 
 const resolveScenario = () => String(process.env.JOURNEY_SCENARIO || 'baseline').trim().toLowerCase() === 'stress'

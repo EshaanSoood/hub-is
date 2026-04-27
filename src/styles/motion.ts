@@ -47,14 +47,14 @@ export type MotionDirection = (typeof motionDirection)[keyof typeof motionDirect
 
 export const dialogLayoutIds = {
   recordInspector: 'dialog-record-inspector',
-  mobileModules: 'dialog-mobile-modules',
+  mobileWidgets: 'dialog-mobile-widgets',
   toolbarCalendar: 'dialog-toolbar-calendar',
   toolbarTasks: 'dialog-toolbar-tasks',
   toolbarReminders: 'dialog-toolbar-reminders',
   myHubRecordInspector: 'dialog-myhub-record-inspector',
   projectSettings: 'dialog-project-settings',
   commentOnBlock: 'dialog-comment-on-block',
-  addModule: 'dialog-add-module',
+  addWidget: 'dialog-add-widget',
   taskCreate: 'dialog-task-create',
   quickAddEvent: 'dialog-quick-add-event',
   quickAddReminder: 'dialog-quick-add-reminder',

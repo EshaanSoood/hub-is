@@ -6,11 +6,11 @@ export type OverviewViewId = 'timeline' | 'calendar' | 'tasks' | 'kanban';
 
 export type AudienceMode = 'project' | 'personal' | 'custom';
 
-export type ModuleSize = 'S' | 'M' | 'L';
+export type WidgetSize = 'S' | 'M' | 'L';
 
-export type ModuleLens = 'space' | 'project' | 'project_scratch';
+export type WidgetLens = 'space' | 'project' | 'project_scratch';
 
-export type ModuleType =
+export type WidgetType =
   | 'tasks'
   | 'calendar'
   | 'timeline'
@@ -32,19 +32,19 @@ export interface ClientReference {
   contact: string;
 }
 
-export interface ModuleTemplate {
-  type: ModuleType;
+export interface WidgetTemplate {
+  type: WidgetType;
   label: string;
-  defaultSize: ModuleSize;
-  defaultLens: ModuleLens;
+  defaultSize: WidgetSize;
+  defaultLens: WidgetLens;
 }
 
-export interface ProjectModule {
+export interface ProjectWidget {
   id: string;
-  type: ModuleType;
+  type: WidgetType;
   label: string;
-  size: ModuleSize;
-  lens: ModuleLens;
+  size: WidgetSize;
+  lens: WidgetLens;
 }
 
 export interface WorkProject {
@@ -52,8 +52,8 @@ export interface WorkProject {
   title: string;
   audienceMode: AudienceMode;
   customMemberIds: string[];
-  modulesEnabled: boolean;
+  widgetsEnabled: boolean;
   workspaceEnabled: boolean;
   docBindingMode: 'owned';
-  modules: ProjectModule[];
+  widgets: ProjectWidget[];
 }

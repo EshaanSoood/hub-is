@@ -138,7 +138,7 @@ export const HUB_POSTMARK_INVITE_TEMPLATE = `<!DOCTYPE html>
                       </tr>
                       <tr>
                         <td class="feature-item" style="font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: #C0CCDA; line-height: 1.5; padding: 5px 0;">
-                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Modules: Calendars, Tasks, Reminders, Kanban, Tables, Files &amp; Quick Thoughts
+                          <span style="color: #FFA3CD;">&#9679;</span>&nbsp;&nbsp;Widgets: Calendars, Tasks, Reminders, Kanban, Tables, Files &amp; Quick Thoughts
                         </td>
                       </tr>
                       <tr>

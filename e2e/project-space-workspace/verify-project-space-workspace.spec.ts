@@ -86,8 +86,8 @@ test.describe('ProjectSpaceWorkspace local characterization', () => {
 
     await expect(page.getByText(/Focused View:/i)).toContainText('Focused View:');
 
-    const tableModule = page.getByLabel('Table module').first();
-    await tableModule.getByRole('button', { name: new RegExp(`Open record ${escapeRegExp(fixture.recordTitle)}`, 'i') }).click();
+    const tableWidget = page.getByLabel('Table widget').first();
+    await tableWidget.getByRole('button', { name: new RegExp(`Open record ${escapeRegExp(fixture.recordTitle)}`, 'i') }).click();
     await expect(page.getByRole('dialog', { name: 'Record Inspector' })).toBeVisible();
     await page.getByRole('button', { name: /Close inspector/i }).first().click();
     await expect(page.getByRole('dialog', { name: 'Record Inspector' })).toHaveCount(0);

@@ -2,7 +2,7 @@ import { queryView } from '../../services/hub/views';
 import type { HubCollectionField, HubRecordSummary, HubView } from '../../services/hub/types';
 
 export const KANBAN_UNASSIGNED_ID = '__unassigned__';
-export const KANBAN_OWNED_VIEW_CONFIG_KEY = 'owned_by_module_instance_id';
+export const KANBAN_OWNED_VIEW_CONFIG_KEY = 'owned_by_widget_instance_id';
 const MAX_VIEW_QUERY_PAGES = 250;
 
 export interface TableSchema {
@@ -130,7 +130,7 @@ const readOptionValues = (fieldConfig: Record<string, unknown> | undefined): Arr
 
 export const isKanbanGroupableField = (field: HubCollectionField): boolean => field.type === 'select';
 
-export const readOwnedKanbanModuleInstanceId = (config: Record<string, unknown> | null | undefined): string | null => {
+export const readOwnedKanbanWidgetInstanceId = (config: Record<string, unknown> | null | undefined): string | null => {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
     return null;
   }
@@ -139,7 +139,7 @@ export const readOwnedKanbanModuleInstanceId = (config: Record<string, unknown> 
 };
 
 export const isStandaloneKanbanView = (view: Pick<HubView, 'type' | 'config'>): boolean =>
-  view.type === 'kanban' && Boolean(readOwnedKanbanModuleInstanceId(view.config));
+  view.type === 'kanban' && Boolean(readOwnedKanbanWidgetInstanceId(view.config));
 
 const readGroupableFields = (
   schema: { fields: HubCollectionField[] } | null | undefined,

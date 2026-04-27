@@ -64,7 +64,7 @@ export const buildRouteDeps = ({ db, stmts, withTransaction, ...deps }) => ({
   projectsBySpaceStmt: stmts.projects.listForProject,
   projectNextSortStmt: stmts.projects.nextSortOrder,
   matrixAccountByUserIdStmt: stmts.chat.findAccountByUserId,
-  modulePickerSeedDataStmt: stmts.modulePickerSeedData.listAll,
+  widgetPickerSeedDataStmt: stmts.widgetPickerSeedData.listAll,
   deleteMatrixAccountStmt: stmts.chat.deleteAccount,
   assignmentsByRecordStmt: stmts.tasks.listAssignments,
   assignedTasksStmt: stmts.tasks.listAssignedForUser,

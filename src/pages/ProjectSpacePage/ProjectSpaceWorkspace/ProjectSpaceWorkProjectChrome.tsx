@@ -28,7 +28,7 @@ export interface ProjectSpaceProjectChromeProps {
   projectMemberList: HubProjectMember[];
   sessionUserId: string;
   activeEditableProjectIndex: number;
-  modulesEnabled: boolean;
+  widgetsEnabled: boolean;
   workspaceEnabled: boolean;
   projectMutationError: string | null;
   onNavigateToProject: (params: {
@@ -44,7 +44,7 @@ export interface ProjectSpaceProjectChromeProps {
   onToggleProjectMember: (project: HubProjectSummary, memberUserId: string) => Promise<void>;
   onDeleteProject: (project: HubProjectSummary) => Promise<void>;
   onUpdateProject: (projectId: string, patch: { name?: string; layout_config?: Record<string, unknown> }) => Promise<void>;
-  onToggleActiveProjectRegion: (region: 'modules_enabled' | 'workspace_enabled') => void;
+  onToggleActiveProjectRegion: (region: 'widgets_enabled' | 'workspace_enabled') => void;
 }
 
 export const ProjectSpaceWorkProjectChrome = ({
@@ -58,7 +58,7 @@ export const ProjectSpaceWorkProjectChrome = ({
   projectMemberList,
   sessionUserId,
   activeEditableProjectIndex,
-  modulesEnabled,
+  widgetsEnabled,
   workspaceEnabled,
   projectMutationError,
   onNavigateToProject,
@@ -300,7 +300,7 @@ export const ProjectSpaceWorkProjectChrome = ({
               orderedEditableProjects={orderedEditableProjects}
               projectMemberList={projectMemberList}
               sessionUserId={sessionUserId}
-              modulesEnabled={modulesEnabled}
+              widgetsEnabled={widgetsEnabled}
               workspaceEnabled={workspaceEnabled}
               onRequestClose={() => handleProjectSettingsOpenChange(false)}
               onTogglePinned={onTogglePinned}

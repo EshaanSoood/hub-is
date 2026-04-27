@@ -15,7 +15,7 @@ export const collectProjectTaskCollectionIds = (
     return [];
   }
 
-  const rawModules = Array.isArray(layoutConfig.modules) ? layoutConfig.modules : [];
+  const rawWidgets = Array.isArray(layoutConfig.widgets) ? layoutConfig.widgets : [];
   const viewById = new Map(availableViews.map((view) => [view.view_id, view]));
   const defaultViewByType = new Map<string, HubView>();
   for (const view of availableViews) {
@@ -28,27 +28,27 @@ export const collectProjectTaskCollectionIds = (
   }
 
   const collectionIds: string[] = [];
-  for (const candidate of rawModules) {
+  for (const candidate of rawWidgets) {
     if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
       continue;
     }
 
-    const moduleConfig = candidate as { module_type?: unknown; binding?: { view_id?: unknown } | null };
-    const moduleType = typeof moduleConfig.module_type === 'string' ? moduleConfig.module_type : '';
-    if (moduleType !== 'table' && moduleType !== 'kanban') {
+    const widgetConfig = candidate as { widget_type?: unknown; binding?: { view_id?: unknown } | null };
+    const widgetType = typeof widgetConfig.widget_type === 'string' ? widgetConfig.widget_type : '';
+    if (widgetType !== 'table' && widgetType !== 'kanban') {
       continue;
     }
 
     const requestedViewId =
-      moduleConfig.binding && typeof moduleConfig.binding === 'object' && !Array.isArray(moduleConfig.binding)
-        && typeof moduleConfig.binding.view_id === 'string'
-        ? moduleConfig.binding.view_id
+      widgetConfig.binding && typeof widgetConfig.binding === 'object' && !Array.isArray(widgetConfig.binding)
+        && typeof widgetConfig.binding.view_id === 'string'
+        ? widgetConfig.binding.view_id
         : '';
-    const resolvedView = (requestedViewId ? viewById.get(requestedViewId) : null) ?? defaultViewByType.get(moduleType) ?? null;
+    const resolvedView = (requestedViewId ? viewById.get(requestedViewId) : null) ?? defaultViewByType.get(widgetType) ?? null;
     if (
       !resolvedView
-      || resolvedView.type !== moduleType
-      || (moduleType === 'kanban' && isStandaloneKanbanView(resolvedView))
+      || resolvedView.type !== widgetType
+      || (widgetType === 'kanban' && isStandaloneKanbanView(resolvedView))
       || collectionIds.includes(resolvedView.collection_id)
     ) {
       continue;

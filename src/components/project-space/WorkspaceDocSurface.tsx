@@ -15,7 +15,7 @@ import { Icon, InlineNotice } from '../primitives';
 import { CommentComposer } from './CommentComposer';
 import { CommentRail } from './CommentRail';
 import { MentionPicker } from './MentionPicker';
-import { ModuleLoadingState } from './ModuleFeedback';
+import { WidgetLoadingState } from './WidgetFeedback';
 import {
   Dialog,
   DialogContent,
@@ -150,7 +150,7 @@ export const WorkspaceDocSurface = ({
     return (
       <section className="rounded-panel border border-subtle bg-elevated p-4">
         <h3 className="heading-3 text-primary">Workspace Doc</h3>
-        <p className="mt-2 text-sm text-muted">This project is set to modules-only mode. The workspace doc is hidden here.</p>
+        <p className="mt-2 text-sm text-muted">This project is set to widgets-only mode. The workspace doc is hidden here.</p>
       </section>
     );
   }
@@ -162,7 +162,7 @@ export const WorkspaceDocSurface = ({
         {mountedDocId ? (
           <>
             <div className="relative">
-              <Suspense fallback={<ModuleLoadingState label="Loading collaborative editor" rows={8} />}>
+              <Suspense fallback={<WidgetLoadingState label="Loading collaborative editor" rows={8} />}>
                 <CollaborativeLexicalEditor
                   key={mountedDocId}
                   noteId={mountedDocId}
@@ -272,7 +272,7 @@ export const WorkspaceDocSurface = ({
         ) : docBootstrapReady ? (
           <p className="mt-2 text-sm text-muted">Project doc unavailable.</p>
         ) : (
-          <ModuleLoadingState label="Loading workspace doc" rows={8} />
+          <WidgetLoadingState label="Loading workspace doc" rows={8} />
         )}
       </section>
 

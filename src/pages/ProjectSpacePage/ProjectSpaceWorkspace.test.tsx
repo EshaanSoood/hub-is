@@ -147,16 +147,16 @@ vi.mock('../../components/project-space/ProjectSwitcher', () => ({
 vi.mock('../../components/project-space/WorkView', () => ({
   WorkView: ({
     project,
-    modulesEnabled,
+    widgetsEnabled,
     onOpenRecord,
   }: {
     project: { name: string } | null;
-    modulesEnabled?: boolean;
+    widgetsEnabled?: boolean;
     onOpenRecord?: (recordId: string) => void;
   }) => (
     <section aria-label="Work view">
       <p>{project?.name ?? 'No project'}</p>
-      <p>{modulesEnabled ? 'Modules enabled' : 'Modules disabled'}</p>
+      <p>{widgetsEnabled ? 'Widgets enabled' : 'Widgets disabled'}</p>
       <button type="button" onClick={() => onOpenRecord?.('record-work')}>Open work record</button>
     </section>
   ),
@@ -238,23 +238,23 @@ vi.mock('../../components/project-space/BacklinksPanel', () => ({
   ),
 }));
 
-vi.mock('../../components/project-space/ModuleFeedback', () => ({
-  ModuleLoadingState: ({ label }: { label: string }) => <div>{label}</div>,
+vi.mock('../../components/project-space/WidgetFeedback', () => ({
+  WidgetLoadingState: ({ label }: { label: string }) => <div>{label}</div>,
 }));
 
-vi.mock('../../components/project-space/KanbanModuleSkin', () => ({
-  KanbanModuleSkin: ({ onOpenRecord }: { onOpenRecord?: (recordId: string) => void }) => (
+vi.mock('../../components/project-space/KanbanWidgetSkin', () => ({
+  KanbanWidgetSkin: ({ onOpenRecord }: { onOpenRecord?: (recordId: string) => void }) => (
     <div>
-      <p>Focused kanban module</p>
+      <p>Focused kanban widget</p>
       <button type="button" onClick={() => onOpenRecord?.('record-kanban')}>Open focused kanban record</button>
     </div>
   ),
 }));
 
-vi.mock('../../components/project-space/TableModuleSkin', () => ({
-  TableModuleSkin: ({ onOpenRecord }: { onOpenRecord?: (recordId: string) => void }) => (
+vi.mock('../../components/project-space/TableWidgetSkin', () => ({
+  TableWidgetSkin: ({ onOpenRecord }: { onOpenRecord?: (recordId: string) => void }) => (
     <div>
-      <p>Focused table module</p>
+      <p>Focused table widget</p>
       <button type="button" onClick={() => onOpenRecord?.('record-table')}>Open focused table record</button>
     </div>
   ),
@@ -285,7 +285,7 @@ const projectViewsRuntimeState = {
     },
   },
   kanbanViews: [fixture.kanbanView],
-  creatingKanbanViewByModuleId: {},
+  creatingKanbanViewByWidgetId: {},
   focusedWorkView: null as null | typeof fixture.tableView,
   focusedWorkViewData: {
     schema: {
@@ -481,8 +481,8 @@ vi.mock('../../hooks/useQuickCapture', () => ({
   }),
 }));
 
-vi.mock('./hooks/useWorkViewModuleRuntime', () => ({
-  useWorkViewModuleRuntime: () => ({
+vi.mock('./hooks/useWorkViewWidgetRuntime', () => ({
+  useWorkViewWidgetRuntime: () => ({
     tableContract: {
       views: [],
       defaultViewId: null,
@@ -775,10 +775,10 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(screen.getByLabelText('Project name')).toHaveValue('Shared Work');
     expect(screen.getByRole('link', { name: 'Open project' })).toHaveAttribute('href', '/projects/project-1/work/project-shared');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Hide modules' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Hide widgets' }));
     expect(onUpdateProjectFromWorkViewMock).toHaveBeenCalledWith('project-shared', expect.objectContaining({
       layout_config: expect.objectContaining({
-        modules_enabled: false,
+        widgets_enabled: false,
         workspace_enabled: true,
       }),
     }));
@@ -786,7 +786,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Hide workspace doc' }));
     expect(onUpdateProjectFromWorkViewMock).toHaveBeenCalledWith('project-shared', expect.objectContaining({
       layout_config: expect.objectContaining({
-        modules_enabled: true,
+        widgets_enabled: true,
         workspace_enabled: false,
       }),
     }));
@@ -825,7 +825,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
         activeTab: 'work',
       });
 
-      expect(screen.getByText('This project is set to modules-only mode. The workspace doc is hidden here.')).toBeInTheDocument();
+      expect(screen.getByText('This project is set to widgets-only mode. The workspace doc is hidden here.')).toBeInTheDocument();
     } finally {
       fixture.sharedProject.layout_config = originalLayout;
     }
@@ -1118,13 +1118,13 @@ describe('ProjectSpaceWorkspace helpers', () => {
     expect(projectCanEditForUser(null, 'user-1')).toBe(false);
   });
 
-  it('collects task collection ids from table and non-standalone kanban modules only', () => {
+  it('collects task collection ids from table and non-standalone kanban widgets only', () => {
     const collectionIds = collectProjectTaskCollectionIds(
       {
-        modules: [
-          { module_type: 'table', binding: { view_id: fixture.tableView.view_id } },
-          { module_type: 'kanban', binding: { view_id: fixture.kanbanView.view_id } },
-          { module_type: 'kanban', binding: { view_id: 'view-standalone-kanban' } },
+        widgets: [
+          { widget_type: 'table', binding: { view_id: fixture.tableView.view_id } },
+          { widget_type: 'kanban', binding: { view_id: fixture.kanbanView.view_id } },
+          { widget_type: 'kanban', binding: { view_id: 'view-standalone-kanban' } },
         ],
       },
       [
@@ -1135,7 +1135,7 @@ describe('ProjectSpaceWorkspace helpers', () => {
           view_id: 'view-standalone-kanban',
           collection_id: 'collection-standalone',
           config: {
-            owned_by_module_instance_id: 'module-1',
+            owned_by_widget_instance_id: 'widget-1',
           },
         },
       ],
@@ -1220,7 +1220,7 @@ describe('ProjectSpaceProjectSettingsDialog', () => {
           orderedEditableProjects={[fixture.sharedProject, { ...fixture.privateProject, can_edit: true }]}
           projectMemberList={fixture.projectMembers}
           sessionUserId="user-1"
-          modulesEnabled
+          widgetsEnabled
           workspaceEnabled
           onRequestClose={vi.fn()}
           onTogglePinned={vi.fn(async () => undefined)}
@@ -1259,7 +1259,7 @@ describe('ProjectSpaceProjectSettingsDialog', () => {
           orderedEditableProjects={[fixture.sharedProject, { ...fixture.privateProject, can_edit: true }]}
           projectMemberList={fixture.projectMembers}
           sessionUserId="user-1"
-          modulesEnabled
+          widgetsEnabled
           workspaceEnabled
           onRequestClose={vi.fn()}
           onTogglePinned={vi.fn(async () => undefined)}
@@ -1275,7 +1275,7 @@ describe('ProjectSpaceProjectSettingsDialog', () => {
     expect(screen.getByLabelText('Project name')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Unpin' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Move up' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Hide modules' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hide widgets' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Hide workspace doc' })).toBeDisabled();
     expect(screen.getByText('Read-only project.')).toBeInTheDocument();
   });
@@ -1293,7 +1293,7 @@ describe('ProjectSpaceProjectSettingsDialog', () => {
           orderedEditableProjects={[fixture.sharedProject, { ...fixture.privateProject, can_edit: true }]}
           projectMemberList={fixture.projectMembers}
           sessionUserId="user-1"
-          modulesEnabled
+          widgetsEnabled
           workspaceEnabled
           onRequestClose={vi.fn()}
           onTogglePinned={vi.fn(async () => undefined)}

@@ -58,7 +58,7 @@ The schema test asserts exact table-name parity via `sqlite_master` for:
 - `files`
 - `matrix_accounts`
 - `mentions`
-- `module_picker_seed_data`
+- `widget_picker_seed_data`
 - `notifications`
 - `pane_members`
 - `panes`
@@ -137,7 +137,7 @@ The schema test asserts exact index-name parity via `sqlite_master` for:
 - `idx_event_state_start`
 - `idx_files_project_asset_path`
 - `idx_mentions_target_lookup`
-- `idx_module_picker_seed_module_size`
+- `idx_widget_picker_seed_widget_size`
 - `idx_notifications_user_unread_created`
 - `idx_pane_members_user_pane`
 - `idx_panes_project_sort`

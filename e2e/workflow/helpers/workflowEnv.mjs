@@ -22,7 +22,7 @@ export const workflowConfig = Object.freeze({
   workProjectId: String(process.env.WORK_PROJECT_ID || '').trim(),
   privateProjectId: String(process.env.PRIVATE_PROJECT_ID || '').trim(),
   calendarMode,
-  modulesEnabled: parseBoolean(process.env.WORKFLOW_MODULES, true),
+  widgetsEnabled: parseBoolean(process.env.WORKFLOW_WIDGETS, true),
   invitesEnabled: parseBoolean(process.env.WORKFLOW_INVITES, false),
   accountA: Object.freeze({
     email: String(process.env.TEST_EMAIL_A || '').trim(),

@@ -254,12 +254,12 @@ const main = async (): Promise<void> => {
     name: `Overflow Project ${stamp}`,
     member_user_ids: [session.userId],
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: false,
-      modules: [
+      widgets: [
         {
-          module_instance_id: `table-overflow-${stamp}`,
-          module_type: 'table',
+          widget_instance_id: `table-overflow-${stamp}`,
+          widget_type: 'table',
           size_tier: 'M',
           lens: 'project',
           binding: { view_id: tableView.view_id },
@@ -299,10 +299,10 @@ const main = async (): Promise<void> => {
       timeout: 60_000,
     });
 
-    const tableModule = page.getByRole('region', { name: 'Table module' }).first();
-    await tableModule.waitFor({ state: 'visible', timeout: 60_000 });
+    const tableWidget = page.getByRole('region', { name: 'Table widget' }).first();
+    await tableWidget.waitFor({ state: 'visible', timeout: 60_000 });
 
-    const titleButton = tableModule
+    const titleButton = tableWidget
       .getByRole('button', { name: new RegExp(`^Open record ${escapeRegExp(targetTitle)}$`, 'i') })
       .first();
 
@@ -355,7 +355,7 @@ const main = async (): Promise<void> => {
       throw new Error(`Title content exceeded its cell bounds by ${String(metrics.nodeRight - metrics.cellRight)}px.`);
     }
 
-    await tableModule.screenshot({ path: screenshotPath });
+    await tableWidget.screenshot({ path: screenshotPath });
 
     const summary = {
       appBaseUrl,

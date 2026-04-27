@@ -1,30 +1,30 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { AccessDeniedView } from '../auth/AccessDeniedView';
-import { ModuleGrid, type ContractModuleConfig } from './ModuleGrid';
+import { WidgetGrid, type ContractWidgetConfig } from './WidgetGrid';
 import { AccessibleDialog, Icon, IconButton } from '../primitives';
 import type { HubProjectSummary } from '../../services/hub/types';
-import { clampModuleSizeTier } from './moduleCatalog';
+import { clampWidgetSizeTier } from './widgetCatalog';
 import type {
-  CalendarModuleContract,
-  FilesModuleContract,
-  KanbanModuleContract,
-  QuickThoughtsModuleContract,
-  RemindersModuleContract,
-  TableModuleContract,
-  TasksModuleContract,
-  TimelineModuleContract,
-} from './moduleContracts';
+  CalendarWidgetContract,
+  FilesWidgetContract,
+  KanbanWidgetContract,
+  QuickThoughtsWidgetContract,
+  RemindersWidgetContract,
+  TableWidgetContract,
+  TasksWidgetContract,
+  TimelineWidgetContract,
+} from './widgetContracts';
 import {
-  CalendarModule,
-  FilesModule,
-  KanbanModule,
-  QuickThoughtsModule,
-  RemindersModule,
-  TableModule,
-  TasksModule,
-  TimelineModule,
-} from './modules';
+  CalendarWidget,
+  FilesWidget,
+  KanbanWidget,
+  QuickThoughtsWidget,
+  RemindersWidget,
+  TableWidget,
+  TasksWidget,
+  TimelineWidget,
+} from './widgets';
 import { dialogLayoutIds } from '../../styles/motion';
 
 interface WorkViewProps {
@@ -32,45 +32,45 @@ interface WorkViewProps {
   project: HubProjectSummary | null;
   accessDenied?: boolean;
   canEditProject?: boolean;
-  modulesEnabled?: boolean;
+  widgetsEnabled?: boolean;
   showWorkspaceDocPlaceholder?: boolean;
   onUpdateProject: (projectId: string, payload: { name?: string; pinned?: boolean; sort_order?: number; layout_config?: Record<string, unknown> }) => Promise<void>;
   onOpenRecord?: (recordId: string) => void;
-  tableContract?: Partial<TableModuleContract>;
-  kanbanContract?: Partial<KanbanModuleContract>;
-  calendarContract?: Partial<CalendarModuleContract>;
-  filesContract?: Partial<FilesModuleContract>;
-  quickThoughtsContract?: Partial<QuickThoughtsModuleContract>;
-  tasksContract?: Partial<TasksModuleContract>;
-  timelineContract?: Partial<TimelineModuleContract>;
-  remindersContract?: Partial<RemindersModuleContract>;
+  tableContract?: Partial<TableWidgetContract>;
+  kanbanContract?: Partial<KanbanWidgetContract>;
+  calendarContract?: Partial<CalendarWidgetContract>;
+  filesContract?: Partial<FilesWidgetContract>;
+  quickThoughtsContract?: Partial<QuickThoughtsWidgetContract>;
+  tasksContract?: Partial<TasksWidgetContract>;
+  timelineContract?: Partial<TimelineWidgetContract>;
+  remindersContract?: Partial<RemindersWidgetContract>;
 }
 
-const normalizeModuleType = (moduleType: unknown): string => {
-  return typeof moduleType === 'string' && moduleType ? moduleType : 'unknown';
+const normalizeWidgetType = (widgetType: unknown): string => {
+  return typeof widgetType === 'string' && widgetType ? widgetType : 'unknown';
 };
 
-const defaultModuleLens = (moduleType: string): ContractModuleConfig['lens'] => {
-  if (moduleType === 'quick_thoughts') {
+const defaultWidgetLens = (widgetType: string): ContractWidgetConfig['lens'] => {
+  if (widgetType === 'quick_thoughts') {
     return 'project_scratch';
   }
-  if (moduleType === 'tasks') {
+  if (widgetType === 'tasks') {
     return 'project';
   }
-  if (moduleType === 'reminders') {
+  if (widgetType === 'reminders') {
     return 'project';
   }
   return 'space';
 };
 
-const normalizeModuleLens = (moduleType: string, lens: unknown): ContractModuleConfig['lens'] => {
-  if (moduleType === 'quick_thoughts') {
+const normalizeWidgetLens = (widgetType: string, lens: unknown): ContractWidgetConfig['lens'] => {
+  if (widgetType === 'quick_thoughts') {
     return 'project_scratch';
   }
-  if (moduleType === 'tasks') {
+  if (widgetType === 'tasks') {
     return lens === 'space' ? 'space' : 'project';
   }
-  if (moduleType === 'reminders') {
+  if (widgetType === 'reminders') {
     return 'project';
   }
   if (lens === 'project_scratch') {
@@ -82,12 +82,12 @@ const normalizeModuleLens = (moduleType: string, lens: unknown): ContractModuleC
   return 'space';
 };
 
-const parseModules = (layoutConfig: Record<string, unknown> | null | undefined): ContractModuleConfig[] => {
+const parseWidgets = (layoutConfig: Record<string, unknown> | null | undefined): ContractWidgetConfig[] => {
   if (!layoutConfig || typeof layoutConfig !== 'object' || Array.isArray(layoutConfig)) {
     return [];
   }
-  const raw = Array.isArray(layoutConfig.modules) ? layoutConfig.modules : [];
-  const modules: ContractModuleConfig[] = [];
+  const raw = Array.isArray(layoutConfig.widgets) ? layoutConfig.widgets : [];
+  const widgets: ContractWidgetConfig[] = [];
 
   for (const [index, candidate] of raw.entries()) {
     if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
@@ -95,11 +95,11 @@ const parseModules = (layoutConfig: Record<string, unknown> | null | undefined):
     }
 
     const value = candidate as Record<string, unknown>;
-    const moduleType = normalizeModuleType(value.module_type);
+    const widgetType = normalizeWidgetType(value.widget_type);
     const sizeTier = value.size_tier;
     const lens = value.lens;
     const rawBinding = value.binding;
-    const binding: ContractModuleConfig['binding'] =
+    const binding: ContractWidgetConfig['binding'] =
       rawBinding && typeof rawBinding === 'object' && !Array.isArray(rawBinding)
         ? {
             view_id:
@@ -121,54 +121,54 @@ const parseModules = (layoutConfig: Record<string, unknown> | null | undefined):
 
     const normalizedSizeTier = sizeTier === 'S' || sizeTier === 'M' || sizeTier === 'L' ? sizeTier : 'M';
 
-    modules.push({
-      module_instance_id:
-        typeof value.module_instance_id === 'string' && value.module_instance_id
-          ? value.module_instance_id
-          : `module-${index + 1}`,
-      module_type: moduleType,
-      size_tier: clampModuleSizeTier(moduleType, normalizedSizeTier),
-      lens: normalizeModuleLens(moduleType, lens),
+    widgets.push({
+      widget_instance_id:
+        typeof value.widget_instance_id === 'string' && value.widget_instance_id
+          ? value.widget_instance_id
+          : `widget-${index + 1}`,
+      widget_type: widgetType,
+      size_tier: clampWidgetSizeTier(widgetType, normalizedSizeTier),
+      lens: normalizeWidgetLens(widgetType, lens),
       binding,
     });
   }
 
-  return modules;
+  return widgets;
 };
 
-const serializeModules = (modules: ContractModuleConfig[]): Array<Record<string, unknown>> =>
-  modules.map((module) => ({
-    module_instance_id: module.module_instance_id,
-    module_type: normalizeModuleType(module.module_type),
-    size_tier: module.size_tier,
-    lens: normalizeModuleLens(normalizeModuleType(module.module_type), module.lens),
+const serializeWidgets = (widgets: ContractWidgetConfig[]): Array<Record<string, unknown>> =>
+  widgets.map((widget) => ({
+    widget_instance_id: widget.widget_instance_id,
+    widget_type: normalizeWidgetType(widget.widget_type),
+    size_tier: widget.size_tier,
+    lens: normalizeWidgetLens(normalizeWidgetType(widget.widget_type), widget.lens),
     ...(
-      module.binding?.view_id || module.binding?.owned_view_id || module.binding?.source_mode
+      widget.binding?.view_id || widget.binding?.owned_view_id || widget.binding?.source_mode
         ? {
             binding: {
-              ...(module.binding?.view_id ? { view_id: module.binding.view_id } : {}),
-              ...(module.binding?.owned_view_id ? { owned_view_id: module.binding.owned_view_id } : {}),
-              ...(module.binding?.source_mode ? { source_mode: module.binding.source_mode } : {}),
+              ...(widget.binding?.view_id ? { view_id: widget.binding.view_id } : {}),
+              ...(widget.binding?.owned_view_id ? { owned_view_id: widget.binding.owned_view_id } : {}),
+              ...(widget.binding?.source_mode ? { source_mode: widget.binding.source_mode } : {}),
             },
           }
         : {}
     ),
   }));
 
-const EMPTY_TABLE_CONTRACT: TableModuleContract = {
+const EMPTY_TABLE_CONTRACT: TableWidgetContract = {
   views: [],
   defaultViewId: null,
   dataByViewId: {},
 };
 
-const EMPTY_KANBAN_CONTRACT: KanbanModuleContract = {
+const EMPTY_KANBAN_CONTRACT: KanbanWidgetContract = {
   views: [],
   defaultViewId: null,
   dataByViewId: {},
   onMoveRecord: () => {},
 };
 
-const EMPTY_CALENDAR_CONTRACT: CalendarModuleContract = {
+const EMPTY_CALENDAR_CONTRACT: CalendarWidgetContract = {
   events: [],
   loading: false,
   scope: 'relevant',
@@ -177,7 +177,7 @@ const EMPTY_CALENDAR_CONTRACT: CalendarModuleContract = {
   onRescheduleEvent: undefined,
 };
 
-const EMPTY_FILES_CONTRACT: FilesModuleContract = {
+const EMPTY_FILES_CONTRACT: FilesWidgetContract = {
   projectFiles: [],
   spaceFiles: [],
   onUploadProjectFiles: () => {},
@@ -186,13 +186,13 @@ const EMPTY_FILES_CONTRACT: FilesModuleContract = {
   onInsertToEditor: undefined,
 };
 
-const EMPTY_QUICK_THOUGHTS_CONTRACT: QuickThoughtsModuleContract = {
+const EMPTY_QUICK_THOUGHTS_CONTRACT: QuickThoughtsWidgetContract = {
   storageKeyBase: 'hub:quick-thoughts:default',
   legacyStorageKeyBase: undefined,
   onInsertToEditor: undefined,
 };
 
-const EMPTY_TASKS_CONTRACT: TasksModuleContract = {
+const EMPTY_TASKS_CONTRACT: TasksWidgetContract = {
   items: [],
   loading: false,
   onCreateTask: async () => {},
@@ -203,7 +203,7 @@ const EMPTY_TASKS_CONTRACT: TasksModuleContract = {
   onInsertToEditor: undefined,
 };
 
-const EMPTY_TIMELINE_CONTRACT: TimelineModuleContract = {
+const EMPTY_TIMELINE_CONTRACT: TimelineWidgetContract = {
   clusters: [],
   activeFilters: ['task', 'event', 'milestone', 'file', 'workspace'],
   loading: false,
@@ -213,7 +213,7 @@ const EMPTY_TIMELINE_CONTRACT: TimelineModuleContract = {
   onItemClick: () => {},
 };
 
-const EMPTY_REMINDERS_CONTRACT: RemindersModuleContract = {
+const EMPTY_REMINDERS_CONTRACT: RemindersWidgetContract = {
   items: [],
   loading: false,
   error: null,
@@ -224,7 +224,7 @@ const EMPTY_REMINDERS_CONTRACT: RemindersModuleContract = {
 
 const DESKTOP_MEDIA_QUERY = '(min-width: 768px)';
 
-const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
+const MobileWidgetsOverlay = ({ widgetGrid }: { widgetGrid: ReactNode }) => {
   const prefersReducedMotion = useReducedMotion();
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() =>
@@ -255,15 +255,15 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
   }, []);
 
   if (isDesktop) {
-    return <div>{moduleGrid}</div>;
+    return <div>{widgetGrid}</div>;
   }
 
-  const mobileModulesLayoutId = !prefersReducedMotion ? dialogLayoutIds.mobileModules : undefined;
+  const mobileWidgetsLayoutId = !prefersReducedMotion ? dialogLayoutIds.mobileWidgets : undefined;
 
   return (
     <>
       <motion.button
-        layoutId={mobileModulesLayoutId}
+        layoutId={mobileWidgetsLayoutId}
         ref={triggerRef}
         type="button"
         aria-haspopup="dialog"
@@ -271,7 +271,7 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
         onClick={() => setOverlayOpen(true)}
         className="ghost-button sticky top-0 z-20 w-full bg-surface-highest px-3 py-2 text-center text-sm font-semibold text-text md:hidden"
       >
-        Modules
+        Widgets
       </motion.button>
 
       {overlayOpen ? (
@@ -279,18 +279,18 @@ const MobileModulesOverlay = ({ moduleGrid }: { moduleGrid: ReactNode }) => {
           open={overlayOpen}
           onClose={() => setOverlayOpen(false)}
           triggerRef={triggerRef}
-          layoutId={mobileModulesLayoutId}
-          title="Modules"
-          description="Manage and browse project modules"
+          layoutId={mobileWidgetsLayoutId}
+          title="Widgets"
+          description="Manage and browse project widgets"
           hideHeader
           panelClassName="left-1/2 top-1/2 h-[100dvh] w-screen max-w-none -translate-x-1/2 -translate-y-1/2 rounded-none border-none bg-surface p-0 md:hidden"
           contentClassName="mt-0 h-full overflow-y-auto p-4"
         >
           <div className="relative pt-10">
-            <IconButton aria-label="Close modules" className="absolute right-0 top-0" onClick={() => setOverlayOpen(false)}>
+            <IconButton aria-label="Close widgets" className="absolute right-0 top-0" onClick={() => setOverlayOpen(false)}>
               <Icon name="close" className="h-4 w-4" />
             </IconButton>
-            {moduleGrid}
+            {widgetGrid}
           </div>
         </AccessibleDialog>
       ) : null}
@@ -303,7 +303,7 @@ export const WorkView = ({
   project,
   accessDenied = false,
   canEditProject = true,
-  modulesEnabled = true,
+  widgetsEnabled = true,
   showWorkspaceDocPlaceholder = true,
   onUpdateProject,
   onOpenRecord,
@@ -317,8 +317,8 @@ export const WorkView = ({
   remindersContract,
 }: WorkViewProps) => {
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
-  const [pendingModuleSaves, setPendingModuleSaves] = useState(0);
-  const [moduleError, setModuleError] = useState<string | null>(null);
+  const [pendingWidgetSaves, setPendingWidgetSaves] = useState(0);
+  const [widgetError, setWidgetError] = useState<string | null>(null);
 
   if (accessDenied) {
     return (
@@ -330,170 +330,170 @@ export const WorkView = ({
 
   if (!project) {
     return (
-      <motion.section layoutId={layoutId} className="module-sheet p-4">
+      <motion.section layoutId={layoutId} className="widget-sheet p-4">
         <p className="text-sm text-muted">No project selected.</p>
       </motion.section>
     );
   }
 
-  const resolvedTableContract: TableModuleContract = {
+  const resolvedTableContract: TableWidgetContract = {
     ...EMPTY_TABLE_CONTRACT,
     ...tableContract,
   };
-  const resolvedKanbanContract: KanbanModuleContract = {
+  const resolvedKanbanContract: KanbanWidgetContract = {
     ...EMPTY_KANBAN_CONTRACT,
     ...kanbanContract,
   };
-  const resolvedCalendarContract: CalendarModuleContract = {
+  const resolvedCalendarContract: CalendarWidgetContract = {
     ...EMPTY_CALENDAR_CONTRACT,
     ...calendarContract,
   };
-  const resolvedFilesContract: FilesModuleContract = {
+  const resolvedFilesContract: FilesWidgetContract = {
     ...EMPTY_FILES_CONTRACT,
     ...filesContract,
   };
-  const resolvedQuickThoughtsContract: QuickThoughtsModuleContract = {
+  const resolvedQuickThoughtsContract: QuickThoughtsWidgetContract = {
     ...EMPTY_QUICK_THOUGHTS_CONTRACT,
     ...quickThoughtsContract,
   };
-  const resolvedTasksContract: TasksModuleContract = {
+  const resolvedTasksContract: TasksWidgetContract = {
     ...EMPTY_TASKS_CONTRACT,
     ...tasksContract,
   };
-  const resolvedTimelineContract: TimelineModuleContract = {
+  const resolvedTimelineContract: TimelineWidgetContract = {
     ...EMPTY_TIMELINE_CONTRACT,
     ...timelineContract,
   };
-  const resolvedRemindersContract: RemindersModuleContract = {
+  const resolvedRemindersContract: RemindersWidgetContract = {
     ...EMPTY_REMINDERS_CONTRACT,
     ...remindersContract,
   };
 
-  const modules = parseModules(project.layout_config);
-  const isSavingModules = pendingModuleSaves > 0;
+  const widgets = parseWidgets(project.layout_config);
+  const isSavingWidgets = pendingWidgetSaves > 0;
 
-  const saveModules = (nextModules: ContractModuleConfig[]) => {
-    setModuleError(null);
-    setPendingModuleSaves((count) => count + 1);
+  const saveWidgets = (nextWidgets: ContractWidgetConfig[]) => {
+    setWidgetError(null);
+    setPendingWidgetSaves((count) => count + 1);
     saveChainRef.current = saveChainRef.current
       .then(async () => {
         await onUpdateProject(project.project_id, {
           layout_config: {
             ...project.layout_config,
-            modules: serializeModules(nextModules),
+            widgets: serializeWidgets(nextWidgets),
           },
         });
       })
       .catch((error) => {
-        setModuleError(error instanceof Error ? error.message : 'Module layout update failed.');
+        setWidgetError(error instanceof Error ? error.message : 'Widget layout update failed.');
       })
       .finally(() => {
-        setPendingModuleSaves((count) => Math.max(0, count - 1));
+        setPendingWidgetSaves((count) => Math.max(0, count - 1));
       });
     return saveChainRef.current;
   };
 
-  const handleAddModule = (moduleType: string, sizeTier: ContractModuleConfig['size_tier']) => {
-    const normalizedModuleType = normalizeModuleType(moduleType);
-    const nextModules: ContractModuleConfig[] = [
-      ...modules,
+  const handleAddWidget = (widgetType: string, sizeTier: ContractWidgetConfig['size_tier']) => {
+    const normalizedWidgetType = normalizeWidgetType(widgetType);
+    const nextWidgets: ContractWidgetConfig[] = [
+      ...widgets,
       {
-        module_instance_id: `${moduleType}-${Date.now()}`,
-        module_type: normalizedModuleType,
-        size_tier: clampModuleSizeTier(normalizedModuleType, sizeTier),
-        lens: defaultModuleLens(normalizedModuleType),
-        binding: normalizedModuleType === 'kanban' ? { source_mode: 'owned' } : undefined,
+        widget_instance_id: `${widgetType}-${Date.now()}`,
+        widget_type: normalizedWidgetType,
+        size_tier: clampWidgetSizeTier(normalizedWidgetType, sizeTier),
+        lens: defaultWidgetLens(normalizedWidgetType),
+        binding: normalizedWidgetType === 'kanban' ? { source_mode: 'owned' } : undefined,
       },
     ];
-    void saveModules(nextModules);
+    void saveWidgets(nextWidgets);
   };
 
-  const handleRemoveModule = (moduleInstanceId: string) => {
-    const nextModules = modules.filter((module) => module.module_instance_id !== moduleInstanceId);
-    void saveModules(nextModules);
+  const handleRemoveWidget = (widgetInstanceId: string) => {
+    const nextWidgets = widgets.filter((widget) => widget.widget_instance_id !== widgetInstanceId);
+    void saveWidgets(nextWidgets);
   };
 
-  const handleSetModuleLens = (moduleInstanceId: string, lens: ContractModuleConfig['lens']) => {
-    const nextModules = modules.map((module) =>
-      module.module_instance_id === moduleInstanceId
+  const handleSetWidgetLens = (widgetInstanceId: string, lens: ContractWidgetConfig['lens']) => {
+    const nextWidgets = widgets.map((widget) =>
+      widget.widget_instance_id === widgetInstanceId
         ? {
-            ...module,
-            lens: normalizeModuleLens(module.module_type, lens),
+            ...widget,
+            lens: normalizeWidgetLens(widget.widget_type, lens),
           }
-        : module,
+        : widget,
     );
-    void saveModules(nextModules);
+    void saveWidgets(nextWidgets);
   };
 
-  const handleResizeModule = (moduleInstanceId: string, sizeTier: ContractModuleConfig['size_tier']) => {
-    const nextModules = modules.map((module) =>
-      module.module_instance_id === moduleInstanceId
+  const handleResizeWidget = (widgetInstanceId: string, sizeTier: ContractWidgetConfig['size_tier']) => {
+    const nextWidgets = widgets.map((widget) =>
+      widget.widget_instance_id === widgetInstanceId
         ? {
-            ...module,
-            size_tier: clampModuleSizeTier(module.module_type, sizeTier),
+            ...widget,
+            size_tier: clampWidgetSizeTier(widget.widget_type, sizeTier),
           }
-        : module,
+        : widget,
     );
-    void saveModules(nextModules);
+    void saveWidgets(nextWidgets);
   };
 
-  const handleSetModuleBinding = (moduleInstanceId: string, binding: ContractModuleConfig['binding']) => {
-    const nextModules = modules.map((module) =>
-      module.module_instance_id === moduleInstanceId
+  const handleSetWidgetBinding = (widgetInstanceId: string, binding: ContractWidgetConfig['binding']) => {
+    const nextWidgets = widgets.map((widget) =>
+      widget.widget_instance_id === widgetInstanceId
         ? {
-            ...module,
+            ...widget,
             binding,
           }
-        : module,
+        : widget,
     );
-    void saveModules(nextModules);
+    void saveWidgets(nextWidgets);
   };
 
-  const renderModuleBody = (module: ContractModuleConfig) => {
-    if (module.module_type === 'table') {
+  const renderWidgetBody = (widget: ContractWidgetConfig) => {
+    if (widget.widget_type === 'table') {
       return (
-        <TableModule
-          module={module}
+        <TableWidget
+          widget={widget}
           contract={resolvedTableContract}
           canEditProject={canEditProject}
           onOpenRecord={onOpenRecord}
-          onSetModuleBinding={handleSetModuleBinding}
+          onSetWidgetBinding={handleSetWidgetBinding}
         />
       );
     }
 
-    if (module.module_type === 'kanban') {
+    if (widget.widget_type === 'kanban') {
       return (
-        <KanbanModule
-          module={module}
+        <KanbanWidget
+          widget={widget}
           contract={resolvedKanbanContract}
           canEditProject={canEditProject}
           onOpenRecord={onOpenRecord}
-          onSetModuleBinding={handleSetModuleBinding}
+          onSetWidgetBinding={handleSetWidgetBinding}
         />
       );
     }
 
-    if (module.module_type === 'calendar') {
-      return <CalendarModule module={module} contract={resolvedCalendarContract} onOpenRecord={onOpenRecord} />;
+    if (widget.widget_type === 'calendar') {
+      return <CalendarWidget widget={widget} contract={resolvedCalendarContract} onOpenRecord={onOpenRecord} />;
     }
 
-    if (module.module_type === 'tasks') {
-      return <TasksModule module={module} contract={resolvedTasksContract} canEditProject={canEditProject} />;
+    if (widget.widget_type === 'tasks') {
+      return <TasksWidget widget={widget} contract={resolvedTasksContract} canEditProject={canEditProject} />;
     }
 
-    if (module.module_type === 'files') {
-      return <FilesModule module={module} contract={resolvedFilesContract} canEditProject={canEditProject} />;
+    if (widget.widget_type === 'files') {
+      return <FilesWidget widget={widget} contract={resolvedFilesContract} canEditProject={canEditProject} />;
     }
 
-    if (module.module_type === 'reminders') {
-      return <RemindersModule module={module} contract={resolvedRemindersContract} canEditProject={canEditProject} />;
+    if (widget.widget_type === 'reminders') {
+      return <RemindersWidget widget={widget} contract={resolvedRemindersContract} canEditProject={canEditProject} />;
     }
 
-    if (module.module_type === 'quick_thoughts') {
+    if (widget.widget_type === 'quick_thoughts') {
       return (
-        <QuickThoughtsModule
-          module={module}
+        <QuickThoughtsWidget
+          widget={widget}
           contract={resolvedQuickThoughtsContract}
           project={project}
           canEditProject={canEditProject}
@@ -501,25 +501,25 @@ export const WorkView = ({
       );
     }
 
-    if (module.module_type === 'timeline') {
-      return <TimelineModule contract={resolvedTimelineContract} />;
+    if (widget.widget_type === 'timeline') {
+      return <TimelineWidget contract={resolvedTimelineContract} />;
     }
 
-    return <p className="text-xs text-muted">{module.module_type}</p>;
+    return <p className="text-xs text-muted">{widget.widget_type}</p>;
   };
 
-  const moduleGrid = (
-    <ModuleGrid
-      modules={modules}
-      onAddModule={handleAddModule}
-      onRemoveModule={handleRemoveModule}
-      onSetModuleLens={handleSetModuleLens}
-      onResizeModule={handleResizeModule}
+  const widgetGrid = (
+    <WidgetGrid
+      widgets={widgets}
+      onAddWidget={handleAddWidget}
+      onRemoveWidget={handleRemoveWidget}
+      onSetWidgetLens={handleSetWidgetLens}
+      onResizeWidget={handleResizeWidget}
       showAddControls={canEditProject}
-      disableAdd={!canEditProject || isSavingModules}
-      disableMutations={!canEditProject || isSavingModules}
+      disableAdd={!canEditProject || isSavingWidgets}
+      disableMutations={!canEditProject || isSavingWidgets}
       readOnlyState={!canEditProject}
-      renderModuleBody={renderModuleBody}
+      renderWidgetBody={renderWidgetBody}
     />
   );
 
@@ -527,22 +527,22 @@ export const WorkView = ({
     <motion.section layoutId={layoutId} className="space-y-4">
       <header className="section-scored rounded-panel bg-surface-container p-4 shadow-soft-subtle">
         <h2 className="heading-3 text-text">{project.name}</h2>
-        {moduleError ? <p className="mt-2 text-xs text-danger">{moduleError}</p> : null}
+        {widgetError ? <p className="mt-2 text-xs text-danger">{widgetError}</p> : null}
       </header>
 
-      {modulesEnabled ? (
+      {widgetsEnabled ? (
         <>
-          <MobileModulesOverlay key={project.project_id} moduleGrid={moduleGrid} />
+          <MobileWidgetsOverlay key={project.project_id} widgetGrid={widgetGrid} />
         </>
       ) : (
-        <section className="module-sheet p-4">
-          <h3 className="heading-4 text-text">Structured Modules Off</h3>
-          <p className="mt-1 text-sm text-muted">Modules hidden.</p>
+        <section className="widget-sheet p-4">
+          <h3 className="heading-4 text-text">Structured Widgets Off</h3>
+          <p className="mt-1 text-sm text-muted">Widgets hidden.</p>
         </section>
       )}
 
       {showWorkspaceDocPlaceholder ? (
-        <section className="module-sheet p-4">
+        <section className="widget-sheet p-4">
           <h3 className="heading-4 text-text">Workspace Doc</h3>
           <p className="mt-1 text-sm text-muted">Doc ID: {project.doc_id || 'missing'}</p>
         </section>

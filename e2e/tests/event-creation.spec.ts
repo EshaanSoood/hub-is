@@ -21,13 +21,13 @@ const openCalendarWorkProject = async (
     name: 'Calendar Project',
     member_user_ids: [],
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: false,
       doc_binding_mode: 'owned',
-      modules: [
+      widgets: [
         {
-          module_instance_id: `calendar-${runId}`,
-          module_type: 'calendar',
+          widget_instance_id: `calendar-${runId}`,
+          widget_type: 'calendar',
           size_tier: 'M',
           lens: 'project',
         },

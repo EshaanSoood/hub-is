@@ -32,7 +32,7 @@ The cleanest assets to carry forward are the data contracts, schema, policy sema
 
 ### Frontend application
 
-The web app is a routed SPA built around global providers and large feature modules.
+The web app is a routed SPA built around global providers and large feature widgets.
 
 Relevant files:
 
@@ -62,7 +62,7 @@ Relevant files:
 Key observations:
 
 - The server is not incidental infrastructure; it contains core product logic.
-- There are route modules for spaces, work projects, docs, collections, records, views, tasks, reminders, files, search, chat, notifications, automations, and users.
+- There are route widgets for spaces, work projects, docs, collections, records, views, tasks, reminders, files, search, chat, notifications, automations, and users.
 - The SQLite schema is substantial and normalized.
 - Permission gating, validation, notifications, reminders, and timeline emission live here.
 
@@ -286,16 +286,16 @@ Swift consequence:
 
 - The behavior must be decomposed and recreated feature-by-feature.
 
-### 4. Advanced modules and interaction-heavy views
+### 4. Advanced widgets and interaction-heavy views
 
 Relevant files:
 
-- `src/components/project-space/TableModuleSkin.tsx`
-- `src/components/project-space/KanbanModuleSkin.tsx`
-- `src/components/project-space/CalendarModuleSkin.tsx`
+- `src/components/project-space/TableWidgetSkin.tsx`
+- `src/components/project-space/KanbanWidgetSkin.tsx`
+- `src/components/project-space/CalendarWidgetSkin.tsx`
 - `src/components/project-space/CalendarDayView.tsx`
-- `src/components/project-space/FilesModuleSkin.tsx`
-- `src/components/project-space/TasksModuleSkin.tsx`
+- `src/components/project-space/FilesWidgetSkin.tsx`
+- `src/components/project-space/TasksWidgetSkin.tsx`
 
 Why this is a rewrite:
 
@@ -566,7 +566,7 @@ Deliverables:
 - `src/lib/keycloak.ts`
 - `src/components/layout/AppShell.tsx`
 - `src/pages/ProjectSpacePage.tsx`
-- advanced interactive module skins/components
+- advanced interactive widget skins/components
 - `src/features/notes/CollaborativeLexicalEditor.tsx`
 - `src/hooks/useWorkspaceDocRuntime.ts`
 - `apps/hub-collab/collab-server.mjs`
@@ -589,7 +589,7 @@ The parts that should be treated as major rewrites are:
 - auth/session lifecycle
 - app shell
 - workspace orchestration
-- advanced interactive UI modules
+- advanced interactive UI widgets
 - collaborative editing and sync
 
 The correct roadmap is therefore:

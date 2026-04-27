@@ -1,5 +1,5 @@
 import { createRequestLogger } from '../lib/logger.mjs';
-import { installModulePickerSeedData } from './modulePickerSeedMigration.mjs';
+import { installWidgetPickerSeedData } from './widgetPickerSeedMigration.mjs';
 
 /**
  * Database schema initialization — creates all tables, indexes, and constraints from scratch when no schema exists.
@@ -52,7 +52,7 @@ const CONTRACT_TABLES = [
   'automation_rules',
   'automation_runs',
   'bug_reports',
-  'module_picker_seed_data',
+  'widget_picker_seed_data',
 ];
 
 const CONTRACT_TRIGGERS = [
@@ -99,7 +99,7 @@ const CONTRACT_INDEXES = [
   'idx_automation_runs_rule_started',
   'idx_spaces_personal_owner',
   'idx_bug_reports_public_created',
-  'idx_module_picker_seed_module_size',
+  'idx_widget_picker_seed_widget_size',
 ];
 
 const nowIso = () => new Date().toISOString();
@@ -771,10 +771,10 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_bug_reports_public_created ON bug_reports("public", created_at DESC, id DESC);
     `);
 
-    installModulePickerSeedData(db, nowIso);
+    installWidgetPickerSeedData(db, nowIso);
     db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_module_picker_seed_module_size
-        ON module_picker_seed_data(module_type, size_tier);
+      CREATE INDEX IF NOT EXISTS idx_widget_picker_seed_widget_size
+        ON widget_picker_seed_data(widget_type, size_tier);
     `);
     db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 1, ?)').run(nowIso());
 

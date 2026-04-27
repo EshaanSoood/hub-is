@@ -7,7 +7,7 @@ import { AnimatedSurface } from '../../motion/AnimatedSurface';
 import type { PriorityLevel } from '../designTokens';
 import { getPriorityClasses } from '../../../lib/priorityStyles';
 import type { TaskItem, TaskPriorityValue, TaskStatus, TaskSubtask } from './index';
-import type { ModuleInsertItemType } from '../moduleContracts';
+import type { WidgetInsertItemType } from '../widgetContracts';
 
 const PRIORITY_MENU_OPTIONS: Array<{ value: TaskPriorityValue; label: string; tone: PriorityLevel | null }> = [
   { value: 'urgent', label: 'Urgent', tone: 'high' },
@@ -152,8 +152,8 @@ interface TaskRowProps {
   onDeleteTask?: (taskId: string) => void | Promise<void>;
   onOpenRecord?: (recordId: string) => void;
   activeItemId?: string | null;
-  activeItemType?: ModuleInsertItemType;
-  setActiveItem?: (id: string, type: ModuleInsertItemType, title: string) => void;
+  activeItemType?: WidgetInsertItemType;
+  setActiveItem?: (id: string, type: WidgetInsertItemType, title: string) => void;
   clearActiveItem?: () => void;
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
 }
@@ -552,7 +552,7 @@ export const TaskRow = ({
       {showInsertAction ? (
         <button
           type="button"
-          data-module-insert-ignore="true"
+          data-widget-insert-ignore="true"
           onClick={() => {
             onInsertToEditor?.({ id: task.id, type: 'task', title: task.label });
             clearActiveItem?.();

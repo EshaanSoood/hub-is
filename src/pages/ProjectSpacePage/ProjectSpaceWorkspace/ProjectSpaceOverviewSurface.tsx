@@ -1,6 +1,6 @@
 import { useMemo, type ComponentProps, type ReactElement } from 'react';
 import { OverviewView } from '../../../components/project-space/OverviewView';
-import type { CalendarEventSummary } from '../../../components/project-space/CalendarModuleSkin/types';
+import type { CalendarEventSummary } from '../../../components/project-space/CalendarWidgetSkin/types';
 import type { HubProjectMember, HubTaskSummary } from '../../../services/hub/types';
 import type { OverviewSubView } from './types';
 

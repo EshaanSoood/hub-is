@@ -84,18 +84,18 @@ const detectWorkBoundary = async (page) => {
   const projectToolbar = page.getByRole('toolbar', { name: 'Open projects' });
   const newProjectInput = page.getByLabel('New project name');
   const workspaceDocHeading = page.getByRole('heading', { name: 'Workspace Doc' });
-  const addModuleButton = page.getByTestId('add-module-table');
+  const addWidgetButton = page.getByTestId('add-widget-table');
   const createProjectButton = page.getByRole('button', { name: 'Create project' });
   const workProjectsText = page.getByText('Work Projects', { exact: false });
-  const addModuleText = page.getByText('Add module: Table', { exact: false });
+  const addWidgetText = page.getByText('Add widget: Table', { exact: false });
   if (
     (await projectToolbar.isVisible().catch(() => false))
     || (await newProjectInput.isVisible().catch(() => false))
     || (await workspaceDocHeading.isVisible().catch(() => false))
-    || (await addModuleButton.isVisible().catch(() => false))
+    || (await addWidgetButton.isVisible().catch(() => false))
     || (await createProjectButton.isVisible().catch(() => false))
     || (await workProjectsText.isVisible().catch(() => false))
-    || (await addModuleText.isVisible().catch(() => false))
+    || (await addWidgetText.isVisible().catch(() => false))
   ) {
     return {
       kind: 'ready',
@@ -114,10 +114,10 @@ export const openWorkTab = async (page, projectId, preferredProjectId = '') => {
       page.getByRole('toolbar', { name: 'Open projects' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByLabel('New project name').waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByRole('heading', { name: 'Workspace Doc' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
-      page.getByTestId('add-module-table').waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+      page.getByTestId('add-widget-table').waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByRole('button', { name: 'Create project' }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByText('Work Projects', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
-      page.getByText('Add module: Table', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
+      page.getByText('Add widget: Table', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByRole('heading', { name: /Access denied/i }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
       page.getByText('No projects available', { exact: false }).waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
     ]);

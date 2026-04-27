@@ -14,11 +14,11 @@
 
 **Files:** `src/pages/ProjectSpacePage.tsx` (lines 192-2052)
 
-**What's happening:** The page handles route/query parsing and navigation helpers (`src/pages/ProjectSpacePage.tsx`:233-236,510-629), composes many runtime hooks (`src/pages/ProjectSpacePage.tsx`:253-384), builds a large module runtime adapter object (`src/pages/ProjectSpacePage.tsx`:784-1006), and renders multiple major UI regions/dialogs (`src/pages/ProjectSpacePage.tsx`:1027-2052). The file therefore acts as router adapter, view-model assembler, and view implementation simultaneously.
+**What's happening:** The page handles route/query parsing and navigation helpers (`src/pages/ProjectSpacePage.tsx`:233-236,510-629), composes many runtime hooks (`src/pages/ProjectSpacePage.tsx`:253-384), builds a large widget runtime adapter object (`src/pages/ProjectSpacePage.tsx`:784-1006), and renders multiple major UI regions/dialogs (`src/pages/ProjectSpacePage.tsx`:1027-2052). The file therefore acts as router adapter, view-model assembler, and view implementation simultaneously.
 
 **Why it matters:** The blast radius for edits is high because behavior and presentation are coupled across >2k lines.
 
-### API entrypoint is a monolith despite route module extraction
+### API entrypoint is a monolith despite route widget extraction
 
 **Files:** `apps/hub-api/hub-api.mjs` (lines 37-4162)
 
@@ -26,11 +26,11 @@
 
 **Why it matters:** Operational and feature changes must be reasoned about in one very large surface, increasing incident risk.
 
-### Table module skin aggregates many independent concerns in one component
+### Table widget skin aggregates many independent concerns in one component
 
-**Files:** `src/components/project-space/TableModuleSkin.tsx` (lines 453-1478)
+**Files:** `src/components/project-space/TableWidgetSkin.tsx` (lines 453-1478)
 
-**What's happening:** One component owns filtering, sorting, drag-reorder, virtualization, inline editing, bulk actions, create-row flow, and keyboard grid navigation (`src/components/project-space/TableModuleSkin.tsx`:453-1478). Supporting logic for value normalization and field parsing is also in the same file (`src/components/project-space/TableModuleSkin.tsx`:104-360).
+**What's happening:** One component owns filtering, sorting, drag-reorder, virtualization, inline editing, bulk actions, create-row flow, and keyboard grid navigation (`src/components/project-space/TableWidgetSkin.tsx`:453-1478). Supporting logic for value normalization and field parsing is also in the same file (`src/components/project-space/TableWidgetSkin.tsx`:104-360).
 
 **Why it matters:** Small feature changes require touching a dense interaction surface with many coupled states.
 
@@ -52,17 +52,17 @@
 
 **Why it matters:** Visual identity and recognition consistency degrade as the same project appears with different dot colors.
 
-### Task rendering diverges across myHub, Overview, and project module surfaces
+### Task rendering diverges across myHub, Overview, and project widget surfaces
 
-**Files:** `src/features/PersonalizedDashboardPanel.tsx` (lines 303-358), `src/components/project-space/OverviewView.tsx` (lines 428-516), `src/components/project-space/TasksModuleSkin.tsx` (lines 142-229, 492-634)
+**Files:** `src/features/PersonalizedDashboardPanel.tsx` (lines 303-358), `src/components/project-space/OverviewView.tsx` (lines 428-516), `src/components/project-space/TasksWidgetSkin.tsx` (lines 142-229, 492-634)
 
-**What's happening:** myHub uses `ItemRow` cards, Overview wraps `TasksTab` with page-specific controls, and project modules split S/M/L behavior with `TaskSummaryRow`/`TasksTab`. These are separate implementations of the same task-list concept with different interactions and copy.
+**What's happening:** myHub uses `ItemRow` cards, Overview wraps `TasksTab` with page-specific controls, and project widgets split S/M/L behavior with `TaskSummaryRow`/`TasksTab`. These are separate implementations of the same task-list concept with different interactions and copy.
 
 **Why it matters:** Product behavior drifts by location, increasing maintenance cost and UX inconsistency.
 
 ### Reminder natural-language create UX is duplicated
 
-**Files:** `src/components/layout/QuickAddDialogs.tsx` (lines 131-218), `src/components/project-space/RemindersModuleSkin.tsx` (lines 323-393, 456-531)
+**Files:** `src/components/layout/QuickAddDialogs.tsx` (lines 131-218), `src/components/project-space/RemindersWidgetSkin.tsx` (lines 323-393, 456-531)
 
 **What's happening:** Both implement reminder draft input, parse preview rendering, and inline error/submission handling separately. The shape and edge-case behavior are close but not shared.
 
@@ -70,11 +70,11 @@
 
 ## 3. Inline sub-components that should be extracted
 
-### Task composer is a substantial inline component inside TasksModuleSkin
+### Task composer is a substantial inline component inside TasksWidgetSkin
 
-**Files:** `src/components/project-space/TasksModuleSkin.tsx` (lines 231-400)
+**Files:** `src/components/project-space/TasksWidgetSkin.tsx` (lines 231-400)
 
-**What's happening:** `TaskComposer` spans creation form state, submit/reset logic, parent-task linking, and error rendering while living inside `TasksModuleSkin.tsx`. It is reused by multiple size tiers (`src/components/project-space/TasksModuleSkin.tsx`:415-416,465-470,582-588).
+**What's happening:** `TaskComposer` spans creation form state, submit/reset logic, parent-task linking, and error rendering while living inside `TasksWidgetSkin.tsx`. It is reused by multiple size tiers (`src/components/project-space/TasksWidgetSkin.tsx`:415-416,465-470,582-588).
 
 **Why it matters:** The host file accumulates unrelated concerns and becomes harder to navigate.
 
@@ -88,9 +88,9 @@
 
 ### Calendar medium week strip is a large inline specialized view
 
-**Files:** `src/components/project-space/CalendarModuleSkin.tsx` (lines 191-298)
+**Files:** `src/components/project-space/CalendarWidgetSkin.tsx` (lines 191-298)
 
-**What's happening:** `CalendarMediumWeekStrip` is defined inline and contains its own rendering rules and interaction behavior, while `CalendarModuleSkin` also contains S/L and create-panel logic (`src/components/project-space/CalendarModuleSkin.tsx`:300-901).
+**What's happening:** `CalendarMediumWeekStrip` is defined inline and contains its own rendering rules and interaction behavior, while `CalendarWidgetSkin` also contains S/L and create-panel logic (`src/components/project-space/CalendarWidgetSkin.tsx`:300-901).
 
 **Why it matters:** Calendar complexity concentrates in one file and hides reusable sub-view boundaries.
 
@@ -134,9 +134,9 @@
 
 **Files:** `src/pages/ProjectSpacePage.tsx` (lines 784-1006), `src/components/project-space/WorkView.tsx` (lines 23-32, 161-170, 410-445, 527-580)
 
-**What's happening:** `ProjectSpacePage` builds a large `workViewModuleRuntime` object containing many module-specific handlers and data, then passes it as `moduleRuntime` into `WorkView`, which fans it back out to module components. Intermediate layers mostly pass through nested runtime slices.
+**What's happening:** `ProjectSpacePage` builds a large `workViewWidgetRuntime` object containing many widget-specific handlers and data, then passes it as `widgetRuntime` into `WorkView`, which fans it back out to widget components. Intermediate layers mostly pass through nested runtime slices.
 
-**Why it matters:** The contract is hard to evolve safely and increases coupling between page orchestration and all module implementations.
+**Why it matters:** The contract is hard to evolve safely and increases coupling between page orchestration and all widget implementations.
 
 ### Quick-add dialogs use broad controlled prop surfaces from AppShell
 
@@ -146,13 +146,13 @@
 
 **Why it matters:** Changes to one quick-add flow propagate across a wide prop interface and increase accidental breakage.
 
-### ModuleInsertContext stores transient row-level selection globally
+### WidgetInsertContext stores transient row-level selection globally
 
-**Files:** `src/context/ModuleInsertContext.tsx` (lines 5-12, 32-67), `src/components/project-space/TasksModuleSkin.tsx` (lines 168-173), `src/components/project-space/RemindersModuleSkin.tsx` (lines 227-231), `src/components/project-space/InboxCaptureModuleSkin.tsx` (lines 176-183)
+**Files:** `src/context/WidgetInsertContext.tsx` (lines 5-12, 32-67), `src/components/project-space/TasksWidgetSkin.tsx` (lines 168-173), `src/components/project-space/RemindersWidgetSkin.tsx` (lines 227-231), `src/components/project-space/InboxCaptureModuleSkin.tsx` (lines 176-183)
 
-**What's happening:** A global context tracks active item id/type/title used for per-row insert affordances across multiple modules. The state is interaction-local and short-lived but globally shared.
+**What's happening:** A global context tracks active item id/type/title used for per-row insert affordances across multiple widgets. The state is interaction-local and short-lived but globally shared.
 
-**Why it matters:** Globalizing ephemeral UI state increases hidden coupling between otherwise independent module surfaces.
+**Why it matters:** Globalizing ephemeral UI state increases hidden coupling between otherwise independent widget surfaces.
 
 ## 6. Styling drift
 
@@ -166,7 +166,7 @@
 
 ### Hardcoded color utility bypasses semantic token usage
 
-**Files:** `src/components/project-space/TasksModuleSkin.tsx` (line 351)
+**Files:** `src/components/project-space/TasksWidgetSkin.tsx` (line 351)
 
 **What's happening:** Error text uses `text-red-500` instead of the semantic `text-danger` token classes used elsewhere.
 
@@ -174,7 +174,7 @@
 
 ### Inline style sprawl in core interaction surfaces
 
-**Files:** `src/components/layout/AppShell.tsx` (lines 1431, 1464, 1489, 1626, 1698, 1961, 1996), `src/components/hub-home/DayStrip.tsx` (lines 358, 383, 395, 403, 415, 429, 435, 464, 480, 486), `src/components/project-space/FilesModuleSkin.tsx` (lines 171, 180, 192, 262, 349, 406, 457), `src/components/project-space/RemindersModuleSkin.tsx` (lines 238, 570)
+**Files:** `src/components/layout/AppShell.tsx` (lines 1431, 1464, 1489, 1626, 1698, 1961, 1996), `src/components/hub-home/DayStrip.tsx` (lines 358, 383, 395, 403, 415, 429, 435, 464, 480, 486), `src/components/project-space/FilesWidgetSkin.tsx` (lines 171, 180, 192, 262, 349, 406, 457), `src/components/project-space/RemindersWidgetSkin.tsx` (lines 238, 570)
 
 **What's happening:** Many components rely on ad-hoc inline styles for colors, dimensions, and animated backgrounds rather than tokenized class-based styling. This includes high-traffic UI areas (search, timeline, files, reminders).
 
@@ -190,13 +190,13 @@
 
 ## 7. Vocabulary drift in code
 
-### “Inbox” and “quick thoughts” are both used for the same module concept
+### “Inbox” and “quick thoughts” are both used for the same widget concept
 
 **Files:** `src/components/project-space/WorkView.tsx` (lines 172-176), `src/components/project-space/InboxCaptureModuleSkin.tsx` (lines 284-520)
 
-**What's happening:** Runtime normalization maps `inbox` to `quick_thoughts`, while the implementation file and export names still include `InboxCaptureModuleSkin` and `QuickThoughtsModuleSkin`. Two vocabularies describe one module.
+**What's happening:** Runtime normalization maps `inbox` to `quick_thoughts`, while the implementation file and export names still include `InboxCaptureModuleSkin` and `QuickThoughtsWidgetSkin`. Two vocabularies describe one widget.
 
-**Why it matters:** Naming inconsistency raises cognitive load when tracing module behavior across files.
+**Why it matters:** Naming inconsistency raises cognitive load when tracing widget behavior across files.
 
 ### Space home route vocabulary is mixed
 
@@ -224,11 +224,11 @@
 
 **Why it matters:** Dormant UI files create false architecture signals and increase maintenance overhead.
 
-### Mock project-space data module appears unmounted from production paths
+### Mock project-space data widget appears unmounted from production paths
 
 **Files:** `src/components/project-space/mockProjectSpace.ts` (lines 1-240)
 
-**What's happening:** The module defines a full mock project/template system, but import search shows no active references from production route components.
+**What's happening:** The widget defines a full mock project/template system, but import search shows no active references from production route components.
 
 **Why it matters:** Large unmounted support files make the project harder to scan and reason about.
 
@@ -242,9 +242,9 @@
 
 **Why it matters:** Keyboard-only users cannot perform the same assignment flow.
 
-### Error text is rendered without alert/live semantics in key module composers
+### Error text is rendered without alert/live semantics in key widget composers
 
-**Files:** `src/components/project-space/TasksModuleSkin.tsx` (line 351), `src/components/project-space/RemindersModuleSkin.tsx` (line 531)
+**Files:** `src/components/project-space/TasksWidgetSkin.tsx` (line 351), `src/components/project-space/RemindersWidgetSkin.tsx` (line 531)
 
 **What's happening:** Inline error messages are visually styled but do not use `role="alert"` or assertive live-region semantics in these composer paths.
 
@@ -252,7 +252,7 @@
 
 ### Button role semantics are partially implemented on non-button element
 
-**Files:** `src/components/project-space/RemindersModuleSkin.tsx` (lines 245-263)
+**Files:** `src/components/project-space/RemindersWidgetSkin.tsx` (lines 245-263)
 
 **What's happening:** A `div` is given `role="button"` and keyboard handlers, but it does not expose a corresponding click activation handler typical for button parity behavior.
 

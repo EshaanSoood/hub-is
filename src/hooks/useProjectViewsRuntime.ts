@@ -67,7 +67,7 @@ export const useProjectViewsRuntime = ({
   const {
     kanbanRuntimeByViewId,
     kanbanLoading,
-    creatingKanbanViewByModuleId,
+    creatingKanbanViewByWidgetId,
     refreshKanbanRuntime,
     clearKanbanRuntime,
     onMoveKanbanRecord,
@@ -180,7 +180,7 @@ export const useProjectViewsRuntime = ({
     tableLoading,
     kanbanRuntimeByViewId,
     kanbanLoading,
-    creatingKanbanViewByModuleId,
+    creatingKanbanViewByWidgetId,
     recordsError,
     setRecordsError,
     selectedEmbedViewId,

@@ -13,7 +13,7 @@ import {
   type DragStartEvent,
   type UniqueIdentifier,
 } from '@dnd-kit/core';
-import { ModuleEmptyState } from './ModuleFeedback';
+import { WidgetEmptyState } from './WidgetFeedback';
 import { EventCard } from '../cards/EventCard';
 import { cn } from '../../lib/cn';
 
@@ -724,7 +724,7 @@ export const CalendarDayView = ({
 
       {dayEvents.length === 0 ? (
         <div className="rounded-panel border border-border-muted bg-surface p-6">
-          <ModuleEmptyState title="No events today" description="Create an event to plan this day." />
+          <WidgetEmptyState title="No events today" description="Create an event to plan this day." />
           {onCreateEvent ? (
             <div className="mt-4 flex justify-center">
               <button

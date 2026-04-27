@@ -64,18 +64,18 @@ The seed must create a space with enough data to exercise every project workspac
 
 5. **Create two work projects**:
 
-   **Work project A — "Verify Main Project"**: `modules_enabled: true`, `workspace_enabled: true`. Modules:
-   - `table` module, size tier `L`, lens `project`, bound to the table view
-   - `kanban` module, size tier `L`, lens `project`, bound to the kanban view
-   - `calendar` module, size tier `M`, lens `project`
-   - `tasks` module, size tier `M`, lens `project`
-   - `reminders` module, size tier `S`, lens `project`
-   - `files` module, size tier `M`, lens `project`
-   - `quick-thoughts` module, size tier `S`, lens `project`
+   **Work project A — "Verify Main Project"**: `widgets_enabled: true`, `workspace_enabled: true`. Widgets:
+   - `table` widget, size tier `L`, lens `project`, bound to the table view
+   - `kanban` widget, size tier `L`, lens `project`, bound to the kanban view
+   - `calendar` widget, size tier `M`, lens `project`
+   - `tasks` widget, size tier `M`, lens `project`
+   - `reminders` widget, size tier `S`, lens `project`
+   - `files` widget, size tier `M`, lens `project`
+   - `quick-thoughts` widget, size tier `S`, lens `project`
 
-   **Work project B — "Verify Private Project"**: `modules_enabled: true`, `workspace_enabled: true`. Modules:
-   - `table` module, size tier `M`, lens `project`, bound to table view
-   - `tasks` module, size tier `L`, lens `project`
+   **Work project B — "Verify Private Project"**: `widgets_enabled: true`, `workspace_enabled: true`. Widgets:
+   - `table` widget, size tier `M`, lens `project`, bound to table view
+   - `tasks` widget, size tier `L`, lens `project`
 
 6. **Create records** (at least 5) with varied statuses, priorities, due dates, and assignments. At least one in each status (todo, in-progress, done). At least one with high priority and a due date today. At least one with an assignment to the owner user.
 
@@ -120,49 +120,49 @@ Checks:
 - Member list or member avatars are visible
 - The overview is not empty — at least some content renders below the header
 
-### Phase 3 — Module Grid
+### Phase 3 — Widget Grid
 
-Navigate to the project's work view, selecting Project A (the main project with 7 modules).
+Navigate to the project's work view, selecting Project A (the main project with 7 widgets).
 
 Checks:
-- `ModuleGrid` container is present
-- Count the number of rendered module containers — expect 7
-- Each module has a visible header or label identifying its type
-- Modules at different size tiers render at visually different sizes (check that L-tier modules have a larger bounding box than S-tier modules by comparing `offsetWidth` or `offsetHeight`)
-- No modules show an error/fallback state (look for `ModuleFeedback` error indicators)
+- `WidgetGrid` container is present
+- Count the number of rendered widget containers — expect 7
+- Each widget has a visible header or label identifying its type
+- Widgets at different size tiers render at visually different sizes (check that L-tier widgets have a larger bounding box than S-tier widgets by comparing `offsetWidth` or `offsetHeight`)
+- No widgets show an error/fallback state (look for `WidgetFeedback` error indicators)
 
-### Phase 4 — Individual Module Skins
+### Phase 4 — Individual Widget Skins
 
-Stay on the work view with Project A. For each module type, locate it and verify its content:
+Stay on the work view with Project A. For each widget type, locate it and verify its content:
 
-**Table module:**
+**Table widget:**
 - Table element or grid role is present
 - Column headers are visible (at least Status, Priority, Notes)
 - Row count matches expected record count (at least 5 rows)
 
-**Kanban module:**
+**Kanban widget:**
 - Kanban board container is present
 - At least 3 columns/lanes are visible (todo, in-progress, done)
 - Cards are present in the lanes
 
-**Calendar module:**
+**Calendar widget:**
 - Calendar container is present
 - Month/week/day toggle or view selector is visible
 - The seeded event title appears somewhere in the calendar
 
-**Tasks module:**
+**Tasks widget:**
 - Tasks container is present
 - At least one task title from the seeded data is visible
 
-**Reminders module:**
+**Reminders widget:**
 - Reminders container is present
 - NLP input field is visible (an input or textarea for adding reminders)
 
-**Files module:**
+**Files widget:**
 - Files container is present
 - An empty state or file list is visible (we didn't seed files, so empty state is expected and OK)
 
-**Quick Thoughts (Inbox Capture) module:**
+**Quick Thoughts (Inbox Capture) widget:**
 - Container is present
 - Input area for capturing quick thoughts is visible
 
@@ -178,7 +178,7 @@ Checks:
 
 ### Phase 6 — Record Inspector
 
-From the work view, click on one of the seeded records in the table module to open it.
+From the work view, click on one of the seeded records in the table widget to open it.
 
 Checks:
 - Record inspector/detail panel opens (look for a panel, dialog, or sidebar with the record title)
@@ -189,10 +189,10 @@ Checks:
 
 ### Phase 7 — File Operations
 
-Navigate to the work view, Project A, and locate the Files module.
+Navigate to the work view, Project A, and locate the Files widget.
 
 Checks:
-- Files module is present and shows empty state or file listing
+- Files widget is present and shows empty state or file listing
 - Upload affordance is visible (a button, dropzone, or upload trigger)
 - If there's an action bar, verify it renders (the `FileInspectorActionBar`)
 

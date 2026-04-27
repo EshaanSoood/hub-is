@@ -73,26 +73,26 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
     name: `Audit Shared ${runId}`,
     member_user_ids: [viewerSession.userId],
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
-      modules: [
+      widgets: [
         {
-          module_instance_id: `table-${runId}`,
-          module_type: 'table',
+          widget_instance_id: `table-${runId}`,
+          widget_type: 'table',
           size_tier: 'L',
           lens: 'project',
           binding: { view_id: tableView.view_id },
         },
         {
-          module_instance_id: `kanban-${runId}`,
-          module_type: 'kanban',
+          widget_instance_id: `kanban-${runId}`,
+          widget_type: 'kanban',
           size_tier: 'L',
           lens: 'project',
           binding: { view_id: kanbanView.view_id },
         },
         {
-          module_instance_id: `files-${runId}`,
-          module_type: 'files',
+          widget_instance_id: `files-${runId}`,
+          widget_type: 'files',
           size_tier: 'M',
           lens: 'project',
         },
@@ -104,12 +104,12 @@ setup('authenticate once and seed the E2E audit fixture', async () => {
     name: `Audit Private ${runId}`,
     member_user_ids: [],
     layout_config: {
-      modules_enabled: true,
+      widgets_enabled: true,
       workspace_enabled: true,
-      modules: [
+      widgets: [
         {
-          module_instance_id: `table-${runId}-private`,
-          module_type: 'table',
+          widget_instance_id: `table-${runId}-private`,
+          widget_type: 'table',
           size_tier: 'M',
           lens: 'project',
           binding: { view_id: tableView.view_id },
