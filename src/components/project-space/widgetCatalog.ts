@@ -67,24 +67,6 @@ export const WIDGET_CATALOG = [
     allowedSizeTiers: ['S', 'M', 'L'],
     defaultSize: 'M',
   },
-  {
-    type: 'files',
-    label: 'Files',
-    description: 'Shared assets and uploads for the project.',
-    lensConfigurable: true,
-    iconName: 'upload',
-    allowedSizeTiers: ['S', 'M', 'L'],
-    defaultSize: 'S',
-  },
-  {
-    type: 'quick_thoughts',
-    label: 'Quick Thoughts',
-    description: 'Low-friction capture for ideas and notes.',
-    lensConfigurable: false,
-    iconName: 'thought-pile',
-    allowedSizeTiers: ['S', 'M', 'L'],
-    defaultSize: 'S',
-  },
 ] as const satisfies readonly WidgetCatalogEntry[];
 
 export const widgetCatalogEntry = (widgetType: string) =>
@@ -118,14 +100,11 @@ export const widgetAccentClassName = (widgetType: string): string => {
   if (widgetType === 'calendar') {
     return 'widget-accent-calendar';
   }
-  if (widgetType === 'quick_thoughts' || widgetType === 'notes') {
+  if (widgetType === 'notes') {
     return 'widget-accent-notes';
   }
   if (widgetType === 'timeline' || widgetType === 'stream') {
     return 'widget-accent-stream';
-  }
-  if (widgetType === 'files') {
-    return 'widget-accent-files';
   }
   if (widgetType === 'reminders') {
     return 'widget-accent-reminders';

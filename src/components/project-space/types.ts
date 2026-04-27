@@ -13,12 +13,10 @@ export type WidgetLens = 'space' | 'project' | 'project_scratch';
 export type WidgetType =
   | 'tasks'
   | 'calendar'
-  | 'timeline'
-  | 'files'
-  | 'quick_thoughts'
-  | 'workspaces'
-  | 'people'
-  | 'notifications';
+  | 'reminders'
+  | 'kanban'
+  | 'table'
+  | 'timeline';
 
 export interface Collaborator {
   id: string;

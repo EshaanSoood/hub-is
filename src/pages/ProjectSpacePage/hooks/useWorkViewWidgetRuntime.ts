@@ -282,7 +282,7 @@ export const useWorkViewWidgetRuntime = ({
         // TODO(phase8): wire widget insert-to-editor callbacks from workspace-doc runtime.
         onInsertToEditor: undefined,
       },
-      quickThoughtsContract: {
+      scratchPadContract: {
         storageKeyBase: `hub:quick-thoughts:${projectId}`,
         legacyStorageKeyBase: `hub:capture:${projectId}`,
         // TODO(phase8): wire widget insert-to-editor callbacks from workspace-doc runtime.

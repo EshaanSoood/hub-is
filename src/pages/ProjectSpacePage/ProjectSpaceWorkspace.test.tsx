@@ -507,7 +507,7 @@ vi.mock('./hooks/useWorkViewWidgetRuntime', () => ({
       onUploadSpaceFiles: vi.fn(),
       onOpenFile: vi.fn(),
     },
-    quickThoughtsContract: {
+    scratchPadContract: {
       storageKeyBase: 'quick-thoughts',
     },
     tasksContract: {

@@ -6,9 +6,7 @@ export type WidgetPickerWidgetType =
   | 'calendar'
   | 'tasks'
   | 'reminders'
-  | 'timeline'
-  | 'files'
-  | 'quick_thoughts';
+  | 'timeline';
 
 export type WidgetPickerSize = WidgetSizeTier;
 

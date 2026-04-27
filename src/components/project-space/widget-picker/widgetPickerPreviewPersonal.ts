@@ -1,7 +1,5 @@
 import type {
   CalendarWidgetContract,
-  FilesWidgetContract,
-  QuickThoughtsWidgetContract,
   RemindersWidgetContract,
   TasksWidgetContract,
   TimelineWidgetContract,
@@ -80,23 +78,6 @@ export const remindersContract = (seed: WidgetPickerSeedPayload): RemindersWidge
   onCreate: noopAsync,
 });
 
-export const filesContract = (seed: WidgetPickerSeedPayload): FilesWidgetContract => {
-  const files = asArray(seed.items).map((name, index) => {
-    const fileName = asText(name);
-    const extensionDotIndex = fileName.lastIndexOf('.');
-    return {
-      id: `preview-file-${index}`,
-      name: fileName,
-      ext: extensionDotIndex > 0 ? fileName.slice(extensionDotIndex + 1) : '',
-      sizeLabel: `${index + 1}.${index + 2} MB`,
-      sizeBytes: (index + 1) * 1024 * 1024,
-      uploadedAt: 'Just now',
-      uploadedAtTimestamp: Date.now() - index * 60_000,
-    };
-  });
-  return { projectFiles: files, spaceFiles: files, onUploadProjectFiles: noop, onUploadSpaceFiles: noop, onOpenFile: noop };
-};
-
 export const timelineContract = (seed: WidgetPickerSeedPayload): TimelineWidgetContract => ({
   clusters: [{
     date: 'Today',
@@ -120,17 +101,3 @@ export const timelineContract = (seed: WidgetPickerSeedPayload): TimelineWidgetC
   onLoadMore: noop,
   onItemClick: noop,
 });
-
-export const quickThoughtsContract = (seed: WidgetPickerSeedPayload): QuickThoughtsWidgetContract => ({
-  storageKeyBase: 'hub:widget-picker-preview:quick-thoughts',
-  initialEntries: quickThoughtEntries(seed),
-});
-
-export const quickThoughtEntries = (seed: WidgetPickerSeedPayload) =>
-  asArray(seed.notes).map((note, index) => ({
-    id: `preview-thought-${index}`,
-    text: asText(note, 'Preview thought'),
-    createdAt: 'Just now',
-    updatedAt: null,
-    archived: false,
-  }));

@@ -7,10 +7,12 @@ import {
 import { Icon, InlineNotice } from '../../../components/primitives';
 import { ProjectSwitcher } from '../../../components/project-space/ProjectSwitcher';
 import type { HubProjectSummary, HubProjectMember } from '../../../services/hub/types';
+import type { FilesWidgetContract, ScratchPadContract } from '../../../components/project-space/widgetContracts';
 import type { ProjectLateralSource } from '../../../components/motion/hubMotion';
 import { dialogLayoutIds } from '../../../styles/motion';
 import { useProjectControlEffects } from '../hooks/useProjectControlEffects';
 import { ProjectSpaceProjectSettingsDialog } from './ProjectSpaceProjectSettingsDialog';
+import { ProjectToolbarResourceDialogs } from './ProjectToolbarResourceDialogs';
 
 const projectToolbarButtonClassName =
   'interactive interactive-fold card-folded inline-flex h-8 items-center justify-center bg-surface-low px-3 text-xs font-semibold text-primary transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring';
@@ -31,6 +33,8 @@ export interface ProjectSpaceProjectChromeProps {
   widgetsEnabled: boolean;
   workspaceEnabled: boolean;
   projectMutationError: string | null;
+  filesContract: FilesWidgetContract;
+  scratchPadContract: ScratchPadContract;
   onNavigateToProject: (params: {
     projectId: string;
     projectName?: string | null;
@@ -61,6 +65,8 @@ export const ProjectSpaceWorkProjectChrome = ({
   widgetsEnabled,
   workspaceEnabled,
   projectMutationError,
+  filesContract,
+  scratchPadContract,
   onNavigateToProject,
   onCreateProject,
   onMoveProject,
@@ -196,6 +202,13 @@ export const ProjectSpaceWorkProjectChrome = ({
               New project
             </button>
           ) : null}
+          <ProjectToolbarResourceDialogs
+            activeProject={activeProject}
+            activeProjectCanEdit={activeProjectCanEdit}
+            filesContract={filesContract}
+            scratchPadContract={scratchPadContract}
+            buttonClassName={projectToolbarButtonClassName}
+          />
           <motion.div
             layoutId={!prefersReducedMotion && projectSettingsOpen ? dialogLayoutIds.projectSettings : undefined}
             className="inline-flex"

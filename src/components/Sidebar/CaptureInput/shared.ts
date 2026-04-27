@@ -14,8 +14,7 @@ export interface CaptureDestination {
   space?: ProjectRecord | null;
 }
 
-export const widgetTypesByCaptureKind: Record<CaptureKind, string> = {
-  thought: 'quick_thoughts',
+export const widgetTypesByCaptureKind: Record<Exclude<CaptureKind, 'thought'>, string> = {
   task: 'tasks',
   event: 'calendar',
   reminder: 'reminders',
@@ -38,14 +37,7 @@ export const readProjectHasWidgetType = (project: HubProjectSummary, widgetType:
 };
 
 export const readQuickThoughtStorageKey = (project: HubProjectSummary): string | null => {
-  const widgets = Array.isArray(project.layout_config?.widgets) ? project.layout_config.widgets : [];
-  const matchingWidget = widgets.find(
-    (entry) => entry && typeof entry === 'object' && !Array.isArray(entry) && entry.widget_type === 'quick_thoughts',
-  ) as { widget_instance_id?: unknown } | undefined;
-  if (!matchingWidget || typeof matchingWidget.widget_instance_id !== 'string' || !matchingWidget.widget_instance_id.trim()) {
-    return null;
-  }
-  return `hub:quick-thoughts:${project.space_id}:${project.project_id}:${matchingWidget.widget_instance_id}`;
+  return `hub:quick-thoughts:${project.space_id}:${project.project_id}`;
 };
 
 export const selectCollectionId = async (

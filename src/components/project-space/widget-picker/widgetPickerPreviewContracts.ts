@@ -6,9 +6,6 @@ export {
 
 export {
   calendarContract,
-  filesContract,
-  quickThoughtEntries,
-  quickThoughtsContract,
   remindersContract,
   tasksContract,
   timelineContract,

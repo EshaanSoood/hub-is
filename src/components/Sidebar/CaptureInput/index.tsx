@@ -159,6 +159,18 @@ export const CaptureInput = ({
       ? currentProjectProjects.find((project) => project.project_id === currentProjectId) || null
       : null;
     const resolveProjectDestination = (kind: CaptureKind): CaptureDestination | null => {
+      if (kind === 'thought') {
+        const scratchPadProject = activeProject || currentProjectProjects[0] || null;
+        if (!scratchPadProject) {
+          return null;
+        }
+        return {
+          kind: 'project',
+          label: `${currentProject.name} / ${scratchPadProject.name}`,
+          project: scratchPadProject,
+          space: currentProject,
+        };
+      }
       const requiredWidgetType = widgetTypesByCaptureKind[kind];
       const matchingProject = activeProject && readProjectHasWidgetType(activeProject, requiredWidgetType)
         ? activeProject

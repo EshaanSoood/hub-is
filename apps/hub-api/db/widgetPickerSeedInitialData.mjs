@@ -5,8 +5,6 @@ const allowedSizesByWidget = {
   tasks: ['S', 'M', 'L'],
   reminders: ['S', 'M', 'L'],
   timeline: ['S', 'M', 'L'],
-  files: ['S', 'M', 'L'],
-  quick_thoughts: ['S', 'M', 'L'],
 };
 
 const baseSeeds = {
@@ -52,17 +50,6 @@ const baseSeeds = {
       { title: 'Activity shows up here - like a diary, but useful', minutesAgo: 12 },
       { title: 'See what changed and when', minutesAgo: 45 },
       { title: "Your team's story, one event at a time", minutesAgo: 120 },
-    ],
-  },
-  files: {
-    label: 'Upload, share, hoard - your call.',
-    items: ['definitely-not-a-cat-pic.png', 'meeting-notes-final-FINAL-v2.md', 'the-good-stuff.pdf'],
-  },
-  quick_thoughts: {
-    notes: [
-      'Brain dump here - no judgment',
-      "Thoughts don't need structure yet",
-      'Come back later and pretend you planned it all along',
     ],
   },
 };

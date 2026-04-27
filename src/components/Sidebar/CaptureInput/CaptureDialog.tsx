@@ -251,7 +251,7 @@ export const CaptureDialog = ({
           const project = destination.project;
           const storageKey = readQuickThoughtStorageKey(project);
           if (!storageKey) {
-            throw new Error('Quick Thoughts is unavailable for this project.');
+            throw new Error('Scratch Pad is unavailable for this project.');
           }
           createQuickThoughtEntry(storageKey, trimmedDraft);
           startTransition(() => {

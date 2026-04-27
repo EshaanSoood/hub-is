@@ -1,12 +1,9 @@
 import { cn } from '../../../lib/cn';
-import type { HubProjectSummary } from '../../../services/hub/types';
 import { WidgetLoadingState } from '../WidgetFeedback';
 import { WidgetShell } from '../WidgetShell';
 import {
   CalendarWidget,
-  FilesWidget,
   KanbanWidget,
-  QuickThoughtsWidget,
   RemindersWidget,
   TableWidget,
   TasksWidget,
@@ -16,9 +13,7 @@ import type { WidgetPickerSeedData, WidgetPickerSelection } from './widgetPicker
 import {
   buildPreviewWidget,
   calendarContract,
-  filesContract,
   kanbanContract,
-  quickThoughtsContract,
   remindersContract,
   tableContract,
   tasksContract,
@@ -36,18 +31,6 @@ const previewWidthClass = {
   S: 'widget-picker-preview-s',
   M: 'widget-picker-preview-m',
   L: 'widget-picker-preview-l',
-};
-
-const previewProject: HubProjectSummary = {
-  project_id: 'widget-picker-preview-project',
-  space_id: 'widget-picker-preview-project',
-  name: 'Widget Preview',
-  sort_order: 0,
-  position: null,
-  pinned: false,
-  layout_config: {},
-  doc_id: null,
-  members: [],
 };
 
 export const WidgetPickerPreview = ({
@@ -83,12 +66,6 @@ export const WidgetPickerPreview = ({
     }
     if (selection.widgetType === 'reminders') {
       return <RemindersWidget widget={widget} contract={remindersContract(seed)} canEditProject={false} previewMode />;
-    }
-    if (selection.widgetType === 'files') {
-      return <FilesWidget widget={widget} contract={filesContract(seed)} canEditProject={false} previewMode />;
-    }
-    if (selection.widgetType === 'quick_thoughts') {
-      return <QuickThoughtsWidget widget={widget} contract={quickThoughtsContract(seed)} project={previewProject} canEditProject={false} previewMode />;
     }
     return <TimelineWidget contract={timelineContract(seed)} previewMode />;
   })();

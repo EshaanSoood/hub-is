@@ -126,7 +126,7 @@ export interface FilesWidgetContract {
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
 }
 
-export interface QuickThoughtsWidgetContract {
+export interface ScratchPadContract {
   storageKeyBase: string;
   legacyStorageKeyBase?: string;
   initialEntries?: Array<{
@@ -154,7 +154,7 @@ export interface WorkViewWidgetContracts {
   kanbanContract: KanbanWidgetContract;
   calendarContract: CalendarWidgetContract;
   filesContract: FilesWidgetContract;
-  quickThoughtsContract: QuickThoughtsWidgetContract;
+  scratchPadContract: ScratchPadContract;
   tasksContract: TasksWidgetContract;
   timelineContract: TimelineWidgetContract;
   remindersContract: RemindersWidgetContract;

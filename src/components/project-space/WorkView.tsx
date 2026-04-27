@@ -4,12 +4,10 @@ import { AccessDeniedView } from '../auth/AccessDeniedView';
 import { WidgetGrid, type ContractWidgetConfig } from './WidgetGrid';
 import { AccessibleDialog, Icon, IconButton } from '../primitives';
 import type { HubProjectSummary } from '../../services/hub/types';
-import { clampWidgetSizeTier } from './widgetCatalog';
+import { clampWidgetSizeTier, widgetCatalogEntry } from './widgetCatalog';
 import type {
   CalendarWidgetContract,
-  FilesWidgetContract,
   KanbanWidgetContract,
-  QuickThoughtsWidgetContract,
   RemindersWidgetContract,
   TableWidgetContract,
   TasksWidgetContract,
@@ -17,9 +15,7 @@ import type {
 } from './widgetContracts';
 import {
   CalendarWidget,
-  FilesWidget,
   KanbanWidget,
-  QuickThoughtsWidget,
   RemindersWidget,
   TableWidget,
   TasksWidget,
@@ -39,8 +35,6 @@ interface WorkViewProps {
   tableContract?: Partial<TableWidgetContract>;
   kanbanContract?: Partial<KanbanWidgetContract>;
   calendarContract?: Partial<CalendarWidgetContract>;
-  filesContract?: Partial<FilesWidgetContract>;
-  quickThoughtsContract?: Partial<QuickThoughtsWidgetContract>;
   tasksContract?: Partial<TasksWidgetContract>;
   timelineContract?: Partial<TimelineWidgetContract>;
   remindersContract?: Partial<RemindersWidgetContract>;
@@ -51,9 +45,6 @@ const normalizeWidgetType = (widgetType: unknown): string => {
 };
 
 const defaultWidgetLens = (widgetType: string): ContractWidgetConfig['lens'] => {
-  if (widgetType === 'quick_thoughts') {
-    return 'project_scratch';
-  }
   if (widgetType === 'tasks') {
     return 'project';
   }
@@ -64,9 +55,6 @@ const defaultWidgetLens = (widgetType: string): ContractWidgetConfig['lens'] => 
 };
 
 const normalizeWidgetLens = (widgetType: string, lens: unknown): ContractWidgetConfig['lens'] => {
-  if (widgetType === 'quick_thoughts') {
-    return 'project_scratch';
-  }
   if (widgetType === 'tasks') {
     return lens === 'space' ? 'space' : 'project';
   }
@@ -96,6 +84,9 @@ const parseWidgets = (layoutConfig: Record<string, unknown> | null | undefined):
 
     const value = candidate as Record<string, unknown>;
     const widgetType = normalizeWidgetType(value.widget_type);
+    if (!widgetCatalogEntry(widgetType)) {
+      continue;
+    }
     const sizeTier = value.size_tier;
     const lens = value.lens;
     const rawBinding = value.binding;
@@ -175,21 +166,6 @@ const EMPTY_CALENDAR_CONTRACT: CalendarWidgetContract = {
   onScopeChange: () => {},
   onCreateEvent: undefined,
   onRescheduleEvent: undefined,
-};
-
-const EMPTY_FILES_CONTRACT: FilesWidgetContract = {
-  projectFiles: [],
-  spaceFiles: [],
-  onUploadProjectFiles: () => {},
-  onUploadSpaceFiles: () => {},
-  onOpenFile: () => {},
-  onInsertToEditor: undefined,
-};
-
-const EMPTY_QUICK_THOUGHTS_CONTRACT: QuickThoughtsWidgetContract = {
-  storageKeyBase: 'hub:quick-thoughts:default',
-  legacyStorageKeyBase: undefined,
-  onInsertToEditor: undefined,
 };
 
 const EMPTY_TASKS_CONTRACT: TasksWidgetContract = {
@@ -310,8 +286,6 @@ export const WorkView = ({
   tableContract,
   kanbanContract,
   calendarContract,
-  filesContract,
-  quickThoughtsContract,
   tasksContract,
   timelineContract,
   remindersContract,
@@ -347,14 +321,6 @@ export const WorkView = ({
   const resolvedCalendarContract: CalendarWidgetContract = {
     ...EMPTY_CALENDAR_CONTRACT,
     ...calendarContract,
-  };
-  const resolvedFilesContract: FilesWidgetContract = {
-    ...EMPTY_FILES_CONTRACT,
-    ...filesContract,
-  };
-  const resolvedQuickThoughtsContract: QuickThoughtsWidgetContract = {
-    ...EMPTY_QUICK_THOUGHTS_CONTRACT,
-    ...quickThoughtsContract,
   };
   const resolvedTasksContract: TasksWidgetContract = {
     ...EMPTY_TASKS_CONTRACT,
@@ -395,6 +361,9 @@ export const WorkView = ({
 
   const handleAddWidget = (widgetType: string, sizeTier: ContractWidgetConfig['size_tier']) => {
     const normalizedWidgetType = normalizeWidgetType(widgetType);
+    if (!widgetCatalogEntry(normalizedWidgetType)) {
+      return;
+    }
     const nextWidgets: ContractWidgetConfig[] = [
       ...widgets,
       {
@@ -482,23 +451,8 @@ export const WorkView = ({
       return <TasksWidget widget={widget} contract={resolvedTasksContract} canEditProject={canEditProject} />;
     }
 
-    if (widget.widget_type === 'files') {
-      return <FilesWidget widget={widget} contract={resolvedFilesContract} canEditProject={canEditProject} />;
-    }
-
     if (widget.widget_type === 'reminders') {
       return <RemindersWidget widget={widget} contract={resolvedRemindersContract} canEditProject={canEditProject} />;
-    }
-
-    if (widget.widget_type === 'quick_thoughts') {
-      return (
-        <QuickThoughtsWidget
-          widget={widget}
-          contract={resolvedQuickThoughtsContract}
-          project={project}
-          canEditProject={canEditProject}
-        />
-      );
     }
 
     if (widget.widget_type === 'timeline') {

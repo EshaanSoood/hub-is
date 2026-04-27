@@ -5,7 +5,7 @@ import { useWidgetInsertState, type WidgetInsertState } from './hooks/useWidgetI
 import { Icon } from '../primitives';
 import { WidgetEmptyState } from './WidgetFeedback';
 
-interface QuickThoughtEntry {
+interface ScratchPadEntry {
   id: string;
   text: string;
   createdAt: string;
@@ -13,17 +13,18 @@ interface QuickThoughtEntry {
   archived: boolean;
 }
 
-interface QuickThoughtsWidgetSkinProps {
+interface ScratchPadSkinProps {
   sizeTier: 'S' | 'M' | 'L';
   storageKey: string;
   legacyStorageKey?: string;
-  initialEntries?: QuickThoughtEntry[];
+  legacyStorageKeys?: string[];
+  initialEntries?: ScratchPadEntry[];
   onInsertToEditor?: (item: { id: string; type: string; title: string }) => void;
   readOnly?: boolean;
   previewMode?: boolean;
 }
 
-const parseEntries = (raw: string | null): QuickThoughtEntry[] => {
+const parseEntries = (raw: string | null): ScratchPadEntry[] => {
   if (!raw) {
     return [];
   }
@@ -35,7 +36,7 @@ const parseEntries = (raw: string | null): QuickThoughtEntry[] => {
     }
 
     return parsed
-      .map((item): QuickThoughtEntry | null => {
+      .map((item): ScratchPadEntry | null => {
         if (!item || typeof item !== 'object') {
           return null;
         }
@@ -60,13 +61,17 @@ const parseEntries = (raw: string | null): QuickThoughtEntry[] => {
           archived: Boolean(value.archived || value.actioned),
         };
       })
-      .filter((entry): entry is QuickThoughtEntry => Boolean(entry));
+      .filter((entry): entry is ScratchPadEntry => Boolean(entry));
   } catch {
     return [];
   }
 };
 
-function readEntriesForStorageKey(storageKey: string, legacyStorageKey?: string): QuickThoughtEntry[] {
+function readEntriesForStorageKey(
+  storageKey: string,
+  legacyStorageKey?: string,
+  legacyStorageKeys: string[] = [],
+): ScratchPadEntry[] {
   if (typeof window === 'undefined') {
     return [];
   }
@@ -76,18 +81,21 @@ function readEntriesForStorageKey(storageKey: string, legacyStorageKey?: string)
     return parseEntries(current);
   }
 
-  if (!legacyStorageKey) {
-    return [];
+  const legacyKeys = [legacyStorageKey, ...legacyStorageKeys].filter((key): key is string => Boolean(key));
+  for (const legacyKey of legacyKeys) {
+    const entries = parseEntries(window.localStorage.getItem(legacyKey));
+    if (entries.length > 0) {
+      return entries;
+    }
   }
 
-  const legacy = window.localStorage.getItem(legacyStorageKey);
-  return parseEntries(legacy);
+  return [];
 }
 
 const clipPreview = (value: string): string => {
   const trimmed = value.trim().replace(/\s+/g, ' ');
   if (!trimmed) {
-    return 'Untitled thought';
+    return 'Untitled scratch note';
   }
   if (trimmed.length <= 120) {
     return trimmed;
@@ -95,7 +103,7 @@ const clipPreview = (value: string): string => {
   return `${trimmed.slice(0, 117)}...`;
 };
 
-const QuickThoughtEditor = ({
+const ScratchPadEditor = ({
   value,
   rows,
   placeholder,
@@ -122,7 +130,7 @@ const QuickThoughtEditor = ({
       readOnly={readOnly}
       className="w-full resize-y border-0 bg-transparent px-sm py-sm text-sm text-text outline-none placeholder:text-text-secondary"
       placeholder={placeholder}
-      aria-label="Quick Thought editor"
+      aria-label="Scratch Pad editor"
     />
     <div className="widget-rule flex justify-between gap-2 px-xs py-1">
       {onCancel ? (
@@ -149,7 +157,7 @@ const QuickThoughtEditor = ({
   </div>
 );
 
-const ThoughtRow = ({
+const ScratchPadRow = ({
   entry,
   isEditing,
   draftText,
@@ -169,7 +177,7 @@ const ThoughtRow = ({
   readOnly = false,
   previewMode = false,
 }: {
-  entry: QuickThoughtEntry;
+  entry: ScratchPadEntry;
   isEditing: boolean;
   draftText: string;
   onSelect: () => void;
@@ -210,10 +218,10 @@ const ThoughtRow = ({
       />
 
       {isEditing ? (
-        <QuickThoughtEditor
+        <ScratchPadEditor
           value={draftText}
           rows={4}
-          placeholder="Refine this thought..."
+          placeholder="Refine this scratch note..."
           saveLabel="Save"
           readOnly={readOnly}
           onChange={onDraftChange}
@@ -235,7 +243,7 @@ const ThoughtRow = ({
               disabled={readOnly}
               onClick={onSelect}
               className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              aria-label={entry.archived ? `Archived thought: ${preview}` : `Open thought: ${preview}`}
+              aria-label={entry.archived ? `Archived scratch note: ${preview}` : `Open scratch note: ${preview}`}
             >
             <p className="text-[13px] font-medium text-text">{preview}</p>
             <p className="mt-1 text-[11px] text-text-secondary">
@@ -306,15 +314,16 @@ const ThoughtRow = ({
   );
 };
 
-export const QuickThoughtsWidgetSkin = ({
+export const ScratchPadSkin = ({
   sizeTier,
   storageKey,
   legacyStorageKey,
+  legacyStorageKeys,
   initialEntries,
   onInsertToEditor,
   readOnly = false,
   previewMode = false,
-}: QuickThoughtsWidgetSkinProps) => {
+}: ScratchPadSkinProps) => {
   const {
     activeItemId,
     activeItemType,
@@ -323,8 +332,8 @@ export const QuickThoughtsWidgetSkin = ({
   } = useWidgetInsertState({ onInsertToEditor: previewMode ? undefined : onInsertToEditor });
   const persistStorageKeyRef = useRef(storageKey);
   const skipNextPersistRef = useRef(true);
-  const [entries, setEntries] = useState<QuickThoughtEntry[]>(
-    () => (previewMode ? [] : readEntriesForStorageKey(storageKey, legacyStorageKey)),
+  const [entries, setEntries] = useState<ScratchPadEntry[]>(
+    () => (previewMode ? [] : readEntriesForStorageKey(storageKey, legacyStorageKey, legacyStorageKeys)),
   );
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
@@ -351,10 +360,7 @@ export const QuickThoughtsWidgetSkin = ({
     }
 
     window.localStorage.setItem(storageKey, JSON.stringify(entries));
-    if (legacyStorageKey && legacyStorageKey !== storageKey) {
-      window.localStorage.removeItem(legacyStorageKey);
-    }
-  }, [entries, legacyStorageKey, previewMode, storageKey]);
+  }, [entries, previewMode, storageKey]);
 
   const liveEntries = useMemo(() => renderedEntries.filter((entry) => !entry.archived), [renderedEntries]);
   const archivedEntries = useMemo(() => renderedEntries.filter((entry) => entry.archived), [renderedEntries]);
@@ -380,10 +386,10 @@ export const QuickThoughtsWidgetSkin = ({
       ...current,
     ]);
     setDraftText('');
-    setAnnouncement('Quick Thought saved to this project.');
+    setAnnouncement('Scratch Pad note saved to this project.');
   };
 
-  const startEditing = (entry: QuickThoughtEntry) => {
+  const startEditing = (entry: ScratchPadEntry) => {
     if (!isInteractive) {
       return;
     }
@@ -414,7 +420,7 @@ export const QuickThoughtsWidgetSkin = ({
     );
     setEditingEntryId(null);
     setDraftText('');
-    setAnnouncement('Quick Thought updated.');
+    setAnnouncement('Scratch Pad note updated.');
   };
 
   const cancelEditing = () => {
@@ -433,7 +439,7 @@ export const QuickThoughtsWidgetSkin = ({
     if (editingEntryId === entryId) {
       cancelEditing();
     }
-    setAnnouncement('Quick Thought archived.');
+    setAnnouncement('Scratch Pad note archived.');
   };
 
   const restoreEntry = (entryId: string) => {
@@ -441,7 +447,7 @@ export const QuickThoughtsWidgetSkin = ({
       return;
     }
     setEntries((current) => current.map((entry) => (entry.id === entryId ? { ...entry, archived: false } : entry)));
-    setAnnouncement('Quick Thought restored.');
+    setAnnouncement('Scratch Pad note restored.');
   };
 
   const deleteEntry = (entryId: string) => {
@@ -452,7 +458,7 @@ export const QuickThoughtsWidgetSkin = ({
     if (editingEntryId === entryId) {
       cancelEditing();
     }
-    setAnnouncement('Quick Thought deleted.');
+    setAnnouncement('Scratch Pad note deleted.');
   };
 
   const visibleEntries = sizeTier === 'M' ? liveEntries.slice(0, 5) : liveEntries;
@@ -467,11 +473,11 @@ export const QuickThoughtsWidgetSkin = ({
       {showComposer && !previewMode ? (
         !readOnly ? (
           <div ref={composerContainerRef}>
-            <QuickThoughtEditor
+            <ScratchPadEditor
               value={editingEntryId ? '' : draftText}
               rows={sizeTier === 'L' ? 6 : 4}
-              placeholder="Capture a thought for this project..."
-              saveLabel="Save Thought"
+              placeholder="Capture a note for this project..."
+              saveLabel="Save Note"
               readOnly={!isInteractive}
               onChange={setDraftText}
               onSave={addEntry}
@@ -490,7 +496,7 @@ export const QuickThoughtsWidgetSkin = ({
         ) : (
           <div className="space-y-1">
             {visibleEntries.map((entry) => (
-              <ThoughtRow
+              <ScratchPadRow
                 key={entry.id}
                 entry={entry}
                 isEditing={editingEntryId === entry.id}
@@ -530,7 +536,7 @@ export const QuickThoughtsWidgetSkin = ({
           {archiveOpen ? (
             <div className="mt-1 space-y-1">
               {archivedEntries.map((entry) => (
-                <ThoughtRow
+                <ScratchPadRow
                   key={entry.id}
                   entry={entry}
                   isEditing={false}
@@ -556,7 +562,7 @@ export const QuickThoughtsWidgetSkin = ({
                   type="button"
                   onClick={() => {
                     setEntries((current) => current.filter((entry) => !entry.archived));
-                    setAnnouncement('Archived Quick Thoughts cleared.');
+                    setAnnouncement('Archived Scratch Pad notes cleared.');
                   }}
                   className="text-xs text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
