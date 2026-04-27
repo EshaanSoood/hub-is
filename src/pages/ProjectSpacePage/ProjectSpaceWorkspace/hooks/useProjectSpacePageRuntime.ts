@@ -75,7 +75,7 @@ export const useProjectSpacePageRuntime = ({
   setTimeline,
   prefersReducedMotion,
 }: UseProjectSpacePageRuntimeParams): UseProjectSpacePageRuntimeResult => {
-  const { projectId } = useParams();
+  const { projectId, workProjectId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -98,8 +98,8 @@ export const useProjectSpacePageRuntime = ({
   });
 
   const activeProject = useMemo(
-    () => projects.find((project) => project.project_id === projectId) || projects[0] || null,
-    [projectId, projects],
+    () => projects.find((project) => project.project_id === workProjectId) || projects[0] || null,
+    [workProjectId, projects],
   );
   const {
     collections,
@@ -206,8 +206,8 @@ export const useProjectSpacePageRuntime = ({
   }, [navigateToProject]);
 
   const hasRequestedProject = useMemo(
-    () => (projectId ? projects.some((project) => project.project_id === projectId) : false),
-    [projectId, projects],
+    () => (workProjectId ? projects.some((project) => project.project_id === workProjectId) : false),
+    [workProjectId, projects],
   );
   const editableProjects = useMemo(
     () => projects.filter((project) => projectCanEditForUser(project, sessionUserId)),
@@ -331,7 +331,7 @@ export const useProjectSpacePageRuntime = ({
     hasRequestedProject,
     navigate,
     openRecordInspector,
-    requestedProjectId: projectId,
+    requestedProjectId: workProjectId,
     projectId: project.space_id,
     searchParams,
     setSearchParams,
@@ -592,7 +592,7 @@ export const useProjectSpacePageRuntime = ({
       projectId: project.space_id,
       projectName: project.name,
       activeTab,
-      currentProjectId: projectId,
+      currentProjectId: activeProject?.project_id ?? workProjectId,
       activeProject,
       openedFromPinned,
       pinnedProjects,

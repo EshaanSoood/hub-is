@@ -387,13 +387,12 @@ export const createComment = async (
   comment_id: string;
   mentions?: HubMaterializedMention[];
 }> => {
-  const { project_id: legacyProjectId, ...requestPayload } = payload;
   return hubRequest<{
     comment_id: string;
     mentions?: HubMaterializedMention[];
   }>(accessToken, '/api/hub/comments', {
     method: 'POST',
-    body: JSON.stringify({ ...requestPayload, space_id: payload.space_id ?? legacyProjectId }),
+    body: JSON.stringify(payload),
   });
 };
 
@@ -415,13 +414,12 @@ export const createDocAnchorComment = async (
   comment_id: string;
   mentions?: HubMaterializedMention[];
 }> => {
-  const { project_id: legacyProjectId, ...requestPayload } = payload;
   return hubRequest<{
     comment_id: string;
     mentions?: HubMaterializedMention[];
   }>(accessToken, '/api/hub/comments/doc-anchor', {
     method: 'POST',
-    body: JSON.stringify({ ...requestPayload, space_id: payload.space_id ?? legacyProjectId }),
+    body: JSON.stringify(payload),
   });
 };
 
@@ -469,7 +467,7 @@ export const listComments = async (
   }>;
 }> => {
   const params = new URLSearchParams();
-  params.set('project_id', query.space_id ?? query.project_id ?? '');
+  params.set('project_id', query.project_id ?? '');
   if (query.target_entity_type) {
     params.set('target_entity_type', query.target_entity_type);
   }
@@ -555,12 +553,11 @@ export const materializeMentions = async (
     replace_source?: boolean;
   },
 ): Promise<HubMaterializedMention[]> => {
-  const { project_id: legacyProjectId, ...requestPayload } = payload;
   const data = await hubRequest<{
     mentions: HubMaterializedMention[];
   }>(accessToken, '/api/hub/mentions/materialize', {
     method: 'POST',
-    body: JSON.stringify({ ...requestPayload, space_id: payload.space_id ?? legacyProjectId }),
+    body: JSON.stringify(payload),
   });
   return data.mentions;
 };
@@ -714,12 +711,11 @@ export const attachFile = async (
     metadata?: Record<string, unknown>;
   },
 ): Promise<{ attachment_id: string }> => {
-  const { project_id: legacyProjectId, ...requestPayload } = payload;
   const data = await hubRequest<{
     attachment_id: string;
   }>(accessToken, '/api/hub/attachments', {
     method: 'POST',
-    body: JSON.stringify({ ...requestPayload, space_id: payload.space_id ?? legacyProjectId }),
+    body: JSON.stringify(payload),
   });
   return { attachment_id: data.attachment_id };
 };

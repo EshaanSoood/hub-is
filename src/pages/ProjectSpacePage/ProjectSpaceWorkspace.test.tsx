@@ -134,7 +134,7 @@ vi.mock('../../components/project-space/OverviewView', () => ({
 
 vi.mock('../../components/project-space/ProjectSwitcher', () => ({
   ProjectSwitcher: ({ projects, onProjectChange }: { projects: Array<{ id: string; label: string }>; onProjectChange: (projectId: string, source: 'click') => void }) => (
-    <div role="toolbar" aria-label="Open projects">
+    <div role="toolbar" aria-label="Project switcher">
       {projects.map((project) => (
         <button key={project.id} type="button" onClick={() => onProjectChange(project.id, 'click')}>
           {project.label}
@@ -573,7 +573,7 @@ const renderWorkspace = ({
         }
       />
       <Route
-        path="/projects/:projectId/work/:projectId"
+        path="/projects/:projectId/work/:workProjectId"
         element={
           <>
             <LocationEcho />
@@ -1045,8 +1045,8 @@ describe('ProjectSpaceWorkspace characterization', () => {
         context: null,
         source: {
           doc_id: 'doc-1',
-          space_id: 'project-private',
-          space_name: 'Private Work',
+          project_id: 'project-private',
+          project_name: 'Private Work',
           node_key: 'node-1',
           comment_target_entity_type: null,
           comment_target_entity_id: null,

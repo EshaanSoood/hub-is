@@ -46,7 +46,7 @@ export const ProjectSwitcher = ({ id, projects, activeProjectId, onProjectChange
   }
 
   return (
-    <div id={id} role="toolbar" aria-label="Open projects" className="flex items-center gap-0.5 px-2 py-1">
+    <div id={id} role="toolbar" aria-label="Project switcher" className="flex items-center gap-0.5 px-2 py-1">
       <span className="sr-only">
         Use Left and Right arrows to navigate between projects. Use Home and End to move focus to first and last projects. Use Ctrl plus arrows to reorder projects.
       </span>

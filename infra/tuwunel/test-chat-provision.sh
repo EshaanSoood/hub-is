@@ -79,7 +79,7 @@ SNAPSHOT_BODY="$TMP_DIR/create-snapshot.json"
 TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 cat > "$SNAPSHOT_BODY" <<JSON
 {
-  "project_id": "$PROJECT_ID",
+  "space_id": "$PROJECT_ID",
   "conversation_room_id": "$ROOM_ID",
   "message_sender_display_name": "Codex Matrix Smoke",
   "message_text": "Snapshot test from infra/tuwunel/test-chat-provision.sh at $TIMESTAMP",
@@ -100,7 +100,7 @@ pass "create snapshot"
 echo
 
 LIST_RESPONSE="$TMP_DIR/list-snapshots.json"
-LIST_STATUS="$(request "GET" "$BASE_URL/api/hub/chat/snapshots?project_id=$PROJECT_ID" "" "$LIST_RESPONSE")"
+LIST_STATUS="$(request "GET" "$BASE_URL/api/hub/chat/snapshots?space_id=$PROJECT_ID" "" "$LIST_RESPONSE")"
 echo "List snapshots response ($LIST_STATUS):"
 print_json "$LIST_RESPONSE"
 if ! is_success_status "$LIST_STATUS"; then

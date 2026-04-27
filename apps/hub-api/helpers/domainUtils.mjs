@@ -123,7 +123,7 @@ export const createDomainUtils = ({
 
   const timelineRecord = (row) => ({
     timeline_event_id: row.timeline_event_id,
-    project_id: row.project_id,
+    space_id: row.space_id,
     actor_user_id: row.actor_user_id,
     event_type: row.event_type,
     primary_entity_type: row.primary_entity_type,
@@ -135,7 +135,7 @@ export const createDomainUtils = ({
 
   const notificationRecord = (row) => ({
     notification_id: row.notification_id,
-    project_id: row.project_id,
+    space_id: row.space_id,
     user_id: row.user_id,
     reason: row.reason,
     entity_type: row.entity_type,

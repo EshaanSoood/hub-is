@@ -165,7 +165,7 @@ export const ProjectSpaceWorkProjectChrome = ({
                   label: project.name,
                   shortcutNumber: index + 1,
                 }))}
-                activeProjectId={activeProject?.space_id ?? null}
+                activeProjectId={activeProject?.project_id ?? null}
                 onProjectChange={(nextProjectId, source) => {
                   const nextProject = orderedEditableProjects.find((project) => project.project_id === nextProjectId) || null;
                   onNavigateToProject({

@@ -147,7 +147,7 @@ export const createCollectionRoutes = (deps) => {
 
     const collections = collectionsByProjectStmt.all(projectId).map((collection) => ({
       collection_id: collection.collection_id,
-      project_id: collection.project_id,
+      space_id: collection.space_id,
       name: collection.name,
       icon: collection.icon,
       color: collection.color,
@@ -217,7 +217,7 @@ export const createCollectionRoutes = (deps) => {
 
     const projectGate = withProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId: collection.project_id,
+      projectId: collection.space_id,
       requiredCapability: 'view',
     });
     if (projectGate.error) {
@@ -253,7 +253,7 @@ export const createCollectionRoutes = (deps) => {
 
     const projectGate = withProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId: collection.project_id,
+      projectId: collection.space_id,
       requiredCapability: 'write',
     });
     if (projectGate.error) {
@@ -315,7 +315,7 @@ export const createCollectionRoutes = (deps) => {
     const requestedCollectionId = asText(body.collection_id);
     const parentRecordId = asText(body.parent_record_id);
     const parentRecord = parentRecordId ? recordByIdStmt.get(parentRecordId) : null;
-    if (parentRecordId && (!parentRecord || parentRecord.project_id !== projectId || parentRecord.archived_at)) {
+    if (parentRecordId && (!parentRecord || parentRecord.space_id !== projectId || parentRecord.archived_at)) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Parent record not found, is archived, or belongs to a different project.')));
       return;
     }
@@ -326,7 +326,7 @@ export const createCollectionRoutes = (deps) => {
       return;
     }
     const collection = collectionByIdStmt.get(collectionId);
-    if (!collection || collection.project_id !== projectId) {
+    if (!collection || collection.space_id !== projectId) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Collection must belong to project.')));
       return;
     }
@@ -338,7 +338,7 @@ export const createCollectionRoutes = (deps) => {
     let sourceViewId = asText(body.source_view_id) || null;
     if (sourceViewId) {
       const sourceView = viewByIdStmt.get(sourceViewId);
-      if (!sourceView || sourceView.project_id !== projectId) {
+      if (!sourceView || sourceView.space_id !== projectId) {
         send(response, jsonResponse(400, errorEnvelope('invalid_input', 'source_view_id must belong to project.')));
         return;
       }
@@ -534,7 +534,7 @@ export const createCollectionRoutes = (deps) => {
 
     if (collectionId) {
       const collection = collectionByIdStmt.get(collectionId);
-      if (!collection || collection.project_id !== projectId) {
+      if (!collection || collection.space_id !== projectId) {
         send(response, jsonResponse(400, errorEnvelope('invalid_input', 'collection_id must belong to project.')));
         return;
       }
@@ -578,7 +578,7 @@ export const createCollectionRoutes = (deps) => {
 
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
-      projectId: record.project_id,
+      projectId: record.space_id,
       sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
@@ -689,7 +689,7 @@ export const createCollectionRoutes = (deps) => {
     }
 
     emitTimelineEvent({
-      projectId: record.project_id,
+      projectId: record.space_id,
       actorUserId: auth.user.user_id,
       eventType: archivedAt && !record.archived_at ? 'record.archived' : 'record.updated',
       primaryEntityType: 'record',
@@ -703,7 +703,7 @@ export const createCollectionRoutes = (deps) => {
           continue;
         }
         createNotification({
-          projectId: record.project_id,
+          projectId: record.space_id,
           userId: assignee.user_id,
           reason: 'update',
           entityType: 'record',
@@ -711,7 +711,7 @@ export const createCollectionRoutes = (deps) => {
           notificationScope: 'network',
           payload: buildNotificationPayload({
             message: `Record updated: ${title}`,
-            sourceProjectId: record.project_id,
+            sourceProjectId: asText(record.source_project_id) || null,
           }),
         });
       }
@@ -746,7 +746,7 @@ export const createCollectionRoutes = (deps) => {
       return;
     }
 
-    const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId: parentRecord.project_id, requiredCapability: 'view' });
+    const projectGate = withProjectPolicyGate({ userId: auth.user.user_id, projectId: parentRecord.space_id, requiredCapability: 'view' });
     if (projectGate.error) {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
@@ -788,7 +788,7 @@ export const createCollectionRoutes = (deps) => {
 
     const sourceWriteGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
-      projectId: sourceRecord.project_id,
+      projectId: sourceRecord.space_id,
       sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (sourceWriteGate.error) {
@@ -802,7 +802,7 @@ export const createCollectionRoutes = (deps) => {
     }
 
     const sourceMentionCount = Number(
-      mentionsCountByTargetStmt.get(sourceRecord.project_id, 'record', sourceRecordId)?.mention_count || 0,
+      mentionsCountByTargetStmt.get(sourceRecord.space_id, 'record', sourceRecordId)?.mention_count || 0,
     );
     const sourceHasPayload = valuesByRecordStmt.all(sourceRecordId).length > 0
       || assignmentsByRecordStmt.all(sourceRecordId).length > 0
@@ -811,8 +811,8 @@ export const createCollectionRoutes = (deps) => {
       || remindersByRecordStmt.all(sourceRecordId).length > 0
       || outgoingRelationsStmt.all(sourceRecordId).length > 0
       || incomingRelationsStmt.all(sourceRecordId).length > 0
-      || attachmentsByEntityStmt.all(sourceRecord.project_id, 'record', sourceRecordId).length > 0
-      || commentsByTargetStmt.all(sourceRecord.project_id, 'record', sourceRecordId).length > 0
+      || attachmentsByEntityStmt.all(sourceRecord.space_id, 'record', sourceRecordId).length > 0
+      || commentsByTargetStmt.all(sourceRecord.space_id, 'record', sourceRecordId).length > 0
       || sourceMentionCount > 0;
     if (sourceHasPayload) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Only empty captures can be converted.')));
@@ -825,7 +825,7 @@ export const createCollectionRoutes = (deps) => {
       return;
     }
 
-    const targetProjectId = asText(body.target_project_id) || sourceRecord.project_id;
+    const targetProjectId = asText(body.target_project_id) || sourceRecord.space_id;
     const targetWriteGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
       projectId: targetProjectId,
@@ -844,7 +844,7 @@ export const createCollectionRoutes = (deps) => {
       withTransaction(() => {
         const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
         const isPersonalTask = mode === 'task'
-          && targetProjectId === asText(personalProject?.project_id);
+          && targetProjectId === asText(personalProject?.space_id);
 
         if (isPersonalTask) {
           const tasksCollectionId = asText(personalProject?.tasks_collection_id);
@@ -853,7 +853,7 @@ export const createCollectionRoutes = (deps) => {
           }
           const taskRecord = createPersonalTaskRecord({
             userId: auth.user.user_id,
-            projectId: personalProject.project_id,
+            projectId: personalProject.space_id,
             collectionId: tasksCollectionId,
             title,
             createdAt: timestamp,
@@ -868,8 +868,8 @@ export const createCollectionRoutes = (deps) => {
           }
 
           targetRecordId = newId('rec');
-          const nextSourceProjectId = targetProjectId === sourceRecord.project_id ? sourceRecord.source_project_id || null : null;
-          const nextSourceViewId = targetProjectId === sourceRecord.project_id ? sourceRecord.source_view_id || null : null;
+          const nextSourceProjectId = targetProjectId === sourceRecord.space_id ? sourceRecord.source_project_id || null : null;
+          const nextSourceViewId = targetProjectId === sourceRecord.space_id ? sourceRecord.source_view_id || null : null;
           insertRecordStmt.run(
             targetRecordId,
             targetProjectId,
@@ -901,7 +901,7 @@ export const createCollectionRoutes = (deps) => {
         });
 
         emitTimelineEvent({
-          projectId: sourceRecord.project_id,
+          projectId: sourceRecord.space_id,
           actorUserId: auth.user.user_id,
           eventType: 'record.archived',
           primaryEntityType: 'record',
@@ -944,7 +944,7 @@ export const createCollectionRoutes = (deps) => {
 
     const projectGate = withProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId: record.project_id,
+      projectId: record.space_id,
       requiredCapability: 'view',
     });
     if (projectGate.error) {
@@ -978,7 +978,7 @@ export const createCollectionRoutes = (deps) => {
 
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
-      projectId: record.project_id,
+      projectId: record.space_id,
       sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
@@ -1001,7 +1001,7 @@ export const createCollectionRoutes = (deps) => {
     updateRecordStmt.run(record.title, timestamp, record.archived_at, recordId);
 
     emitTimelineEvent({
-      projectId: record.project_id,
+      projectId: record.space_id,
       actorUserId: auth.user.user_id,
       eventType: 'record.updated',
       primaryEntityType: 'record',
@@ -1015,7 +1015,7 @@ export const createCollectionRoutes = (deps) => {
           continue;
         }
         createNotification({
-          projectId: record.project_id,
+          projectId: record.space_id,
           userId: assignee.user_id,
           reason: 'update',
           entityType: 'record',
@@ -1023,7 +1023,7 @@ export const createCollectionRoutes = (deps) => {
           notificationScope: 'network',
           payload: buildNotificationPayload({
             message: `Record updated: ${record.title}`,
-            sourceProjectId: record.project_id,
+            sourceProjectId: asText(record.source_project_id) || null,
           }),
         });
       }
@@ -1066,7 +1066,7 @@ export const createCollectionRoutes = (deps) => {
 
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
-      projectId: fromRecord.project_id,
+      projectId: fromRecord.space_id,
       sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
@@ -1078,7 +1078,7 @@ export const createCollectionRoutes = (deps) => {
     const viaFieldId = asText(body.via_field_id);
     const requestedProjectId = asText(body.project_id);
     const requestedFromRecordId = asText(body.from_record_id);
-    if (requestedProjectId && requestedProjectId !== fromRecord.project_id) {
+    if (requestedProjectId && requestedProjectId !== fromRecord.space_id) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must match source record project.')));
       return;
     }
@@ -1092,7 +1092,7 @@ export const createCollectionRoutes = (deps) => {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'to_record_id and via_field_id are required.')));
       return;
     }
-    if (toRecord.project_id !== fromRecord.project_id) {
+    if (toRecord.space_id !== fromRecord.space_id) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Related record must belong to the same project.')));
       return;
     }
@@ -1105,7 +1105,7 @@ export const createCollectionRoutes = (deps) => {
       return;
     }
     const fieldCollection = collectionByIdStmt.get(relationField.collection_id);
-    if (!fieldCollection || fieldCollection.project_id !== fromRecord.project_id) {
+    if (!fieldCollection || fieldCollection.space_id !== fromRecord.space_id) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Relation field must belong to the same project.')));
       return;
     }
@@ -1123,14 +1123,14 @@ export const createCollectionRoutes = (deps) => {
     const relationConflictMessage = 'Relation already exists for this field.';
     try {
       withTransaction(() => {
-        const duplicate = relationByEdgeStmt.get(fromRecord.project_id, fromRecordId, toRecordId, viaFieldId);
+        const duplicate = relationByEdgeStmt.get(fromRecord.space_id, fromRecordId, toRecordId, viaFieldId);
         if (duplicate) {
           throw new Error(relationConflictMessage);
         }
 
-        insertRelationStmt.run(relationId, fromRecord.project_id, fromRecordId, toRecordId, viaFieldId, auth.user.user_id, createdAt);
+        insertRelationStmt.run(relationId, fromRecord.space_id, fromRecordId, toRecordId, viaFieldId, auth.user.user_id, createdAt);
         emitTimelineEvent({
-          projectId: fromRecord.project_id,
+          projectId: fromRecord.space_id,
           actorUserId: auth.user.user_id,
           eventType: 'record.relation_added',
           primaryEntityType: 'record',
@@ -1156,7 +1156,7 @@ export const createCollectionRoutes = (deps) => {
     send(response, jsonResponse(201, okEnvelope({
       relation: {
         relation_id: relationId,
-        project_id: fromRecord.project_id,
+        space_id: fromRecord.space_id,
         from_record_id: fromRecordId,
         to_record_id: toRecordId,
         via_field_id: viaFieldId,
@@ -1174,19 +1174,20 @@ export const createCollectionRoutes = (deps) => {
     }
 
     const relationId = params.relationId;
-    const requestedProjectId = asText(requestUrl.searchParams.get('project_id'));
+    const requestedProjectId = asText(requestUrl.searchParams.get('space_id'));
     const relation = relationByIdStmt.get(relationId);
     if (!relation) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Relation not found.')));
       return;
     }
-    if (requestedProjectId && requestedProjectId !== relation.project_id) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must match relation project.')));
+    const relationSpaceId = asText(relation.space_id);
+    if (requestedProjectId && requestedProjectId !== relationSpaceId) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id must match relation space.')));
       return;
     }
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
-      projectId: relation.project_id,
+      projectId: relationSpaceId,
       sourceProjectId: resolveMutationContextProjectId({ requestUrl }),
     });
     if (writeGate.error) {
@@ -1197,7 +1198,7 @@ export const createCollectionRoutes = (deps) => {
     withTransaction(() => {
       deleteRelationStmt.run(relationId);
       emitTimelineEvent({
-        projectId: relation.project_id,
+        projectId: relationSpaceId,
         actorUserId: auth.user.user_id,
         eventType: 'record.relation_removed',
         primaryEntityType: 'record',
@@ -1302,7 +1303,7 @@ export const createCollectionRoutes = (deps) => {
         send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
         return;
       }
-      if (docGate.project_id !== projectId) {
+      if (docGate.space_id !== projectId) {
         send(response, jsonResponse(404, errorEnvelope('not_found', 'Doc not found in project.')));
         return;
       }

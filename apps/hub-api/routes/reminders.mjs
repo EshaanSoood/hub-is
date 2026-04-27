@@ -90,7 +90,7 @@ export const createReminderRoutes = (deps) => {
       return;
     }
 
-    let projectId = personalProject.project_id;
+    let projectId = personalProject.space_id;
     let sourceProjectId = '';
     if (scope === 'space') {
       projectId = asText(requestUrl.searchParams.get('space_id'));
@@ -120,7 +120,7 @@ export const createReminderRoutes = (deps) => {
     }
 
     // Keep this argument order aligned with statements.mjs:listForUser, including the duplicated projectId binding.
-    const rows = listRemindersForUserStmt.all(auth.user.user_id, scope, personalProject.project_id, scope, projectId, sourceProjectId, sourceProjectId);
+    const rows = listRemindersForUserStmt.all(auth.user.user_id, scope, personalProject.space_id, scope, projectId, sourceProjectId, sourceProjectId);
     request.log.debug('Reminder listing query completed.', { durationMs: elapsedMs(listQueryStartedAt) });
     const now = nowIso();
 
@@ -128,7 +128,7 @@ export const createReminderRoutes = (deps) => {
       reminder_id: row.reminder_id,
       record_id: row.record_id,
       record_title: row.record_title,
-      project_id: row.project_id,
+      space_id: row.space_id,
       remind_at: row.remind_at,
       channels: parseJsonArray(row.channels, ['in_app'], request.log),
       recurrence_json: parseRecurrenceJson(row.recurrence_json, request.log),
@@ -156,7 +156,7 @@ export const createReminderRoutes = (deps) => {
 
     const projectGate = withProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId: reminder.project_id,
+      projectId: reminder.space_id,
       requiredCapability: 'view',
     });
     if (projectGate.error) {
@@ -211,7 +211,7 @@ export const createReminderRoutes = (deps) => {
         {
           reminder_id: reminderId,
           record_id: reminder.record_id,
-          project_id: reminder.project_id,
+          space_id: reminder.space_id,
           action: 'dismissed',
         },
         auth.user.user_id,
@@ -289,7 +289,7 @@ export const createReminderRoutes = (deps) => {
 
       if (sourceViewId) {
         const view = viewByIdStmt.get(sourceViewId);
-        if (!view || view.project_id !== projectId) {
+        if (!view || view.space_id !== projectId) {
           send(response, jsonResponse(400, errorEnvelope('invalid_input', 'source_view_id must belong to the requested space.')));
           return;
         }
@@ -310,20 +310,20 @@ export const createReminderRoutes = (deps) => {
     try {
       withTransaction(() => {
         if (!collectionId) {
-          const existingCollection = collectionByNameStmt.get(targetProject.project_id, 'Reminders');
+          const existingCollection = collectionByNameStmt.get(targetProject.space_id, 'Reminders');
           if (existingCollection?.collection_id) {
             collectionId = existingCollection.collection_id;
-            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.project_id);
+            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.space_id);
           } else {
             collectionId = newId('col');
-            insertCollectionStmt.run(collectionId, targetProject.project_id, 'Reminders', null, null, timestamp, timestamp);
-            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.project_id);
+            insertCollectionStmt.run(collectionId, targetProject.space_id, 'Reminders', null, null, timestamp, timestamp);
+            updateProjectRemindersCollectionStmt.run(collectionId, timestamp, targetProject.space_id);
           }
         }
 
         insertRecordStmt.run(
           recordId,
-          targetProject.project_id,
+          targetProject.space_id,
           collectionId,
           title,
           sourceProjectId,
@@ -347,7 +347,7 @@ export const createReminderRoutes = (deps) => {
         {
           reminder_id: reminderId,
           record_id: recordId,
-          project_id: targetProject.project_id,
+          space_id: targetProject.space_id,
           action: 'created',
         },
         auth.user.user_id,
@@ -369,7 +369,7 @@ export const createReminderRoutes = (deps) => {
             reminder_id: reminderId,
             record_id: recordId,
             record_title: title,
-            project_id: targetProject.project_id,
+            space_id: targetProject.space_id,
             remind_at: remindAt,
             channels: ['in_app'],
             recurrence_json: validated.recurrence_json ?? null,

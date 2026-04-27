@@ -288,7 +288,7 @@ const setupFixture = async ({ apiBaseUrl, ownerToken, ownerId, readerId, name })
     method: 'POST',
     body: JSON.stringify({ name }),
   });
-  const projectId = projectResult.project.project_id;
+  const projectId = projectResult.space.space_id;
 
   await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${projectId}/members`, {
     method: 'POST',
@@ -383,8 +383,8 @@ const addBulkAssignedTasks = ({ dbPath, projectId, collectionId, userId, count }
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA foreign_keys = ON;');
   const insertRecord = db.prepare(`
-    INSERT INTO records (record_id, project_id, collection_id, title, created_by, created_at, updated_at, archived_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+    INSERT INTO records (record_id, space_id, collection_id, title, source_project_id, source_view_id, created_by, created_at, updated_at, archived_at)
+    VALUES (?, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL)
   `);
   const insertCapability = db.prepare('INSERT OR IGNORE INTO record_capabilities (record_id, capability_type, created_at) VALUES (?, ?, ?)');
   const insertTaskState = db.prepare(`
@@ -506,7 +506,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
 
     await t.test('project visibility, collab read-only, and doc comment status', async () => {
       const readerProjects = await expectOk(apiBaseUrl, readerToken, `/api/hub/spaces/${fixture.projectId}/projects`, { method: 'GET' });
-      const visibleProject = readerProjects.projects.find((project) => project.project_id === fixture.projectId);
+      const visibleProject = readerProjects.projects.find((project) => project.project_id === fixture.workProjectId);
       assert.ok(visibleProject, 'Reader should see project in project list');
       assert.equal(visibleProject.can_edit, false, 'Reader should see project as read-only');
 
@@ -598,9 +598,10 @@ test('hub provenance, notifications, and project permissions', async (t) => {
           name: 'reader-project.txt',
           mime_type: 'text/plain',
           content_base64: Buffer.from('reader-project').toString('base64'),
+          mutation_context_project_id: fixture.workProjectId,
           metadata: {
             scope: 'project',
-            project_id: fixture.projectId,
+            project_id: fixture.workProjectId,
           },
         }),
       });
@@ -612,27 +613,28 @@ test('hub provenance, notifications, and project permissions', async (t) => {
           name: 'owner-project.txt',
           mime_type: 'text/plain',
           content_base64: Buffer.from('owner-project').toString('base64'),
+          mutation_context_project_id: fixture.workProjectId,
           metadata: {
             scope: 'project',
-            project_id: fixture.projectId,
+            project_id: fixture.workProjectId,
           },
         }),
       });
-      assert.equal(projectUpload.file.metadata.project_id, fixture.projectId);
+      assert.equal(projectUpload.file.metadata.project_id, fixture.workProjectId);
 
       await expectStatus(apiBaseUrl, readerToken, `/api/hub/spaces/${fixture.projectId}/records`, 403, {
         method: 'POST',
         body: JSON.stringify({
           collection_id: fixture.collectionId,
           title: 'Reader created record',
-          source_project_id: fixture.projectId,
+          source_project_id: fixture.workProjectId,
         }),
       });
 
       await expectStatus(apiBaseUrl, readerToken, `/api/hub/records/${fixture.sourceRecordId}/values`, 403, {
         method: 'POST',
         body: JSON.stringify({
-          mutation_context_project_id: fixture.projectId,
+          mutation_context_project_id: fixture.workProjectId,
           values: { non_existent: 'reader edit' },
         }),
       });
@@ -641,7 +643,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
         method: 'PATCH',
         body: JSON.stringify({
           title: 'Reader renamed project record',
-          mutation_context_project_id: fixture.projectId,
+          mutation_context_project_id: fixture.workProjectId,
         }),
       });
 
@@ -657,20 +659,20 @@ test('hub provenance, notifications, and project permissions', async (t) => {
           name: projectUpload.file.name,
           mime_type: projectUpload.file.mime_type,
           size_bytes: projectUpload.file.size_bytes,
-          mutation_context_project_id: fixture.projectId,
+          mutation_context_project_id: fixture.workProjectId,
           metadata: {
-            project_id: fixture.projectId,
+            project_id: fixture.workProjectId,
           },
         }),
       });
-      assert.equal(attachDenied.error?.code, 'project_edit_required');
+      assert.equal(attachDenied.error?.code, 'forbidden');
 
       await expectStatus(apiBaseUrl, readerToken, `/api/hub/records/${fixture.sourceRecordId}/relations`, 403, {
         method: 'POST',
         body: JSON.stringify({
           to_record_id: fixture.targetRecordId,
           via_field_id: fixture.relationFieldId,
-          mutation_context_project_id: fixture.projectId,
+          mutation_context_project_id: fixture.workProjectId,
         }),
       });
 
@@ -688,7 +690,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
       await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${fixture.sourceRecordId}/values`, {
         method: 'POST',
         body: JSON.stringify({
-          mutation_context_project_id: fixture.projectId,
+          mutation_context_project_id: fixture.workProjectId,
           values: {},
         }),
       });
@@ -697,7 +699,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
         method: 'PATCH',
         body: JSON.stringify({
           title: 'Owner Renamed Project Record',
-          mutation_context_project_id: fixture.projectId,
+          mutation_context_project_id: fixture.workProjectId,
         }),
       });
       assert.equal(renamedProjectRecord.record.title, 'Owner Renamed Project Record', 'Project editors should be able to rename project-origin records');
@@ -714,9 +716,9 @@ test('hub provenance, notifications, and project permissions', async (t) => {
           name: projectUpload.file.name,
           mime_type: projectUpload.file.mime_type,
           size_bytes: projectUpload.file.size_bytes,
-          mutation_context_project_id: fixture.projectId,
+          mutation_context_project_id: fixture.workProjectId,
           metadata: {
-            project_id: fixture.projectId,
+            project_id: fixture.workProjectId,
           },
         }),
       });
@@ -727,19 +729,19 @@ test('hub provenance, notifications, and project permissions', async (t) => {
         body: JSON.stringify({
           to_record_id: fixture.targetRecordId,
           via_field_id: fixture.relationFieldId,
-          mutation_context_project_id: fixture.projectId,
+          mutation_context_project_id: fixture.workProjectId,
         }),
       });
       await expectOk(
         apiBaseUrl,
         ownerToken,
-        `/api/hub/relations/${ownerRelation.relation.relation_id}?mutation_context_project_id=${encodeURIComponent(fixture.projectId)}`,
+        `/api/hub/relations/${ownerRelation.relation.relation_id}?mutation_context_project_id=${encodeURIComponent(fixture.workProjectId)}`,
         { method: 'DELETE' },
       );
       await expectOk(
         apiBaseUrl,
         ownerToken,
-        `/api/hub/attachments/${ownerAttachment.attachment_id}?mutation_context_project_id=${encodeURIComponent(fixture.projectId)}`,
+        `/api/hub/attachments/${ownerAttachment.attachment_id}?mutation_context_project_id=${encodeURIComponent(fixture.workProjectId)}`,
         { method: 'DELETE' },
       );
 
@@ -774,6 +776,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
         method: 'POST',
         body: JSON.stringify({
           project_id: fixture.projectId,
+          mutation_context_project_id: fixture.workProjectId,
           name: 'project-origin.txt',
           mime_type: 'text/plain',
           content_base64: Buffer.from('project-origin').toString('base64'),
@@ -852,7 +855,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
 
       const visibleProjects = await expectOk(apiBaseUrl, ownerToken, '/api/hub/spaces', { method: 'GET' });
       assert.equal(
-        visibleProjects.projects.some((project) => project.name === 'Hub'),
+        visibleProjects.spaces.some((project) => project.name === 'Hub'),
         false,
         'Hidden personal task space should stay out of the visible project list',
       );
@@ -917,7 +920,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
 
       const visibleProjects = await expectOk(apiBaseUrl, readerToken, '/api/hub/spaces', { method: 'GET' });
       assert.equal(
-        visibleProjects.projects.some((project) => project.project_id === membershipFixture.projectId),
+        visibleProjects.spaces.some((project) => project.space_id === membershipFixture.projectId),
         false,
         'Inactive memberships should hide the project from project lists',
       );
@@ -986,10 +989,10 @@ test('hub provenance, notifications, and project permissions', async (t) => {
         body: JSON.stringify({
           collection_id: fixture.collectionId,
           title: 'Invalid Structured Event',
-          source_project_id: fixture.projectId,
+          source_project_id: fixture.workProjectId,
           event_state: {
             start_dt: currentStart,
-            end_dt: currentStart,
+            end_dt: '',
           },
         }),
       });
@@ -1000,7 +1003,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
           title: 'Invalid NLP Event',
           start_dt: currentEnd,
           end_dt: currentStart,
-          source_project_id: fixture.projectId,
+          source_project_id: fixture.workProjectId,
           participants_user_ids: [readerId],
         }),
       });
@@ -1047,7 +1050,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
       });
 
       const taskDetail = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${taskRecordId}`, { method: 'GET' });
-      assert.equal(taskDetail.record.source_project?.project_id, fixture.projectId, 'Record detail should expose durable source project');
+      assert.equal(taskDetail.record.source_project?.project_id, fixture.workProjectId, 'Record detail should expose durable source project');
 
       const patchedProjectTask = await expectOk(apiBaseUrl, ownerToken, `/api/hub/records/${projectTaskRecordId}`, {
         method: 'PATCH',
@@ -1069,7 +1072,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
       const projectTasks = await expectOk(apiBaseUrl, readerToken, `/api/hub/spaces/${fixture.projectId}/tasks`, { method: 'GET' });
       const projectTask = projectTasks.tasks.find((task) => task.record_id === taskRecordId);
       const projectOriginTask = projectTasks.tasks.find((task) => task.record_id === projectTaskRecordId);
-      assert.equal(projectTask?.source_project?.project_id, fixture.projectId, 'Project overview tasks should preserve source project');
+      assert.equal(projectTask?.source_project?.project_id, fixture.workProjectId, 'Project overview tasks should preserve source project');
       assert.equal(projectTask?.origin_kind, 'project', 'Project task should retain project origin');
       assert.equal(projectOriginTask?.origin_kind, 'project', 'Project task should retain project origin');
       assert.equal(projectOriginTask?.source_project, null, 'Project task should not synthesize project provenance');
@@ -1081,11 +1084,11 @@ test('hub provenance, notifications, and project permissions', async (t) => {
       const projectLens = await expectOk(
         apiBaseUrl,
         readerToken,
-        `/api/hub/tasks?lens=project&project_id=${fixture.projectId}&limit=10`,
+        `/api/hub/tasks?lens=project&space_id=${fixture.projectId}&project_id=${fixture.workProjectId}&limit=10`,
         { method: 'GET' },
       );
       assert.equal(projectLens.tasks.some((task) => task.record_id === taskRecordId), true, 'Project lens should include project-originated tasks');
-      assert.equal(projectLens.tasks.some((task) => task.record_id === projectTaskRecordId), true, 'Project lens should include project-originated tasks');
+      assert.equal(projectLens.tasks.some((task) => task.record_id === projectTaskRecordId), false, 'Project lens should exclude space-origin tasks');
 
       const assignedLens = await expectOk(apiBaseUrl, readerToken, '/api/hub/tasks?lens=assigned&limit=10', { method: 'GET' });
       assert.equal(assignedLens.tasks.some((task) => task.record_id === taskRecordId), true, 'Assigned lens should filter the same master task list');
@@ -1097,17 +1100,17 @@ test('hub provenance, notifications, and project permissions', async (t) => {
         { method: 'GET' },
       );
       const currentEvent = projectCalendar.events.find((event) => event.record_id === eventRecordId);
-      assert.equal(currentEvent?.source_project?.project_id, fixture.projectId, 'Project calendar should preserve source project');
+      assert.equal(currentEvent?.source_project?.project_id, fixture.workProjectId, 'Project calendar should preserve source project');
 
       const readerHome = await expectOk(apiBaseUrl, readerToken, '/api/hub/home?tasks_limit=8&events_limit=8&notifications_limit=20&unread=1', {
         method: 'GET',
       });
       const homeTask = readerHome.home.tasks.find((task) => task.record_id === taskRecordId);
       assert.ok(homeTask, 'Expected home task entry');
-      assert.equal(homeTask?.source_project?.project_id, fixture.projectId, 'myHub tasks should preserve source project');
+      assert.equal(homeTask?.source_project?.project_id, fixture.workProjectId, 'myHub tasks should preserve source project');
       const homeEvent = readerHome.home.events.find((event) => event.record_id === eventRecordId);
       assert.ok(homeEvent, 'Expected home event entry');
-      assert.equal(homeEvent?.source_project?.project_id, fixture.projectId, 'myHub events should preserve source project');
+      assert.equal(homeEvent?.source_project?.project_id, fixture.workProjectId, 'myHub events should preserve source project');
       assert.equal(
         readerHome.home.events.some((event) => event.title === 'Stale Event'),
         false,
@@ -1127,7 +1130,7 @@ test('hub provenance, notifications, and project permissions', async (t) => {
         assigneeUserIds: [readerId],
         title: 'Deleted Project Task',
       });
-      await expectOk(apiBaseUrl, ownerToken, `/api/hub/spaces/${deletedProject.project.project_id}`, { method: 'DELETE' });
+      await expectOk(apiBaseUrl, ownerToken, `/api/hub/projects/${deletedProject.project.project_id}`, { method: 'DELETE' });
 
       const deletedProjectTask = await expectOk(apiBaseUrl, readerToken, `/api/hub/records/${deletedProjectTaskId}`, { method: 'GET' });
       assert.equal(deletedProjectTask.record.origin_kind, 'project', 'Project-origin tasks should retain project origin after project deletion');
@@ -1139,30 +1142,30 @@ test('hub provenance, notifications, and project permissions', async (t) => {
       );
       assert.equal(
         assignmentNotification?.payload?.source_project_id,
-        fixture.projectId,
+        fixture.workProjectId,
         'Assignment notification payload should carry project provenance',
       );
 
       assert.equal(
         buildTaskDestinationHref(homeTask),
-        `/projects/${fixture.projectId}/work/${fixture.projectId}`,
+        `/projects/${fixture.projectId}/work/${fixture.workProjectId}`,
         'Task destination should route back to source project',
       );
       assert.equal(
         buildEventDestinationHref(homeEvent),
-        `/projects/${fixture.projectId}/work/${fixture.projectId}`,
+        `/projects/${fixture.projectId}/work/${fixture.workProjectId}`,
         'Event destination should route back to source project',
       );
       assert.equal(
         buildNotificationDestinationHref({
           projectId: fixture.projectId,
           payload: {
-            source_project_id: fixture.projectId,
+            source_project_id: fixture.workProjectId,
             source_node_key: 'node-42',
           },
           fallbackHref: `/projects/${fixture.projectId}/work`,
         }),
-        `/projects/${fixture.projectId}/work/${fixture.projectId}?focus_node_key=node-42`,
+        `/projects/${fixture.projectId}/work/${fixture.workProjectId}?focus_node_key=node-42`,
         'Notification destination helper should route to source project with focus key',
       );
       assert.equal(

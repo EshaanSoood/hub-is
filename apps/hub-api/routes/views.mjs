@@ -127,7 +127,7 @@ export const createViewRoutes = (deps) => {
 
     const views = viewsByProjectStmt.all(projectId).map((view) => ({
       view_id: view.view_id,
-      project_id: view.project_id,
+      space_id: view.space_id,
       collection_id: view.collection_id,
       type: view.type,
       name: view.name,
@@ -273,7 +273,7 @@ export const createViewRoutes = (deps) => {
     }
 
     const collection = collectionByIdStmt.get(collectionId);
-    if (!collection || collection.project_id !== projectId) {
+    if (!collection || collection.space_id !== projectId) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Collection must belong to project.')));
       return;
     }
@@ -310,7 +310,7 @@ export const createViewRoutes = (deps) => {
 
     const projectGate = withProjectPolicyGate({
       userId: auth.user.user_id,
-      projectId: view.project_id,
+      projectId: view.space_id,
       requiredCapability: 'view',
     });
     if (projectGate.error) {
@@ -319,7 +319,7 @@ export const createViewRoutes = (deps) => {
     }
 
     const schema = collectionSchema(view.collection_id);
-    const allRecords = recordsByCollectionStmt.all(view.project_id, view.collection_id);
+    const allRecords = recordsByCollectionStmt.all(view.space_id, view.collection_id);
     const mode = asText(body.mode).toLowerCase();
     let filtered = allRecords;
 
@@ -387,7 +387,7 @@ export const createViewRoutes = (deps) => {
 
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
-      projectId: view.project_id,
+      projectId: view.space_id,
       sourceProjectId: resolveMutationContextProjectId({ body, requestUrl }),
     });
     if (writeGate.error) {
@@ -626,7 +626,7 @@ export const createViewRoutes = (deps) => {
       new Set(
         projectMembershipsByUserStmt
           .all(auth.user.user_id)
-          .map((membership) => asText(membership.project_id))
+          .map((membership) => asText(membership.space_id))
           .filter(Boolean),
       ),
     );
@@ -647,12 +647,13 @@ export const createViewRoutes = (deps) => {
         if (!eventState) {
           return [];
         }
-        const project = projectByIdStmt.get(record.project_id);
+        const sourceProject = sourceProjectContextForRecord(record);
         return [{
           record_id: record.record_id,
           title: record.title,
-          project_id: record.project_id,
-          project_name: project?.name || null,
+          space_id: record.space_id,
+          project_id: sourceProject?.project_id || null,
+          project_name: sourceProject?.project_name || null,
           event_state: eventState,
           participants: participantsByRecordStmt.all(record.record_id).map((row) => ({ user_id: row.user_id, role: row.role })),
         }];
@@ -686,7 +687,7 @@ export const createViewRoutes = (deps) => {
       new Set(
         projectMembershipsByUserStmt
           .all(tokenRecord.user_id)
-          .map((membership) => asText(membership.project_id))
+          .map((membership) => asText(membership.space_id))
           .filter(Boolean),
       ),
     );
@@ -705,7 +706,7 @@ export const createViewRoutes = (deps) => {
           return [];
         }
 
-        const project = projectByIdStmt.get(record.project_id);
+        const project = projectByIdStmt.get(record.space_id);
         const descriptionParts = [];
         if (project?.name) {
           descriptionParts.push(`Project: ${project.name}`);

@@ -108,13 +108,12 @@ export const buildNotificationDestinationHref = ({
   if (asText(payload?.origin_kind) === 'personal' && entityType === 'record' && entityId) {
     return buildPersonalTaskHref(entityId);
   }
-  const destinationProjectId = asText(payload?.source_project_id) || projectId;
-  if (!destinationProjectId) {
+  if (!projectId) {
     return fallbackHref;
   }
-  const destinationFallbackHref = rebuildProjectFallbackHref(fallbackHref, destinationProjectId);
+  const destinationFallbackHref = rebuildProjectFallbackHref(fallbackHref, projectId);
   return buildProjectContextHref({
-    projectId: destinationProjectId,
+    projectId,
     sourceProject: projectContextFromPayload(payload),
     fallbackHref: destinationFallbackHref,
     focusNodeKey: sourceNodeKeyFromPayload(payload),

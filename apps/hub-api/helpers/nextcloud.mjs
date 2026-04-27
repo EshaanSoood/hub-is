@@ -31,7 +31,7 @@ export const createNextcloudHelpers = ({
     const requestedId = asText(requestedAssetRootId);
     if (requestedId) {
       const root = assetRootByIdStmt.get(requestedId);
-      if (!root || root.project_id !== projectId) {
+      if (!root || root.space_id !== projectId) {
         return { error: { status: 404, code: 'not_found', message: 'Asset root not found.' } };
       }
       if (root.provider !== 'nextcloud') {
@@ -130,7 +130,7 @@ export const createNextcloudHelpers = ({
     const params = new URLSearchParams();
     params.set('asset_root_id', assetRootId);
     params.set('path', assetPath);
-    return `/api/hub/projects/${encodeURIComponent(projectId)}/assets/proxy?${params.toString()}`;
+    return `/api/hub/spaces/${encodeURIComponent(projectId)}/assets/proxy?${params.toString()}`;
   };
 
   return {

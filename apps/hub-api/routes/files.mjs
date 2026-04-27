@@ -63,13 +63,13 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    const projectId = asText(body.project_id);
+    const projectId = asText(body.space_id);
     const name = asText(body.name);
     const mimeType = asText(body.mime_type) || 'application/octet-stream';
     const contentBase64 = asText(body.content_base64);
 
     if (!projectId || !name || !contentBase64) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id, name, content_base64 are required.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id, name, content_base64 are required.')));
       return;
     }
 
@@ -214,7 +214,7 @@ export const createFileRoutes = (deps) => {
       return;
     }
 
-    const projectId = asText(body.project_id);
+    const projectId = asText(body.space_id);
     const entityType = asText(body.entity_type);
     const entityId = asText(body.entity_id);
     const provider = asText(body.provider) || 'nextcloud';
@@ -222,7 +222,7 @@ export const createFileRoutes = (deps) => {
     const assetPath = normalizeAssetRelativePath(body.asset_path);
 
     if (!projectId || !entityType || !entityId || !provider || !assetRootId || !assetPath) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id, entity_type, entity_id, provider, asset_root_id, asset_path are required.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id, entity_type, entity_id, provider, asset_root_id, asset_path are required.')));
       return;
     }
 
@@ -237,7 +237,7 @@ export const createFileRoutes = (deps) => {
     }
 
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found in project.')));
       return;
     }
@@ -304,7 +304,7 @@ export const createFileRoutes = (deps) => {
 
     const writeGate = resolveProjectContentWriteGate({
       userId: auth.user.user_id,
-      projectId: attachment.project_id,
+      projectId: attachment.space_id,
       sourceProjectId: resolveMutationContextProjectId({ requestUrl }),
     });
     if (writeGate.error) {
@@ -314,7 +314,7 @@ export const createFileRoutes = (deps) => {
 
     deleteAttachmentStmt.run(attachmentId);
     emitTimelineEvent({
-      projectId: attachment.project_id,
+      projectId: attachment.space_id,
       actorUserId: auth.user.user_id,
       eventType: 'file.detached',
       primaryEntityType: attachment.entity_type,
@@ -346,7 +346,7 @@ export const createFileRoutes = (deps) => {
 
     const roots = assetRootsByProjectStmt.all(projectId).map((root) => ({
       asset_root_id: root.asset_root_id,
-      space_id: root.project_id,
+      space_id: root.space_id,
       provider: root.provider,
       root_path: root.root_path,
       connection_ref: parseJson(root.connection_ref, null),
@@ -451,7 +451,7 @@ export const createFileRoutes = (deps) => {
     const assetRootId = asText(requestUrl.searchParams.get('asset_root_id'));
     const relativePath = normalizeAssetRelativePath(requestUrl.searchParams.get('path') || '');
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found.')));
       return;
     }
@@ -558,7 +558,7 @@ export const createFileRoutes = (deps) => {
 
     const assetRootId = asText(body.asset_root_id);
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found.')));
       return;
     }
@@ -623,7 +623,7 @@ export const createFileRoutes = (deps) => {
     const assetRootId = asText(requestUrl.searchParams.get('asset_root_id'));
     const relativePath = normalizeAssetRelativePath(requestUrl.searchParams.get('path') || '');
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found.')));
       return;
     }
@@ -691,7 +691,7 @@ export const createFileRoutes = (deps) => {
     }
 
     const root = assetRootByIdStmt.get(assetRootId);
-    if (!root || root.project_id !== projectId) {
+    if (!root || root.space_id !== projectId) {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Asset root not found.')));
       return;
     }

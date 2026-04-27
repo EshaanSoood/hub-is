@@ -73,6 +73,42 @@
 - All four verification commands must pass.
   Do not report completion if any command fails.
 
+- Pre-production data policy.
+  This app is pre-production. User data is disposable during fixes,
+  migrations, and test resets. Do not preserve legacy data shapes or
+  compatibility paths unless explicitly requested. Keycloak accounts are
+  the exception and must not be casually deleted.
+
+- Space ID vs work-project ID.
+  These are distinct string IDs and TypeScript will not catch mixups.
+  `space_id` belongs to `spaces` and identifies the container; legacy
+  route segment `/projects/:spaceId` still means a space. `project_id`
+  belongs to `projects` and identifies the work area; route segment
+  `/work/:workProjectId` means a work-project.
+
+- Never alias space IDs into project IDs.
+  A `space_id` value is never valid in a `project_id` field, request
+  parameter, response key, notification payload, or DB alias. Use
+  `source_project_id` only for a real work-project ID. Do not add
+  dual-accept patterns such as `space_id ?? project_id`.
+
+- Name IDs by their layer.
+  Prefer `spaceId`, `workProjectId`, and `sourceProjectId`. Avoid
+  ambiguous `projectId` unless the surrounding contract is explicitly
+  work-project scoped. If a new or changed `project_id` field could mean
+  either layer, the naming is wrong.
+
+- Route and payload order must match the layer.
+  Space IDs go in space route positions and `space_id` payload fields.
+  Work-project IDs go in work route positions and `project_id` or
+  `source_project_id` payload fields. For example,
+  `buildProjectContextHref(spaceId, workProjectId)` must not be reversed.
+
+- Rename trace is the guardrail.
+  `npm run test:e2e:rename-trace` seeds distinguishable IDs and must show
+  no `SPACE_*` value in `project_id` fields and no `prj_*` value in
+  `space_id` fields across API responses and UI flows.
+
 - Pre-flight file reorgs.
   Before moving/renaming files, grep `scripts/`
   for hardcoded paths and update them.

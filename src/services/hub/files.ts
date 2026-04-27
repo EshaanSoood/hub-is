@@ -29,12 +29,6 @@ export const uploadFile = async (
     proxy_url: string;
   };
 }> => {
-  const { project_id: legacyProjectId, ...requestPayload } = payload;
-  const body = {
-    ...requestPayload,
-    space_id: payload.space_id ?? legacyProjectId,
-    mutation_context_project_id: payload.mutation_context_project_id,
-  };
   return hubRequest<{
     file: {
       file_id: string;
@@ -50,7 +44,7 @@ export const uploadFile = async (
     };
   }>(accessToken, '/api/hub/files/upload', {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 };
 

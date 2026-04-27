@@ -26,7 +26,6 @@ export const createTaskRoutes = (deps) => {
     notificationRecord,
     buildTaskSummaryForUser,
     recordByIdStmt,
-    recordDetail,
     buildHomeEventSummary,
     personalProjectIdForUser,
     projectMembershipsByUserStmt,
@@ -47,7 +46,7 @@ export const createTaskRoutes = (deps) => {
   } = deps;
 
   const visibleProjectIdsForUser = (userId) =>
-    projectMembershipsByUserStmt.all(userId).map((membership) => membership.project_id);
+    projectMembershipsByUserStmt.all(userId).map((membership) => membership.space_id);
 
   const compareTasksByUpdatedAt = (left, right) => {
     const leftUpdatedAt = new Date(left.updated_at || 0).getTime();
@@ -103,7 +102,7 @@ export const createTaskRoutes = (deps) => {
     const assignedRecordIds = new Set(
       assignedTasksStmt
         .all(userId)
-        .filter((row) => !projectId || row.project_id === projectId)
+        .filter((row) => !projectId || row.space_id === projectId)
         .map((row) => row.record_id),
     );
     const tasks = [];
@@ -190,7 +189,7 @@ export const createTaskRoutes = (deps) => {
   const listPersonalCapturesForUser = ({ projectId, limit }) =>
     personalCapturesStmt.all(projectId, limit).map((row) => ({
       record_id: row.record_id,
-      project_id: row.project_id,
+      space_id: row.space_id,
       collection_id: row.collection_id,
       title: row.title,
       created_at: row.created_at,
@@ -228,20 +227,11 @@ export const createTaskRoutes = (deps) => {
         send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
         return;
       }
-      tasks = filterTasksByProject(
-        listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
-        projectId,
-      );
+      tasks = listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId });
     } else if (lens === 'assigned') {
-      tasks = filterTasksByProject(
-        listAssignedTasksForUser({ userId: auth.user.user_id, projectId }),
-        projectId,
-      );
+      tasks = listAssignedTasksForUser({ userId: auth.user.user_id, projectId });
     } else {
-      tasks = filterTasksByProject(
-        listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId }),
-        projectId,
-      );
+      tasks = listVisibleProjectTasksForUser({ userId: auth.user.user_id, projectId });
     }
 
     const page = tasks.slice(offset, offset + limit);
@@ -270,7 +260,8 @@ export const createTaskRoutes = (deps) => {
       return;
     }
 
-    const projectId = asText(validated.project_id);
+    const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
+    const projectId = asText(validated.project_id) || asText(personalProject?.project_id);
     if (!projectId) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required.')));
       return;
@@ -399,7 +390,9 @@ export const createTaskRoutes = (deps) => {
       // Best effort; task creation should still succeed.
     }
 
-    send(response, jsonResponse(201, okEnvelope({ record: recordDetail(recordByIdStmt.get(recordId)) })));
+    const createdRecord = recordByIdStmt.get(recordId);
+    const task = buildTaskSummaryForUser(createdRecord, personalProjectIdForUser(auth.user.user_id), new Map());
+    send(response, jsonResponse(201, okEnvelope({ task })));
   });
 
   const getHubHome = withPolicyGate('hub.view', async ({ request, response, requestUrl, auth }) => {
@@ -439,7 +432,7 @@ export const createTaskRoutes = (deps) => {
     });
 
     const capturesQueryStartedAt = performance.now();
-    const captures = listPersonalCapturesForUser({ projectId: personalProject.project_id, limit: capturesLimit });
+    const captures = listPersonalCapturesForUser({ projectId: personalProject.space_id, limit: capturesLimit });
     request.log.debug('myHub captures query completed.', {
       durationMs: elapsedMs(capturesQueryStartedAt),
     });
@@ -456,7 +449,7 @@ export const createTaskRoutes = (deps) => {
         200,
         okEnvelope({
           home: {
-            personal_project_id: personalProject.project_id,
+            personal_project_id: personalProject.space_id,
             tasks,
             tasks_next_cursor: tasksNextCursor,
             captures,

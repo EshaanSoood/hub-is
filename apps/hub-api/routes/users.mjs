@@ -74,7 +74,7 @@ export const createUserRoutes = (deps) => {
 
   const getSession = withPolicyGate('hub.view', async ({ request, response, auth, sessionSummary }) => {
     const memberships = projectMembershipsByUserStmt.all(auth.user.user_id).map((row) => ({
-      project_id: row.project_id,
+      space_id: row.space_id,
       role: membershipRoleLabel(row.role),
       joined_at: row.joined_at,
     }));

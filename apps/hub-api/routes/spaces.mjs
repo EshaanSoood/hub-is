@@ -63,8 +63,8 @@ export const createSpaceRoutes = (deps) => {
   };
 
   const listProjects = withPolicyGate('projects.view', async ({ response, auth }) => {
-    const projects = listProjectsForUserStmt.all(auth.user.user_id).map(projectRecord);
-    send(response, jsonResponse(200, okEnvelope({ projects })));
+    const spaces = listProjectsForUserStmt.all(auth.user.user_id).map(projectRecord);
+    send(response, jsonResponse(200, okEnvelope({ spaces })));
   });
 
   const createProject = withPolicyGate('projects.view', async ({ request, response, auth }) => {
@@ -84,9 +84,9 @@ export const createSpaceRoutes = (deps) => {
     }
 
     const now = nowIso();
-    const providedProjectId = asText(body.project_id);
+    const providedProjectId = asText(body.space_id);
     if (providedProjectId && !projectIdPattern.test(providedProjectId)) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must contain only letters, numbers, underscores, and hyphens.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id must contain only letters, numbers, underscores, and hyphens.')));
       return;
     }
     const projectId = providedProjectId || newId('prj');
@@ -140,7 +140,7 @@ export const createSpaceRoutes = (deps) => {
     });
 
     const project = projectForMemberStmt.get(projectId, auth.user.user_id);
-    send(response, jsonResponse(201, okEnvelope({ project: projectRecord(project) })));
+    send(response, jsonResponse(201, okEnvelope({ space: projectRecord(project) })));
   });
 
   const getProject = async ({ request, response, params }) => {
@@ -156,7 +156,7 @@ export const createSpaceRoutes = (deps) => {
       return;
     }
 
-    send(response, jsonResponse(200, okEnvelope({ project: projectRecord(project) })));
+    send(response, jsonResponse(200, okEnvelope({ space: projectRecord(project) })));
   };
 
   const updateProject = async ({ request, response, params }) => {
@@ -229,7 +229,7 @@ export const createSpaceRoutes = (deps) => {
       });
     }
 
-    send(response, jsonResponse(200, okEnvelope({ project: projectRecord(project) })));
+    send(response, jsonResponse(200, okEnvelope({ space: projectRecord(project) })));
   };
 
   const listProjectMembers = async ({ request, response, params }) => {
@@ -251,7 +251,7 @@ export const createSpaceRoutes = (deps) => {
     }
 
     const members = projectMembersByProjectStmt.all(projectId).map((member) => ({
-      project_id: member.project_id,
+      space_id: member.space_id,
       user_id: member.user_id,
       role: membershipRoleLabel(member.role),
       joined_at: member.joined_at,
@@ -338,7 +338,7 @@ export const createSpaceRoutes = (deps) => {
           notificationScope: 'network',
           payload: buildNotificationPayload({
             message: 'You were added to a space.',
-            sourceProjectId: projectId,
+            originKind: 'space',
           }),
         });
       } catch (error) {
@@ -352,13 +352,13 @@ export const createSpaceRoutes = (deps) => {
 
     send(
       response,
-      jsonResponse(
-        200,
-        okEnvelope({
-          project_id: projectId,
-          user_id: targetUserId,
-          role,
-        }),
+          jsonResponse(
+            200,
+            okEnvelope({
+              space_id: projectId,
+              user_id: targetUserId,
+              role,
+            }),
       ),
     );
   };
@@ -551,7 +551,7 @@ export const createSpaceRoutes = (deps) => {
         notificationScope: 'network',
         payload: buildNotificationPayload({
           message: 'Your space invite was approved.',
-          sourceProjectId: projectId,
+          originKind: 'space',
           extras: {
             invite_request_id: inviteRequestId,
           },

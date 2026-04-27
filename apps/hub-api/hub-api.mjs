@@ -240,13 +240,7 @@ const mapStatementRows = (statement, mapRow) => ({
 
 const mapSpaceRow = (row) => ({
   ...row,
-  project_id: row.space_id ?? row.project_id,
   project_type: row.space_type ?? row.project_type,
-});
-
-const mapSpaceScopedRow = (row) => ({
-  ...row,
-  project_id: row.space_id ?? row.project_id,
 });
 
 const mapProjectRow = (row) => ({
@@ -257,12 +251,6 @@ const mapProjectRow = (row) => ({
 const mapDocRow = (row) => ({
   ...row,
   space_id: row.space_id,
-});
-
-const mapRecordRow = (row) => ({
-  ...row,
-  project_id: row.space_id ?? row.project_id,
-  source_project_id: row.source_project_id ?? row.source_project_id,
 });
 
 const createRouteStatementAliases = (source) => ({
@@ -278,11 +266,6 @@ const createRouteStatementAliases = (source) => ({
   },
   spaceMembers: {
     ...source.spaceMembers,
-    listForUser: mapStatementRows(source.spaceMembers.listForUser, mapSpaceScopedRow),
-    listWithUsers: mapStatementRows(source.spaceMembers.listWithUsers, mapSpaceScopedRow),
-    listPendingInvites: mapStatementRows(source.spaceMembers.listPendingInvites, mapSpaceScopedRow),
-    findInvite: mapStatementRows(source.spaceMembers.findInvite, mapSpaceScopedRow),
-    findPendingByEmail: mapStatementRows(source.spaceMembers.findPendingByEmail, mapSpaceScopedRow),
   },
   projects: {
     ...source.projects,
@@ -302,20 +285,14 @@ const createRouteStatementAliases = (source) => ({
   },
   collections: {
     ...source.collections,
-    listForProject: mapStatementRows(source.collections.listForSpace, mapSpaceScopedRow),
-    findById: mapStatementRows(source.collections.findById, mapSpaceScopedRow),
-    findByName: mapStatementRows(source.collections.findByName, mapSpaceScopedRow),
+    listForProject: source.collections.listForSpace,
   },
   records: {
     ...source.records,
-    findById: mapStatementRows(source.records.findById, mapRecordRow),
-    listForCollection: mapStatementRows(source.records.listForCollection, mapRecordRow),
-    listPersonalCaptures: mapStatementRows(source.records.listPersonalCaptures, mapRecordRow),
   },
   views: {
     ...source.views,
-    listForProject: mapStatementRows(source.views.listForSpace, mapSpaceScopedRow),
-    findById: mapStatementRows(source.views.findById, mapSpaceScopedRow),
+    listForProject: source.views.listForSpace,
   },
   userSearch: {
     ...source.userSearch,
@@ -323,57 +300,44 @@ const createRouteStatementAliases = (source) => ({
   },
   tasks: {
     ...source.tasks,
-    listVisibleForProject: mapStatementRows(source.tasks.listVisibleForSpace, mapRecordRow),
-    listAssignedForUserInProject: mapStatementRows(source.tasks.listAssignedForUserInSpace, mapRecordRow),
-    listDueReminders: mapStatementRows(source.tasks.listDueReminders, mapSpaceScopedRow),
+    listVisibleForProject: source.tasks.listVisibleForSpace,
+    listAssignedForUserInProject: source.tasks.listAssignedForUserInSpace,
   },
   calendar: {
     ...source.calendar,
-    listEventsForProject: mapStatementRows(source.calendar.listEventsForSpace, mapRecordRow),
-    listCalendarRecordsForProject: mapStatementRows(source.calendar.listCalendarRecordsForSpace, mapRecordRow),
+    listEventsForProject: source.calendar.listEventsForSpace,
+    listCalendarRecordsForProject: source.calendar.listCalendarRecordsForSpace,
   },
   reminders: {
     ...source.reminders,
-    listDue: mapStatementRows(source.reminders.listDue, mapSpaceScopedRow),
-    findById: mapStatementRows(source.reminders.findById, mapSpaceScopedRow),
   },
   files: {
     ...source.files,
-    listForProject: mapStatementRows(source.files.listForSpace, mapSpaceScopedRow),
-    findAttachmentById: mapStatementRows(source.files.findAttachmentById, mapSpaceScopedRow),
-    listAttachmentsForEntity: mapStatementRows(source.files.listAttachmentsForEntity, mapSpaceScopedRow),
+    listForProject: source.files.listForSpace,
   },
   assetRoots: {
     ...source.assetRoots,
-    findDefaultForProject: mapStatementRows(source.assetRoots.findDefaultForSpace, mapSpaceScopedRow),
-    listForProject: mapStatementRows(source.assetRoots.listForSpace, mapSpaceScopedRow),
-    findById: mapStatementRows(source.assetRoots.findById, mapSpaceScopedRow),
+    findDefaultForProject: source.assetRoots.findDefaultForSpace,
+    listForProject: source.assetRoots.listForSpace,
   },
   chat: {
     ...source.chat,
-    findSnapshotById: mapStatementRows(source.chat.findSnapshotById, mapSpaceScopedRow),
-    listSnapshotsByProject: mapStatementRows(source.chat.listSnapshotsBySpace, mapSpaceScopedRow),
+    listSnapshotsByProject: source.chat.listSnapshotsBySpace,
   },
   comments: {
     ...source.comments,
-    findById: mapStatementRows(source.comments.findById, mapSpaceScopedRow),
-    listForEntity: mapStatementRows(source.comments.listForEntity, mapSpaceScopedRow),
   },
   mentions: {
     ...source.mentions,
-    listForSource: mapStatementRows(source.mentions.listForSource, mapSpaceScopedRow),
     listInboxForUser: mapStatementRows(source.mentions.listInboxForUser, mapProjectRow),
   },
   timeline: {
     ...source.timeline,
-    listForProject: mapStatementRows(source.timeline.listForSpace, mapSpaceScopedRow),
-    listForEntity: mapStatementRows(source.timeline.listForEntity, mapSpaceScopedRow),
+    listForProject: source.timeline.listForSpace,
+    listForEntity: source.timeline.listForEntity,
   },
   notifications: {
     ...source.notifications,
-    listForUser: mapStatementRows(source.notifications.listForUser, mapSpaceScopedRow),
-    listUnreadForUser: mapStatementRows(source.notifications.listUnreadForUser, mapSpaceScopedRow),
-    findById: mapStatementRows(source.notifications.findById, mapSpaceScopedRow),
   },
 });
 
@@ -688,12 +652,12 @@ const notificationContextForSource = ({ projectId, sourceEntityType, sourceEntit
   const sourceNodeKeyFromContext = asNullableText(context?.nodeKey);
   if (sourceEntityType === 'doc') {
     const doc = workProjectForDocStmt.get(sourceEntityId);
+    const sourceProjectId = asNullableText(doc?.project_id);
     return {
-      sourceProjectId: asNullableText(doc?.project_id),
-      sourceProjectId: asNullableText(doc?.project_id) || projectId,
+      sourceProjectId,
       sourceDocId: sourceEntityId,
       sourceNodeKey: sourceNodeKeyFromContext,
-      originKind: doc?.project_id ? 'project' : 'project',
+      originKind: sourceProjectId ? 'project' : 'space',
     };
   }
 
@@ -703,22 +667,21 @@ const notificationContextForSource = ({ projectId, sourceEntityType, sourceEntit
       const doc = workProjectForDocStmt.get(comment.target_entity_id);
       const anchor = commentAnchorByCommentIdStmt.get(sourceEntityId);
       const anchorPayload = parseJsonObject(anchor?.anchor_payload, {});
+      const sourceProjectId = asNullableText(doc?.project_id);
       return {
-        sourceProjectId: asNullableText(doc?.project_id),
-        sourceProjectId: asNullableText(doc?.project_id) || projectId,
+        sourceProjectId,
         sourceDocId: comment.target_entity_id,
         sourceNodeKey: sourceNodeKeyFromContext || asNullableText(anchorPayload.nodeKey),
-        originKind: doc?.project_id ? 'project' : 'project',
+        originKind: sourceProjectId ? 'project' : 'space',
       };
     }
   }
 
   return {
     sourceProjectId: null,
-    sourceProjectId: projectId,
     sourceDocId: null,
     sourceNodeKey: sourceNodeKeyFromContext,
-    originKind: 'project',
+    originKind: 'space',
   };
 };
 
@@ -795,7 +758,7 @@ const broadcastReminderChanged = (reminder, userId) => {
   }
   const reminderId = asText(reminder.reminder_id);
   const recordId = asText(reminder.record_id);
-  const projectId = asText(reminder.project_id) || null;
+  const spaceId = asText(reminder.space_id) || null;
   const action = asText(reminder.action);
   if (!reminderId || !recordId || (action !== 'created' && action !== 'dismissed')) {
     return;
@@ -805,7 +768,7 @@ const broadcastReminderChanged = (reminder, userId) => {
     reminder: {
       reminder_id: reminderId,
       record_id: recordId,
-      project_id: projectId,
+      space_id: spaceId,
       action,
     },
   });
@@ -935,7 +898,7 @@ const ensureUserFromRequest = async (request) => {
 };
 
 const projectRecord = (row) => ({
-  project_id: row.project_id,
+  space_id: row.space_id,
   name: row.name,
   created_by: row.created_by,
   created_at: row.created_at,
@@ -1034,7 +997,7 @@ const recordDetail = (record) => {
   }));
 
   const attachments = attachmentsByEntityStmt
-    .all(record.project_id, 'record', record.record_id)
+    .all(record.space_id, 'record', record.record_id)
     .map((row) => ({
       attachment_id: row.attachment_id,
       provider: row.provider,
@@ -1045,7 +1008,7 @@ const recordDetail = (record) => {
       size_bytes: row.size_bytes,
       metadata: parseJsonObject(row.metadata_json, {}),
       proxy_url: buildAssetProxyPath({
-        projectId: row.project_id,
+        projectId: row.space_id,
         assetRootId: row.asset_root_id,
         assetPath: row.asset_path,
       }),
@@ -1053,7 +1016,7 @@ const recordDetail = (record) => {
     }));
 
   const comments = commentsByTargetStmt
-    .all(record.project_id, 'record', record.record_id)
+    .all(record.space_id, 'record', record.record_id)
     .map((row) => ({
       comment_id: row.comment_id,
       author_user_id: row.author_user_id,
@@ -1064,12 +1027,13 @@ const recordDetail = (record) => {
     }));
 
   const activity = timelineByPrimaryEntityStmt
-    .all(record.project_id, 'record', record.record_id)
+    .all(record.space_id, 'record', record.record_id)
     .map(timelineRecord);
 
   return {
     record_id: record.record_id,
-    project_id: record.project_id,
+    space_id: record.space_id,
+    project_id: asNullableText(record.source_project_id),
     collection_id: record.collection_id,
     parent_record_id: record.parent_record_id || null,
     origin_kind: record.source_project_id ? 'project' : 'project',
@@ -1124,7 +1088,7 @@ const projectSummary = (project, userId = '') => {
     user_id: member.user_id,
     display_name: member.display_name,
   }));
-  const projectRole = userId ? normalizeProjectRole(projectMembershipRoleStmt.get(project.project_id, userId)?.role) : 'member';
+  const projectRole = userId ? normalizeProjectRole(projectMembershipRoleStmt.get(project.space_id, userId)?.role) : 'member';
   const canEdit = (
     projectRole === 'owner' || Boolean(userId && workProjectEditorExistsStmt.get(project.project_id, userId)?.ok)
   );
@@ -1163,7 +1127,7 @@ const requireDocAccess = (docId, userId) => withDocPolicyGate({
 
 const pendingInviteRecord = (row) => ({
   invite_request_id: row.invite_request_id,
-  project_id: row.project_id,
+  space_id: row.space_id,
   email: row.email,
   role: membershipRoleLabel(row.role),
   requested_by_user_id: row.requested_by_user_id,
@@ -1201,7 +1165,7 @@ const ensureUserForEmail = ({ email, displayName }) => {
 const assignedTaskListForUser = ({ projectId, userId }) =>
   assignedTasksByUserInProjectStmt.all(userId, projectId).map((row) => ({
     record_id: row.record_id,
-    project_id: row.project_id,
+    space_id: row.space_id,
     title: row.title,
     updated_at: row.updated_at,
     status: row.status || 'todo',
@@ -1250,7 +1214,7 @@ const trackedFileRecord = (row) => {
   const projectId = metadataProjectId || pathProjectId;
   return {
     file_id: row.file_id,
-    space_id: row.project_id,
+    space_id: row.space_id,
     asset_root_id: row.asset_root_id,
     provider: row.provider,
     asset_path: row.provider_path,
@@ -1264,7 +1228,7 @@ const trackedFileRecord = (row) => {
     project_id: projectId,
     metadata,
     proxy_url: buildAssetProxyPath({
-      projectId: row.project_id,
+      projectId: row.space_id,
       assetRootId: row.asset_root_id,
       assetPath: row.provider_path,
     }),
@@ -1287,13 +1251,14 @@ const resolveProjectContentWriteGate = ({ userId, projectId, sourceProjectId = '
 };
 
 const buildProjectTaskSummary = (record, sourceProjectContextCache = null) => {
-  const project = projectByIdStmt.get(record.project_id);
+  const sourceProject = sourceProjectContextForRecord(record, sourceProjectContextCache);
   const collection = collectionByIdStmt.get(record.collection_id);
   const task = taskStateByRecordStmt.get(record.record_id);
   return {
     record_id: record.record_id,
-    project_id: record.project_id,
-    project_name: project?.name || null,
+    space_id: record.space_id,
+    project_id: sourceProject?.project_id || null,
+    project_name: sourceProject?.project_name || null,
     collection_id: record.collection_id,
     collection_name: collection?.name || null,
     title: record.title,
@@ -1323,16 +1288,17 @@ const buildProjectTaskSummary = (record, sourceProjectContextCache = null) => {
     })),
     origin_kind: record.source_project_id ? 'project' : 'project',
     source_view_id: asNullableText(record.source_view_id),
-    source_project: sourceProjectContextForRecord(record, sourceProjectContextCache),
+    source_project: sourceProject,
   };
 };
 
 const buildPersonalTaskSummaryFromRecord = (record) => {
-  const project = projectByIdStmt.get(record.project_id);
+  const project = projectByIdStmt.get(record.space_id);
   const task = taskStateByRecordStmt.get(record.record_id);
   return {
     record_id: record.record_id,
-    project_id: record.project_id,
+    space_id: record.space_id,
+    project_id: null,
     project_name: project?.name || null,
     collection_id: 'personal',
     collection_name: 'Personal',
@@ -1361,7 +1327,7 @@ const buildPersonalTaskSummaryFromRecord = (record) => {
 const personalProjectIdForUser = (userId) => asNullableText(personalProjectByUserStmt.get(userId, userId)?.project_id);
 
 const buildTaskSummaryForUser = (record, personalProjectId, sourceProjectContextCache = null) =>
-  record.project_id === personalProjectId
+  record.space_id === personalProjectId
     ? buildPersonalTaskSummaryFromRecord(record)
     : buildProjectTaskSummary(record, sourceProjectContextCache);
 
@@ -1577,7 +1543,7 @@ ensurePersonalProjectRemindersCollectionIds();
 
 const recordDetailForUser = (record, userId) => {
   const detail = recordDetail(record);
-  if (record.project_id !== personalProjectIdForUser(userId)) {
+  if (record.space_id !== personalProjectIdForUser(userId)) {
     return detail;
   }
   return {
@@ -1589,13 +1555,14 @@ const recordDetailForUser = (record, userId) => {
 };
 
 const buildHomeEventSummary = (record, sourceProjectContextCache = null) => {
-  const project = projectByIdStmt.get(record.project_id);
+  const sourceProject = sourceProjectContextForRecord(record, sourceProjectContextCache);
   const collection = collectionByIdStmt.get(record.collection_id);
   const event = eventStateByRecordStmt.get(record.record_id);
   return {
     record_id: record.record_id,
-    project_id: record.project_id,
-    project_name: project?.name || null,
+    space_id: record.space_id,
+    project_id: sourceProject?.project_id || null,
+    project_name: sourceProject?.project_name || null,
     collection_id: record.collection_id,
     collection_name: collection?.name || null,
     title: record.title,
@@ -1614,7 +1581,7 @@ const buildHomeEventSummary = (record, sourceProjectContextCache = null) => {
       role: row.role,
       added_at: row.added_at,
     })),
-    source_project: sourceProjectContextForRecord(record, sourceProjectContextCache),
+    source_project: sourceProject,
   };
 };
 
@@ -1667,7 +1634,7 @@ const normalizeMentionRefs = (projectId, mentionRefs) => {
 
     if (targetEntityType === 'record') {
       const record = recordByIdStmt.get(targetEntityId);
-      if (!record || record.project_id !== projectId || record.archived_at) {
+      if (!record || record.space_id !== projectId || record.archived_at) {
         continue;
       }
     }
@@ -1895,90 +1862,6 @@ const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, maybeHan
   };
 };
 
-const renameApiKey = (key) => {
-  switch (key) {
-    case 'project':
-      return 'space';
-    case 'projects':
-      return 'spaces';
-    case 'project_id':
-      return 'space_id';
-    case 'project':
-      return 'project';
-    case 'projects':
-      return 'projects';
-    case 'project_id':
-      return 'project_id';
-    case 'source_project':
-      return 'source_project';
-    case 'source_project_id':
-      return 'source_project_id';
-    case 'mutation_context_project_id':
-      return 'mutation_context_project_id';
-    default:
-      return key;
-  }
-};
-
-const renameApiValue = (value) => {
-  if (Array.isArray(value)) {
-    return value.map(renameApiValue);
-  }
-  if (!isPlainObject(value)) {
-    if (value === 'project') {
-      return 'project';
-    }
-    if (value === 'project') {
-      return 'space';
-    }
-    return value;
-  }
-
-  return Object.fromEntries(
-    Object.entries(value).map(([key, entryValue]) => [renameApiKey(key), renameApiValue(entryValue)]),
-  );
-};
-
-const legacyRequestKey = (key) => {
-  switch (key) {
-    case 'space_id':
-      return 'project_id';
-    case 'project_id':
-      return 'project_id';
-    case 'source_project_id':
-      return 'source_project_id';
-    case 'mutation_context_project_id':
-      return 'mutation_context_project_id';
-    default:
-      return key;
-  }
-};
-
-const legacyRequestValue = (value) => {
-  if (Array.isArray(value)) {
-    return value.map(legacyRequestValue);
-  }
-  if (!isPlainObject(value)) {
-    if (value === 'project') {
-      return 'project';
-    }
-    if (value === 'space') {
-      return 'project';
-    }
-    return value;
-  }
-
-  return Object.fromEntries(
-    Object.entries(value)
-      .map(([key, entryValue]) => [legacyRequestKey(key), legacyRequestValue(entryValue)]),
-  );
-};
-
-const apiOkEnvelope = (data) => okEnvelope(renameApiValue(data));
-
-const parseApiBody = async (request) => legacyRequestValue(await parseBody(request));
-parseApiBody.errorResponse = parseBody.errorResponse;
-
 const routeDeps = buildRouteDeps({
   db,
   stmts: routeStmts,
@@ -2040,9 +1923,9 @@ const routeDeps = buildRouteDeps({
   notificationContextForSource,
   notificationRecord,
   nowIso,
-  okEnvelope: apiOkEnvelope,
+  okEnvelope,
   projectSummary,
-  parseBody: parseApiBody,
+  parseBody,
   parseCursorOffset,
   parseJson,
   parseJsonObject,
@@ -2064,6 +1947,7 @@ const routeDeps = buildRouteDeps({
   sendPublicBugReportEmail,
   safeTuwunelConfig,
   send,
+  sourceProjectContextForRecord,
   isFetchTimeoutError,
   getOrCreateCalendarFeedToken,
   publicBugScreenshotDir,
