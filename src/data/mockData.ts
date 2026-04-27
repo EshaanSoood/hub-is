@@ -54,7 +54,6 @@ export const mockProjects: Project[] = [
     linkedExternalIds: {
       keycloakClientId: 'eshaan-os-web',
       openProjectProjectId: '42',
-      nextcloudFolder: '/HubOS/BackendPilot',
       invoiceClientId: 'C-1020',
     },
     notes: mockNotes,
@@ -74,7 +73,6 @@ export const mockProjects: Project[] = [
     linkedExternalIds: {
       keycloakClientId: 'eshaan-lessons',
       openProjectProjectId: '58',
-      nextcloudFolder: '/HubOS/Lessons',
       invoiceClientId: 'C-2040',
     },
     notes: mockNotes,
@@ -95,7 +93,7 @@ export const mockActivityEvents: ActivityEvent[] = [
     id: 'act-2',
     timestamp: '2026-02-23T01:40:00.000Z',
     category: 'file',
-    message: 'Downloaded incident bundle archive from Nextcloud.',
+    message: 'Downloaded incident bundle archive.',
     projectId: 'backend-pilot',
   },
   {

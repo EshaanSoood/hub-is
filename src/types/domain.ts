@@ -47,7 +47,6 @@ export interface Project {
   linkedExternalIds: {
     keycloakClientId: string;
     openProjectProjectId: string;
-    nextcloudFolder: string;
     invoiceClientId: string;
   };
   notes: HubNote[];

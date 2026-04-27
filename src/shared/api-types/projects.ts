@@ -55,8 +55,6 @@ export interface ProjectRecord {
   summary: string;
   /** Linked OpenProject project ID when integrated. */
   openProjectProjectId: string | null;
-  /** Linked Nextcloud folder when integrated. */
-  nextcloudFolder: string | null;
   /** True when this space is the user personal space. */
   isPersonal: boolean;
   /** Membership role for the signed-in user. */
