@@ -22,6 +22,14 @@ const hasExplicitProjectAccess = (db, userId, spaceId, projectId) =>
     LIMIT 1
   `).get(spaceId, userId, projectId)?.ok);
 
+const hasExplicitProjectWriteAccess = (db, userId, spaceId, projectId) =>
+  Boolean(db.prepare(`
+    SELECT 1 AS ok
+    FROM space_member_project_access
+    WHERE space_id = ? AND user_id = ? AND project_id = ? AND access_level = 'write'
+    LIMIT 1
+  `).get(spaceId, userId, projectId)?.ok);
+
 const isProjectMember = (db, userId, projectId) =>
   Boolean(db.prepare(`
     SELECT 1 AS ok
@@ -87,7 +95,7 @@ export const canUserEditProject = (db, userId, projectId) => {
   }
 
   if (role === 'guest') {
-    return hasExplicitProjectAccess(db, userId, spaceId, projectId);
+    return hasExplicitProjectWriteAccess(db, userId, spaceId, projectId);
   }
 
   if (role === 'member') {

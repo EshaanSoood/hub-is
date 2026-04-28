@@ -333,11 +333,11 @@ export const createProjectRoutes = (deps) => {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
+    const project = projectGate.project;
     if (!canUserManageProjectVisibility(auth.user.user_id, project.space_id)) {
       send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners and admins can remove project editors.')));
       return;
     }
-    const project = projectGate.project;
 
     deleteWorkProjectMemberStmt.run(workProjectId, userId);
 

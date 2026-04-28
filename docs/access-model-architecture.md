@@ -182,32 +182,32 @@ The Home roll-up is user-scoped, not role-scoped. It aggregates all data the use
 
 These function names are durable — call sites stay the same across Hocuspocus and SecSync implementations. Only the function bodies change.
 
-```
+```text
 canUserAccessProject(userId, projectId)
 ```
 Returns true if the user can see this project. Checks: space membership, role, project visibility settings, and guest/viewer project assignments.
 
-```
+```text
 canUserAccessSpaceOverview(userId, spaceId)
 ```
 Returns true if the user can see the space Overview tab. Returns false for viewers and guests.
 
-```
+```text
 canUserManageSpaceMembers(userId, spaceId)
 ```
 Returns true if the user can invite, approve, or revoke members. Returns true for owner and admin.
 
-```
+```text
 canUserEditProject(userId, projectId)
 ```
 Returns true if the user can create/edit content in this project. Returns false for viewers (they can only comment).
 
-```
+```text
 canUserDeleteSpace(userId, spaceId)
 ```
 Returns true only for the owner.
 
-```
+```text
 canUserManageProjectVisibility(userId, spaceId)
 ```
 Returns true for owner and admin. They can hide/unhide projects from specific members.

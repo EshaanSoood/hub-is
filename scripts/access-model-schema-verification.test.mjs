@@ -318,6 +318,10 @@ test('access model schema verification', async (t) => {
         INSERT INTO space_member_project_access (space_id, user_id, project_id, access_level, granted_at, granted_by)
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(spaceId, users.guest, assignedProjectId, 'write', now, users.owner);
+      db.prepare(`
+        INSERT INTO space_member_project_access (space_id, user_id, project_id, access_level, granted_at, granted_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(spaceId, users.guest, unassignedProjectId, 'read', now, users.owner);
 
       assert.deepEqual(
         Object.fromEntries(roles.map((role) => [role, canUserAccessProject(db, users[role], assignedProjectId)])),
@@ -325,7 +329,7 @@ test('access model schema verification', async (t) => {
       );
       assert.deepEqual(
         Object.fromEntries(roles.map((role) => [role, canUserAccessProject(db, users[role], unassignedProjectId)])),
-        { owner: true, admin: true, member: true, viewer: false, guest: false },
+        { owner: true, admin: true, member: true, viewer: false, guest: true },
       );
       assert.deepEqual(
         Object.fromEntries(roles.map((role) => [role, canUserEditProject(db, users[role], assignedProjectId)])),
@@ -335,6 +339,7 @@ test('access model schema verification', async (t) => {
         Object.fromEntries(roles.map((role) => [role, canUserEditProject(db, users[role], unassignedProjectId)])),
         { owner: true, admin: true, member: false, viewer: false, guest: false },
       );
+      assert.equal(canUserEditProject(db, users.guest, unassignedProjectId), false);
       assert.deepEqual(
         Object.fromEntries(roles.map((role) => [role, canUserAccessSpaceOverview(db, users[role], spaceId)])),
         { owner: true, admin: true, member: true, viewer: false, guest: false },
@@ -497,6 +502,20 @@ test('access model schema verification', async (t) => {
           `).run('spc_access', 'usr_member', 'prj_access_a', 'write', now, 'usr_owner');
         },
         /space_member_project_access requires viewer or guest membership/,
+      );
+
+      db.prepare('DELETE FROM projects WHERE project_id = ?').run('prj_access_b');
+      assert.equal(
+        db.prepare('SELECT COUNT(*) AS count FROM space_member_project_access WHERE project_id = ?').get('prj_access_b')?.count,
+        0,
+      );
+      db.prepare('DELETE FROM space_members WHERE space_id = ? AND user_id = ?').run('spc_access', 'usr_viewer');
+      assert.equal(
+        db.prepare('SELECT COUNT(*) AS count FROM space_member_project_access WHERE space_id = ? AND user_id = ?').get(
+          'spc_access',
+          'usr_viewer',
+        )?.count,
+        0,
       );
 
       assert.deepEqual(getTableColumns(db, 'spaces').includes('pending_deletion_at'), true);

@@ -200,7 +200,8 @@ export const runMigrations = (db) => {
           access_level TEXT NOT NULL DEFAULT 'write' CHECK (access_level IN ('read', 'write')),
           granted_at TEXT NOT NULL,
           granted_by TEXT NOT NULL,
-          FOREIGN KEY(space_id, user_id) REFERENCES space_members(space_id, user_id),
+          FOREIGN KEY(space_id, user_id) REFERENCES space_members(space_id, user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+          FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE ON UPDATE CASCADE,
           FOREIGN KEY(granted_by) REFERENCES users(user_id)
         );
       `);
