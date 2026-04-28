@@ -99,6 +99,18 @@ export const createStatements = (db) => ({
       SET name = ?, name_prompt_completed = 1, updated_at = ?
       WHERE space_id = ?
     `),
+    scheduleDeletion: db.prepare(`
+      UPDATE spaces
+      SET pending_deletion_at = ?, updated_at = ?
+      WHERE space_id = ?
+    `),
+    countOtherPersonalSpacesForOwner: db.prepare(`
+      SELECT COUNT(*) AS personal_space_count
+      FROM spaces
+      WHERE created_by = ?
+        AND space_type = 'personal'
+        AND space_id != ?
+    `),
     insert: db.prepare(`
       INSERT INTO spaces (space_id, name, created_by, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?)

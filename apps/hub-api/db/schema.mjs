@@ -20,7 +20,9 @@ const CONTRACT_TABLES = [
   'space_members',
   'pending_space_invites',
   'projects',
+  'pending_space_invite_projects',
   'project_members',
+  'space_member_project_access',
   'docs',
   'doc_storage',
   'doc_presence',
@@ -57,6 +59,8 @@ const CONTRACT_TABLES = [
 
 const CONTRACT_TRIGGERS = [
   'project_members_must_be_space_members',
+  'space_member_project_access_role_guard_insert',
+  'space_member_project_access_role_guard_update',
   'records_collection_space_consistency_insert',
   'records_collection_space_consistency_update',
   'record_relations_space_consistency_insert',
@@ -68,6 +72,8 @@ const CONTRACT_TRIGGERS = [
 
 const CONTRACT_INDEXES = [
   'idx_space_members_user_space',
+  'idx_space_member_project_access_unique',
+  'idx_space_member_project_access_project',
   'idx_project_members_user_project',
   'idx_projects_space_sort',
   'idx_docs_project_position_created_at',
@@ -94,6 +100,7 @@ const CONTRACT_INDEXES = [
   'idx_notifications_user_unread_created',
   'idx_pending_space_invites_space_status_created',
   'idx_pending_space_invites_email_status',
+  'idx_pending_space_invite_projects_invite',
   'idx_personal_tasks_user_updated',
   'idx_chat_snapshots_space_created',
   'idx_automation_runs_rule_started',
@@ -175,6 +182,7 @@ const resetSchemaToContractV1 = (db) => {
         reminders_collection_id TEXT,
         position INTEGER,
         name_prompt_completed INTEGER NOT NULL DEFAULT 0 CHECK (name_prompt_completed IN (0, 1)),
+        pending_deletion_at TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         CHECK (
@@ -187,18 +195,25 @@ const resetSchemaToContractV1 = (db) => {
       CREATE TABLE space_members (
         space_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
-        role TEXT CHECK (role IN ('owner', 'member')),
+        role TEXT CHECK (role IN ('owner', 'admin', 'member', 'viewer', 'guest')),
         joined_at TEXT NOT NULL,
+        expires_at TEXT,
+        invited_by TEXT,
+        approved_by TEXT,
+        cooldown_until TEXT,
         PRIMARY KEY(space_id, user_id),
         FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY(invited_by) REFERENCES users(user_id),
+        FOREIGN KEY(approved_by) REFERENCES users(user_id)
       );
 
       CREATE TABLE pending_space_invites (
         invite_request_id TEXT PRIMARY KEY,
         space_id TEXT NOT NULL,
         email TEXT NOT NULL,
-        role TEXT NOT NULL CHECK (role IN ('member')),
+        role TEXT NOT NULL CHECK (role IN ('owner', 'admin', 'member', 'viewer', 'guest')),
+        expires_after_days INTEGER,
         requested_by_user_id TEXT NOT NULL,
         status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
         target_user_id TEXT,
@@ -224,6 +239,13 @@ const resetSchemaToContractV1 = (db) => {
         FOREIGN KEY(created_by) REFERENCES users(user_id)
       );
 
+      CREATE TABLE pending_space_invite_projects (
+        invite_id TEXT NOT NULL,
+        project_id TEXT NOT NULL,
+        FOREIGN KEY(invite_id) REFERENCES pending_space_invites(invite_request_id) ON DELETE CASCADE,
+        FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+      );
+
       CREATE TABLE project_members (
         project_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
@@ -231,6 +253,17 @@ const resetSchemaToContractV1 = (db) => {
         PRIMARY KEY(project_id, user_id),
         FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE space_member_project_access (
+        space_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        project_id TEXT NOT NULL,
+        access_level TEXT NOT NULL DEFAULT 'write' CHECK (access_level IN ('read', 'write')),
+        granted_at TEXT NOT NULL,
+        granted_by TEXT NOT NULL,
+        FOREIGN KEY(space_id, user_id) REFERENCES space_members(space_id, user_id),
+        FOREIGN KEY(granted_by) REFERENCES users(user_id)
       );
 
       CREATE TABLE docs (
@@ -622,6 +655,40 @@ const resetSchemaToContractV1 = (db) => {
           END;
       END;
 
+      CREATE TRIGGER space_member_project_access_role_guard_insert
+      BEFORE INSERT ON space_member_project_access
+      FOR EACH ROW
+      BEGIN
+        SELECT
+          CASE
+            WHEN NOT EXISTS (
+              SELECT 1
+              FROM space_members sm
+              WHERE sm.space_id = NEW.space_id
+                AND sm.user_id = NEW.user_id
+                AND sm.role IN ('viewer', 'guest')
+            )
+            THEN RAISE(ABORT, 'space_member_project_access requires viewer or guest membership')
+          END;
+      END;
+
+      CREATE TRIGGER space_member_project_access_role_guard_update
+      BEFORE UPDATE ON space_member_project_access
+      FOR EACH ROW
+      BEGIN
+        SELECT
+          CASE
+            WHEN NOT EXISTS (
+              SELECT 1
+              FROM space_members sm
+              WHERE sm.space_id = NEW.space_id
+                AND sm.user_id = NEW.user_id
+                AND sm.role IN ('viewer', 'guest')
+            )
+            THEN RAISE(ABORT, 'space_member_project_access requires viewer or guest membership')
+          END;
+      END;
+
       CREATE TRIGGER records_collection_space_consistency_insert
       BEFORE INSERT ON records
       FOR EACH ROW
@@ -732,6 +799,10 @@ const resetSchemaToContractV1 = (db) => {
       END;
 
       CREATE INDEX idx_space_members_user_space ON space_members(user_id, space_id);
+      CREATE UNIQUE INDEX idx_space_member_project_access_unique
+        ON space_member_project_access(space_id, user_id, project_id);
+      CREATE INDEX idx_space_member_project_access_project
+        ON space_member_project_access(project_id);
       CREATE INDEX idx_project_members_user_project ON project_members(user_id, project_id);
       CREATE INDEX idx_projects_space_sort ON projects(space_id, sort_order);
       CREATE INDEX idx_docs_project_position_created_at ON docs(project_id, position, created_at);
@@ -763,12 +834,14 @@ const resetSchemaToContractV1 = (db) => {
         ON pending_space_invites(space_id, status, created_at DESC);
       CREATE INDEX idx_pending_space_invites_email_status
         ON pending_space_invites(LOWER(email), status);
+      CREATE INDEX idx_pending_space_invite_projects_invite
+        ON pending_space_invite_projects(invite_id);
       CREATE INDEX idx_personal_tasks_user_updated
         ON personal_tasks(user_id, updated_at DESC, task_id DESC);
       CREATE INDEX idx_chat_snapshots_space_created
         ON chat_snapshots(space_id, created_at DESC, snapshot_id DESC);
       CREATE INDEX idx_automation_runs_rule_started ON automation_runs(automation_rule_id, started_at DESC);
-      CREATE UNIQUE INDEX idx_spaces_personal_owner ON spaces(created_by)
+      CREATE INDEX idx_spaces_personal_owner ON spaces(created_by)
         WHERE space_type = 'personal';
       CREATE INDEX idx_bug_reports_public_created ON bug_reports("public", created_at DESC, id DESC);
     `);
@@ -778,7 +851,7 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX IF NOT EXISTS idx_widget_picker_seed_widget_size
         ON widget_picker_seed_data(widget_type, size_tier);
     `);
-    db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 2, ?)').run(nowIso());
+    db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 3, ?)').run(nowIso());
 
     db.exec('COMMIT;');
     db.exec('PRAGMA foreign_keys = ON;');
@@ -832,7 +905,7 @@ const schemaReady = (db) => {
   }
 
   const versionRow = db.prepare('SELECT version FROM schema_version WHERE id = 1').get();
-  return Number(versionRow?.version) === 2;
+  return Number(versionRow?.version) === 3;
 };
 
 const userTableCount = (db) =>
@@ -867,7 +940,7 @@ export const initSchema = (db) => {
   }
 
   if (!HUB_API_ALLOW_SCHEMA_RESET) {
-    throw new Error('Contract schema mismatch. Set HUB_API_ALLOW_SCHEMA_RESET=true to recreate schema v1.');
+    throw new Error('Contract schema mismatch. Set HUB_API_ALLOW_SCHEMA_RESET=true to recreate schema v3.');
   }
 
   resetSchemaToContractV1(db);

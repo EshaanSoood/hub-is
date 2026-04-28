@@ -100,7 +100,7 @@ export const createRequestRouter = ({
         jsonResponse(
           200,
           okEnvelope({
-            schema_version: 2,
+            schema_version: 3,
             db_path: HUB_DB_PATH,
             nextcloud_configured: safeNextcloudConfig(),
             issuer: jwtVerifier.issuer,
@@ -225,6 +225,17 @@ export const createRequestRouter = ({
         requestUrl,
         pathname,
         params: { projectId: decodeURIComponent(projectItemMatch[1]) },
+      });
+      return;
+    }
+
+    if (request.method === 'DELETE' && projectItemMatch) {
+      await spaceRoutes.deleteProject({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { spaceId: decodeURIComponent(projectItemMatch[1]) },
       });
       return;
     }

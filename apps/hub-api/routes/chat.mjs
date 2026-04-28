@@ -42,6 +42,7 @@ export const createChatRoutes = (deps) => {
     newId,
     nowIso,
     normalizeProjectRole,
+    canUserDeleteSpace,
     projectMembershipRoleStmt,
     projectMembersByProjectStmt,
     createNotification,
@@ -427,8 +428,7 @@ export const createChatRoutes = (deps) => {
       return;
     }
 
-    const isProjectOwner = membershipGate.role === 'owner';
-    if (snapshot.created_by !== auth.user.user_id && !isProjectOwner) {
+    if (snapshot.created_by !== auth.user.user_id && !canUserDeleteSpace(auth.user.user_id, snapshot.space_id)) {
       send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only the creator or project owner may delete a snapshot.')));
       return;
     }
