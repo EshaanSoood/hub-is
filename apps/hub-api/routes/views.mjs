@@ -59,6 +59,7 @@ export const createViewRoutes = (deps) => {
     withAuth,
     withTransaction,
     withProjectPolicyGate,
+    withWorkProjectPolicyGate,
     send,
     jsonResponse,
     okEnvelope,
@@ -106,11 +107,29 @@ export const createViewRoutes = (deps) => {
     findCalendarFeedTokenRecord,
     eventParticipantByRecordAndUserStmt,
     projectMembershipsByUserStmt,
+    projectMembershipRoleStmt,
     projectByIdStmt,
     timelineByProjectStmt,
     timelineRecord,
     updateViewStmt,
   } = deps;
+
+  const canUserSeeRecordInCalendarRollup = ({ userId, record }) => {
+    const membership = projectMembershipRoleStmt.get(record.space_id, userId);
+    const role = asText(membership?.role);
+    if (role !== 'viewer' && role !== 'guest') {
+      return true;
+    }
+    const sourceProjectId = asText(record.source_project_id);
+    if (!sourceProjectId) {
+      return false;
+    }
+    return !withWorkProjectPolicyGate({
+      userId,
+      projectId: sourceProjectId,
+      requiredCapability: 'view',
+    }).error;
+  };
 
   const listViews = async ({ request, response, params }) => {
     const auth = await withAuth(request);
@@ -578,7 +597,9 @@ export const createViewRoutes = (deps) => {
     const mode = asText(requestUrl.searchParams.get('mode')).toLowerCase() || 'all';
     const startBound = deps.asNullableText(requestUrl.searchParams.get('start'));
     const endBound = deps.asNullableText(requestUrl.searchParams.get('end'));
-    const allRecords = calendarRecordsByProjectStmt.all(projectId);
+    const allRecords = calendarRecordsByProjectStmt
+      .all(projectId)
+      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: auth.user.user_id, record }));
 
     let filtered = allRecords;
     if (mode === 'relevant') {
@@ -631,7 +652,9 @@ export const createViewRoutes = (deps) => {
       ),
     );
 
-    const mergedRecords = visibleProjectIds.flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId));
+    const mergedRecords = visibleProjectIds
+      .flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId))
+      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: auth.user.user_id, record }));
 
     let filtered = mergedRecords;
     if (mode === 'relevant') {
@@ -692,7 +715,9 @@ export const createViewRoutes = (deps) => {
       ),
     );
 
-    const mergedRecords = visibleProjectIds.flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId));
+    const mergedRecords = visibleProjectIds
+      .flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId))
+      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: tokenRecord.user_id, record }));
     const events = mergedRecords
       .flatMap((record) => {
         const eventState = eventStateByRecordStmt.get(record.record_id);

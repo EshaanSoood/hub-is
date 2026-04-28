@@ -4,6 +4,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjectBootstrap } from '../../hooks/useProjectBootstrap';
 import { InlineNotice } from '../../components/primitives';
+import { buildProjectWorkHref } from '../../lib/hubRoutes';
 import { ProjectSpaceWorkspace, type TopLevelProjectTab } from './ProjectSpaceWorkspace';
 
 interface ProjectSpacePageProps {
@@ -64,6 +65,10 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactEle
         </p>
       </InlineNotice>
     );
+  }
+
+  if (activeTab === 'overview' && (project.membership_role === 'viewer' || project.membership_role === 'guest')) {
+    return <Navigate to={buildProjectWorkHref(project.space_id)} replace />;
   }
 
   return (

@@ -2,7 +2,7 @@ const roleForSpace = (db, userId, spaceId) =>
   db.prepare(`
     SELECT role
     FROM space_members
-    WHERE space_id = ? AND user_id = ?
+    WHERE space_id = ? AND user_id = ? AND removed_at IS NULL
     LIMIT 1
   `).get(spaceId, userId)?.role || null;
 

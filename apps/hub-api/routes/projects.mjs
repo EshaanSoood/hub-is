@@ -32,8 +32,23 @@ export const createProjectRoutes = (deps) => {
     updateWorkProjectStmt,
     deleteWorkProjectStmt,
     deleteWorkProjectMemberStmt,
+    scopedMembersWithoutProjectAccessStmt,
+    removeGuestProjectMemberStmt,
+    expireProjectMemberStmt,
   } = deps;
   const workOkEnvelope = (data) => ({ ok: true, data, error: null });
+  const addDaysIso = (baseIso, days) => new Date(Date.parse(baseIso) + days * 24 * 60 * 60 * 1000).toISOString();
+
+  const removeScopedMembersWithoutProjectAccess = ({ spaceId, timestamp }) => {
+    const scopedMembers = scopedMembersWithoutProjectAccessStmt.all(spaceId);
+    for (const member of scopedMembers) {
+      if (member.role === 'guest') {
+        removeGuestProjectMemberStmt.run(timestamp, addDaysIso(timestamp, 90), spaceId, member.user_id);
+      } else {
+        expireProjectMemberStmt.run(timestamp, null, spaceId, member.user_id);
+      }
+    }
+  };
 
   const listProjectProjects = async ({ request, response, params }) => {
     const auth = await withAuth(request);
@@ -241,7 +256,11 @@ export const createProjectRoutes = (deps) => {
     }
     const project = projectGate.project;
 
-    deleteWorkProjectStmt.run(workProjectId);
+    const timestamp = nowIso();
+    withTransaction(() => {
+      deleteWorkProjectStmt.run(workProjectId);
+      removeScopedMembersWithoutProjectAccess({ spaceId: project.space_id, timestamp });
+    });
 
     emitTimelineEvent({
       projectId: project.space_id,

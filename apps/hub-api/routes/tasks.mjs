@@ -4,6 +4,7 @@ export const createTaskRoutes = (deps) => {
   const {
     withPolicyGate,
     withProjectPolicyGate,
+    withWorkProjectPolicyGate,
     resolveProjectContentWriteGate,
     withTransaction,
     send,
@@ -29,6 +30,7 @@ export const createTaskRoutes = (deps) => {
     buildHomeEventSummary,
     personalProjectIdForUser,
     projectMembershipsByUserStmt,
+    projectMembershipRoleStmt,
     personalProjectByUserStmt,
     notificationsByUserStmt,
     unreadNotificationsByUserStmt,
@@ -47,6 +49,23 @@ export const createTaskRoutes = (deps) => {
 
   const visibleProjectIdsForUser = (userId) =>
     projectMembershipsByUserStmt.all(userId).map((membership) => membership.space_id);
+
+  const canUserSeeRecordInHomeRollup = ({ userId, record }) => {
+    const membership = projectMembershipRoleStmt.get(record.space_id, userId);
+    const role = asText(membership?.role);
+    if (role !== 'viewer' && role !== 'guest') {
+      return true;
+    }
+    const sourceProjectId = asText(record.source_project_id);
+    if (!sourceProjectId) {
+      return false;
+    }
+    return !withWorkProjectPolicyGate({
+      userId,
+      projectId: sourceProjectId,
+      requiredCapability: 'view',
+    }).error;
+  };
 
   const compareTasksByUpdatedAt = (left, right) => {
     const leftUpdatedAt = new Date(left.updated_at || 0).getTime();
@@ -72,6 +91,9 @@ export const createTaskRoutes = (deps) => {
       }
       const records = visibleProjectTasksStmt.all(visibleProjectId);
       for (const record of records) {
+        if (!canUserSeeRecordInHomeRollup({ userId, record })) {
+          continue;
+        }
         tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourceProjectContextCache));
       }
     }
@@ -109,6 +131,9 @@ export const createTaskRoutes = (deps) => {
     for (const visibleProjectId of visibleProjectIds) {
       const records = rowsByProject.get(visibleProjectId) || [];
       for (const record of records) {
+        if (!canUserSeeRecordInHomeRollup({ userId, record })) {
+          continue;
+        }
         if (!assignedRecordIds.has(record.record_id)) {
           continue;
         }
@@ -126,6 +151,9 @@ export const createTaskRoutes = (deps) => {
     for (const visibleProjectId of visibleProjectIds) {
       const records = rowsByProject.get(visibleProjectId) || [];
       for (const record of records) {
+        if (!canUserSeeRecordInHomeRollup({ userId, record })) {
+          continue;
+        }
         if (record.created_by !== userId) {
           continue;
         }
@@ -172,7 +200,7 @@ export const createTaskRoutes = (deps) => {
     const rows = [];
     for (const projectId of visibleProjectIds) {
       const projectRows = homeEventsByProjectStmt.all(projectId);
-      rows.push(...projectRows);
+      rows.push(...projectRows.filter((record) => canUserSeeRecordInHomeRollup({ userId, record })));
     }
     const nowMs = Date.now();
     return rows

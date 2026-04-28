@@ -3,6 +3,7 @@ import type {
   HubRecordDetail as SharedHubRecordDetail,
   HomeCaptureSummary,
   NotificationSummary,
+  SpaceMembershipRole,
   SpaceSummary,
   SourceProjectContext,
   TaskPage,
@@ -32,10 +33,20 @@ export interface HubUserSummary {
 
 export interface HubProjectMember {
   user_id: string;
-  role: string;
+  role: SpaceMembershipRole;
   joined_at: string;
+  expires_at: string | null;
   display_name: string;
   email: string | null;
+  expiry_days_remaining?: number | null;
+  expiry_reminder_window?: 1 | 3 | 7 | null;
+  project_access?: HubProjectAccessSummary[];
+}
+
+export interface HubProjectAccessSummary {
+  project_id: string;
+  project_name: string;
+  access_level: 'read' | 'write';
 }
 
 export interface HubProjectInvite {

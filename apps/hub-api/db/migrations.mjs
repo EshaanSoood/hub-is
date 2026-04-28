@@ -20,11 +20,11 @@ export const runMigrations = (db) => {
   }
 
   const version = Number(db.prepare('SELECT version FROM schema_version WHERE id = 1').get()?.version || 0);
-  if (version >= 3) {
+  if (version >= 4) {
     return;
   }
 
-  if (version < 3) {
+  if (version < 4) {
     db.exec('PRAGMA foreign_keys = OFF;');
   }
   db.exec('BEGIN IMMEDIATE;');
@@ -67,6 +67,7 @@ export const runMigrations = (db) => {
           invited_by TEXT,
           approved_by TEXT,
           cooldown_until TEXT,
+          removed_at TEXT,
           PRIMARY KEY(space_id, user_id),
           FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
           FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -83,7 +84,8 @@ export const runMigrations = (db) => {
           expires_at,
           invited_by,
           approved_by,
-          cooldown_until
+          cooldown_until,
+          removed_at
         )
         SELECT
           space_id,
@@ -93,6 +95,7 @@ export const runMigrations = (db) => {
             ELSE 'member'
           END,
           joined_at,
+          NULL,
           NULL,
           NULL,
           NULL,
@@ -227,6 +230,7 @@ export const runMigrations = (db) => {
                 JOIN space_members pm ON pm.space_id = p.space_id
                 WHERE p.project_id = NEW.project_id
                   AND pm.user_id = NEW.user_id
+                  AND pm.removed_at IS NULL
               )
               THEN RAISE(ABORT, 'project_members must be a subset of space_members')
             END;
@@ -247,6 +251,7 @@ export const runMigrations = (db) => {
                 WHERE sm.space_id = NEW.space_id
                   AND sm.user_id = NEW.user_id
                   AND sm.role IN ('viewer', 'guest')
+                  AND sm.removed_at IS NULL
               )
               THEN RAISE(ABORT, 'space_member_project_access requires viewer or guest membership')
             END;
@@ -265,6 +270,7 @@ export const runMigrations = (db) => {
                 WHERE sm.space_id = NEW.space_id
                   AND sm.user_id = NEW.user_id
                   AND sm.role IN ('viewer', 'guest')
+                  AND sm.removed_at IS NULL
               )
               THEN RAISE(ABORT, 'space_member_project_access requires viewer or guest membership')
             END;
@@ -274,8 +280,79 @@ export const runMigrations = (db) => {
       db.prepare('UPDATE schema_version SET version = 3, updated_at = ? WHERE id = 1').run(new Date().toISOString());
     }
 
+    if (version < 4) {
+      const spaceMemberColumns = tableColumns(db, 'space_members');
+      if (!spaceMemberColumns.has('removed_at')) {
+        db.exec('ALTER TABLE space_members ADD COLUMN removed_at TEXT;');
+      }
+
+      db.exec('DROP TRIGGER IF EXISTS project_members_must_be_space_members;');
+      db.exec('DROP TRIGGER IF EXISTS space_member_project_access_role_guard_insert;');
+      db.exec('DROP TRIGGER IF EXISTS space_member_project_access_role_guard_update;');
+
+      db.exec(`
+        CREATE TRIGGER project_members_must_be_space_members
+        BEFORE INSERT ON project_members
+        FOR EACH ROW
+        BEGIN
+          SELECT
+            CASE
+              WHEN NOT EXISTS (
+                SELECT 1
+                FROM projects p
+                JOIN space_members pm ON pm.space_id = p.space_id
+                WHERE p.project_id = NEW.project_id
+                  AND pm.user_id = NEW.user_id
+                  AND pm.removed_at IS NULL
+              )
+              THEN RAISE(ABORT, 'project_members must be a subset of space_members')
+            END;
+        END;
+      `);
+      db.exec(`
+        CREATE TRIGGER space_member_project_access_role_guard_insert
+        BEFORE INSERT ON space_member_project_access
+        FOR EACH ROW
+        BEGIN
+          SELECT
+            CASE
+              WHEN NOT EXISTS (
+                SELECT 1
+                FROM space_members sm
+                WHERE sm.space_id = NEW.space_id
+                  AND sm.user_id = NEW.user_id
+                  AND sm.role IN ('viewer', 'guest')
+                  AND sm.removed_at IS NULL
+              )
+              THEN RAISE(ABORT, 'space_member_project_access requires viewer or guest membership')
+            END;
+        END;
+      `);
+      db.exec(`
+        CREATE TRIGGER space_member_project_access_role_guard_update
+        BEFORE UPDATE ON space_member_project_access
+        FOR EACH ROW
+        BEGIN
+          SELECT
+            CASE
+              WHEN NOT EXISTS (
+                SELECT 1
+                FROM space_members sm
+                WHERE sm.space_id = NEW.space_id
+                  AND sm.user_id = NEW.user_id
+                  AND sm.role IN ('viewer', 'guest')
+                  AND sm.removed_at IS NULL
+              )
+              THEN RAISE(ABORT, 'space_member_project_access requires viewer or guest membership')
+            END;
+        END;
+      `);
+
+      db.prepare('UPDATE schema_version SET version = 4, updated_at = ? WHERE id = 1').run(new Date().toISOString());
+    }
+
     db.exec('COMMIT;');
-    if (version < 3) {
+    if (version < 4) {
       db.exec('PRAGMA foreign_keys = ON;');
     }
   } catch (error) {

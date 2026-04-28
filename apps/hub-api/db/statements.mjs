@@ -52,13 +52,14 @@ export const createStatements = (db) => ({
       SELECT p.*, pm.role AS membership_role, pm.joined_at
       FROM spaces p
       JOIN space_members pm ON pm.space_id = p.space_id
-      WHERE p.space_id = ? AND pm.user_id = ?
+      WHERE p.space_id = ? AND pm.user_id = ? AND pm.removed_at IS NULL
     `),
     findPersonalSpace: db.prepare(`
       SELECT p.*, pm.role AS membership_role, pm.joined_at
       FROM spaces p
       JOIN space_members pm ON pm.space_id = p.space_id
       WHERE pm.user_id = ?
+        AND pm.removed_at IS NULL
         AND p.created_by = ?
         AND p.space_type = 'personal'
       ORDER BY p.created_at ASC
@@ -83,6 +84,7 @@ export const createStatements = (db) => ({
       FROM spaces p
       JOIN space_members pm ON pm.space_id = p.space_id
       WHERE pm.user_id = ?
+        AND pm.removed_at IS NULL
       ORDER BY
         CASE WHEN p.position IS NULL THEN 1 ELSE 0 END ASC,
         p.position ASC,
@@ -124,30 +126,88 @@ export const createStatements = (db) => ({
     listForUser: db.prepare(`
       SELECT space_id, role, joined_at
       FROM space_members
-      WHERE user_id = ?
+      WHERE user_id = ? AND removed_at IS NULL
       ORDER BY joined_at ASC
     `),
     listWithUsers: db.prepare(`
-      SELECT pm.space_id, pm.user_id, pm.role, pm.joined_at, u.display_name, u.email
+      SELECT pm.space_id, pm.user_id, pm.role, pm.joined_at, pm.expires_at, u.display_name, u.email
       FROM space_members pm
       JOIN users u ON u.user_id = pm.user_id
-      WHERE pm.space_id = ?
+      WHERE pm.space_id = ? AND pm.removed_at IS NULL
       ORDER BY pm.joined_at ASC
+    `),
+    listProjectAccessForUser: db.prepare(`
+      SELECT smpa.project_id, smpa.access_level, p.name AS project_name
+      FROM space_member_project_access smpa
+      JOIN projects p ON p.project_id = smpa.project_id
+      WHERE smpa.space_id = ? AND smpa.user_id = ?
+      ORDER BY
+        CASE WHEN p.position IS NULL THEN 1 ELSE 0 END ASC,
+        p.position ASC,
+        p.sort_order ASC,
+        p.created_at ASC
     `),
     countOwners: db.prepare(`
       SELECT COUNT(*) AS owner_count
       FROM space_members
-      WHERE space_id = ? AND role = 'owner'
+      WHERE space_id = ? AND role = 'owner' AND removed_at IS NULL
     `),
     insert: db.prepare(`
       INSERT OR REPLACE INTO space_members (space_id, user_id, role, joined_at)
       VALUES (?, ?, ?, ?)
     `),
+    insertWithInvite: db.prepare(`
+      INSERT OR REPLACE INTO space_members (space_id, user_id, role, joined_at, expires_at, invited_by, approved_by, cooldown_until, removed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+    `),
     delete: db.prepare('DELETE FROM space_members WHERE space_id = ? AND user_id = ?'),
+    removeGuest: db.prepare(`
+      UPDATE space_members
+      SET removed_at = ?, cooldown_until = ?
+      WHERE space_id = ? AND user_id = ? AND role = 'guest'
+    `),
+    updateRoleAndExpiry: db.prepare(`
+      UPDATE space_members
+      SET role = ?, expires_at = ?, cooldown_until = NULL
+      WHERE space_id = ? AND user_id = ? AND removed_at IS NULL
+    `),
+    expireMember: db.prepare(`
+      UPDATE space_members
+      SET removed_at = ?, cooldown_until = CASE WHEN role = 'guest' THEN ? ELSE cooldown_until END
+      WHERE space_id = ? AND user_id = ? AND role IN ('viewer', 'guest') AND removed_at IS NULL
+    `),
+    findPreviousMember: db.prepare(`
+      SELECT *
+      FROM space_members
+      WHERE space_id = ? AND user_id = ?
+      LIMIT 1
+    `),
+    listExpiredForUser: db.prepare(`
+      SELECT *
+      FROM space_members
+      WHERE user_id = ?
+        AND role IN ('viewer', 'guest')
+        AND removed_at IS NULL
+        AND expires_at IS NOT NULL
+        AND expires_at <= ?
+    `),
+    listScopedMembersWithoutProjectAccess: db.prepare(`
+      SELECT sm.space_id, sm.user_id, sm.role
+      FROM space_members sm
+      WHERE sm.space_id = ?
+        AND sm.role IN ('viewer', 'guest')
+        AND sm.removed_at IS NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM space_member_project_access smpa
+          WHERE smpa.space_id = sm.space_id
+            AND smpa.user_id = sm.user_id
+        )
+    `),
     listPendingInvites: db.prepare(`
       SELECT *
       FROM pending_space_invites
-      WHERE space_id = ? AND status = 'pending'
+      WHERE space_id = ? AND status IN ('pending', 'approved')
       ORDER BY created_at DESC, invite_request_id DESC
     `),
     findInvite: db.prepare('SELECT * FROM pending_space_invites WHERE invite_request_id = ? LIMIT 1'),
@@ -156,7 +216,7 @@ export const createStatements = (db) => ({
       FROM pending_space_invites
       WHERE space_id = ?
         AND LOWER(email) = LOWER(?)
-        AND status = 'pending'
+        AND status IN ('pending', 'approved')
       LIMIT 1
     `),
     insertInvite: db.prepare(`
@@ -165,6 +225,7 @@ export const createStatements = (db) => ({
         space_id,
         email,
         role,
+        expires_after_days,
         requested_by_user_id,
         status,
         target_user_id,
@@ -172,7 +233,7 @@ export const createStatements = (db) => ({
         reviewed_at,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
     `),
     updateInvite: db.prepare(`
       UPDATE pending_space_invites
@@ -180,8 +241,22 @@ export const createStatements = (db) => ({
       WHERE invite_request_id = ?
     `),
     deleteInvite: db.prepare('DELETE FROM pending_space_invites WHERE invite_request_id = ?'),
-    isMember: db.prepare('SELECT 1 AS ok FROM space_members WHERE space_id = ? AND user_id = ? LIMIT 1'),
-    getRole: db.prepare('SELECT role FROM space_members WHERE space_id = ? AND user_id = ? LIMIT 1'),
+    listInviteProjectIds: db.prepare('SELECT project_id FROM pending_space_invite_projects WHERE invite_id = ? ORDER BY project_id ASC'),
+    insertInviteProject: db.prepare('INSERT INTO pending_space_invite_projects (invite_id, project_id) VALUES (?, ?)'),
+    deleteInviteProjects: db.prepare('DELETE FROM pending_space_invite_projects WHERE invite_id = ?'),
+    isMember: db.prepare('SELECT 1 AS ok FROM space_members WHERE space_id = ? AND user_id = ? AND removed_at IS NULL LIMIT 1'),
+    getRole: db.prepare('SELECT role, expires_at, removed_at, cooldown_until FROM space_members WHERE space_id = ? AND user_id = ? AND removed_at IS NULL LIMIT 1'),
+    deleteProjectAccessForUser: db.prepare('DELETE FROM space_member_project_access WHERE space_id = ? AND user_id = ?'),
+    insertProjectAccess: db.prepare(`
+      INSERT OR REPLACE INTO space_member_project_access (space_id, user_id, project_id, access_level, granted_at, granted_by)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `),
+    hasProjectAccess: db.prepare(`
+      SELECT 1 AS ok
+      FROM space_member_project_access
+      WHERE space_id = ? AND user_id = ? AND project_id = ?
+      LIMIT 1
+    `),
   },
   projects: {
     findById: db.prepare('SELECT * FROM projects WHERE project_id = ?'),
@@ -189,7 +264,7 @@ export const createStatements = (db) => ({
       SELECT pm.user_id, u.display_name
       FROM project_members pm
       JOIN users u ON u.user_id = pm.user_id
-      LEFT JOIN space_members prj ON prj.space_id = (SELECT space_id FROM projects WHERE project_id = pm.project_id) AND prj.user_id = pm.user_id
+      LEFT JOIN space_members prj ON prj.space_id = (SELECT space_id FROM projects WHERE project_id = pm.project_id) AND prj.user_id = pm.user_id AND prj.removed_at IS NULL
       WHERE pm.project_id = ?
         AND COALESCE(prj.role, 'member') != 'owner'
       ORDER BY pm.joined_at ASC
@@ -391,6 +466,7 @@ export const createStatements = (db) => ({
       FROM space_members pm
       JOIN users u ON u.user_id = pm.user_id
       WHERE pm.space_id = ?
+        AND pm.removed_at IS NULL
         AND (
           ? = ''
           OR LOWER(u.display_name) LIKE ?
@@ -556,9 +632,22 @@ export const createStatements = (db) => ({
       SELECT r.*, rec.title AS record_title, rec.space_id
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
-      JOIN space_members pm ON pm.space_id = rec.space_id AND pm.user_id = ?
+      JOIN space_members pm ON pm.space_id = rec.space_id AND pm.user_id = ? AND pm.removed_at IS NULL
       WHERE r.dismissed_at IS NULL
         AND rec.archived_at IS NULL
+        AND (
+          pm.role NOT IN ('viewer', 'guest')
+          OR (
+            rec.source_project_id IS NOT NULL
+            AND EXISTS (
+              SELECT 1
+              FROM space_member_project_access smpa
+              WHERE smpa.space_id = rec.space_id
+                AND smpa.user_id = pm.user_id
+                AND smpa.project_id = rec.source_project_id
+            )
+          )
+        )
         AND (
           (? = 'personal' AND rec.space_id = ?)
           OR (
@@ -771,8 +860,8 @@ export const createStatements = (db) => ({
       LEFT JOIN projects cp ON cp.project_id = cdoc.project_id
       LEFT JOIN project_members spm ON spm.project_id = d.project_id AND spm.user_id = ?
       LEFT JOIN project_members cpm ON cpm.project_id = cdoc.project_id AND cpm.user_id = ?
-      LEFT JOIN space_members spj ON spj.space_id = p.space_id AND spj.user_id = ? AND spj.role = 'owner'
-      LEFT JOIN space_members cpj ON cpj.space_id = cp.space_id AND cpj.user_id = ? AND cpj.role = 'owner'
+      LEFT JOIN space_members spj ON spj.space_id = p.space_id AND spj.user_id = ? AND spj.role = 'owner' AND spj.removed_at IS NULL
+      LEFT JOIN space_members cpj ON cpj.space_id = cp.space_id AND cpj.user_id = ? AND cpj.role = 'owner' AND cpj.removed_at IS NULL
       LEFT JOIN comment_anchors ca ON ca.comment_id = c.comment_id
       WHERE m.space_id = ? AND m.target_entity_type = ? AND m.target_entity_id = ?
         AND (

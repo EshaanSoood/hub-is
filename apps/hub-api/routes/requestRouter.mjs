@@ -291,8 +291,37 @@ export const createRequestRouter = ({
     }
 
     const projectMemberItemMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/members\/([^/]+)$/);
+    const projectMemberAccessMatch = pathMatch(pathname, /^\/api\/hub\/spaces\/([^/]+)\/members\/([^/]+)\/project-access$/);
+    if (projectMemberAccessMatch && request.method === 'POST') {
+      await spaceRoutes.addMemberProjectAccess({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: {
+          projectId: decodeURIComponent(projectMemberAccessMatch[1]),
+          targetUserId: decodeURIComponent(projectMemberAccessMatch[2]),
+        },
+      });
+      return;
+    }
+
     if (projectMemberItemMatch && request.method === 'DELETE') {
       await spaceRoutes.removeProjectMember({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: {
+          projectId: decodeURIComponent(projectMemberItemMatch[1]),
+          targetUserId: decodeURIComponent(projectMemberItemMatch[2]),
+        },
+      });
+      return;
+    }
+
+    if (projectMemberItemMatch && request.method === 'PATCH') {
+      await spaceRoutes.updateProjectMember({
         request,
         response,
         requestUrl,

@@ -66,15 +66,21 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
       user_id: 'user-1',
       role: 'owner',
       joined_at: '2026-04-19T00:00:00.000Z',
+      expires_at: null,
       display_name: 'Owner Person',
       email: 'owner@example.com',
+      project_access: [],
     },
     {
       user_id: 'user-2',
       role: 'viewer',
       joined_at: '2026-04-19T00:00:00.000Z',
+      expires_at: '2026-05-19T00:00:00.000Z',
       display_name: 'Viewer Person',
       email: 'viewer@example.com',
+      project_access: [
+        { project_id: 'project-shared', project_name: 'Shared Work', access_level: 'read' },
+      ],
     },
   ];
 

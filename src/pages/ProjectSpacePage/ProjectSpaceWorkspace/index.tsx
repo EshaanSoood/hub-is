@@ -61,6 +61,10 @@ export const ProjectSpaceWorkspace = ({
     overview: navigatorProps.onNavigateOverview,
     work: navigatorProps.onNavigateWork,
   };
+  const canAccessOverview = project.membership_role !== 'viewer' && project.membership_role !== 'guest';
+  const primarySurfaces = canAccessOverview
+    ? PROJECT_SPACE_PRIMARY_SURFACES
+    : PROJECT_SPACE_PRIMARY_SURFACES.filter((surface) => surface !== 'overview');
 
   return (
     <motion.div layoutId={projectLayoutId} className="space-y-4">
@@ -75,7 +79,7 @@ export const ProjectSpaceWorkspace = ({
           </h1>
         </div>
         <nav className="flex flex-wrap items-center gap-2" aria-label="Space navigation">
-          {PROJECT_SPACE_PRIMARY_SURFACES.map((surface) => {
+          {primarySurfaces.map((surface) => {
             const selected = surface === 'work'
               ? navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned
               : navigatorProps.activeTab === surface;
