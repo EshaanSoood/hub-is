@@ -58,7 +58,7 @@ export const canUserAccessProject = (db, userId, projectId) => {
   }
 
   if (role === 'member') {
-    // TODO: Apply project visibility exclusions once hidden-project rows exist.
+    // TODO(#64): Apply project visibility exclusions once hidden-project rows exist.
     return true;
   }
 

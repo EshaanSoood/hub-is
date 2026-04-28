@@ -299,9 +299,11 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
-    if (!canUserManageProjectVisibility(userId, project.space_id)) {
-      insertWorkProjectMemberStmt.run(workProjectId, userId, nowIso());
+    if (canUserManageProjectVisibility(userId, project.space_id)) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Owners and admins already have implicit project access.')));
+      return;
     }
+    insertWorkProjectMemberStmt.run(workProjectId, userId, nowIso());
 
     emitTimelineEvent({
       projectId: project.space_id,

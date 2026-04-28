@@ -1585,9 +1585,10 @@ test('rename functional parity contract', async (t) => {
 
       await expectStatus(harness.apiBaseUrl, null, routes.me, 401, { method: 'GET' });
       await expectStatus(harness.apiBaseUrl, null, routes.projects, 401, { method: 'GET' });
-      await expectOk(harness.apiBaseUrl, ownerToken, routes.me, { method: 'GET' });
+      const ownerSession = await expectOk(harness.apiBaseUrl, ownerToken, routes.me, { method: 'GET' });
       const memberSession = await expectOk(harness.apiBaseUrl, memberToken, routes.me, { method: 'GET' });
       const extraSession = await expectOk(harness.apiBaseUrl, extraToken, routes.me, { method: 'GET' });
+      const ownerId = ownerSession.user.user_id;
       const memberId = memberSession.user.user_id;
       const extraId = extraSession.user.user_id;
 
@@ -1762,6 +1763,10 @@ test('rename functional parity contract', async (t) => {
       });
       assertExactKeys(addedProjectMember, ['project'], 'addedProjectMember');
       assertExactKeys(addedProjectMember.project, responseShapes.work, 'addedProjectMember.project');
+      await expectStatus(harness.apiBaseUrl, ownerToken, routes.workProjectMembers(defaultProject[work.idColumn]), 400, {
+        method: 'POST',
+        body: JSON.stringify({ [requestKeys.userId]: ownerId }),
+      });
       await expectStatus(harness.apiBaseUrl, ownerToken, routes.workProjectMembers(defaultProject[work.idColumn]), 400, {
         method: 'POST',
         body: JSON.stringify({ [requestKeys.userId]: 'usr_not_a_member' }),
