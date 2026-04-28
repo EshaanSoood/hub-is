@@ -6,7 +6,7 @@ import type { HubProjectMember } from '../services/hub/types';
 
 interface UseProjectMembersParams {
   accessToken: string;
-  projectId: string;
+  spaceId: string;
   projectMembers: HubProjectMember[];
   refreshProjectData: () => Promise<void>;
 }
@@ -22,7 +22,7 @@ const addDaysIso = (baseIso: string | null | undefined, days: number): string =>
 
 export const useProjectMembers = ({
   accessToken,
-  projectId,
+  spaceId,
   projectMembers,
   refreshProjectData,
 }: UseProjectMembersParams) => {
@@ -66,7 +66,7 @@ export const useProjectMembers = ({
   const onToggleInviteProject = useCallback((workProjectId: string) => {
     setInviteProjectIds((current) =>
       current.includes(workProjectId)
-        ? current.filter((projectId) => projectId !== workProjectId)
+        ? current.filter((selectedWorkProjectId) => selectedWorkProjectId !== workProjectId)
         : [...current, workProjectId],
     );
     setProjectMemberMutationError(null);
@@ -97,7 +97,7 @@ export const useProjectMembers = ({
       setIsSubmittingInvite(true);
 
       try {
-        await createSpaceInvite(accessToken, projectId, {
+        await createSpaceInvite(accessToken, spaceId, {
           email,
           role: inviteRole,
           ...(inviteRole === 'member' ? {} : { project_ids: inviteProjectIds }),
@@ -129,7 +129,7 @@ export const useProjectMembers = ({
         setIsSubmittingInvite(false);
       }
     },
-    [accessToken, inviteEmail, inviteProjectIds, inviteRole, projectId, refreshProjectData, viewerInviteDays],
+    [accessToken, inviteEmail, inviteProjectIds, inviteRole, refreshProjectData, spaceId, viewerInviteDays],
   );
 
   const refreshAfterMemberAction = useCallback(async () => {
@@ -145,7 +145,7 @@ export const useProjectMembers = ({
     setProjectMemberMutationError(null);
     setProjectMemberMutationNotice(null);
     try {
-      await updateSpaceMember(accessToken, projectId, userId, { role: 'member', expires_at: null });
+      await updateSpaceMember(accessToken, spaceId, userId, { role: 'member', expires_at: null });
       setProjectMemberMutationNotice('Guest upgraded to member.');
       await refreshAfterMemberAction();
       return true;
@@ -155,14 +155,14 @@ export const useProjectMembers = ({
     } finally {
       setMemberActionUserId(null);
     }
-  }, [accessToken, projectId, refreshAfterMemberAction]);
+  }, [accessToken, refreshAfterMemberAction, spaceId]);
 
   const onExtendGuestAccess = useCallback(async (member: HubProjectMember) => {
     setMemberActionUserId(member.user_id);
     setProjectMemberMutationError(null);
     setProjectMemberMutationNotice(null);
     try {
-      await updateSpaceMember(accessToken, projectId, member.user_id, { expires_at: addDaysIso(member.expires_at, 30) });
+      await updateSpaceMember(accessToken, spaceId, member.user_id, { expires_at: addDaysIso(member.expires_at, 30) });
       setProjectMemberMutationNotice('Guest access extended by 30 days.');
       await refreshAfterMemberAction();
       return true;
@@ -172,14 +172,14 @@ export const useProjectMembers = ({
     } finally {
       setMemberActionUserId(null);
     }
-  }, [accessToken, projectId, refreshAfterMemberAction]);
+  }, [accessToken, refreshAfterMemberAction, spaceId]);
 
   const onRemoveProjectMember = useCallback(async (userId: string) => {
     setMemberActionUserId(userId);
     setProjectMemberMutationError(null);
     setProjectMemberMutationNotice(null);
     try {
-      await removeSpaceMember(accessToken, projectId, userId);
+      await removeSpaceMember(accessToken, spaceId, userId);
       setProjectMemberMutationNotice('Member removed from the space.');
       await refreshAfterMemberAction();
       return true;
@@ -189,7 +189,7 @@ export const useProjectMembers = ({
     } finally {
       setMemberActionUserId(null);
     }
-  }, [accessToken, projectId, refreshAfterMemberAction]);
+  }, [accessToken, refreshAfterMemberAction, spaceId]);
 
   const onGrantProjectAccess = useCallback(async (userId: string, workProjectIds: string[]) => {
     if (workProjectIds.length === 0) {
@@ -199,18 +199,33 @@ export const useProjectMembers = ({
     setMemberActionUserId(userId);
     setProjectMemberMutationError(null);
     setProjectMemberMutationNotice(null);
+    const uniqueWorkProjectIds = [...new Set(workProjectIds)];
     try {
-      await Promise.all(workProjectIds.map((workProjectId) => addSpaceMemberProjectAccess(accessToken, projectId, userId, workProjectId)));
-      setProjectMemberMutationNotice(workProjectIds.length === 1 ? 'Project access added.' : 'Project access added.');
-      await refreshAfterMemberAction();
+      const results = await Promise.allSettled(
+        uniqueWorkProjectIds.map((workProjectId) => addSpaceMemberProjectAccess(accessToken, spaceId, userId, workProjectId)),
+      );
+      const failedWorkProjectIds = results
+        .map((result, index) => (result.status === 'rejected' ? uniqueWorkProjectIds[index] : null))
+        .filter((workProjectId): workProjectId is string => Boolean(workProjectId));
+      if (failedWorkProjectIds.length > 0) {
+        const successCount = uniqueWorkProjectIds.length - failedWorkProjectIds.length;
+        setProjectMemberMutationError(
+          successCount > 0
+            ? `Added access to ${successCount} of ${uniqueWorkProjectIds.length} projects. Failed project IDs: ${failedWorkProjectIds.join(', ')}.`
+            : 'Failed to add project access.',
+        );
+        return false;
+      }
+      setProjectMemberMutationNotice(uniqueWorkProjectIds.length === 1 ? 'Project access added.' : 'Project access added to selected projects.');
       return true;
     } catch (error) {
       setProjectMemberMutationError(error instanceof Error ? error.message : 'Failed to add project access.');
       return false;
     } finally {
+      await refreshAfterMemberAction();
       setMemberActionUserId(null);
     }
-  }, [accessToken, projectId, refreshAfterMemberAction]);
+  }, [accessToken, refreshAfterMemberAction, spaceId]);
 
   return {
     // passthrough: projectMembers is owned by the bootstrap fetch, not this hook

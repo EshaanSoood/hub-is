@@ -275,7 +275,7 @@ const activeProject = useMemo(
     onGrantProjectAccess,
   } = useProjectMembers({
     accessToken,
-    projectId: project.space_id,
+    spaceId: project.space_id,
     projectMembers,
     refreshProjectData,
   });

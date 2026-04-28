@@ -276,9 +276,13 @@ export const SpaceMembersManagement = ({
         <h2 className="text-sm font-semibold text-text">Members</h2>
         <ul className="space-y-2">
           {members.map((member) => {
-            const expiryDays = daysUntil(member.expires_at);
+            const apiExpiryDays = typeof member.expiry_days_remaining === 'number' ? member.expiry_days_remaining : null;
+            const expiryDays = apiExpiryDays ?? daysUntil(member.expires_at);
+            const reminderWindow = typeof member.expiry_reminder_window === 'number' ? member.expiry_reminder_window : null;
             const isScopedRole = member.role === 'viewer' || member.role === 'guest';
-            const isGuestApproachingExpiry = member.role === 'guest' && expiryDays !== null && expiryDays <= 7;
+            const isGuestApproachingExpiry = member.role === 'guest' && expiryDays !== null && (
+              reminderWindow !== null ? expiryDays <= reminderWindow : expiryDays <= 7
+            );
             const accessLabels = projectAccessLabels(member);
             return (
               <li key={member.user_id} className="rounded-panel border border-border-muted bg-surface p-3">

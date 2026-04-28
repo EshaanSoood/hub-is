@@ -204,6 +204,7 @@ const PARITY_CONTRACT = {
         'expires_at',
         'display_name',
         'email',
+        'project_access',
         'expiry_days_remaining',
         'expiry_reminder_window',
       ],

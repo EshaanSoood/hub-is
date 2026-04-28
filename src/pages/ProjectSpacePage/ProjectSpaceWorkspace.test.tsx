@@ -752,19 +752,22 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(screen.getByRole('button', { name: 'Work' })).toBeInTheDocument();
   });
 
-  it('hides the Overview navigation affordance for viewer and guest memberships', () => {
-    renderWorkspace({
-      entry: '/projects/project-1/work/project-shared',
-      activeTab: 'work',
-      project: {
-        ...fixture.project,
-        membership_role: 'viewer',
-      },
-    });
+  it.each(['viewer', 'guest'] as const)(
+    'hides the Overview navigation affordance for %s memberships',
+    (membershipRole) => {
+      renderWorkspace({
+        entry: '/projects/project-1/work/project-shared',
+        activeTab: 'work',
+        project: {
+          ...fixture.project,
+          membership_role: membershipRole,
+        },
+      });
 
-    expect(screen.queryByRole('button', { name: 'Overview' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-current', 'page');
-  });
+      expect(screen.queryByRole('button', { name: 'Overview' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-current', 'page');
+    },
+  );
 
   it('does not expose a Tools navigation affordance', () => {
     renderWorkspace({

@@ -1139,6 +1139,7 @@ const withWorkProjectPolicyGate = ({ userId, projectId, requiredCapability }) =>
 };
 
 const withDocPolicyGate = ({ userId, docId, requiredCapability }) => {
+  expireScopedMembershipsForUser(userId);
   return baseWithDocPolicyGate({ userId, docId, requiredCapability });
 };
 

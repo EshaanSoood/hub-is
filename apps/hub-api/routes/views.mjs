@@ -114,21 +114,30 @@ export const createViewRoutes = (deps) => {
     updateViewStmt,
   } = deps;
 
-  const canUserSeeRecordInCalendarRollup = ({ userId, record }) => {
+  const canUserSeeRecordInCalendarRollup = ({ userId, record, visibilityCache }) => {
+    const sourceProjectId = asText(record.source_project_id);
+    const cacheKey = `${userId}:${record.space_id}:${sourceProjectId}`;
+    if (visibilityCache?.has(cacheKey)) {
+      return visibilityCache.get(cacheKey);
+    }
+
     const membership = projectMembershipRoleStmt.get(record.space_id, userId);
     const role = asText(membership?.role);
     if (role !== 'viewer' && role !== 'guest') {
+      visibilityCache?.set(cacheKey, true);
       return true;
     }
-    const sourceProjectId = asText(record.source_project_id);
     if (!sourceProjectId) {
+      visibilityCache?.set(cacheKey, false);
       return false;
     }
-    return !withWorkProjectPolicyGate({
+    const allowed = !withWorkProjectPolicyGate({
       userId,
       projectId: sourceProjectId,
       requiredCapability: 'view',
     }).error;
+    visibilityCache?.set(cacheKey, allowed);
+    return allowed;
   };
 
   const listViews = async ({ request, response, params }) => {
@@ -597,9 +606,10 @@ export const createViewRoutes = (deps) => {
     const mode = asText(requestUrl.searchParams.get('mode')).toLowerCase() || 'all';
     const startBound = deps.asNullableText(requestUrl.searchParams.get('start'));
     const endBound = deps.asNullableText(requestUrl.searchParams.get('end'));
+    const visibilityCache = new Map();
     const allRecords = calendarRecordsByProjectStmt
       .all(projectId)
-      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: auth.user.user_id, record }));
+      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: auth.user.user_id, record, visibilityCache }));
 
     let filtered = allRecords;
     if (mode === 'relevant') {
@@ -652,9 +662,10 @@ export const createViewRoutes = (deps) => {
       ),
     );
 
+    const visibilityCache = new Map();
     const mergedRecords = visibleProjectIds
       .flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId))
-      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: auth.user.user_id, record }));
+      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: auth.user.user_id, record, visibilityCache }));
 
     let filtered = mergedRecords;
     if (mode === 'relevant') {
@@ -715,9 +726,10 @@ export const createViewRoutes = (deps) => {
       ),
     );
 
+    const visibilityCache = new Map();
     const mergedRecords = visibleProjectIds
       .flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId))
-      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: tokenRecord.user_id, record }));
+      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: tokenRecord.user_id, record, visibilityCache }));
     const events = mergedRecords
       .flatMap((record) => {
         const eventState = eventStateByRecordStmt.get(record.record_id);

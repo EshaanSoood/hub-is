@@ -613,21 +613,23 @@ export const createSpaceRoutes = (deps) => {
     const project = projectByIdStmt.get(projectId);
     const inviteRequestId = newId('pinv');
     const timestamp = nowIso();
-    insertPendingInviteStmt.run(
-      inviteRequestId,
-      projectId,
-      email,
-      requestedRole,
-      expiresAfterDays,
-      auth.user.user_id,
-      autoApproved ? 'approved' : 'pending',
-      existingUser?.user_id || null,
-      timestamp,
-      timestamp,
-    );
-    for (const workProjectId of inviteProjectValidation.projectIds) {
-      insertPendingInviteProjectStmt.run(inviteRequestId, workProjectId);
-    }
+    withTransaction(() => {
+      insertPendingInviteStmt.run(
+        inviteRequestId,
+        projectId,
+        email,
+        requestedRole,
+        expiresAfterDays,
+        auth.user.user_id,
+        autoApproved ? 'approved' : 'pending',
+        existingUser?.user_id || null,
+        timestamp,
+        timestamp,
+      );
+      for (const workProjectId of inviteProjectValidation.projectIds) {
+        insertPendingInviteProjectStmt.run(inviteRequestId, workProjectId);
+      }
+    });
 
     const inviteEmail = await sendHubInviteEmail({
       to: email,
@@ -810,6 +812,10 @@ export const createSpaceRoutes = (deps) => {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
+    if (!canUserManageSpaceMembers(auth.user.user_id, projectId)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners and admins can update member project access.')));
+      return;
+    }
 
     let body;
     try {
@@ -905,7 +911,11 @@ export const createSpaceRoutes = (deps) => {
 
     const hasExpiresAt = Object.prototype.hasOwnProperty.call(body, 'expires_at');
     const requestedExpiresAt = body.expires_at === null ? null : asText(body.expires_at);
-    if (requestedExpiresAt && !Number.isFinite(Date.parse(requestedExpiresAt))) {
+    if (
+      hasExpiresAt &&
+      requestedExpiresAt !== null &&
+      (!requestedExpiresAt || !Number.isFinite(Date.parse(requestedExpiresAt)))
+    ) {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'expires_at must be an ISO 8601 timestamp or null.')));
       return;
     }
