@@ -49,8 +49,8 @@ export const createDocRoutes = (deps) => {
     commentAnchorsByDocStmt,
     updateCommentStatusStmt,
     commentStatusSet,
-    projectMembershipRoleStmt,
     membershipRoleLabel,
+    canUserDeleteSpace,
   } = deps;
 
   const docSummary = (doc) => ({
@@ -846,10 +846,8 @@ export const createDocRoutes = (deps) => {
         send(response, jsonResponse(404, errorEnvelope('not_found', 'Comment source not found in project.')));
         return;
       }
-      const membership = projectMembershipRoleStmt.get(projectId, auth.user.user_id);
-      const membershipRole = membershipRoleLabel(membership?.role || 'member');
       const canMutateCommentMentions =
-        comment.author_user_id === auth.user.user_id || membershipRole === 'owner';
+        comment.author_user_id === auth.user.user_id || canUserDeleteSpace(auth.user.user_id, projectId);
       if (!canMutateCommentMentions) {
         send(response, jsonResponse(403, errorEnvelope('forbidden', 'Comment mention mutation not permitted.')));
         return;

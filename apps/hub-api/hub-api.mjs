@@ -19,6 +19,14 @@ import { createNextcloudHelpers } from './helpers/nextcloud.mjs';
 import { createPermissionHelpers } from './helpers/permissions.mjs';
 import { createValidationHelpers } from './helpers/validation.mjs';
 import { createRequestLogger } from './lib/logger.mjs';
+import {
+  canUserAccessProject,
+  canUserAccessSpaceOverview,
+  canUserManageSpaceMembers,
+  canUserEditProject,
+  canUserDeleteSpace,
+  canUserManageProjectVisibility,
+} from './lib/permissions.mjs';
 import { applyRequestContext } from './lib/requestContext.mjs';
 import { fetchWithTimeout, isFetchTimeoutError } from './lib/fetch-utils.mjs';
 import { createKeycloakIntegration } from './integrations/keycloak.mjs';
@@ -83,7 +91,7 @@ const REMINDER_CHECK_INTERVAL_MS = 30_000;
 const HUB_PUBLIC_APP_URL = (process.env.HUB_PUBLIC_APP_URL || 'https://eshaansood.org').trim().replace(/\/+$/, '');
 const APP_VERSION = process.env.npm_package_version || 'unknown';
 const NODE_ENVIRONMENT = (process.env.NODE_ENV || 'development').trim().toLowerCase() || 'development';
-const REGISTERED_ROUTE_COUNT = 86;
+const REGISTERED_ROUTE_COUNT = 87;
 const systemLog = createRequestLogger('system', 'SYSTEM', '/system', 'system');
 
 const {
@@ -480,6 +488,7 @@ const {
   withWorkProjectPolicyGate: baseWithWorkProjectPolicyGate,
   withDocPolicyGate: baseWithDocPolicyGate,
 } = createPermissionHelpers({
+  db,
   asText,
   projectMembershipRoleStmt,
   workProjectByIdStmt,
@@ -1099,10 +1108,7 @@ const projectSummary = (project, userId = '') => {
     user_id: member.user_id,
     display_name: member.display_name,
   }));
-  const projectRole = userId ? normalizeProjectRole(projectMembershipRoleStmt.get(project.space_id, userId)?.role) : 'member';
-  const canEdit = (
-    projectRole === 'owner' || Boolean(userId && workProjectEditorExistsStmt.get(project.project_id, userId)?.ok)
-  );
+  const canEdit = Boolean(userId && canUserEditProject(db, userId, project.project_id));
 
   return {
     project_id: project.project_id,
@@ -1971,6 +1977,12 @@ const routeDeps = buildRouteDeps({
   withProjectPolicyGate,
   withWorkProjectPolicyGate,
   withPolicyGate,
+  canUserAccessProject,
+  canUserAccessSpaceOverview,
+  canUserManageSpaceMembers,
+  canUserEditProject,
+  canUserDeleteSpace,
+  canUserManageProjectVisibility,
   ensureKeycloakInviteOnboarding,
   uploadToNextcloud,
 });

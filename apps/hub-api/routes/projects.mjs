@@ -4,6 +4,7 @@ export const createProjectRoutes = (deps) => {
     withTransaction,
     withProjectPolicyGate,
     withWorkProjectPolicyGate,
+    canUserManageProjectVisibility,
     send,
     jsonResponse,
     errorEnvelope,
@@ -19,11 +20,9 @@ export const createProjectRoutes = (deps) => {
     buildNotificationPayload,
     createNotification,
     projectSummary,
-    normalizeProjectRole,
     projectsBySpaceStmt,
     projectNextSortStmt,
     projectMembershipExistsStmt,
-    projectMembershipRoleStmt,
     projectMembersByProjectStmt,
     workProjectByIdStmt,
     insertWorkProjectStmt,
@@ -128,7 +127,7 @@ export const createProjectRoutes = (deps) => {
       insertDocStorageStmt.run(docId, 0, toJson({}), now);
 
       for (const userId of editorUserIds) {
-        if (normalizeProjectRole(projectMembershipRoleStmt.get(spaceId, userId)?.role) !== 'owner') {
+        if (!canUserManageProjectVisibility(userId, spaceId)) {
           insertWorkProjectMemberStmt.run(workProjectId, userId, now);
         }
       }
@@ -273,11 +272,11 @@ export const createProjectRoutes = (deps) => {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
-    if (!projectGate.is_owner) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can add project editors.')));
+    const project = projectGate.project;
+    if (!canUserManageProjectVisibility(auth.user.user_id, project.space_id)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners and admins can add project editors.')));
       return;
     }
-    const project = projectGate.project;
 
     let body;
     try {
@@ -300,9 +299,11 @@ export const createProjectRoutes = (deps) => {
       return;
     }
 
-    if (normalizeProjectRole(projectMembershipRoleStmt.get(project.space_id, userId)?.role) !== 'owner') {
-      insertWorkProjectMemberStmt.run(workProjectId, userId, nowIso());
+    if (canUserManageProjectVisibility(userId, project.space_id)) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Owners and admins already have implicit project access.')));
+      return;
     }
+    insertWorkProjectMemberStmt.run(workProjectId, userId, nowIso());
 
     emitTimelineEvent({
       projectId: project.space_id,
@@ -334,11 +335,11 @@ export const createProjectRoutes = (deps) => {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
-    if (!projectGate.is_owner) {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can remove project editors.')));
+    const project = projectGate.project;
+    if (!canUserManageProjectVisibility(auth.user.user_id, project.space_id)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners and admins can remove project editors.')));
       return;
     }
-    const project = projectGate.project;
 
     deleteWorkProjectMemberStmt.run(workProjectId, userId);
 

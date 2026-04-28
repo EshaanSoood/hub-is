@@ -8,6 +8,9 @@ export const createSpaceRoutes = (deps) => {
     withTransaction,
     withPolicyGate,
     withProjectPolicyGate,
+    canUserAccessSpaceOverview,
+    canUserManageSpaceMembers,
+    canUserDeleteSpace,
     send,
     jsonResponse,
     okEnvelope,
@@ -23,13 +26,13 @@ export const createSpaceRoutes = (deps) => {
     projectRecord,
     pendingInviteRecord,
     membershipRoleLabel,
-    normalizeProjectRole,
     ensureUserForEmail,
     projectMembershipExistsStmt,
     projectMembershipRoleStmt,
     projectOwnerCountStmt,
     projectForMemberStmt,
     listProjectsForUserStmt,
+    countOtherPersonalSpacesForOwnerStmt,
     projectByIdStmt,
     projectMembersByProjectStmt,
     pendingInvitesByProjectStmt,
@@ -53,9 +56,11 @@ export const createSpaceRoutes = (deps) => {
     deleteProjectMembersByUserInProjectStmt,
     assignedTaskListForUser,
     reassignTasksForRemovedMember,
+    scheduleSpaceDeletionStmt,
     updateProjectNameStmt,
     updateProjectPositionStmt,
   } = deps;
+  const spaceDeletionCountdownMs = 3 * 24 * 60 * 60 * 1000;
 
   const isPersonalProject = (projectId) => {
     const project = projectByIdStmt.get(projectId);
@@ -155,6 +160,10 @@ export const createSpaceRoutes = (deps) => {
       send(response, jsonResponse(404, errorEnvelope('not_found', 'Space not found.')));
       return;
     }
+    if (!canUserAccessSpaceOverview(auth.user.user_id, params.projectId)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Space overview access required.')));
+      return;
+    }
 
     send(response, jsonResponse(200, okEnvelope({ space: projectRecord(project) })));
   };
@@ -232,6 +241,57 @@ export const createSpaceRoutes = (deps) => {
     send(response, jsonResponse(200, okEnvelope({ space: projectRecord(project) })));
   };
 
+  const deleteProject = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const spaceId = params.spaceId;
+    const space = projectForMemberStmt.get(spaceId, auth.user.user_id);
+    if (!space) {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Space not found.')));
+      return;
+    }
+
+    if (!canUserDeleteSpace(auth.user.user_id, spaceId)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can delete spaces.')));
+      return;
+    }
+
+    if (isPersonalProject(spaceId)) {
+      const otherPersonalSpaces = Number(
+        countOtherPersonalSpacesForOwnerStmt.get(auth.user.user_id, spaceId)?.personal_space_count || 0,
+      );
+      if (otherPersonalSpaces <= 0) {
+        send(
+          response,
+          jsonResponse(
+            409,
+            errorEnvelope('last_personal_space', 'Cannot delete your last personal space. Keep or create another personal space first.'),
+          ),
+        );
+        return;
+      }
+    }
+
+    const now = nowIso();
+    const pendingDeletionAt = new Date(Date.parse(now) + spaceDeletionCountdownMs).toISOString();
+    scheduleSpaceDeletionStmt.run(pendingDeletionAt, now, spaceId);
+
+    send(
+      response,
+      jsonResponse(
+        200,
+        okEnvelope({
+          scheduled: true,
+          pending_deletion_at: pendingDeletionAt,
+        }),
+      ),
+    );
+  };
+
   const listProjectMembers = async ({ request, response, params }) => {
     const auth = await withAuth(request);
     if (auth.error) {
@@ -249,6 +309,10 @@ export const createSpaceRoutes = (deps) => {
       send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
       return;
     }
+    if (!canUserAccessSpaceOverview(auth.user.user_id, projectId)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Space overview access required.')));
+      return;
+    }
 
     const members = projectMembersByProjectStmt.all(projectId).map((member) => ({
       space_id: member.space_id,
@@ -259,7 +323,7 @@ export const createSpaceRoutes = (deps) => {
       email: member.email,
     }));
 
-    const pending_invites = projectGate.is_owner
+    const pending_invites = canUserManageSpaceMembers(auth.user.user_id, projectId)
       ? pendingInvitesByProjectStmt.all(projectId).map(pendingInviteRecord)
       : [];
 
@@ -287,9 +351,8 @@ export const createSpaceRoutes = (deps) => {
       send(response, jsonResponse(403, errorEnvelope('forbidden', 'Cannot add collaborators to a personal space.')));
       return;
     }
-    const callerRole = normalizeProjectRole(projectMembershipRoleStmt.get(projectId, auth.user.user_id)?.role);
-    if (callerRole !== 'owner') {
-      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can add members directly. Use the invite flow instead.')));
+    if (!canUserManageSpaceMembers(auth.user.user_id, projectId)) {
+      send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners and admins can add members directly. Use the invite flow instead.')));
       return;
     }
 
@@ -634,7 +697,7 @@ export const createSpaceRoutes = (deps) => {
       }
     }
 
-    if (!selfRemoval && !projectGate.is_owner) {
+    if (!selfRemoval && !canUserManageSpaceMembers(auth.user.user_id, projectId)) {
       send(response, jsonResponse(403, errorEnvelope('forbidden', 'Only space owners can remove members.')));
       return;
     }
@@ -659,6 +722,7 @@ export const createSpaceRoutes = (deps) => {
     addProjectMember,
     createInvite,
     createProject,
+    deleteProject,
     getProject,
     listProjectMembers,
     listProjects,

@@ -1,4 +1,12 @@
+import {
+  canUserAccessProject,
+  canUserManageProjectVisibility,
+  canUserEditProject,
+  canUserManageSpaceMembers,
+} from '../lib/permissions.mjs';
+
 export const createPermissionHelpers = ({
+  db,
   asText,
   projectMembershipRoleStmt,
   workProjectByIdStmt,
@@ -70,9 +78,15 @@ export const createPermissionHelpers = ({
     }
 
     const role = normalizeProjectRole(membership.role);
-    const capabilities = new Set(role === 'owner'
-      ? ['view', 'comment', 'write', 'manage_members']
-      : ['view', 'comment']);
+    const canManageMembers = canUserManageSpaceMembers(db, userId, projectId);
+    const canWriteSpace = canUserManageProjectVisibility(db, userId, projectId);
+    const capabilities = new Set(['view', 'comment']);
+    if (canWriteSpace) {
+      capabilities.add('write');
+    }
+    if (canManageMembers) {
+      capabilities.add('manage_members');
+    }
     if (!capabilities.has(requiredCapability)) {
       return {
         error: {
@@ -86,7 +100,7 @@ export const createPermissionHelpers = ({
     return {
       project_id: projectId,
       role,
-      is_owner: role === 'owner',
+      is_owner: canWriteSpace,
     };
   };
 
@@ -100,14 +114,23 @@ export const createPermissionHelpers = ({
       return { error: { status: 404, code: 'not_found', message: 'Project not found.' } };
     }
 
-    const projectGate = withProjectPolicyGate({ userId, projectId: project.space_id, requiredCapability: 'view' });
-    if (projectGate.error) {
-      return projectGate;
+    if (!canUserAccessProject(db, userId, projectId)) {
+      return { error: { status: 403, code: 'forbidden', message: 'Project access required.' } };
     }
 
+    const membership = projectMembershipRoleStmt.get(project.space_id, userId);
+    const spaceRole = asText(membership?.role);
+    const projectGate = withProjectPolicyGate({ userId, projectId: project.space_id, requiredCapability: 'view' });
     const isExplicitEditor = Boolean(workProjectEditorExistsStmt.get(projectId, userId)?.ok);
-    const canWrite = projectGate.is_owner || isExplicitEditor;
-    const capabilities = new Set(canWrite ? ['view', 'comment', 'write', 'manage'] : ['view', 'comment']);
+    const canWrite = canUserEditProject(db, userId, projectId);
+    const canManage = projectGate.is_owner || (spaceRole === 'member' && isExplicitEditor);
+    const capabilities = new Set(['view', 'comment']);
+    if (canWrite) {
+      capabilities.add('write');
+    }
+    if (canManage) {
+      capabilities.add('manage');
+    }
     if (!capabilities.has(requiredCapability)) {
       return {
         error: {

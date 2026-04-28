@@ -61,6 +61,7 @@ const PARITY_CONTRACT = {
       'mentions',
       'widget_picker_seed_data',
       'notifications',
+      'pending_space_invite_projects',
       'personal_tasks',
       'record_capabilities',
       'record_relations',
@@ -79,6 +80,7 @@ const PARITY_CONTRACT = {
       'timeline_events',
       'users',
       'views',
+      'space_member_project_access',
     ],
     staticIndexes: [
       'idx_attachments_asset_lookup',
@@ -92,8 +94,8 @@ const PARITY_CONTRACT = {
       'idx_event_state_start',
       'idx_files_space_asset_path',
       'idx_mentions_target_lookup',
-      'idx_widget_picker_seed_widget_size',
       'idx_notifications_user_unread_created',
+      'idx_pending_space_invite_projects_invite',
       'idx_projects_space_sort',
       'idx_personal_tasks_user_updated',
       'idx_record_relations_space_from',
@@ -107,9 +109,12 @@ const PARITY_CONTRACT = {
       'idx_records_space_source_view',
       'idx_reminders_due_active',
       'idx_reminders_visible_undismissed',
+      'idx_space_member_project_access_project',
+      'idx_space_member_project_access_unique',
       'idx_timeline_primary_lookup',
       'idx_timeline_space_created',
       'idx_views_space_collection_type',
+      'idx_widget_picker_seed_widget_size',
     ],
     staticTriggers: [
       'comment_anchor_requires_doc_target',
@@ -122,6 +127,8 @@ const PARITY_CONTRACT = {
       'search_records_fts_delete',
       'search_records_fts_insert',
       'search_records_fts_update',
+      'space_member_project_access_role_guard_insert',
+      'space_member_project_access_role_guard_update',
     ],
     triggerErrors: {
       projectMembersSubset: 'project_members must be a subset of space_members',
@@ -129,6 +136,7 @@ const PARITY_CONTRACT = {
       recordRelationsProject: 'record_relations records must match relation space_id',
       commentAnchorDocTarget: 'comment_anchors require doc target',
       commentAnchorNodeKey: 'comment_anchors must be node-key anchors',
+      spaceMemberProjectAccessRole: 'space_member_project_access requires viewer or guest membership',
     },
   },
   api: {
@@ -222,7 +230,7 @@ const PARITY_CONTRACT = {
         'position',
         'pinned',
         'layout_config',
-        'doc_id',
+        'docs',
         'members',
         'can_edit',
       ],
@@ -505,6 +513,7 @@ const buildExpectedTableColumns = () => {
       { name: 'reminders_collection_id', type: 'TEXT', notnull: 0, pk: 0 },
       { name: 'position', type: 'INTEGER', notnull: 0, pk: 0 },
       { name: 'name_prompt_completed', type: 'INTEGER', notnull: 1, pk: 0 },
+      { name: 'pending_deletion_at', type: 'TEXT', notnull: 0, pk: 0 },
       { name: 'created_at', type: 'TEXT', notnull: 1, pk: 0 },
       { name: 'updated_at', type: 'TEXT', notnull: 1, pk: 0 },
     ],
@@ -513,12 +522,17 @@ const buildExpectedTableColumns = () => {
       { name: 'user_id', type: 'TEXT', notnull: 1, pk: 2 },
       { name: 'role', type: 'TEXT', notnull: 0, pk: 0 },
       { name: 'joined_at', type: 'TEXT', notnull: 1, pk: 0 },
+      { name: 'expires_at', type: 'TEXT', notnull: 0, pk: 0 },
+      { name: 'invited_by', type: 'TEXT', notnull: 0, pk: 0 },
+      { name: 'approved_by', type: 'TEXT', notnull: 0, pk: 0 },
+      { name: 'cooldown_until', type: 'TEXT', notnull: 0, pk: 0 },
     ],
     [container.pendingInviteTable]: [
       { name: 'invite_request_id', type: 'TEXT', notnull: 0, pk: 1 },
       { name: containerId, type: 'TEXT', notnull: 1, pk: 0 },
       { name: 'email', type: 'TEXT', notnull: 1, pk: 0 },
       { name: 'role', type: 'TEXT', notnull: 1, pk: 0 },
+      { name: 'expires_after_days', type: 'INTEGER', notnull: 0, pk: 0 },
       { name: 'requested_by_user_id', type: 'TEXT', notnull: 1, pk: 0 },
       { name: 'status', type: 'TEXT', notnull: 1, pk: 0 },
       { name: 'target_user_id', type: 'TEXT', notnull: 0, pk: 0 },
@@ -539,10 +553,22 @@ const buildExpectedTableColumns = () => {
       { name: 'created_at', type: 'TEXT', notnull: 1, pk: 0 },
       { name: 'updated_at', type: 'TEXT', notnull: 1, pk: 0 },
     ],
+    pending_space_invite_projects: [
+      { name: 'invite_id', type: 'TEXT', notnull: 1, pk: 0 },
+      { name: 'project_id', type: 'TEXT', notnull: 1, pk: 0 },
+    ],
     [work.memberTable]: [
       { name: workId, type: 'TEXT', notnull: 1, pk: 1 },
       { name: 'user_id', type: 'TEXT', notnull: 1, pk: 2 },
       { name: 'joined_at', type: 'TEXT', notnull: 1, pk: 0 },
+    ],
+    space_member_project_access: [
+      { name: containerId, type: 'TEXT', notnull: 1, pk: 0 },
+      { name: 'user_id', type: 'TEXT', notnull: 1, pk: 0 },
+      { name: workId, type: 'TEXT', notnull: 1, pk: 0 },
+      { name: 'access_level', type: 'TEXT', notnull: 1, pk: 0 },
+      { name: 'granted_at', type: 'TEXT', notnull: 1, pk: 0 },
+      { name: 'granted_by', type: 'TEXT', notnull: 1, pk: 0 },
     ],
     docs: [
       { name: 'doc_id', type: 'TEXT', notnull: 0, pk: 1 },
@@ -1559,9 +1585,10 @@ test('rename functional parity contract', async (t) => {
 
       await expectStatus(harness.apiBaseUrl, null, routes.me, 401, { method: 'GET' });
       await expectStatus(harness.apiBaseUrl, null, routes.projects, 401, { method: 'GET' });
-      await expectOk(harness.apiBaseUrl, ownerToken, routes.me, { method: 'GET' });
+      const ownerSession = await expectOk(harness.apiBaseUrl, ownerToken, routes.me, { method: 'GET' });
       const memberSession = await expectOk(harness.apiBaseUrl, memberToken, routes.me, { method: 'GET' });
       const extraSession = await expectOk(harness.apiBaseUrl, extraToken, routes.me, { method: 'GET' });
+      const ownerId = ownerSession.user.user_id;
       const memberId = memberSession.user.user_id;
       const extraId = extraSession.user.user_id;
 
@@ -1736,6 +1763,10 @@ test('rename functional parity contract', async (t) => {
       });
       assertExactKeys(addedProjectMember, ['project'], 'addedProjectMember');
       assertExactKeys(addedProjectMember.project, responseShapes.work, 'addedProjectMember.project');
+      await expectStatus(harness.apiBaseUrl, ownerToken, routes.workProjectMembers(defaultProject[work.idColumn]), 400, {
+        method: 'POST',
+        body: JSON.stringify({ [requestKeys.userId]: ownerId }),
+      });
       await expectStatus(harness.apiBaseUrl, ownerToken, routes.workProjectMembers(defaultProject[work.idColumn]), 400, {
         method: 'POST',
         body: JSON.stringify({ [requestKeys.userId]: 'usr_not_a_member' }),
