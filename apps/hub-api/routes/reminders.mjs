@@ -59,6 +59,7 @@ export const createReminderRoutes = (deps) => {
     okEnvelope,
     errorEnvelope,
     parseBody,
+    asInteger,
     asText,
     nowIso,
     newId,
@@ -71,6 +72,7 @@ export const createReminderRoutes = (deps) => {
     workProjectByIdStmt,
     viewByIdStmt,
     personalProjectByUserStmt,
+    projectMembershipsByUserStmt,
     insertRecordStmt,
     insertRecordCapabilityStmt,
     listRemindersForUserStmt,
@@ -80,51 +82,74 @@ export const createReminderRoutes = (deps) => {
     updateProjectRemindersCollectionStmt,
   } = deps;
 
+  const visibleSpaceIdsForUser = (userId) =>
+    Array.from(
+      new Set(
+        projectMembershipsByUserStmt
+          .all(userId)
+          .map((membership) => asText(membership.space_id))
+          .filter(Boolean),
+      ),
+    );
+
+  const compareRemindersByDueDate = (left, right) => {
+    const leftDueMs = left.remind_at ? new Date(left.remind_at).getTime() : Number.POSITIVE_INFINITY;
+    const rightDueMs = right.remind_at ? new Date(right.remind_at).getTime() : Number.POSITIVE_INFINITY;
+    const normalizedLeftDueMs = Number.isFinite(leftDueMs) ? leftDueMs : Number.POSITIVE_INFINITY;
+    const normalizedRightDueMs = Number.isFinite(rightDueMs) ? rightDueMs : Number.POSITIVE_INFINITY;
+
+    if (normalizedLeftDueMs !== normalizedRightDueMs) {
+      return normalizedLeftDueMs - normalizedRightDueMs;
+    }
+    return String(left.reminder_id || '').localeCompare(String(right.reminder_id || ''));
+  };
+
   const listReminders = withPolicyGate('hub.view', async ({ request, response, requestUrl, auth }) => {
     const listQueryStartedAt = performance.now();
     const scope = reminderScopeFromValue(asText(requestUrl.searchParams.get('scope')));
-    const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
-    if (!personalProject) {
-      request.log.error('Personal project is unavailable during reminder listing.', { userId: auth.user.user_id });
-      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
+    const requestedSpaceId = asText(requestUrl.searchParams.get('space_id'));
+    const sourceProjectId = asText(requestUrl.searchParams.get('project_id') || requestUrl.searchParams.get('source_project_id'));
+    const limit = asInteger(requestUrl.searchParams.get('limit'), 50, 1, 200);
+
+    if (scope === 'space' && !requestedSpaceId) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required for space-scoped reminders.')));
       return;
     }
 
-    let projectId = personalProject.space_id;
-    let sourceProjectId = '';
-    if (scope === 'space') {
-      projectId = asText(requestUrl.searchParams.get('space_id'));
-      if (!projectId) {
-        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required for space-scoped reminders.')));
+    const visibleSpaceIds = visibleSpaceIdsForUser(auth.user.user_id)
+      .filter((spaceId) => !requestedSpaceId || spaceId === requestedSpaceId);
+    if (requestedSpaceId && visibleSpaceIds.length > 0 && sourceProjectId) {
+      const project = workProjectByIdStmt.get(sourceProjectId);
+      if (!project || project.space_id !== requestedSpaceId) {
+        send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must belong to the requested space.')));
         return;
-      }
-
-      const projectGate = withProjectPolicyGate({
-        userId: auth.user.user_id,
-        projectId,
-        requiredCapability: 'view',
-      });
-      if (projectGate.error) {
-        send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
-        return;
-      }
-
-      sourceProjectId = asText(requestUrl.searchParams.get('project_id') || requestUrl.searchParams.get('source_project_id'));
-      if (sourceProjectId) {
-        const project = workProjectByIdStmt.get(sourceProjectId);
-        if (!project || project.space_id !== projectId) {
-          send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id must belong to the requested space.')));
-          return;
-        }
       }
     }
 
-    // Keep this argument order aligned with statements.mjs:listForUser, including the duplicated projectId binding.
-    const rows = listRemindersForUserStmt.all(auth.user.user_id, scope, personalProject.space_id, scope, projectId, sourceProjectId, sourceProjectId);
-    request.log.debug('Reminder listing query completed.', { durationMs: elapsedMs(listQueryStartedAt) });
+    const rows = [];
+    for (const visibleSpaceId of visibleSpaceIds) {
+      // Keep this argument order aligned with statements.mjs:listForUser, including the duplicated projectId binding.
+      rows.push(
+        ...listRemindersForUserStmt.all(
+          auth.user.user_id,
+          'space',
+          '',
+          'space',
+          visibleSpaceId,
+          requestedSpaceId && sourceProjectId ? sourceProjectId : '',
+          requestedSpaceId && sourceProjectId ? sourceProjectId : '',
+          limit,
+        ),
+      );
+    }
+    rows.sort(compareRemindersByDueDate);
+    request.log.debug('Reminder listing query completed.', {
+      durationMs: elapsedMs(listQueryStartedAt),
+      queriedSpaceCount: visibleSpaceIds.length,
+    });
     const now = nowIso();
 
-    const reminders = rows.map((row) => ({
+    const reminders = rows.slice(0, limit).map((row) => ({
       reminder_id: row.reminder_id,
       record_id: row.record_id,
       record_title: row.record_title,

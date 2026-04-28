@@ -174,7 +174,7 @@ export const DayStripSection = ({
             <>
               <div className="grid gap-4 xl:grid-cols-[minmax(0,var(--daily-brief-rail-width))_minmax(0,1fr)_minmax(0,var(--daily-brief-rail-width))] xl:items-start xl:gap-[var(--daily-brief-column-gap)]">
                 <div className="min-w-0 space-y-1">
-                  <h2 id="daily-brief-heading" className="font-serif text-xl font-semibold text-text">Daily Brief</h2>
+                  <h2 id="daily-brief-heading" className="font-serif text-xl font-semibold text-text">What&apos;s Up Today</h2>
                   <p className="text-sm font-semibold text-text">{compactGreeting}</p>
                   <p className="text-xs text-muted">{dateLabel}</p>
                 </div>
@@ -249,7 +249,7 @@ export const DayStripSection = ({
             </>
           ) : (
             <>
-              <h2 id="daily-brief-heading" className="font-serif text-xl font-semibold text-text">Daily Brief</h2>
+              <h2 id="daily-brief-heading" className="font-serif text-xl font-semibold text-text">What&apos;s Up Today</h2>
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-1">

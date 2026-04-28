@@ -68,7 +68,7 @@ export const ProjectsTree = ({
   );
 
   const visibleProjects = useMemo(
-    () => projects.filter((project) => !project.isPersonal),
+    () => projects,
     [projects],
   );
 

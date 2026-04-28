@@ -1,35 +1,64 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { InlineNotice } from '../../components/primitives';
 import type { ProjectRecord } from '../../types/domain';
 import { DayStripSection } from '../PersonalizedDashboardPanel/DayStripSection';
-import { ProjectLensView } from '../PersonalizedDashboardPanel/ProjectLensView';
-import { StreamView } from '../PersonalizedDashboardPanel/StreamView';
 import { useDashboardAggregation } from '../PersonalizedDashboardPanel/hooks/useDashboardAggregation';
 import { useDashboardData } from '../PersonalizedDashboardPanel/hooks/useDashboardData';
 import { useDashboardMutations } from '../PersonalizedDashboardPanel/hooks/useDashboardMutations';
 import { useProjectLens } from '../PersonalizedDashboardPanel/hooks/useProjectLens';
 import { formatCountLabel, greetingForHour } from '../PersonalizedDashboardPanel/utils';
-import type { HomeContentViewId } from './navigation';
+import type { HomeSurfaceId } from './navigation';
+import { HomeOverviewSurface } from './HomeOverviewSurface';
 import type { HomeRuntime } from './useHomeRuntime';
 
 interface HomeDashboardSurfaceProps {
-  activeContentView: HomeContentViewId;
+  accessToken: string;
+  activeSurface: HomeSurfaceId;
+  calendarEvents: Array<{
+    record_id: string;
+    title: string;
+    event_state: {
+      start_dt: string;
+      end_dt: string;
+      timezone: string;
+      location: string | null;
+      updated_at: string;
+    };
+    participants: Array<{ user_id: string; role: string | null }>;
+    source_project: { project_id: string | null; project_name: string | null; doc_id: string | null } | null;
+  }>;
+  calendarLoading: boolean;
+  calendarScope: 'relevant' | 'all';
   homeError: string | null;
+  onCalendarScopeChange: (scope: 'relevant' | 'all') => void;
   onOpenRecord: (recordId: string) => void;
-  projectContent: ReactNode;
+  onRefreshTasks: () => void;
+  onSelectSurface: (surface: HomeSurfaceId) => void;
   projects: ProjectRecord[];
   runtime: HomeRuntime;
+  tasks: import('../../services/hub/types').HubTaskSummary[];
+  tasksError: string | null;
+  tasksLoading: boolean;
 }
 
 export const HomeDashboardSurface = ({
-  activeContentView,
+  accessToken: homeAccessToken,
+  activeSurface,
+  calendarEvents,
+  calendarLoading,
+  calendarScope,
   homeError,
+  onCalendarScopeChange,
   onOpenRecord,
-  projectContent,
+  onRefreshTasks,
+  onSelectSurface,
   projects,
   runtime,
+  tasks,
+  tasksError,
+  tasksLoading,
 }: HomeDashboardSurfaceProps) => {
-  const { accessToken, remindersRuntime } = useDashboardData(projects);
+  const { accessToken: dashboardAccessToken, remindersRuntime } = useDashboardData(projects);
   const [now, setNow] = useState(() => new Date());
 
   const { items, dailyData, totalPipCounts } = useDashboardAggregation({
@@ -56,7 +85,7 @@ export const HomeDashboardSurface = ({
     onSnoozeReminder,
     onDropFromBacklog,
   } = useDashboardMutations({
-    accessToken,
+    accessToken: dashboardAccessToken,
     refreshReminders: remindersRuntime.refresh,
   });
 
@@ -98,19 +127,29 @@ export const HomeDashboardSurface = ({
         onSnoozeReminder={onSnoozeReminder}
       />
 
-      {activeContentView === 'project' ? projectContent : null}
-      {activeContentView === 'lenses' ? (
-        <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} title="Hub" />
-      ) : null}
-      {activeContentView === 'stream' ? (
-        <section className="section-scored space-y-4 rounded-panel bg-elevated p-4 shadow-soft">
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-text">Stream</h2>
-            <p className="text-sm text-muted">Review active tasks and events across Home without leaving your personal space.</p>
-          </div>
-          <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} now={now} />
-        </section>
-      ) : null}
+      <HomeOverviewSurface
+        accessToken={homeAccessToken}
+        activeSurface={activeSurface}
+        calendarEvents={calendarEvents}
+        calendarLoading={calendarLoading}
+        calendarScope={calendarScope}
+        items={items}
+        now={now}
+        onCalendarScopeChange={onCalendarScopeChange}
+        onCreateReminder={remindersRuntime.create}
+        onDismissReminder={onDismissReminder}
+        onOpenRecord={onOpenRecord}
+        onRefreshTasks={onRefreshTasks}
+        onSelectSurface={onSelectSurface}
+        onSnoozeReminder={onSnoozeReminder}
+        projects={projects}
+        reminders={remindersRuntime.reminders}
+        remindersError={remindersRuntime.error}
+        remindersLoading={remindersRuntime.loading}
+        tasks={tasks}
+        tasksError={tasksError}
+        tasksLoading={tasksLoading}
+      />
     </div>
   );
 };

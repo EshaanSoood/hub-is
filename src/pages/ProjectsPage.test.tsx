@@ -8,7 +8,7 @@ import { ProjectsPage } from './ProjectsPage';
 import type { ProjectRecord } from '../types/domain';
 
 const mockRefreshProjects = vi.fn();
-const mockUpdateProject = vi.fn();
+const mockUpdateSpace = vi.fn();
 
 const personalProject: ProjectRecord = {
   id: 'personal-project',
@@ -54,7 +54,7 @@ const homeRuntime = {
   calendarScope: 'relevant',
   filteredCalendarEvents: [],
   homeData: {
-    personal_project_id: personalProject.id,
+    personal_space_id: personalProject.id,
     tasks: [],
     tasks_next_cursor: null,
     captures: [],
@@ -226,7 +226,11 @@ vi.mock('../hooks/useTimelineRuntime', () => ({
 }));
 
 vi.mock('../services/hub/projects', () => ({
-  updateProject: (...args: unknown[]) => mockUpdateProject(...args),
+  updateProject: vi.fn(),
+}));
+
+vi.mock('../services/hub/spaces', () => ({
+  updateSpace: (...args: unknown[]) => mockUpdateSpace(...args),
 }));
 
 vi.mock('../features/home/useHomeRecordInspectorRuntime', () => ({
@@ -248,66 +252,30 @@ vi.mock('../features/home/HomeRecordInspectorDialog', () => ({
 
 vi.mock('../features/home/HomeDashboardSurface', () => ({
   HomeDashboardSurface: ({
-    activeContentView,
-    projectContent,
+    activeSurface,
+    onSelectSurface,
   }: {
-    activeContentView: 'project' | 'lenses' | 'stream';
-    projectContent: React.ReactNode;
+    activeSurface: 'hub' | 'stream' | 'calendar' | 'tasks' | 'reminders';
+    onSelectSurface: (surface: 'hub' | 'stream' | 'calendar' | 'tasks' | 'reminders') => void;
   }) => (
     <section aria-label="Home dashboard" data-testid="home-dashboard">
-      <p data-testid="dashboard-content">{activeContentView}</p>
-      {activeContentView === 'project' ? projectContent : null}
+      <div role="tablist" aria-label="Home surfaces">
+        {(['hub', 'stream', 'calendar', 'tasks', 'reminders'] as const).map((surface) => (
+          <button
+            key={surface}
+            type="button"
+            role="tab"
+            data-home-launcher={surface}
+            aria-selected={activeSurface === surface}
+            onClick={() => onSelectSurface(surface)}
+          >
+            {surface === 'hub' ? 'Hub' : surface[0].toUpperCase() + surface.slice(1)}
+          </button>
+        ))}
+      </div>
+      <p data-testid="dashboard-content">{activeSurface}</p>
     </section>
   ),
-}));
-
-vi.mock('../features/home/HomeOverviewSurface', () => ({
-  HomeOverviewSurface: ({
-    activeTab,
-    autoFocusTabs,
-    onSelectTab,
-    projectName,
-  }: {
-    activeTab: 'overview' | 'work';
-    autoFocusTabs?: boolean;
-    onSelectTab: (tab: 'overview' | 'work') => void;
-    projectName: string;
-  }) => {
-    const selectedTabRef = React.useRef<HTMLButtonElement | null>(null);
-
-    React.useEffect(() => {
-      if (autoFocusTabs) {
-        selectedTabRef.current?.focus();
-      }
-    }, [autoFocusTabs, activeTab]);
-
-    return (
-      <section data-testid="overview-surface">
-        <header>
-          <h1>{projectName}</h1>
-          <nav aria-label="Home tabs">
-            {(['overview', 'work'] as const).map((tab) => (
-              <button
-                key={tab}
-                ref={activeTab === tab ? selectedTabRef : null}
-                type="button"
-                data-home-launcher={tab}
-                aria-current={activeTab === tab ? 'page' : undefined}
-                onClick={() => onSelectTab(tab)}
-              >
-                {tab === 'overview' ? 'Overview' : 'Work'}
-              </button>
-            ))}
-          </nav>
-        </header>
-        Overview surface
-      </section>
-    );
-  },
-}));
-
-vi.mock('../features/home/HomeProjectWorkSection', () => ({
-  HomeProjectWorkSection: () => <div data-testid="work-surface">Home work surface</div>,
 }));
 
 vi.mock('../features/home/HomeProjectNamingDialog', () => ({
@@ -383,17 +351,19 @@ vi.mock('../components/Sidebar/ProfileBadge', () => ({
 vi.mock('../components/Sidebar/Surfaces', () => ({
   Surfaces: ({
     sectionExpanded,
-    onSelectHomeContentView,
+    onSelectHomeSurface,
   }: {
     sectionExpanded: boolean;
-    onSelectHomeContentView: (viewId: 'project' | 'lenses' | 'stream') => void;
+    onSelectHomeSurface: (viewId: 'hub' | 'stream' | 'calendar' | 'tasks' | 'reminders') => void;
   }) => (
     <div>
       {sectionExpanded ? (
         <>
-          <button type="button" onClick={() => onSelectHomeContentView('project')}>Personal Space</button>
-          <button type="button" onClick={() => onSelectHomeContentView('lenses')}>Hub</button>
-          <button type="button" onClick={() => onSelectHomeContentView('stream')}>Stream</button>
+          <button type="button" onClick={() => onSelectHomeSurface('hub')}>Hub</button>
+          <button type="button" onClick={() => onSelectHomeSurface('stream')}>Stream</button>
+          <button type="button" onClick={() => onSelectHomeSurface('calendar')}>Calendar</button>
+          <button type="button" onClick={() => onSelectHomeSurface('tasks')}>Tasks</button>
+          <button type="button" onClick={() => onSelectHomeSurface('reminders')}>Reminders</button>
         </>
       ) : null}
     </div>
@@ -450,8 +420,8 @@ const renderProjectsPage = (entry = '/projects') =>
 beforeEach(() => {
   mockRefreshProjects.mockReset();
   mockRefreshProjects.mockResolvedValue(undefined);
-  mockUpdateProject.mockReset();
-  mockUpdateProject.mockResolvedValue({
+  mockUpdateSpace.mockReset();
+  mockUpdateSpace.mockResolvedValue({
     space_id: personalProject.id,
     name: 'Sunday Desk',
     created_by: 'user-1',
@@ -463,7 +433,7 @@ beforeEach(() => {
     needs_name_prompt: false,
   });
   projectsContextValue.projects = [personalProject, teamProject];
-  homeRuntime.homeData.personal_project_id = personalProject.id;
+  homeRuntime.homeData.personal_space_id = personalProject.id;
   projectBootstrap.project = {
     ...projectBootstrap.project,
     name: personalProject.name,
@@ -476,57 +446,38 @@ afterEach(() => {
 });
 
 describe('ProjectsPage', () => {
-  it('uses the Home tabs as the route focus target and promotes the personal project heading', async () => {
+  it('defaults Home to the Hub surface and does not render Overview or Work controls', async () => {
     renderProjectsPage();
 
-    const overviewTab = await screen.findByRole('button', { name: 'Overview' });
-
-    await waitFor(() => {
-      expect(overviewTab).toHaveFocus();
-    });
-
-    expect(screen.queryByRole('heading', { name: 'Home', level: 1 })).not.toBeInTheDocument();
+    expect(await within(screen.getByRole('main')).findByRole('tab', { name: 'Hub' })).toBeInTheDocument();
     expect(screen.getByText('Capture.')).toBeInTheDocument();
     expect(screen.getByText('Capture anything and experience the magic.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Sunday Desk', level: 1 })).toBeInTheDocument();
-    expect(screen.queryByText('Overview', { selector: 'p' })).not.toBeInTheDocument();
-    expect(overviewTab).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
-    expect(screen.getByTestId('overview-surface')).toHaveTextContent('Overview surface');
+    expect(screen.queryByRole('button', { name: 'Overview' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Work' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('hub');
+    expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
   });
 
-  it('swaps the lower Home region from sidebar-owned Hub and Stream toggles', async () => {
+  it('switches Home surfaces from the sidebar using the surface search param', async () => {
     const user = userEvent.setup();
     renderProjectsPage();
 
     await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Hub' }));
     await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?content=lenses');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
     });
-    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('lenses');
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('hub');
 
     await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Stream' }));
     await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?content=stream');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?surface=stream');
     });
     expect(screen.getByTestId('dashboard-content')).toHaveTextContent('stream');
   });
 
-  it('uses Personal Space as the direct sidebar view back to the default project surface', async () => {
+  it('returns directly to Hub when Home is selected from another route', async () => {
     const user = userEvent.setup();
-    renderProjectsPage('/projects?content=stream');
-
-    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Personal Space' }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
-    });
-    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
-  });
-
-  it('returns directly to Personal Space when Home is selected from another route', async () => {
-    const user = userEvent.setup();
-    renderProjectsPage('/projects?content=stream');
+    renderProjectsPage('/projects?surface=stream');
 
     await user.click(screen.getByRole('button', { name: 'Go external' }));
     await waitFor(() => {
@@ -537,23 +488,14 @@ describe('ProjectsPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
     });
-    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('hub');
   });
 
-  it('does not treat Home work routes as the remembered Home destination', async () => {
-    const user = userEvent.setup();
+  it('ignores legacy work params on Home render', async () => {
     renderProjectsPage('/projects?tab=work&project=project-1');
 
-    await user.click(screen.getByRole('button', { name: 'Go external' }));
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects/team-project');
-    });
-
-    await user.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('button', { name: 'Home' }));
-    await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects');
-    });
-    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('project');
+    expect(screen.queryByRole('button', { name: 'Work' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('hub');
   });
 
   it('opens Quick thoughts from the top command bar and restores focus when it closes', async () => {
@@ -564,7 +506,7 @@ describe('ProjectsPage', () => {
     await user.click(trigger);
 
     await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?surface=thoughts');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?overlay=thoughts');
     });
     expect(screen.getByRole('dialog', { name: 'Quick thoughts' })).toBeInTheDocument();
 
@@ -578,28 +520,27 @@ describe('ProjectsPage', () => {
     });
   });
 
-  it('preserves the Home work project when Quick thoughts is opened from the command bar', async () => {
+  it('preserves the selected Home surface when Quick thoughts opens', async () => {
     const user = userEvent.setup();
-    renderProjectsPage('/projects?tab=work&project=project-1');
+    renderProjectsPage('/projects?surface=stream');
 
     await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Quick thoughts' }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?tab=work&project=project-1&surface=thoughts');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?surface=stream&overlay=thoughts');
     });
   });
 
-  it('switches to the Home work tab without leaving /projects', async () => {
+  it('switches Home surfaces without leaving /projects', async () => {
     const user = userEvent.setup();
     renderProjectsPage();
 
-    await user.click(screen.getByRole('button', { name: 'Work' }));
+    await user.click(within(screen.getByRole('main')).getByRole('tab', { name: 'Tasks' }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?tab=work');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/projects?surface=tasks');
     });
-    expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByTestId('work-surface')).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-content')).toHaveTextContent('tasks');
   });
 
   it('shows the first-run personal-project naming dialog and persists the rename', async () => {
@@ -622,7 +563,7 @@ describe('ProjectsPage', () => {
     await user.type(input, 'Sunday Desk');
     await user.click(within(dialog).getByRole('button', { name: 'Save name' }));
 
-    expect(mockUpdateProject).toHaveBeenCalledWith('access-token', personalProject.id, {
+    expect(mockUpdateSpace).toHaveBeenCalledWith('access-token', personalProject.id, {
       name: 'Sunday Desk',
     });
     expect(mockRefreshProjects).toHaveBeenCalled();
