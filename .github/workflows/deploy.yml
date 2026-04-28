@@ -62,6 +62,60 @@ jobs:
           cp -a apps/shared/. "$DEPLOY_REMOTE_HUB_API_DIR/shared/"
           docker compose -f "$DEPLOY_REMOTE_HUB_API_DIR/docker-compose.yml" up -d --build
 
+      - name: Verify hub API health
+        run: |
+          verify_json() {
+            node -e "
+              const chunks = [];
+              process.stdin.on('data', (chunk) => chunks.push(chunk));
+              process.stdin.on('end', () => {
+                const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+                if (payload.ok !== true || !payload.data) {
+                  process.exit(1);
+                }
+              });
+            "
+          }
+
+          for attempt in {1..20}; do
+            if curl -fsS https://api.eshaansood.org/api/hub/health | verify_json; then
+              echo "Hub API host health check passed."
+              break
+            fi
+            if [ "$attempt" = "20" ]; then
+              echo "Hub API host health check failed after 60 seconds."
+              exit 1
+            fi
+            echo "Hub API host health check attempt $attempt/20 failed; retrying..."
+            sleep 3
+          done
+
+          response_file="$(mktemp)"
+          headers_file="$(mktemp)"
+          trap 'rm -f "$response_file" "$headers_file"' EXIT
+
+          for attempt in {1..20}; do
+            status="$(curl -sS -D "$headers_file" -o "$response_file" -w '%{http_code}' https://eshaansood.org/api/hub/me || true)"
+            content_type="$(awk 'tolower($1) == "content-type:" { print tolower($2); exit }' "$headers_file")"
+            if [ "$status" = "401" ] && [[ "$content_type" == application/json* ]]; then
+              node -e "
+                const fs = require('node:fs');
+                const payload = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+                if (payload.ok !== false || payload.error?.code !== 'unauthorized') {
+                  process.exit(1);
+                }
+              " "$response_file"
+              echo "Apex Hub API routing check passed."
+              exit 0
+            fi
+            echo "Apex Hub API routing attempt $attempt/20 returned status=$status content-type=$content_type; retrying..."
+            sleep 3
+          done
+
+          echo "Apex Hub API routing check failed after 60 seconds."
+          cat "$response_file"
+          exit 1
+
       - name: Deploy collab
         run: |
           mkdir -p "$DEPLOY_REMOTE_COLLAB_DIR/shared"
