@@ -539,7 +539,7 @@ export const createStatements = (db) => ({
     `),
     claimFired: db.prepare('UPDATE reminders SET fired_at = ? WHERE reminder_id = ? AND fired_at IS NULL'),
     listForUser: db.prepare(`
-      -- Parameter order: user_id, scope, personal_space_id, scope, space_id, project_id, project_id.
+      -- Parameter order: user_id, scope, personal_space_id, scope, space_id, project_id, project_id, limit.
       -- project_id is bound twice to support (? = '' OR rec.source_project_id = ?).
       SELECT r.*, rec.title AS record_title, rec.space_id
       FROM reminders r
@@ -555,7 +555,8 @@ export const createStatements = (db) => ({
             AND (? = '' OR rec.source_project_id = ?)
           )
         )
-      ORDER BY r.remind_at ASC
+      ORDER BY r.remind_at IS NULL ASC, r.remind_at ASC, r.reminder_id ASC
+      LIMIT ?
     `),
     dismiss: db.prepare(`
       UPDATE reminders SET dismissed_at = ? WHERE reminder_id = ? AND dismissed_at IS NULL

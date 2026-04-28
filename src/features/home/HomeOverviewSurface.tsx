@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { archiveRecord, updateRecord } from '../../services/hub/records';
 import type { HubTaskSummary } from '../../services/hub/types';
+import type { ProjectRecord } from '../../types/domain';
 import type { CalendarScope } from '../../components/project-space/CalendarWidgetSkin/types';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import { dialogLayoutIds } from '../../styles/motion';
@@ -9,18 +10,16 @@ import { CalendarWidgetSkin } from '../../components/project-space/CalendarWidge
 import { RemindersWidgetSkin } from '../../components/project-space/RemindersWidgetSkin';
 import { TaskCreateDialog } from '../../components/project-space/TaskCreateDialog';
 import { TasksTab, type SortChain } from '../../components/project-space/TasksTab';
-import { TimelineFeed, TimelineFilterMenu, type TimelineCluster, type TimelineEventType, type TimelineFilterValue } from '../../components/project-space/TimelineFeed';
 import { adaptTaskSummaries } from '../../components/project-space/taskAdapter';
 import { Card, InlineNotice, TabButton, Tabs, TabsList } from '../../components/primitives';
-import { HomeProjectSectionHeader } from './HomeProjectSectionHeader';
-import type { HomeOverlayId, HomeOverviewViewId, HomeTabId } from './navigation';
+import { ProjectLensView } from '../PersonalizedDashboardPanel/ProjectLensView';
+import { StreamView } from '../PersonalizedDashboardPanel/StreamView';
+import type { HubDashboardItem } from '../PersonalizedDashboardPanel/types';
+import { HOME_SURFACE_IDS, type HomeSurfaceId } from './navigation';
 
 interface HomeOverviewSurfaceProps {
   accessToken: string;
-  activeOverlay: HomeOverlayId | null;
-  activeTab: HomeTabId;
-  activeView: HomeOverviewViewId;
-  autoFocusTabs?: boolean;
+  activeSurface: HomeSurfaceId;
   calendarEvents: Array<{
     record_id: string;
     title: string;
@@ -36,33 +35,32 @@ interface HomeOverviewSurfaceProps {
   }>;
   calendarLoading: boolean;
   calendarScope: CalendarScope;
+  items: HubDashboardItem[];
+  now: Date;
   onCalendarScopeChange: (scope: CalendarScope) => void;
   onCreateReminder: (payload: CreateReminderPayload) => Promise<void>;
   onDismissReminder: (reminderId: string) => Promise<void>;
   onOpenRecord: (recordId: string) => void;
   onRefreshTasks: () => void;
-  onSelectView: (view: HomeOverviewViewId) => void;
-  onSelectTab: (tab: HomeTabId) => void;
+  onSelectSurface: (surface: HomeSurfaceId) => void;
   onSnoozeReminder: (reminderId: string, remindAtIso: string) => Promise<void>;
-  projectId: string;
-  projectName: string;
+  projects: ProjectRecord[];
   reminders: HubReminderSummary[];
   remindersError: string | null;
   remindersLoading: boolean;
   tasks: HubTaskSummary[];
   tasksError: string | null;
   tasksLoading: boolean;
-  timelineClusters: TimelineCluster[];
-  timelineFilters: TimelineEventType[];
-  onTimelineFilterToggle: (type: TimelineFilterValue) => void;
 }
 
-const overviewViews: Array<{ id: HomeOverviewViewId; label: string }> = [
-  { id: 'timeline', label: 'Timeline' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'tasks', label: 'Tasks' },
-  { id: 'reminders', label: 'Reminders' },
-];
+const homeSurfaceLabels: Record<HomeSurfaceId, string> = {
+  hub: 'Hub',
+  stream: 'Stream',
+  calendar: 'Calendar',
+  tasks: 'Tasks',
+  reminders: 'Reminders',
+};
+const overviewViews = HOME_SURFACE_IDS.map((id) => ({ id, label: homeSurfaceLabels[id] }));
 
 const toCategoryLabel = (categoryId: string) =>
   categoryId
@@ -73,32 +71,26 @@ const toCategoryLabel = (categoryId: string) =>
 
 export const HomeOverviewSurface = ({
   accessToken,
-  activeOverlay,
-  activeTab,
-  activeView,
-  autoFocusTabs = false,
+  activeSurface,
   calendarEvents,
   calendarLoading,
   calendarScope,
+  items,
+  now,
   onCalendarScopeChange,
   onCreateReminder,
   onDismissReminder,
   onOpenRecord,
   onRefreshTasks,
-  onSelectView,
-  onSelectTab,
+  onSelectSurface,
   onSnoozeReminder,
-  projectId,
-  projectName,
+  projects,
   reminders,
   remindersError,
   remindersLoading,
   tasks,
   tasksError,
   tasksLoading,
-  timelineClusters,
-  timelineFilters,
-  onTimelineFilterToggle,
 }: HomeOverviewSurfaceProps) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const taskCreateTriggerRef = useRef<HTMLElement | null>(null);
@@ -109,6 +101,9 @@ export const HomeOverviewSurface = ({
   const [sortChain, setSortChain] = useState<SortChain>(['date', 'priority', 'category']);
   const [tasksUserId, setTasksUserId] = useState('all');
   const [tasksCategoryId, setTasksCategoryId] = useState('all');
+  const [selectedTaskSpaceId, setSelectedTaskSpaceId] = useState(() =>
+    projects.find((project) => project.isPersonal)?.id ?? projects[0]?.id ?? '',
+  );
 
   const adaptedTasks = useMemo(() => adaptTaskSummaries(tasks), [tasks]);
   const taskCollaboratorOptions = useMemo(
@@ -125,6 +120,10 @@ export const HomeOverviewSurface = ({
       })),
     ];
   }, [adaptedTasks]);
+  const taskProjectOptions = useMemo(
+    () => projects.map((project) => ({ value: project.id, label: project.name })),
+    [projects],
+  );
 
   const openTaskDialog = (options?: { parent?: { id: string; title: string } | null; remembered?: boolean }) => {
     taskCreateTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -175,59 +174,44 @@ export const HomeOverviewSurface = ({
 
   return (
     <section className="space-y-4">
-      <Card className="flex h-[var(--home-ground-band-height)] min-h-0 flex-col px-5 pb-4 pt-5">
-        <HomeProjectSectionHeader
-          activeOverlay={activeOverlay}
-          activeTab={activeTab}
-          autoFocusTabs={autoFocusTabs}
-          embedded
-          onSelectTab={onSelectTab}
-          projectName={projectName}
-        />
+      <Card className="min-h-0 px-5 pb-4 pt-5">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-text">Home</h2>
+          <p className="text-sm text-muted">Roll up the work that matters across every space you belong to.</p>
+        </div>
 
-        <div className="mt-2 grid items-center gap-x-8 gap-y-2 pl-[var(--home-ground-overview-indent)] xl:grid-cols-[minmax(0,1fr)_auto]">
-          <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as HomeOverviewViewId)} activationMode="manual">
-            <TabsList aria-label="Home overview subviews">
+        <div className="mt-4">
+          <Tabs value={activeSurface} onValueChange={(nextValue) => onSelectSurface(nextValue as HomeSurfaceId)} activationMode="manual">
+            <TabsList aria-label="Home surfaces">
               {overviewViews.map((view) => (
                 <TabButton
                   key={view.id}
-                  id={`home-overview-view-${view.id}`}
+                  id={`home-surface-tab-${view.id}`}
                   value={view.id}
-                  aria-controls={`home-overview-panel-${view.id}`}
-                  selected={activeView === view.id}
+                  aria-controls={`home-surface-panel-${view.id}`}
+                  selected={activeSurface === view.id}
                 >
                   {view.label}
                 </TabButton>
               ))}
             </TabsList>
           </Tabs>
-
-          {activeView === 'timeline' ? (
-            <div className="justify-self-start xl:justify-self-end">
-              <TimelineFilterMenu activeFilters={timelineFilters} onFilterToggle={onTimelineFilterToggle} />
-            </div>
-          ) : null}
         </div>
 
-        {activeView === 'timeline' ? (
-          <div id="home-overview-panel-timeline" role="tabpanel" aria-labelledby="home-overview-view-timeline" className="mt-2 min-h-0 flex-1">
-            <TimelineFeed
-              bottomAnchor
-              className="pl-[var(--home-ground-overview-indent)]"
-              clusters={timelineClusters}
-              activeFilters={timelineFilters}
-              isLoading={false}
-              hasMore={false}
-              onFilterToggle={onTimelineFilterToggle}
-              onLoadMore={() => {}}
-              onItemClick={onOpenRecord}
-              showFilters={false}
-            />
+        {activeSurface === 'hub' ? (
+          <div id="home-surface-panel-hub" role="tabpanel" aria-labelledby="home-surface-tab-hub" className="mt-4">
+            <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} title="Hub" />
           </div>
         ) : null}
 
-        {activeView === 'calendar' ? (
-          <div id="home-overview-panel-calendar" role="tabpanel" aria-labelledby="home-overview-view-calendar" className="mt-2 min-h-0 flex-1 overflow-y-auto pl-[var(--home-ground-overview-indent)]">
+        {activeSurface === 'stream' ? (
+          <div id="home-surface-panel-stream" role="tabpanel" aria-labelledby="home-surface-tab-stream" className="mt-4">
+            <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} now={now} />
+          </div>
+        ) : null}
+
+        {activeSurface === 'calendar' ? (
+          <div id="home-surface-panel-calendar" role="tabpanel" aria-labelledby="home-surface-tab-calendar" className="mt-4">
             <div className="home-overview-calendar-panel-min-h">
               <CalendarWidgetSkin
                 sizeTier="L"
@@ -241,8 +225,8 @@ export const HomeOverviewSurface = ({
           </div>
         ) : null}
 
-        {activeView === 'tasks' ? (
-          <div id="home-overview-panel-tasks" role="tabpanel" aria-labelledby="home-overview-view-tasks" className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto pl-[var(--home-ground-overview-indent)]">
+        {activeSurface === 'tasks' ? (
+          <div id="home-surface-panel-tasks" role="tabpanel" aria-labelledby="home-surface-tab-tasks" className="mt-4 min-h-0 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <motion.button
                 layoutId={!prefersReducedMotion && taskCreateOpen ? dialogLayoutIds.taskCreate : undefined}
@@ -311,8 +295,11 @@ export const HomeOverviewSurface = ({
                 setSubtaskParentRemembered(false);
               }}
               accessToken={accessToken}
-              projectId={projectId}
+              projectId={selectedTaskSpaceId || projects.find((project) => project.isPersonal)?.id || projects[0]?.id || ''}
               projectMembers={[]}
+              projectOptions={taskProjectOptions}
+              selectedProjectId={selectedTaskSpaceId}
+              onSelectedProjectIdChange={setSelectedTaskSpaceId}
               parentRecordId={subtaskParent?.id ?? null}
               parentTaskTitle={subtaskParent?.title ?? null}
               showRememberedParentNote={subtaskParentRemembered}
@@ -325,8 +312,8 @@ export const HomeOverviewSurface = ({
           </div>
         ) : null}
 
-        {activeView === 'reminders' ? (
-          <div id="home-overview-panel-reminders" role="tabpanel" aria-labelledby="home-overview-view-reminders" className="mt-2 min-h-0 flex-1 overflow-y-auto pl-[var(--home-ground-overview-indent)]">
+        {activeSurface === 'reminders' ? (
+          <div id="home-surface-panel-reminders" role="tabpanel" aria-labelledby="home-surface-tab-reminders" className="mt-4 min-h-0">
             <RemindersWidgetSkin
               sizeTier="L"
               reminders={reminders}

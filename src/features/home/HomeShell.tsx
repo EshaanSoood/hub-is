@@ -1,23 +1,18 @@
 import type { ReactNode } from 'react';
-import type { HomeTabId } from './navigation';
 
 interface HomeShellProps {
-  activeTab: HomeTabId;
   namingDialog?: ReactNode;
-  overviewContent: ReactNode;
+  content: ReactNode;
   quickThoughts: ReactNode;
-  workContent: ReactNode;
 }
 
 export const HomeShell = ({
-  activeTab,
   namingDialog,
-  overviewContent,
+  content,
   quickThoughts,
-  workContent,
 }: HomeShellProps) => (
   <div className="relative space-y-4">
-    {activeTab === 'overview' ? overviewContent : workContent}
+    {content}
     {quickThoughts}
     {namingDialog}
   </div>

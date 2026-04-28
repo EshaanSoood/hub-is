@@ -3,10 +3,21 @@ import { z } from 'zod';
 export type HomeTabId = 'overview' | 'work';
 export type HomeContentViewId = 'project' | 'lenses' | 'stream';
 export type HomeOverviewViewId = 'timeline' | 'calendar' | 'tasks' | 'reminders';
+export type HomeSurfaceId = 'hub' | 'stream' | 'calendar' | 'tasks' | 'reminders';
 export type HomeOverlayId = 'thoughts';
 
 const HomeTaskRecordIdSchema = z.string().trim().min(1);
-const homeRouteParamKeys = new Set(['tab', 'content', 'overview', 'project', 'pinned', 'surface']);
+const homeRouteParamKeys = new Set(['tab', 'content', 'overview', 'project', 'pinned', 'surface', 'overlay']);
+const legacyHomeSurfaceParamKeys = ['tab', 'content', 'view', 'overview', 'project', 'pinned', 'record_id', 'view_id'] as const;
+export const HOME_SURFACE_IDS = ['hub', 'stream', 'calendar', 'tasks', 'reminders'] as const satisfies ReadonlyArray<HomeSurfaceId>;
+const HOME_SURFACE_SET = new Set<HomeSurfaceId>(HOME_SURFACE_IDS);
+
+export const parseHomeSurfaceId = (value: string | null): HomeSurfaceId => {
+  if (value && HOME_SURFACE_SET.has(value as HomeSurfaceId)) {
+    return value as HomeSurfaceId;
+  }
+  return 'hub';
+};
 
 export const parseHomeTabId = (value: string | null): HomeTabId =>
   value === 'work' ? 'work' : 'overview';
@@ -41,6 +52,36 @@ export const parseHomeProjectId = (value: string | null): string | null => {
   return parsedProjectId.success ? parsedProjectId.data : null;
 };
 
+export const rewriteHomeSurfaceSearchParams = (
+  current: URLSearchParams,
+  surface: HomeSurfaceId,
+  options?: {
+    extraParams?: Record<string, string | null | undefined>;
+    overlay?: HomeOverlayId | null;
+  },
+): URLSearchParams => {
+  const next = new URLSearchParams(current);
+  for (const key of legacyHomeSurfaceParamKeys) {
+    next.delete(key);
+  }
+  if (surface !== 'hub') {
+    next.set('surface', surface);
+  }
+  if (options?.overlay) {
+    next.set('overlay', options.overlay);
+  } else if (options?.overlay === null) {
+    next.delete('overlay');
+  }
+  if (options?.extraParams) {
+    for (const [key, value] of Object.entries(options.extraParams)) {
+      if (typeof value === 'string' && value.length > 0 && !homeRouteParamKeys.has(key) && !next.has(key)) {
+        next.set(key, value);
+      }
+    }
+  }
+  return next;
+};
+
 const buildHomeHref = ({
   content,
   extraParams,
@@ -48,6 +89,7 @@ const buildHomeHref = ({
   overlay,
   projectId,
   pinned,
+  surface,
   tab,
 }: {
   content?: HomeContentViewId;
@@ -56,9 +98,13 @@ const buildHomeHref = ({
   overlay?: HomeOverlayId | null;
   projectId?: string | null;
   pinned?: boolean;
+  surface?: HomeSurfaceId;
   tab?: HomeTabId;
 }): string => {
   const params = new URLSearchParams();
+  if (surface && surface !== 'hub') {
+    params.set('surface', surface);
+  }
   if (tab && tab !== 'overview') {
     params.set('tab', tab);
   }
@@ -74,7 +120,7 @@ const buildHomeHref = ({
     params.set('project', projectId);
   }
   if (overlay) {
-    params.set('surface', overlay);
+    params.set('overlay', overlay);
   }
   if ((tab ?? 'overview') === 'work' && pinned) {
     params.set('pinned', '1');
@@ -86,6 +132,21 @@ const buildHomeHref = ({
       }
     }
   }
+  const search = params.toString();
+  return search ? `/projects?${search}` : '/projects';
+};
+
+export const buildHomeSurfaceHref = (
+  surface: HomeSurfaceId,
+  options?: {
+    extraParams?: Record<string, string | null | undefined>;
+    overlay?: HomeOverlayId | null;
+  },
+): string => {
+  const params = rewriteHomeSurfaceSearchParams(new URLSearchParams(), surface, {
+    overlay: options?.overlay,
+    extraParams: options?.extraParams,
+  });
   const search = params.toString();
   return search ? `/projects?${search}` : '/projects';
 };
@@ -125,6 +186,7 @@ export const buildHomeOverlayHref = (
     overview?: HomeOverviewViewId;
     projectId?: string | null;
     pinned?: boolean;
+    surface?: HomeSurfaceId;
     tab?: HomeTabId;
   },
 ): string => buildHomeHref({
@@ -135,10 +197,11 @@ export const buildHomeOverlayHref = (
   overview: options?.overview,
   projectId: options?.projectId,
   pinned: options?.pinned,
+  surface: options?.surface,
 });
 
 export const focusHomeLauncher = (
-  launcherId: HomeTabId | HomeContentViewId | HomeOverlayId,
+  launcherId: HomeTabId | HomeContentViewId | HomeSurfaceId | HomeOverlayId,
 ): boolean => {
   const launcher = document.querySelector<HTMLElement>(`[data-home-launcher="${launcherId}"]`);
   if (!launcher) {

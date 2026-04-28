@@ -4,14 +4,10 @@ import { useAuthz } from '../../../context/AuthzContext';
 import { useProjects } from '../../../context/ProjectsContext';
 import {
   buildHomeOverlayHref,
-  parseHomeContentViewId,
-  parseHomeOverviewViewId,
   parseHomeOverlayId,
   parseHomeProjectId,
-  parseHomeTabId,
-  type HomeContentViewId,
-  type HomeOverviewViewId,
-  type HomeTabId,
+  parseHomeSurfaceId,
+  type HomeSurfaceId,
 } from '../../../features/home/navigation';
 import { useProjectProjects } from '../../../hooks/useProjectProjects';
 import { useRouteFocusReset } from '../../../hooks/useRouteFocusReset';
@@ -33,19 +29,15 @@ const decodePathSegment = (value: string | null): string | null => {
 };
 
 interface HomeRouteState {
-  content: HomeContentViewId;
-  overview: HomeOverviewViewId;
+  surface: HomeSurfaceId;
   projectId: string | null;
   pinned: boolean;
-  tab: HomeTabId;
 }
 
 const defaultHomeRouteState: HomeRouteState = {
-  content: 'project',
-  overview: 'timeline',
+  surface: 'hub',
   projectId: null,
   pinned: false,
-  tab: 'overview',
 };
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
@@ -73,15 +65,19 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const currentHomeState = useMemo<HomeRouteState>(() => {
     const searchParams = new URLSearchParams(location.search);
     return {
-      content: parseHomeContentViewId(searchParams.get('content') ?? searchParams.get('view')),
-      overview: parseHomeOverviewViewId(searchParams.get('overview')),
+      surface: parseHomeSurfaceId(searchParams.get('surface')),
       projectId: parseHomeProjectId(searchParams.get('project')),
       pinned: searchParams.get('pinned') === '1',
-      tab: parseHomeTabId(searchParams.get('tab')),
     };
   }, [location.search]);
   const currentSurface = useMemo(
-    () => (isOnHome ? parseHomeOverlayId(new URLSearchParams(location.search).get('surface')) : null),
+    () => {
+      if (!isOnHome) {
+        return null;
+      }
+      const searchParams = new URLSearchParams(location.search);
+      return parseHomeOverlayId(searchParams.get('overlay') ?? searchParams.get('surface'));
+    },
     [isOnHome, location.search],
   );
   const currentProjectId = useMemo(
@@ -92,10 +88,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   );
   const currentProject = useMemo(() => {
     if (isOnHome) {
-      return personalProject;
+      return null;
     }
     return projects.find((project) => project.id === currentSpaceId) || null;
-  }, [currentSpaceId, isOnHome, personalProject, projects]);
+  }, [currentSpaceId, isOnHome, projects]);
   const currentProjectProjectsProjectId = currentProject?.id ?? null;
   const { projects: currentProjectProjects } = useProjectProjects(accessToken, currentProjectProjectsProjectId);
 
@@ -149,11 +145,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             onOpenQuickThoughts={() => {
               const homeRoute = isOnHome ? currentHomeState : lastHomeRouteRef.current;
               navigate(buildHomeOverlayHref('thoughts', {
-                content: homeRoute.content,
-                overview: homeRoute.overview,
                 projectId: homeRoute.projectId,
                 pinned: homeRoute.pinned,
-                tab: homeRoute.tab,
+                surface: homeRoute.surface,
               }));
             }}
             personalProject={personalProject}

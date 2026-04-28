@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { queryCalendar } from '../services/hub/records';
+import { queryCalendar, queryPersonalCalendar } from '../services/hub/records';
 
 interface CalendarEventSummary {
   record_id: string;
@@ -17,7 +17,7 @@ interface CalendarEventSummary {
 
 interface UseCalendarRuntimeParams {
   accessToken: string;
-  projectId: string;
+  projectId?: string;
   initialMode?: 'relevant' | 'all';
   enabled?: boolean;
 }
@@ -46,7 +46,9 @@ export const useCalendarRuntime = ({
     setCalendarLoading(true);
     setCalendarError(null);
     try {
-      const result = await queryCalendar(accessToken, projectId, calendarMode);
+      const result = projectId
+        ? await queryCalendar(accessToken, projectId, calendarMode)
+        : await queryPersonalCalendar(accessToken, calendarMode);
       if (latestRequestRef.current === requestId) {
         setCalendarEvents(result.events);
       }

@@ -4,13 +4,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjects } from '../../context/ProjectsContext';
 import {
-  buildHomeContentHref,
-  parseHomeContentViewId,
+  buildHomeSurfaceHref,
   parseHomeOverlayId,
-  parseHomeOverviewViewId,
-  parseHomeTabId,
-  type HomeContentViewId,
-  type HomeTabId,
+  parseHomeSurfaceId,
+  type HomeSurfaceId,
 } from '../../features/home/navigation';
 import { buildProjectOverviewHref } from '../../lib/hubRoutes';
 import { cn } from '../../lib/cn';
@@ -85,22 +82,16 @@ export const SidebarShell = () => {
       spaceName: currentProject.name,
     };
   }, [activeCurrentProjectProjects, activeSpaceId, currentProject, currentSpaceProjectId]);
-  const currentHomeTab = useMemo<HomeTabId>(() => parseHomeTabId(new URLSearchParams(location.search).get('tab')), [location.search]);
-  const currentHomeContentView = useMemo<HomeContentViewId>(() => {
+  const currentHomeSurface = useMemo<HomeSurfaceId>(() => {
     const searchParams = new URLSearchParams(location.search);
-    return parseHomeContentViewId(searchParams.get('content') ?? searchParams.get('view'));
+    return parseHomeSurfaceId(searchParams.get('surface'));
   }, [location.search]);
-  const currentHomeOverviewView = useMemo(() => {
-    if (!isOnHome) {
-      return 'timeline';
-    }
-    return parseHomeOverviewViewId(new URLSearchParams(location.search).get('overview'));
-  }, [isOnHome, location.search]);
   const currentSurface = useMemo<SidebarSurfaceId | null>(() => {
     if (!isOnHome) {
       return null;
     }
-    return parseHomeOverlayId(new URLSearchParams(location.search).get('surface'));
+    const searchParams = new URLSearchParams(location.search);
+    return parseHomeOverlayId(searchParams.get('overlay') ?? searchParams.get('surface'));
   }, [isOnHome, location.search]);
   const resolvedVisualCollapsed = prefersReducedMotion ? isCollapsed : visualCollapsed;
   const resolvedShowLabels = prefersReducedMotion ? !isCollapsed : showLabels;
@@ -108,7 +99,7 @@ export const SidebarShell = () => {
     ? `project:${currentSpaceProjectId}`
     : activeSpaceId
       ? `space:${activeSpaceId}`
-      : `hub:${currentSurface ?? `${currentHomeTab}:${currentHomeContentView}`}`;
+      : `hub:${currentSurface ?? currentHomeSurface}`;
   const sidebarState = useSidebarNavigationState({
     activeSpaceId,
     currentSpaceHref: activeSpaceId ? `${location.pathname}${location.search}` : null,
@@ -162,12 +153,10 @@ export const SidebarShell = () => {
     setProfileAutoOpenKey((current) => current + 1);
   }, [expandSidebar]);
 
-  const onSelectHomeContentView = useCallback((viewId: HomeContentViewId) => {
+  const onSelectHomeSurface = useCallback((viewId: HomeSurfaceId) => {
     expandSidebar();
-    navigate(buildHomeContentHref(viewId, {
-      overview: currentHomeOverviewView,
-    }));
-  }, [currentHomeOverviewView, expandSidebar, navigate]);
+    navigate(buildHomeSurfaceHref(viewId));
+  }, [expandSidebar, navigate]);
 
   const openProject = useCallback((projectId: string) => {
     expandSidebar();
@@ -213,13 +202,12 @@ export const SidebarShell = () => {
 
             <div className="shrink-0">
               <Surfaces
-                activeHomeContentView={currentHomeContentView}
-                activeHomeTab={currentHomeTab}
+                activeHomeSurface={currentHomeSurface}
                 isCollapsed={resolvedVisualCollapsed}
                 onToggleSection={() => {
                   sidebarState.setHomeViewsExpanded((current) => !current);
                 }}
-                onSelectHomeContentView={onSelectHomeContentView}
+                onSelectHomeSurface={onSelectHomeSurface}
                 sectionExpanded={sidebarState.homeViewsExpanded}
                 showLabels={resolvedShowLabels}
               />

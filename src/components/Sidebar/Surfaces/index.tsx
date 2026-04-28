@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import type { HomeContentViewId, HomeOverlayId, HomeTabId } from '../../../features/home/navigation';
+import { HOME_SURFACE_IDS, type HomeOverlayId, type HomeSurfaceId } from '../../../features/home/navigation';
 import { SidebarLabel } from '../motion/SidebarLabel';
 import {
   sidebarAccordionContentVariants,
@@ -12,35 +12,42 @@ import type { IconName } from '../../primitives/Icon';
 import { SurfaceItem } from './SurfaceItem';
 
 export type SidebarSurfaceId = HomeOverlayId;
-export type SidebarHomeContentViewId = HomeContentViewId;
-export type SidebarHomeTabId = HomeTabId;
+export type SidebarHomeSurfaceId = HomeSurfaceId;
 
-const HOME_CONTENT_ITEMS: Array<{
-  id: SidebarHomeContentViewId;
-  iconName: IconName;
-  label: string;
-}> = [
-  { id: 'project', iconName: 'home', label: 'Personal Space' },
-  { id: 'lenses', iconName: 'focus', label: 'Hub' },
-  { id: 'stream', iconName: 'timeline', label: 'Stream' },
-];
+const homeSurfaceLabels: Record<SidebarHomeSurfaceId, string> = {
+  hub: 'Hub',
+  stream: 'Stream',
+  calendar: 'Calendar',
+  tasks: 'Tasks',
+  reminders: 'Reminders',
+};
+const homeSurfaceIcons: Record<SidebarHomeSurfaceId, IconName> = {
+  hub: 'focus',
+  stream: 'timeline',
+  calendar: 'calendar',
+  tasks: 'tasks',
+  reminders: 'reminders',
+};
+const HOME_CONTENT_ITEMS = HOME_SURFACE_IDS.map((id) => ({
+  id,
+  iconName: homeSurfaceIcons[id],
+  label: homeSurfaceLabels[id],
+}));
 
 interface SurfacesProps {
-  activeHomeContentView: SidebarHomeContentViewId;
-  activeHomeTab: SidebarHomeTabId;
+  activeHomeSurface: SidebarHomeSurfaceId;
   sectionExpanded: boolean;
   onToggleSection: () => void;
-  onSelectHomeContentView: (viewId: SidebarHomeContentViewId) => void;
+  onSelectHomeSurface: (viewId: SidebarHomeSurfaceId) => void;
   isCollapsed: boolean;
   showLabels: boolean;
 }
 
 export const Surfaces = ({
-  activeHomeContentView,
-  activeHomeTab,
+  activeHomeSurface,
   sectionExpanded,
   onToggleSection,
-  onSelectHomeContentView,
+  onSelectHomeSurface,
   isCollapsed,
   showLabels,
 }: SurfacesProps) => {
@@ -53,12 +60,12 @@ export const Surfaces = ({
           {HOME_CONTENT_ITEMS.map((view) => (
             <SurfaceItem
               key={view.id}
-              active={activeHomeTab === 'overview' && activeHomeContentView === view.id}
+              active={activeHomeSurface === view.id}
               id={view.id}
               iconName={view.iconName}
               isCollapsed
               label={view.label}
-              onClick={() => onSelectHomeContentView(view.id)}
+              onClick={() => onSelectHomeSurface(view.id)}
               showLabels={showLabels}
             />
           ))}
@@ -114,12 +121,12 @@ export const Surfaces = ({
                   animate="expanded"
                 >
                   <SurfaceItem
-                    active={activeHomeTab === 'overview' && activeHomeContentView === view.id}
+                    active={activeHomeSurface === view.id}
                     id={view.id}
                     iconName={view.iconName}
                     isCollapsed={false}
                     label={view.label}
-                    onClick={() => onSelectHomeContentView(view.id)}
+                    onClick={() => onSelectHomeSurface(view.id)}
                     showLabels={showLabels}
                   />
                 </motion.div>

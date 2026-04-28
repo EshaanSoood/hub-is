@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listProjectTasks } from '../services/hub/records';
+import { listProjectTasks, queryTasks } from '../services/hub/records';
 
 type OverviewView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
 type ProjectSpaceTab = 'overview' | 'work';
@@ -8,10 +8,12 @@ const PROJECT_TASK_PAGE_SIZE = 50;
 
 interface UseProjectTasksRuntimeParams {
   accessToken: string;
-  projectId: string;
-  activeTab: ProjectSpaceTab;
-  overviewView: OverviewView;
+  projectId?: string;
+  activeTab?: ProjectSpaceTab;
+  overviewView?: OverviewView;
   enabled?: boolean;
+  autoload?: boolean;
+  taskQuery?: Parameters<typeof queryTasks>[1];
 }
 
 export const useProjectTasksRuntime = ({
@@ -20,6 +22,8 @@ export const useProjectTasksRuntime = ({
   activeTab,
   overviewView,
   enabled = true,
+  autoload,
+  taskQuery,
 }: UseProjectTasksRuntimeParams) => {
   const [projectTasks, setProjectTasks] = useState<Awaited<ReturnType<typeof listProjectTasks>>>({
     tasks: [],
@@ -30,8 +34,10 @@ export const useProjectTasksRuntime = ({
   const [projectTasksError, setProjectTasksError] = useState<string | null>(null);
   const projectTasksSentinelRef = useRef<HTMLDivElement | null>(null);
   const projectTasksInFlightCursorRef = useRef<string | null>(null);
-  const loadedProjectIdRef = useRef<string | null>(null);
-  const hasTaskData = loadedProjectIdRef.current === projectId && projectTasks.tasks.length > 0;
+  const loadedTaskScopeRef = useRef<string | null>(null);
+  const taskScopeKey = taskQuery ? JSON.stringify(taskQuery) : `space:${projectId ?? ''}`;
+  const isTaskScopeLoaded = loadedTaskScopeRef.current === taskScopeKey;
+  const hasTaskRows = projectTasks.tasks.length > 0;
 
   const loadProjectTaskPage = useCallback(
     async ({ cursor = '', append = false }: { cursor?: string; append?: boolean } = {}) => {
@@ -49,11 +55,20 @@ export const useProjectTasksRuntime = ({
       }
 
       try {
-        const page = await listProjectTasks(accessToken, projectId, {
-          limit: PROJECT_TASK_PAGE_SIZE,
-          cursor: requestedCursor || undefined,
-        });
-        loadedProjectIdRef.current = projectId;
+        if (!taskQuery && !projectId) {
+          throw new Error('Tasks are unavailable without a query scope.');
+        }
+        const page = taskQuery
+          ? await queryTasks(accessToken, {
+              ...taskQuery,
+              limit: PROJECT_TASK_PAGE_SIZE,
+              cursor: requestedCursor || undefined,
+            })
+          : await listProjectTasks(accessToken, projectId as string, {
+              limit: PROJECT_TASK_PAGE_SIZE,
+              cursor: requestedCursor || undefined,
+            });
+        loadedTaskScopeRef.current = taskScopeKey;
         setProjectTasks((current) => ({
           tasks: append ? [...current.tasks, ...page.tasks] : page.tasks,
           next_cursor: page.next_cursor,
@@ -61,7 +76,7 @@ export const useProjectTasksRuntime = ({
         setProjectTasksError(null);
       } catch (error) {
         if (!append) {
-          loadedProjectIdRef.current = null;
+          loadedTaskScopeRef.current = null;
           setProjectTasks({ tasks: [], next_cursor: null });
         }
         setProjectTasksError(error instanceof Error ? error.message : 'Failed to load project tasks.');
@@ -79,33 +94,34 @@ export const useProjectTasksRuntime = ({
         }
       }
     },
-    [accessToken, projectId],
+    [accessToken, projectId, taskQuery, taskScopeKey],
   );
 
   useEffect(() => {
     if (!enabled) {
-      loadedProjectIdRef.current = null;
+      loadedTaskScopeRef.current = null;
       setProjectTasks({ tasks: [], next_cursor: null });
       setProjectTasksError(null);
       setProjectTasksLoading(false);
       setProjectTasksLoadingMore(false);
       return;
     }
-    const shouldLoadTasks =
-      !hasTaskData && (activeTab === 'work' || (activeTab === 'overview' && (overviewView === 'tasks' || overviewView === 'kanban')));
+    const shouldLoadTasks = autoload ?? (
+      !isTaskScopeLoaded && (activeTab === 'work' || (activeTab === 'overview' && (overviewView === 'tasks' || overviewView === 'kanban')))
+    );
     if (!shouldLoadTasks) {
       return;
     }
     void loadProjectTaskPage();
-  }, [activeTab, enabled, hasTaskData, loadProjectTaskPage, overviewView]);
+  }, [activeTab, autoload, enabled, isTaskScopeLoaded, loadProjectTaskPage, overviewView]);
 
   useEffect(() => {
     if (!enabled) {
       return;
     }
+    const shouldObserveForMore = autoload ?? (activeTab === 'overview' && (overviewView === 'tasks' || overviewView === 'kanban'));
     if (
-      activeTab !== 'overview'
-      || (overviewView !== 'tasks' && overviewView !== 'kanban')
+      !shouldObserveForMore
       || !projectTasks.next_cursor
       || projectTasksLoading
       || projectTasksLoadingMore
@@ -130,9 +146,11 @@ export const useProjectTasksRuntime = ({
     return () => {
       observer.disconnect();
     };
-  }, [activeTab, enabled, loadProjectTaskPage, overviewView, projectTasks.next_cursor, projectTasksLoading, projectTasksLoadingMore]);
+  }, [activeTab, autoload, enabled, loadProjectTaskPage, overviewView, projectTasks.next_cursor, projectTasksLoading, projectTasksLoadingMore]);
 
   return {
+    hasTaskRows,
+    isTaskScopeLoaded,
     loadProjectTaskPage,
     projectTasksError,
     projectTasksLoading,
