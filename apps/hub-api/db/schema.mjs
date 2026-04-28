@@ -70,7 +70,6 @@ const CONTRACT_INDEXES = [
   'idx_space_members_user_space',
   'idx_project_members_user_project',
   'idx_projects_space_sort',
-  'idx_docs_project_unique',
   'idx_records_space_collection_updated',
   'idx_records_space_source_project',
   'idx_records_space_source_view',
@@ -235,7 +234,9 @@ const resetSchemaToContractV1 = (db) => {
 
       CREATE TABLE docs (
         doc_id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL UNIQUE,
+        project_id TEXT NOT NULL,
+        title TEXT NOT NULL DEFAULT 'Untitled',
+        position INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE CASCADE
@@ -732,7 +733,6 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_space_members_user_space ON space_members(user_id, space_id);
       CREATE INDEX idx_project_members_user_project ON project_members(user_id, project_id);
       CREATE INDEX idx_projects_space_sort ON projects(space_id, sort_order);
-      CREATE UNIQUE INDEX idx_docs_project_unique ON docs(project_id);
       CREATE INDEX idx_records_space_collection_updated ON records(space_id, collection_id, updated_at DESC);
       CREATE INDEX idx_records_space_source_project ON records(space_id, source_project_id);
       CREATE INDEX idx_records_space_source_view ON records(space_id, source_view_id);

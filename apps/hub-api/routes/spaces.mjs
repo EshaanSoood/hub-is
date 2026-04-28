@@ -117,7 +117,7 @@ export const createSpaceRoutes = (deps) => {
         now,
         now,
       );
-      insertDocStmt.run(docId, workProjectId, now, now);
+      insertDocStmt.run(docId, workProjectId, 'Untitled', 0, now, now);
       insertDocStorageStmt.run(docId, 0, toJson({}), now);
       insertAssetRootStmt.run(
         newId('ast'),

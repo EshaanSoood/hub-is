@@ -1,7 +1,9 @@
 export const createDocRoutes = (deps) => {
   const {
     withAuth,
+    withTransaction,
     withProjectPolicyGate,
+    withWorkProjectPolicyGate,
     withDocPolicyGate,
     requireDocAccess,
     send,
@@ -11,6 +13,7 @@ export const createDocRoutes = (deps) => {
     parseBody,
     asText,
     asBoolean,
+    asInteger,
     parseJson,
     parseJsonObject,
     isPlainObject,
@@ -25,6 +28,14 @@ export const createDocRoutes = (deps) => {
     materializeMentions,
     assignmentsByRecordStmt,
     docByIdStmt,
+    workProjectDocByProjectStmt,
+    workProjectDocMaxPositionStmt,
+    workProjectDocCountStmt,
+    insertDocStmt,
+    insertDocStorageStmt,
+    updateDocMetaStmt,
+    deleteDocStorageStmt,
+    deleteDocStmt,
     workProjectMembersByProjectStmt,
     projectMembersByProjectStmt,
     recordByIdStmt,
@@ -41,6 +52,12 @@ export const createDocRoutes = (deps) => {
     projectMembershipRoleStmt,
     membershipRoleLabel,
   } = deps;
+
+  const docSummary = (doc) => ({
+    doc_id: doc.doc_id,
+    title: asText(doc.title) || 'Untitled',
+    position: Number.isInteger(doc.position) ? doc.position : Number(doc.position || 0),
+  });
 
   const docCollaboratorUserIds = ({ projectId, spaceId }) => {
     const userIds = new Set();
@@ -84,6 +101,8 @@ export const createDocRoutes = (deps) => {
           doc: {
             doc_id: doc.doc_id,
             project_id: doc.project_id,
+            title: asText(doc.title) || 'Untitled',
+            position: Number.isInteger(doc.position) ? doc.position : Number(doc.position || 0),
             snapshot_version: doc.snapshot_version || 0,
             snapshot_payload: parseJson(doc.snapshot_payload, {}),
             updated_at: doc.storage_updated_at || doc.updated_at,
@@ -91,6 +110,126 @@ export const createDocRoutes = (deps) => {
         }),
       ),
     );
+  };
+
+  const createProjectDoc = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const projectId = params.projectId;
+    const projectGate = withWorkProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId,
+      requiredCapability: 'write',
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch (error) {
+      request.log.warn('Failed to parse request body for doc creation.', { error, projectId });
+      send(response, parseBody.errorResponse(error));
+      return;
+    }
+
+    const title = asText(body.title) || 'Untitled';
+    const docId = newId('doc');
+    const timestamp = nowIso();
+    const position = Number(workProjectDocMaxPositionStmt.get(projectId)?.max_position ?? -1) + 1;
+
+    withTransaction(() => {
+      insertDocStmt.run(docId, projectId, title, position, timestamp, timestamp);
+      insertDocStorageStmt.run(docId, 0, toJson({}), timestamp);
+    });
+
+    const doc = docByIdStmt.get(docId);
+    send(response, jsonResponse(201, okEnvelope({ doc: docSummary(doc) })));
+  };
+
+  const updateDocMeta = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const docId = params.docId;
+    const docGate = withDocPolicyGate({
+      userId: auth.user.user_id,
+      docId,
+      requiredCapability: 'write',
+    });
+    if (docGate.error) {
+      send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
+      return;
+    }
+
+    const doc = docByIdStmt.get(docId);
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch (error) {
+      request.log.warn('Failed to parse request body for doc metadata update.', { error, docId });
+      send(response, parseBody.errorResponse(error));
+      return;
+    }
+
+    const hasTitle = Object.prototype.hasOwnProperty.call(body, 'title');
+    const hasPosition = Object.prototype.hasOwnProperty.call(body, 'position');
+    if (!hasTitle && !hasPosition) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'title or position is required.')));
+      return;
+    }
+
+    const nextTitle = hasTitle ? asText(body.title) || 'Untitled' : asText(doc.title) || 'Untitled';
+    const nextPosition = hasPosition
+      ? asInteger(body.position, Number(doc.position || 0), 0, 100000)
+      : Number(doc.position || 0);
+    const timestamp = nowIso();
+
+    updateDocMetaStmt.run(nextTitle, nextPosition, timestamp, docId);
+    const updatedDoc = docByIdStmt.get(docId);
+    send(response, jsonResponse(200, okEnvelope({ doc: docSummary(updatedDoc) })));
+  };
+
+  const deleteDoc = async ({ request, response, params }) => {
+    const auth = await withAuth(request);
+    if (auth.error) {
+      send(response, auth.error);
+      return;
+    }
+
+    const docId = params.docId;
+    const docGate = withDocPolicyGate({
+      userId: auth.user.user_id,
+      docId,
+      requiredCapability: 'write',
+    });
+    if (docGate.error) {
+      send(response, jsonResponse(docGate.error.status, errorEnvelope(docGate.error.code, docGate.error.message)));
+      return;
+    }
+
+    const docCount = Number(workProjectDocCountStmt.get(docGate.project_id)?.count || 0);
+    if (docCount <= 1) {
+      send(response, jsonResponse(409, errorEnvelope('last_doc', 'Cannot delete the last doc in a project.')));
+      return;
+    }
+
+    withTransaction(() => {
+      deleteDocStorageStmt.run(docId);
+      deleteDocStmt.run(docId);
+    });
+
+    const docs = workProjectDocByProjectStmt.all(docGate.project_id).map(docSummary);
+    send(response, jsonResponse(200, okEnvelope({ deleted: true, doc_id: docId, docs })));
   };
 
   const updateDoc = async ({ request, response, params }) => {
@@ -773,12 +912,15 @@ export const createDocRoutes = (deps) => {
   return {
     authorizeCollab,
     createComment,
+    createProjectDoc,
     createDocAnchorComment,
+    deleteDoc,
     getDoc,
     listComments,
     materializeCommentMentions,
     updateCommentStatus,
     updateDoc,
+    updateDocMeta,
     updateDocPresence,
   };
 };
