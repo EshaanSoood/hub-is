@@ -15,7 +15,7 @@ import { Card, InlineNotice, TabButton, Tabs, TabsList } from '../../components/
 import { ProjectLensView } from '../PersonalizedDashboardPanel/ProjectLensView';
 import { StreamView } from '../PersonalizedDashboardPanel/StreamView';
 import type { HubDashboardItem } from '../PersonalizedDashboardPanel/types';
-import type { HomeSurfaceId } from './navigation';
+import { HOME_SURFACE_IDS, type HomeSurfaceId } from './navigation';
 
 interface HomeOverviewSurfaceProps {
   accessToken: string;
@@ -53,13 +53,14 @@ interface HomeOverviewSurfaceProps {
   tasksLoading: boolean;
 }
 
-const overviewViews: Array<{ id: HomeSurfaceId; label: string }> = [
-  { id: 'hub', label: 'Hub' },
-  { id: 'stream', label: 'Stream' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'tasks', label: 'Tasks' },
-  { id: 'reminders', label: 'Reminders' },
-];
+const homeSurfaceLabels: Record<HomeSurfaceId, string> = {
+  hub: 'Hub',
+  stream: 'Stream',
+  calendar: 'Calendar',
+  tasks: 'Tasks',
+  reminders: 'Reminders',
+};
+const overviewViews = HOME_SURFACE_IDS.map((id) => ({ id, label: homeSurfaceLabels[id] }));
 
 const toCategoryLabel = (categoryId: string) =>
   categoryId

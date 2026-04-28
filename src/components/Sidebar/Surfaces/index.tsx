@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import type { HomeOverlayId, HomeSurfaceId } from '../../../features/home/navigation';
+import { HOME_SURFACE_IDS, type HomeOverlayId, type HomeSurfaceId } from '../../../features/home/navigation';
 import { SidebarLabel } from '../motion/SidebarLabel';
 import {
   sidebarAccordionContentVariants,
@@ -14,17 +14,25 @@ import { SurfaceItem } from './SurfaceItem';
 export type SidebarSurfaceId = HomeOverlayId;
 export type SidebarHomeSurfaceId = HomeSurfaceId;
 
-const HOME_CONTENT_ITEMS: Array<{
-  id: SidebarHomeSurfaceId;
-  iconName: IconName;
-  label: string;
-}> = [
-  { id: 'hub', iconName: 'focus', label: 'Hub' },
-  { id: 'stream', iconName: 'timeline', label: 'Stream' },
-  { id: 'calendar', iconName: 'calendar', label: 'Calendar' },
-  { id: 'tasks', iconName: 'tasks', label: 'Tasks' },
-  { id: 'reminders', iconName: 'reminders', label: 'Reminders' },
-];
+const homeSurfaceLabels: Record<SidebarHomeSurfaceId, string> = {
+  hub: 'Hub',
+  stream: 'Stream',
+  calendar: 'Calendar',
+  tasks: 'Tasks',
+  reminders: 'Reminders',
+};
+const homeSurfaceIcons: Record<SidebarHomeSurfaceId, IconName> = {
+  hub: 'focus',
+  stream: 'timeline',
+  calendar: 'calendar',
+  tasks: 'tasks',
+  reminders: 'reminders',
+};
+const HOME_CONTENT_ITEMS = HOME_SURFACE_IDS.map((id) => ({
+  id,
+  iconName: homeSurfaceIcons[id],
+  label: homeSurfaceLabels[id],
+}));
 
 interface SurfacesProps {
   activeHomeSurface: SidebarHomeSurfaceId;

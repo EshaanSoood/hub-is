@@ -36,7 +36,8 @@ export const useProjectTasksRuntime = ({
   const projectTasksInFlightCursorRef = useRef<string | null>(null);
   const loadedTaskScopeRef = useRef<string | null>(null);
   const taskScopeKey = taskQuery ? JSON.stringify(taskQuery) : `space:${projectId ?? ''}`;
-  const hasTaskData = loadedTaskScopeRef.current === taskScopeKey && projectTasks.tasks.length > 0;
+  const isTaskScopeLoaded = loadedTaskScopeRef.current === taskScopeKey;
+  const hasTaskRows = projectTasks.tasks.length > 0;
 
   const loadProjectTaskPage = useCallback(
     async ({ cursor = '', append = false }: { cursor?: string; append?: boolean } = {}) => {
@@ -106,13 +107,13 @@ export const useProjectTasksRuntime = ({
       return;
     }
     const shouldLoadTasks = autoload ?? (
-      !hasTaskData && (activeTab === 'work' || (activeTab === 'overview' && (overviewView === 'tasks' || overviewView === 'kanban')))
+      !isTaskScopeLoaded && (activeTab === 'work' || (activeTab === 'overview' && (overviewView === 'tasks' || overviewView === 'kanban')))
     );
     if (!shouldLoadTasks) {
       return;
     }
     void loadProjectTaskPage();
-  }, [activeTab, autoload, enabled, hasTaskData, loadProjectTaskPage, overviewView]);
+  }, [activeTab, autoload, enabled, isTaskScopeLoaded, loadProjectTaskPage, overviewView]);
 
   useEffect(() => {
     if (!enabled) {
@@ -148,6 +149,8 @@ export const useProjectTasksRuntime = ({
   }, [activeTab, autoload, enabled, loadProjectTaskPage, overviewView, projectTasks.next_cursor, projectTasksLoading, projectTasksLoadingMore]);
 
   return {
+    hasTaskRows,
+    isTaskScopeLoaded,
     loadProjectTaskPage,
     projectTasksError,
     projectTasksLoading,

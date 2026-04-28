@@ -15,6 +15,7 @@ import {
   parseHomeOverlayId,
   parseHomeSurfaceId,
   parseHomeTaskRecordId,
+  rewriteHomeSurfaceSearchParams,
 } from './navigation';
 import { useHomeRecordInspectorRuntime } from './useHomeRecordInspectorRuntime';
 import { useHomeRuntime } from './useHomeRuntime';
@@ -161,23 +162,7 @@ export const HomeProjectPage = () => {
               void tasksRuntime.loadProjectTaskPage();
             }}
             onSelectSurface={(surface) => {
-              setSearchParams((current) => {
-                const next = new URLSearchParams(current);
-                next.delete('tab');
-                next.delete('content');
-                next.delete('view');
-                next.delete('overview');
-                next.delete('project');
-                next.delete('pinned');
-                next.delete('record_id');
-                next.delete('view_id');
-                if (surface === 'hub') {
-                  next.delete('surface');
-                } else {
-                  next.set('surface', surface);
-                }
-                return next;
-              }, { replace: true });
+              setSearchParams((current) => rewriteHomeSurfaceSearchParams(current, surface), { replace: true });
             }}
             projects={projects}
             runtime={homeRuntime}

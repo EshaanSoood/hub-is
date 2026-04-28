@@ -8,10 +8,13 @@ export type HomeOverlayId = 'thoughts';
 
 const HomeTaskRecordIdSchema = z.string().trim().min(1);
 const homeRouteParamKeys = new Set(['tab', 'content', 'overview', 'project', 'pinned', 'surface', 'overlay']);
+const legacyHomeSurfaceParamKeys = ['tab', 'content', 'view', 'overview', 'project', 'pinned', 'record_id', 'view_id'] as const;
+export const HOME_SURFACE_IDS = ['hub', 'stream', 'calendar', 'tasks', 'reminders'] as const satisfies ReadonlyArray<HomeSurfaceId>;
+const HOME_SURFACE_SET = new Set<HomeSurfaceId>(HOME_SURFACE_IDS);
 
 export const parseHomeSurfaceId = (value: string | null): HomeSurfaceId => {
-  if (value === 'stream' || value === 'calendar' || value === 'tasks' || value === 'reminders') {
-    return value;
+  if (value && HOME_SURFACE_SET.has(value as HomeSurfaceId)) {
+    return value as HomeSurfaceId;
   }
   return 'hub';
 };
@@ -47,6 +50,36 @@ export const parseHomeTaskRecordId = (value: string | null): string | null => {
 export const parseHomeProjectId = (value: string | null): string | null => {
   const parsedProjectId = HomeTaskRecordIdSchema.safeParse(value);
   return parsedProjectId.success ? parsedProjectId.data : null;
+};
+
+export const rewriteHomeSurfaceSearchParams = (
+  current: URLSearchParams,
+  surface: HomeSurfaceId,
+  options?: {
+    extraParams?: Record<string, string | null | undefined>;
+    overlay?: HomeOverlayId | null;
+  },
+): URLSearchParams => {
+  const next = new URLSearchParams(current);
+  for (const key of legacyHomeSurfaceParamKeys) {
+    next.delete(key);
+  }
+  if (surface !== 'hub') {
+    next.set('surface', surface);
+  }
+  if (options?.overlay) {
+    next.set('overlay', options.overlay);
+  } else if (options?.overlay === null) {
+    next.delete('overlay');
+  }
+  if (options?.extraParams) {
+    for (const [key, value] of Object.entries(options.extraParams)) {
+      if (typeof value === 'string' && value.length > 0 && !homeRouteParamKeys.has(key) && !next.has(key)) {
+        next.set(key, value);
+      }
+    }
+  }
+  return next;
 };
 
 const buildHomeHref = ({
@@ -109,11 +142,14 @@ export const buildHomeSurfaceHref = (
     extraParams?: Record<string, string | null | undefined>;
     overlay?: HomeOverlayId | null;
   },
-): string => buildHomeHref({
-  surface,
-  overlay: options?.overlay,
-  extraParams: options?.extraParams,
-});
+): string => {
+  const params = rewriteHomeSurfaceSearchParams(new URLSearchParams(), surface, {
+    overlay: options?.overlay,
+    extraParams: options?.extraParams,
+  });
+  const search = params.toString();
+  return search ? `/projects?${search}` : '/projects';
+};
 
 export const buildHomeTabHref = (
   tab: HomeTabId,

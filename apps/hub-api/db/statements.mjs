@@ -545,7 +545,7 @@ export const createStatements = (db) => ({
             AND (? = '' OR rec.source_project_id = ?)
           )
         )
-      ORDER BY r.remind_at IS NULL ASC, r.remind_at ASC
+      ORDER BY r.remind_at IS NULL ASC, r.remind_at ASC, r.reminder_id ASC
       LIMIT ?
     `),
     dismiss: db.prepare(`

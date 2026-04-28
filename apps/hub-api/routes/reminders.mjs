@@ -115,6 +115,10 @@ export const createReminderRoutes = (deps) => {
       send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required for space-scoped reminders.')));
       return;
     }
+    if (sourceProjectId && !requestedSpaceId) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required when project_id is provided.')));
+      return;
+    }
 
     const visibleSpaceIds = visibleSpaceIdsForUser(auth.user.user_id)
       .filter((spaceId) => !requestedSpaceId || spaceId === requestedSpaceId);
