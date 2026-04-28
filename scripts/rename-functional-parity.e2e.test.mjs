@@ -87,7 +87,7 @@ const PARITY_CONTRACT = {
       'idx_bug_reports_public_created',
       'idx_chat_snapshots_space_created',
       'idx_comments_entity_lookup',
-      'idx_docs_project_unique',
+      'idx_docs_project_position_created_at',
       'idx_event_participants_user_record',
       'idx_event_state_start',
       'idx_files_space_asset_path',
@@ -547,6 +547,8 @@ const buildExpectedTableColumns = () => {
     docs: [
       { name: 'doc_id', type: 'TEXT', notnull: 0, pk: 1 },
       { name: workId, type: 'TEXT', notnull: 1, pk: 0 },
+      { name: 'title', type: 'TEXT', notnull: 1, pk: 0 },
+      { name: 'position', type: 'INTEGER', notnull: 1, pk: 0 },
       { name: 'created_at', type: 'TEXT', notnull: 1, pk: 0 },
       { name: 'updated_at', type: 'TEXT', notnull: 1, pk: 0 },
     ],
@@ -823,7 +825,7 @@ const insertWorkMember = (stmts, { workId, userId, now = nowIso() }) => {
 };
 
 const insertDoc = (stmts, { docId, workId, now = nowIso() }) => {
-  stmts.docs.insert.run(docId, workId, now, now);
+  stmts.docs.insert.run(docId, workId, 'Untitled', 0, now, now);
   stmts.docs.insertStorage.run(docId, 0, JSON.stringify({}), now);
 };
 

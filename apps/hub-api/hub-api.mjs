@@ -280,6 +280,7 @@ const createRouteStatementAliases = (source) => ({
   docs: {
     ...source.docs,
     findByProjectId: mapStatementRows(source.docs.findByProjectId, mapDocRow),
+    findFirstByProjectId: mapStatementRows(source.docs.findFirstByProjectId, mapDocRow),
     findById: mapStatementRows(source.docs.findById, mapDocRow),
     findDocProject: mapStatementRows(source.docs.findDocSpace, mapDocRow),
   },
@@ -383,6 +384,7 @@ const {
   },
   docs: {
     findByProjectId: workProjectDocByProjectStmt,
+    findFirstByProjectId: workProjectFirstDocByProjectStmt,
     findDocProject: workProjectForDocStmt,
     insert: insertDocStmt,
     insertStorage: insertDocStorageStmt,
@@ -1087,7 +1089,12 @@ const projectSummary = (project, userId = '') => {
     doc_id: doc.doc_id,
     title: asText(doc.title) || 'Untitled',
     position: Number.isInteger(doc.position) ? doc.position : Number(doc.position || 0),
-  }));
+  })).sort((left, right) => {
+    if (left.position !== right.position) {
+      return left.position - right.position;
+    }
+    return left.doc_id.localeCompare(right.doc_id);
+  });
   const members = projectMembersStmt.all(project.project_id).map((member) => ({
     user_id: member.user_id,
     display_name: member.display_name,
@@ -1201,7 +1208,7 @@ const sourceProjectContextForRecord = (record, cache = null) => {
     return cache.get(projectId);
   }
   const project = workProjectByIdStmt.get(projectId);
-  const doc = workProjectDocByProjectStmt.all(projectId)[0] || null;
+  const doc = workProjectFirstDocByProjectStmt.get(projectId);
   const context = {
     project_id: projectId,
     project_name: asNullableText(project?.name),

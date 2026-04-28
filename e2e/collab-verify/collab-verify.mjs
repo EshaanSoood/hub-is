@@ -433,8 +433,9 @@ const resolveDocId = async (accessToken) => {
     if (!project || typeof project.project_id !== 'string' || project.project_id.length === 0) {
       continue;
     }
-    if (typeof project.doc_id === 'string' && project.doc_id.length > 0) {
-      return project.doc_id;
+    const docId = Array.isArray(project.docs) ? project.docs[0]?.doc_id : null;
+    if (typeof docId === 'string' && docId.length > 0) {
+      return docId;
     }
   }
 

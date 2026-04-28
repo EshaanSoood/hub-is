@@ -70,6 +70,7 @@ const CONTRACT_INDEXES = [
   'idx_space_members_user_space',
   'idx_project_members_user_project',
   'idx_projects_space_sort',
+  'idx_docs_project_position_created_at',
   'idx_records_space_collection_updated',
   'idx_records_space_source_project',
   'idx_records_space_source_view',
@@ -733,6 +734,7 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX idx_space_members_user_space ON space_members(user_id, space_id);
       CREATE INDEX idx_project_members_user_project ON project_members(user_id, project_id);
       CREATE INDEX idx_projects_space_sort ON projects(space_id, sort_order);
+      CREATE INDEX idx_docs_project_position_created_at ON docs(project_id, position, created_at);
       CREATE INDEX idx_records_space_collection_updated ON records(space_id, collection_id, updated_at DESC);
       CREATE INDEX idx_records_space_source_project ON records(space_id, source_project_id);
       CREATE INDEX idx_records_space_source_view ON records(space_id, source_view_id);
@@ -776,7 +778,7 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX IF NOT EXISTS idx_widget_picker_seed_widget_size
         ON widget_picker_seed_data(widget_type, size_tier);
     `);
-    db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 1, ?)').run(nowIso());
+    db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 2, ?)').run(nowIso());
 
     db.exec('COMMIT;');
     db.exec('PRAGMA foreign_keys = ON;');
@@ -830,7 +832,7 @@ const schemaReady = (db) => {
   }
 
   const versionRow = db.prepare('SELECT version FROM schema_version WHERE id = 1').get();
-  return Number(versionRow?.version) === 1;
+  return Number(versionRow?.version) === 2;
 };
 
 const userTableCount = (db) =>

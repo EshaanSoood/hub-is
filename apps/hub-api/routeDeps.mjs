@@ -21,6 +21,7 @@ export const buildRouteDeps = ({ db, stmts, withTransaction, ...deps }) => ({
   deleteRelationStmt: stmts.recordRelations.delete,
   docByIdStmt: stmts.docs.findById,
   workProjectDocByProjectStmt: stmts.docs.findByProjectId,
+  workProjectFirstDocByProjectStmt: stmts.docs.findFirstByProjectId,
   workProjectForDocStmt: stmts.docs.findDocProject,
   eventStateByRecordStmt: stmts.calendar.findEventState,
   fieldByIdStmt: stmts.collections.findFieldById,

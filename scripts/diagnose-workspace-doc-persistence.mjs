@@ -164,10 +164,11 @@ const createProject = async (token, projectId, name) => {
     throw new Error(`POST /api/hub/spaces/${projectId}/projects failed (${response.status}).`);
   }
   const project = payload?.data?.project;
-  if (!project?.project_id || !project?.doc_id) {
-    throw new Error('Created project response did not include project_id/doc_id.');
+  const docId = Array.isArray(project?.docs) ? project.docs[0]?.doc_id : null;
+  if (!project?.project_id || !docId) {
+    throw new Error('Created project response did not include project_id/docs[0].doc_id.');
   }
-  return project;
+  return { ...project, doc_id: docId };
 };
 
 const deleteProject = async (token, projectId) => {

@@ -4,7 +4,15 @@ import type { HubProjectDoc } from './types.ts';
 export const getDocSnapshot = async (
   accessToken: string,
   docId: string,
-): Promise<{ doc_id: string; project_id: string; snapshot_version: number; snapshot_payload: Record<string, unknown>; updated_at: string }> => {
+): Promise<{
+  doc_id: string;
+  project_id: string;
+  title?: string;
+  position?: number;
+  snapshot_version: number;
+  snapshot_payload: Record<string, unknown>;
+  updated_at: string;
+}> => {
   const data = await hubRequest<{
     doc: {
       doc_id: string;

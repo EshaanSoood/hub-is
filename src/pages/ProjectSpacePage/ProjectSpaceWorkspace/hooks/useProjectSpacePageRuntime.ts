@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState, type ComponentProps } from 'react';
+import { useCallback, useMemo, type ComponentProps } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { HubBacklink, HubProjectSummary, HubProject, HubProjectMember } from '../../../../services/hub/types';
-import { createProjectDoc, deleteProjectDoc, updateProjectDoc } from '../../../../services/hub/docs';
 import { buildProjectOverviewHref, buildProjectWorkHref } from '../../../../lib/hubRoutes';
 import { useCalendarRuntime } from '../../../../hooks/useCalendarRuntime';
+import { useProjectDocsRuntime } from '../../../../hooks/useProjectDocsRuntime';
 import { useProjectMutations } from '../../../../hooks/useProjectMutations';
 import { useProjectMembers } from '../../../../hooks/useProjectMembers';
 import { useProjectFilesRuntime } from '../../../../hooks/useProjectFilesRuntime';
@@ -156,79 +156,17 @@ const activeProject = useMemo(
     onError: (message) => setRecordsError(message),
   });
   const activeProjectId = activeProject?.project_id || null;
-  const [activeDocIdByProjectId, setActiveDocIdByProjectId] = useState<Record<string, string>>({});
-  const activeProjectDocs = useMemo(
-    () => [...(activeProject?.docs ?? [])].sort((left, right) => {
-      if (left.position !== right.position) {
-        return left.position - right.position;
-      }
-      return left.doc_id.localeCompare(right.doc_id);
-    }),
-    [activeProject?.docs],
-  );
-  const activeProjectDocId = useMemo(() => {
-    if (!activeProject) {
-      return null;
-    }
-    const selectedDocId = activeDocIdByProjectId[activeProject.project_id];
-    if (selectedDocId && activeProjectDocs.some((doc) => doc.doc_id === selectedDocId)) {
-      return selectedDocId;
-    }
-    return activeProjectDocs[0]?.doc_id ?? null;
-  }, [activeDocIdByProjectId, activeProject, activeProjectDocs]);
-  const onSelectProjectDoc = useCallback((docId: string) => {
-    if (!activeProject) {
-      return;
-    }
-    setActiveDocIdByProjectId((current) => ({
-      ...current,
-      [activeProject.project_id]: docId,
-    }));
-  }, [activeProject]);
-  const updateDocsForActiveProject = useCallback((nextDocs: HubProjectSummary['docs']) => {
-    if (!activeProject) {
-      return;
-    }
-    setProjects((currentProjects) => currentProjects.map((projectEntry) => (
-      projectEntry.project_id === activeProject.project_id
-        ? { ...projectEntry, docs: [...nextDocs].sort((left, right) => left.position - right.position) }
-        : projectEntry
-    )));
-  }, [activeProject, setProjects]);
-  const onCreateProjectDoc = useCallback(async (title: string) => {
-    if (!activeProject) {
-      return null;
-    }
-    const createdDoc = await createProjectDoc(accessToken, activeProject.project_id, title);
-    const nextDocs = [...activeProjectDocs.filter((doc) => doc.doc_id !== createdDoc.doc_id), createdDoc]
-      .sort((left, right) => left.position - right.position);
-    updateDocsForActiveProject(nextDocs);
-    setActiveDocIdByProjectId((current) => ({
-      ...current,
-      [activeProject.project_id]: createdDoc.doc_id,
-    }));
-    return createdDoc;
-  }, [accessToken, activeProject, activeProjectDocs, updateDocsForActiveProject]);
-  const onUpdateProjectDoc = useCallback(async (docId: string, patch: { title?: string; position?: number }) => {
-    const updatedDoc = await updateProjectDoc(accessToken, docId, patch);
-    const nextDocs = activeProjectDocs.map((doc) => (doc.doc_id === updatedDoc.doc_id ? updatedDoc : doc));
-    updateDocsForActiveProject(nextDocs);
-    return updatedDoc;
-  }, [accessToken, activeProjectDocs, updateDocsForActiveProject]);
-  const onDeleteProjectDoc = useCallback(async (docId: string) => {
-    if (!activeProject) {
-      return;
-    }
-    const result = await deleteProjectDoc(accessToken, docId);
-    const nextDocs = result.docs.length > 0
-      ? result.docs
-      : activeProjectDocs.filter((doc) => doc.doc_id !== docId);
-    updateDocsForActiveProject(nextDocs);
-    setActiveDocIdByProjectId((current) => ({
-      ...current,
-      [activeProject.project_id]: nextDocs[0]?.doc_id ?? '',
-    }));
-  }, [accessToken, activeProject, activeProjectDocs, updateDocsForActiveProject]);
+  const {
+    activeProjectDocId,
+    onSelectProjectDoc,
+    onCreateProjectDoc,
+    onUpdateProjectDoc,
+    onDeleteProjectDoc,
+  } = useProjectDocsRuntime({
+    accessToken,
+    activeProject,
+    setProjects,
+  });
   const buildProjectNavigationState = useCallback(({
     projectName,
     projectSource,

@@ -142,9 +142,9 @@ export const createDocRoutes = (deps) => {
     const title = asText(body.title) || 'Untitled';
     const docId = newId('doc');
     const timestamp = nowIso();
-    const position = Number(workProjectDocMaxPositionStmt.get(projectId)?.max_position ?? -1) + 1;
 
     withTransaction(() => {
+      const position = Number(workProjectDocMaxPositionStmt.get(projectId)?.max_position ?? -1) + 1;
       insertDocStmt.run(docId, projectId, title, position, timestamp, timestamp);
       insertDocStorageStmt.run(docId, 0, toJson({}), timestamp);
     });
@@ -217,16 +217,18 @@ export const createDocRoutes = (deps) => {
       return;
     }
 
-    const docCount = Number(workProjectDocCountStmt.get(docGate.project_id)?.count || 0);
-    if (docCount <= 1) {
+    const deleted = withTransaction(() => {
+      const docCount = Number(workProjectDocCountStmt.get(docGate.project_id)?.count || 0);
+      if (docCount <= 1) {
+        return false;
+      }
+      deleteDocStorageStmt.run(docId);
+      return deleteDocStmt.run(docId).changes > 0;
+    });
+    if (!deleted) {
       send(response, jsonResponse(409, errorEnvelope('last_doc', 'Cannot delete the last doc in a project.')));
       return;
     }
-
-    withTransaction(() => {
-      deleteDocStorageStmt.run(docId);
-      deleteDocStmt.run(docId);
-    });
 
     const docs = workProjectDocByProjectStmt.all(docGate.project_id).map(docSummary);
     send(response, jsonResponse(200, okEnvelope({ deleted: true, doc_id: docId, docs })));

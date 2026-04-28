@@ -100,7 +100,7 @@ export const createRequestRouter = ({
         jsonResponse(
           200,
           okEnvelope({
-            schema_version: 1,
+            schema_version: 2,
             db_path: HUB_DB_PATH,
             nextcloud_configured: safeNextcloudConfig(),
             issuer: jwtVerifier.issuer,

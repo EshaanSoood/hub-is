@@ -215,6 +215,7 @@ export const createStatements = (db) => ({
     insert: db.prepare('INSERT INTO docs (doc_id, project_id, title, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'),
     insertStorage: db.prepare('INSERT INTO doc_storage (doc_id, snapshot_version, snapshot_payload, updated_at) VALUES (?, ?, ?, ?)'),
     findByProjectId: db.prepare('SELECT * FROM docs WHERE project_id = ? ORDER BY position ASC, created_at ASC'),
+    findFirstByProjectId: db.prepare('SELECT * FROM docs WHERE project_id = ? ORDER BY position ASC, created_at ASC LIMIT 1'),
     findById: db.prepare(`
       SELECT d.doc_id, d.project_id, d.title, d.position, d.created_at, d.updated_at, ds.snapshot_version, ds.snapshot_payload, ds.updated_at AS storage_updated_at
       FROM docs d

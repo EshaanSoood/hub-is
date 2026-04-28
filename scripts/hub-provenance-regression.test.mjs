@@ -335,7 +335,7 @@ const setupFixture = async ({ apiBaseUrl, ownerToken, ownerId, readerId, name })
   return {
     projectId,
     workProjectId: project.project_id,
-    docId: project.doc_id,
+    docId: project.docs?.[0]?.doc_id,
     collectionId: collection.collection_id,
     relationFieldId: relationField.field_id,
     sourceRecordId: sourceRecord.record_id,
