@@ -26,7 +26,7 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
       widgets_enabled: true,
       workspace_enabled: true,
     },
-    doc_id: 'doc-shared',
+    docs: [{ doc_id: 'doc-shared', title: 'Untitled', position: 0 }],
     members: [
       { user_id: 'user-1', display_name: 'Owner Person' },
       { user_id: 'user-2', display_name: 'Viewer Person' },
@@ -45,7 +45,7 @@ export const createProjectSpaceWorkspaceFixture = (): ProjectSpaceWorkspaceFixtu
       widgets_enabled: true,
       workspace_enabled: true,
     },
-    doc_id: 'doc-private',
+    docs: [{ doc_id: 'doc-private', title: 'Untitled', position: 0 }],
     members: [{ user_id: 'user-1', display_name: 'Owner Person' }],
     can_edit: false,
   };

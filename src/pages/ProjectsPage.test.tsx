@@ -90,7 +90,7 @@ const projectBootstrap = {
       position: 1,
       pinned: false,
       layout_config: {},
-      doc_id: 'doc-1',
+      docs: [{ doc_id: 'doc-1', title: 'Untitled', position: 0 }],
       members: [],
       can_edit: true,
     },

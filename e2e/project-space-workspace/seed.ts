@@ -130,10 +130,20 @@ const createProject = async (
   projectId: string,
   payload: { name: string; member_user_ids: string[]; layout_config: Record<string, unknown> },
 ) =>
-  hubRequest<{ project: { project_id: string; doc_id: string | null } }>(baseUrl, token, `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  hubRequest<{ project: { project_id: string; docs: Array<{ doc_id: string }> } }>(
+    baseUrl,
+    token,
+    `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  ).then((data) => ({
+    project: {
+      project_id: data.project.project_id,
+      doc_id: data.project.docs[0]?.doc_id ?? null,
+    },
+  }));
 
 const createRecord = async (baseUrl: string, token: string, projectId: string, payload: Record<string, unknown>) =>
   hubRequest<{ record_id: string }>(baseUrl, token, `/api/hub/spaces/${encodeURIComponent(projectId)}/records`, {

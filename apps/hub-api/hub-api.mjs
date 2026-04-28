@@ -280,6 +280,7 @@ const createRouteStatementAliases = (source) => ({
   docs: {
     ...source.docs,
     findByProjectId: mapStatementRows(source.docs.findByProjectId, mapDocRow),
+    findFirstByProjectId: mapStatementRows(source.docs.findFirstByProjectId, mapDocRow),
     findById: mapStatementRows(source.docs.findById, mapDocRow),
     findDocProject: mapStatementRows(source.docs.findDocSpace, mapDocRow),
   },
@@ -383,6 +384,7 @@ const {
   },
   docs: {
     findByProjectId: workProjectDocByProjectStmt,
+    findFirstByProjectId: workProjectFirstDocByProjectStmt,
     findDocProject: workProjectForDocStmt,
     insert: insertDocStmt,
     insertStorage: insertDocStorageStmt,
@@ -1083,7 +1085,16 @@ const recordDetail = (record) => {
 };
 
 const projectSummary = (project, userId = '') => {
-  const doc = workProjectDocByProjectStmt.get(project.project_id);
+  const docs = workProjectDocByProjectStmt.all(project.project_id).map((doc) => ({
+    doc_id: doc.doc_id,
+    title: asText(doc.title) || 'Untitled',
+    position: Number.isInteger(doc.position) ? doc.position : Number(doc.position || 0),
+  })).sort((left, right) => {
+    if (left.position !== right.position) {
+      return left.position - right.position;
+    }
+    return left.doc_id.localeCompare(right.doc_id);
+  });
   const members = projectMembersStmt.all(project.project_id).map((member) => ({
     user_id: member.user_id,
     display_name: member.display_name,
@@ -1101,7 +1112,7 @@ const projectSummary = (project, userId = '') => {
     position: typeof project.position === 'number' ? project.position : null,
     pinned: project.pinned === 1,
     layout_config: parseJsonObject(project.layout_config, {}),
-    doc_id: doc?.doc_id || null,
+    docs,
     members,
     can_edit: canEdit,
   };
@@ -1197,7 +1208,7 @@ const sourceProjectContextForRecord = (record, cache = null) => {
     return cache.get(projectId);
   }
   const project = workProjectByIdStmt.get(projectId);
-  const doc = workProjectDocByProjectStmt.get(projectId);
+  const doc = workProjectFirstDocByProjectStmt.get(projectId);
   const context = {
     project_id: projectId,
     project_name: asNullableText(project?.name),
@@ -1415,7 +1426,7 @@ const createPersonalProjectForUser = (user, now = nowIso()) => {
     now,
     now,
   );
-  insertDocStmt.run(docId, workProjectId, now, now);
+  insertDocStmt.run(docId, workProjectId, 'Untitled', 0, now, now);
   insertDocStorageStmt.run(docId, 0, toJson({}), now);
   insertAssetRootStmt.run(
     assetRootId,

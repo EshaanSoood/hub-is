@@ -100,7 +100,7 @@ export const createRequestRouter = ({
         jsonResponse(
           200,
           okEnvelope({
-            schema_version: 1,
+            schema_version: 2,
             db_path: HUB_DB_PATH,
             nextcloud_configured: safeNextcloudConfig(),
             issuer: jwtVerifier.issuer,
@@ -352,6 +352,18 @@ export const createRequestRouter = ({
       return;
     }
 
+    const workProjectDocsMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/docs$/);
+    if (workProjectDocsMatch && request.method === 'POST') {
+      await docRoutes.createProjectDoc({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { projectId: decodeURIComponent(workProjectDocsMatch[1]) },
+      });
+      return;
+    }
+
     const workProjectMembersMatch = pathMatch(pathname, /^\/api\/hub\/projects\/([^/]+)\/members$/);
     if (workProjectMembersMatch && request.method === 'POST') {
       await projectRoutes.addProjectMember({
@@ -393,6 +405,28 @@ export const createRequestRouter = ({
 
     if (docItemMatch && request.method === 'PUT') {
       await docRoutes.updateDoc({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { docId: decodeURIComponent(docItemMatch[1]) },
+      });
+      return;
+    }
+
+    if (docItemMatch && request.method === 'PATCH') {
+      await docRoutes.updateDocMeta({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { docId: decodeURIComponent(docItemMatch[1]) },
+      });
+      return;
+    }
+
+    if (docItemMatch && request.method === 'DELETE') {
+      await docRoutes.deleteDoc({
         request,
         response,
         requestUrl,

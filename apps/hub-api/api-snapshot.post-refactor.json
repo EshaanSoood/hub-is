@@ -1,6 +1,6 @@
 {
   "base_url": "http://127.0.0.1:43123",
-  "route_count": 86,
+  "route_count": 89,
   "routes": [
     {
       "method": "POST",
@@ -507,6 +507,21 @@
     },
     {
       "method": "POST",
+      "path": "/api/hub/projects/placeholder/docs",
+      "path_pattern": "/api/hub/projects/([^/]+)/docs",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "POST",
       "path": "/api/hub/projects/placeholder/members",
       "path_pattern": "/api/hub/projects/([^/]+)/members",
       "status_code": 401,
@@ -552,6 +567,36 @@
     },
     {
       "method": "PUT",
+      "path": "/api/hub/docs/placeholder",
+      "path_pattern": "/api/hub/docs/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/hub/docs/placeholder",
+      "path_pattern": "/api/hub/docs/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "DELETE",
       "path": "/api/hub/docs/placeholder",
       "path_pattern": "/api/hub/docs/([^/]+)",
       "status_code": 401,

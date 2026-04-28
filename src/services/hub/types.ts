@@ -52,6 +52,12 @@ export interface HubProjectInvite {
   updated_at: string;
 }
 
+export interface HubProjectDoc {
+  doc_id: string;
+  title: string;
+  position: number;
+}
+
 export interface HubProjectSummary {
   project_id: string;
   space_id: string;
@@ -60,7 +66,7 @@ export interface HubProjectSummary {
   position: number | null;
   pinned: boolean;
   layout_config: Record<string, unknown>;
-  doc_id: string | null;
+  docs: HubProjectDoc[];
   members: Array<{ user_id: string; display_name: string }>;
   can_edit?: boolean;
 }

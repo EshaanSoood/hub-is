@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, type ComponentProps } from 'react';
 import type { NavigateFunction, SetURLSearchParams } from 'react-router-dom';
 import type { HubBacklink, HubProjectSummary, HubProject, HubProjectMember, HubTaskSummary } from '../../services/hub/types';
+import { useProjectDocsRuntime } from '../../hooks/useProjectDocsRuntime';
 import { useProjectMutations } from '../../hooks/useProjectMutations';
 import { useProjectFilesRuntime } from '../../hooks/useProjectFilesRuntime';
 import { useProjectViewsRuntime } from '../../hooks/useProjectViewsRuntime';
@@ -129,7 +130,17 @@ export const useHomeProjectWorkRuntime = ({
   );
   const openedFromPinned = searchParams.get('pinned') === '1';
   const activeProjectId = activeProject?.project_id ?? null;
-  const activeProjectDocId = activeProject?.doc_id ?? null;
+  const {
+    activeProjectDocId,
+    onSelectProjectDoc,
+    onCreateProjectDoc,
+    onUpdateProjectDoc,
+    onDeleteProjectDoc,
+  } = useProjectDocsRuntime({
+    accessToken,
+    activeProject,
+    setProjects,
+  });
 
   const buildProjectNavigationState = useCallback(({
     projectName,
@@ -579,6 +590,7 @@ export const useHomeProjectWorkRuntime = ({
       projectChromeProps: {
         projectId: project.space_id,
         activeProject,
+        activeProjectDocId,
         activeProjectCanEdit,
         canWriteProject,
         openedFromPinned,
@@ -600,6 +612,10 @@ export const useHomeProjectWorkRuntime = ({
         onDeleteProject: onDeleteProjectWithNavigation,
         onUpdateProject: onUpdateProjectFromWorkView,
         onToggleActiveProjectRegion: handleToggleActiveProjectRegion,
+        onSelectProjectDoc,
+        onCreateProjectDoc,
+        onUpdateProjectDoc,
+        onDeleteProjectDoc,
       },
       focusedViewProps: {
         focusedWorkView,

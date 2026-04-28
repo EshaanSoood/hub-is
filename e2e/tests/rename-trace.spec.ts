@@ -61,7 +61,7 @@ interface WorkProjectPayload {
     project_id?: string;
     space_id?: string;
     name?: string;
-    doc_id?: string | null;
+    docs?: Array<{ doc_id?: string | null }>;
   };
 }
 
@@ -312,7 +312,7 @@ const createFixture = async (client: TraceApiClient): Promise<{
 
   const firstProjectId = getString(firstProjectData.project?.project_id, 'project.project_id');
   const secondProjectId = getString(secondProjectData.project?.project_id, 'project.project_id');
-  const firstDocId = getString(firstProjectData.project?.doc_id, 'project.doc_id');
+  const firstDocId = getString(firstProjectData.project?.docs?.[0]?.doc_id, 'project.docs[0].doc_id');
 
   if (createdSpaceId === firstProjectId || createdSpaceId === secondProjectId) {
     throw new Error(`Seeded space_id collides with work project_id: ${createdSpaceId}`);

@@ -1044,7 +1044,7 @@ describe('ProjectSpaceWorkspace characterization', () => {
         target_entity_id: fixture.inspectorRecord.record_id,
         context: null,
         source: {
-          doc_id: 'doc-1',
+          docs: [{ doc_id: 'doc-1', title: 'Untitled', position: 0 }],
           project_id: 'project-private',
           project_name: 'Private Work',
           node_key: 'node-1',

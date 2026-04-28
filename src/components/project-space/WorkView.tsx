@@ -498,7 +498,7 @@ export const WorkView = ({
       {showWorkspaceDocPlaceholder ? (
         <section className="widget-sheet p-4">
           <h3 className="heading-4 text-text">Workspace Doc</h3>
-          <p className="mt-1 text-sm text-muted">Doc ID: {project.doc_id || 'missing'}</p>
+          <p className="mt-1 text-sm text-muted">Doc ID: {project.docs[0]?.doc_id || 'missing'}</p>
         </section>
       ) : null}
     </motion.section>

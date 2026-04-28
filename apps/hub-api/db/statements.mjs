@@ -212,21 +212,31 @@ export const createStatements = (db) => ({
     deleteByUserInSpace: db.prepare('DELETE FROM project_members WHERE user_id = ? AND project_id IN (SELECT project_id FROM projects WHERE space_id = ?)'),
   },
   docs: {
-    insert: db.prepare('INSERT INTO docs (doc_id, project_id, created_at, updated_at) VALUES (?, ?, ?, ?)'),
+    insert: db.prepare('INSERT INTO docs (doc_id, project_id, title, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'),
     insertStorage: db.prepare('INSERT INTO doc_storage (doc_id, snapshot_version, snapshot_payload, updated_at) VALUES (?, ?, ?, ?)'),
-    findByProjectId: db.prepare('SELECT * FROM docs WHERE project_id = ?'),
+    findByProjectId: db.prepare('SELECT * FROM docs WHERE project_id = ? ORDER BY position ASC, created_at ASC'),
+    findFirstByProjectId: db.prepare('SELECT * FROM docs WHERE project_id = ? ORDER BY position ASC, created_at ASC LIMIT 1'),
     findById: db.prepare(`
-      SELECT d.doc_id, d.project_id, d.created_at, d.updated_at, ds.snapshot_version, ds.snapshot_payload, ds.updated_at AS storage_updated_at
+      SELECT d.doc_id, d.project_id, d.title, d.position, d.created_at, d.updated_at, ds.snapshot_version, ds.snapshot_payload, ds.updated_at AS storage_updated_at
       FROM docs d
       LEFT JOIN doc_storage ds ON ds.doc_id = d.doc_id
       WHERE d.doc_id = ?
     `),
     findDocSpace: db.prepare(`
-      SELECT d.doc_id, d.project_id, p.space_id
+      SELECT d.doc_id, d.project_id, d.title, d.position, p.space_id
       FROM docs d
       JOIN projects p ON p.project_id = d.project_id
       WHERE d.doc_id = ?
     `),
+    maxPositionForProject: db.prepare('SELECT COALESCE(MAX(position), -1) AS max_position FROM docs WHERE project_id = ?'),
+    countForProject: db.prepare('SELECT COUNT(*) AS count FROM docs WHERE project_id = ?'),
+    updateMeta: db.prepare(`
+      UPDATE docs
+      SET title = ?, position = ?, updated_at = ?
+      WHERE doc_id = ?
+    `),
+    deleteStorage: db.prepare('DELETE FROM doc_storage WHERE doc_id = ?'),
+    delete: db.prepare('DELETE FROM docs WHERE doc_id = ?'),
     updateStorage: db.prepare(`
       UPDATE doc_storage
       SET snapshot_version = ?, snapshot_payload = ?, updated_at = ?

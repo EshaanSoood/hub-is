@@ -267,7 +267,7 @@ export const createWorkProject = async (
   projectId: string,
   payload: { name: string; member_user_ids: string[]; layout_config: Record<string, unknown> },
 ): Promise<{ project_id: string; doc_id: string | null; name?: string }> => {
-  const data = await hubRequest<{ project: { project_id: string; doc_id: string | null; name?: string } }>(
+  const data = await hubRequest<{ project: { project_id: string; docs: Array<{ doc_id: string }>; name?: string } }>(
     baseUrl,
     accessToken,
     `/api/hub/spaces/${encodeURIComponent(projectId)}/projects`,
@@ -276,7 +276,11 @@ export const createWorkProject = async (
       body: JSON.stringify(payload),
     },
   );
-  return data.project;
+  return {
+    project_id: data.project.project_id,
+    doc_id: data.project.docs[0]?.doc_id ?? null,
+    name: data.project.name,
+  };
 };
 
 export const createCollection = async (
