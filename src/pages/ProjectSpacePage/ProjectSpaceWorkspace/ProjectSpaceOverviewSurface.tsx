@@ -1,7 +1,8 @@
 import { useMemo, type ComponentProps, type ReactElement } from 'react';
 import { OverviewView } from '../../../components/project-space/OverviewView';
 import type { CalendarEventSummary } from '../../../components/project-space/CalendarWidgetSkin/types';
-import type { HubProjectMember, HubTaskSummary } from '../../../services/hub/types';
+import type { HubProjectMember, HubProjectSummary, HubTaskSummary } from '../../../services/hub/types';
+import type { SpaceInviteRole } from '../../../hooks/useProjectMembers';
 import type { OverviewSubView } from './types';
 
 type OverviewViewProps = ComponentProps<typeof OverviewView>;
@@ -10,8 +11,10 @@ export interface ProjectSpaceOverviewSurfaceProps {
   projectName: string;
   projectId: string;
   isPersonalProject: boolean;
+  projects: HubProjectSummary[];
   projectMemberList: HubProjectMember[];
   accessToken: string;
+  canManageMembers: boolean;
   overviewView: OverviewSubView;
   onSelectOverviewView: (nextView: OverviewSubView) => void;
   timelineClusters: OverviewViewProps['timelineClusters'];
@@ -27,20 +30,34 @@ export interface ProjectSpaceOverviewSurfaceProps {
   tasksError: string | null;
   onRefreshTasks: () => void;
   inviteEmail: string;
+  inviteRole: SpaceInviteRole;
+  inviteProjectIds: string[];
+  viewerInviteDays: number;
   inviteSubmitting: boolean;
+  memberActionUserId: string | null;
   inviteError: string | null;
   inviteNotice: string | null;
+  cooldownInviteError: boolean;
   onInviteEmailChange: (nextValue: string) => void;
+  onInviteRoleChange: (role: SpaceInviteRole) => void;
+  onToggleInviteProject: (projectId: string) => void;
+  onViewerInviteDaysChange: (days: number) => void;
   onInviteSubmit: () => void;
   onDismissInviteFeedback: () => void;
+  onUpgradeGuestToMember: (userId: string) => Promise<boolean>;
+  onExtendGuestAccess: (member: HubProjectMember) => Promise<boolean>;
+  onRemoveProjectMember: (userId: string) => Promise<boolean>;
+  onGrantProjectAccess: (userId: string, projectIds: string[]) => Promise<boolean>;
 }
 
 export const ProjectSpaceOverviewSurface = ({
   projectName,
   projectId,
   isPersonalProject,
+  projects,
   projectMemberList,
   accessToken,
+  canManageMembers,
   overviewView,
   onSelectOverviewView,
   timelineClusters,
@@ -56,18 +73,34 @@ export const ProjectSpaceOverviewSurface = ({
   tasksError,
   onRefreshTasks,
   inviteEmail,
+  inviteRole,
+  inviteProjectIds,
+  viewerInviteDays,
   inviteSubmitting,
+  memberActionUserId,
   inviteError,
   inviteNotice,
+  cooldownInviteError,
   onInviteEmailChange,
+  onInviteRoleChange,
+  onToggleInviteProject,
+  onViewerInviteDaysChange,
   onInviteSubmit,
   onDismissInviteFeedback,
+  onUpgradeGuestToMember,
+  onExtendGuestAccess,
+  onRemoveProjectMember,
+  onGrantProjectAccess,
 }: ProjectSpaceOverviewSurfaceProps): ReactElement => {
   const overviewCollaborators = useMemo(
     () =>
       projectMemberList.map((member) => {
         const role: 'owner' | 'editor' | 'viewer' =
-          member.role === 'owner' || member.role === 'editor' || member.role === 'viewer' ? member.role : 'viewer';
+          member.role === 'owner'
+            ? 'owner'
+            : member.role === 'admin' || member.role === 'member' || member.role === 'guest'
+              ? 'editor'
+              : 'viewer';
         return {
           id: member.user_id,
           name: member.display_name,
@@ -102,16 +135,29 @@ export const ProjectSpaceOverviewSurface = ({
         tasksLoading={tasksLoading}
         tasksError={tasksError}
         onRefreshTasks={onRefreshTasks}
+        projects={projects}
         projectMembers={projectMemberList}
         canInviteMembers={!isPersonalProject}
+        canManageMembers={canManageMembers}
         inviteEmail={inviteEmail}
+        inviteRole={inviteRole}
+        inviteProjectIds={inviteProjectIds}
+        viewerInviteDays={viewerInviteDays}
         inviteSubmitting={inviteSubmitting}
+        memberActionUserId={memberActionUserId}
         inviteError={inviteError}
         inviteNotice={inviteNotice}
+        cooldownInviteError={cooldownInviteError}
         onInviteEmailChange={onInviteEmailChange}
+        onInviteRoleChange={onInviteRoleChange}
+        onToggleInviteProject={onToggleInviteProject}
+        onViewerInviteDaysChange={onViewerInviteDaysChange}
         onInviteSubmit={onInviteSubmit}
         onDismissInviteFeedback={onDismissInviteFeedback}
-        inviteGuestsSection={null}
+        onUpgradeGuestToMember={onUpgradeGuestToMember}
+        onExtendGuestAccess={onExtendGuestAccess}
+        onRemoveProjectMember={onRemoveProjectMember}
+        onGrantProjectAccess={onGrantProjectAccess}
       />
     </div>
   );

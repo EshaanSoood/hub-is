@@ -1,12 +1,14 @@
-import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { archiveRecord, updateRecord } from '../../services/hub/records';
-import type { HubProjectMember, HubTaskSummary } from '../../services/hub/types';
+import type { HubProjectMember, HubProjectSummary, HubTaskSummary } from '../../services/hub/types';
+import type { SpaceInviteRole } from '../../hooks/useProjectMembers';
 import { dialogLayoutIds } from '../../styles/motion';
 import { CalendarWidgetSkin } from './CalendarWidgetSkin';
 import type { CalendarEventSummary, CalendarScope } from './CalendarWidgetSkin/types';
-import { Button, Card, InlineNotice, TabButton, Tabs, TabsList } from '../primitives';
+import { Card, TabButton, Tabs, TabsList } from '../primitives';
 import { OverviewHeader } from './OverviewHeader';
+import { SpaceMembersManagement } from './SpaceMembersManagement';
 import { TaskCreateDialog } from './TaskCreateDialog';
 import { TasksTab, type SortChain } from './TasksTab';
 import { TimelineFeed, type TimelineCluster, type TimelineEventType, type TimelineFilterValue } from './TimelineFeed';
@@ -35,16 +37,29 @@ interface OverviewViewProps {
   tasksLoading: boolean;
   tasksError: string | null;
   onRefreshTasks: () => void;
+  projects: HubProjectSummary[];
   projectMembers: HubProjectMember[];
   canInviteMembers: boolean;
+  canManageMembers: boolean;
   inviteEmail: string;
+  inviteRole: SpaceInviteRole;
+  inviteProjectIds: string[];
+  viewerInviteDays: number;
   inviteSubmitting: boolean;
+  memberActionUserId: string | null;
   inviteError: string | null;
   inviteNotice: string | null;
+  cooldownInviteError: boolean;
   onInviteEmailChange: (value: string) => void;
+  onInviteRoleChange: (role: SpaceInviteRole) => void;
+  onToggleInviteProject: (projectId: string) => void;
+  onViewerInviteDaysChange: (days: number) => void;
   onInviteSubmit: () => void;
   onDismissInviteFeedback: () => void;
-  inviteGuestsSection?: ReactNode;
+  onUpgradeGuestToMember: (userId: string) => Promise<boolean>;
+  onExtendGuestAccess: (member: HubProjectMember) => Promise<boolean>;
+  onRemoveProjectMember: (userId: string) => Promise<boolean>;
+  onGrantProjectAccess: (userId: string, projectIds: string[]) => Promise<boolean>;
 }
 
 const overviewViews: Array<{ id: OverviewViewId; label: string }> = [
@@ -83,21 +98,32 @@ export const OverviewView = ({
   tasksLoading,
   tasksError,
   onRefreshTasks,
+  projects,
   projectMembers,
   canInviteMembers,
+  canManageMembers,
   inviteEmail,
+  inviteRole,
+  inviteProjectIds,
+  viewerInviteDays,
   inviteSubmitting,
+  memberActionUserId,
   inviteError,
   inviteNotice,
+  cooldownInviteError,
   onInviteEmailChange,
+  onInviteRoleChange,
+  onToggleInviteProject,
+  onViewerInviteDaysChange,
   onInviteSubmit,
   onDismissInviteFeedback,
-  inviteGuestsSection,
+  onUpgradeGuestToMember,
+  onExtendGuestAccess,
+  onRemoveProjectMember,
+  onGrantProjectAccess,
 }: OverviewViewProps) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const [titleDraft, setTitleDraft] = useState(projectName);
-  const inviteInputId = useId();
-  const inviteDescriptionId = useId();
   const taskCreateTriggerRef = useRef<HTMLElement | null>(null);
   const inviteInputRef = useRef<HTMLInputElement | null>(null);
   const lastSubtaskParentRef = useRef<{ id: string; title: string; at: number } | null>(null);
@@ -232,87 +258,34 @@ export const OverviewView = ({
       />
 
       <Card className="pt-3">
-        <div className="mb-4 space-y-4 border-b border-subtle px-4 pb-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-text">Invite members</h2>
-              <p className="mt-1 text-sm text-muted">
-                Add collaborators by email. They&apos;ll receive an invite to join this space.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Current space members">
-              {projectMembers.map((member) => (
-                <span
-                  key={member.user_id}
-                  className="rounded-full border border-border-muted bg-surface px-3 py-1 text-xs font-medium text-text"
-                >
-                  {member.display_name}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {canInviteMembers ? (
-            <form
-              className="space-y-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                onInviteSubmit();
-              }}
-            >
-              <label htmlFor={inviteInputId} className="block text-xs font-semibold uppercase tracking-wide text-muted">
-                Collaborator email
-              </label>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                <input
-                  ref={inviteInputRef}
-                  id={inviteInputId}
-                  name="member-email"
-                  type="email"
-                  autoComplete="email"
-                  inputMode="email"
-                  spellCheck={false}
-                  value={inviteEmail}
-                  onChange={(event) => onInviteEmailChange(event.target.value)}
-                  className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-sm text-text"
-                  placeholder="name@example.com"
-                  aria-describedby={inviteDescriptionId}
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  loading={inviteSubmitting}
-                  loadingLabel="Sending invite"
-                  disabled={inviteEmail.trim().length === 0}
-                  aria-label="Send space invite"
-                  className="sm:min-w-[10rem]"
-                >
-                  Invite member
-                </Button>
-              </div>
-              <p id={inviteDescriptionId} className="text-xs text-muted">
-                Enter an email address and press Enter or activate the button to send the invite.
-              </p>
-            </form>
-          ) : (
-            <p className="text-sm text-muted">Personal spaces do not support member invites.</p>
-          )}
-
-          {inviteError ? (
-            <InlineNotice variant="danger" title="Invite failed" onDismiss={onDismissInviteFeedback}>
-              {inviteError}
-            </InlineNotice>
-          ) : null}
-          {inviteNotice ? (
-            <InlineNotice variant="success" title="Invite sent" onDismiss={onDismissInviteFeedback}>
-              {inviteNotice}
-            </InlineNotice>
-          ) : null}
-          {inviteGuestsSection ? (
-            <div className="pt-2">
-              {inviteGuestsSection}
-            </div>
-          ) : null}
+        <div className="mb-4 px-4">
+          <SpaceMembersManagement
+            spaceName={projectName}
+            projects={projects}
+            members={projectMembers}
+            canInviteMembers={canInviteMembers}
+            canManageMembers={canManageMembers}
+            inviteEmail={inviteEmail}
+            inviteRole={inviteRole}
+            inviteProjectIds={inviteProjectIds}
+            viewerInviteDays={viewerInviteDays}
+            inviteSubmitting={inviteSubmitting}
+            memberActionUserId={memberActionUserId}
+            inviteError={inviteError}
+            inviteNotice={inviteNotice}
+            cooldownInviteError={cooldownInviteError}
+            inviteInputRef={inviteInputRef}
+            onInviteEmailChange={onInviteEmailChange}
+            onInviteRoleChange={onInviteRoleChange}
+            onToggleInviteProject={onToggleInviteProject}
+            onViewerInviteDaysChange={onViewerInviteDaysChange}
+            onInviteSubmit={onInviteSubmit}
+            onDismissInviteFeedback={onDismissInviteFeedback}
+            onUpgradeGuestToMember={onUpgradeGuestToMember}
+            onExtendGuestAccess={onExtendGuestAccess}
+            onRemoveProjectMember={onRemoveProjectMember}
+            onGrantProjectAccess={onGrantProjectAccess}
+          />
         </div>
 
         <p className="mb-3 text-sm text-muted">{projectSummary}</p>

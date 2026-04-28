@@ -26,7 +26,7 @@ export interface SessionProjectMembership {
   /** Project identifier associated with this membership. */
   projectId: string;
   /** Membership role in the project. */
-  membershipRole: 'owner' | 'member';
+  membershipRole: 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
 }
 
 export interface SessionSummary {

@@ -255,15 +255,27 @@ const activeProject = useMemo(
   const {
     projectMembers: projectMemberList,
     inviteEmail,
+    inviteRole,
+    inviteProjectIds,
+    viewerInviteDays,
     isSubmittingInvite,
+    memberActionUserId,
     projectMemberMutationError,
     projectMemberMutationNotice,
+    cooldownInviteError,
     clearProjectMemberFeedback,
     onInviteEmailChange,
+    onInviteRoleChange,
+    onToggleInviteProject,
+    onViewerInviteDaysChange,
     onCreateProjectMember,
+    onUpgradeGuestToMember,
+    onExtendGuestAccess,
+    onRemoveProjectMember,
+    onGrantProjectAccess,
   } = useProjectMembers({
     accessToken,
-    projectId: project.space_id,
+    spaceId: project.space_id,
     projectMembers,
     refreshProjectData,
   });
@@ -596,6 +608,7 @@ const activeProject = useMemo(
   const focusedKanbanRuntime = focusedWorkView ? kanbanRuntimeDataByViewId[focusedWorkView.view_id] ?? null : null;
   const projectLayoutId = !prefersReducedMotion ? `project-${project.space_id}` : undefined;
   const workLayoutId = !prefersReducedMotion && activeProject ? `project-${activeProject.project_id}` : undefined;
+  const canManageMembers = project.membership_role === 'owner' || project.membership_role === 'admin';
 
   return {
     projectLayoutId,
@@ -643,8 +656,10 @@ const activeProject = useMemo(
       projectName: project.name,
       projectId: project.space_id,
       isPersonalProject: project.is_personal,
+      projects,
       projectMemberList,
       accessToken,
+      canManageMembers,
       overviewView,
       onSelectOverviewView: setOverviewView,
       timelineClusters,
@@ -662,14 +677,26 @@ const activeProject = useMemo(
         void loadProjectTaskPage();
       },
       inviteEmail,
+      inviteRole,
+      inviteProjectIds,
+      viewerInviteDays,
       inviteSubmitting: isSubmittingInvite,
+      memberActionUserId,
       inviteError: projectMemberMutationError,
       inviteNotice: projectMemberMutationNotice,
+      cooldownInviteError,
       onInviteEmailChange,
+      onInviteRoleChange,
+      onToggleInviteProject,
+      onViewerInviteDaysChange,
       onInviteSubmit: () => {
         void onCreateProjectMember();
       },
       onDismissInviteFeedback: clearProjectMemberFeedback,
+      onUpgradeGuestToMember,
+      onExtendGuestAccess,
+      onRemoveProjectMember,
+      onGrantProjectAccess,
     },
     workProps: {
       projectId,

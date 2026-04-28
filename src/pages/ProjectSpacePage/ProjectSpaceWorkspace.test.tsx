@@ -421,12 +421,24 @@ vi.mock('../../hooks/useProjectMembers', () => ({
   useProjectMembers: () => ({
     projectMembers: fixture.projectMembers,
     inviteEmail: '',
+    inviteRole: 'member',
+    inviteProjectIds: [],
+    viewerInviteDays: 7,
     isSubmittingInvite: false,
+    memberActionUserId: null,
     projectMemberMutationError: null,
     projectMemberMutationNotice: null,
+    cooldownInviteError: false,
     clearProjectMemberFeedback: vi.fn(),
     onInviteEmailChange: vi.fn(),
+    onInviteRoleChange: vi.fn(),
+    onToggleInviteProject: vi.fn(),
+    onViewerInviteDaysChange: vi.fn(),
     onCreateProjectMember: vi.fn(),
+    onUpgradeGuestToMember: vi.fn(),
+    onExtendGuestAccess: vi.fn(),
+    onRemoveProjectMember: vi.fn(),
+    onGrantProjectAccess: vi.fn(),
   }),
 }));
 
@@ -546,9 +558,11 @@ const LocationEcho = () => {
 const renderWorkspace = ({
   entry,
   activeTab,
+  project = fixture.project,
 }: {
   entry: string;
   activeTab: 'overview' | 'work';
+  project?: typeof fixture.project;
 }) => render(
   <MemoryRouter initialEntries={[entry]}>
     <Routes>
@@ -559,7 +573,7 @@ const renderWorkspace = ({
             <LocationEcho />
             <ProjectSpaceWorkspace
               activeTab={activeTab}
-              project={fixture.project}
+              project={project}
               projects={fixture.projects}
               setProjects={vi.fn()}
               projectMembers={fixture.projectMembers}
@@ -579,7 +593,7 @@ const renderWorkspace = ({
             <LocationEcho />
             <ProjectSpaceWorkspace
               activeTab={activeTab}
-              project={fixture.project}
+              project={project}
               projects={fixture.projects}
               setProjects={vi.fn()}
               projectMembers={fixture.projectMembers}
@@ -737,6 +751,23 @@ describe('ProjectSpaceWorkspace characterization', () => {
     expect(screen.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Work' })).toBeInTheDocument();
   });
+
+  it.each(['viewer', 'guest'] as const)(
+    'hides the Overview navigation affordance for %s memberships',
+    (membershipRole) => {
+      renderWorkspace({
+        entry: '/projects/project-1/work/project-shared',
+        activeTab: 'work',
+        project: {
+          ...fixture.project,
+          membership_role: membershipRole,
+        },
+      });
+
+      expect(screen.queryByRole('button', { name: 'Overview' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-current', 'page');
+    },
+  );
 
   it('does not expose a Tools navigation affordance', () => {
     renderWorkspace({

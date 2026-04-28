@@ -380,6 +380,10 @@ const {
     insert: insertProjectMemberStmt,
     isMember: projectMembershipExistsStmt,
     getRole: projectMembershipRoleStmt,
+    listExpiredForUser: expiredProjectMembershipsForUserStmt,
+    expireMember: expireProjectMemberStmt,
+    listInviteProjectIds: pendingInviteProjectIdsForRecordStmt,
+    deleteProjectAccessForUser: deleteSpaceMemberProjectAccessForUserStmt,
   },
   projects: {
     findById: workProjectByIdStmt,
@@ -1125,14 +1129,17 @@ const projectSummary = (project, userId = '') => {
 };
 
 const withProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
+  expireScopedMembershipsForUser(userId);
   return baseWithProjectPolicyGate({ userId, projectId, requiredCapability });
 };
 
 const withWorkProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
+  expireScopedMembershipsForUser(userId);
   return baseWithWorkProjectPolicyGate({ userId, projectId, requiredCapability });
 };
 
 const withDocPolicyGate = ({ userId, docId, requiredCapability }) => {
+  expireScopedMembershipsForUser(userId);
   return baseWithDocPolicyGate({ userId, docId, requiredCapability });
 };
 
@@ -1142,16 +1149,35 @@ const requireDocAccess = (docId, userId) => withDocPolicyGate({
   requiredCapability: 'view',
 });
 
+const addDaysIso = (baseIso, days) => {
+  const baseMs = Date.parse(baseIso);
+  const safeBaseMs = Number.isFinite(baseMs) ? baseMs : Date.now();
+  return new Date(safeBaseMs + days * 24 * 60 * 60 * 1000).toISOString();
+};
+
+const expireScopedMembershipsForUser = (userId) => {
+  const now = nowIso();
+  const expiredMemberships = expiredProjectMembershipsForUserStmt.all(userId, now);
+  for (const membership of expiredMemberships) {
+    const removedAt = membership.expires_at || now;
+    const cooldownUntil = membership.role === 'guest' ? addDaysIso(removedAt, 90) : null;
+    expireProjectMemberStmt.run(removedAt, cooldownUntil, membership.space_id, membership.user_id);
+    deleteSpaceMemberProjectAccessForUserStmt.run(membership.space_id, membership.user_id);
+  }
+};
+
 const pendingInviteRecord = (row) => ({
   invite_request_id: row.invite_request_id,
   space_id: row.space_id,
   email: row.email,
   role: membershipRoleLabel(row.role),
+  expires_after_days: row.expires_after_days ?? null,
   requested_by_user_id: row.requested_by_user_id,
   status: row.status,
   target_user_id: row.target_user_id || null,
   reviewed_by_user_id: row.reviewed_by_user_id || null,
   reviewed_at: row.reviewed_at || null,
+  project_ids: pendingInviteProjectIdsForRecordStmt.all(row.invite_request_id).map((project) => project.project_id),
   created_at: row.created_at,
   updated_at: row.updated_at,
 });
@@ -1860,6 +1886,7 @@ const withPolicyGate = (requiredCapability, projectIdResolverOrHandler, maybeHan
       return;
     }
 
+    expireScopedMembershipsForUser(auth.user.user_id);
     const sessionSummary = context.sessionSummary ?? buildSessionSummary(auth.user);
     const projectId = resolveProjectId
       ? asText(resolveProjectId({ ...context, auth, sessionSummary }))

@@ -1,5 +1,5 @@
 /** Membership role labels supported by space-level permissions. */
-export type SpaceMembershipRole = 'owner' | 'member';
+export type SpaceMembershipRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
 
 export interface SpaceSummary {
   /** Stable space identifier. */

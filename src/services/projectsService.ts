@@ -95,7 +95,11 @@ const toProjectRecord = (project: HubProject): ProjectRecord => {
     position: normalizedPosition,
     needsNamePrompt: project.needs_name_prompt === true,
     membershipRole:
-      project.membership_role === 'owner' || project.membership_role === 'member'
+      project.membership_role === 'owner' ||
+      project.membership_role === 'admin' ||
+      project.membership_role === 'member' ||
+      project.membership_role === 'viewer' ||
+      project.membership_role === 'guest'
         ? project.membership_role
         : 'member',
   };

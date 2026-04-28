@@ -178,6 +178,7 @@ const startApiHarness = async ({ seed }) => {
   const publicJwk = publicKey.export({ format: 'jwk' });
   const jwksPort = await reservePort();
   const apiPort = await reservePort();
+  const postmarkPort = await reservePort();
   const issuer = `http://127.0.0.1:${jwksPort}`;
   const apiBaseUrl = `http://127.0.0.1:${apiPort}`;
 
@@ -191,6 +192,16 @@ const startApiHarness = async ({ seed }) => {
     response.end();
   });
   await new Promise((resolve) => jwksServer.listen(jwksPort, '127.0.0.1', resolve));
+  const postmarkServer = createServer((request, response) => {
+    if (request.url === '/email' && request.method === 'POST') {
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ MessageID: 'postmark-test-message' }));
+      return;
+    }
+    response.writeHead(404);
+    response.end();
+  });
+  await new Promise((resolve) => postmarkServer.listen(postmarkPort, '127.0.0.1', resolve));
 
   const apiProcess = startProcess({
     cwd: path.resolve('.'),
@@ -202,6 +213,9 @@ const startApiHarness = async ({ seed }) => {
       HUB_API_ALLOW_SCHEMA_RESET: 'true',
       KEYCLOAK_ISSUER: issuer,
       KEYCLOAK_AUDIENCE: 'hub-test',
+      POSTMARK_SERVER_TOKEN: 'postmark-test-token',
+      POSTMARK_FROM_EMAIL: 'test@example.com',
+      POSTMARK_API_BASE_URL: `http://127.0.0.1:${postmarkPort}`,
     },
   });
 
@@ -210,6 +224,7 @@ const startApiHarness = async ({ seed }) => {
   } catch (error) {
     await apiProcess.stop();
     await new Promise((resolve) => jwksServer.close(resolve));
+    await new Promise((resolve) => postmarkServer.close(resolve));
     await rm(tmpDir, { recursive: true, force: true });
     throw new Error(`hub-api failed to start: ${apiProcess.stderr()}\n${error instanceof Error ? error.message : String(error)}`);
   }
@@ -222,6 +237,7 @@ const startApiHarness = async ({ seed }) => {
     stop: async () => {
       await apiProcess.stop();
       await new Promise((resolve) => jwksServer.close(resolve));
+      await new Promise((resolve) => postmarkServer.close(resolve));
       await rm(tmpDir, { recursive: true, force: true });
     },
   };
@@ -380,9 +396,10 @@ test('access model schema verification', async (t) => {
           expires_at,
           invited_by,
           approved_by,
-          cooldown_until
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run('spc_access', 'usr_owner', 'owner', now, null, null, null, null);
+          cooldown_until,
+          removed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('spc_access', 'usr_owner', 'owner', now, null, null, null, null, null);
       db.prepare(`
         INSERT INTO space_members (
           space_id,
@@ -392,9 +409,10 @@ test('access model schema verification', async (t) => {
           expires_at,
           invited_by,
           approved_by,
-          cooldown_until
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run('spc_access', 'usr_admin', 'admin', now, null, 'usr_owner', 'usr_owner', null);
+          cooldown_until,
+          removed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('spc_access', 'usr_admin', 'admin', now, null, 'usr_owner', 'usr_owner', null, null);
       db.prepare(`
         INSERT INTO space_members (
           space_id,
@@ -404,9 +422,10 @@ test('access model schema verification', async (t) => {
           expires_at,
           invited_by,
           approved_by,
-          cooldown_until
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run('spc_access', 'usr_member', 'member', now, null, 'usr_owner', 'usr_owner', null);
+          cooldown_until,
+          removed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('spc_access', 'usr_member', 'member', now, null, 'usr_owner', 'usr_owner', null, null);
       db.prepare(`
         INSERT INTO space_members (
           space_id,
@@ -416,9 +435,10 @@ test('access model schema verification', async (t) => {
           expires_at,
           invited_by,
           approved_by,
-          cooldown_until
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run('spc_access', 'usr_viewer', 'viewer', now, '2026-05-04T00:00:00.000Z', 'usr_admin', 'usr_owner', null);
+          cooldown_until,
+          removed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('spc_access', 'usr_viewer', 'viewer', now, '2026-05-04T00:00:00.000Z', 'usr_admin', 'usr_owner', null, null);
       db.prepare(`
         INSERT INTO space_members (
           space_id,
@@ -428,9 +448,10 @@ test('access model schema verification', async (t) => {
           expires_at,
           invited_by,
           approved_by,
-          cooldown_until
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run('spc_access', 'usr_guest', 'guest', now, '2026-05-27T00:00:00.000Z', 'usr_admin', 'usr_owner', '2026-08-25T00:00:00.000Z');
+          cooldown_until,
+          removed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('spc_access', 'usr_guest', 'guest', now, '2026-05-27T00:00:00.000Z', 'usr_admin', 'usr_owner', '2026-08-25T00:00:00.000Z', null);
 
       const storedRoles = db.prepare(`
         SELECT role
@@ -521,7 +542,7 @@ test('access model schema verification', async (t) => {
       assert.deepEqual(getTableColumns(db, 'spaces').includes('pending_deletion_at'), true);
       assert.deepEqual(
         getTableColumns(db, 'space_members'),
-        ['space_id', 'user_id', 'role', 'joined_at', 'expires_at', 'invited_by', 'approved_by', 'cooldown_until'],
+        ['space_id', 'user_id', 'role', 'joined_at', 'expires_at', 'invited_by', 'approved_by', 'cooldown_until', 'removed_at'],
       );
       assert.deepEqual(
         getTableColumns(db, 'space_member_project_access'),
@@ -613,6 +634,242 @@ test('access model schema verification', async (t) => {
         ['invite_id', 'project_id'],
       );
     });
+  });
+
+  await t.test('guest and viewer invite, removal, expiry, and roll-up flows', async () => {
+    const harness = await startApiHarness({
+      seed: async ({ db, stmts }) => {
+        const now = nowIso();
+        const users = [
+          ['usr_owner', 'owner-sub', 'Owner', 'owner@example.com'],
+          ['usr_guest', 'guest-sub', 'Guest', 'guest@example.com'],
+          ['usr_cooldown', 'cooldown-sub', 'Cooldown Guest', 'cooldown@example.com'],
+          ['usr_expired', 'expired-sub', 'Expired Guest', 'expired@example.com'],
+          ['usr_rollup', 'rollup-sub', 'Rollup Guest', 'rollup@example.com'],
+          ['usr_auto', 'auto-sub', 'Auto Guest', 'auto@example.com'],
+        ];
+        for (const [userId, sub, name, email] of users) {
+          insertUser(stmts, { userId, sub, name, email, now });
+        }
+        for (const [userId, suffix] of [['usr_guest', 'guest'], ['usr_expired', 'expired'], ['usr_rollup', 'rollup'], ['usr_auto', 'auto']]) {
+          insertSpace(stmts, {
+            spaceId: `spc_personal_${suffix}`,
+            ownerUserId: userId,
+            name: `Personal ${suffix}`,
+            spaceType: 'personal',
+            isPersonal: 1,
+            now,
+          });
+          stmts.spaces.updateTasksCollection.run(`col_tasks_personal_${suffix}`, now, `spc_personal_${suffix}`);
+          stmts.spaces.updateRemindersCollection.run(`col_reminders_personal_${suffix}`, now, `spc_personal_${suffix}`);
+          insertSpaceMember(stmts, { spaceId: `spc_personal_${suffix}`, userId, role: 'owner', now });
+        }
+        insertSpace(stmts, { spaceId: 'spc_guest_flow', ownerUserId: 'usr_owner', name: 'Guest Flow', now });
+        insertSpaceMember(stmts, { spaceId: 'spc_guest_flow', userId: 'usr_owner', role: 'owner', now });
+        for (const [workProjectId, name, order] of [
+          ['prj_guest_a', 'Guest A', 1],
+          ['prj_guest_b', 'Guest B', 2],
+          ['prj_guest_delete', 'Guest Delete', 3],
+        ]) {
+          insertWorkProject(stmts, {
+            workProjectId,
+            spaceId: 'spc_guest_flow',
+            name,
+            createdBy: 'usr_owner',
+            sortOrder: order,
+            position: order,
+            now,
+          });
+        }
+        const cooldownUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        db.prepare(`
+          INSERT INTO space_members (space_id, user_id, role, joined_at, expires_at, invited_by, approved_by, cooldown_until, removed_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run('spc_guest_flow', 'usr_cooldown', 'guest', now, now, 'usr_owner', null, cooldownUntil, now);
+        const expiredAt = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        db.prepare(`
+          INSERT INTO space_members (space_id, user_id, role, joined_at, expires_at, invited_by, approved_by, cooldown_until, removed_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run('spc_guest_flow', 'usr_expired', 'guest', now, expiredAt, 'usr_owner', null, null, null);
+        db.prepare(`
+          INSERT INTO space_members (space_id, user_id, role, joined_at, expires_at, invited_by, approved_by, cooldown_until, removed_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run('spc_guest_flow', 'usr_rollup', 'guest', now, new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(), 'usr_owner', null, null, null);
+        db.prepare(`
+          INSERT INTO space_members (space_id, user_id, role, joined_at, expires_at, invited_by, approved_by, cooldown_until, removed_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run('spc_guest_flow', 'usr_auto', 'guest', now, new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(), 'usr_owner', null, null, null);
+        for (const [userId, workProjectId] of [
+          ['usr_expired', 'prj_guest_a'],
+          ['usr_rollup', 'prj_guest_a'],
+          ['usr_auto', 'prj_guest_delete'],
+        ]) {
+          db.prepare(`
+            INSERT INTO space_member_project_access (space_id, user_id, project_id, access_level, granted_at, granted_by)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run('spc_guest_flow', userId, workProjectId, 'write', now, 'usr_owner');
+        }
+        stmts.collections.insert.run('col_guest_tasks', 'spc_guest_flow', 'Tasks', null, null, now, now);
+        for (const [recordId, title, sourceProjectId] of [
+          ['rec_guest_allowed', 'Assigned visible task', 'prj_guest_a'],
+          ['rec_guest_blocked', 'Assigned hidden task', 'prj_guest_b'],
+        ]) {
+          stmts.records.insert.run(recordId, 'spc_guest_flow', 'col_guest_tasks', title, sourceProjectId, null, 'usr_owner', now, now, null);
+          stmts.recordCapabilities.insertIgnore.run(recordId, 'task', now);
+          stmts.tasks.upsertState.run(recordId, 'todo', null, null, null, null, now);
+          stmts.tasks.insertAssignment.run(recordId, 'usr_rollup', now);
+        }
+      },
+    });
+
+    try {
+      const ownerToken = signJwt(harness.privateKey, harness.issuer, 'owner-sub', 'Owner', 'owner@example.com');
+      const guestToken = signJwt(harness.privateKey, harness.issuer, 'guest-sub', 'Guest', 'guest@example.com');
+      const expiredToken = signJwt(harness.privateKey, harness.issuer, 'expired-sub', 'Expired Guest', 'expired@example.com');
+      const rollupToken = signJwt(harness.privateKey, harness.issuer, 'rollup-sub', 'Rollup Guest', 'rollup@example.com');
+
+      const guestInviteEnvelope = await expectStatus(
+        harness.apiBaseUrl,
+        ownerToken,
+        '/api/hub/spaces/spc_guest_flow/invites',
+        201,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            email: 'guest@example.com',
+            role: 'guest',
+            project_ids: ['prj_guest_a'],
+            expires_after_days: 3,
+          }),
+        },
+      );
+      assert.equal(guestInviteEnvelope.data.pending_invite.role, 'guest');
+      assert.equal(guestInviteEnvelope.data.pending_invite.expires_after_days, 30);
+      assert.deepEqual(guestInviteEnvelope.data.pending_invite.project_ids, ['prj_guest_a']);
+
+      await expectStatus(
+        harness.apiBaseUrl,
+        ownerToken,
+        '/api/hub/spaces/spc_guest_flow/invites',
+        409,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            email: 'cooldown@example.com',
+            role: 'guest',
+            project_ids: ['prj_guest_a'],
+          }),
+        },
+      );
+
+      const inviteId = guestInviteEnvelope.data.pending_invite.invite_request_id;
+      const acceptedEnvelope = await expectStatus(
+        harness.apiBaseUrl,
+        ownerToken,
+        `/api/hub/spaces/spc_guest_flow/invites/${inviteId}`,
+        200,
+        { method: 'POST', body: JSON.stringify({ decision: 'approve' }) },
+      );
+      assert.equal(acceptedEnvelope.data.accepted, true);
+
+      let dbHandle = initializeDatabase(harness.dbPath).db;
+      try {
+        const acceptedMember = dbHandle.prepare('SELECT role, expires_at, invited_by FROM space_members WHERE space_id = ? AND user_id = ?')
+          .get('spc_guest_flow', 'usr_guest');
+        assert.equal(acceptedMember.role, 'guest');
+        assert.ok(acceptedMember.expires_at);
+        assert.equal(acceptedMember.invited_by, 'usr_owner');
+        const acceptedAccess = dbHandle.prepare('SELECT access_level, granted_by FROM space_member_project_access WHERE space_id = ? AND user_id = ? AND project_id = ?')
+          .get('spc_guest_flow', 'usr_guest', 'prj_guest_a');
+        assert.deepEqual({ ...acceptedAccess }, { access_level: 'write', granted_by: 'usr_owner' });
+      } finally {
+        dbHandle.close();
+      }
+
+      const addedAccessEnvelope = await expectStatus(
+        harness.apiBaseUrl,
+        ownerToken,
+        '/api/hub/spaces/spc_guest_flow/members/usr_guest/project-access',
+        200,
+        { method: 'POST', body: JSON.stringify({ project_id: 'prj_guest_b' }) },
+      );
+      assert.equal(addedAccessEnvelope.data.added, true);
+      dbHandle = initializeDatabase(harness.dbPath).db;
+      try {
+        const addedAccess = dbHandle.prepare('SELECT access_level FROM space_member_project_access WHERE space_id = ? AND user_id = ? AND project_id = ?')
+          .get('spc_guest_flow', 'usr_guest', 'prj_guest_b');
+        assert.equal(addedAccess.access_level, 'write');
+      } finally {
+        dbHandle.close();
+      }
+
+      await expectStatus(harness.apiBaseUrl, ownerToken, '/api/hub/spaces/spc_guest_flow/members/usr_guest', 200, { method: 'DELETE' });
+      dbHandle = initializeDatabase(harness.dbPath).db;
+      try {
+        const removedGuest = dbHandle.prepare('SELECT removed_at, cooldown_until FROM space_members WHERE space_id = ? AND user_id = ?')
+          .get('spc_guest_flow', 'usr_guest');
+        assert.ok(removedGuest.removed_at);
+        assert.ok(removedGuest.cooldown_until);
+        assert.equal(
+          dbHandle.prepare('SELECT COUNT(*) AS count FROM space_member_project_access WHERE space_id = ? AND user_id = ?').get('spc_guest_flow', 'usr_guest').count,
+          0,
+        );
+      } finally {
+        dbHandle.close();
+      }
+
+      await expectStatus(harness.apiBaseUrl, expiredToken, '/api/hub/spaces/spc_guest_flow/projects', 403, { method: 'GET' });
+      dbHandle = initializeDatabase(harness.dbPath).db;
+      try {
+        const expiredGuest = dbHandle.prepare('SELECT expires_at, removed_at, cooldown_until FROM space_members WHERE space_id = ? AND user_id = ?')
+          .get('spc_guest_flow', 'usr_expired');
+        assert.equal(expiredGuest.removed_at, expiredGuest.expires_at);
+        assert.ok(expiredGuest.cooldown_until);
+      } finally {
+        dbHandle.close();
+      }
+
+      dbHandle = initializeDatabase(harness.dbPath).db;
+      try {
+        const rollupPersonal = dbHandle.prepare(`
+          SELECT s.space_id
+          FROM spaces s
+          JOIN space_members sm ON sm.space_id = s.space_id
+          WHERE s.created_by = ? AND sm.user_id = ? AND s.space_type = 'personal' AND sm.removed_at IS NULL
+        `).get('usr_rollup', 'usr_rollup');
+        assert.equal(rollupPersonal?.space_id, 'spc_personal_rollup');
+      } finally {
+        dbHandle.close();
+      }
+
+      const rollupMe = await expectStatus(harness.apiBaseUrl, rollupToken, '/api/hub/me', 200, { method: 'GET' });
+      assert.equal(rollupMe.data.user.user_id, 'usr_rollup');
+
+      const guestHome = await expectStatus(
+        harness.apiBaseUrl,
+        rollupToken,
+        '/api/hub/home?tasks_limit=20&events_limit=8&notifications_limit=8',
+        200,
+        { method: 'GET' },
+      );
+      const guestTaskTitles = guestHome.data.home.tasks.map((task) => task.title);
+      assert.deepEqual(guestTaskTitles, ['Assigned visible task']);
+
+      await expectStatus(harness.apiBaseUrl, ownerToken, '/api/hub/projects/prj_guest_delete', 200, { method: 'DELETE' });
+      dbHandle = initializeDatabase(harness.dbPath).db;
+      try {
+        const autoRemoved = dbHandle.prepare('SELECT removed_at, cooldown_until FROM space_members WHERE space_id = ? AND user_id = ?')
+          .get('spc_guest_flow', 'usr_auto');
+        assert.ok(autoRemoved.removed_at);
+        assert.ok(autoRemoved.cooldown_until);
+      } finally {
+        dbHandle.close();
+      }
+
+      await expectStatus(harness.apiBaseUrl, guestToken, '/api/hub/spaces/spc_guest_flow/projects', 403, { method: 'GET' });
+    } finally {
+      await harness.stop();
+    }
   });
 
   await t.test('personal space deletion guard returns 409 for the last personal space and allows scheduling otherwise', async () => {

@@ -4,6 +4,7 @@ export const createTaskRoutes = (deps) => {
   const {
     withPolicyGate,
     withProjectPolicyGate,
+    withWorkProjectPolicyGate,
     resolveProjectContentWriteGate,
     withTransaction,
     send,
@@ -29,6 +30,7 @@ export const createTaskRoutes = (deps) => {
     buildHomeEventSummary,
     personalProjectIdForUser,
     projectMembershipsByUserStmt,
+    projectMembershipRoleStmt,
     personalProjectByUserStmt,
     notificationsByUserStmt,
     unreadNotificationsByUserStmt,
@@ -48,6 +50,32 @@ export const createTaskRoutes = (deps) => {
   const visibleProjectIdsForUser = (userId) =>
     projectMembershipsByUserStmt.all(userId).map((membership) => membership.space_id);
 
+  const canUserSeeRecordInHomeRollup = ({ userId, record, visibilityCache }) => {
+    const sourceProjectId = asText(record.source_project_id);
+    const cacheKey = `${userId}:${record.space_id}:${sourceProjectId}`;
+    if (visibilityCache?.has(cacheKey)) {
+      return visibilityCache.get(cacheKey);
+    }
+
+    const membership = projectMembershipRoleStmt.get(record.space_id, userId);
+    const role = asText(membership?.role);
+    if (role !== 'viewer' && role !== 'guest') {
+      visibilityCache?.set(cacheKey, true);
+      return true;
+    }
+    if (!sourceProjectId) {
+      visibilityCache?.set(cacheKey, false);
+      return false;
+    }
+    const allowed = !withWorkProjectPolicyGate({
+      userId,
+      projectId: sourceProjectId,
+      requiredCapability: 'view',
+    }).error;
+    visibilityCache?.set(cacheKey, allowed);
+    return allowed;
+  };
+
   const compareTasksByUpdatedAt = (left, right) => {
     const leftUpdatedAt = new Date(left.updated_at || 0).getTime();
     const rightUpdatedAt = new Date(right.updated_at || 0).getTime();
@@ -61,7 +89,7 @@ export const createTaskRoutes = (deps) => {
 
   // buildTaskSummaryForUser keeps project_id/project_name/task_state.category aligned across task endpoints.
   // visibleProjectTasksStmt excludes subtasks from top-level listings with r.parent_record_id IS NULL.
-  const listVisibleProjectTasksForUser = ({ userId, projectId = '' }) => {
+  const listVisibleProjectTasksForUser = ({ userId, projectId = '', visibilityCache = new Map() }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
     const personalProjectId = personalProjectIdForUser(userId);
     const sourceProjectContextCache = new Map();
@@ -72,6 +100,9 @@ export const createTaskRoutes = (deps) => {
       }
       const records = visibleProjectTasksStmt.all(visibleProjectId);
       for (const record of records) {
+        if (!canUserSeeRecordInHomeRollup({ userId, record, visibilityCache })) {
+          continue;
+        }
         tasks.push(buildTaskSummaryForUser(record, personalProjectId, sourceProjectContextCache));
       }
     }
@@ -95,7 +126,7 @@ export const createTaskRoutes = (deps) => {
     };
   };
 
-  const listAssignedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
+  const listAssignedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null, visibilityCache = new Map() }) => {
     const personalProjectId = personalProjectIdForUser(userId);
     const sourceProjectContextCache = new Map();
     const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
@@ -109,6 +140,9 @@ export const createTaskRoutes = (deps) => {
     for (const visibleProjectId of visibleProjectIds) {
       const records = rowsByProject.get(visibleProjectId) || [];
       for (const record of records) {
+        if (!canUserSeeRecordInHomeRollup({ userId, record, visibilityCache })) {
+          continue;
+        }
         if (!assignedRecordIds.has(record.record_id)) {
           continue;
         }
@@ -118,7 +152,7 @@ export const createTaskRoutes = (deps) => {
     return tasks.sort(compareTasksByUpdatedAt);
   };
 
-  const listCreatedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null }) => {
+  const listCreatedTasksForUser = ({ userId, projectId = '', rowsByProjectCache = null, visibilityCache = new Map() }) => {
     const personalProjectId = personalProjectIdForUser(userId);
     const sourceProjectContextCache = new Map();
     const { visibleProjectIds, rowsByProject } = getVisibleTaskRowsByProject({ userId, projectId, rowsByProjectCache });
@@ -126,6 +160,9 @@ export const createTaskRoutes = (deps) => {
     for (const visibleProjectId of visibleProjectIds) {
       const records = rowsByProject.get(visibleProjectId) || [];
       for (const record of records) {
+        if (!canUserSeeRecordInHomeRollup({ userId, record, visibilityCache })) {
+          continue;
+        }
         if (record.created_by !== userId) {
           continue;
         }
@@ -166,13 +203,13 @@ export const createTaskRoutes = (deps) => {
     return tasks.filter((task) => asText(task?.source_project?.project_id) === normalizedProjectId);
   };
 
-  const listHomeEventsForUser = ({ userId, limit }) => {
+  const listHomeEventsForUser = ({ userId, limit, visibilityCache = new Map() }) => {
     const visibleProjectIds = visibleProjectIdsForUser(userId);
     const sourceProjectContextCache = new Map();
     const rows = [];
     for (const projectId of visibleProjectIds) {
       const projectRows = homeEventsByProjectStmt.all(projectId);
-      rows.push(...projectRows);
+      rows.push(...projectRows.filter((record) => canUserSeeRecordInHomeRollup({ userId, record, visibilityCache })));
     }
     const nowMs = Date.now();
     return rows
@@ -411,8 +448,9 @@ export const createTaskRoutes = (deps) => {
 
     const tasksQueryStartedAt = performance.now();
     const rowsByProjectCache = new Map();
-    const assignedTasks = listAssignedTasksForUser({ userId: auth.user.user_id, rowsByProjectCache });
-    const createdTasks = listCreatedTasksForUser({ userId: auth.user.user_id, rowsByProjectCache });
+    const visibilityCache = new Map();
+    const assignedTasks = listAssignedTasksForUser({ userId: auth.user.user_id, rowsByProjectCache, visibilityCache });
+    const createdTasks = listCreatedTasksForUser({ userId: auth.user.user_id, rowsByProjectCache, visibilityCache });
     const allTasks = mergeTaskSummaries(assignedTasks, createdTasks)
       .sort(compareTasksByUpdatedAt);
     request.log.debug('myHub tasks query completed.', {
@@ -438,7 +476,7 @@ export const createTaskRoutes = (deps) => {
     });
 
     const eventsQueryStartedAt = performance.now();
-    const events = listHomeEventsForUser({ userId: auth.user.user_id, limit: eventsLimit });
+    const events = listHomeEventsForUser({ userId: auth.user.user_id, limit: eventsLimit, visibilityCache });
     request.log.debug('myHub events query completed.', {
       durationMs: elapsedMs(eventsQueryStartedAt),
     });

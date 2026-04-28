@@ -201,6 +201,7 @@ const resetSchemaToContractV1 = (db) => {
         invited_by TEXT,
         approved_by TEXT,
         cooldown_until TEXT,
+        removed_at TEXT,
         PRIMARY KEY(space_id, user_id),
         FOREIGN KEY(space_id) REFERENCES spaces(space_id) ON DELETE CASCADE,
         FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -651,6 +652,7 @@ const resetSchemaToContractV1 = (db) => {
               JOIN space_members pm ON pm.space_id = p.space_id
               WHERE p.project_id = NEW.project_id
                 AND pm.user_id = NEW.user_id
+                AND pm.removed_at IS NULL
             )
             THEN RAISE(ABORT, 'project_members must be a subset of space_members')
           END;
@@ -668,6 +670,7 @@ const resetSchemaToContractV1 = (db) => {
               WHERE sm.space_id = NEW.space_id
                 AND sm.user_id = NEW.user_id
                 AND sm.role IN ('viewer', 'guest')
+                AND sm.removed_at IS NULL
             )
             THEN RAISE(ABORT, 'space_member_project_access requires viewer or guest membership')
           END;
@@ -685,6 +688,7 @@ const resetSchemaToContractV1 = (db) => {
               WHERE sm.space_id = NEW.space_id
                 AND sm.user_id = NEW.user_id
                 AND sm.role IN ('viewer', 'guest')
+                AND sm.removed_at IS NULL
             )
             THEN RAISE(ABORT, 'space_member_project_access requires viewer or guest membership')
           END;
@@ -852,7 +856,7 @@ const resetSchemaToContractV1 = (db) => {
       CREATE INDEX IF NOT EXISTS idx_widget_picker_seed_widget_size
         ON widget_picker_seed_data(widget_type, size_tier);
     `);
-    db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 3, ?)').run(nowIso());
+    db.prepare('INSERT INTO schema_version (id, version, updated_at) VALUES (1, 4, ?)').run(nowIso());
 
     db.exec('COMMIT;');
     db.exec('PRAGMA foreign_keys = ON;');
@@ -906,7 +910,7 @@ const schemaReady = (db) => {
   }
 
   const versionRow = db.prepare('SELECT version FROM schema_version WHERE id = 1').get();
-  return Number(versionRow?.version) === 3;
+  return Number(versionRow?.version) === 4;
 };
 
 const userTableCount = (db) =>
@@ -941,7 +945,7 @@ export const initSchema = (db) => {
   }
 
   if (!HUB_API_ALLOW_SCHEMA_RESET) {
-    throw new Error('Contract schema mismatch. Set HUB_API_ALLOW_SCHEMA_RESET=true to recreate schema v3.');
+    throw new Error('Contract schema mismatch. Set HUB_API_ALLOW_SCHEMA_RESET=true to recreate schema v4.');
   }
 
   resetSchemaToContractV1(db);

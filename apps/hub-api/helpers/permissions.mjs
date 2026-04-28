@@ -63,9 +63,12 @@ export const createPermissionHelpers = ({
     Owner: 2,
   });
 
-  const normalizeProjectRole = (role) => (asText(role) === 'owner' || asText(role) === 'admin' ? 'owner' : 'member');
+  const normalizeProjectRole = (role) => {
+    const normalized = asText(role);
+    return ['owner', 'admin', 'member', 'viewer', 'guest'].includes(normalized) ? normalized : 'member';
+  };
 
-  const membershipRoleLabel = (role) => (normalizeProjectRole(role) === 'owner' ? 'owner' : 'member');
+  const membershipRoleLabel = (role) => normalizeProjectRole(role);
 
   const withProjectPolicyGate = ({ userId, projectId, requiredCapability }) => {
     if (!projectPolicyCapabilitySet.has(requiredCapability)) {

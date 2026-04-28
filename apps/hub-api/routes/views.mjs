@@ -59,6 +59,7 @@ export const createViewRoutes = (deps) => {
     withAuth,
     withTransaction,
     withProjectPolicyGate,
+    withWorkProjectPolicyGate,
     send,
     jsonResponse,
     okEnvelope,
@@ -106,11 +107,38 @@ export const createViewRoutes = (deps) => {
     findCalendarFeedTokenRecord,
     eventParticipantByRecordAndUserStmt,
     projectMembershipsByUserStmt,
+    projectMembershipRoleStmt,
     projectByIdStmt,
     timelineByProjectStmt,
     timelineRecord,
     updateViewStmt,
   } = deps;
+
+  const canUserSeeRecordInCalendarRollup = ({ userId, record, visibilityCache }) => {
+    const sourceProjectId = asText(record.source_project_id);
+    const cacheKey = `${userId}:${record.space_id}:${sourceProjectId}`;
+    if (visibilityCache?.has(cacheKey)) {
+      return visibilityCache.get(cacheKey);
+    }
+
+    const membership = projectMembershipRoleStmt.get(record.space_id, userId);
+    const role = asText(membership?.role);
+    if (role !== 'viewer' && role !== 'guest') {
+      visibilityCache?.set(cacheKey, true);
+      return true;
+    }
+    if (!sourceProjectId) {
+      visibilityCache?.set(cacheKey, false);
+      return false;
+    }
+    const allowed = !withWorkProjectPolicyGate({
+      userId,
+      projectId: sourceProjectId,
+      requiredCapability: 'view',
+    }).error;
+    visibilityCache?.set(cacheKey, allowed);
+    return allowed;
+  };
 
   const listViews = async ({ request, response, params }) => {
     const auth = await withAuth(request);
@@ -578,7 +606,10 @@ export const createViewRoutes = (deps) => {
     const mode = asText(requestUrl.searchParams.get('mode')).toLowerCase() || 'all';
     const startBound = deps.asNullableText(requestUrl.searchParams.get('start'));
     const endBound = deps.asNullableText(requestUrl.searchParams.get('end'));
-    const allRecords = calendarRecordsByProjectStmt.all(projectId);
+    const visibilityCache = new Map();
+    const allRecords = calendarRecordsByProjectStmt
+      .all(projectId)
+      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: auth.user.user_id, record, visibilityCache }));
 
     let filtered = allRecords;
     if (mode === 'relevant') {
@@ -631,7 +662,10 @@ export const createViewRoutes = (deps) => {
       ),
     );
 
-    const mergedRecords = visibleProjectIds.flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId));
+    const visibilityCache = new Map();
+    const mergedRecords = visibleProjectIds
+      .flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId))
+      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: auth.user.user_id, record, visibilityCache }));
 
     let filtered = mergedRecords;
     if (mode === 'relevant') {
@@ -692,7 +726,10 @@ export const createViewRoutes = (deps) => {
       ),
     );
 
-    const mergedRecords = visibleProjectIds.flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId));
+    const visibilityCache = new Map();
+    const mergedRecords = visibleProjectIds
+      .flatMap((projectId) => calendarRecordsByProjectStmt.all(projectId))
+      .filter((record) => canUserSeeRecordInCalendarRollup({ userId: tokenRecord.user_id, record, visibilityCache }));
     const events = mergedRecords
       .flatMap((record) => {
         const eventState = eventStateByRecordStmt.get(record.record_id);

@@ -134,7 +134,7 @@ export interface ProjectMembership {
   id: string;
   userId: string;
   projectId: string;
-  role: 'owner' | 'member';
+  role: 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
   capabilities: ProjectCapability[];
 }
 

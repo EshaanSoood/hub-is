@@ -7,7 +7,7 @@ import type {
   SpaceSummary,
 } from '../../shared/api-types';
 
-import type { HubProjectInvite, HubProjectMember } from './types.ts';
+import type { HubProjectInvite, HubProjectMember, HubProjectAccessSummary } from './types.ts';
 
 export const listSpaces = async (accessToken: string): Promise<SpaceSummary[]> => {
   const data = await hubRequest<ListSpacesResponse>(accessToken, '/api/hub/spaces', {
@@ -77,7 +77,7 @@ export const addSpaceMember = async (
 export const createSpaceInvite = async (
   accessToken: string,
   spaceId: string,
-  payload: { email: string; role?: string },
+  payload: { email: string; role?: string; project_ids?: string[]; expires_after_days?: number },
 ): Promise<HubProjectInvite> => {
   const data = await hubRequest<{ pending_invite: HubProjectInvite }>(accessToken, `/api/hub/spaces/${encodeURIComponent(spaceId)}/invites`, {
     method: 'POST',
@@ -94,4 +94,38 @@ export const removeSpaceMember = async (accessToken: string, spaceId: string, us
       method: 'DELETE',
     },
   );
+};
+
+export const updateSpaceMember = async (
+  accessToken: string,
+  spaceId: string,
+  userId: string,
+  payload: { role?: string; expires_at?: string | null },
+): Promise<HubProjectMember> => {
+  const data = await hubRequest<{ member: HubProjectMember }>(
+    accessToken,
+    `/api/hub/spaces/${encodeURIComponent(spaceId)}/members/${encodeURIComponent(userId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+  );
+  return data.member;
+};
+
+export const addSpaceMemberProjectAccess = async (
+  accessToken: string,
+  spaceId: string,
+  userId: string,
+  projectId: string,
+): Promise<HubProjectAccessSummary> => {
+  const data = await hubRequest<{ project_access: HubProjectAccessSummary }>(
+    accessToken,
+    `/api/hub/spaces/${encodeURIComponent(spaceId)}/members/${encodeURIComponent(userId)}/project-access`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ project_id: projectId }),
+    },
+  );
+  return data.project_access;
 };
