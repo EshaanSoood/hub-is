@@ -25,9 +25,17 @@ const sizeHeightClass: Record<WidgetSizeTier, string> = {
   L: 'widget-card-l',
 };
 
+const sizeTierLabel: Record<WidgetSizeTier, string> = {
+  S: 'Small',
+  M: 'Medium',
+  L: 'Large',
+};
+
 interface WidgetShellProps {
   widgetType: string;
   sizeTier: WidgetSizeTier;
+  className?: string;
+  layoutMode?: 'stack' | 'tray';
   readOnlyState?: boolean;
   removeDisabled?: boolean;
   previewMode?: boolean;
@@ -38,6 +46,8 @@ interface WidgetShellProps {
 export const WidgetShell = ({
   widgetType,
   sizeTier,
+  className,
+  layoutMode = 'stack',
   readOnlyState = false,
   removeDisabled = false,
   previewMode = false,
@@ -51,11 +61,14 @@ export const WidgetShell = ({
   return (
     <article
       data-testid="widget-card"
+      aria-label={`${label} widget, ${sizeTierLabel[sizeTier]} size`}
+      tabIndex={previewMode ? undefined : 0}
       className={cn(
         'widget-sheet relative flex flex-col overflow-hidden p-3',
         accentClassName,
-        previewMode ? 'max-h-full w-full' : sizeClass[sizeTier],
-        previewMode ? 'widget-picker-preview-card' : sizeHeightClass[sizeTier],
+        previewMode ? 'max-h-full w-full' : layoutMode === 'tray' ? 'h-full min-h-0' : sizeClass[sizeTier],
+        previewMode ? 'widget-picker-preview-card' : layoutMode === 'tray' ? null : sizeHeightClass[sizeTier],
+        className,
       )}
     >
       {!previewMode ? <DropdownMenu open={actionsOpen} onOpenChange={setActionsOpen}>

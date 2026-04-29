@@ -11,7 +11,7 @@ import { useWidgetPickerSeedData } from './widget-picker/useWidgetPickerSeedData
 interface AddWidgetDialogProps {
   open: boolean;
   onClose: () => void;
-  onAddWidget: (widgetType: string, sizeTier: WidgetSizeTier) => void;
+  onAddWidget: (widgetType: string, sizeTier: WidgetSizeTier) => string | void;
   triggerRef?: RefObject<HTMLElement | null>;
   layoutId?: string;
   disableConfirm?: boolean;
