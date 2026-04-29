@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 interface ProfileMenuProps {
   id: string;
   onCloseAndRestoreFocus: () => void;
+  onOpenSettings: () => void;
 }
 
 const MENU_ITEMS = ['Settings', 'Sign out'] as const;
@@ -10,6 +11,7 @@ const MENU_ITEMS = ['Settings', 'Sign out'] as const;
 export const ProfileMenu = ({
   id,
   onCloseAndRestoreFocus,
+  onOpenSettings,
 }: ProfileMenuProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -69,7 +71,13 @@ export const ProfileMenu = ({
               onCloseAndRestoreFocus();
             }
           }}
-          onClick={onCloseAndRestoreFocus}
+          onClick={() => {
+            if (label === 'Settings') {
+              onOpenSettings();
+              return;
+            }
+            onCloseAndRestoreFocus();
+          }}
         >
           {label}
         </button>
