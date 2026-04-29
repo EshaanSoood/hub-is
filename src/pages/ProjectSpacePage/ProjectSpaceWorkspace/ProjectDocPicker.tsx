@@ -1,5 +1,12 @@
 import { FormEvent, useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon, InlineNotice } from '../../../components/primitives';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/project-space/ProjectSpaceDialogPrimitives';
 import { HubRequestError } from '../../../services/hub/transport';
 import type { HubProjectDoc, HubProjectSummary } from '../../../services/hub/types';
 
@@ -40,6 +47,8 @@ export const ProjectDocPicker = ({
   const listboxRef = useRef<HTMLDivElement | null>(null);
   const addInputRef = useRef<HTMLInputElement | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
+  const restoreDeleteButtonFocusRef = useRef(true);
   const docs = useMemo(() => sortDocs(activeProject?.docs ?? []), [activeProject?.docs]);
   const activeDoc = docs.find((doc) => doc.doc_id === activeProjectDocId) ?? docs[0] ?? null;
   const addOptionIndex = docs.length;
@@ -51,6 +60,7 @@ export const ProjectDocPicker = ({
   const [editingTitle, setEditingTitle] = useState('');
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [busyDocId, setBusyDocId] = useState<string | null>(null);
+  const [docPendingDeletion, setDocPendingDeletion] = useState<HubProjectDoc | null>(null);
 
   const focusedDoc = docs[focusedIndex] ?? activeDoc;
   const actionDoc = focusedDoc && focusedIndex !== addOptionIndex ? focusedDoc : activeDoc;
@@ -83,6 +93,7 @@ export const ProjectDocPicker = ({
     setAdding(false);
     setEditingDocId(null);
     setMutationError(null);
+    setDocPendingDeletion(null);
     buttonRef.current?.focus();
   }, []);
 
@@ -165,14 +176,33 @@ export const ProjectDocPicker = ({
     }
   };
 
-  const handleDeleteDoc = async (doc: HubProjectDoc) => {
-    if (!window.confirm(`Delete "${doc.title}"?`)) {
+  const requestDeleteDoc = useCallback((doc: HubProjectDoc) => {
+    setMutationError(null);
+    if (docs.length <= 1) {
+      setMutationError('A project must keep at least one doc.');
+      return;
+    }
+    setAdding(false);
+    setEditingDocId(null);
+    restoreDeleteButtonFocusRef.current = true;
+    setDocPendingDeletion(doc);
+  }, [docs.length]);
+
+  const closeDeleteDialog = useCallback(() => {
+    setDocPendingDeletion(null);
+    window.requestAnimationFrame(() => deleteButtonRef.current?.focus());
+  }, []);
+
+  const confirmDeleteDoc = async () => {
+    if (!docPendingDeletion) {
       return;
     }
     setMutationError(null);
-    setBusyDocId(doc.doc_id);
+    setBusyDocId(docPendingDeletion.doc_id);
     try {
-      await onDeleteProjectDoc(doc.doc_id);
+      await onDeleteProjectDoc(docPendingDeletion.doc_id);
+      restoreDeleteButtonFocusRef.current = false;
+      setDocPendingDeletion(null);
       listboxRef.current?.focus();
     } catch (error) {
       if (error instanceof HubRequestError && error.status === 409) {
@@ -286,11 +316,12 @@ export const ProjectDocPicker = ({
                 <Icon name="edit" className="text-[14px]" />
               </button>
               <button
+                ref={deleteButtonRef}
                 type="button"
                 className={projectToolbarIconButtonClassName}
                 aria-label={`Delete ${actionDoc.title || 'Untitled'}`}
                 disabled={busyDocId === actionDoc.doc_id}
-                onClick={() => void handleDeleteDoc(actionDoc)}
+                onClick={() => requestDeleteDoc(actionDoc)}
               >
                 <Icon name="trash" className="text-[14px]" />
               </button>
@@ -351,6 +382,50 @@ export const ProjectDocPicker = ({
           ) : null}
         </div>
       ) : null}
+
+      <Dialog open={Boolean(docPendingDeletion)} onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          closeDeleteDialog();
+        }
+      }}>
+        <DialogContent
+          open={Boolean(docPendingDeletion)}
+          className="dialog-panel-compact-size"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            if (restoreDeleteButtonFocusRef.current) {
+              deleteButtonRef.current?.focus();
+              return;
+            }
+            listboxRef.current?.focus();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Delete document</DialogTitle>
+            <DialogDescription>
+              This will permanently delete {docPendingDeletion?.title || 'Untitled'}. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-control border border-border-muted bg-surface-low px-3 py-2 text-sm font-semibold text-secondary hover:bg-surface-container hover:text-secondary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              autoFocus
+              onClick={closeDeleteDialog}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="interactive interactive-fold rounded-control bg-danger px-3 py-2 text-sm font-semibold text-on-primary hover:bg-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={!docPendingDeletion || busyDocId === docPendingDeletion.doc_id}
+              onClick={() => void confirmDeleteDoc()}
+            >
+              Delete
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,18 +1,12 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAuthz } from '../../../context/AuthzContext';
+import { ProfileSettingsDialog, useLocalProfileImage } from '../../../features/profile';
+import { sessionInitials } from '../../layout/appShellUtils';
 import { SidebarLabel } from '../motion/SidebarLabel';
 import { sidebarChevronVariants } from '../motion/sidebarMotion';
 import { Icon } from '../../primitives/Icon';
 import { ProfileMenu } from './ProfileMenu';
-
-const sessionInitials = (name: string): string => {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) {
-    return `${words[0]?.charAt(0) || ''}${words[1]?.charAt(0) || ''}`.toUpperCase();
-  }
-  return (words[0] || '?').slice(0, 2).toUpperCase();
-};
 
 interface ProfileBadgeProps {
   autoOpenKey: number;
@@ -32,7 +26,12 @@ export const ProfileBadge = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(() => autoOpenKey > 0);
-  const initials = useMemo(() => sessionInitials(sessionSummary.name), [sessionSummary.name]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { profileImageUrl, saveProfileImageUrl } = useLocalProfileImage(sessionSummary.userId);
+  const initials = useMemo(
+    () => sessionInitials(sessionSummary.name, sessionSummary.email, sessionSummary.userId),
+    [sessionSummary.email, sessionSummary.name, sessionSummary.userId],
+  );
   const menuId = useId();
 
   const closeMenu = useCallback(() => {
@@ -44,6 +43,11 @@ export const ProfileBadge = ({
     requestAnimationFrame(() => {
       menuButtonRef.current?.focus();
     });
+  }, []);
+
+  const openSettings = useCallback(() => {
+    setMenuOpen(false);
+    setSettingsOpen(true);
   }, []);
 
   useEffect(() => {
@@ -73,14 +77,29 @@ export const ProfileBadge = ({
 
   if (isCollapsed) {
     return (
-      <button
-        type="button"
-        aria-label="Open profile menu"
-        className="ghost-button interactive interactive-subtle flex h-10 w-10 items-center justify-center bg-surface text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-        onClick={onOpenProfile}
-      >
-        <Icon name="user" size={16} />
-      </button>
+      <>
+        <button
+          ref={menuButtonRef}
+          type="button"
+          aria-label="Open profile menu"
+          className="ghost-button interactive interactive-subtle flex h-10 w-10 items-center justify-center bg-surface text-text-secondary hover:bg-surface-highest hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          onClick={onOpenProfile}
+        >
+          {profileImageUrl ? (
+            <img src={profileImageUrl} alt="" aria-hidden="true" className="h-8 w-8 rounded-full object-cover" />
+          ) : (
+            <Icon name="user" size={16} />
+          )}
+        </button>
+        <ProfileSettingsDialog
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          sessionSummary={sessionSummary}
+          profileImageUrl={profileImageUrl}
+          onSaveProfileImage={saveProfileImageUrl}
+          triggerRef={menuButtonRef}
+        />
+      </>
     );
   }
 
@@ -90,16 +109,21 @@ export const ProfileBadge = ({
         <ProfileMenu
           id={menuId}
           onCloseAndRestoreFocus={closeMenuAndRestoreFocus}
+          onOpenSettings={openSettings}
         />
       ) : null}
 
       <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="paper-well flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-highest text-sm font-semibold text-text"
-        >
-          {initials}
-        </span>
+        {profileImageUrl ? (
+          <img src={profileImageUrl} alt="" aria-hidden="true" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="paper-well flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-highest text-sm font-semibold text-text"
+          >
+            {initials}
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <SidebarLabel show={showLabels} className="min-w-0">
             <p className="truncate text-sm font-semibold text-text">{sessionSummary.name}</p>
@@ -126,6 +150,14 @@ export const ProfileBadge = ({
           </SidebarLabel>
         </div>
       </div>
+      <ProfileSettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        sessionSummary={sessionSummary}
+        profileImageUrl={profileImageUrl}
+        onSaveProfileImage={saveProfileImageUrl}
+        triggerRef={menuButtonRef}
+      />
     </div>
   );
 };

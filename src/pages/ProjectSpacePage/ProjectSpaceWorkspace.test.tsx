@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ProjectSpaceWorkspace } from './ProjectSpaceWorkspace';
+import { ProjectDocPicker } from './ProjectSpaceWorkspace/ProjectDocPicker';
 import { ProjectSpaceProjectSettingsDialog } from './ProjectSpaceWorkspace/ProjectSpaceProjectSettingsDialog';
 import { ProjectSpaceWorkspaceDocSection } from './ProjectSpaceWorkspace/ProjectSpaceWorkspaceDocSection';
 import {
@@ -1345,6 +1346,77 @@ describe('ProjectSpaceProjectSettingsDialog', () => {
 
     await userEvent.click(viewerCheckbox);
     expect(onToggleProjectMember).toHaveBeenCalledWith(fixture.sharedProject, 'user-2');
+  });
+});
+
+describe('ProjectDocPicker', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('opens an in-app confirmation dialog before deleting a doc', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    const onDeleteProjectDoc = vi.fn(async () => undefined);
+
+    render(
+      <ProjectDocPicker
+        activeProject={{
+          ...fixture.sharedProject,
+          docs: [
+            { doc_id: 'doc-1', title: 'Plan', position: 0 },
+            { doc_id: 'doc-2', title: 'Notes', position: 1 },
+          ],
+        }}
+        activeProjectCanEdit
+        activeProjectDocId="doc-1"
+        onSelectProjectDoc={vi.fn()}
+        onCreateProjectDoc={vi.fn(async () => null)}
+        onUpdateProjectDoc={vi.fn(async (_docId, patch) => ({ doc_id: 'doc-1', title: patch.title ?? 'Plan', position: 0 }))}
+        onDeleteProjectDoc={onDeleteProjectDoc}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Active doc: Plan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Plan' }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Delete document' })).toBeInTheDocument();
+    expect(screen.getByText('This will permanently delete Plan. This action cannot be undone.')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('heading', { name: 'Delete document' })).not.toBeInTheDocument();
+    expect(onDeleteProjectDoc).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Plan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(onDeleteProjectDoc).toHaveBeenCalledWith('doc-1');
+  });
+
+  it('keeps the last-doc guard inline instead of opening the delete dialog', async () => {
+    const onDeleteProjectDoc = vi.fn(async () => undefined);
+
+    render(
+      <ProjectDocPicker
+        activeProject={{
+          ...fixture.sharedProject,
+          docs: [{ doc_id: 'doc-1', title: 'Only doc', position: 0 }],
+        }}
+        activeProjectCanEdit
+        activeProjectDocId="doc-1"
+        onSelectProjectDoc={vi.fn()}
+        onCreateProjectDoc={vi.fn(async () => null)}
+        onUpdateProjectDoc={vi.fn(async (_docId, patch) => ({ doc_id: 'doc-1', title: patch.title ?? 'Only doc', position: 0 }))}
+        onDeleteProjectDoc={onDeleteProjectDoc}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Active doc: Only doc' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Only doc' }));
+
+    expect(screen.queryByRole('heading', { name: 'Delete document' })).not.toBeInTheDocument();
+    expect(screen.getByText('A project must keep at least one doc.')).toBeInTheDocument();
+    expect(onDeleteProjectDoc).not.toHaveBeenCalled();
   });
 });
 
