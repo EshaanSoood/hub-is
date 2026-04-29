@@ -200,7 +200,7 @@ const EMPTY_REMINDERS_CONTRACT: RemindersWidgetContract = {
 
 const DESKTOP_MEDIA_QUERY = '(min-width: 768px)';
 
-const MobileWidgetsOverlay = ({ widgetGrid }: { widgetGrid: ReactNode }) => {
+const MobileWidgetsOverlay = ({ mobileWidgetGrid, widgetGrid }: { mobileWidgetGrid: ReactNode; widgetGrid: ReactNode }) => {
   const prefersReducedMotion = useReducedMotion();
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() =>
@@ -266,7 +266,7 @@ const MobileWidgetsOverlay = ({ widgetGrid }: { widgetGrid: ReactNode }) => {
             <IconButton aria-label="Close widgets" className="absolute right-0 top-0" onClick={() => setOverlayOpen(false)}>
               <Icon name="close" className="h-4 w-4" />
             </IconButton>
-            {widgetGrid}
+            {mobileWidgetGrid}
           </div>
         </AccessibleDialog>
       ) : null}
@@ -359,22 +359,34 @@ export const WorkView = ({
     return saveChainRef.current;
   };
 
-  const handleAddWidget = (widgetType: string, sizeTier: ContractWidgetConfig['size_tier']) => {
+  const handleAddWidget = (
+    widgetType: string,
+    sizeTier: ContractWidgetConfig['size_tier'],
+    insertAfterWidgetInstanceId?: string,
+  ) => {
     const normalizedWidgetType = normalizeWidgetType(widgetType);
     if (!widgetCatalogEntry(normalizedWidgetType)) {
-      return;
+      return undefined;
     }
-    const nextWidgets: ContractWidgetConfig[] = [
-      ...widgets,
-      {
-        widget_instance_id: `${widgetType}-${Date.now()}`,
-        widget_type: normalizedWidgetType,
-        size_tier: clampWidgetSizeTier(normalizedWidgetType, sizeTier),
-        lens: defaultWidgetLens(normalizedWidgetType),
-        binding: normalizedWidgetType === 'kanban' ? { source_mode: 'owned' } : undefined,
-      },
-    ];
+    const nextWidget: ContractWidgetConfig = {
+      widget_instance_id: `${widgetType}-${Date.now()}`,
+      widget_type: normalizedWidgetType,
+      size_tier: clampWidgetSizeTier(normalizedWidgetType, sizeTier),
+      lens: defaultWidgetLens(normalizedWidgetType),
+      binding: normalizedWidgetType === 'kanban' ? { source_mode: 'owned' } : undefined,
+    };
+    const insertAfterIndex = insertAfterWidgetInstanceId
+      ? widgets.findIndex((widget) => widget.widget_instance_id === insertAfterWidgetInstanceId)
+      : -1;
+    const nextWidgets: ContractWidgetConfig[] = insertAfterIndex >= 0
+      ? [
+          ...widgets.slice(0, insertAfterIndex + 1),
+          nextWidget,
+          ...widgets.slice(insertAfterIndex + 1),
+        ]
+      : [...widgets, nextWidget];
     void saveWidgets(nextWidgets);
+    return nextWidget.widget_instance_id;
   };
 
   const handleRemoveWidget = (widgetInstanceId: string) => {
@@ -462,8 +474,9 @@ export const WorkView = ({
     return <p className="text-xs text-muted">{widget.widget_type}</p>;
   };
 
-  const widgetGrid = (
+  const renderWidgetGrid = (compactTray = false) => (
     <WidgetGrid
+      projectId={project.project_id}
       widgets={widgets}
       onAddWidget={handleAddWidget}
       onRemoveWidget={handleRemoveWidget}
@@ -473,9 +486,12 @@ export const WorkView = ({
       disableAdd={!canEditProject || isSavingWidgets}
       disableMutations={!canEditProject || isSavingWidgets}
       readOnlyState={!canEditProject}
+      compactTray={compactTray}
       renderWidgetBody={renderWidgetBody}
     />
   );
+  const widgetGrid = renderWidgetGrid();
+  const mobileWidgetGrid = renderWidgetGrid(true);
 
   return (
     <motion.section layoutId={layoutId} className="space-y-4">
@@ -486,7 +502,7 @@ export const WorkView = ({
 
       {widgetsEnabled ? (
         <>
-          <MobileWidgetsOverlay key={project.project_id} widgetGrid={widgetGrid} />
+          <MobileWidgetsOverlay key={project.project_id} widgetGrid={widgetGrid} mobileWidgetGrid={mobileWidgetGrid} />
         </>
       ) : (
         <section className="widget-sheet p-4">
