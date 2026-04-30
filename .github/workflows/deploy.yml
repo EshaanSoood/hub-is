@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: EshaanSoood/facets-parser
+          ref: f7d109b9762ae427e293899caa8360fb3c77865c
           path: facets-parser
           token: ${{ secrets.FACETS_PARSER_TOKEN }}
 

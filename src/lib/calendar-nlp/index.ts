@@ -141,13 +141,18 @@ export const getStructuredParseConfidence = (result: EventParseResult): number =
 };
 
 export const shouldFallbackToPlainSearch = (result: EventParseResult): boolean => {
+  const recurrence = result.fields.recurrence;
   const hasStructuredFields = Boolean(
     result.fields.date ||
       result.fields.time ||
       result.fields.end_time ||
       result.fields.duration_minutes ||
       result.fields.location ||
-      result.fields.recurrence.frequency ||
+      recurrence.frequency ||
+      recurrence.interval ||
+      recurrence.end_date ||
+      recurrence.days?.length ||
+      recurrence.exceptions?.length ||
       result.fields.alerts?.length ||
       result.fields.attendees?.length,
   );

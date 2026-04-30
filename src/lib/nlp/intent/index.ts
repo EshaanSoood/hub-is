@@ -30,7 +30,7 @@ export const classifyIntent = (input: string, opts?: IntentOptions): IntentResul
       debugSteps: result.meta.debugSteps,
       topTwoGap: result.meta.topTwoGap,
       signals: result.meta.signals.map((signal) => ({
-        type: signal.intent,
+        type: mapIntent(signal.intent),
         pattern: signal.source,
         weight: signal.weight,
       })),

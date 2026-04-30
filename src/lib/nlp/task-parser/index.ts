@@ -55,24 +55,25 @@ const maxConfidence = (...values: number[]): number => values.reduce((max, value
 
 export const parseTaskInput = (input: string, opts?: TaskParseOptions): TaskParseResult => {
   const result = parseKalandarTaskInput(input, opts);
+  const dueAt = normalizeTaskDueAt(result, opts);
 
   return {
     fields: {
       title: result.fields.title,
-      due_at: normalizeTaskDueAt(result, opts),
+      due_at: dueAt,
       priority: result.fields.priority,
       assignee_hints: result.fields.assignee,
     },
     meta: {
       confidence: {
         title: result.meta.confidence.title,
-        due_at: maxConfidence(result.meta.confidence.due_date, result.meta.confidence.due_time),
+        due_at: dueAt ? maxConfidence(result.meta.confidence.due_date, result.meta.confidence.due_time) : 0,
         priority: result.meta.confidence.priority,
         assignee_hints: result.meta.confidence.assignee,
       },
       spans: {
         title: result.meta.spans.title,
-        due_at: [...result.meta.spans.due_date, ...result.meta.spans.due_time],
+        due_at: dueAt ? [...result.meta.spans.due_date, ...result.meta.spans.due_time] : [],
         priority: result.meta.spans.priority,
         assignee_hints: result.meta.spans.assignee,
       },
