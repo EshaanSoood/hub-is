@@ -375,8 +375,7 @@ export const queryPersonalCalendar = async (
 export const createComment = async (
   accessToken: string,
   payload: {
-    space_id?: string;
-    project_id?: string;
+    space_id: string;
     target_entity_type: string;
     target_entity_id: string;
     body_json: Record<string, unknown>;
@@ -738,90 +737,4 @@ export const detachFile = async (
       method: 'DELETE',
     },
   );
-};
-
-export const listAutomationRules = async (
-  accessToken: string,
-  projectId: string,
-): Promise<
-  Array<{
-    automation_rule_id: string;
-    name: string;
-    enabled: boolean;
-    trigger_json: Record<string, unknown>;
-    actions_json: unknown[];
-  }>
-> => {
-  const data = await hubRequest<{
-    automation_rules: Array<{
-      automation_rule_id: string;
-      name: string;
-      enabled: boolean;
-      trigger_json: Record<string, unknown>;
-      actions_json: unknown[];
-    }>;
-  }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/automation-rules`, {
-    method: 'GET',
-  });
-
-  return data.automation_rules;
-};
-
-export const createAutomationRule = async (
-  accessToken: string,
-  projectId: string,
-  payload: { name: string; enabled: boolean; trigger_json: Record<string, unknown>; actions_json: unknown[] },
-): Promise<{ automation_rule_id: string }> => {
-  return hubRequest<{ automation_rule_id: string }>(
-    accessToken,
-    `/api/hub/spaces/${encodeURIComponent(projectId)}/automation-rules`,
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    },
-  );
-};
-
-export const updateAutomationRule = async (
-  accessToken: string,
-  ruleId: string,
-  payload: { name?: string; enabled?: boolean; trigger_json?: Record<string, unknown>; actions_json?: unknown[] },
-): Promise<{ updated: boolean }> => {
-  return hubRequest<{ updated: boolean }>(accessToken, `/api/hub/automation-rules/${encodeURIComponent(ruleId)}`, {
-    method: 'PATCH',
-    body: JSON.stringify(payload),
-  });
-};
-
-export const deleteAutomationRule = async (accessToken: string, ruleId: string): Promise<{ deleted: boolean }> => {
-  return hubRequest<{ deleted: boolean }>(accessToken, `/api/hub/automation-rules/${encodeURIComponent(ruleId)}`, {
-    method: 'DELETE',
-  });
-};
-
-export const listAutomationRuns = async (
-  accessToken: string,
-  projectId: string,
-): Promise<
-  Array<{
-    automation_run_id: string;
-    automation_rule_id: string;
-    status: string;
-    started_at: string;
-    finished_at: string | null;
-  }>
-> => {
-  const data = await hubRequest<{
-    automation_runs: Array<{
-      automation_run_id: string;
-      automation_rule_id: string;
-      status: string;
-      started_at: string;
-      finished_at: string | null;
-    }>;
-  }>(accessToken, `/api/hub/spaces/${encodeURIComponent(projectId)}/automation-runs`, {
-    method: 'GET',
-  });
-
-  return data.automation_runs;
 };

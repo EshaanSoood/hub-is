@@ -662,6 +662,13 @@ export const createStatements = (db) => ({
     dismiss: db.prepare(`
       UPDATE reminders SET dismissed_at = ? WHERE reminder_id = ? AND dismissed_at IS NULL
     `),
+    updateById: db.prepare(`
+      UPDATE reminders
+      SET remind_at = ?,
+          recurrence_json = ?
+      WHERE reminder_id = ?
+        AND dismissed_at IS NULL
+    `),
     insertStandalone: db.prepare(`
       INSERT INTO reminders (reminder_id, record_id, remind_at, channels, created_at, recurrence_json)
       VALUES (?, ?, ?, ?, ?, ?)

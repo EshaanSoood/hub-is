@@ -63,6 +63,18 @@ export interface CreateReminderResponse {
   reminder: ReminderSummary;
 }
 
+export interface UpdateReminderRequest {
+  /** Optional ISO 8601 datetime string for the next reminder trigger. */
+  remind_at?: string;
+  /** Optional recurrence descriptor; null clears recurrence. */
+  recurrence_json?: ReminderRecurrence | null;
+}
+
+export interface UpdateReminderResponse {
+  /** Updated reminder summary. */
+  reminder: ReminderSummary;
+}
+
 export interface DismissReminderResponse {
   /** True when the dismissal operation succeeded. */
   dismissed: boolean;

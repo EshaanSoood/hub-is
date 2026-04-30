@@ -1,5 +1,11 @@
 import type { CreateEventRequest } from './events';
-import type { CreateReminderRequest, ReminderFrequency, ReminderRecurrence, ReminderScope } from './reminders';
+import type {
+  CreateReminderRequest,
+  ReminderFrequency,
+  ReminderRecurrence,
+  ReminderScope,
+  UpdateReminderRequest,
+} from './reminders';
 import type { CreateTaskRequest, TaskPriority, TaskStatus } from './tasks';
 
 const TASK_STATUSES: TaskStatus[] = ['todo', 'in_progress', 'done', 'cancelled'];
@@ -220,6 +226,28 @@ export const validateCreateReminderRequest = (body: unknown): CreateReminderRequ
 
   if (hasSourceViewId) {
     request.source_view_id = body.source_view_id === null ? null : asOptionalString(body.source_view_id, 'source_view_id') ?? null;
+  }
+
+  return request;
+};
+
+export const validateUpdateReminderRequest = (body: unknown): UpdateReminderRequest => {
+  if (!isRecord(body)) {
+    throw new Error('Request body must be a JSON object.');
+  }
+
+  const request: UpdateReminderRequest = {};
+
+  if (typeof body.remind_at !== 'undefined') {
+    request.remind_at = asIsoString(body.remind_at, 'remind_at');
+  }
+
+  if (typeof body.recurrence_json !== 'undefined') {
+    request.recurrence_json = body.recurrence_json === null ? null : validateReminderRecurrence(body.recurrence_json);
+  }
+
+  if (typeof request.remind_at === 'undefined' && typeof request.recurrence_json === 'undefined') {
+    throw new Error('At least one of remind_at or recurrence_json must be provided.');
   }
 
   return request;

@@ -5,6 +5,8 @@ import type {
   ListRemindersResponse,
   ReminderScope,
   ReminderSummary,
+  UpdateReminderRequest,
+  UpdateReminderResponse,
 } from '../../shared/api-types';
 
 export type HubReminderSummary = ReminderSummary;
@@ -18,10 +20,7 @@ export type ListRemindersOptions =
       spaceId: string;
       projectId?: string | null;
     };
-export type UpdateReminderPayload = {
-  remind_at?: string;
-  recurrence_json?: CreateReminderRequest['recurrence_json'] | null;
-};
+export type UpdateReminderPayload = UpdateReminderRequest;
 
 export const listReminders = async (accessToken: string, options?: ListRemindersOptions): Promise<HubReminderSummary[]> => {
   const params = new URLSearchParams();
@@ -63,7 +62,7 @@ export const updateReminder = async (
   reminderId: string,
   payload: UpdateReminderPayload,
 ): Promise<HubReminderSummary> => {
-  const data = await hubRequest<{ reminder: HubReminderSummary }>(
+  const data = await hubRequest<UpdateReminderResponse>(
     accessToken,
     `/api/hub/reminders/${encodeURIComponent(reminderId)}`,
     {

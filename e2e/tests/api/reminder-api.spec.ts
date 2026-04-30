@@ -8,6 +8,12 @@ interface HubReminderSummary {
   space_id: string;
   remind_at: string;
   channels: string[];
+  recurrence_json?: {
+    frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    interval?: number;
+    next_remind_at?: string;
+    subsequent_remind_at?: string;
+  } | null;
   created_at: string;
   fired_at: string | null;
 }
@@ -183,5 +189,46 @@ test.describe('Reminder API contract tests', () => {
 
     const reminders = await listReminders();
     expect(reminders.some((item) => item.reminder_id === reminder.reminder_id)).toBe(false);
+  });
+
+  test('PATCH /api/hub/reminders/:id updates reminder schedule', async () => {
+    const initialRemindAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+    const updatedRemindAt = new Date(Date.now() + 28 * 60 * 60 * 1000).toISOString();
+    const createResponse = await client.post('/api/hub/reminders', {
+      title: uniqueTitle('api-reminder-update-contract'),
+      remind_at: initialRemindAt,
+    });
+    expect(createResponse.status).toBe(201);
+
+    const createEnvelope = await parseEnvelope<unknown>(createResponse);
+    expect(createEnvelope?.ok).toBe(true);
+    const reminder = extractReminder(createEnvelope?.data);
+    createdReminderIds.add(reminder.reminder_id);
+    createdRecordIds.add(reminder.record_id);
+
+    const updateResponse = await client.patch(`/api/hub/reminders/${encodeURIComponent(reminder.reminder_id)}`, {
+      remind_at: updatedRemindAt,
+      recurrence_json: {
+        frequency: 'weekly',
+        interval: 2,
+      },
+    });
+    expect(updateResponse.status).toBe(200);
+
+    const updateEnvelope = await parseEnvelope<{ reminder: HubReminderSummary }>(updateResponse);
+    expect(updateEnvelope?.ok).toBe(true);
+    expect(updateEnvelope?.data?.reminder.reminder_id).toBe(reminder.reminder_id);
+    expect(updateEnvelope?.data?.reminder.remind_at).toBe(updatedRemindAt);
+    expect(updateEnvelope?.data?.reminder.recurrence_json).toEqual({
+      frequency: 'weekly',
+      interval: 2,
+    });
+
+    const listed = await waitForReminder(reminder.reminder_id);
+    expect(listed?.remind_at).toBe(updatedRemindAt);
+    expect(listed?.recurrence_json).toEqual({
+      frequency: 'weekly',
+      interval: 2,
+    });
   });
 });

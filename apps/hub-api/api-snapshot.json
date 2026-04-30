@@ -1,6 +1,6 @@
 {
-  "base_url": "http://127.0.0.1:43123",
-  "route_count": 89,
+  "base_url": "http://127.0.0.1:3001",
+  "route_count": 93,
   "routes": [
     {
       "method": "POST",
@@ -104,14 +104,14 @@
       "method": "GET",
       "path": "/api/hub/dev/bootstrap-auth",
       "path_pattern": "/api/hub/dev/bootstrap-auth",
-      "status_code": 404,
+      "status_code": 200,
       "content_type": "application/json; charset=utf-8",
       "body_shape": {
-        "data": "null",
-        "error": {
-          "code": "string",
-          "message": "string"
+        "data": {
+          "access_token": "string",
+          "expires_in": "number"
         },
+        "error": "null",
         "ok": "boolean"
       }
     },
@@ -281,6 +281,21 @@
       }
     },
     {
+      "method": "PATCH",
+      "path": "/api/hub/reminders/placeholder",
+      "path_pattern": "/api/hub/reminders/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
       "method": "POST",
       "path": "/api/hub/reminders/placeholder/dismiss",
       "path_pattern": "/api/hub/reminders/([^/]+)/dismiss",
@@ -356,6 +371,21 @@
       }
     },
     {
+      "method": "DELETE",
+      "path": "/api/hub/spaces/placeholder",
+      "path_pattern": "/api/hub/spaces/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
       "method": "GET",
       "path": "/api/hub/spaces/placeholder/members",
       "path_pattern": "/api/hub/spaces/([^/]+)/members",
@@ -416,7 +446,37 @@
       }
     },
     {
+      "method": "POST",
+      "path": "/api/hub/spaces/placeholder/members/placeholder/project-access",
+      "path_pattern": "/api/hub/spaces/([^/]+)/members/([^/]+)/project-access",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
       "method": "DELETE",
+      "path": "/api/hub/spaces/placeholder/members/placeholder",
+      "path_pattern": "/api/hub/spaces/([^/]+)/members/([^/]+)",
+      "status_code": 401,
+      "content_type": "application/json; charset=utf-8",
+      "body_shape": {
+        "data": "null",
+        "error": {
+          "code": "string",
+          "message": "string"
+        },
+        "ok": "boolean"
+      }
+    },
+    {
+      "method": "PATCH",
       "path": "/api/hub/spaces/placeholder/members/placeholder",
       "path_pattern": "/api/hub/spaces/([^/]+)/members/([^/]+)",
       "status_code": 401,

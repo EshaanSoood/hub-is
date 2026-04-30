@@ -359,13 +359,13 @@ export const createDocRoutes = (deps) => {
       return;
     }
 
-    const projectId = asText(body.project_id);
+    const projectId = asText(body.space_id);
     const targetEntityType = asText(body.target_entity_type);
     const targetEntityId = asText(body.target_entity_id);
     const bodyJson = parseJson(body.body_json, body.body_json || body.body || null);
 
     if (!projectId || !targetEntityType || !targetEntityId || bodyJson === null) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id, target_entity_type, target_entity_id, body_json are required.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id, target_entity_type, target_entity_id, body_json are required.')));
       return;
     }
 
@@ -393,7 +393,7 @@ export const createDocRoutes = (deps) => {
     }
     if (targetEntityType === 'record') {
       targetRecord = recordByIdStmt.get(targetEntityId);
-      if (!targetRecord || targetRecord.project_id !== projectId) {
+      if (!targetRecord || targetRecord.space_id !== projectId) {
         send(response, jsonResponse(404, errorEnvelope('not_found', 'Record not found in project.')));
         return;
       }

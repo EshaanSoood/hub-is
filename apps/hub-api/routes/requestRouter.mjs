@@ -184,6 +184,18 @@ export const createRequestRouter = ({
       return;
     }
 
+    const reminderItemMatch = pathMatch(pathname, /^\/api\/hub\/reminders\/([^/]+)$/);
+    if (reminderItemMatch && request.method === 'PATCH') {
+      await reminderRoutes.updateReminder({
+        request,
+        response,
+        requestUrl,
+        pathname,
+        params: { reminderId: decodeURIComponent(reminderItemMatch[1]) },
+      });
+      return;
+    }
+
     const reminderDismissMatch = pathMatch(pathname, /^\/api\/hub\/reminders\/([^/]+)\/dismiss$/);
     if (reminderDismissMatch && request.method === 'POST') {
       await reminderRoutes.dismissReminder({

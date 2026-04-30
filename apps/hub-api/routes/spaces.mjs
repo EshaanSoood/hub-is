@@ -84,6 +84,7 @@ export const createSpaceRoutes = (deps) => {
     const parsed = Number.parseInt(String(value ?? ''), 10);
     return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
   };
+  const isInviteEmailConfigError = (error) => error?.code === 'postmark_unavailable';
 
   const expiryInfoForMember = (member, nowMs = Date.now()) => {
     if (member.role !== 'guest' || !member.expires_at) {
@@ -637,6 +638,16 @@ export const createSpaceRoutes = (deps) => {
       requestLog: request.log,
     });
     if (inviteEmail.error) {
+      if (isInviteEmailConfigError(inviteEmail.error)) {
+        request.log.warn('Space invite email delivery skipped because Postmark is not configured.', {
+          projectId,
+          inviteRequestId,
+          email,
+          error: inviteEmail.error,
+        });
+        send(response, jsonResponse(201, okEnvelope({ pending_invite: pendingInviteRecord(pendingInviteByIdStmt.get(inviteRequestId)) })));
+        return;
+      }
       request.log.error('Failed to send project invite email.', {
         projectId,
         inviteRequestId,
