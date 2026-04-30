@@ -16,7 +16,7 @@ export interface HubLiveReminderChangedMessage {
     reminder_id: string;
     record_id: string;
     space_id: string | null;
-    action: 'created' | 'dismissed';
+    action: 'created' | 'dismissed' | 'updated';
   };
 }
 
@@ -117,7 +117,9 @@ const isHubLiveMessage = (value: unknown): value is HubLiveMessage => {
       typeof reminderCandidate.reminder_id === 'string' &&
       typeof reminderCandidate.record_id === 'string' &&
       (typeof reminderCandidate.space_id === 'string' || reminderCandidate.space_id === null) &&
-      (reminderCandidate.action === 'created' || reminderCandidate.action === 'dismissed')
+      (reminderCandidate.action === 'created'
+        || reminderCandidate.action === 'dismissed'
+        || reminderCandidate.action === 'updated')
     );
   }
   if (candidate.type === 'notification.new') {

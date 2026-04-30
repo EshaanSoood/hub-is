@@ -775,7 +775,7 @@ const broadcastReminderChanged = (reminder, userId) => {
   const recordId = asText(reminder.record_id);
   const spaceId = asText(reminder.space_id) || null;
   const action = asText(reminder.action);
-  if (!reminderId || !recordId || (action !== 'created' && action !== 'dismissed')) {
+  if (!reminderId || !recordId || (action !== 'created' && action !== 'dismissed' && action !== 'updated')) {
     return;
   }
   broadcastHubLiveToUser(normalizedUserId, {

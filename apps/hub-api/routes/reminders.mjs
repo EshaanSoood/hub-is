@@ -1,4 +1,4 @@
-import { validateCreateReminderRequest } from '../lib/validators.mjs';
+import { validateCreateReminderRequest, validateUpdateReminderRequest } from '../lib/validators.mjs';
 
 const elapsedMs = (startedAtMs) => Number((performance.now() - startedAtMs).toFixed(2));
 
@@ -77,6 +77,7 @@ export const createReminderRoutes = (deps) => {
     insertRecordCapabilityStmt,
     listRemindersForUserStmt,
     dismissReminderStmt,
+    updateReminderByIdStmt,
     findReminderByIdStmt,
     insertStandaloneReminderStmt,
     updateProjectRemindersCollectionStmt,
@@ -103,6 +104,19 @@ export const createReminderRoutes = (deps) => {
     }
     return String(left.reminder_id || '').localeCompare(String(right.reminder_id || ''));
   };
+
+  const serializeReminder = (reminder, timestamp, requestLog = null) => ({
+    reminder_id: reminder.reminder_id,
+    record_id: reminder.record_id,
+    record_title: reminder.record_title,
+    space_id: reminder.space_id,
+    remind_at: reminder.remind_at,
+    channels: parseJsonArray(reminder.channels, ['in_app'], requestLog),
+    recurrence_json: parseRecurrenceJson(reminder.recurrence_json, requestLog),
+    created_at: reminder.created_at,
+    fired_at: reminder.fired_at ?? null,
+    overdue: reminder.remind_at < timestamp,
+  });
 
   const listReminders = withPolicyGate('hub.view', async ({ request, response, requestUrl, auth }) => {
     const listQueryStartedAt = performance.now();
@@ -256,6 +270,92 @@ export const createReminderRoutes = (deps) => {
     send(response, jsonResponse(200, okEnvelope({ dismissed: true, reminder_id: reminderId })));
   });
 
+  const updateReminder = withPolicyGate('hub.tasks.write', async ({ request, response, auth, params }) => {
+    const reminderId = asText(params.reminderId);
+    const reminder = reminderId ? findReminderByIdStmt.get(reminderId) : null;
+
+    if (!reminder) {
+      send(response, jsonResponse(404, errorEnvelope('not_found', 'Reminder not found.')));
+      return;
+    }
+
+    if (reminder.record_archived_at) {
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'Cannot update a reminder on an archived record.')));
+      return;
+    }
+
+    const projectGate = withProjectPolicyGate({
+      userId: auth.user.user_id,
+      projectId: reminder.space_id,
+      requiredCapability: 'write',
+    });
+    if (projectGate.error) {
+      send(response, jsonResponse(projectGate.error.status, errorEnvelope(projectGate.error.code, projectGate.error.message)));
+      return;
+    }
+
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch (error) {
+      request.log.warn('Failed to parse request body for reminder update.', { error });
+      send(response, parseBody.errorResponse(error, { invalidCode: 'invalid_body', invalidMessage: 'Invalid request body.' }));
+      return;
+    }
+
+    let validated;
+    try {
+      validated = validateUpdateReminderRequest(body);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid request body.';
+      request.log.warn('Reminder update validation failed', { error: message, reminderId });
+      send(response, jsonResponse(400, errorEnvelope('validation_error', message)));
+      return;
+    }
+
+    const remindAt = validated.remind_at ?? reminder.remind_at;
+    const recurrenceJson = typeof validated.recurrence_json === 'undefined'
+      ? reminder.recurrence_json ?? null
+      : validated.recurrence_json
+        ? toJson(validated.recurrence_json)
+        : null;
+
+    try {
+      updateReminderByIdStmt.run(remindAt, recurrenceJson, reminderId);
+    } catch (error) {
+      request.log.error('Failed to update reminder.', { error, reminderId });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
+      return;
+    }
+
+    const updatedReminder = findReminderByIdStmt.get(reminderId);
+    if (!updatedReminder) {
+      request.log.error('Reminder disappeared after update.', { reminderId });
+      send(response, jsonResponse(500, errorEnvelope('internal_error', 'Internal server error.')));
+      return;
+    }
+
+    try {
+      broadcastReminderChanged(
+        {
+          reminder_id: reminderId,
+          record_id: updatedReminder.record_id,
+          space_id: updatedReminder.space_id,
+          action: 'updated',
+        },
+        auth.user.user_id,
+      );
+    } catch (error) {
+      console.debug('broadcastReminderChanged failed during reminder update', {
+        reminderId,
+        userId: auth.user.user_id,
+        error,
+      });
+    }
+
+    send(response, jsonResponse(200, okEnvelope({ reminder: serializeReminder(updatedReminder, nowIso(), request.log) })));
+  });
+
   const createReminder = withPolicyGate('hub.tasks.write', async ({ request, response, auth }) => {
     let body;
     try {
@@ -394,22 +494,21 @@ export const createReminderRoutes = (deps) => {
       jsonResponse(
         201,
         okEnvelope({
-          reminder: {
+          reminder: serializeReminder({
             reminder_id: reminderId,
             record_id: recordId,
             record_title: title,
             space_id: targetProject.space_id,
             remind_at: remindAt,
-            channels: ['in_app'],
-            recurrence_json: validated.recurrence_json ?? null,
+            channels: toJson(['in_app']),
+            recurrence_json: recurrenceJson,
             created_at: timestamp,
             fired_at: null,
-            overdue: remindAt < timestamp,
-          },
+          }, timestamp, request.log),
         }),
       ),
     );
   });
 
-  return { listReminders, dismissReminder, createReminder };
+  return { listReminders, dismissReminder, updateReminder, createReminder };
 };

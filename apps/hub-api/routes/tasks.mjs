@@ -300,7 +300,7 @@ export const createTaskRoutes = (deps) => {
     const personalProject = personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id);
     const projectId = asText(validated.project_id) || asText(personalProject?.project_id);
     if (!projectId) {
-      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'project_id is required.')));
+      send(response, jsonResponse(400, errorEnvelope('invalid_input', 'space_id is required.')));
       return;
     }
 

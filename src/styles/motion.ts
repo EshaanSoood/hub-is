@@ -59,6 +59,5 @@ export const dialogLayoutIds = {
   quickAddEvent: 'dialog-quick-add-event',
   quickAddReminder: 'dialog-quick-add-reminder',
   quickAddProject: 'dialog-quick-add-project',
-  deleteAutomationRule: 'dialog-delete-automation-rule',
   removeFile: 'dialog-remove-file',
 } as const;

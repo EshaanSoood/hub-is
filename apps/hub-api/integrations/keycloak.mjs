@@ -24,6 +24,10 @@ export const createKeycloakIntegration = ({
     );
 
   const getKeycloakInviteRedirectUri = () => asText(KEYCLOAK_REDIRECT_URI) || `${HUB_PUBLIC_APP_URL}/`;
+  const keycloakInviteEmailConfigError = (body) => {
+    const message = asText(body?.errorMessage || body?.error_description || body?.message || body?.error).toLowerCase();
+    return message.includes('no sender address configured');
+  };
 
   const acquireKeycloakAdminToken = async (requestLog = null) => {
     if (!safeKeycloakInviteConfig()) {
@@ -223,6 +227,13 @@ export const createKeycloakIntegration = ({
       return response;
     }
     if (!response.upstream.ok) {
+      if (response.upstream.status === 500 && keycloakInviteEmailConfigError(response.body)) {
+        requestLog?.warn?.('Keycloak invite email skipped because realm email sending is not configured.', {
+          userId,
+          status: response.upstream.status,
+        });
+        return { data: { sent: false, skipped: 'realm_email_unconfigured' } };
+      }
       return {
         error: {
           status: 502,
