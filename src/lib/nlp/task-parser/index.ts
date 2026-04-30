@@ -1,131 +1,94 @@
-import { classifyIntent } from '../intent/index.ts';
-import type { ParseWarning } from '../shared/types.ts';
+import * as chrono from 'chrono-node';
+import {
+  parseTaskInput as parseKalandarTaskInput,
+  type KalandarTaskParseResult,
+} from '../../productivity-parser/index.ts';
 import { formatDateTimeInTimezone, parseReferenceDate } from '../shared/utils.ts';
-import { DEFAULT_KNOWN_ASSIGNEES } from './constants.ts';
-import { assigneePass } from './passes/assigneePass.ts';
-import { dateTypoCorrectionPass } from './passes/dateTypoCorrectionPass.ts';
-import { dueDatePass } from './passes/dueDatePass.ts';
-import { priorityPass } from './passes/priorityPass.ts';
-import { titlePass } from './passes/titlePass.ts';
-import type { TaskParseContext, TaskParseOptions, TaskParsePass, TaskParseResult } from './types.ts';
-import { createTaskParseContext, getKnownAssigneeSet } from './utils.ts';
+import type { TaskParseOptions, TaskParseResult } from './types.ts';
 
-const PIPELINE: TaskParsePass[] = [priorityPass, assigneePass, dateTypoCorrectionPass, dueDatePass, titlePass];
+const toIsoDate = (year: number, month: number, day: number): string =>
+  `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-const OFFSET_OR_Z_SUFFIX_REGEX = /(?:[zZ]|[+-]\d{2}:\d{2})$/;
-const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-const parseIsoAsUtcMs = (value: string): number | null => {
-  const parsed = new Date(`${value}Z`);
-  const time = parsed.getTime();
-  return Number.isNaN(time) ? null : time;
-};
-
-const parseComparableDate = (value: string | null, timezone: string): Date | null => {
-  if (!value) {
+const normalizeTaskDueAt = (result: KalandarTaskParseResult, opts?: TaskParseOptions): string | null => {
+  if (result.fields.recurrence) {
     return null;
   }
-  const normalizedValue = DATE_ONLY_REGEX.test(value) ? `${value}T23:59:00` : value;
-  const parsed = new Date(normalizedValue);
-  if (Number.isNaN(parsed.getTime())) {
+
+  const datePhrase = result.fields.due_date?.trim() || '';
+  const timePhrase = result.fields.due_time?.trim() || '';
+  const phrase = [datePhrase, timePhrase].filter(Boolean).join(' ').trim();
+  if (!phrase) {
     return null;
   }
-  if (!OFFSET_OR_Z_SUFFIX_REGEX.test(normalizedValue)) {
-    const comparableUtcMs = parseIsoAsUtcMs(normalizedValue);
-    if (comparableUtcMs === null) {
-      return parsed;
-    }
-    const zonedComparable = formatDateTimeInTimezone(parsed, timezone);
-    const zonedComparableUtcMs = parseIsoAsUtcMs(zonedComparable);
-    if (zonedComparableUtcMs !== null) {
-      const adjustedTimestamp = parsed.getTime() + (comparableUtcMs - zonedComparableUtcMs);
-      return new Date(adjustedTimestamp);
-    }
+
+  const timezone = opts?.timezone || 'UTC';
+  const referenceDate = parseReferenceDate(opts?.now);
+  const wallClockReference = new Date(formatDateTimeInTimezone(referenceDate, timezone));
+  const parsed = chrono.parse(phrase, wallClockReference, { forwardDate: true })[0];
+  if (!parsed) {
+    return null;
   }
-  return parsed;
+
+  const year = parsed.start.get('year');
+  const month = parsed.start.get('month');
+  const day = parsed.start.get('day');
+  if (typeof year !== 'number' || typeof month !== 'number' || typeof day !== 'number') {
+    return null;
+  }
+
+  const isoDate = toIsoDate(year, month, day);
+  const hasExplicitTime = Boolean(timePhrase) || parsed.start.isCertain('hour');
+  if (!hasExplicitTime) {
+    return isoDate;
+  }
+
+  const hour = parsed.start.get('hour');
+  const minute = parsed.start.get('minute');
+  if (typeof hour !== 'number' || typeof minute !== 'number') {
+    return isoDate;
+  }
+
+  return `${isoDate}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 };
 
-const buildWarnings = (ctx: TaskParseContext): ParseWarning[] => {
-  const warnings: ParseWarning[] = [];
-  const dueAt = parseComparableDate(ctx.result.fields.due_at, ctx.options.timezone);
-  const nowComparable = parseComparableDate(formatDateTimeInTimezone(ctx.now, ctx.options.timezone), ctx.options.timezone) || ctx.now;
-  if (dueAt && dueAt.getTime() < nowComparable.getTime()) {
-    warnings.push({
-      code: 'due_date_past',
-      severity: 'warning',
-      message: 'Due date is in the past.',
-      fieldHints: ['due_at'],
-      spans: ctx.result.meta.spans.due_at,
-      details: {
-        due_at: ctx.result.fields.due_at,
-        now: ctx.now.toISOString(),
-      },
-    });
-  }
-
-  const intent = classifyIntent(ctx.rawInput);
-  if (intent.intent === 'reminder') {
-    warnings.push({
-      code: 'intent_mismatch_reminder',
-      severity: 'warning',
-      message: 'Input looks more like a reminder than a task.',
-      fieldHints: ['title'],
-      spans: ctx.result.meta.spans.title,
-      details: {
-        intent: intent.intent,
-        topTwoGap: intent.meta.topTwoGap,
-      },
-    });
-  }
-
-  const knownSet = getKnownAssigneeSet(ctx.options.knownAssignees || DEFAULT_KNOWN_ASSIGNEES);
-  const unknownAssignees = ctx.result.fields.assignee_hints.filter((hint) => {
-    if (hint.startsWith('@') || hint.includes('@')) {
-      return false;
-    }
-    return !knownSet.has(hint.trim().toLowerCase());
-  });
-
-  if (unknownAssignees.length > 0) {
-    warnings.push({
-      code: 'unknown_assignee',
-      severity: 'warning',
-      message: `Unknown assignee: ${unknownAssignees.join(', ')}`,
-      fieldHints: ['assignee_hints'],
-      spans: ctx.result.meta.spans.assignee_hints,
-      details: {
-        unknownAssignees,
-      },
-    });
-  }
-
-  if (!ctx.result.fields.due_at) {
-    warnings.push({
-      code: 'no_due_date',
-      severity: 'info',
-      message: 'No due date extracted — consider adding one for visibility.',
-      fieldHints: ['due_at'],
-      spans: [],
-      details: {},
-    });
-  }
-
-  return warnings;
-};
+const maxConfidence = (...values: number[]): number => values.reduce((max, value) => Math.max(max, value), 0);
 
 export const parseTaskInput = (input: string, opts?: TaskParseOptions): TaskParseResult => {
-  const ctx = createTaskParseContext(input, opts);
-  ctx.now = parseReferenceDate(opts?.now);
+  const result = parseKalandarTaskInput(input, opts);
+  const dueAt = normalizeTaskDueAt(result, opts);
 
-  for (const pass of PIPELINE) {
-    pass(ctx);
-  }
-
-  const warnings = buildWarnings(ctx);
-  ctx.result.warnings = warnings.length > 0 ? warnings : null;
-  ctx.result.meta.maskedInput = ctx.maskedInput;
-
-  return ctx.result;
+  return {
+    fields: {
+      title: result.fields.title,
+      due_at: dueAt,
+      priority: result.fields.priority,
+      assignee_hints: result.fields.assignee,
+    },
+    meta: {
+      confidence: {
+        title: result.meta.confidence.title,
+        due_at: dueAt ? maxConfidence(result.meta.confidence.due_date, result.meta.confidence.due_time) : 0,
+        priority: result.meta.confidence.priority,
+        assignee_hints: result.meta.confidence.assignee,
+      },
+      spans: {
+        title: result.meta.spans.title,
+        due_at: dueAt ? [...result.meta.spans.due_date, ...result.meta.spans.due_time] : [],
+        priority: result.meta.spans.priority,
+        assignee_hints: result.meta.spans.assignee,
+      },
+      debugSteps: result.meta.debugSteps,
+      maskedInput: result.meta.maskedInput,
+    },
+    warnings: result.warnings?.map((warning) => ({
+      code: warning.code,
+      severity: warning.severity,
+      message: warning.message,
+      fieldHints: warning.fieldHints ?? [],
+      spans: warning.spans ?? [],
+      details: warning.details ?? {},
+    })) ?? null,
+  };
 };
 
 export type {

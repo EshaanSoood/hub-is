@@ -11,10 +11,19 @@ on:
 jobs:
   typecheck:
     name: Typecheck
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Checkout facets-parser
+        uses: actions/checkout@v4
+        with:
+          repository: EshaanSoood/facets-parser
+          ref: f7d109b9762ae427e293899caa8360fb3c77865c
+          path: facets-parser
+          token: ${{ secrets.FACETS_PARSER_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -30,11 +39,20 @@ jobs:
 
   validate:
     name: Validate
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     needs: typecheck
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Checkout facets-parser
+        uses: actions/checkout@v4
+        with:
+          repository: EshaanSoood/facets-parser
+          ref: f7d109b9762ae427e293899caa8360fb3c77865c
+          path: facets-parser
+          token: ${{ secrets.FACETS_PARSER_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
