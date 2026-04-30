@@ -16,6 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout facets-parser
+        uses: actions/checkout@v4
+        with:
+          repository: EshaanSoood/facets-parser
+          path: facets-parser
+          token: ${{ secrets.FACETS_PARSER_TOKEN }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -35,6 +42,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Checkout facets-parser
+        uses: actions/checkout@v4
+        with:
+          repository: EshaanSoood/facets-parser
+          path: facets-parser
+          token: ${{ secrets.FACETS_PARSER_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
