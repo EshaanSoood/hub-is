@@ -2,6 +2,7 @@ import { startTransition, useId, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useAuthz } from '../../../context/AuthzContext';
 import { buildProjectWorkHref } from '../../../lib/hubRoutes';
+import { notifyProjectListInvalidated } from '../../../lib/projectListInvalidation';
 import { buildDefaultProjectCreatePayload } from '../../../lib/projectTemplates';
 import { createProject } from '../../../services/hub/projects';
 import type { HubProjectSummary } from '../../../services/hub/types';
@@ -56,6 +57,7 @@ export const AddProjectAction = ({
         }),
       );
       onProjectCreated(project);
+      notifyProjectListInvalidated(project.space_id);
       setName('');
       setOpen(false);
       startTransition(() => {
