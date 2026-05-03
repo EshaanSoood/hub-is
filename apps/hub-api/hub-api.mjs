@@ -1306,6 +1306,7 @@ const buildProjectTaskSummary = (record, sourceProjectContextCache = null) => {
     collection_name: collection?.name || null,
     title: record.title,
     created_at: record.created_at,
+    created_by: record.created_by,
     updated_at: record.updated_at,
     subtask_count: subtaskCountByParentStmt.get(record.record_id)?.count ?? 0,
     task_state: task
@@ -1347,6 +1348,7 @@ const buildPersonalTaskSummaryFromRecord = (record) => {
     collection_name: 'Personal',
     title: record.title,
     created_at: record.created_at,
+    created_by: record.created_by,
     updated_at: record.updated_at,
     subtask_count: subtaskCountByParentStmt.get(record.record_id)?.count ?? 0,
     task_state: {
@@ -1609,6 +1611,7 @@ const buildHomeEventSummary = (record, sourceProjectContextCache = null) => {
     collection_id: record.collection_id,
     collection_name: collection?.name || null,
     title: record.title,
+    created_by: record.created_by,
     updated_at: record.updated_at,
     event_state: event
       ? {

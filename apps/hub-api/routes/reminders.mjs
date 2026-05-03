@@ -48,7 +48,15 @@ const nextReminderAtForFrequency = (isoValue, frequency, interval = 1) => {
   return date.toISOString();
 };
 
-const reminderScopeFromValue = (value) => (value === 'space' || value === 'project' ? 'space' : 'personal');
+const reminderScopeFromValue = (value) => {
+  if (value === 'space' || value === 'project') {
+    return 'space';
+  }
+  if (value === 'personal') {
+    return 'personal';
+  }
+  return 'home';
+};
 
 export const createReminderRoutes = (deps) => {
   const {
@@ -73,6 +81,9 @@ export const createReminderRoutes = (deps) => {
     viewByIdStmt,
     personalProjectByUserStmt,
     projectMembershipsByUserStmt,
+    assignmentsByRecordStmt,
+    participantsByRecordStmt,
+    sourceProjectContextForRecord,
     insertRecordStmt,
     insertRecordCapabilityStmt,
     listRemindersForUserStmt,
@@ -105,11 +116,22 @@ export const createReminderRoutes = (deps) => {
     return String(left.reminder_id || '').localeCompare(String(right.reminder_id || ''));
   };
 
-  const serializeReminder = (reminder, timestamp, requestLog = null) => ({
+  const serializeReminder = (reminder, timestamp, requestLog = null, sourceProjectContextCache = null) => ({
     reminder_id: reminder.reminder_id,
     record_id: reminder.record_id,
     record_title: reminder.record_title,
     space_id: reminder.space_id,
+    created_by: reminder.created_by,
+    source_project: sourceProjectContextForRecord(reminder, sourceProjectContextCache),
+    record_assignments: assignmentsByRecordStmt.all(reminder.record_id).map((row) => ({
+      user_id: row.user_id,
+      assigned_at: row.assigned_at,
+    })),
+    record_participants: participantsByRecordStmt.all(reminder.record_id).map((row) => ({
+      user_id: row.user_id,
+      role: row.role,
+      added_at: row.added_at,
+    })),
     remind_at: reminder.remind_at,
     channels: parseJsonArray(reminder.channels, ['in_app'], requestLog),
     recurrence_json: parseRecurrenceJson(reminder.recurrence_json, requestLog),
@@ -117,6 +139,11 @@ export const createReminderRoutes = (deps) => {
     fired_at: reminder.fired_at ?? null,
     overdue: reminder.remind_at < timestamp,
   });
+
+  const isReminderRelevantToUser = (reminder, userId) =>
+    reminder.created_by === userId
+    || assignmentsByRecordStmt.all(reminder.record_id).some((row) => row.user_id === userId)
+    || participantsByRecordStmt.all(reminder.record_id).some((row) => row.user_id === userId);
 
   const listReminders = withPolicyGate('hub.view', async ({ request, response, requestUrl, auth }) => {
     const listQueryStartedAt = performance.now();
@@ -134,8 +161,14 @@ export const createReminderRoutes = (deps) => {
       return;
     }
 
-    const visibleSpaceIds = visibleSpaceIdsForUser(auth.user.user_id)
-      .filter((spaceId) => !requestedSpaceId || spaceId === requestedSpaceId);
+    const personalProject = scope === 'personal'
+      ? personalProjectByUserStmt.get(auth.user.user_id, auth.user.user_id)
+      : null;
+    const personalSpaceId = asText(personalProject?.space_id);
+    const visibleSpaceIds = scope === 'personal'
+      ? [personalSpaceId].filter(Boolean)
+      : visibleSpaceIdsForUser(auth.user.user_id)
+        .filter((spaceId) => !requestedSpaceId || spaceId === requestedSpaceId);
     if (requestedSpaceId && visibleSpaceIds.length > 0 && sourceProjectId) {
       const project = workProjectByIdStmt.get(sourceProjectId);
       if (!project || project.space_id !== requestedSpaceId) {
@@ -150,35 +183,30 @@ export const createReminderRoutes = (deps) => {
       rows.push(
         ...listRemindersForUserStmt.all(
           auth.user.user_id,
-          'space',
-          '',
-          'space',
-          visibleSpaceId,
+          scope === 'personal' ? 'personal' : 'space',
+          scope === 'personal' ? visibleSpaceId : '',
+          scope === 'personal' ? 'personal' : 'space',
+          scope === 'personal' ? '' : visibleSpaceId,
           requestedSpaceId && sourceProjectId ? sourceProjectId : '',
           requestedSpaceId && sourceProjectId ? sourceProjectId : '',
           limit,
         ),
       );
     }
-    rows.sort(compareRemindersByDueDate);
+    const relevantRows = scope === 'home'
+      ? rows.filter((row) => isReminderRelevantToUser(row, auth.user.user_id))
+      : rows;
+    relevantRows.sort(compareRemindersByDueDate);
     request.log.debug('Reminder listing query completed.', {
       durationMs: elapsedMs(listQueryStartedAt),
       queriedSpaceCount: visibleSpaceIds.length,
     });
     const now = nowIso();
 
-    const reminders = rows.slice(0, limit).map((row) => ({
-      reminder_id: row.reminder_id,
-      record_id: row.record_id,
-      record_title: row.record_title,
-      space_id: row.space_id,
-      remind_at: row.remind_at,
-      channels: parseJsonArray(row.channels, ['in_app'], request.log),
-      recurrence_json: parseRecurrenceJson(row.recurrence_json, request.log),
-      created_at: row.created_at,
-      fired_at: row.fired_at ?? null,
-      overdue: row.remind_at < now,
-    }));
+    const sourceProjectContextCache = new Map();
+    const reminders = relevantRows
+      .slice(0, limit)
+      .map((row) => serializeReminder(row, now, request.log, sourceProjectContextCache));
 
     send(response, jsonResponse(200, okEnvelope({ reminders })));
   });
@@ -499,6 +527,8 @@ export const createReminderRoutes = (deps) => {
             record_id: recordId,
             record_title: title,
             space_id: targetProject.space_id,
+            created_by: auth.user.user_id,
+            source_project_id: sourceProjectId,
             remind_at: remindAt,
             channels: toJson(['in_app']),
             recurrence_json: recurrenceJson,

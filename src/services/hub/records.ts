@@ -284,6 +284,7 @@ export const queryCalendar = async (
   events: Array<{
     record_id: string;
     title: string;
+    created_by?: string;
     event_state: {
       start_dt: string;
       end_dt: string;
@@ -300,6 +301,7 @@ export const queryCalendar = async (
     events: Array<{
       record_id: string;
       title: string;
+      created_by?: string;
       event_state: {
         start_dt: string;
         end_dt: string;
@@ -332,6 +334,7 @@ export const queryPersonalCalendar = async (
     title: string;
     space_id: string;
     space_name: string | null;
+    created_by?: string;
     event_state: {
       start_dt: string;
       end_dt: string;

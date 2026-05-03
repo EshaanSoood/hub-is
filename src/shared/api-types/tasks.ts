@@ -53,6 +53,8 @@ export interface TaskSummary {
   title: string;
   /** ISO 8601 timestamp when the task record was created. */
   created_at: string;
+  /** User identifier that created the task record. */
+  created_by?: string;
   /** ISO 8601 timestamp when the task record was last updated. */
   updated_at: string;
   /** Number of direct subtasks linked to this task. */

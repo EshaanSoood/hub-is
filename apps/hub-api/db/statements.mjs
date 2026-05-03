@@ -567,7 +567,7 @@ export const createStatements = (db) => ({
       ORDER BY r.updated_at DESC, r.record_id DESC
     `),
     listDueReminders: db.prepare(`
-      SELECT r.*, rec.title AS record_title, rec.space_id
+      SELECT r.*, rec.title AS record_title, rec.space_id, rec.created_by, rec.source_project_id
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
       WHERE r.fired_at IS NULL AND r.dismissed_at IS NULL AND r.remind_at <= ? AND rec.archived_at IS NULL
@@ -674,7 +674,7 @@ export const createStatements = (db) => ({
       VALUES (?, ?, ?, ?, ?, ?)
     `),
     findById: db.prepare(`
-      SELECT r.*, rec.title AS record_title, rec.space_id, rec.archived_at AS record_archived_at
+      SELECT r.*, rec.title AS record_title, rec.space_id, rec.created_by, rec.source_project_id, rec.archived_at AS record_archived_at
       FROM reminders r
       JOIN records rec ON rec.record_id = r.record_id
       WHERE r.reminder_id = ?
