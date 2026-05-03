@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { archiveRecord, updateRecord } from '../../services/hub/records';
 import type { HubTaskSummary } from '../../services/hub/types';
@@ -51,6 +51,7 @@ interface HomeOverviewSurfaceProps {
   tasks: HubTaskSummary[];
   tasksError: string | null;
   tasksLoading: boolean;
+  todaySection: ReactNode;
 }
 
 const homeSurfaceLabels: Record<HomeSurfaceId, string> = {
@@ -91,6 +92,7 @@ export const HomeOverviewSurface = ({
   tasks,
   tasksError,
   tasksLoading,
+  todaySection,
 }: HomeOverviewSurfaceProps) => {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const taskCreateTriggerRef = useRef<HTMLElement | null>(null);
@@ -175,12 +177,7 @@ export const HomeOverviewSurface = ({
   return (
     <section className="space-y-4">
       <Card className="min-h-0 px-5 pb-4 pt-5">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-text">Home</h2>
-          <p className="text-sm text-muted">Roll up the work that matters across every space you belong to.</p>
-        </div>
-
-        <div className="mt-4">
+        <div>
           <Tabs value={activeSurface} onValueChange={(nextValue) => onSelectSurface(nextValue as HomeSurfaceId)} activationMode="manual">
             <TabsList aria-label="Home surfaces">
               {overviewViews.map((view) => (
@@ -199,7 +196,8 @@ export const HomeOverviewSurface = ({
         </div>
 
         {activeSurface === 'hub' ? (
-          <div id="home-surface-panel-hub" role="tabpanel" aria-labelledby="home-surface-tab-hub" className="mt-4">
+          <div id="home-surface-panel-hub" role="tabpanel" aria-labelledby="home-surface-tab-hub" className="mt-4 space-y-4">
+            {todaySection}
             <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} title="Hub" />
           </div>
         ) : null}
