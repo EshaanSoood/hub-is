@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listProjects } from '../services/hub/projects';
 import type { HubProjectSummary } from '../services/hub/types';
+import { subscribeToProjectListInvalidation } from '../lib/projectListInvalidation';
 
 interface ProjectProjectsState {
   error: unknown;
@@ -74,6 +75,8 @@ export const useProjectProjects = (
       cancelled = true;
     };
   }, [accessToken, projectId, requestVersion]);
+
+  useEffect(() => subscribeToProjectListInvalidation(projectId, refetch), [projectId, refetch]);
 
   return {
     error: accessToken && projectId && state.projectId === projectId ? state.error : null,

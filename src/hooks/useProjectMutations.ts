@@ -9,6 +9,7 @@ import {
   updateProject,
 } from '../services/hub/projects';
 import { buildDefaultProjectCreatePayload } from '../lib/projectTemplates';
+import { notifyProjectListInvalidated } from '../lib/projectListInvalidation';
 import { recordRecentProjectContribution } from '../features/recentPlaces/store';
 import { listTimeline } from '../services/hub/records';
 import type { HubProjectSummary } from '../services/hub/types';
@@ -84,6 +85,7 @@ export const useProjectMutations = ({
         setProjects((current) =>
           [...current, nextProject].sort(compareProjectsBySidebarOrder),
         );
+        notifyProjectListInvalidated(projectId);
         try {
           await refreshProjectData();
           const nextTimeline = await listTimeline(accessToken, projectId);
@@ -198,6 +200,7 @@ export const useProjectMutations = ({
         await deleteProject(accessToken, project.project_id);
         const remaining = projects.filter((entry) => entry.project_id !== project.project_id);
         setProjects(() => remaining);
+        notifyProjectListInvalidated(projectId);
         if (activeProjectId === project.project_id) {
           const fallback = remaining[0];
           return fallback

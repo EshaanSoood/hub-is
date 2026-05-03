@@ -4,6 +4,7 @@ import { getSpace, listSpaceMembers } from '../services/hub/spaces';
 import { listTimeline } from '../services/hub/records';
 import type { HubProjectSummary, HubProject, HubProjectMember } from '../services/hub/types';
 import { useProjects } from '../context/ProjectsContext';
+import { subscribeToProjectListInvalidation } from '../lib/projectListInvalidation';
 
 const LAST_PROJECT_KEY = 'hub:last-opened-project-id';
 
@@ -125,6 +126,12 @@ export const useProjectBootstrap = ({ accessToken, projectId }: UseProjectBootst
       cancelled = true;
     };
   }, [accessToken, projectId, refreshProjectData]);
+
+  useEffect(() => (
+    subscribeToProjectListInvalidation(projectId, () => {
+      void refreshProjectData();
+    })
+  ), [projectId, refreshProjectData]);
 
   return {
     error,

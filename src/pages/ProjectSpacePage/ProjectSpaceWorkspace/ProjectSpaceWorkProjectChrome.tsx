@@ -137,7 +137,7 @@ export const ProjectSpaceWorkProjectChrome = ({
     setShowCreateProjectControl(false);
     createProjectTriggerRef.current?.focus();
     onNavigateToProject({
-      projectId: nextProject.space_id,
+      projectId: nextProject.project_id,
       projectName: nextProject.name,
       projectSource: 'click',
     });
