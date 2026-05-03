@@ -1,14 +1,10 @@
 import type { ReactElement } from 'react';
-import type { HubProjectDoc, HubProjectSummary } from '../../../services/hub/types';
+import type { HubProjectSummary } from '../../../services/hub/types';
 
 export interface ProjectDocPickerProps {
   activeProject: HubProjectSummary | null;
-  activeProjectCanEdit: boolean;
   activeProjectDocId: string | null;
   onSelectProjectDoc: (docId: string) => void;
-  onCreateProjectDoc: (title: string) => Promise<HubProjectDoc | null>;
-  onUpdateProjectDoc: (docId: string, patch: { title?: string; position?: number }) => Promise<HubProjectDoc>;
-  onDeleteProjectDoc: (docId: string) => Promise<void>;
 }
 
 export const ProjectDocPicker = ({

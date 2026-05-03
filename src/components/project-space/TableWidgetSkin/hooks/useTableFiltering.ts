@@ -15,8 +15,11 @@ export const useTableFiltering = (schema: TableSchema | null, rows: TableRowData
             return true;
           }
           const field = schema?.fields.find((entry) => entry.field_id === fieldId) ?? null;
+          if (!field) {
+            return true;
+          }
           const value = row.fields[fieldId];
-          if (field?.type === 'date' || field?.type === 'datetime') {
+          if (field.type === 'date' || field.type === 'datetime') {
             return matchesDatePreset(value, filterValue);
           }
           return String(value ?? '') === filterValue;

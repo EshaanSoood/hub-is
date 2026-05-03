@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ComponentProps, type ReactElement } from 'react';
-import { WorkspaceDocSurface } from '../../../components/project-space/WorkspaceDocSurface';
-import type { HubProjectDoc, HubProjectSummary } from '../../../services/hub/types';
+import { WorkspaceDocSurface } from './WorkspaceDocSurface';
+import type { HubProjectDoc, HubProjectSummary } from '../../services/hub/types';
 
 type WorkspaceDocProps = ComponentProps<typeof WorkspaceDocSurface>;
 
@@ -33,12 +33,13 @@ export const ProjectDocsTab = ({
       return;
     }
     const frame = window.requestAnimationFrame(() => {
-      const editor = document.querySelector<HTMLElement>('[contenteditable="true"]');
+      const panel = document.getElementById('project-doc-editor-panel');
+      const editor = panel?.querySelector<HTMLElement>('[contenteditable="true"]');
       if (editor) {
         editor.focus();
         return;
       }
-      document.getElementById('project-doc-editor-panel')?.focus();
+      panel?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
   }, [selectedDocReady]);

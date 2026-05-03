@@ -12,16 +12,28 @@ export const TableWidgetSkin = ({
 
   return (
     <div className="space-y-2">
-      {records.map((record) => (
-        <button
-          key={record.record_id}
-          type="button"
-          className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          onClick={() => onOpenRecord?.(record.record_id)}
-        >
-          {record.title}
-        </button>
-      ))}
+      {records.map((record) =>
+        onOpenRecord ? (
+          <button
+            key={record.record_id}
+            type="button"
+            className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            onClick={() => onOpenRecord(record.record_id)}
+          >
+            {record.title}
+          </button>
+        ) : (
+          <div
+            key={record.record_id}
+            role="button"
+            tabIndex={0}
+            aria-disabled="true"
+            className="w-full rounded-panel border border-border-muted bg-surface px-3 py-2 text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          >
+            {record.title}
+          </div>
+        ),
+      )}
       {records.length === 0 ? <p className="text-sm text-muted">No records.</p> : null}
     </div>
   );

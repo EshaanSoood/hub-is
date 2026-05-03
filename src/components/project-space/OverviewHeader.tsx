@@ -7,7 +7,7 @@ import { cn } from '../../lib/cn';
 interface OverviewHeaderProps {
   title: string;
   onTitleChange: (title: string) => void;
-  startDateLabel: string;
+  startDateLabel?: string;
   collaborators: Collaborator[];
   refs: ClientReference[];
   onInvite: () => void;
@@ -82,12 +82,16 @@ export const OverviewHeader = ({
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <span className="inline-flex items-center gap-1 text-xs text-muted">
-          <Icon name="calendar" className="text-[11px]" />
-          {startDateLabel}
-        </span>
+        {startDateLabel ? (
+          <>
+            <span className="inline-flex items-center gap-1 text-xs text-muted">
+              <Icon name="calendar" className="text-[11px]" />
+              {startDateLabel}
+            </span>
 
-        <span className="hidden h-3 w-px bg-border-subtle sm:inline-block" aria-hidden="true" />
+            <span className="hidden h-3 w-px bg-border-subtle sm:inline-block" aria-hidden="true" />
+          </>
+        ) : null}
 
         <div className="flex items-center" aria-label="Collaborators">
           {collaboratorBadges.map((collaborator, index) => (

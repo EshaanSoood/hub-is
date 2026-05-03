@@ -195,12 +195,16 @@ export const HomeOverviewSurface = ({
           </Tabs>
         </div>
 
-        {activeSurface === 'hub' ? (
-          <div id="home-surface-panel-hub" role="tabpanel" aria-labelledby="home-surface-tab-hub" className="mt-4 space-y-4">
-            {todaySection}
-            <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} title="Hub" />
-          </div>
-        ) : null}
+        <div
+          id="home-surface-panel-hub"
+          role="tabpanel"
+          aria-labelledby="home-surface-tab-hub"
+          aria-hidden={activeSurface !== 'hub'}
+          className={`mt-4 space-y-4 ${activeSurface !== 'hub' ? 'hidden' : ''}`}
+        >
+          {todaySection}
+          <ProjectLensView items={items} projects={projects} onOpenRecord={onOpenRecord} title="Hub" />
+        </div>
 
         {activeSurface === 'stream' ? (
           <div id="home-surface-panel-stream" role="tabpanel" aria-labelledby="home-surface-tab-stream" className="mt-4">

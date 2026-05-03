@@ -13,7 +13,7 @@ type TaskViewMode = 'list' | 'board';
 
 interface TasksSurfaceProps {
   accessToken: string;
-  projectId: string;
+  spaceId: string;
   sourceProjectId?: string | null;
   tasks: HubTaskSummary[];
   tasksLoading: boolean;
@@ -60,7 +60,7 @@ const buildKanbanGroups = (tasks: TaskItem[]): KanbanWidgetGroup[] =>
 
 export const TasksSurface = ({
   accessToken,
-  projectId,
+  spaceId,
   sourceProjectId = null,
   tasks,
   tasksLoading,
@@ -115,40 +115,65 @@ export const TasksSurface = ({
 
   const handleUpdateStatus = useCallback(
     async (taskId: string, status: TaskStatus) => {
-      await updateRecord(accessToken, taskId, { task_state: { status } });
-      onRefreshTasks();
+      try {
+        await updateRecord(accessToken, taskId, { task_state: { status } });
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to update task status', error);
+        throw error;
+      }
     },
     [accessToken, onRefreshTasks],
   );
 
   const handleUpdatePriority = useCallback(
     async (taskId: string, priority: 'low' | 'medium' | 'high' | 'urgent' | null) => {
-      await updateRecord(accessToken, taskId, { task_state: { priority } });
-      onRefreshTasks();
+      try {
+        await updateRecord(accessToken, taskId, { task_state: { priority } });
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to update task priority', error);
+        throw error;
+      }
     },
     [accessToken, onRefreshTasks],
   );
 
   const handleUpdateDueDate = useCallback(
     async (taskId: string, dueAt: string | null) => {
-      await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
-      onRefreshTasks();
+      try {
+        await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to update task due date', error);
+        throw error;
+      }
     },
     [accessToken, onRefreshTasks],
   );
 
   const handleUpdateCategory = useCallback(
     async (taskId: string, category: string | null) => {
-      await updateRecord(accessToken, taskId, { task_state: { category } });
-      onRefreshTasks();
+      try {
+        await updateRecord(accessToken, taskId, { task_state: { category } });
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to update task category', error);
+        throw error;
+      }
     },
     [accessToken, onRefreshTasks],
   );
 
   const handleDeleteTask = useCallback(
     async (taskId: string) => {
-      await archiveRecord(accessToken, taskId);
-      onRefreshTasks();
+      try {
+        await archiveRecord(accessToken, taskId);
+        onRefreshTasks();
+      } catch (error) {
+        console.error('Failed to archive task', error);
+        throw error;
+      }
     },
     [accessToken, onRefreshTasks],
   );
@@ -236,12 +261,17 @@ export const TasksSurface = ({
             groupingConfigured
             onOpenRecord={onOpenRecord}
             onMoveRecord={(recordId, nextStatus) => {
-              void handleUpdateStatus(recordId, nextStatus as TaskStatus);
+              void handleUpdateStatus(recordId, nextStatus as TaskStatus).catch(() => {});
             }}
             onUpdateRecord={async (recordId, fields) => {
               if (typeof fields.title === 'string') {
-                await updateRecord(accessToken, recordId, { title: fields.title });
-                onRefreshTasks();
+                try {
+                  await updateRecord(accessToken, recordId, { title: fields.title });
+                  onRefreshTasks();
+                } catch (error) {
+                  console.error('Failed to update task title', error);
+                  throw error;
+                }
               }
             }}
             onDeleteRecord={handleDeleteTask}
@@ -267,7 +297,7 @@ export const TasksSurface = ({
           setSubtaskParentRemembered(false);
         }}
         accessToken={accessToken}
-        projectId={projectId}
+        projectId={spaceId}
         sourceProjectId={sourceProjectId ?? undefined}
         projectMembers={taskMemberOptions}
         parentRecordId={subtaskParent?.id ?? null}

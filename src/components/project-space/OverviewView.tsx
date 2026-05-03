@@ -131,7 +131,6 @@ export const OverviewView = ({
             <OverviewHeader
               title={titleDraft}
               onTitleChange={setTitleDraft}
-              startDateLabel="March 4, 2026"
               collaborators={collaborators}
               refs={clients}
               onInvite={() => {
@@ -232,7 +231,7 @@ export const OverviewView = ({
           <div id="overview-panel-tasks" role="tabpanel" aria-labelledby="overview-view-tasks" className="mt-4">
             <TasksSurface
               accessToken={accessToken}
-              projectId={projectId}
+              spaceId={projectId}
               projectMembers={projectMembers}
               tasks={tasks}
               tasksLoading={tasksLoading}

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { OverviewViewId } from '../components/project-space/types';
 import { listProjectTasks, queryTasks } from '../services/hub/records';
 
-type OverviewView = 'hub' | 'timeline' | 'calendar' | 'tasks';
+type OverviewView = OverviewViewId;
 type ProjectSpaceTab = 'overview' | 'work';
 
 const PROJECT_TASK_PAGE_SIZE = 50;
