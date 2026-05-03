@@ -61,6 +61,26 @@ export const sortEventsByStart = (items: CalendarEventSummary[]): CalendarEventS
     return left.record_id.localeCompare(right.record_id);
   });
 
+export const buildCalendarEventsByDate = (events: CalendarEventSummary[]): Map<string, CalendarEventSummary[]> => {
+  const map = new Map<string, CalendarEventSummary[]>();
+  for (const event of events) {
+    const key = toDateKey(event.event_state.start_dt);
+    if (!key) {
+      continue;
+    }
+    const bucket = map.get(key);
+    if (bucket) {
+      bucket.push(event);
+    } else {
+      map.set(key, [event]);
+    }
+  }
+  for (const [key, bucket] of map.entries()) {
+    map.set(key, sortEventsByStart(bucket));
+  }
+  return map;
+};
+
 export const formatCompactDateLabel = (date: Date): string =>
   date.toLocaleDateString(undefined, {
     weekday: 'short',

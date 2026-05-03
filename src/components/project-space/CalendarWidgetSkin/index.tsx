@@ -8,7 +8,7 @@ import { CalendarSmallView } from './CalendarSmallView';
 import { useCalendarCreatePanel } from './hooks/useCalendarCreatePanel';
 import { useCalendarTierSelection } from './hooks/useCalendarTierSelection';
 import type { CalendarWidgetSkinProps, CalendarScope, CalendarView, MediumWeekDay } from './types';
-import { addDays, formatWeekRangeLabel, fromLocalDateKey, sortEventsByStart, toDateKey, toLocalDateKey } from './utils';
+import { addDays, buildCalendarEventsByDate, formatWeekRangeLabel, fromLocalDateKey, toLocalDateKey } from './utils';
 
 export type { CalendarScope } from './types';
 
@@ -48,25 +48,7 @@ export const CalendarWidgetSkin = ({
     submitCreateEvent,
   } = useCalendarCreatePanel({ onCreateEvent });
 
-  const eventsByDate = useMemo(() => {
-    const map = new Map<string, typeof events>();
-    for (const event of events) {
-      const key = toDateKey(event.event_state.start_dt);
-      if (!key) {
-        continue;
-      }
-      const bucket = map.get(key);
-      if (bucket) {
-        bucket.push(event);
-      } else {
-        map.set(key, [event]);
-      }
-    }
-    for (const [key, bucket] of map.entries()) {
-      map.set(key, sortEventsByStart(bucket));
-    }
-    return map;
-  }, [events]);
+  const eventsByDate = useMemo(() => buildCalendarEventsByDate(events), [events]);
 
   useEffect(() => {
     let timerId = 0;

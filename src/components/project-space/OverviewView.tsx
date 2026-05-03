@@ -1,18 +1,14 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import { archiveRecord, updateRecord } from '../../services/hub/records';
+import { useRef, useState } from 'react';
 import type { HubProjectMember, HubProjectSummary, HubTaskSummary } from '../../services/hub/types';
 import type { SpaceInviteRole } from '../../hooks/useProjectMembers';
-import { dialogLayoutIds } from '../../styles/motion';
 import { CalendarWidgetSkin } from './CalendarWidgetSkin';
 import type { CalendarEventSummary, CalendarScope } from './CalendarWidgetSkin/types';
-import { Card, TabButton, Tabs, TabsList } from '../primitives';
+import { Card } from '../primitives';
 import { OverviewHeader } from './OverviewHeader';
 import { SpaceMembersManagement } from './SpaceMembersManagement';
-import { TaskCreateDialog } from './TaskCreateDialog';
-import { TasksTab, type SortChain } from './TasksTab';
+import { TasksSurface } from './TasksSurface';
 import { TimelineFeed, type TimelineCluster, type TimelineEventType, type TimelineFilterValue } from './TimelineFeed';
-import { adaptTaskSummaries } from './taskAdapter';
+import { SurfaceTabBar } from './SurfaceTabBar';
 import type { ClientReference, Collaborator, OverviewViewId } from './types';
 
 interface OverviewViewProps {
@@ -63,18 +59,11 @@ interface OverviewViewProps {
 }
 
 const overviewViews: Array<{ id: OverviewViewId; label: string }> = [
+  { id: 'hub', label: 'Hub' },
   { id: 'timeline', label: 'Timeline' },
   { id: 'calendar', label: 'Calendar' },
   { id: 'tasks', label: 'Tasks' },
-  { id: 'kanban', label: 'Kanban' },
 ];
-
-const toCategoryLabel = (categoryId: string) =>
-  categoryId
-    .split(/[-_]/g)
-    .filter(Boolean)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
 
 export const OverviewView = ({
   projectName,
@@ -122,189 +111,93 @@ export const OverviewView = ({
   onRemoveProjectMember,
   onGrantProjectAccess,
 }: OverviewViewProps) => {
-  const prefersReducedMotion = useReducedMotion() ?? false;
   const [titleDraft, setTitleDraft] = useState(projectName);
-  const taskCreateTriggerRef = useRef<HTMLElement | null>(null);
   const inviteInputRef = useRef<HTMLInputElement | null>(null);
-  const lastSubtaskParentRef = useRef<{ id: string; title: string; at: number } | null>(null);
-  const [taskCreateOpen, setTaskCreateOpen] = useState(false);
-  const [subtaskParent, setSubtaskParent] = useState<{ id: string; title: string } | null>(null);
-  const [subtaskParentRemembered, setSubtaskParentRemembered] = useState(false);
-
-  const taskCollaboratorOptions = useMemo(
-    () => [
-      { id: 'all', label: 'All' },
-      ...projectMembers.map((member) => ({
-        id: member.user_id,
-        label: member.display_name,
-      })),
-    ],
-    [projectMembers],
-  );
-
-  const [sortChain, setSortChain] = useState<SortChain>(['date', 'priority', 'category']);
-  const [tasksUserId, setTasksUserId] = useState('all');
-  const [tasksCategoryId, setTasksCategoryId] = useState('all');
-
-  const adaptedTasks = useMemo(() => adaptTaskSummaries(tasks), [tasks]);
-  const taskCategoryOptions = useMemo(() => {
-    const ids = [...new Set(adaptedTasks.map((task) => task.categoryId).filter((categoryId) => categoryId !== ''))];
-    return [
-      { id: 'all', label: 'All' },
-      ...ids.map((id) => ({
-        id,
-        label: toCategoryLabel(id),
-      })),
-    ];
-  }, [adaptedTasks]);
-  const kanbanColumns = useMemo(
-    () => [
-      { id: 'todo', label: 'To Do', items: adaptedTasks.filter((task) => task.status === 'todo') },
-      { id: 'in_progress', label: 'In Progress', items: adaptedTasks.filter((task) => task.status === 'in_progress') },
-      { id: 'done', label: 'Done', items: adaptedTasks.filter((task) => task.status === 'done') },
-      { id: 'cancelled', label: 'Cancelled', items: adaptedTasks.filter((task) => task.status === 'cancelled') },
-    ],
-    [adaptedTasks],
-  );
-  const taskMemberOptions = useMemo(
-    () => projectMembers.map((member) => ({ user_id: member.user_id, display_name: member.display_name })),
-    [projectMembers],
-  );
-
-  const handleUpdateStatus = useCallback(
-    async (taskId: string, status: 'todo' | 'in_progress' | 'done' | 'cancelled') => {
-      try {
-        await updateRecord(accessToken, taskId, { task_state: { status } });
-        onRefreshTasks();
-      } catch (error) {
-        console.error('Failed to update task status', error);
-        throw error;
-      }
-    },
-    [accessToken, onRefreshTasks],
-  );
-
-  const handleUpdatePriority = useCallback(
-    async (taskId: string, priority: 'low' | 'medium' | 'high' | 'urgent' | null) => {
-      try {
-        await updateRecord(accessToken, taskId, { task_state: { priority } });
-        onRefreshTasks();
-      } catch (error) {
-        console.error('Failed to update task priority', error);
-        throw error;
-      }
-    },
-    [accessToken, onRefreshTasks],
-  );
-
-  const handleUpdateDueDate = useCallback(
-    async (taskId: string, dueAt: string | null) => {
-      try {
-        await updateRecord(accessToken, taskId, { task_state: { due_at: dueAt } });
-        onRefreshTasks();
-      } catch (error) {
-        console.error('Failed to update task due date', error);
-        throw error;
-      }
-    },
-    [accessToken, onRefreshTasks],
-  );
-
-  const handleUpdateCategory = useCallback(
-    async (taskId: string, category: string | null) => {
-      try {
-        await updateRecord(accessToken, taskId, { task_state: { category } });
-        onRefreshTasks();
-      } catch (error) {
-        console.error('Failed to update task category', error);
-        throw error;
-      }
-    },
-    [accessToken, onRefreshTasks],
-  );
-
-  const handleDeleteTask = useCallback(
-    async (taskId: string) => {
-      try {
-        await archiveRecord(accessToken, taskId);
-        onRefreshTasks();
-      } catch (error) {
-        console.error('Failed to archive task', error);
-        throw error;
-      }
-    },
-    [accessToken, onRefreshTasks],
-  );
-
-  const openTaskDialog = (options?: { parent?: { id: string; title: string } | null; remembered?: boolean }) => {
-    taskCreateTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setSubtaskParent(options?.parent ?? null);
-    setSubtaskParentRemembered(Boolean(options?.remembered && options?.parent));
-    setTaskCreateOpen(true);
-  };
 
   return (
     <section id="project-panel-overview" role="tabpanel" aria-labelledby="project-tab-overview" className="space-y-4">
-      <OverviewHeader
-        title={titleDraft}
-        onTitleChange={setTitleDraft}
-        startDateLabel="March 4, 2026"
-        collaborators={collaborators}
-        refs={clients}
-        onInvite={() => {
-          inviteInputRef.current?.focus();
-          inviteInputRef.current?.select();
-        }}
-      />
-
       <Card className="pt-3">
-        <div className="mb-4 px-4">
-          <SpaceMembersManagement
-            spaceName={projectName}
-            projects={projects}
-            members={projectMembers}
-            canInviteMembers={canInviteMembers}
-            canManageMembers={canManageMembers}
-            inviteEmail={inviteEmail}
-            inviteRole={inviteRole}
-            inviteProjectIds={inviteProjectIds}
-            viewerInviteDays={viewerInviteDays}
-            inviteSubmitting={inviteSubmitting}
-            memberActionUserId={memberActionUserId}
-            inviteError={inviteError}
-            inviteNotice={inviteNotice}
-            cooldownInviteError={cooldownInviteError}
-            inviteInputRef={inviteInputRef}
-            onInviteEmailChange={onInviteEmailChange}
-            onInviteRoleChange={onInviteRoleChange}
-            onToggleInviteProject={onToggleInviteProject}
-            onViewerInviteDaysChange={onViewerInviteDaysChange}
-            onInviteSubmit={onInviteSubmit}
-            onDismissInviteFeedback={onDismissInviteFeedback}
-            onUpgradeGuestToMember={onUpgradeGuestToMember}
-            onExtendGuestAccess={onExtendGuestAccess}
-            onRemoveProjectMember={onRemoveProjectMember}
-            onGrantProjectAccess={onGrantProjectAccess}
-          />
-        </div>
+        <SurfaceTabBar
+          activeSurface={activeView}
+          ariaLabel="Overview sub-views"
+          idPrefix="overview-view"
+          items={overviewViews}
+          onSelectSurface={onSelectView}
+          panelIdPrefix="overview-panel"
+        />
 
-        <p className="mb-3 text-sm text-muted">{projectSummary}</p>
+        {activeView === 'hub' ? (
+          <div id="overview-panel-hub" role="tabpanel" aria-labelledby="overview-view-hub" className="mt-4 space-y-5">
+            <OverviewHeader
+              title={titleDraft}
+              onTitleChange={setTitleDraft}
+              startDateLabel="March 4, 2026"
+              collaborators={collaborators}
+              refs={clients}
+              onInvite={() => {
+                inviteInputRef.current?.focus();
+                inviteInputRef.current?.select();
+              }}
+            />
 
-        <Tabs value={activeView} onValueChange={(nextValue) => onSelectView(nextValue as OverviewViewId)} activationMode="manual">
-          <TabsList aria-label="Overview sub-views">
-            {overviewViews.map((view) => (
-              <TabButton
-                key={view.id}
-                id={`overview-view-${view.id}`}
-                value={view.id}
-                aria-controls={`overview-panel-${view.id}`}
-                selected={activeView === view.id}
-              >
-                {view.label}
-              </TabButton>
-            ))}
-          </TabsList>
-        </Tabs>
+            <div>
+              <SpaceMembersManagement
+                spaceName={projectName}
+                projects={projects}
+                members={projectMembers}
+                canInviteMembers={canInviteMembers}
+                canManageMembers={canManageMembers}
+                inviteEmail={inviteEmail}
+                inviteRole={inviteRole}
+                inviteProjectIds={inviteProjectIds}
+                viewerInviteDays={viewerInviteDays}
+                inviteSubmitting={inviteSubmitting}
+                memberActionUserId={memberActionUserId}
+                inviteError={inviteError}
+                inviteNotice={inviteNotice}
+                cooldownInviteError={cooldownInviteError}
+                inviteInputRef={inviteInputRef}
+                onInviteEmailChange={onInviteEmailChange}
+                onInviteRoleChange={onInviteRoleChange}
+                onToggleInviteProject={onToggleInviteProject}
+                onViewerInviteDaysChange={onViewerInviteDaysChange}
+                onInviteSubmit={onInviteSubmit}
+                onDismissInviteFeedback={onDismissInviteFeedback}
+                onUpgradeGuestToMember={onUpgradeGuestToMember}
+                onExtendGuestAccess={onExtendGuestAccess}
+                onRemoveProjectMember={onRemoveProjectMember}
+                onGrantProjectAccess={onGrantProjectAccess}
+              />
+            </div>
+
+            <div className="space-y-3">
+              {projectSummary ? <p className="text-sm text-muted">{projectSummary}</p> : null}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-text">Projects</h3>
+                {projects.length > 0 ? (
+                  <ul className="divide-y divide-border-muted rounded-md border border-border-muted bg-surface" aria-label="Projects in this hub">
+                    {projects.map((project) => (
+                      <li key={project.project_id} className="flex items-center justify-between gap-4 px-4 py-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-text">{project.name}</p>
+                          <p className="text-xs text-muted">
+                            {project.docs.length} {project.docs.length === 1 ? 'doc' : 'docs'} &middot; {project.members.length}{' '}
+                            {project.members.length === 1 ? 'member' : 'members'}
+                          </p>
+                        </div>
+                        {project.pinned ? <span className="text-xs font-medium text-muted">Pinned</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="rounded-md border border-dashed border-border-muted bg-surface-elevated px-4 py-6 text-sm text-muted">
+                    No projects in this hub yet.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {activeView === 'timeline' ? (
           <div id="overview-panel-timeline" role="tabpanel" aria-labelledby="overview-view-timeline" className="mt-4 space-y-3">
@@ -337,120 +230,16 @@ export const OverviewView = ({
 
         {activeView === 'tasks' ? (
           <div id="overview-panel-tasks" role="tabpanel" aria-labelledby="overview-view-tasks" className="mt-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <motion.button
-                  layoutId={!prefersReducedMotion && taskCreateOpen ? dialogLayoutIds.taskCreate : undefined}
-                  type="button"
-                  className="interactive interactive-fold rounded-control bg-primary px-3 py-2 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
-                  onClick={() => {
-                    const rememberedParent = lastSubtaskParentRef.current;
-                    if (rememberedParent && Date.now() - rememberedParent.at < 300000) {
-                      openTaskDialog({
-                        parent: { id: rememberedParent.id, title: rememberedParent.title },
-                        remembered: true,
-                      });
-                      return;
-                    }
-                    openTaskDialog();
-                  }}
-                  aria-label="New Task"
-                >
-                  New Task
-                </motion.button>
-              </div>
-              {tasksLoading ? <p role="status" aria-live="polite" className="text-sm text-muted">Loading tasks...</p> : null}
-              {tasksError ? (
-                <div className="flex flex-wrap items-center gap-3">
-                  <p role="alert" className="text-sm text-danger">{tasksError}</p>
-                  <button
-                    type="button"
-                    onClick={() => onRefreshTasks()}
-                    className="rounded-control border border-border-muted bg-surface px-2 py-1 text-xs font-semibold text-primary"
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : null}
-              {!tasksLoading && !tasksError ? (
-                <TasksTab
-                  tasks={adaptedTasks}
-                  collaborators={taskCollaboratorOptions}
-                  categories={taskCategoryOptions}
-                  activeUserId={tasksUserId}
-                  activeCategoryId={tasksCategoryId}
-                  sortChain={sortChain}
-                  onSortChainChange={setSortChain}
-                  onUserChange={setTasksUserId}
-                  onCategoryChange={setTasksCategoryId}
-                  onUpdateTaskStatus={handleUpdateStatus}
-                  onUpdateTaskPriority={handleUpdatePriority}
-                  onUpdateTaskDueDate={handleUpdateDueDate}
-                  onUpdateTaskCategory={handleUpdateCategory}
-                  onDeleteTask={handleDeleteTask}
-                  onAddSubtask={(task) => {
-                    openTaskDialog({ parent: { id: task.id, title: task.label } });
-                  }}
-                />
-              ) : null}
-
-              <TaskCreateDialog
-                open={taskCreateOpen}
-                layoutId={dialogLayoutIds.taskCreate}
-                onClose={() => {
-                  setTaskCreateOpen(false);
-                  setSubtaskParent(null);
-                  setSubtaskParentRemembered(false);
-                }}
-                onCreated={() => {
-                  if (subtaskParent) {
-                    lastSubtaskParentRef.current = { id: subtaskParent.id, title: subtaskParent.title, at: Date.now() };
-                  }
-                  void onRefreshTasks();
-                  setTaskCreateOpen(false);
-                  setSubtaskParent(null);
-                  setSubtaskParentRemembered(false);
-                }}
-                accessToken={accessToken}
-                projectId={projectId}
-                projectMembers={taskMemberOptions}
-                parentRecordId={subtaskParent?.id ?? null}
-                parentTaskTitle={subtaskParent?.title ?? null}
-                showRememberedParentNote={subtaskParentRemembered}
-                onSwitchToStandaloneTask={() => {
-                  setSubtaskParent(null);
-                  setSubtaskParentRemembered(false);
-                }}
-                triggerRef={taskCreateTriggerRef}
-              />
-            </div>
-          </div>
-        ) : null}
-
-        {activeView === 'kanban' ? (
-          <div id="overview-panel-kanban" role="tabpanel" aria-labelledby="overview-view-kanban" className="mt-4">
-            <Card className="space-y-3 p-4">
-              <div>
-                <p className="text-sm font-semibold text-text">Kanban overview</p>
-                <p className="mt-1 text-sm text-muted">This legacy overview view now exposes a board summary instead of a blank panel.</p>
-              </div>
-              <div className="grid gap-3 md:grid-cols-3">
-                {kanbanColumns.map((column) => (
-                  <div key={column.id} className="rounded-panel border border-border-muted bg-surface p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted">{column.label}</p>
-                    <div className="mt-3 space-y-2">
-                      {column.items.length === 0 ? <p className="text-sm text-muted">No cards</p> : null}
-                      {column.items.map((task) => (
-                        <div key={task.id} className="rounded-control border border-border-muted bg-surface-elevated p-2">
-                          <p className="text-sm font-medium text-text">{task.label}</p>
-                          <p className="mt-1 text-xs text-muted">{task.dueLabel}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <TasksSurface
+              accessToken={accessToken}
+              projectId={projectId}
+              projectMembers={projectMembers}
+              tasks={tasks}
+              tasksLoading={tasksLoading}
+              tasksError={tasksError}
+              onRefreshTasks={onRefreshTasks}
+              onOpenRecord={onOpenTimelineRecord}
+            />
           </div>
         ) : null}
       </Card>

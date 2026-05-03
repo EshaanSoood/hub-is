@@ -1139,9 +1139,11 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
 describe('ProjectSpaceWorkspace helpers', () => {
   it('parses the overview sub-view query with a safe fallback', () => {
-    expect(readOverviewView(new URLSearchParams())).toBe('timeline');
+    expect(readOverviewView(new URLSearchParams())).toBe('hub');
+    expect(readOverviewView(new URLSearchParams('view=hub'))).toBe('hub');
+    expect(readOverviewView(new URLSearchParams('view=timeline'))).toBe('timeline');
     expect(readOverviewView(new URLSearchParams('view=calendar'))).toBe('calendar');
-    expect(readOverviewView(new URLSearchParams('view=unknown'))).toBe('timeline');
+    expect(readOverviewView(new URLSearchParams('view=unknown'))).toBe('hub');
   });
 
   it('uses project edit flags and ignores unrelated user identity for current gating', () => {
