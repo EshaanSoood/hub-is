@@ -11,8 +11,8 @@ import { HUB_BACKLOG_DRAG_MIME } from './types';
 import {
   DAY_STRIP_FORWARD_WINDOW_MS,
   DAY_STRIP_HOUR_MS,
-  DAY_STRIP_KEYBOARD_SLOT_MS,
 } from './dayStripWindow';
+import { useDayStripTimelineA11y } from './useDayStripTimelineA11y';
 
 const ITEM_MIN_WIDTH_PX = 180;
 const ITEM_TITLE_MAX_CHARS = 30;
@@ -32,9 +32,6 @@ const formatHourLabel = (date: Date): string => {
   const normalized = hour % 12 === 0 ? 12 : hour % 12;
   return `${normalized}${suffix}`;
 };
-
-const formatTimeLabel = (date: Date): string =>
-  date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
 const formatDateMarker = (date: Date): string =>
   date.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
@@ -96,11 +93,13 @@ export const DayStrip = ({
   onDropFromBacklog,
   showEmptyTimeline = false,
   keyboardDragItem = null,
-  onKeyboardDragAnnouncement,
   onKeyboardDrop,
   onKeyboardCancel,
   focusViewportKey = 0,
   presentation = 'full',
+  onMoveTask,
+  onMoveReminder,
+  onAccessibilityAnnouncement,
 }: {
   className?: string;
   events: DayStripEventItem[];
@@ -111,24 +110,26 @@ export const DayStrip = ({
   onDropFromBacklog?: (payload: BacklogDragPayload, assignedAt: Date) => void | Promise<void>;
   showEmptyTimeline?: boolean;
   keyboardDragItem?: { title: string } | null;
-  onKeyboardDragAnnouncement?: (message: string) => void;
   onKeyboardDrop?: (assignedAt: Date) => void | Promise<void>;
   onKeyboardCancel?: () => void;
   focusViewportKey?: number;
   presentation?: 'full' | 'collapsed-empty';
+  onMoveTask?: (recordId: string, dueAtIso: string) => void | Promise<void>;
+  onMoveReminder?: (reminderId: string, remindAtIso: string) => void | Promise<void>;
+  onAccessibilityAnnouncement?: (message: string) => void;
 }) => {
   const [now, setNow] = useState(() => new Date());
   const [dragOver, setDragOver] = useState(false);
-  const [keyboardTargetIndexOverride, setKeyboardTargetIndexOverride] = useState<number | null>(null);
+  const timelineNavigatorRef = useRef<HTMLButtonElement | null>(null);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const nowNeedleRef = useRef<HTMLDivElement | null>(null);
-  const keyboardSlotRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const autoScrollKeyRef = useRef<string>('');
   const stripId = useId();
   const earlierLabelId = `${stripId}-earlier`;
   const upcomingLabelId = `${stripId}-upcoming`;
+  const timelineHelpId = `${stripId}-timeline-help`;
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -265,8 +266,37 @@ export const DayStrip = ({
 
   const orderedIds = useMemo(() => timelineItems.map((item) => item.id), [timelineItems]);
   const orderedIdIndex = useMemo(() => new Map(orderedIds.map((id, index) => [id, index])), [orderedIds]);
+  const timelineA11yItems = useMemo(() => timelineItems.map((item) => ({
+    id: item.id,
+    kind: item.kind,
+    title: item.title,
+    recordId: item.recordId,
+    timeMs: item.kind === 'event' ? item.startMs : item.timeMs,
+    reminderId: item.kind === 'reminder' ? item.reminderId : undefined,
+  })), [timelineItems]);
 
   const percentForMs = (ms: number): number => clamp(((ms - range.startMs) / totalMs) * 100, 0, 100);
+
+  const {
+    movingItemId,
+    viewportLabel,
+    handleViewportFocus,
+    handleViewportKeyDown,
+    handleItemKeyDown: handleA11yItemKeyDown,
+    formatTimelineItemLabel,
+  } = useDayStripTimelineA11y({
+    nowMs: now.getTime(),
+    rangeStartMs: range.startMs,
+    rangeEndMs: range.endMs,
+    timelineItems: timelineA11yItems,
+    keyboardDragItem,
+    announce: onAccessibilityAnnouncement,
+    onOpenRecord,
+    onMoveTask,
+    onMoveReminder,
+    onKeyboardDrop,
+    onKeyboardCancel,
+  });
 
   useEffect(() => {
     if (hasNoScheduledItems) {
@@ -307,50 +337,28 @@ export const DayStrip = ({
     };
   }, [hasNoScheduledItems, nowPercent, range.endMs, range.startMs, timelineItems.length, widthPx]);
 
-  const keyboardSlots = useMemo(() => {
-    const slotCount = Math.max(1, Math.floor(totalMs / DAY_STRIP_KEYBOARD_SLOT_MS) + 1);
-    return Array.from({ length: slotCount }, (_, index) => {
-      const ms = clamp(range.startMs + index * DAY_STRIP_KEYBOARD_SLOT_MS, range.startMs, range.endMs);
-      return {
-        index,
-        ms,
-        label: formatTimeLabel(new Date(ms)),
-      };
-    });
-  }, [range.endMs, range.startMs, totalMs]);
-
-  const keyboardDefaultIndex = useMemo(() => {
-    if (keyboardSlots.length === 0) {
-      return 0;
-    }
-    return keyboardSlots.reduce((closestIndex, slot, index, allSlots) => {
-      const currentDistance = Math.abs(slot.ms - now.getTime());
-      const closestSlotMs = allSlots[closestIndex]?.ms ?? slot.ms;
-      const closestDistance = Math.abs(closestSlotMs - now.getTime());
-      return currentDistance < closestDistance ? index : closestIndex;
-    }, 0);
-  }, [keyboardSlots, now]);
-
-  const keyboardTargetIndex = keyboardTargetIndexOverride ?? keyboardDefaultIndex;
-
-  useEffect(() => {
-    if (keyboardDragItem) {
-      keyboardSlotRefs.current[keyboardTargetIndex]?.focus();
-      const activeSlot = keyboardSlots[keyboardTargetIndex];
-      if (activeSlot) {
-        onKeyboardDragAnnouncement?.(activeSlot.label);
-      }
-    }
-  }, [keyboardDragItem, keyboardSlots, keyboardTargetIndex, onKeyboardDragAnnouncement]);
-
   useEffect(() => {
     if (focusViewportKey <= 0) {
       return;
     }
-    scrollViewportRef.current?.focus();
+    timelineNavigatorRef.current?.focus();
   }, [focusViewportKey]);
 
+  useEffect(() => {
+    if (!movingItemId && !keyboardDragItem) {
+      return;
+    }
+    timelineNavigatorRef.current?.focus();
+  }, [keyboardDragItem, movingItemId]);
+
   const handleItemKeyDown = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
+    const timelineItem = timelineA11yItems.find((item) => item.id === id);
+    if (timelineItem && handleA11yItemKeyDown(event, timelineItem)) {
+      window.requestAnimationFrame(() => {
+        timelineNavigatorRef.current?.focus();
+      });
+      return;
+    }
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
       return;
     }
@@ -396,49 +404,6 @@ export const DayStrip = ({
     void onDropFromBacklog(payloadParsed, assignedAt);
   };
 
-  const updateKeyboardTargetIndex = (nextIndex: number) => {
-    const clampedIndex = clamp(nextIndex, 0, keyboardSlots.length - 1);
-    setKeyboardTargetIndexOverride(clampedIndex);
-  };
-
-  const handleKeyboardSlotKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (!keyboardDragItem) {
-      return;
-    }
-    if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      updateKeyboardTargetIndex(keyboardTargetIndex + 1);
-      return;
-    }
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      updateKeyboardTargetIndex(keyboardTargetIndex - 1);
-      return;
-    }
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      updateKeyboardTargetIndex(keyboardTargetIndex + 4);
-      return;
-    }
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      updateKeyboardTargetIndex(keyboardTargetIndex - 4);
-      return;
-    }
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      const slot = keyboardSlots[keyboardTargetIndex];
-      if (slot) {
-        void onKeyboardDrop?.(new Date(slot.ms));
-      }
-      return;
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      onKeyboardCancel?.();
-    }
-  };
-
   const nowMs = now.getTime();
   const earlierItems = timelineItems.filter((item) => (item.kind === 'event' ? item.startMs < nowMs : item.timeMs < nowMs));
   const upcomingItems = timelineItems.filter((item) => (item.kind === 'event' ? item.startMs >= nowMs : item.timeMs >= nowMs));
@@ -451,8 +416,6 @@ export const DayStrip = ({
       const widthPxForEvent = Math.max(ITEM_MIN_WIDTH_PX, (width / 100) * widthPx);
       const inPast = item.endMs < nowMs;
       const clippedRight = item.endMs > range.endMs;
-      const startText = formatTimeLabel(new Date(item.startMs));
-      const endText = formatTimeLabel(new Date(item.endMs));
       const titleForDisplay = truncateTimelineTitle(item.title);
 
       return (
@@ -462,8 +425,11 @@ export const DayStrip = ({
             itemRefs.current[item.id] = node;
           }}
           type="button"
-          tabIndex={-1}
-          aria-label={`Event: ${item.title} from ${startText} to ${endText}`}
+          tabIndex={0}
+          aria-label={formatTimelineItemLabel({
+            title: item.title,
+            timeMs: item.startMs,
+          })}
           className={`absolute top-[46px] h-8 rounded-control border px-2 text-left text-xs font-medium ${
             inPast
               ? 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)] text-on-primary opacity-60'
@@ -486,7 +452,6 @@ export const DayStrip = ({
     const markerTop = lane === 0 ? 22 : 86;
     const labelTop = lane === 0 ? 2 : 104;
     const left = percentForMs(timeMs);
-    const timeLabel = formatTimeLabel(new Date(timeMs));
     const titleForDisplay = truncateTimelineTitle(item.title);
 
     if (item.kind === 'task') {
@@ -500,8 +465,11 @@ export const DayStrip = ({
               itemRefs.current[item.id] = node;
             }}
             type="button"
-            tabIndex={-1}
-            aria-label={`Task: ${item.title} at ${timeLabel}`}
+            tabIndex={0}
+            aria-label={formatTimelineItemLabel({
+              title: item.title,
+              timeMs,
+            })}
             className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 p-0 [border-radius:9999px] ${
               overdue
                 ? 'border-danger bg-danger text-on-primary'
@@ -533,8 +501,11 @@ export const DayStrip = ({
             itemRefs.current[item.id] = node;
           }}
           type="button"
-          tabIndex={-1}
-          aria-label={`Reminder: ${item.title} at ${timeLabel}`}
+          tabIndex={0}
+          aria-label={formatTimelineItemLabel({
+            title: item.title,
+            timeMs,
+          })}
           className={`absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rotate-45 border-2 ${
             settledDismissed
               ? 'border-[color:var(--color-capture-rail)] bg-[color:var(--color-capture-rail)] opacity-40'
@@ -560,30 +531,47 @@ export const DayStrip = ({
   if (useCollapsedEmptyPresentation) {
     return (
       <div className={cn('grid gap-[var(--daily-brief-collapsed-stack-gap)]', className)}>
-        <div
-          ref={timelineRef}
-          data-testid="daily-brief-collapsed-strip"
-          className={cn(
-            'paper-well flex min-h-[var(--daily-brief-collapsed-timeline-height)] items-center overflow-hidden rounded-panel px-4 py-3 transition-colors',
-            dragOver && 'bg-primary/6',
-          )}
-          onDragOver={(event) => {
-            if (!onDropFromBacklog) {
-              return;
-            }
-            event.preventDefault();
-            setDragOver(true);
-            event.dataTransfer.dropEffect = 'move';
-          }}
-          onDragLeave={() => {
-            setDragOver(false);
-          }}
-          onDrop={handleDrop}
-        >
-          <div aria-hidden="true" className="flex w-full items-center">
-            <span className="h-6 w-px bg-border-muted" />
-            <span className="h-px flex-1 bg-border-muted/70" />
-            <span className="h-6 w-px bg-border-muted" />
+        <div role="group" aria-label="Today timeline" aria-describedby={timelineHelpId}>
+          <p id={timelineHelpId} className="sr-only">
+            Today timeline. Interact to explore this group. Period moves forward 15 minutes. Comma moves back 15 minutes.
+            Shift plus period moves forward 5 minutes. Shift plus comma moves back 5 minutes.
+          </p>
+          <button
+            ref={timelineNavigatorRef}
+            type="button"
+            aria-label={viewportLabel}
+            aria-describedby={timelineHelpId}
+            className="sr-only focus:not-sr-only focus:mb-2 focus:inline-flex focus:rounded-control focus:bg-surface-highest focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-text focus:outline-none focus:ring-2 focus:ring-focus-ring"
+            onFocus={handleViewportFocus}
+            onKeyDown={handleViewportKeyDown}
+          >
+            Timeline marker
+          </button>
+          <div
+            ref={timelineRef}
+            data-testid="daily-brief-collapsed-strip"
+            className={cn(
+              'paper-well flex min-h-[var(--daily-brief-collapsed-timeline-height)] items-center overflow-hidden rounded-panel px-4 py-3 transition-colors',
+              dragOver && 'bg-primary/6',
+            )}
+            onDragOver={(event) => {
+              if (!onDropFromBacklog) {
+                return;
+              }
+              event.preventDefault();
+              setDragOver(true);
+              event.dataTransfer.dropEffect = 'move';
+            }}
+            onDragLeave={() => {
+              setDragOver(false);
+            }}
+            onDrop={handleDrop}
+          >
+            <div aria-hidden="true" className="flex w-full items-center">
+              <span className="h-6 w-px bg-border-muted" />
+              <span className="h-px flex-1 bg-border-muted/70" />
+              <span className="h-6 w-px bg-border-muted" />
+            </div>
           </div>
         </div>
 
@@ -605,11 +593,27 @@ export const DayStrip = ({
           </div>
         </div>
       ) : (
-        <div
-          ref={scrollViewportRef}
-          tabIndex={-1}
-          className="overflow-x-auto px-[96px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
+        <div role="group" aria-label="Today timeline" aria-describedby={timelineHelpId}>
+          <p id={timelineHelpId} className="sr-only">
+            Today timeline. Interact to explore this group. Period moves forward 15 minutes. Comma moves back 15 minutes.
+            Shift plus period moves forward 5 minutes. Shift plus comma moves back 5 minutes. Press Space on a scheduled
+            task or reminder to move it, or on a backlog item to place it here.
+          </p>
+          <button
+            ref={timelineNavigatorRef}
+            type="button"
+            aria-label={viewportLabel}
+            aria-describedby={timelineHelpId}
+            className="sr-only focus:not-sr-only focus:mb-2 focus:inline-flex focus:rounded-control focus:bg-surface-highest focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-text focus:outline-none focus:ring-2 focus:ring-focus-ring"
+            onFocus={handleViewportFocus}
+            onKeyDown={handleViewportKeyDown}
+          >
+            Timeline marker
+          </button>
+          <div
+            ref={scrollViewportRef}
+            className="overflow-x-auto rounded-control px-[96px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
           <div
             ref={timelineRef}
             data-testid="daily-brief-timeline"
@@ -668,52 +672,8 @@ export const DayStrip = ({
               {upcomingItems.map((item) => renderTimelineItem(item))}
             </div>
 
-            {keyboardDragItem ? (
-              <div
-                aria-label={`Schedule ${keyboardDragItem.title}`}
-                className="absolute inset-x-0 top-10 h-12"
-                data-testid="daily-brief-keyboard-dropzone"
-                role="group"
-              >
-                <div className="flex h-full">
-                  {keyboardSlots.map((slot, index) => {
-                    const active = index === keyboardTargetIndex;
-                    return (
-                      <button
-                        key={slot.ms}
-                        ref={(node) => {
-                          keyboardSlotRefs.current[index] = node;
-                        }}
-                        type="button"
-                        tabIndex={active ? 0 : -1}
-                        aria-label={`Choose ${slot.label}`}
-                        aria-current={active ? 'true' : undefined}
-                        className={`relative h-full flex-1 border-r border-border-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                          active ? 'bg-primary/12' : 'bg-transparent'
-                        }`}
-                        onFocus={() => {
-                          setKeyboardTargetIndexOverride(index);
-                        }}
-                        onKeyDown={handleKeyboardSlotKeyDown}
-                        onClick={() => {
-                          void onKeyboardDrop?.(new Date(slot.ms));
-                        }}
-                      >
-                        {active ? (
-                          <>
-                            <span aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-primary" />
-                            <span className="ghost-button absolute -top-7 left-1/2 -translate-x-1/2 bg-surface px-2 py-0.5 text-[11px] text-text">
-                              {slot.label}
-                            </span>
-                          </>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
           </div>
+        </div>
         </div>
       )}
     </div>

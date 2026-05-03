@@ -110,11 +110,7 @@ export const DayStripSection = ({
   const handleBeginKeyboardDrag = useCallback((item: { id: string; title: string; payload: BacklogDragPayload }) => {
     setRestoreFocusItemId(null);
     setKeyboardDragItem(item);
-    announce(`Picked up ${item.title}, use arrow keys to choose time, Enter to drop, Escape to cancel.`);
-  }, [announce]);
-
-  const handleKeyboardDragAnnouncement = useCallback((timeLabel: string) => {
-    announce(`Target time ${timeLabel}.`);
+    announce(`Picked up ${item.title}. Use period and comma to move by 15 minutes, Shift plus period and Shift plus comma to move by 5 minutes, Space to drop, or Escape to cancel.`);
   }, [announce]);
 
   const handleKeyboardCancel = useCallback(() => {
@@ -151,7 +147,7 @@ export const DayStripSection = ({
   }, [prefersReducedMotion]);
 
   return (
-    <section
+    <div
       aria-labelledby="daily-brief-heading"
       className={cn(
         'section-scored rounded-panel bg-surface shadow-soft',
@@ -185,11 +181,14 @@ export const DayStripSection = ({
                   tasks={[]}
                   reminders={[]}
                   typeFilter="all"
-                  onOpenRecord={onOpenRecord}
-                  onDropFromBacklog={onDropFromBacklog}
-                  showEmptyTimeline
-                  presentation="collapsed-empty"
-                />
+                onOpenRecord={onOpenRecord}
+                onDropFromBacklog={onDropFromBacklog}
+                showEmptyTimeline
+                presentation="collapsed-empty"
+                onMoveTask={onRescheduleTask}
+                onMoveReminder={onSnoozeReminder}
+                onAccessibilityAnnouncement={announce}
+              />
 
                 <div className="flex min-w-0 flex-col gap-[var(--daily-brief-right-rail-gap)]">
                   <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end" role="group" aria-label="Daily brief totals">
@@ -209,17 +208,28 @@ export const DayStripSection = ({
                       label={nounForCount(dayCounts.reminders, 'reminder', 'reminders')}
                     />
                   </div>
-                  <button
-                    type="button"
-                    className="ghost-button inline-flex h-[var(--daily-brief-backlog-button-height)] w-[var(--daily-brief-backlog-button-width)] max-w-full items-center justify-between gap-2 self-start rounded-control bg-surface-highest px-3 py-2 text-sm font-semibold text-text shadow-soft-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60 xl:self-end"
-                    onClick={focusBacklog}
-                    disabled={briefState !== 'empty-backlog'}
-                  >
-                    <span>Backlog</span>
-                    <span className="text-text-secondary">
-                      {dayCounts.backlog} {nounForCount(dayCounts.backlog, 'item', 'items')}
-                    </span>
-                  </button>
+                  {briefState === 'empty-backlog' ? (
+                    <div
+                      className="ghost-button inline-flex h-[var(--daily-brief-backlog-button-height)] w-[var(--daily-brief-backlog-button-width)] max-w-full items-center justify-between gap-2 self-start rounded-control bg-surface-highest px-3 py-2 text-sm font-semibold text-text shadow-soft-subtle xl:self-end"
+                    >
+                      <span>Backlog</span>
+                      <span className="text-text-secondary">
+                        {dayCounts.backlog} {nounForCount(dayCounts.backlog, 'item', 'items')}
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="ghost-button inline-flex h-[var(--daily-brief-backlog-button-height)] w-[var(--daily-brief-backlog-button-width)] max-w-full items-center justify-between gap-2 self-start rounded-control bg-surface-highest px-3 py-2 text-sm font-semibold text-text shadow-soft-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60 xl:self-end"
+                      onClick={focusBacklog}
+                      disabled
+                    >
+                      <span>Backlog</span>
+                      <span className="text-text-secondary">
+                        {dayCounts.backlog} {nounForCount(dayCounts.backlog, 'item', 'items')}
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -270,10 +280,12 @@ export const DayStripSection = ({
                 onDropFromBacklog={onDropFromBacklog}
                 showEmptyTimeline={briefState !== 'active-day'}
                 keyboardDragItem={keyboardDragItem ? { title: keyboardDragItem.title } : null}
-                onKeyboardDragAnnouncement={handleKeyboardDragAnnouncement}
                 onKeyboardDrop={handleKeyboardDrop}
                 onKeyboardCancel={handleKeyboardCancel}
                 focusViewportKey={focusViewportKey}
+                onMoveTask={onRescheduleTask}
+                onMoveReminder={onSnoozeReminder}
+                onAccessibilityAnnouncement={announce}
               />
 
               <ContextBar
@@ -312,6 +324,6 @@ export const DayStripSection = ({
           )}
         </motion.div>
       </AnimatePresence>
-    </section>
+    </div>
   );
 };

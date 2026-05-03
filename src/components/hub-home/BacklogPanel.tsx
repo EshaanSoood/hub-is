@@ -1,6 +1,6 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Icon, notifyError } from '../primitives';
-import { HUB_BACKLOG_DRAG_MIME } from './types';
+import { Fragment, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { Dialog, Icon, notifyError } from '../primitives';
+import { BacklogAccessibilityTree } from './BacklogAccessibilityTree';
 import type { BacklogDragPayload, BacklogReminderItem, BacklogTaskItem } from './types';
 
 const BACKLOG_COLLAPSED_STORAGE_KEY = 'hubHome.backlog.collapsed';
@@ -78,22 +78,6 @@ const defaultReminderSnoozeValue = (): string => {
 const actionButtonClassName =
   'ghost-button bg-surface px-2 py-1 text-xs text-text transition-colors hover:bg-surface-highest disabled:cursor-not-allowed disabled:opacity-60';
 
-const priorityClassName = (priority: BacklogTaskItem['priority']): string => {
-  if (priority === 'urgent') {
-    return 'facet-chip facet-persimmon';
-  }
-  if (priority === 'high') {
-    return 'facet-chip facet-persimmon';
-  }
-  if (priority === 'medium') {
-    return 'facet-chip facet-ochre';
-  }
-  if (priority === 'low') {
-    return 'facet-chip facet-moss';
-  }
-  return 'facet-chip ghost-button bg-surface-low text-text-secondary';
-};
-
 const readStoredBacklogCollapsed = (): boolean | null => {
   if (typeof window === 'undefined') {
     return null;
@@ -113,6 +97,15 @@ const readStoredBacklogCollapsed = (): boolean | null => {
 
   return null;
 };
+
+const formatBacklogItemLabel = (title: string, groupLabel: BacklogListItem['groupLabel']): string =>
+  `${title}. ${groupLabel}.`;
+
+const formatBacklogItemHint = (dragToTimelineEnabled: boolean): string => (
+  dragToTimelineEnabled
+    ? 'Interact with element to reveal actions. Press Space to place on timeline or Enter to open.'
+    : 'Interact with element to reveal actions. Press Enter to open.'
+);
 
 type BacklogListItem =
   | {
@@ -183,8 +176,8 @@ export const BacklogPanel = ({
   const [activeIndex, setActiveIndex] = useState(0);
 
   const listId = useId();
-  const dragInstructionsId = useId();
-  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const treeHintId = useId();
+  const itemRefs = useRef<Record<string, HTMLElement | null>>({});
   const storedCollapsedRef = useRef<boolean | null>(readStoredBacklogCollapsed());
   const hasInitializedRef = useRef(false);
 
@@ -296,7 +289,7 @@ export const BacklogPanel = ({
     itemRefs.current[item.id]?.focus();
   };
 
-  const handleRovingKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+  const handleRovingKeyDown = (event: KeyboardEvent<HTMLElement>, index: number) => {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       focusItemAt(index + 1);
@@ -323,21 +316,26 @@ export const BacklogPanel = ({
     setIsCollapsed(nextCollapsed);
     persistCollapsed(nextCollapsed);
     if (!nextCollapsed) {
-      setActiveIndex(0);
+      window.requestAnimationFrame(() => {
+        focusItemAt(0);
+      });
     }
   };
 
+  const restoreFocus = (element: HTMLElement | null | undefined) => {
+    if (!element) {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      element.focus();
+    });
+  };
+
   return (
-    <section
-      aria-labelledby="backlog-heading"
+    <div
       className={`section-scored rounded-panel bg-surface-low p-3 shadow-soft ${className ?? ''}`}
       data-testid="daily-brief-backlog"
     >
-      {dragToTimelineEnabled ? (
-        <p id={dragInstructionsId} className="sr-only">
-          Press Enter or Space to pick up an item and schedule it on the timeline.
-        </p>
-      ) : null}
       <button
         id="backlog-toggle"
         type="button"
@@ -359,11 +357,21 @@ export const BacklogPanel = ({
         </span>
       </button>
 
-      <div id={listId} hidden={isCollapsed} className="mt-3">
+      <div id={listId} role="group" aria-labelledby="backlog-heading" hidden={isCollapsed} className="mt-3">
         {backlogItems.length === 0 ? (
           <p className="text-sm text-muted">No items are currently in backlog.</p>
         ) : (
-          <ul className="space-y-3">
+          <>
+            <p id={treeHintId} className="sr-only">
+              Interact with the list to reveal backlog actions.
+            </p>
+            <ul
+              role="tree"
+              aria-label="Backlog items"
+              aria-roledescription="Interact with the list to reveal backlog"
+              aria-describedby={treeHintId}
+              className="space-y-3"
+            >
             {backlogItems.map((item, index) => {
               if (item.kind === 'task') {
                 const task = overdueTasks.find((candidate) => candidate.id === item.id)
@@ -380,114 +388,94 @@ export const BacklogPanel = ({
                 const nextAssignedTimeIso = combineDateWithTime(task.dueAtIso, assignTimeDraft);
                 const showReschedule = item.groupLabel === 'Overdue task' && rescheduleOpenId === task.recordId;
                 const showAssignTime = item.groupLabel === 'Unscheduled task' && assignTimeOpenId === task.recordId;
+                const cardRef = itemRefs.current[item.id];
+                const taskActions = [
+                  {
+                    id: 'complete',
+                    label: 'Complete',
+                    disabled: itemBusy,
+                    onInvoke: () => {
+                      void runWithBusy(key, () => onCompleteTask(task.recordId));
+                    },
+                  },
+                  item.groupLabel === 'Overdue task'
+                    ? {
+                      id: 'reschedule',
+                      label: 'Reschedule',
+                      disabled: itemBusy,
+                      onInvoke: () => {
+                        setRescheduleOpenId((current) => (current === task.recordId ? null : task.recordId));
+                        setAssignTimeOpenId(null);
+                      },
+                    }
+                    : {
+                      id: 'assign-time',
+                      label: 'Assign time',
+                      disabled: itemBusy,
+                      onInvoke: () => {
+                        setAssignTimeOpenId((current) => (current === task.recordId ? null : task.recordId));
+                        setRescheduleOpenId(null);
+                      },
+                    },
+                  {
+                    id: 'snooze',
+                    label: 'Snooze',
+                    disabled: itemBusy,
+                    onInvoke: () => {
+                      void runWithBusy(key, () => onSnoozeTask(task.recordId));
+                    },
+                  },
+                ];
 
                 return (
-                  <li key={item.id} className="paper-card p-3">
-                    <button
-                      ref={(node) => {
+                  <Fragment key={item.id}>
+                    <BacklogAccessibilityTree
+                      active={index === activeIndex}
+                      actions={taskActions}
+                      accessibleLabel={formatBacklogItemLabel(task.title, item.groupLabel)}
+                      accessibleDescription={`${item.detail} ${formatBacklogItemHint(dragToTimelineEnabled)}`}
+                      activeKeyboardDrag={activeKeyboardDragItemId === item.id}
+                      detail={item.detail}
+                      dragPayload={dragToTimelineEnabled ? JSON.stringify(item.dragPayload) : undefined}
+                      onSetRef={(node) => {
                         itemRefs.current[item.id] = node;
-                      }}
-                      type="button"
-                      tabIndex={index === activeIndex ? 0 : -1}
-                      draggable={dragToTimelineEnabled}
-                      aria-describedby={dragToTimelineEnabled ? dragInstructionsId : undefined}
-                      onDragStart={(event) => {
-                        event.dataTransfer.effectAllowed = 'move';
-                        event.dataTransfer.setData(HUB_BACKLOG_DRAG_MIME, JSON.stringify(item.dragPayload));
                       }}
                       onFocus={() => {
                         setActiveIndex(index);
                       }}
-                      onKeyDown={(event) => {
+                      onOpen={() => {
+                        onOpenRecord(task.recordId);
+                      }}
+                      onRovingKeyDown={(event) => {
                         handleRovingKeyDown(event, index);
-                        if (!dragToTimelineEnabled || (event.key !== 'Enter' && event.key !== ' ')) {
-                          return;
-                        }
-                        event.preventDefault();
+                      }}
+                      onBeginKeyboardDrag={dragToTimelineEnabled ? () => {
                         onBeginKeyboardDrag?.({
                           id: item.id,
                           title: task.title,
                           payload: item.dragPayload,
                         });
+                      } : undefined}
+                      positionInSet={index + 1}
+                      priority={task.priority}
+                      setSize={backlogItems.length}
+                      title={task.title}
+                      typeLabel={item.groupLabel}
+                    />
+
+                    <Dialog
+                      open={showReschedule}
+                      title={`Reschedule ${task.title}`}
+                      description={`Choose a new date and time for ${task.title}.`}
+                      onClose={() => {
+                        setRescheduleOpenId(null);
+                        restoreFocus(cardRef);
                       }}
-                      onClick={() => {
-                        onOpenRecord(task.recordId);
-                      }}
-                      className={`w-full rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                        activeKeyboardDragItemId === item.id ? 'ring-2 ring-focus-ring' : ''
-                      }`}
+                      panelClassName="max-w-md"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="ghost-button bg-surface px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
-                              {item.groupLabel}
-                            </span>
-                            <span className={`uppercase tracking-wide ${priorityClassName(task.priority)}`}>
-                              {task.priority || 'none'}
-                            </span>
-                          </div>
-                          <p className="mt-2 truncate text-sm font-medium text-text">{task.title}</p>
-                          <p className="mt-1 text-xs text-muted">{item.detail}</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        tabIndex={-1}
-                        className={actionButtonClassName}
-                        onClick={() => {
-                          void runWithBusy(key, () => onCompleteTask(task.recordId));
-                        }}
-                        disabled={itemBusy}
-                      >
-                        Complete
-                      </button>
-                      {item.groupLabel === 'Overdue task' ? (
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          className={actionButtonClassName}
-                          onClick={() => {
-                            setRescheduleOpenId((current) => (current === task.recordId ? null : task.recordId));
-                            setAssignTimeOpenId(null);
-                          }}
-                          disabled={itemBusy}
-                        >
-                          Reschedule
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          className={actionButtonClassName}
-                          onClick={() => {
-                            setAssignTimeOpenId((current) => (current === task.recordId ? null : task.recordId));
-                            setRescheduleOpenId(null);
-                          }}
-                          disabled={itemBusy}
-                        >
-                          Assign time
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        tabIndex={-1}
-                        className={actionButtonClassName}
-                        onClick={() => {
-                          void runWithBusy(key, () => onSnoozeTask(task.recordId));
-                        }}
-                        disabled={itemBusy}
-                      >
-                        Snooze
-                      </button>
-                    </div>
-
-                    {showReschedule ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <div className="flex flex-col gap-3">
                         <input
+                          autoFocus
                           type="datetime-local"
                           value={rescheduleDraft}
                           aria-label={`Reschedule ${task.title}`}
@@ -495,30 +483,53 @@ export const BacklogPanel = ({
                             const value = event.target.value;
                             setRescheduleDrafts((current) => ({ ...current, [task.recordId]: value }));
                           }}
-                          className="ghost-button bg-surface px-2 py-1 text-xs text-text"
+                          className="ghost-button bg-surface px-2 py-1 text-sm text-text"
                         />
-                        <button
-                          type="button"
-                          className={actionButtonClassName}
-                          onClick={() => {
-                            if (!nextRescheduleIso) {
-                              return;
-                            }
-                            void runWithBusy(key, async () => {
-                              await onRescheduleTask(task.recordId, nextRescheduleIso);
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            className={actionButtonClassName}
+                            onClick={() => {
                               setRescheduleOpenId(null);
-                            });
-                          }}
-                          disabled={itemBusy || !nextRescheduleIso}
-                        >
-                          Save
-                        </button>
+                              restoreFocus(cardRef);
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className={actionButtonClassName}
+                            onClick={() => {
+                              if (!nextRescheduleIso) {
+                                return;
+                              }
+                              void runWithBusy(key, async () => {
+                                await onRescheduleTask(task.recordId, nextRescheduleIso);
+                                setRescheduleOpenId(null);
+                                restoreFocus(cardRef);
+                              });
+                            }}
+                            disabled={itemBusy || !nextRescheduleIso}
+                          >
+                            Save
+                          </button>
+                        </div>
                       </div>
-                    ) : null}
+                    </Dialog>
 
-                    {showAssignTime ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Dialog
+                      open={showAssignTime}
+                      title={`Assign time for ${task.title}`}
+                      description={`Choose a time for ${task.title}.`}
+                      onClose={() => {
+                        setAssignTimeOpenId(null);
+                        restoreFocus(cardRef);
+                      }}
+                      panelClassName="max-w-md"
+                    >
+                      <div className="flex flex-col gap-3">
                         <input
+                          autoFocus
                           type="time"
                           value={assignTimeDraft}
                           aria-label={`Assign time for ${task.title}`}
@@ -526,27 +537,40 @@ export const BacklogPanel = ({
                             const value = event.target.value;
                             setAssignTimeDrafts((current) => ({ ...current, [task.recordId]: value }));
                           }}
-                          className="ghost-button bg-surface px-2 py-1 text-xs text-text"
+                          className="ghost-button bg-surface px-2 py-1 text-sm text-text"
                         />
-                        <button
-                          type="button"
-                          className={actionButtonClassName}
-                          onClick={() => {
-                            if (!nextAssignedTimeIso) {
-                              return;
-                            }
-                            void runWithBusy(key, async () => {
-                              await onAssignTaskTime(task.recordId, nextAssignedTimeIso);
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            className={actionButtonClassName}
+                            onClick={() => {
                               setAssignTimeOpenId(null);
-                            });
-                          }}
-                          disabled={itemBusy || !nextAssignedTimeIso}
-                        >
-                          Save
-                        </button>
+                              restoreFocus(cardRef);
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className={actionButtonClassName}
+                            onClick={() => {
+                              if (!nextAssignedTimeIso) {
+                                return;
+                              }
+                              void runWithBusy(key, async () => {
+                                await onAssignTaskTime(task.recordId, nextAssignedTimeIso);
+                                setAssignTimeOpenId(null);
+                                restoreFocus(cardRef);
+                              });
+                            }}
+                            disabled={itemBusy || !nextAssignedTimeIso}
+                          >
+                            Save
+                          </button>
+                        </div>
                       </div>
-                    ) : null}
-                  </li>
+                    </Dialog>
+                  </Fragment>
                 );
               }
 
@@ -559,84 +583,78 @@ export const BacklogPanel = ({
               const itemBusy = busy(key);
               const draft = reminderDefaultDrafts[reminder.reminderId] || defaultReminderSnoozeValue();
               const nextIso = fromDateTimeLocalValue(draft);
+              const cardRef = itemRefs.current[item.id];
+              const reminderActions = [
+                {
+                  id: 'dismiss',
+                  label: 'Dismiss',
+                  disabled: itemBusy,
+                  onInvoke: () => {
+                    void runWithBusy(key, () => onDismissReminder(reminder.reminderId));
+                  },
+                },
+                {
+                  id: 'snooze',
+                  label: 'Snooze',
+                  disabled: itemBusy,
+                  onInvoke: () => {
+                    setReminderSnoozeOpenId((current) => (current === reminder.reminderId ? null : reminder.reminderId));
+                    setReminderSnoozeDrafts((current) => ({
+                      ...current,
+                      [reminder.reminderId]: current[reminder.reminderId] || draft,
+                    }));
+                  },
+                },
+              ];
 
               return (
-                <li key={item.id} className="paper-card p-3">
-                  <button
-                    ref={(node) => {
+                <Fragment key={item.id}>
+                  <BacklogAccessibilityTree
+                    active={index === activeIndex}
+                    actions={reminderActions}
+                    accessibleLabel={formatBacklogItemLabel(reminder.title, item.groupLabel)}
+                    accessibleDescription={`${item.detail} ${formatBacklogItemHint(dragToTimelineEnabled)}`}
+                    activeKeyboardDrag={activeKeyboardDragItemId === item.id}
+                    detail={item.detail}
+                    dragPayload={dragToTimelineEnabled ? JSON.stringify(item.dragPayload) : undefined}
+                    onSetRef={(node) => {
                       itemRefs.current[item.id] = node;
-                    }}
-                    type="button"
-                    tabIndex={index === activeIndex ? 0 : -1}
-                    draggable={dragToTimelineEnabled}
-                    aria-describedby={dragToTimelineEnabled ? dragInstructionsId : undefined}
-                    onDragStart={(event) => {
-                      event.dataTransfer.effectAllowed = 'move';
-                      event.dataTransfer.setData(HUB_BACKLOG_DRAG_MIME, JSON.stringify(item.dragPayload));
                     }}
                     onFocus={() => {
                       setActiveIndex(index);
                     }}
-                    onKeyDown={(event) => {
+                    onOpen={() => {
+                      onOpenRecord(reminder.recordId);
+                    }}
+                    onRovingKeyDown={(event) => {
                       handleRovingKeyDown(event, index);
-                      if (!dragToTimelineEnabled || (event.key !== 'Enter' && event.key !== ' ')) {
-                        return;
-                      }
-                      event.preventDefault();
+                    }}
+                    onBeginKeyboardDrag={dragToTimelineEnabled ? () => {
                       onBeginKeyboardDrag?.({
                         id: item.id,
                         title: reminder.title,
                         payload: item.dragPayload,
                       });
+                    } : undefined}
+                    positionInSet={index + 1}
+                    setSize={backlogItems.length}
+                    title={reminder.title}
+                    typeLabel={item.groupLabel}
+                  />
+
+                  <Dialog
+                    open={reminderSnoozeOpenId === reminder.reminderId}
+                    title={`Snooze ${reminder.title}`}
+                    description={`Choose a new reminder time for ${reminder.title}.`}
+                    onClose={() => {
+                      setReminderSnoozeOpenId(null);
+                      restoreFocus(cardRef);
                     }}
-                    onClick={() => {
-                      onOpenRecord(reminder.recordId);
-                    }}
-                    className={`w-full rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                      activeKeyboardDragItemId === item.id ? 'ring-2 ring-focus-ring' : ''
-                    }`}
+                    panelClassName="max-w-md"
                   >
-                    <div className="min-w-0">
-                      <span className="ghost-button bg-surface px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
-                        {item.groupLabel}
-                      </span>
-                      <p className="mt-2 truncate text-sm font-medium text-text">{reminder.title}</p>
-                      <p className="mt-1 text-xs text-muted">{item.detail}</p>
-                    </div>
-                  </button>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      className={actionButtonClassName}
-                      onClick={() => {
-                        void runWithBusy(key, () => onDismissReminder(reminder.reminderId));
-                      }}
-                      disabled={itemBusy}
-                    >
-                      Dismiss
-                    </button>
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      className={actionButtonClassName}
-                      onClick={() => {
-                        setReminderSnoozeOpenId((current) => (current === reminder.reminderId ? null : reminder.reminderId));
-                        setReminderSnoozeDrafts((current) => ({
-                          ...current,
-                          [reminder.reminderId]: current[reminder.reminderId] || draft,
-                        }));
-                      }}
-                      disabled={itemBusy}
-                    >
-                      Snooze
-                    </button>
-                  </div>
-
-                  {reminderSnoozeOpenId === reminder.reminderId ? (
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <div className="flex flex-col gap-3">
                       <input
+                        autoFocus
                         type="datetime-local"
                         value={draft}
                         aria-label={`Snooze ${reminder.title}`}
@@ -644,32 +662,46 @@ export const BacklogPanel = ({
                           const value = event.target.value;
                           setReminderSnoozeDrafts((current) => ({ ...current, [reminder.reminderId]: value }));
                         }}
-                        className="ghost-button bg-surface px-2 py-1 text-xs text-text"
+                        className="ghost-button bg-surface px-2 py-1 text-sm text-text"
                       />
-                      <button
-                        type="button"
-                        className={actionButtonClassName}
-                        onClick={() => {
-                          if (!nextIso) {
-                            return;
-                          }
-                          void runWithBusy(key, async () => {
-                            await onSnoozeReminder(reminder.reminderId, nextIso);
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          className={actionButtonClassName}
+                          onClick={() => {
                             setReminderSnoozeOpenId(null);
-                          });
-                        }}
-                        disabled={itemBusy || !nextIso}
-                      >
-                        Save
-                      </button>
+                            restoreFocus(cardRef);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className={actionButtonClassName}
+                          onClick={() => {
+                            if (!nextIso) {
+                              return;
+                            }
+                            void runWithBusy(key, async () => {
+                              await onSnoozeReminder(reminder.reminderId, nextIso);
+                              setReminderSnoozeOpenId(null);
+                              restoreFocus(cardRef);
+                            });
+                          }}
+                          disabled={itemBusy || !nextIso}
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
-                  ) : null}
-                </li>
+                  </Dialog>
+                </Fragment>
               );
             })}
-          </ul>
+            </ul>
+          </>
         )}
       </div>
-    </section>
+    </div>
   );
 };
