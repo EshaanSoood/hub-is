@@ -448,7 +448,7 @@ const activeProject = useMemo(
       return;
     }
     if (targetView.type === 'kanban') {
-      navigate(`${buildProjectOverviewHref(project.space_id)}?view=kanban&kanban_view_id=${encodeURIComponent(viewId)}`, {
+      navigate(`${buildProjectOverviewHref(project.space_id)}?view=tasks`, {
         state: withHubMotionState(undefined, {
           hubProjectName: project.name,
         }),
@@ -700,6 +700,7 @@ const activeProject = useMemo(
     },
     workProps: {
       projectId,
+      spaceId: project.space_id,
       hasRequestedProject,
       activeProject,
       activeProjectCanEdit,
@@ -709,7 +710,6 @@ const activeProject = useMemo(
       projectChromeProps: {
         projectId: project.space_id,
         activeProject,
-        activeProjectDocId,
         activeProjectCanEdit,
         canWriteProject,
         openedFromPinned,
@@ -731,6 +731,7 @@ const activeProject = useMemo(
         onDeleteProject: onDeleteProjectWithNavigation,
         onUpdateProject: onUpdateProjectFromWorkView,
         onToggleActiveProjectRegion: handleToggleActiveProjectRegion,
+        activeProjectDocId,
         onSelectProjectDoc,
         onCreateProjectDoc,
         onUpdateProjectDoc,
@@ -809,6 +810,26 @@ const activeProject = useMemo(
         showResolvedDocComments,
         setShowResolvedDocComments,
       },
+      activeProjectDocId,
+      onSelectProjectDoc,
+      accessToken,
+      projectMembers,
+      calendarEvents,
+      calendarLoading,
+      calendarMode,
+      onCalendarScopeChange: setCalendarMode,
+      onOpenRecord,
+      tasks: tasksOverviewRows.filter((task) => task.source_project?.project_id === activeProjectId),
+      tasksLoading: projectTasksLoading,
+      tasksError: projectTasksError,
+      onRefreshTasks: () => {
+        void loadProjectTaskPage();
+      },
+      reminders: remindersRuntime.reminders,
+      remindersLoading: remindersRuntime.loading,
+      remindersError: remindersRuntime.error,
+      onDismissReminder: remindersRuntime.dismiss,
+      onCreateReminder: remindersRuntime.create,
     },
     recordInspectorOverlayProps,
   };

@@ -1139,9 +1139,11 @@ describe('ProjectSpaceWorkspace characterization', () => {
 
 describe('ProjectSpaceWorkspace helpers', () => {
   it('parses the overview sub-view query with a safe fallback', () => {
-    expect(readOverviewView(new URLSearchParams())).toBe('timeline');
+    expect(readOverviewView(new URLSearchParams())).toBe('hub');
+    expect(readOverviewView(new URLSearchParams('view=hub'))).toBe('hub');
+    expect(readOverviewView(new URLSearchParams('view=timeline'))).toBe('timeline');
     expect(readOverviewView(new URLSearchParams('view=calendar'))).toBe('calendar');
-    expect(readOverviewView(new URLSearchParams('view=unknown'))).toBe('timeline');
+    expect(readOverviewView(new URLSearchParams('view=unknown'))).toBe('hub');
   });
 
   it('uses project edit flags and ignores unrelated user identity for current gating', () => {
@@ -1354,9 +1356,8 @@ describe('ProjectDocPicker', () => {
     cleanup();
   });
 
-  it('opens an in-app confirmation dialog before deleting a doc', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm');
-    const onDeleteProjectDoc = vi.fn(async () => undefined);
+  it('renders project docs in a select control', async () => {
+    const onSelectProjectDoc = vi.fn();
 
     render(
       <ProjectDocPicker
@@ -1367,56 +1368,30 @@ describe('ProjectDocPicker', () => {
             { doc_id: 'doc-2', title: 'Notes', position: 1 },
           ],
         }}
-        activeProjectCanEdit
         activeProjectDocId="doc-1"
-        onSelectProjectDoc={vi.fn()}
-        onCreateProjectDoc={vi.fn(async () => null)}
-        onUpdateProjectDoc={vi.fn(async (_docId, patch) => ({ doc_id: 'doc-1', title: patch.title ?? 'Plan', position: 0 }))}
-        onDeleteProjectDoc={onDeleteProjectDoc}
+        onSelectProjectDoc={onSelectProjectDoc}
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Active doc: Plan' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Delete Plan' }));
+    const picker = screen.getByRole('combobox', { name: 'Project doc' });
+    expect(picker).toHaveValue('doc-1');
+    expect(screen.getByRole('option', { name: 'Plan' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Notes' })).toBeInTheDocument();
 
-    expect(confirmSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole('heading', { name: 'Delete document' })).toBeInTheDocument();
-    expect(screen.getByText('This will permanently delete Plan. This action cannot be undone.')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('heading', { name: 'Delete document' })).not.toBeInTheDocument();
-    expect(onDeleteProjectDoc).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Delete Plan' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
-
-    expect(onDeleteProjectDoc).toHaveBeenCalledWith('doc-1');
+    await userEvent.selectOptions(picker, 'doc-2');
+    expect(onSelectProjectDoc).toHaveBeenCalledWith('doc-2');
   });
 
-  it('keeps the last-doc guard inline instead of opening the delete dialog', async () => {
-    const onDeleteProjectDoc = vi.fn(async () => undefined);
-
+  it('disables the select when no project is active', () => {
     render(
       <ProjectDocPicker
-        activeProject={{
-          ...fixture.sharedProject,
-          docs: [{ doc_id: 'doc-1', title: 'Only doc', position: 0 }],
-        }}
-        activeProjectCanEdit
-        activeProjectDocId="doc-1"
+        activeProject={null}
+        activeProjectDocId={null}
         onSelectProjectDoc={vi.fn()}
-        onCreateProjectDoc={vi.fn(async () => null)}
-        onUpdateProjectDoc={vi.fn(async (_docId, patch) => ({ doc_id: 'doc-1', title: patch.title ?? 'Only doc', position: 0 }))}
-        onDeleteProjectDoc={onDeleteProjectDoc}
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Active doc: Only doc' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Delete Only doc' }));
-
-    expect(screen.queryByRole('heading', { name: 'Delete document' })).not.toBeInTheDocument();
-    expect(screen.getByText('A project must keep at least one doc.')).toBeInTheDocument();
-    expect(onDeleteProjectDoc).not.toHaveBeenCalled();
+    expect(screen.getByRole('combobox', { name: 'Project doc' })).toBeDisabled();
   });
 });
 

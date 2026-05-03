@@ -43,6 +43,8 @@ export interface EventSummary {
   collection_name: string | null;
   /** Event title shown in dashboards and calendars. */
   title: string;
+  /** User identifier that created the event record. */
+  created_by?: string;
   /** ISO 8601 timestamp when the event record was last updated. */
   updated_at: string;
   /** Canonical event scheduling state. */

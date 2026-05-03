@@ -1,7 +1,7 @@
 export { PROJECT_SPACE_PRIMARY_SURFACES } from '../../../components/project-space/types';
 export type { TopLevelProjectTab } from '../../../components/project-space/types';
 
-export type OverviewSubView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
+export type OverviewSubView = 'hub' | 'timeline' | 'calendar' | 'tasks';
 
 export interface TimelineEvent {
   timeline_event_id: string;

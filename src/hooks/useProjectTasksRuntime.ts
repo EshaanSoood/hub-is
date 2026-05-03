@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { OverviewViewId } from '../components/project-space/types';
 import { listProjectTasks, queryTasks } from '../services/hub/records';
 
-type OverviewView = 'timeline' | 'calendar' | 'tasks' | 'kanban';
+type OverviewView = OverviewViewId;
 type ProjectSpaceTab = 'overview' | 'work';
 
 const PROJECT_TASK_PAGE_SIZE = 50;
@@ -107,7 +108,7 @@ export const useProjectTasksRuntime = ({
       return;
     }
     const shouldLoadTasks = autoload ?? (
-      !isTaskScopeLoaded && (activeTab === 'work' || (activeTab === 'overview' && (overviewView === 'tasks' || overviewView === 'kanban')))
+      !isTaskScopeLoaded && (activeTab === 'work' || (activeTab === 'overview' && overviewView === 'tasks'))
     );
     if (!shouldLoadTasks) {
       return;
@@ -119,7 +120,7 @@ export const useProjectTasksRuntime = ({
     if (!enabled) {
       return;
     }
-    const shouldObserveForMore = autoload ?? (activeTab === 'overview' && (overviewView === 'tasks' || overviewView === 'kanban'));
+    const shouldObserveForMore = autoload ?? (activeTab === 'overview' && overviewView === 'tasks');
     if (
       !shouldObserveForMore
       || !projectTasks.next_cursor

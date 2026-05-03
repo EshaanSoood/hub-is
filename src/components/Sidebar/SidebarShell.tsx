@@ -200,18 +200,20 @@ export const SidebarShell = () => {
               />
             </div>
 
-            <div className="shrink-0">
-              <Surfaces
-                activeHomeSurface={currentHomeSurface}
-                isCollapsed={resolvedVisualCollapsed}
-                onToggleSection={() => {
-                  sidebarState.setHomeViewsExpanded((current) => !current);
-                }}
-                onSelectHomeSurface={onSelectHomeSurface}
-                sectionExpanded={sidebarState.homeViewsExpanded}
-                showLabels={resolvedShowLabels}
-              />
-            </div>
+            {!isOnHome ? (
+              <div className="shrink-0">
+                <Surfaces
+                  activeHomeSurface={currentHomeSurface}
+                  isCollapsed={resolvedVisualCollapsed}
+                  onToggleSection={() => {
+                    sidebarState.setHomeViewsExpanded((current) => !current);
+                  }}
+                  onSelectHomeSurface={onSelectHomeSurface}
+                  sectionExpanded={sidebarState.homeViewsExpanded}
+                  showLabels={resolvedShowLabels}
+                />
+              </div>
+            ) : null}
           </section>
 
           <div className="min-h-0 flex-1 overflow-hidden">

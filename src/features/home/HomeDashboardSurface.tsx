@@ -108,25 +108,6 @@ export const HomeDashboardSurface = ({
         </InlineNotice>
       ) : null}
 
-      <DayStripSection
-        countReady={runtime.homeReady}
-        greeting={`${greeting} · ${formatCountLabel(totalPipCounts.events, 'event')}, ${formatCountLabel(totalPipCounts.tasks, 'task')}, ${formatCountLabel(totalPipCounts.reminders, 'reminder')}`}
-        headerActions={null}
-        now={now}
-        filteredDailyData={filteredDailyData}
-        dayCounts={dayCounts}
-        activeProjectFilter={activeProjectFilter}
-        projectOptions={projectOptions}
-        onProjectFilterChange={setProjectFilter}
-        onOpenRecord={onOpenRecord}
-        onDropFromBacklog={onDropFromBacklog}
-        onCompleteTask={onCompleteTask}
-        onRescheduleTask={onRescheduleTask}
-        onSnoozeTask={onSnoozeTask}
-        onDismissReminder={onDismissReminder}
-        onSnoozeReminder={onSnoozeReminder}
-      />
-
       <HomeOverviewSurface
         accessToken={homeAccessToken}
         activeSurface={activeSurface}
@@ -149,6 +130,26 @@ export const HomeDashboardSurface = ({
         tasks={tasks}
         tasksError={tasksError}
         tasksLoading={tasksLoading}
+        todaySection={(
+          <DayStripSection
+            countReady={runtime.homeReady}
+            greeting={`${greeting} · ${formatCountLabel(totalPipCounts.events, 'event')}, ${formatCountLabel(totalPipCounts.tasks, 'task')}, ${formatCountLabel(totalPipCounts.reminders, 'reminder')}`}
+            headerActions={null}
+            now={now}
+            filteredDailyData={filteredDailyData}
+            dayCounts={dayCounts}
+            activeProjectFilter={activeProjectFilter}
+            projectOptions={projectOptions}
+            onProjectFilterChange={setProjectFilter}
+            onOpenRecord={onOpenRecord}
+            onDropFromBacklog={onDropFromBacklog}
+            onCompleteTask={onCompleteTask}
+            onRescheduleTask={onRescheduleTask}
+            onSnoozeTask={onSnoozeTask}
+            onDismissReminder={onDismissReminder}
+            onSnoozeReminder={onSnoozeReminder}
+          />
+        )}
       />
     </div>
   );

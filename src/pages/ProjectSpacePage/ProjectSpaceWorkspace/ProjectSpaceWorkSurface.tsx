@@ -1,43 +1,76 @@
 import type { ComponentProps, ReactElement } from 'react';
 import { AccessDeniedView } from '../../../components/auth/AccessDeniedView';
+import type { CalendarEventSummary, CalendarScope } from '../../../components/project-space/CalendarWidgetSkin/types';
+import { ProjectSurfaces } from '../../../components/project-space/ProjectSurfaces';
 import { WorkspaceDocSurface } from '../../../components/project-space/WorkspaceDocSurface';
 import { InlineNotice } from '../../../components/primitives';
-import { WorkView } from '../../../components/project-space/WorkView';
-import type { HubProjectSummary } from '../../../services/hub/types';
-import { ProjectSpaceFocusedViewSection } from './ProjectSpaceFocusedViewSection';
+import type { CreateReminderPayload, HubReminderSummary } from '../../../services/hub/reminders';
+import type { HubProjectMember, HubProjectSummary, HubTaskSummary } from '../../../services/hub/types';
 import { ProjectSpaceWorkProjectChrome } from './ProjectSpaceWorkProjectChrome';
 
 type ProjectChromeProps = ComponentProps<typeof ProjectSpaceWorkProjectChrome>;
-type FocusedViewProps = ComponentProps<typeof ProjectSpaceFocusedViewSection>;
-type WorkViewProps = ComponentProps<typeof WorkView>;
 type WorkspaceDocProps = ComponentProps<typeof WorkspaceDocSurface>;
 
 export interface ProjectSpaceWorkSurfaceProps {
   projectId?: string;
+  spaceId?: string;
   hasRequestedProject: boolean;
   activeProject: HubProjectSummary | null;
   activeProjectCanEdit: boolean;
-  widgetsEnabled: boolean;
+  widgetsEnabled?: boolean;
   workLayoutId?: string;
   recordsError: string | null;
   projectChromeProps: ProjectChromeProps;
-  focusedViewProps: FocusedViewProps;
-  workViewProps: Omit<WorkViewProps, 'layoutId' | 'project' | 'canEditProject' | 'widgetsEnabled' | 'showWorkspaceDocPlaceholder'>;
+  focusedViewProps?: unknown;
+  workViewProps?: unknown;
   workspaceDocProps: WorkspaceDocProps;
+  activeProjectDocId?: string | null;
+  onSelectProjectDoc?: (docId: string) => void;
+  accessToken?: string;
+  projectMembers?: HubProjectMember[];
+  calendarEvents?: CalendarEventSummary[];
+  calendarLoading?: boolean;
+  calendarMode?: CalendarScope;
+  onCalendarScopeChange?: (scope: CalendarScope) => void;
+  onOpenRecord?: (recordId: string) => void;
+  tasks?: HubTaskSummary[];
+  tasksLoading?: boolean;
+  tasksError?: string | null;
+  onRefreshTasks?: () => void;
+  reminders?: HubReminderSummary[];
+  remindersLoading?: boolean;
+  remindersError?: string | null;
+  onDismissReminder?: (reminderId: string) => Promise<void>;
+  onCreateReminder?: (payload: CreateReminderPayload) => Promise<void>;
 }
 
 export const ProjectSpaceWorkSurface = ({
   projectId,
+  spaceId,
   hasRequestedProject,
   activeProject,
   activeProjectCanEdit,
-  widgetsEnabled,
-  workLayoutId,
   recordsError,
   projectChromeProps,
-  focusedViewProps,
-  workViewProps,
   workspaceDocProps,
+  activeProjectDocId = workspaceDocProps.activeProjectDocId,
+  onSelectProjectDoc = () => {},
+  accessToken = workspaceDocProps.accessToken,
+  projectMembers = workspaceDocProps.projectMembers,
+  calendarEvents = [],
+  calendarLoading = false,
+  calendarMode = 'all',
+  onCalendarScopeChange = () => {},
+  onOpenRecord = () => {},
+  tasks = [],
+  tasksLoading = false,
+  tasksError = null,
+  onRefreshTasks = () => {},
+  reminders = [],
+  remindersLoading = false,
+  remindersError = null,
+  onDismissReminder = async () => {},
+  onCreateReminder = async () => {},
 }: ProjectSpaceWorkSurfaceProps): ReactElement => (
   <section className="space-y-4">
     <ProjectSpaceWorkProjectChrome {...projectChromeProps} />
@@ -46,15 +79,29 @@ export const ProjectSpaceWorkSurface = ({
       <AccessDeniedView message="Project not found in this space." />
     ) : (
       <>
-        <ProjectSpaceFocusedViewSection {...focusedViewProps} />
-
-        <WorkView
-          {...workViewProps}
-          layoutId={workLayoutId}
-          project={activeProject}
-          canEditProject={activeProjectCanEdit}
-          widgetsEnabled={widgetsEnabled}
-          showWorkspaceDocPlaceholder={false}
+        <ProjectSurfaces
+          activeProject={activeProject}
+          activeProjectCanEdit={activeProjectCanEdit}
+          activeProjectDocId={activeProjectDocId}
+          accessToken={accessToken}
+          calendarEvents={calendarEvents}
+          calendarLoading={calendarLoading}
+          calendarMode={calendarMode}
+          onCalendarScopeChange={onCalendarScopeChange}
+          onCreateReminder={onCreateReminder}
+          onDismissReminder={onDismissReminder}
+          onOpenRecord={onOpenRecord}
+          onRefreshTasks={onRefreshTasks}
+          onSelectProjectDoc={onSelectProjectDoc}
+          projectMembers={projectMembers}
+          reminders={reminders}
+          remindersError={remindersError}
+          remindersLoading={remindersLoading}
+          spaceId={spaceId ?? workspaceDocProps.projectId}
+          tasks={tasks}
+          tasksError={tasksError}
+          tasksLoading={tasksLoading}
+          workspaceDocProps={workspaceDocProps}
         />
 
         {recordsError ? (
@@ -62,8 +109,6 @@ export const ProjectSpaceWorkSurface = ({
             {recordsError}
           </InlineNotice>
         ) : null}
-
-        <WorkspaceDocSurface {...workspaceDocProps} />
       </>
     )}
   </section>

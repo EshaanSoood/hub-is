@@ -1,3 +1,6 @@
+import type { EventParticipant } from './events';
+import type { SourceProjectContext, TaskAssignment } from './tasks';
+
 /** Supported recurrence frequencies for standalone reminders. */
 export type ReminderFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type ReminderScope = 'personal' | 'space' | 'project';
@@ -22,6 +25,14 @@ export interface ReminderSummary {
   record_title: string;
   /** Space identifier that owns the linked record. */
   space_id: string;
+  /** User identifier that created the linked reminder record. */
+  created_by?: string;
+  /** Optional project context for project-origin reminders. */
+  source_project?: SourceProjectContext | null;
+  /** Task assignments on the linked record, when the record is a task. */
+  record_assignments?: TaskAssignment[];
+  /** Event participants on the linked record, when the record is an event. */
+  record_participants?: EventParticipant[];
   /** ISO 8601 datetime string when the reminder should fire. */
   remind_at: string;
   /** Delivery channels (currently includes `in_app`). */

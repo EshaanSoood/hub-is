@@ -36,6 +36,7 @@ export const createTaskRoutes = (deps) => {
     unreadNotificationsByUserStmt,
     visibleProjectTasksStmt,
     assignedTasksStmt,
+    eventParticipantByRecordAndUserStmt,
     homeEventsByProjectStmt,
     personalCapturesStmt,
     collectionsByProjectStmt,
@@ -209,7 +210,14 @@ export const createTaskRoutes = (deps) => {
     const rows = [];
     for (const projectId of visibleProjectIds) {
       const projectRows = homeEventsByProjectStmt.all(projectId);
-      rows.push(...projectRows.filter((record) => canUserSeeRecordInHomeRollup({ userId, record, visibilityCache })));
+      rows.push(
+        ...projectRows.filter((record) =>
+          canUserSeeRecordInHomeRollup({ userId, record, visibilityCache })
+          && (
+            record.created_by === userId
+            || Boolean(eventParticipantByRecordAndUserStmt.get(record.record_id, userId)?.ok)
+          )),
+      );
     }
     const nowMs = Date.now();
     return rows

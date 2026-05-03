@@ -12,7 +12,6 @@ import type { ProjectLateralSource } from '../../../components/motion/hubMotion'
 import { dialogLayoutIds } from '../../../styles/motion';
 import { useProjectControlEffects } from '../hooks/useProjectControlEffects';
 import { ProjectSpaceProjectSettingsDialog } from './ProjectSpaceProjectSettingsDialog';
-import { ProjectDocPicker } from './ProjectDocPicker';
 import { ProjectToolbarResourceDialogs } from './ProjectToolbarResourceDialogs';
 
 const projectToolbarButtonClassName =
@@ -23,7 +22,6 @@ const projectToolbarIconButtonClassName = `${projectToolbarButtonClassName} w-8 
 export interface ProjectSpaceProjectChromeProps {
   projectId: string;
   activeProject: HubProjectSummary | null;
-  activeProjectDocId: string | null;
   activeProjectCanEdit: boolean;
   canWriteProject: boolean;
   openedFromPinned: boolean;
@@ -51,16 +49,16 @@ export interface ProjectSpaceProjectChromeProps {
   onDeleteProject: (project: HubProjectSummary) => Promise<void>;
   onUpdateProject: (projectId: string, patch: { name?: string; layout_config?: Record<string, unknown> }) => Promise<void>;
   onToggleActiveProjectRegion: (region: 'widgets_enabled' | 'workspace_enabled') => void;
-  onSelectProjectDoc: (docId: string) => void;
-  onCreateProjectDoc: (title: string) => Promise<HubProjectDoc | null>;
-  onUpdateProjectDoc: (docId: string, patch: { title?: string; position?: number }) => Promise<HubProjectDoc>;
-  onDeleteProjectDoc: (docId: string) => Promise<void>;
+  activeProjectDocId?: string | null;
+  onSelectProjectDoc?: (docId: string) => void;
+  onCreateProjectDoc?: (title: string) => Promise<HubProjectDoc | null>;
+  onUpdateProjectDoc?: (docId: string, patch: { title?: string; position?: number }) => Promise<HubProjectDoc>;
+  onDeleteProjectDoc?: (docId: string) => Promise<void>;
 }
 
 export const ProjectSpaceWorkProjectChrome = ({
   projectId,
   activeProject,
-  activeProjectDocId,
   activeProjectCanEdit,
   canWriteProject,
   openedFromPinned,
@@ -82,10 +80,6 @@ export const ProjectSpaceWorkProjectChrome = ({
   onDeleteProject,
   onUpdateProject,
   onToggleActiveProjectRegion,
-  onSelectProjectDoc,
-  onCreateProjectDoc,
-  onUpdateProjectDoc,
-  onDeleteProjectDoc,
 }: ProjectSpaceProjectChromeProps): ReactElement => {
   const prefersReducedMotion = useReducedMotion();
   const [creatingProjectName, setCreatingProjectName] = useState('');
@@ -202,15 +196,6 @@ export const ProjectSpaceWorkProjectChrome = ({
           ) : openedFromPinned ? (
             <p className="text-xs text-muted">Project switcher hidden. Use the focusable toggle above to reveal it.</p>
           ) : null}
-          <ProjectDocPicker
-            activeProject={activeProject}
-            activeProjectCanEdit={activeProjectCanEdit}
-            activeProjectDocId={activeProjectDocId}
-            onSelectProjectDoc={onSelectProjectDoc}
-            onCreateProjectDoc={onCreateProjectDoc}
-            onUpdateProjectDoc={onUpdateProjectDoc}
-            onDeleteProjectDoc={onDeleteProjectDoc}
-          />
           {canWriteProject ? (
             <button
               ref={createProjectTriggerRef}

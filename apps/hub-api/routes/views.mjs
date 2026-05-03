@@ -637,6 +637,7 @@ export const createViewRoutes = (deps) => {
     const events = filtered.map((record) => ({
       record_id: record.record_id,
       title: record.title,
+      created_by: record.created_by,
       event_state: eventStateByRecordStmt.get(record.record_id),
       participants: participantsByRecordStmt.all(record.record_id).map((row) => ({ user_id: row.user_id, role: row.role })),
       source_project: sourceProjectContextForRecord(record, sourceProjectContextCache),
@@ -685,11 +686,13 @@ export const createViewRoutes = (deps) => {
         return [{
           record_id: record.record_id,
           title: record.title,
+          created_by: record.created_by,
           space_id: record.space_id,
           project_id: sourceProject?.project_id || null,
           project_name: sourceProject?.project_name || null,
           event_state: eventState,
           participants: participantsByRecordStmt.all(record.record_id).map((row) => ({ user_id: row.user_id, role: row.role })),
+          source_project: sourceProject,
         }];
       })
       .sort((left, right) => new Date(left.event_state.start_dt).getTime() - new Date(right.event_state.start_dt).getTime());

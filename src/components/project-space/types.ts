@@ -2,7 +2,7 @@ export const PROJECT_SPACE_PRIMARY_SURFACES = ['overview', 'work'] as const;
 
 export type TopLevelProjectTab = (typeof PROJECT_SPACE_PRIMARY_SURFACES)[number];
 
-export type OverviewViewId = 'timeline' | 'calendar' | 'tasks' | 'kanban';
+export type OverviewViewId = 'hub' | 'timeline' | 'calendar' | 'tasks';
 
 export type AudienceMode = 'project' | 'personal' | 'custom';
 
