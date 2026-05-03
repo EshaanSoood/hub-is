@@ -1,23 +1,14 @@
-import { FormEvent, useCallback, useMemo, useRef, useState, type ReactElement } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import {
-  Dialog,
-  DialogContent,
-} from '../../../components/project-space/ProjectSpaceDialogPrimitives';
-import { Icon, InlineNotice } from '../../../components/primitives';
+import { FormEvent, useMemo, useRef, useState, type ReactElement } from 'react';
+import { InlineNotice } from '../../../components/primitives';
 import { ProjectSwitcher } from '../../../components/project-space/ProjectSwitcher';
 import type { HubProjectSummary, HubProjectMember, HubProjectDoc } from '../../../services/hub/types';
 import type { FilesWidgetContract, ScratchPadContract } from '../../../components/project-space/widgetContracts';
 import type { ProjectLateralSource } from '../../../components/motion/hubMotion';
-import { dialogLayoutIds } from '../../../styles/motion';
 import { useProjectControlEffects } from '../hooks/useProjectControlEffects';
-import { ProjectSpaceProjectSettingsDialog } from './ProjectSpaceProjectSettingsDialog';
 import { ProjectToolbarResourceDialogs } from './ProjectToolbarResourceDialogs';
 
 const projectToolbarButtonClassName =
   'interactive interactive-fold card-folded inline-flex h-8 items-center justify-center bg-surface-low px-3 text-xs font-semibold text-primary transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring';
-
-const projectToolbarIconButtonClassName = `${projectToolbarButtonClassName} w-8 px-0`;
 
 export interface ProjectSpaceProjectChromeProps {
   projectId: string;
@@ -57,40 +48,26 @@ export interface ProjectSpaceProjectChromeProps {
 }
 
 export const ProjectSpaceWorkProjectChrome = ({
-  projectId,
   activeProject,
   activeProjectCanEdit,
   canWriteProject,
   openedFromPinned,
   orderedEditableProjects,
   readOnlyProjects,
-  projectMemberList,
-  sessionUserId,
-  activeEditableProjectIndex,
-  widgetsEnabled,
-  workspaceEnabled,
   projectMutationError,
   filesContract,
   scratchPadContract,
   onNavigateToProject,
   onCreateProject,
   onMoveProject,
-  onTogglePinned,
-  onToggleProjectMember,
-  onDeleteProject,
-  onUpdateProject,
-  onToggleActiveProjectRegion,
 }: ProjectSpaceProjectChromeProps): ReactElement => {
-  const prefersReducedMotion = useReducedMotion();
   const [creatingProjectName, setCreatingProjectName] = useState('');
   const [showCreateProjectControl, setShowCreateProjectControl] = useState(false);
   const [showProjectSwitcher, setShowProjectSwitcher] = useState(!openedFromPinned);
   const [showOtherProjects, setShowOtherProjects] = useState(false);
   const [otherProjectQuery, setOtherProjectQuery] = useState('');
-  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
   const previousOpenedFromPinnedRef = useRef(openedFromPinned);
   const createProjectTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const projectSettingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const createProjectNameInputRef = useRef<HTMLInputElement | null>(null);
 
   useProjectControlEffects({
@@ -108,13 +85,6 @@ export const ProjectSpaceWorkProjectChrome = ({
     }
     return readOnlyProjects.filter((project) => project.name.toLowerCase().includes(query));
   }, [otherProjectQuery, readOnlyProjects]);
-
-  const handleProjectSettingsOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      setProjectSettingsOpen(nextOpen);
-    },
-    [],
-  );
 
   const onCreateProjectSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -214,22 +184,6 @@ export const ProjectSpaceWorkProjectChrome = ({
             scratchPadContract={scratchPadContract}
             buttonClassName={projectToolbarButtonClassName}
           />
-          <motion.div
-            layoutId={!prefersReducedMotion && projectSettingsOpen ? dialogLayoutIds.projectSettings : undefined}
-            className="inline-flex"
-          >
-            <button
-              ref={projectSettingsTriggerRef}
-              type="button"
-              className={projectToolbarIconButtonClassName}
-              aria-label="Project settings"
-              aria-expanded={projectSettingsOpen}
-              onClick={() => setProjectSettingsOpen(true)}
-              disabled={!activeProject}
-            >
-              <Icon name="settings" className="text-[14px]" />
-            </button>
-          </motion.div>
         </div>
 
         {showCreateProjectControl && canWriteProject ? (
@@ -299,38 +253,6 @@ export const ProjectSpaceWorkProjectChrome = ({
         </InlineNotice>
       ) : null}
 
-      {activeProject ? (
-        <Dialog open={projectSettingsOpen} onOpenChange={handleProjectSettingsOpenChange}>
-          <DialogContent
-            open={projectSettingsOpen}
-            animated
-            layoutId={dialogLayoutIds.projectSettings}
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              projectSettingsTriggerRef.current?.focus();
-            }}
-          >
-            <ProjectSpaceProjectSettingsDialog
-              projectId={projectId}
-              activeProject={activeProject}
-              activeProjectCanEdit={activeProjectCanEdit}
-              activeEditableProjectIndex={activeEditableProjectIndex}
-              orderedEditableProjects={orderedEditableProjects}
-              projectMemberList={projectMemberList}
-              sessionUserId={sessionUserId}
-              widgetsEnabled={widgetsEnabled}
-              workspaceEnabled={workspaceEnabled}
-              onRequestClose={() => handleProjectSettingsOpenChange(false)}
-              onTogglePinned={onTogglePinned}
-              onMoveProject={onMoveProject}
-              onToggleProjectMember={onToggleProjectMember}
-              onDeleteProject={onDeleteProject}
-              onUpdateProject={onUpdateProject}
-              onToggleActiveProjectRegion={onToggleActiveProjectRegion}
-            />
-          </DialogContent>
-        </Dialog>
-      ) : null}
     </div>
   );
 };

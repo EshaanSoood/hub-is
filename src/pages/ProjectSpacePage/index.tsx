@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import type { ReactElement } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjectBootstrap } from '../../hooks/useProjectBootstrap';
 import { InlineNotice } from '../../components/primitives';
@@ -14,7 +14,9 @@ interface ProjectSpacePageProps {
 export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactElement => {
   const prefersReducedMotion = useReducedMotion();
   const { projectId = '' } = useParams();
+  const location = useLocation();
   const { accessToken, sessionSummary } = useAuthz();
+  const resolvedActiveTab: TopLevelProjectTab = location.pathname.includes('/overview') ? 'overview' : activeTab;
   const { error, loading, projects, project, projectMembers, refreshProjectData, setProjects, setTimeline, timeline } =
     useProjectBootstrap({
       accessToken,
@@ -67,13 +69,13 @@ export const ProjectSpacePage = ({ activeTab }: ProjectSpacePageProps): ReactEle
     );
   }
 
-  if (activeTab === 'overview' && (project.membership_role === 'viewer' || project.membership_role === 'guest')) {
+  if (resolvedActiveTab === 'overview' && (project.membership_role === 'viewer' || project.membership_role === 'guest')) {
     return <Navigate to={buildProjectWorkHref(project.space_id)} replace />;
   }
 
   return (
     <ProjectSpaceWorkspace
-      activeTab={activeTab}
+      activeTab={resolvedActiveTab}
       project={project}
       projects={projects}
       setProjects={setProjects}

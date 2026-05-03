@@ -676,6 +676,13 @@ const activeProject = useMemo(
       onRefreshTasks: () => {
         void loadProjectTaskPage();
       },
+      onOpenProject: (project) => {
+        navigateToProject({
+          projectId: project.project_id,
+          projectName: project.name,
+          projectSource: 'click',
+        });
+      },
       inviteEmail,
       inviteRole,
       inviteProjectIds,

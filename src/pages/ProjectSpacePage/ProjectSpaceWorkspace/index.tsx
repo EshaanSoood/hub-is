@@ -1,9 +1,20 @@
 import { motion, useReducedMotion } from 'framer-motion';
+import { useCallback, useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
 import type { HubProjectSummary, HubProject, HubProjectMember } from '../../../services/hub/types';
+import { useShellHeader } from '../../../components/layout/AppShell/ShellHeaderContext';
+import {
+  Dialog,
+  DialogContent,
+} from '../../../components/project-space/ProjectSpaceDialogPrimitives';
+import { updateSpace } from '../../../services/hub/spaces';
+import { dialogLayoutIds } from '../../../styles/motion';
+import { buildProjectOverviewHref, buildProjectWorkHref } from '../../../lib/hubRoutes';
 import { ProjectSpaceInspectorOverlay } from './ProjectSpaceInspectorOverlay';
 import { ProjectSpaceOverviewSurface } from './ProjectSpaceOverviewSurface';
 import { ProjectSpaceWorkSurface } from './ProjectSpaceWorkSurface';
+import { ProjectSpaceProjectSettingsDialog } from './ProjectSpaceProjectSettingsDialog';
+import { projectSurfaceTabs, type ProjectSurfaceId } from '../../../components/project-space/ProjectSurfaces';
 import { useProjectSpacePageRuntime } from './hooks/useProjectSpacePageRuntime';
 import { PROJECT_SPACE_PRIMARY_SURFACES, type TimelineEvent, type TopLevelProjectTab } from './types';
 
@@ -38,6 +49,8 @@ export const ProjectSpaceWorkspace = ({
   setTimeline: React.Dispatch<React.SetStateAction<TimelineEvent[]>>;
 }): ReactElement => {
   const prefersReducedMotion = useReducedMotion() ?? false;
+  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
+  const [activeProjectSurface, setActiveProjectSurface] = useState<ProjectSurfaceId>('hub');
   const {
     projectLayoutId,
     navigatorProps,
@@ -57,77 +70,218 @@ export const ProjectSpaceWorkspace = ({
     setTimeline,
     prefersReducedMotion,
   });
-  const primarySurfaceHandlers: Record<TopLevelProjectTab, () => void> = {
-    overview: navigatorProps.onNavigateOverview,
-    work: navigatorProps.onNavigateWork,
-  };
+  const activeWorkProject = workProps.projectChromeProps.activeProject;
+  const activeWorkProjectCanEdit = workProps.projectChromeProps.activeProjectCanEdit;
+  const activeWorkProjectWidgetsEnabled = workProps.projectChromeProps.widgetsEnabled;
+  const activeWorkProjectWorkspaceEnabled = workProps.projectChromeProps.workspaceEnabled;
+  const moveWorkProject = workProps.projectChromeProps.onMoveProject;
+  const toggleActiveWorkProjectPinned = workProps.projectChromeProps.onTogglePinned;
+  const toggleActiveWorkProjectRegion = workProps.projectChromeProps.onToggleActiveProjectRegion;
+  const updateWorkProject = workProps.projectChromeProps.onUpdateProject;
   const canAccessOverview = project.membership_role !== 'viewer' && project.membership_role !== 'guest';
-  const primarySurfaces = canAccessOverview
-    ? PROJECT_SPACE_PRIMARY_SURFACES
-    : PROJECT_SPACE_PRIMARY_SURFACES.filter((surface) => surface !== 'overview');
+  const primarySurfaces = useMemo(
+    () => (canAccessOverview
+      ? PROJECT_SPACE_PRIMARY_SURFACES
+      : PROJECT_SPACE_PRIMARY_SURFACES.filter((surface) => surface !== 'overview')),
+    [canAccessOverview],
+  );
+  const {
+    activeTab: navigatorActiveTab,
+    currentProjectId: navigatorCurrentProjectId,
+    openedFromPinned: navigatorOpenedFromPinned,
+    pinnedProjects: navigatorPinnedProjects,
+    projectId: navigatorProjectId,
+    projectName: navigatorProjectName,
+  } = navigatorProps;
+  const renamePlace = useCallback(
+    async (name: string) => {
+      if (activeTab === 'work' && activeWorkProject) {
+        await updateWorkProject(activeWorkProject.project_id, { name });
+        return;
+      }
+      await updateSpace(accessToken, project.space_id, { name });
+      await refreshProjectData();
+    },
+    [accessToken, activeTab, activeWorkProject, project.space_id, refreshProjectData, updateWorkProject],
+  );
+  const shellHeaderConfig = useMemo(() => {
+    const projectSurfaceNavItems = projectSurfaceTabs.map((surface) => ({
+      id: surface.id,
+      label: surface.label,
+      selected: activeTab === 'work' && activeProjectSurface === surface.id,
+      onSelect: () => setActiveProjectSurface(surface.id),
+    }));
+    const spaceNavItems = primarySurfaces.map((surface) => {
+      const selected = surface === 'work'
+        ? navigatorActiveTab === 'work' && !navigatorOpenedFromPinned
+        : navigatorActiveTab === surface;
+
+      return {
+        id: `space-${surface}`,
+        label: primarySurfaceLabels[surface],
+        selected,
+        href: surface === 'overview'
+          ? buildProjectOverviewHref(project.space_id)
+          : buildProjectWorkHref(project.space_id, activeWorkProject?.project_id),
+        state: {
+          hubProjectName: surface === 'overview'
+            ? navigatorProjectName
+            : activeWorkProject?.name ?? navigatorProjectName,
+          hubProjectSource: 'click',
+          ...(surface === 'overview' ? { hubAnnouncement: `Back to ${navigatorProjectName}` } : {}),
+        },
+      };
+    });
+    const pinnedNavItems = navigatorPinnedProjects.map((project) => ({
+      id: `pinned-${project.project_id}`,
+      label: project.name,
+      selected: navigatorCurrentProjectId === project.project_id && navigatorOpenedFromPinned,
+      href: `${buildProjectWorkHref(navigatorProjectId, project.project_id)}?pinned=1`,
+      state: {
+        hubProjectName: project.name,
+        hubProjectSource: 'click',
+      },
+      ariaLabel: `Open pinned project ${project.name}`,
+    }));
+    const variableNavItems = activeTab === 'work'
+      ? projectSurfaceNavItems
+      : [...spaceNavItems, ...pinnedNavItems];
+    const placeTitle = activeTab === 'work'
+      ? activeWorkProject?.name ?? navigatorProjectName
+      : navigatorProjectName;
+    const placeActions = activeTab === 'work' && activeWorkProject
+      ? [
+          {
+            id: 'project-settings',
+            label: 'Project settings',
+            onSelect: () => setProjectSettingsOpen(true),
+          },
+          {
+            id: 'toggle-pinned',
+            label: activeWorkProject.pinned ? 'Unpin project' : 'Pin project',
+            onSelect: () => {
+              void toggleActiveWorkProjectPinned(activeWorkProject);
+            },
+          },
+          {
+            id: 'move-up',
+            label: 'Move project left',
+            onSelect: () => {
+              void moveWorkProject(activeWorkProject, 'up');
+            },
+          },
+          {
+            id: 'move-down',
+            label: 'Move project right',
+            onSelect: () => {
+              void moveWorkProject(activeWorkProject, 'down');
+            },
+          },
+          {
+            id: 'toggle-widgets',
+            label: activeWorkProjectWidgetsEnabled ? 'Hide widgets' : 'Show widgets',
+            disabled: !activeWorkProjectCanEdit,
+            onSelect: () => toggleActiveWorkProjectRegion('widgets_enabled'),
+          },
+          {
+            id: 'toggle-workspace',
+            label: activeWorkProjectWorkspaceEnabled ? 'Hide workspace' : 'Show workspace',
+            disabled: !activeWorkProjectCanEdit,
+            onSelect: () => toggleActiveWorkProjectRegion('workspace_enabled'),
+          },
+        ]
+      : [];
+
+    return {
+      backAction: activeTab === 'work'
+        ? {
+            label: `Back to ${navigatorProjectName}`,
+            href: buildProjectOverviewHref(project.space_id),
+            state: {
+              hubAnnouncement: `Back to ${navigatorProjectName}`,
+              hubProjectName: navigatorProjectName,
+              hubProjectSource: 'click',
+            },
+          }
+        : {
+            label: 'Back to Home',
+            href: '/projects',
+            state: {
+              hubAnnouncement: 'Back to Home',
+            },
+          },
+      navItems: variableNavItems,
+      placeTitle,
+      placeKind: activeTab === 'work' ? 'project' as const : 'space' as const,
+      onRenamePlace: renamePlace,
+      placeActions,
+    };
+  }, [
+    activeProjectSurface,
+    activeWorkProject,
+    activeWorkProjectCanEdit,
+    activeWorkProjectWidgetsEnabled,
+    activeWorkProjectWorkspaceEnabled,
+    activeTab,
+    moveWorkProject,
+    navigatorActiveTab,
+    navigatorCurrentProjectId,
+    navigatorOpenedFromPinned,
+    navigatorPinnedProjects,
+    navigatorProjectId,
+    navigatorProjectName,
+    primarySurfaces,
+    project.space_id,
+    renamePlace,
+    setProjectSettingsOpen,
+    toggleActiveWorkProjectPinned,
+    toggleActiveWorkProjectRegion,
+  ]);
+
+  useShellHeader(shellHeaderConfig);
 
   return (
     <motion.div layoutId={projectLayoutId} className="space-y-4">
-      <div className="rounded-panel border border-subtle bg-elevated p-3">
-        <div className="mb-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Space</p>
-          <h1
-            className="mt-1 line-clamp-2 text-base font-bold text-text"
-            title={navigatorProps.projectName}
-          >
-            {navigatorProps.projectName}
-          </h1>
-        </div>
-        <nav className="flex flex-wrap items-center gap-2" aria-label="Space navigation">
-          {primarySurfaces.map((surface) => {
-            const selected = surface === 'work'
-              ? navigatorProps.activeTab === 'work' && !navigatorProps.openedFromPinned
-              : navigatorProps.activeTab === surface;
-
-            return (
-              <button
-                key={surface}
-                type="button"
-                onClick={primarySurfaceHandlers[surface]}
-                className={`rounded-panel px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                  selected ? 'bg-primary text-on-primary' : 'border border-border-muted text-primary'
-                }`}
-                aria-current={selected ? 'page' : undefined}
-              >
-                {primarySurfaceLabels[surface]}
-              </button>
-            );
-          })}
-
-          {navigatorProps.pinnedProjects.map((project) => {
-            const selected = navigatorProps.currentProjectId === project.project_id && navigatorProps.openedFromPinned;
-            return (
-              <button
-                key={project.project_id}
-                type="button"
-                onClick={() => navigatorProps.onNavigatePinnedProject(project)}
-                className={`cursor-pointer rounded-panel border px-3 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                  selected
-                    ? 'border-primary bg-primary text-on-primary'
-                    : 'border-border-muted bg-surface text-primary hover:border-primary hover:bg-primary/10'
-                }`}
-                aria-current={selected ? 'page' : undefined}
-                aria-label={`Open pinned project ${project.name}`}
-              >
-                <span className="flex flex-col items-center leading-tight">
-                  <span>{project.name}</span>
-                  <span className={selected ? 'mt-1 h-1 w-1 rounded-full bg-on-primary' : 'mt-1 h-1 w-1 rounded-full bg-muted'} aria-hidden="true" />
-                </span>
-              </button>
-              );
-          })}
-        </nav>
-      </div>
-
       {activeTab === 'overview' ? <ProjectSpaceOverviewSurface {...overviewProps} /> : null}
-      {activeTab === 'work' ? <ProjectSpaceWorkSurface {...workProps} /> : null}
+      {activeTab === 'work' ? (
+        <ProjectSpaceWorkSurface
+          {...workProps}
+          activeProjectSurface={activeProjectSurface}
+        />
+      ) : null}
 
       <ProjectSpaceInspectorOverlay {...recordInspectorOverlayProps} />
+      {workProps.projectChromeProps.activeProject ? (
+        <Dialog open={projectSettingsOpen} onOpenChange={setProjectSettingsOpen}>
+          <DialogContent
+            open={projectSettingsOpen}
+            animated
+            layoutId={!prefersReducedMotion ? dialogLayoutIds.projectSettings : undefined}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+            }}
+          >
+            <ProjectSpaceProjectSettingsDialog
+              projectId={workProps.projectChromeProps.projectId}
+              activeProject={workProps.projectChromeProps.activeProject}
+              activeProjectCanEdit={workProps.projectChromeProps.activeProjectCanEdit}
+              activeEditableProjectIndex={workProps.projectChromeProps.activeEditableProjectIndex}
+              orderedEditableProjects={workProps.projectChromeProps.orderedEditableProjects}
+              projectMemberList={workProps.projectChromeProps.projectMemberList}
+              sessionUserId={workProps.projectChromeProps.sessionUserId}
+              widgetsEnabled={workProps.projectChromeProps.widgetsEnabled}
+              workspaceEnabled={workProps.projectChromeProps.workspaceEnabled}
+              onRequestClose={() => setProjectSettingsOpen(false)}
+              onTogglePinned={workProps.projectChromeProps.onTogglePinned}
+              onMoveProject={workProps.projectChromeProps.onMoveProject}
+              onToggleProjectMember={workProps.projectChromeProps.onToggleProjectMember}
+              onDeleteProject={workProps.projectChromeProps.onDeleteProject}
+              onUpdateProject={workProps.projectChromeProps.onUpdateProject}
+              onToggleActiveProjectRegion={workProps.projectChromeProps.onToggleActiveProjectRegion}
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </motion.div>
   );
 };

@@ -22,10 +22,7 @@ export const useRouteFocusReset = () => {
         activeElement instanceof HTMLElement
         && activeElement !== document.body
         && activeElement !== document.documentElement
-        && (
-          mainContent.contains(activeElement)
-          || activeElement.closest('[role="dialog"], [aria-modal="true"]')
-        )
+        && activeElement.closest('[role="dialog"], [aria-modal="true"]')
       ) {
         return;
       }

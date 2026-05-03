@@ -34,6 +34,7 @@ interface OverviewViewProps {
   tasksError: string | null;
   onRefreshTasks: () => void;
   projects: HubProjectSummary[];
+  onOpenProject: (project: HubProjectSummary) => void;
   projectMembers: HubProjectMember[];
   canInviteMembers: boolean;
   canManageMembers: boolean;
@@ -88,6 +89,7 @@ export const OverviewView = ({
   tasksError,
   onRefreshTasks,
   projects,
+  onOpenProject,
   projectMembers,
   canInviteMembers,
   canManageMembers,
@@ -176,15 +178,22 @@ export const OverviewView = ({
                 {projects.length > 0 ? (
                   <ul className="divide-y divide-border-muted rounded-md border border-border-muted bg-surface" aria-label="Projects in this hub">
                     {projects.map((project) => (
-                      <li key={project.project_id} className="flex items-center justify-between gap-4 px-4 py-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-text">{project.name}</p>
-                          <p className="text-xs text-muted">
-                            {project.docs.length} {project.docs.length === 1 ? 'doc' : 'docs'} &middot; {project.members.length}{' '}
-                            {project.members.length === 1 ? 'member' : 'members'}
-                          </p>
-                        </div>
-                        {project.pinned ? <span className="text-xs font-medium text-muted">Pinned</span> : null}
+                      <li key={project.project_id}>
+                        <button
+                          type="button"
+                          onClick={() => onOpenProject(project)}
+                          className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-surface-highest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          aria-label={`Open project ${project.name}`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-text">{project.name}</span>
+                            <span className="block text-xs text-muted">
+                              {project.docs.length} {project.docs.length === 1 ? 'doc' : 'docs'} &middot; {project.members.length}{' '}
+                              {project.members.length === 1 ? 'member' : 'members'}
+                            </span>
+                          </span>
+                          {project.pinned ? <span className="text-xs font-medium text-muted">Pinned</span> : null}
+                        </button>
                       </li>
                     ))}
                   </ul>

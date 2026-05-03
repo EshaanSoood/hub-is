@@ -16,6 +16,7 @@ import { SidebarShell } from '../../Sidebar';
 import { LiveRegion } from '../../primitives';
 import { AppCommandBar } from './AppCommandBar';
 import { decideRouteTransition } from './routeMotion';
+import { ShellHeaderProvider, useShellHeaderConfig } from './ShellHeaderContext';
 
 const decodePathSegment = (value: string | null): string | null => {
   if (!value) {
@@ -40,7 +41,7 @@ const defaultHomeRouteState: HomeRouteState = {
   pinned: false,
 };
 
-export const AppShell = ({ children }: { children: ReactNode }) => {
+const AppShellContent = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const navigationType = useNavigationType();
@@ -94,6 +95,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }, [currentSpaceId, isOnHome, projects]);
   const currentProjectProjectsProjectId = currentProject?.id ?? null;
   const { projects: currentProjectProjects } = useProjectProjects(accessToken, currentProjectProjectsProjectId);
+  const headerConfig = useShellHeaderConfig();
 
   useEffect(() => {
     if (!isOnHome) {
@@ -142,6 +144,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             currentProject={currentProject}
             currentProjectProjects={currentProjectProjects}
             currentSurface={currentSurface}
+            headerConfig={headerConfig}
             onOpenQuickThoughts={() => {
               const homeRoute = isOnHome ? currentHomeState : lastHomeRouteRef.current;
               navigate(buildHomeOverlayHref('thoughts', {
@@ -161,3 +164,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     </div>
   );
 };
+
+export const AppShell = ({ children }: { children: ReactNode }) => (
+  <ShellHeaderProvider>
+    <AppShellContent>{children}</AppShellContent>
+  </ShellHeaderProvider>
+);

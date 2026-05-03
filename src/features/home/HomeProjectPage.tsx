@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useShellHeader } from '../../components/layout/AppShell/ShellHeaderContext';
 import { useAuthz } from '../../context/AuthzContext';
 import { useProjects } from '../../context/ProjectsContext';
 import { useCalendarRuntime } from '../../hooks/useCalendarRuntime';
@@ -63,6 +64,26 @@ export const HomeProjectPage = () => {
   });
 
   const requiresNamePrompt = Boolean(homeIdentity.backingProject?.isPersonal && homeIdentity.backingProject?.needsNamePrompt);
+  const selectHomeSurface = useCallback((surface: typeof activeSurface) => {
+    setSearchParams((current) => rewriteHomeSurfaceSearchParams(current, surface), { replace: true });
+  }, [setSearchParams]);
+  const shellHeaderConfig = useMemo(
+    () => ({
+      placeTitle: 'Home',
+      placeKind: 'home' as const,
+      navItems: [
+        {
+          id: 'stream',
+          label: 'Stream',
+          selected: activeSurface === 'stream',
+          onSelect: () => selectHomeSurface('stream'),
+        },
+      ],
+    }),
+    [activeSurface, selectHomeSurface],
+  );
+
+  useShellHeader(shellHeaderConfig);
 
   useEffect(() => {
     setProjectNameDraft(homeIdentity.projectName);
@@ -161,9 +182,7 @@ export const HomeProjectPage = () => {
             onRefreshTasks={() => {
               void tasksRuntime.loadProjectTaskPage();
             }}
-            onSelectSurface={(surface) => {
-              setSearchParams((current) => rewriteHomeSurfaceSearchParams(current, surface), { replace: true });
-            }}
+            onSelectSurface={selectHomeSurface}
             projects={projects}
             runtime={homeRuntime}
             tasks={tasksRuntime.tasksOverviewRows}

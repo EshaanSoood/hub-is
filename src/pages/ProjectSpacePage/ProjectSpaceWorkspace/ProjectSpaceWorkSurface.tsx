@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactElement } from 'react';
 import { AccessDeniedView } from '../../../components/auth/AccessDeniedView';
 import type { CalendarEventSummary, CalendarScope } from '../../../components/project-space/CalendarWidgetSkin/types';
-import { ProjectSurfaces } from '../../../components/project-space/ProjectSurfaces';
+import { ProjectSurfaces, type ProjectSurfaceId } from '../../../components/project-space/ProjectSurfaces';
 import { WorkspaceDocSurface } from '../../../components/project-space/WorkspaceDocSurface';
 import { InlineNotice } from '../../../components/primitives';
 import type { CreateReminderPayload, HubReminderSummary } from '../../../services/hub/reminders';
@@ -17,6 +17,7 @@ export interface ProjectSpaceWorkSurfaceProps {
   hasRequestedProject: boolean;
   activeProject: HubProjectSummary | null;
   activeProjectCanEdit: boolean;
+  activeProjectSurface?: ProjectSurfaceId;
   widgetsEnabled?: boolean;
   workLayoutId?: string;
   recordsError: string | null;
@@ -50,6 +51,7 @@ export const ProjectSpaceWorkSurface = ({
   hasRequestedProject,
   activeProject,
   activeProjectCanEdit,
+  activeProjectSurface = 'hub',
   recordsError,
   projectChromeProps,
   workspaceDocProps,
@@ -82,6 +84,7 @@ export const ProjectSpaceWorkSurface = ({
         <ProjectSurfaces
           activeProject={activeProject}
           activeProjectCanEdit={activeProjectCanEdit}
+          activeSurface={activeProjectSurface}
           activeProjectDocId={activeProjectDocId}
           accessToken={accessToken}
           calendarEvents={calendarEvents}

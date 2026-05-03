@@ -29,6 +29,7 @@ export interface ProjectSpaceOverviewSurfaceProps {
   tasksLoading: boolean;
   tasksError: string | null;
   onRefreshTasks: () => void;
+  onOpenProject: (project: HubProjectSummary) => void;
   inviteEmail: string;
   inviteRole: SpaceInviteRole;
   inviteProjectIds: string[];
@@ -72,6 +73,7 @@ export const ProjectSpaceOverviewSurface = ({
   tasksLoading,
   tasksError,
   onRefreshTasks,
+  onOpenProject,
   inviteEmail,
   inviteRole,
   inviteProjectIds,
@@ -136,6 +138,7 @@ export const ProjectSpaceOverviewSurface = ({
         tasksError={tasksError}
         onRefreshTasks={onRefreshTasks}
         projects={projects}
+        onOpenProject={onOpenProject}
         projectMembers={projectMemberList}
         canInviteMembers={!isPersonalProject}
         canManageMembers={canManageMembers}

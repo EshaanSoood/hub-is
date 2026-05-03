@@ -127,6 +127,7 @@ export const HomeDashboardSurface = ({
         reminders={remindersRuntime.reminders}
         remindersError={remindersRuntime.error}
         remindersLoading={remindersRuntime.loading}
+        showSurfaceTabs={false}
         tasks={tasks}
         tasksError={tasksError}
         tasksLoading={tasksLoading}

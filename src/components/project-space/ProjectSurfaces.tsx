@@ -1,4 +1,4 @@
-import { useState, type ComponentProps, type ReactElement } from 'react';
+import type { ComponentProps, ReactElement } from 'react';
 import { Card } from '../primitives';
 import type { CreateReminderPayload, HubReminderSummary } from '../../services/hub/reminders';
 import type { HubProjectMember, HubProjectSummary, HubTaskSummary } from '../../services/hub/types';
@@ -6,14 +6,14 @@ import { CalendarWidgetSkin } from './CalendarWidgetSkin';
 import type { CalendarEventSummary, CalendarScope } from './CalendarWidgetSkin/types';
 import { ProjectDocsTab } from './ProjectDocsTab';
 import { RemindersWidgetSkin } from './RemindersWidgetSkin';
-import { SurfaceTabBar, type SurfaceTabItem } from './SurfaceTabBar';
+import type { SurfaceTabItem } from './SurfaceTabBar';
 import { TasksSurface } from './TasksSurface';
 import { WorkspaceDocSurface } from './WorkspaceDocSurface';
 
 type WorkspaceDocProps = ComponentProps<typeof WorkspaceDocSurface>;
-type ProjectSurfaceId = 'hub' | 'docs' | 'calendar' | 'tasks' | 'reminders';
+export type ProjectSurfaceId = 'hub' | 'docs' | 'calendar' | 'tasks' | 'reminders';
 
-const projectSurfaceTabs: Array<SurfaceTabItem<ProjectSurfaceId>> = [
+export const projectSurfaceTabs: Array<SurfaceTabItem<ProjectSurfaceId>> = [
   { id: 'hub', label: 'Hub' },
   { id: 'docs', label: 'Docs' },
   { id: 'calendar', label: 'Calendar' },
@@ -24,6 +24,7 @@ const projectSurfaceTabs: Array<SurfaceTabItem<ProjectSurfaceId>> = [
 export interface ProjectSurfacesProps {
   activeProject: HubProjectSummary | null;
   activeProjectCanEdit: boolean;
+  activeSurface: ProjectSurfaceId;
   activeProjectDocId: string | null;
   accessToken: string;
   calendarEvents: CalendarEventSummary[];
@@ -49,6 +50,7 @@ export interface ProjectSurfacesProps {
 export const ProjectSurfaces = ({
   activeProject,
   activeProjectCanEdit,
+  activeSurface,
   activeProjectDocId,
   accessToken,
   calendarEvents,
@@ -69,22 +71,10 @@ export const ProjectSurfaces = ({
   tasksError,
   tasksLoading,
   workspaceDocProps,
-}: ProjectSurfacesProps): ReactElement => {
-  const [activeSurface, setActiveSurface] = useState<ProjectSurfaceId>('hub');
-
-  return (
+}: ProjectSurfacesProps): ReactElement => (
     <Card className="min-h-0 px-5 pb-4 pt-5">
-      <SurfaceTabBar
-        activeSurface={activeSurface}
-        ariaLabel="Project surfaces"
-        idPrefix="project-surface-tab"
-        items={projectSurfaceTabs}
-        onSelectSurface={setActiveSurface}
-        panelIdPrefix="project-surface-panel"
-      />
-
       {activeSurface === 'hub' ? (
-        <div id="project-surface-panel-hub" role="tabpanel" aria-labelledby="project-surface-tab-hub" className="mt-4">
+        <div id="project-surface-panel-hub" role="tabpanel" aria-label="Project Hub">
           <section className="rounded-panel border border-subtle bg-elevated p-4">
             <h3 className="heading-3 text-text">Project Hub</h3>
             <p className="mt-2 text-sm text-muted">This project surface is coming soon.</p>
@@ -93,7 +83,7 @@ export const ProjectSurfaces = ({
       ) : null}
 
       {activeSurface === 'docs' ? (
-        <div id="project-surface-panel-docs" role="tabpanel" aria-labelledby="project-surface-tab-docs" className="mt-4">
+        <div id="project-surface-panel-docs" role="tabpanel" aria-label="Docs">
           <ProjectDocsTab
             activeProject={activeProject}
             activeProjectCanEdit={activeProjectCanEdit}
@@ -105,7 +95,7 @@ export const ProjectSurfaces = ({
       ) : null}
 
       {activeSurface === 'calendar' ? (
-        <div id="project-surface-panel-calendar" role="tabpanel" aria-labelledby="project-surface-tab-calendar" className="mt-4 min-h-[32rem]">
+        <div id="project-surface-panel-calendar" role="tabpanel" aria-label="Calendar" className="min-h-[32rem]">
           <CalendarWidgetSkin
             sizeTier="L"
             events={calendarEvents.filter((event) => event.source_project?.project_id === activeProject?.project_id)}
@@ -118,7 +108,7 @@ export const ProjectSurfaces = ({
       ) : null}
 
       {activeSurface === 'tasks' ? (
-        <div id="project-surface-panel-tasks" role="tabpanel" aria-labelledby="project-surface-tab-tasks" className="mt-4">
+        <div id="project-surface-panel-tasks" role="tabpanel" aria-label="Tasks">
           <TasksSurface
             accessToken={accessToken}
             spaceId={spaceId}
@@ -134,7 +124,7 @@ export const ProjectSurfaces = ({
       ) : null}
 
       {activeSurface === 'reminders' ? (
-        <div id="project-surface-panel-reminders" role="tabpanel" aria-labelledby="project-surface-tab-reminders" className="mt-4 min-h-0">
+        <div id="project-surface-panel-reminders" role="tabpanel" aria-label="Reminders" className="min-h-0">
           <RemindersWidgetSkin
             sizeTier="L"
             reminders={reminders}
@@ -146,5 +136,4 @@ export const ProjectSurfaces = ({
         </div>
       ) : null}
     </Card>
-  );
-};
+);

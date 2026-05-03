@@ -48,6 +48,7 @@ interface HomeOverviewSurfaceProps {
   reminders: HubReminderSummary[];
   remindersError: string | null;
   remindersLoading: boolean;
+  showSurfaceTabs?: boolean;
   tasks: HubTaskSummary[];
   tasksError: string | null;
   tasksLoading: boolean;
@@ -89,6 +90,7 @@ export const HomeOverviewSurface = ({
   reminders,
   remindersError,
   remindersLoading,
+  showSurfaceTabs = true,
   tasks,
   tasksError,
   tasksLoading,
@@ -177,28 +179,31 @@ export const HomeOverviewSurface = ({
   return (
     <section className="space-y-4">
       <Card className="min-h-0 px-5 pb-4 pt-5">
-        <div>
-          <Tabs value={activeSurface} onValueChange={(nextValue) => onSelectSurface(nextValue as HomeSurfaceId)} activationMode="manual">
-            <TabsList aria-label="Home surfaces">
-              {overviewViews.map((view) => (
-                <TabButton
-                  key={view.id}
-                  id={`home-surface-tab-${view.id}`}
-                  value={view.id}
-                  aria-controls={`home-surface-panel-${view.id}`}
-                  selected={activeSurface === view.id}
-                >
-                  {view.label}
-                </TabButton>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
+        {showSurfaceTabs ? (
+          <div>
+            <Tabs value={activeSurface} onValueChange={(nextValue) => onSelectSurface(nextValue as HomeSurfaceId)} activationMode="manual">
+              <TabsList aria-label="Home surfaces">
+                {overviewViews.map((view) => (
+                  <TabButton
+                    key={view.id}
+                    id={`home-surface-tab-${view.id}`}
+                    value={view.id}
+                    aria-controls={`home-surface-panel-${view.id}`}
+                    selected={activeSurface === view.id}
+                  >
+                    {view.label}
+                  </TabButton>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+        ) : null}
 
         <div
           id="home-surface-panel-hub"
           role="tabpanel"
-          aria-labelledby="home-surface-tab-hub"
+          aria-label={showSurfaceTabs ? undefined : 'Hub'}
+          aria-labelledby={showSurfaceTabs ? 'home-surface-tab-hub' : undefined}
           aria-hidden={activeSurface !== 'hub'}
           className={`mt-4 space-y-4 ${activeSurface !== 'hub' ? 'hidden' : ''}`}
         >
@@ -207,13 +212,25 @@ export const HomeOverviewSurface = ({
         </div>
 
         {activeSurface === 'stream' ? (
-          <div id="home-surface-panel-stream" role="tabpanel" aria-labelledby="home-surface-tab-stream" className="mt-4">
+          <div
+            id="home-surface-panel-stream"
+            role="tabpanel"
+            aria-label={showSurfaceTabs ? undefined : 'Stream'}
+            aria-labelledby={showSurfaceTabs ? 'home-surface-tab-stream' : undefined}
+            className="mt-4"
+          >
             <StreamView items={items} projects={projects} onOpenRecord={onOpenRecord} now={now} />
           </div>
         ) : null}
 
         {activeSurface === 'calendar' ? (
-          <div id="home-surface-panel-calendar" role="tabpanel" aria-labelledby="home-surface-tab-calendar" className="mt-4">
+          <div
+            id="home-surface-panel-calendar"
+            role="tabpanel"
+            aria-label={showSurfaceTabs ? undefined : 'Calendar'}
+            aria-labelledby={showSurfaceTabs ? 'home-surface-tab-calendar' : undefined}
+            className="mt-4"
+          >
             <div className="home-overview-calendar-panel-min-h">
               <CalendarWidgetSkin
                 sizeTier="L"
@@ -228,7 +245,13 @@ export const HomeOverviewSurface = ({
         ) : null}
 
         {activeSurface === 'tasks' ? (
-          <div id="home-surface-panel-tasks" role="tabpanel" aria-labelledby="home-surface-tab-tasks" className="mt-4 min-h-0 space-y-3">
+          <div
+            id="home-surface-panel-tasks"
+            role="tabpanel"
+            aria-label={showSurfaceTabs ? undefined : 'Tasks'}
+            aria-labelledby={showSurfaceTabs ? 'home-surface-tab-tasks' : undefined}
+            className="mt-4 min-h-0 space-y-3"
+          >
             <div className="flex items-center justify-between gap-3">
               <motion.button
                 layoutId={!prefersReducedMotion && taskCreateOpen ? dialogLayoutIds.taskCreate : undefined}
@@ -315,7 +338,13 @@ export const HomeOverviewSurface = ({
         ) : null}
 
         {activeSurface === 'reminders' ? (
-          <div id="home-surface-panel-reminders" role="tabpanel" aria-labelledby="home-surface-tab-reminders" className="mt-4 min-h-0">
+          <div
+            id="home-surface-panel-reminders"
+            role="tabpanel"
+            aria-label={showSurfaceTabs ? undefined : 'Reminders'}
+            aria-labelledby={showSurfaceTabs ? 'home-surface-tab-reminders' : undefined}
+            className="mt-4 min-h-0"
+          >
             <RemindersWidgetSkin
               sizeTier="L"
               reminders={reminders}
